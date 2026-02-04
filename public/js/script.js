@@ -72,14 +72,43 @@ if (typeof dataManager !== 'undefined') {
 // CORE PAGE FUNCTIONS
 // ================================
 
-// Global error handler for broken images (e.g. 403 Forbidden external links)
+// Global error handler for broken images/videos (e.g. DNS failure, 403 Forbidden)
 window.addEventListener('error', function (e) {
     if (e.target.tagName === 'IMG') {
         const src = e.target.src;
+        // Prevent infinite loops if fallback fails
+        if (e.target.dataset.fallbackApplied) return;
+        e.target.dataset.fallbackApplied = "true";
+
         if (src.includes('avatar')) {
             e.target.src = '/uploads/avatars/default.png';
+        } else if (src.includes('cloudinary.com')) {
+            // Specific placeholder for Cloudinary DNS/loading issues
+            e.target.style.background = '#f0f0f0';
+            e.target.src = 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000'; // Campus vibe
+            console.warn("Cloudinary image failed to load, using campus fallback");
         } else {
-            e.target.src = 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000'; // Default campus vibe image
+            e.target.src = 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000';
+        }
+    } else if (e.target.tagName === 'VIDEO') {
+        if (e.target.dataset.fallbackApplied) return;
+        e.target.dataset.fallbackApplied = "true";
+
+        console.warn("Video failed to load, showing placeholder:", e.target.src);
+
+        // Find parent and show a placeholder instead of just a black box
+        const container = e.target.parentElement;
+        if (container) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'video-error-placeholder';
+            placeholder.style.cssText = 'width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#1a1a1a; color:white; font-size:14px; text-align:center; padding:20px;';
+            placeholder.innerHTML = `
+                <i class="fas fa-video-slash" style="font-size:30px; margin-bottom:10px; color:#ff4757;"></i>
+                <div>Media unavailable</div>
+                <div style="font-size:10px; color:#888; margin-top:5px;">Please check your connection</div>
+            `;
+            e.target.style.display = 'none';
+            container.appendChild(placeholder);
         }
     }
 }, true);
@@ -1694,7 +1723,17 @@ function showAfterglowViewer(story) {
         };
         video.onerror = () => {
             console.error("Video failed to load:", mediaUrl);
-            startStoryTimer(5000);
+            const parent = video.parentElement;
+            if (parent) {
+                parent.innerHTML = `
+                    <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:white;">
+                        <i class="fas fa-exclamation-triangle" style="font-size:40px; color:#ff4757; margin-bottom:15px;"></i>
+                        <div style="font-weight:600;">Media Unavailable</div>
+                        <div style="font-size:12px; color:#888; margin-top:5px;">Check your internet connection</div>
+                    </div>
+                `;
+            }
+            startStoryTimer(3000); // Skip faster if it fails
         };
     } else {
         const img = document.createElement('img');

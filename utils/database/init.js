@@ -168,6 +168,30 @@ const initMessagesTable = async () => {
     }
 };
 
+const initStoriesTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS stories (
+                story_id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                media_url VARCHAR(500) NOT NULL,
+                media_type ENUM('image', 'video') NOT NULL,
+                caption TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP GENERATED ALWAYS AS (created_at + INTERVAL 24 HOUR) STORED,
+                views INT DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_expires_at (expires_at),
+                INDEX idx_user_created (user_id, created_at DESC)
+            )
+        `);
+        logger.info('✅ Stories table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init stories table:', err.message);
+        throw err;
+    }
+};
+
 const initDB = async () => {
     // Test connection first
     logger.info('Testing database connection...');
@@ -188,6 +212,7 @@ const initDB = async () => {
             await initUserInteractionsTables();
             await initMomentsTable();
             await initMessagesTable();
+            await initStoriesTable();
         });
         logger.info('✅ Database initialization complete');
     } catch (err) {

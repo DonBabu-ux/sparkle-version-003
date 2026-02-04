@@ -67,9 +67,20 @@ const getFeedPosts = async (req, res) => {
 
 const getStories = async (req, res) => {
     try {
-        // Fallback for missing stories model for now
-        // Eventually we should create a Story model
-        res.json([]);
+        const [stories] = await pool.query(`
+            SELECT 
+                s.*,
+                u.username,
+                u.name as user_name,
+                u.avatar_url,
+                (SELECT COUNT(*) FROM stories WHERE user_id = s.user_id AND created_at > NOW() - INTERVAL 24 HOUR) as user_story_count
+            FROM stories s
+            JOIN users u ON s.user_id = u.user_id
+            WHERE s.created_at > NOW() - INTERVAL 24 HOUR
+            ORDER BY s.created_at DESC
+            LIMIT 50
+        `);
+        res.json(stories);
     } catch (error) {
         logger.error('Get Stories Error:', error);
         res.status(500).json({ error: 'Failed to fetch stories' });

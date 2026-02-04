@@ -1,0 +1,147 @@
+<%- include('partials/head', { title: title }) %>
+    <%- include('partials/sidebar') %>
+
+        <div class="container" id="mainContent">
+            <%- include('partials/navbar') %>
+
+                <main class="single-post-container">
+                    <div class="back-nav">
+                        <a href="/dashboard"><i class="fas fa-arrow-left"></i> Back to Feed</a>
+                    </div>
+
+                    <div class="post-card" data-id="<%= post.post_id %>">
+                        <div class="post-header">
+                            <div class="post-avatar-wrapper">
+                                <a href="/profile/<%= post.user_id %>"
+                                    style="display: block; width: 100%; height: 100%;">
+                                    <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>"
+                                        alt="<%= post.user_name %>" class="post-avatar"
+                                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                                </a>
+                            </div>
+                            <div class="post-user-info">
+                                <div class="post-username"
+                                    onclick="window.location.href='/profile/<%= post.user_id %>'">
+                                    <%= post.user_name %>
+                                </div>
+                                <div class="post-campus">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <%= post.campus || 'Sparkle Campus' %>
+                                </div>
+                            </div>
+                            <div class="post-time">
+                                <%= new Date(post.created_at).toLocaleDateString() %>
+                            </div>
+                            <% if (user && user.user_id===post.user_id) { %>
+                                <button class="action-btn" style="margin-left: auto; color: #ff4757;"
+                                    title="Delete Post" onclick="deletePost(this, '<%= post.post_id %>')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                                <% } %>
+                        </div>
+
+                        <div class="post-content-area">
+                            <div class="post-caption" style="margin-bottom: 10px;">
+                                <span class="post-caption-username">
+                                    <%= post.user_name %>
+                                </span>
+                                <%= post.content %>
+                            </div>
+                        </div>
+
+                        <% if (post.media_url) { %>
+                            <div class="post-media-container">
+                                <% if (post.media_type==='video' || (typeof post.media_url==='string' &&
+                                    post.media_url.match(/\.(mp4|webm|ogg)$/i))) { %>
+                                    <video src="<%= post.media_url %>" controls class="post-media"></video>
+                                    <% } else { %>
+                                        <img src="<%= post.media_url %>" alt="Post media" class="post-media">
+                                        <% } %>
+                            </div>
+                            <% } %>
+
+                                <div class="post-actions" style="margin-top: auto;">
+                                    <div class="post-action-left">
+                                        <button class="action-btn spark-btn <%= post.user_has_liked ? 'active' : '' %>"
+                                            onclick="window.toggleSpark('<%= post.post_id %>', this)">
+                                            <i class="<%= post.user_has_liked ? 'fas' : 'far' %> fa-heart"></i>
+                                            <span class="spark-count">
+                                                <%= post.sparks || 0 %>
+                                            </span>
+                                        </button>
+                                        <button class="action-btn">
+                                            <i class="far fa-comment"></i>
+                                            <span class="spark-count">
+                                                <%= comments ? comments.length : 0 %>
+                                            </span>
+                                        </button>
+                                    </div>
+                                    <button class="action-btn" style="margin-left: auto;">
+                                        <i class="far fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                    </div>
+
+                    <div class="comments-section" style="margin-top: 20px;">
+                        <h3>Comments</h3>
+
+                        <!-- Comment Input -->
+                        <div class="comment-input-area" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                                style="width: 32px; height: 32px; border-radius: 50%;"
+                                onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                            <input type="text" id="newCommentInput" placeholder="Add a comment..."
+                                style="flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd;">
+                            <button class="btn btn-primary" onclick="submitComment('<%= post.post_id %>')">Post</button>
+                        </div>
+
+                        <% if (!comments || comments.length===0) { %>
+                            <p style="color: #666;" id="noCommentsMsg">No comments yet. Be the first to spark a
+                                conversation!</p>
+                            <div class="comments-list" id="commentsList"></div>
+                            <% } else { %>
+                                <div class="comments-list" id="commentsList">
+                                    <% comments.forEach(comment=> { %>
+                                        <div class="comment-item"
+                                            style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                            <img src="<%= comment.avatar_url || '/uploads/avatars/default.png' %>"
+                                                style="width: 32px; height: 32px; border-radius: 50%;">
+                                            <div class="comment-content">
+                                                <strong>
+                                                    <%= comment.username %>
+                                                </strong>
+                                                <span style="color: #333;">
+                                                    <%= comment.content %>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <% }) %>
+                                </div>
+                                <% } %>
+                    </div>
+                </main>
+        </div>
+
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+        <script src="/js/dashboardAPI.js"></script>
+        <script src="/js/script.js"></script>
+        <script src="/js/dynamicPatch.js"></script>
+        <script>
+            // Simple comment submission logic for this view
+            async function submitComment(postId) {
+                const input = document.getElementById('newCommentInput');
+                const content = input.value.trim();
+                if (!content) return;
+
+                try {
+                    await DashboardAPI.postComment(postId, content);
+                    window.location.reload();
+                } catch (e) {
+                    console.error(e);
+                    alert('Failed to post comment');
+                }
+            }
+        </script>
+        </body>
+
+        </html>

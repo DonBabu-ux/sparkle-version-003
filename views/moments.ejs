@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Sparkle - Moments</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
+    <style>
+        :root {
+            --moment-bg: #000;
+            --moment-text: #fff;
+            --moment-primary: #FF3D6D;
+            --moment-glass: rgba(255, 255, 255, 0.15);
+        }
+
+        body.moments-page-body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .moments-container {
+            position: relative;
+            height: 100vh;
+            width: 100vw;
+            max-width: 500px;
+            margin: 0 auto;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .moments-scroller {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .moments-scroller::-webkit-scrollbar {
+            display: none;
+        }
+
+        .moment-card {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        .video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .sparkle-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* UI Overlays */
+        .ui-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+            z-index: 2;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            pointer-events: none;
+        }
+
+        .ui-overlay>* {
+            pointer-events: auto;
+        }
+
+        .user-info {
+            margin-bottom: 70px;
+        }
+
+        .user-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .avatar-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .name-box h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .name-box p {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        .caption {
+            font-size: 15px;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            opacity: 0.95;
+            max-width: 80%;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            font-weight: 600;
+            color: var(--moment-primary);
+            border-radius: 4px;
+        }
+
+        /* Side Actions */
+        .side-actions {
+            position: absolute;
+            right: 12px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            z-index: 3;
+        }
+
+        .action-btn-circle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .action-btn-circle:active {
+            transform: scale(0.9);
+        }
+
+        .icon-circle {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .liked .icon-circle {
+            color: #ff3d6d !important;
+            background: rgba(255, 61, 109, 0.2);
+            border-color: #ff3d6d;
+        }
+
+        .count-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            color: #fff;
+        }
+
+        /* Header */
+        .moments-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .moments-header>* {
+            pointer-events: auto;
+        }
+
+        .moments-logo {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--moment-glass);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        /* Nav */
+        .bottom-nav-moments {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .nav-item-moments {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 10px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .nav-item-moments.active {
+            color: #fff;
+        }
+
+        .nav-item-moments i {
+            font-size: 20px;
+        }
+
+        .center-add-moment {
+            width: 45px;
+            height: 30px;
+            background: #fff;
+            color: #000;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Loading Screen */
+        .loading-screen-immersive {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+
+        .sparkle-loader {
+            text-align: center;
+        }
+
+        .spinner-immersive {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 61, 109, 0.3);
+            border-top: 4px solid #ff3d6d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Double Tap Heart Animation */
+        .tap-heart {
+            position: fixed;
+            font-size: 100px;
+            color: #ff3d6d;
+            pointer-events: none;
+            z-index: 1000;
+            animation: heartPop 0.8s ease-out forwards;
+        }
+
+        @keyframes heartPop {
+            0% {
+                transform: scale(0) rotate(-20deg);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.2) rotate(10deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 0;
+                margin-top: -100px;
+            }
+        }
+    </style>
+</head>
+
+<body class="moments-page-body">
+    <div class="moments-container">
+        <!-- Vertical scroll container for TikTok-like experience -->
+        <div class="moments-scroller" id="mainFeed">
+            <!-- Moments injected here via JS -->
+        </div>
+
+        <!-- Global UI Overlays -->
+        <div class="loading-screen-immersive" id="loadingScreen">
+            <div class="sparkle-loader">
+                <div class="spinner-immersive"></div>
+                <p style="font-weight: 800; letter-spacing: 1px; color: #fff;">SPARKLE</p>
+            </div>
+        </div>
+
+        <!-- Floating Top Header -->
+        <div class="moments-header">
+            <div class="moments-logo">SPARKLE</div>
+            <div class="header-actions">
+                <div class="icon-btn" onclick="toggleGlobalSound()" id="soundToggle">
+                    <i class="fas fa-volume-mute"></i>
+                </div>
+                <div class="icon-btn" onclick="location.href='/dashboard'">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav-moments">
+            <a href="/dashboard" class="nav-item-moments">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="/connect" class="nav-item-moments">
+                <i class="fas fa-search"></i>
+                <span>Discover</span>
+            </a>
+            <div class="nav-item-moments active" onclick="location.href='/moments'">
+                <div class="center-add-moment"><i class="fas fa-plus"></i></div>
+            </div>
+            <a href="/messages" class="nav-item-moments">
+                <i class="fas fa-comment"></i>
+                <span>Chats</span>
+            </a>
+            <a href="/profile" class="nav-item-moments">
+                <i class="fas fa-user"></i>
+                <span>Me</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Using Base64 to pass data ensures that auto-formatters won't mangle the EJS tags or the JSON content.
+        const moments = JSON.parse(atob("<%- Buffer.from(JSON.stringify(initialMoments || [])).toString('base64') %>"));
+        const user = JSON.parse(atob("<%- Buffer.from(JSON.stringify(user || {})).toString('base64') %>"));
+        let isMuted = true;
+        let observer;
+
+        function init() {
+            renderFeed();
+            setupObserver();
+
+            // Hide loading screen
+            setTimeout(() => {
+                const ls = document.getElementById('loadingScreen');
+                if (ls) ls.style.opacity = '0';
+                setTimeout(() => ls && ls.remove(), 500);
+            }, 1200);
+        }
+
+        function renderFeed() {
+            const feed = document.getElementById('mainFeed');
+            if (!moments || moments.length === 0) {
+                feed.innerHTML = `
+                    <div class="moment-card" style="padding: 40px; text-align: center;">
+                        <div style="background: rgba(255,255,255,0.05); padding: 50px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);">
+                            <i class="fas fa-video-slash" style="font-size: 60px; color: #ff3d6d; margin-bottom: 25px;"></i>
+                            <h2 style="font-weight: 800; margin-bottom: 10px;">No Moments Yet</h2>
+                            <p style="opacity: 0.6; margin-bottom: 30px;">Be the first one to light up the campus! Share your first moment.</p>
+                            <button onclick="location.href='/dashboard'" style="width: 100%; padding: 16px; border-radius: 15px; border: none; background: #fff; color: #000; font-weight: 800; cursor: pointer;">Go To Dashboard</button>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            feed.innerHTML = moments.map((m, i) => createMomentHTML(m, i)).join('');
+        }
+
+        function createMomentHTML(m, i) {
+            const videoSrc = m.video_url || m.media_url;
+            const tags = m.caption ? (m.caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
+            const cleanCaption = m.caption ? m.caption.replace(/#[a-zA-Z0-9_]+/g, '').trim() : '';
+            const avatar = m.avatar_url || '/uploads/avatars/default.png';
+
+            return `
+                <div class="moment-card" data-id="${m.moment_id}">
+                    <div class="video-container" id="container-${m.moment_id}" ondblclick="handleDoubleTap(event, '${m.moment_id}')" onclick="togglePlay('${m.moment_id}')">
+                        <video class="sparkle-video" loop playsinline muted="${isMuted}" preload="auto">
+                            <source src="${videoSrc}" type="video/mp4">
+                        </video>
+                    </div>
+
+                    <div class="ui-overlay">
+                        <div class="user-info">
+                            <div class="user-meta" onclick="location.href='/profile/${m.username}'">
+                                <div class="avatar-circle">
+                                    <img src="${avatar}" alt="${m.user_name}">
+                                </div>
+                                <div class="name-box">
+                                    <h3>${m.user_name || 'Sparkle User'}</h3>
+                                    <p>@${m.username}</p>
+                                </div>
+                            </div>
+                            <div class="caption">${cleanCaption}</div>
+                            <div class="tags">
+                                ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="side-actions">
+                        <div class="action-btn-circle" onclick="toggleLike('${m.moment_id}')">
+                            <div class="icon-circle"><i class="fas fa-heart"></i></div>
+                            <span class="count-label">${formatCount(m.likes || 0)}</span>
+                        </div>
+                        <div class="action-btn-circle" onclick="openComments('${m.moment_id}')">
+                            <div class="icon-circle"><i class="fas fa-comment"></i></div>
+                            <span class="count-label">${formatCount(m.comments || 0)}</span>
+                        </div>
+                        <div class="action-btn-circle" onclick="shareMoment('${m.moment_id}')">
+                            <div class="icon-circle"><i class="fas fa-paper-plane"></i></div>
+                            <span class="count-label">${formatCount(m.shares || 0)}</span>
+                        </div>
+                        <div class="action-btn-circle" onclick="saveMoment('${m.moment_id}')">
+                            <div class="icon-circle"><i class="fas fa-bookmark"></i></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setupObserver() {
+            const options = { threshold: 0.6 };
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target.querySelector('video');
+                    if (entry.isIntersecting) {
+                        video.play().catch(e => console.log("Auto-play blocked:", e));
+                    } else {
+                        video.pause();
+                        video.currentTime = 0;
+                    }
+                });
+            }, options);
+
+            document.querySelectorAll('.moment-card').forEach(card => observer.observe(card));
+        }
+
+        function togglePlay(id) {
+            const video = document.querySelector(`[data-id="${id}"] video`);
+            if (video.paused) video.play();
+            else video.pause();
+        }
+
+        function toggleGlobalSound() {
+            isMuted = !isMuted;
+            const icon = document.querySelector('#soundToggle i');
+            icon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+            document.querySelectorAll('video').forEach(v => v.muted = isMuted);
+        }
+
+        function handleDoubleTap(e, id) {
+            const heart = document.createElement('i');
+            heart.className = 'fas fa-heart tap-heart';
+            heart.style.left = `${e.clientX - 50}px`;
+            heart.style.top = `${e.clientY - 50}px`;
+            document.body.appendChild(heart);
+            setTimeout(() => heart.remove(), 800);
+
+            toggleLike(id, true);
+        }
+
+        function toggleLike(id, forceLike = false) {
+            const card = document.querySelector(`[data-id="${id}"]`);
+            if (!card) return;
+            const btn = card.querySelector('.action-btn-circle:first-child');
+            const isLiked = btn.classList.contains('liked');
+
+            if (forceLike && isLiked) return;
+
+            btn.classList.toggle('liked', forceLike || !isLiked);
+
+            // API call would go here
+        }
+
+        function formatCount(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num;
+        }
+
+        function openComments(id) { alert('Comments coming soon!'); }
+        function shareMoment(id) {
+            navigator.clipboard.writeText(window.location.origin + '/moments/' + id);
+            alert('Link copied to clipboard!');
+        }
+        function saveMoment(id) { alert('Moment saved to collection!'); }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,94 @@
+<%- include('partials/head', { title: 'Campus Events' }) %>
+
+
+    <body>
+        <%- include('partials/sidebar') %>
+
+            <!-- Main Content Container -->
+            <div class="container" id="mainContent">
+                <div id="eventsPage" class="page active">
+                    <div class="header glass">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="hamburger-btn" onclick="window.location.href='/dashboard'">
+                                <i class="fas fa-chevron-left"></i>
+                            </div>
+                            <div class="logo-text">Campus Events</div>
+                        </div>
+                    </div>
+
+                    <div class="premium-tabs">
+                        <button class="premium-tab-btn active" onclick="window.location.href='/events?campus=all'">All
+                            Campuses</button>
+                        <% if (user.campus) { %>
+                            <button class="premium-tab-btn"
+                                onclick="window.location.href='/events?campus=<%= user.campus %>'">My Campus</button>
+                            <% } %>
+                    </div>
+
+                    <div class="discover-grid" id="eventsContent" style="padding-bottom: 80px;">
+                        <% if (typeof initialEvents !=='undefined' && initialEvents.length> 0) { %>
+                            <% initialEvents.forEach(event=> { %>
+                                <div class="discover-card" onclick="viewEventDetails('<%= event.event_id %>')">
+                                    <div class="discover-card-banner">
+                                        <img src="<%= event.image_url || 'https://images.unsplash.com/photo-1540575861501-7ad058c639fd?w=800' %>"
+                                            alt="<%= event.title %>">
+                                        <div class="discover-card-badge"
+                                            style="background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);">
+                                            <%= event.campus || 'Campus' %>
+                                        </div>
+                                    </div>
+                                    <div class="discover-card-content">
+                                        <div class="discover-card-category">Event</div>
+                                        <h3 class="discover-card-name">
+                                            <%= event.title %>
+                                        </h3>
+
+                                        <div style="margin: 10px 0;">
+                                            <div
+                                                style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                                                <i class="far fa-clock" style="color: var(--primary);"></i>
+                                                <%= new Date(event.start_time).toLocaleString('en-US', { month: 'short'
+                                                    , day: 'numeric' , hour: 'numeric' , minute: '2-digit' }) %>
+                                            </div>
+                                            <div
+                                                style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                                                <i class="fas fa-map-marker-alt" style="color: var(--primary);"></i>
+                                                <%= event.location %>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            style="display: flex; align-items: center; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
+                                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                                Hosted by <strong>
+                                                    <%= event.creator_name %>
+                                                </strong>
+                                            </div>
+                                            <div style="font-size: 12px; font-weight: 700; color: var(--primary);">
+                                                RSVP <i class="fas fa-arrow-right" style="font-size: 10px;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }); %>
+                                    <% } else { %>
+                                        <div class="discover-empty-state">
+                                            <i class="fas fa-calendar-times"></i>
+                                            <h4>No upcoming events found</h4>
+                                            <p>Host an event to get the party started!</p>
+                                        </div>
+                                        <% } %>
+                    </div>
+
+                    <button class="fab-btn" onclick="openEventModal()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modals -->
+            <%- include('partials/dashboard-modals') %>
+                    <script src="/js/dashboardAPI.js"></script>
+    </body>
+
+    </html>

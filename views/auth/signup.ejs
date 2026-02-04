@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up | Sparkle</title>
+    <script>
+        // Immediate Background Auth Check
+        (function () {
+            function hasToken() {
+                try {
+                    if (document.cookie.includes('sparkleToken=')) {
+                        const cookies = document.cookie.split(';');
+                        for (let cookie of cookies) {
+                            const [name, value] = cookie.trim().split('=');
+                            if (name === 'sparkleToken' && value && value !== 'undefined') return true;
+                        }
+                    }
+                    const token = localStorage.getItem('sparkleToken');
+                    return !!(token && token !== 'undefined');
+                } catch (e) { return false; }
+            }
+            if (hasToken()) {
+                window.location.replace('/dashboard');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #FAFAFA;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            opacity: 0;
+            animation: pageFadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes pageFadeIn {
+            from {
+                opacity: 0;
+                background-color: #ffe6f0;
+            }
+
+            to {
+                opacity: 1;
+                background-color: #FAFAFA;
+            }
+        }
+
+        .auth-container {
+            display: flex;
+            max-width: 1100px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .visual-side {
+            flex: 1;
+            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
+            padding: 60px 40px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .auth-logo-container {
+            margin-bottom: 40px;
+        }
+
+        .auth-logo {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .auth-tagline {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.5;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 12px 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .features-list i {
+            font-size: 20px;
+        }
+
+        .form-side {
+            flex: 1.2;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .progress-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 32px;
+            gap: 8px;
+        }
+
+        .step {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #999;
+            transition: all 0.3s;
+        }
+
+        .step.active {
+            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
+            border-color: #FF3D6D;
+            color: white;
+        }
+
+        .step.completed {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            color: #4caf50;
+        }
+
+        .step-line {
+            width: 40px;
+            height: 2px;
+            background: #ddd;
+            transition: all 0.3s;
+        }
+
+        .step-line.completed {
+            background: #4caf50;
+        }
+
+        .form-panels {
+            position: relative;
+            flex: 1;
+            min-height: 450px;
+        }
+
+        .form-panel {
+            position: absolute;
+            width: 100%;
+            opacity: 0;
+            transform: translateX(50px);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-panel.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: all;
+            position: relative;
+        }
+
+        .form-panel.previous {
+            transform: translateX(-50px);
+        }
+
+        .panel-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .panel-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #262626;
+            margin-bottom: 8px;
+        }
+
+        .panel-subtitle {
+            color: #8E8E8E;
+            font-size: 14px;
+        }
+
+        .auth-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .auth-message.show {
+            display: block;
+        }
+
+        .auth-message.error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .auth-message.success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+
+        .auth-form-group {
+            margin-bottom: 16px;
+        }
+
+        .auth-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #262626;
+            font-size: 14px;
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8E8E8E;
+        }
+
+        .auth-input,
+        .auth-select {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 1px solid #DBDBDB;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .auth-select {
+            padding-left: 12px;
+        }
+
+        .auth-input:focus,
+        .auth-select:focus {
+            outline: none;
+            border-color: #FF3D6D;
+        }
+
+        .btn-auth-primary {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .btn-auth-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-auth-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-auth-secondary {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: #262626;
+            border: 1px solid #DBDBDB;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-auth-secondary:hover {
+            background: #f9f9f9;
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            color: #8E8E8E;
+            font-size: 13px;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #DBDBDB;
+        }
+
+        .auth-divider span {
+            padding: 0 16px;
+        }
+
+        .social-login {
+            margin-bottom: 16px;
+        }
+
+        .social-btn {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #DBDBDB;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .social-btn:hover {
+            background: #f9f9f9;
+        }
+
+        .social-icon {
+            font-size: 18px;
+        }
+
+        .google-icon {
+            color: #4285f4;
+        }
+
+        .auth-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 14px;
+            color: #8E8E8E;
+        }
+
+        .auth-link a {
+            color: #FF3D6D;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+            }
+
+            .visual-side {
+                padding: 40px 20px;
+            }
+
+            .form-side {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        <!-- Left Side: Visual/Image -->
+        <div class="visual-side">
+            <div class="auth-logo-container">
+                <div class="auth-logo">Sparkle</div>
+                <p class="auth-tagline">Sign up to see photos and videos from your friends.</p>
+            </div>
+
+            <ul class="features-list">
+                <li><i class="fas fa-user-friends"></i> Connect with friends</li>
+                <li><i class="fas fa-camera"></i> Share photos and videos</li>
+                <li><i class="fas fa-heart"></i> Like and comment on posts</li>
+                <li><i class="fas fa-lock"></i> Private account options</li>
+            </ul>
+        </div>
+
+        <!-- Right Side: Form -->
+        <div class="form-side">
+            <!-- Progress Bar -->
+            <div class="progress-bar">
+                <div class="step active description" id="step-1">1</div>
+                <div class="step-line" id="line-1"></div>
+                <div class="step" id="step-2">2</div>
+                <div class="step-line" id="line-2"></div>
+                <div class="step" id="step-3">3</div>
+                <div class="step-line" id="line-3"></div>
+                <div class="step" id="step-4">4</div>
+            </div>
+
+            <!-- Form Panels Container -->
+            <div class="form-panels">
+                <!-- Panel 1: Welcome & Login Options -->
+                <div class="form-panel active" id="panel-1">
+                    <div class="panel-header">
+                        <h1 class="panel-title">Welcome to Sparkle</h1>
+                        <p class="panel-subtitle">Create an account or log in with your options below.</p>
+                    </div>
+
+                    <div id="panel1-message" class="auth-message"></div>
+
+                    <div class="social-login">
+                        <button class="social-btn google" id="google-login">
+                            <i class="fab fa-google social-icon google-icon"></i>
+                            Continue with Google
+                        </button>
+                    </div>
+
+                    <div class="auth-divider"><span>OR</span></div>
+
+                    <button class="btn-auth-primary" id="start-signup">
+                        <i class="fas fa-envelope"></i> Sign up with email or phone
+                    </button>
+
+                    <div class="auth-link">
+                        Have an account? <a href="/login">Log in</a>
+                    </div>
+                </div>
+
+                <!-- Panel 2: Basic Information -->
+                <div class="form-panel" id="panel-2">
+                    <div class="panel-header">
+                        <h1 class="panel-title">Basic Information</h1>
+                        <p class="panel-subtitle">Tell us a little about yourself.</p>
+                    </div>
+
+                    <div id="panel2-message" class="auth-message"></div>
+
+                    <form id="basic-info-form">
+                        <div class="auth-form-group">
+                            <label class="auth-label" for="full-name">Full Name</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-user input-icon"></i>
+                                <input type="text" id="full-name" class="auth-input" placeholder="Enter your full name"
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="auth-form-group">
+                            <label class="auth-label" for="username">Username</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-at input-icon"></i>
+                                <input type="text" id="username" class="auth-input" placeholder="Choose a username"
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="auth-form-group">
+                            <label class="auth-label" for="email">Email Address</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input type="email" id="email" class="auth-input" placeholder="Enter your email"
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="auth-form-group">
+                            <label class="auth-label" for="password">Password</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-lock input-icon"></i>
+                                <input type="password" id="password" class="auth-input" placeholder="Create a password"
+                                    required>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-auth-primary" id="next-to-profile">Continue</button>
+                        <button type="button" class="btn-auth-secondary" id="back-to-welcome">Back</button>
+                    </form>
+                </div>
+
+                <!-- Panel 3: Profile & Details -->
+                <div class="form-panel" id="panel-3">
+                    <div class="panel-header">
+                        <h1 class="panel-title">Profile & Details</h1>
+                        <p class="panel-subtitle">Add details to help friends find you.</p>
+                    </div>
+
+                    <div id="panel3-message" class="auth-message"></div>
+
+                    <div class="auth-form-group">
+                        <label class="auth-label" for="campus">Campus/University</label>
+                        <select id="campus" class="auth-select" required>
+                            <option value="">Select your campus</option>
+                            <option value="Karatina University">KARU</option>
+                            <option value="Chuka University">Chuka University</option>
+                            <option value="Dedan Kimathi University">DeKuT</option>
+                            <option value="Mount Kenya University">MKU</option>
+                            <option value="Murang'a University">MUT</option>
+                            <option value="Pwani University">Pwani University</option>
+                            <option value="Mount Media University">M.M.U</option>
+                            <option value="University of Nairobi">UoN</option>
+                            <option value="Other">Other University</option>
+                        </select>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <label class="auth-label" for="major">Major/Field of Study</label>
+                        <select id="major" class="auth-select" required>
+                            <option value="">Select your major</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Business Administration">Business Administration</option>
+                            <option value="Medicine">Medicine</option>
+                            <option value="Engineering">Engineering</option>
+                            <option value="Arts & Humanities">Arts & Humanities</option>
+                            <option value="Law">Law</option>
+                            <option value="Social Sciences">Social Sciences</option>
+                            <option value="Natural Sciences">Natural Sciences</option>
+                            <option value="Undeclared">Undeclared</option>
+                        </select>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <label class="auth-label" for="year">Academic Year</label>
+                        <select id="year" class="auth-select" required>
+                            <option value="">Select your year</option>
+                            <option value="Freshman">Freshman</option>
+                            <option value="Sophomore">Second Year</option>
+                            <option value="Junior">Third Year</option>
+                            <option value="Senior">Fourth Year</option>
+                            <option value="Graduate">Graduate Student</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn-auth-primary" id="next-to-final">Continue</button>
+                    <button type="button" class="btn-auth-secondary" id="back-to-basic">Back</button>
+                </div>
+
+                <!-- Panel 4: Final Step & Account Creation -->
+                <div class="form-panel" id="panel-4">
+                    <div class="panel-header">
+                        <h1 class="panel-title">Complete Your Signup</h1>
+                        <p class="panel-subtitle">Review your information and create your account.</p>
+                    </div>
+
+                    <div id="panel4-message" class="auth-message"></div>
+
+                    <div class="auth-form-group">
+                        <div style="background-color: #FAFAFA; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                            <h3 style="font-size: 16px; margin-bottom: 15px; color: #262626;">Account
+                                Summary</h3>
+                            <div id="account-summary"
+                                style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <div style="display: flex; align-items: flex-start;">
+                            <input type="checkbox" id="terms" style="margin-top: 4px; margin-right: 10px;" required>
+                            <label for="terms" style="font-size: 14px; color: #262626;">
+                                I agree to Sparkle's <a href="/legal" style="color: #0095F6;">Terms</a>
+                                and <a href="/legal" style="color: #0095F6;">Privacy Policy</a>.
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-auth-primary" id="create-account">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                    <button type="button" class="btn-auth-secondary" id="back-to-profile">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Script -->
+    <script src="/js/authAPI.js"></script>
+
+    <script>
+        // App State
+        const appState = {
+            currentStep: 1,
+            totalSteps: 4,
+            userData: {},
+            isTransitioning: false
+        };
+
+        const panels = {
+            1: document.getElementById('panel-1'),
+            2: document.getElementById('panel-2'),
+            3: document.getElementById('panel-3'),
+            4: document.getElementById('panel-4')
+        };
+
+        const steps = {
+            1: document.getElementById('step-1'),
+            2: document.getElementById('step-2'),
+            3: document.getElementById('step-3'),
+            4: document.getElementById('step-4')
+        };
+
+        const stepLines = {
+            1: document.getElementById('line-1'),
+            2: document.getElementById('line-2'),
+            3: document.getElementById('line-3')
+        };
+
+        // Navigation
+        function goToStep(step) {
+            if (appState.isTransitioning) return;
+            appState.isTransitioning = true;
+
+            const currentPanel = panels[appState.currentStep];
+            const nextPanel = panels[step];
+
+            // Update UI
+            updateProgressBar(step);
+
+            currentPanel.classList.add('previous');
+            currentPanel.classList.remove('active');
+
+            setTimeout(() => {
+                nextPanel.classList.add('active');
+                nextPanel.classList.remove('previous');
+                appState.currentStep = step;
+
+                setTimeout(() => {
+                    appState.isTransitioning = false;
+                }, 500);
+            }, 50);
+        }
+
+        function updateProgressBar(step) {
+            for (let i = 1; i <= 4; i++) {
+                steps[i].classList.remove('active', 'completed');
+                if (stepLines[i]) stepLines[i].classList.remove('completed');
+            }
+            steps[step].classList.add('active');
+            for (let i = 1; i < step; i++) {
+                steps[i].classList.add('completed');
+                if (stepLines[i]) stepLines[i].classList.add('completed');
+            }
+        }
+
+        // Helpers
+        function showMessage(panelId, msg, type) {
+            const el = document.getElementById(panelId + '-message');
+            el.textContent = msg;
+            el.className = `auth-message ${type} show`;
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Step 1
+            document.getElementById('start-signup').addEventListener('click', () => goToStep(2));
+            document.getElementById('google-login').addEventListener('click', () => {
+                showMessage('panel1', 'Google Login not configured for local dev yet.', 'error');
+            });
+
+            // Step 2
+            document.getElementById('next-to-profile').addEventListener('click', () => {
+                const name = document.getElementById('full-name').value;
+                const user = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
+                const pass = document.getElementById('password').value;
+
+                if (!name || !user || !email || !pass) {
+                    showMessage('panel2', 'Please fill in all fields.', 'error');
+                    return;
+                }
+
+                appState.userData = { ...appState.userData, name, username: user, email, password: pass };
+                goToStep(3);
+            });
+            document.getElementById('back-to-welcome').addEventListener('click', () => goToStep(1));
+
+            // Step 3
+            document.getElementById('next-to-final').addEventListener('click', () => {
+                const campus = document.getElementById('campus').value;
+                const major = document.getElementById('major').value;
+                const year = document.getElementById('year').value;
+
+                if (!campus || !major || !year) {
+                    showMessage('panel3', 'Please select all academic details.', 'error');
+                    return;
+                }
+
+                appState.userData = { ...appState.userData, campus, major, year };
+                updateSummary();
+                goToStep(4);
+            });
+            document.getElementById('back-to-basic').addEventListener('click', () => goToStep(2));
+
+            // Step 4
+            document.getElementById('create-account').addEventListener('click', async () => {
+                if (!document.getElementById('terms').checked) {
+                    showMessage('panel4', 'Please agree to terms.', 'error');
+                    return;
+                }
+
+                const btn = document.getElementById('create-account');
+                const origText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+                btn.disabled = true;
+
+                try {
+                    await AuthAPI.signup(appState.userData);
+                    showMessage('panel4', 'Account created! Redirecting...', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
+                } catch (err) {
+                    showMessage('panel4', err.message, 'error');
+                    btn.innerHTML = origText;
+                    btn.disabled = false;
+                }
+            });
+            document.getElementById('back-to-profile').addEventListener('click', () => goToStep(3));
+        });
+
+        function updateSummary() {
+            const div = document.getElementById('account-summary');
+            const u = appState.userData;
+            div.innerHTML = `
+                <div style="color: #8E8E8E;">Name:</div><div>${u.name}</div>
+                <div style="color: #8E8E8E;">Username:</div><div>@${u.username}</div>
+                <div style="color: #8E8E8E;">Email:</div><div>${u.email}</div>
+                <div style="color: #8E8E8E;">Campus:</div><div>${u.campus}</div>
+            `;
+        }
+    </script>
+</body>
+
+</html>

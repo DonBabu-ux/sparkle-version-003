@@ -1,0 +1,173 @@
+<%- include('partials/head', { title: 'Dashboard' }) %>
+
+    <style>
+        body {
+            opacity: 0;
+            animation: pageFadeIn 0.4s ease-out forwards;
+            background-color: #f0f2f5;
+        }
+
+        @keyframes pageFadeIn {
+            from {
+                opacity: 0;
+                background-color: #ffe6f0;
+            }
+
+            to {
+                opacity: 1;
+                background-color: #f0f2f5;
+            }
+        }
+    </style>
+
+    <%- include('partials/sidebar') %>
+
+        <!-- Main Content Container -->
+        <div class="container" id="mainContent">
+            <!-- Home Page (Default) -->
+            <div id="homePage" class="page active">
+                <%- include('partials/navbar') %>
+
+                    <!-- AfterGlow Stories Section -->
+                    <div class="afterglow-section">
+                        <div class="afterglow-header">
+                            <div class="afterglow-title">
+                                <i class="fas fa-sun" style="color: #FFD700;"></i>
+                                AfterGlow
+                                <span class="vanish-timer" id="vanishTimer">
+                                    <i class="fas fa-clock"></i>
+                                    <span id="hoursTillVanish">24</span>hrs till vanish
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Stories Container -->
+                        <div class="stories-container" id="afterglowStories">
+                            <!-- Create Story -->
+                            <div class="story-create-card" onclick="window.showCreateOptions()">
+                                <div class="story-nav-area left" onclick="nextStory()"></div>
+                                <div class="story-nav-area right" onclick="prevStory()"></div>
+                                <div class="story-create-inner">
+                                    <div class="story-create-avatar-container">
+                                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                                            alt="Your Story" class="story-create-avatar"
+                                            onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                                        <div class="story-create-ring"></div>
+                                        <div class="story-create-plus">
+                                            <i class="fas fa-plus"></i>
+                                        </div>
+                                    </div>
+                                    <div class="story-create-label">Create AfterGlow</div>
+                                </div>
+                            </div>
+                            <!-- Real Stories load here -->
+                        </div>
+                    </div>
+
+                    <!-- Posts Feed -->
+                    <div class="posts-feed" id="feed" style="margin-top: 20px;">
+                        <div style="text-align:center; padding: 40px; color: #999;">
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            <p style="margin-top: 10px;">Sparking your feed...</p>
+                        </div>
+                    </div>
+            </div> <!-- End of homePage -->
+        </div> <!-- End of mainContent -->
+
+        <!-- AfterGlow Viewer Modal -->
+        <div id="afterglowViewer" class="afterglow-viewer-modal" style="display: none;">
+            <div class="afterglow-viewer-header">
+                <div class="viewer-author-info">
+                    <img id="viewerAvatar" src="" alt="Avatar" class="viewer-avatar"
+                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                    <div class="viewer-author-details">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div id="viewerUsername" class="viewer-username"></div>
+                            <span id="viewerCampus"
+                                style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; color: white;"></span>
+                        </div>
+                        <div id="viewerTime" class="viewer-time"></div>
+                    </div>
+                </div>
+                <div class="viewer-controls">
+                    <button class="viewer-btn viewer-close-btn" onclick="closeAfterglowViewer()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="afterglow-viewer-content" onmousedown="pauseStory()" onmouseup="resumeStory()"
+                onmouseleave="resumeStory()" ontouchstart="pauseStory()" ontouchend="resumeStory()">
+                <div id="viewerMedia" class="viewer-media">
+                    <!-- Media will be loaded here -->
+                </div>
+                <div id="viewerCaption" class="afterglow-caption"></div>
+
+                <!-- Desktop Navigation Arrows -->
+                <button class="desktop-nav-btn prev" onclick="nextStory()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="desktop-nav-btn next" onclick="prevStory()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
+                <div class="viewer-actions">
+                    <button class="viewer-action-btn" onclick="sparkAfterglow()">
+                        <i class="fas fa-bolt"></i>
+                        <span>Spark</span>
+                    </button>
+                    <button class="viewer-action-btn" onclick="shareAfterglow()">
+                        <i class="fas fa-share"></i>
+                        <span>Share</span>
+                    </button>
+                    <button class="viewer-action-btn" onclick="saveAfterglow()">
+                        <i class="far fa-bookmark"></i>
+                        <span>Save</span>
+                    </button>
+                    <button class="viewer-action-btn" onclick="replyToAfterglow()">
+                        <i class="far fa-comment"></i>
+                        <span>Reply</span>
+                    </button>
+                </div>
+
+                <div class="viewer-stats">
+                    <span class="viewer-stat">
+                        <i class="fas fa-eye"></i>
+                        <span id="viewCount">0</span> views
+                    </span>
+                    <span class="viewer-stat">
+                        <i class="fas fa-bolt" style="color: #e91e63;"></i>
+                        <span id="sparkCount">0</span> sparks
+                    </span>
+                    <span class="viewer-stat">
+                        <i class="fas fa-share" style="color: #4caf50;"></i>
+                        <span id="shareCount">0</span> shares
+                    </span>
+                </div>
+            </div>
+
+            <div class="afterglow-progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+
+
+        <script>
+            // Dynamic AfterGlow implementation
+
+
+        </script>
+
+        <!-- Modals and other dashboard-specific components -->
+        <%- include('partials/dashboard-modals') %>
+
+            <%- include('partials/bottom-nav') %>
+
+                <script src="/js/dataManager.js"></script>
+                <script src="/js/apiClient.js"></script>
+                <script src="/js/dashboardAPI.js"></script>
+                <script src="/js/script.js"></script>
+                <script src="/js/dynamicPatch.js"></script>
+                </body>
+
+                </html>

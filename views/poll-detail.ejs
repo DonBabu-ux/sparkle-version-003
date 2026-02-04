@@ -1,0 +1,108 @@
+<%- include('partials/head', { title: 'Marketplace' }) %>
+
+    <body>
+        <%- include('partials/sidebar') %>
+
+            <!-- Main Content Container -->
+            <div class="container" id="mainContent">
+                <!-- Header -->
+                <div class="header glass">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div class="hamburger-btn" onclick="window.location.href='/polls'" style="cursor:pointer;">
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                        <div style="font-weight: 700; font-size: 18px;">Poll Details</div>
+                    </div>
+                </div>
+
+                <div class="polls-grid" id="pollsContent" style="padding-bottom: 80px;">
+                    <% if (typeof poll !=='undefined' && poll) { %>
+                        <div class="poll-card"
+                            style="background: white; border-radius: 20px; padding: 24px; box-shadow: var(--shadow);">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                                <div>
+                                    <h3
+                                        style="margin: 0 0 8px 0; font-size: 20px; font-weight: 800; color: var(--text-light);">
+                                        <%= poll.question %>
+                                    </h3>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">
+                                        Asked by <%= poll.is_anonymous ? 'Anonymous' : (poll.creator_name || '@' +
+                                            poll.username) %> •
+                                            <%= new Date(poll.created_at).toLocaleDateString() %>
+                                    </div>
+                                </div>
+                                <div class="poll-card-votes-badge"
+                                    style="background: var(--primary-gradient); color: white; padding: 6px 12px; border-radius: 12px; font-weight: 700; font-size: 12px;">
+                                    <%= poll.total_votes || 0 %> votes
+                                </div>
+                            </div>
+
+                            <div class="poll-options">
+                                <% if (poll.options && poll.options.length> 0) { %>
+                                    <% poll.options.forEach(opt=> {
+                                        const percentage = poll.total_votes > 0 ? Math.round((opt.vote_count /
+                                        poll.total_votes) * 100) : 0;
+                                        %>
+                                        <div class="poll-option-row"
+                                            style="margin-bottom: 12px; cursor: pointer; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid var(--border); transition: var(--transition);"
+                                            onclick="votePoll('<%= poll.poll_id %>', '<%= opt.option_id %>')">
+                                            <div
+                                                style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-light);">
+                                                <span>
+                                                    <%= opt.option_text %>
+                                                </span>
+                                                <span style="color: var(--primary);">
+                                                    <%= percentage %>%
+                                                </span>
+                                            </div>
+                                            <div
+                                                style="background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
+                                                <div
+                                                    style="background: var(--primary-gradient); width: <%= percentage %>%; height: 100%; border-radius: 4px; transition: width 0.5s ease-in-out;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <% }); %>
+                                            <% } %>
+                            </div>
+                        </div>
+                        <% } else if (typeof initialPolls !=='undefined' && initialPolls.length> 0) { %>
+                            <!-- Fallback to list if multi polls passed -->
+                            <% initialPolls.forEach(poll=> { %>
+                                <div class="poll-card"
+                                    style="background: white; border-radius: 20px; padding: 24px; box-shadow: var(--shadow); margin-bottom: 15px;">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                                        <div>
+                                            <h3
+                                                style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: var(--text-light);">
+                                                <%= poll.question %>
+                                            </h3>
+                                        </div>
+                                        <div class="poll-card-votes-badge"
+                                            style="background: #f1f5f9; color: #64748b; padding: 4px 10px; border-radius: 10px; font-weight: 600; font-size: 11px;">
+                                            <%= poll.total_votes || 0 %> votes
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline-primary" style="width: 100%; border-radius: 12px;"
+                                        onclick="window.location.href='/polls/<%= poll.poll_id %>'">View & Vote</button>
+                                </div>
+                                <% }); %>
+                                    <% } else { %>
+                                        <div class="discover-empty-state">
+                                            <i class="fas fa-poll-h"></i>
+                                            <h4>Poll not found</h4>
+                                            <p>This poll may have been removed or is no longer active.</p>
+                                            <button class="btn btn-primary" onclick="window.location.href='/polls'">Back
+                                                to Polls</button>
+                                        </div>
+                                        <% } %>
+                </div>
+            </div>
+
+            <%- include('partials/dashboard-modals') %>
+                    <script src="/js/dashboardAPI.js"></script>
+    </body>
+
+    </html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/head') %>
+        <%- include('partials/styles') %>
+            <title>Settings - Sparkle</title>
+
+</head>
+
+<body class="settings-page-body">
+    <%- include('partials/navbar') %>
+
+        <div class="settings-page-wrapper">
+            <div class="settings-modal-card">
+                <!-- Sidebar -->
+                <div class="settings-sidebar">
+                    <div class="settings-sidebar-header">
+                        <h2>Settings</h2>
+                        <a href="/profile" style="color: #64748b; font-size: 18px;"><i class="fas fa-times"></i></a>
+                    </div>
+
+                    <button class="settings-nav-item active" onclick="showSection('edit-profile', this)">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Edit Profile</span>
+                    </button>
+                    <button class="settings-nav-item" onclick="showSection('security', this)">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Security</span>
+                    </button>
+                    <button class="settings-nav-item" onclick="showSection('privacy', this)">
+                        <i class="fas fa-lock"></i>
+                        <span>Privacy</span>
+                    </button>
+                    <button class="settings-nav-item" onclick="showSection('notifications', this)">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </button>
+                    <button class="settings-nav-item" onclick="showSection('account', this)">
+                        <i class="fas fa-user-cog"></i>
+                        <span>Account</span>
+                    </button>
+
+                    <button class="settings-nav-item logout" onclick="handleLogout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Log Out</span>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="settings-content-area">
+                    <!-- Edit Profile Section -->
+                    <div id="edit-profile" class="settings-section-view active">
+                        <div class="settings-section-header">
+                            <h3>Edit Profile</h3>
+                            <p>Manage your public identity and campus details.</p>
+                        </div>
+
+                        <div class="settings-avatar-wrapper">
+                            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" alt="Profile"
+                                class="settings-avatar" id="avatarPreview">
+                            <div>
+                                <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">
+                                    <%= user.username %>
+                                </div>
+                                <button class="change-photo-btn"
+                                    onclick="document.getElementById('avatarInput').click()">Change Photo</button>
+                                <input type="file" id="avatarInput" hidden accept="image/*">
+                            </div>
+                        </div>
+
+                        <form id="profileForm">
+                            <div class="form-group">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-input" id="name" value="<%= user.name %>"
+                                    placeholder="Your full name">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Bio</label>
+                                <textarea class="form-input form-textarea" id="bio"
+                                    placeholder="Tell us about yourself..."><%= user.bio || '' %></textarea>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label class="form-label">Campus</label>
+                                    <input type="text" class="form-input" id="campus" value="<%= user.campus || '' %>">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Major</label>
+                                    <input type="text" class="form-input" id="major" value="<%= user.major || '' %>">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" class="form-input" id="email" value="<%= user.email || '' %>">
+                            </div>
+                            <button type="submit" class="settings-save-btn">Save Changes</button>
+                        </form>
+                    </div>
+
+                    <!-- Security Section -->
+                    <div id="security" class="settings-section-view">
+                        <div class="settings-section-header">
+                            <h3>Security</h3>
+                            <p>Secure your account and manage active sessions.</p>
+                        </div>
+
+                        <div class="about-card" style="margin-bottom: 25px;">
+                            <h4 style="margin-bottom: 20px;">Change Password</h4>
+                            <div class="form-group">
+                                <label class="form-label">Current Password</label>
+                                <input type="password" class="form-input" id="currentPass">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">New Password</label>
+                                <input type="password" class="form-input" id="newPass">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-input" id="confirmPass">
+                            </div>
+                            <button class="settings-save-btn" onclick="updatePassword()">Update Password</button>
+                        </div>
+
+                        <div class="about-card">
+                            <h4 style="margin-bottom: 10px;">Password Recovery</h4>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">We can send a
+                                recovery link to your registered email address.</p>
+                            <button class="btn btn-outline-primary" style="border-radius: 12px;"
+                                onclick="sendRecoveryEmail()">Send Recovery Link</button>
+                        </div>
+                    </div>
+
+                    <!-- Privacy Section -->
+                    <div id="privacy" class="settings-section-view">
+                        <div class="settings-section-header">
+                            <h3>Privacy</h3>
+                            <p>Control what information you share with the community.</p>
+                        </div>
+
+                        <div class="about-card" style="padding: 0; overflow: hidden;">
+                            <div
+                                style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 700; color: var(--text-light); margin-bottom: 2px;">
+                                        Anonymous Mode</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">Post anonymously on the
+                                        campus feed.</div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" onchange="saveAppSetting('anonymous_enabled', this.checked)"
+                                        <%=user.anonymous_enabled ? 'checked' : '' %>>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div
+                                style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 700; color: var(--text-light); margin-bottom: 2px;">Profile
+                                        Visibility</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">Only campus members can
+                                        view your full profile.</div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox"
+                                        onchange="saveAppSetting('profile_visibility', this.checked ? 'campus' : 'public')"
+                                        <%=user.profile_visibility==='campus' ? 'checked' : '' %>>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Section -->
+                    <div id="notifications" class="settings-section-view">
+                        <div class="settings-section-header">
+                            <h3>Notifications</h3>
+                            <p>How and when you want to be notified by Sparkle.</p>
+                        </div>
+
+                        <div class="about-card" style="padding: 0; overflow: hidden;">
+                            <div
+                                style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-weight: 700; color: var(--text-light);">Push Notifications</div>
+                                <label class="switch">
+                                    <input type="checkbox" onchange="saveAppSetting('push_notifications', this.checked)"
+                                        <%=user.push_notifications ? 'checked' : '' %>>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div
+                                style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-weight: 700; color: var(--text-light);">Email Notifications</div>
+                                <label class="switch">
+                                    <input type="checkbox"
+                                        onchange="saveAppSetting('email_notifications', this.checked)"
+                                        <%=user.email_notifications ? 'checked' : '' %>>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Section -->
+                    <div id="account" class="settings-section-view">
+                        <div class="settings-section-header">
+                            <h3>Account</h3>
+                            <p>Manage your account status and permanent data.</p>
+                        </div>
+
+                        <div
+                            style="background: #fff5f5; padding: 25px; border-radius: 20px; border: 1px solid #fee2e2;">
+                            <h4 style="color: #991b1b; font-size: 16px; margin-bottom: 10px;">Danger Zone</h4>
+                            <p style="font-size: 13px; color: #991b1b; margin-bottom: 20px;">Deleting your account is
+                                permanent and will erase all your moments, sparks, and connections.</p>
+                            <button class="btn btn-outline-danger"
+                                style="border-radius: 12px; border-color: #fca5a5; color: #b91c1c;"
+                                onclick="handleDeleteAccount()">Delete My Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <%- include('partials/bottom-nav') %>
+                <script src="/js/apiClient.js"></script>
+
+                <script>
+                    function showSection(sectionId, btn) {
+                        // Update buttons
+                        document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+
+                        // Update views
+                        document.querySelectorAll('.settings-section-view').forEach(v => v.classList.remove('active'));
+                        document.getElementById(sectionId).classList.add('active');
+                    }
+
+                    // Avatar preview
+                    document.getElementById('avatarInput').addEventListener('change', function (e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                document.getElementById('avatarPreview').src = e.target.result;
+                            }
+                            reader.readAsDataURL(file);
+                        }
+                    });
+
+                    // Profile update
+                    document.getElementById('profileForm').addEventListener('submit', async function (e) {
+                        e.preventDefault();
+                        const btn = this.querySelector('button[type="submit"]');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                        btn.disabled = true;
+
+                        const formData = {
+                            name: document.getElementById('name').value,
+                            bio: document.getElementById('bio').value,
+                            campus: document.getElementById('campus').value,
+                            major: document.getElementById('major').value,
+                            email: document.getElementById('email').value
+                        };
+
+                        try {
+                            const res = await apiClient.updateProfile(formData);
+                            if (res.status === 'success') {
+                                alert('Profile updated successfully!');
+                                // Update local user if needed or reload
+                                window.location.reload();
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Error updating profile: ' + err.message);
+                        } finally {
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    });
+
+                    async function updatePassword() {
+                        const currentPassword = document.getElementById('currentPass').value;
+                        const newPassword = document.getElementById('newPass').value;
+                        const confirmPass = document.getElementById('confirmPass').value;
+
+                        if (!currentPassword || !newPassword) {
+                            alert('Please fill in all password fields');
+                            return;
+                        }
+
+                        if (newPassword !== confirmPass) {
+                            alert('New passwords do not match');
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch('/api/users/password', {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${getToken()}`
+                                },
+                                body: JSON.stringify({ currentPassword, newPassword })
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok) {
+                                alert('Password updated successfully!');
+                                document.getElementById('currentPass').value = '';
+                                document.getElementById('newPass').value = '';
+                                document.getElementById('confirmPass').value = '';
+                            } else {
+                                alert(data.error || 'Failed to update password');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Error updating password');
+                        }
+                    }
+
+                    async function saveAppSetting(key, value) {
+                        try {
+                            const settings = {};
+                            settings[key] = value;
+
+                            const response = await fetch('/api/users/settings', {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${getToken()}`
+                                },
+                                body: JSON.stringify(settings)
+                            });
+
+                            if (!response.ok) {
+                                const data = await response.json();
+                                throw new Error(data.error || 'Failed to save setting');
+                            }
+                            console.log(`Setting ${key} updated to ${value}`);
+                        } catch (err) {
+                            console.error(err);
+                            alert('Failed to save setting: ' + err.message);
+                        }
+                    }
+
+                    function sendRecoveryEmail() {
+                        alert('A recovery link has been sent to your email.');
+                    }
+
+                    function handleLogout() {
+                        if (confirm('Are you sure you want to log out?')) {
+                            // Remove cookie
+                            document.cookie = "sparkleToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                            window.location.href = '/login';
+                        }
+                    }
+
+                    async function handleDeleteAccount() {
+                        const confirmed = prompt('This is a high-risk action. To confirm deletion, please type "DELETE" below:');
+                        if (confirmed === 'DELETE') {
+                            try {
+                                const response = await fetch('/api/users/me', {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Authorization': `Bearer ${getToken()}`
+                                    }
+                                });
+
+                                if (response.ok) {
+                                    alert('Your account has been successfully deleted.');
+                                    window.location.href = '/login';
+                                } else {
+                                    const data = await response.json();
+                                    alert(data.error || 'Failed to delete account');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                alert('Error deleting account');
+                            }
+                        }
+                    }
+
+                    function getToken() {
+                        const match = document.cookie.match(new RegExp('(^| )sparkleToken=([^;]+)'));
+                        return match ? match[2] : null;
+                    }
+                </script>
+</body>
+
+</html>

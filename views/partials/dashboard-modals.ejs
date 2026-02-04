@@ -1,0 +1,1103 @@
+<!-- Create Post Modal -->
+<div class="modal premium-modal" id="createModal">
+    <div class="modal-content premium-modal-content">
+        <div class="modal-header premium-modal-header">
+            <div class="modal-title premium-modal-title">
+                <i class="fas fa-plus-circle text-primary"></i> Create New Post
+            </div>
+            <button class="close-modal premium-close-btn" id="closeCreateModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body premium-modal-body">
+            <!-- User Info Header -->
+            <div class="post-user-header">
+                <div class="avatar-wrapper">
+                    <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                        alt="User" class="post-user-avatar" id="postUserAvatar"
+                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                    <div class="online-status active"></div>
+                </div>
+                <div class="user-meta">
+                    <span class="user-name" id="postUserName">
+                        <%= typeof user !=='undefined' ? user.name : 'Sparkle Student' %>
+                    </span>
+                    <span class="user-campus">
+                        <i class="fas fa-location-dot"></i>
+                        <%= typeof user !=='undefined' ? user.campus : 'Your Campus' %>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Post Content -->
+            <div class="post-input-section">
+                <textarea class="post-textarea" id="postCaption" rows="3"
+                    placeholder="What's happening on campus?"></textarea>
+            </div>
+
+            <!-- Media Upload Area -->
+            <div class="media-upload-section">
+                <div class="media-upload-container" id="mediaUploadArea"
+                    onclick="document.getElementById('mediaUpload').click()">
+                    <div class="upload-placeholder">
+                        <div class="upload-icon-circle">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <div class="upload-text">
+                            <span class="main-text">Add Photos / Video</span>
+                            <span class="sub-text">or drag and drop here</span>
+                        </div>
+                    </div>
+                    <input type="file" id="mediaUpload" accept="image/*,video/*" class="hidden">
+                    <div id="mediaPreview" class="media-preview-grid"></div>
+                </div>
+            </div>
+
+            <!-- Options Section -->
+            <div class="post-options-grid">
+                <!-- Post Type Selector -->
+                <div class="option-group">
+                    <label class="option-label"><i class="fas fa-eye"></i> Visibility</label>
+                    <div class="post-type-chips">
+                        <div class="type-chip active" data-post-type="public">
+                            <i class="fas fa-globe"></i> Public
+                        </div>
+                        <div class="type-chip" data-post-type="campus">
+                            <i class="fas fa-university"></i> Campus
+                        </div>
+                        <div class="type-chip" data-post-type="anonymous">
+                            <i class="fas fa-user-secret"></i> Ghost
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tags Input -->
+                <div class="option-group">
+                    <label class="option-label"><i class="fas fa-hashtag"></i> Tag your vibe</label>
+                    <div class="tag-input-wrapper">
+                        <input type="text" class="tag-input" id="postTags" placeholder="#sparkle #campuslife">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button class="btn-premium-submit" id="submitPostBtn">
+                <span>Spark It!</span>
+                <i class="fas fa-bolt"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Moment Modal -->
+<div class="modal premium-modal" id="momentModal">
+    <div class="modal-content premium-modal-content">
+        <div class="modal-header premium-modal-header">
+            <div class="modal-title premium-modal-title">
+                <i class="fas fa-video text-primary" style="color: #e91e63 !important;"></i> Create New Moment
+            </div>
+            <button class="close-modal premium-close-btn" id="closeMomentModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body premium-modal-body">
+            <!-- User Info Header -->
+            <div class="post-user-header">
+                <div class="avatar-wrapper">
+                    <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                        alt="User" class="post-user-avatar" id="momentUserAvatar"
+                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                    <div class="online-status active"></div>
+                </div>
+                <div class="user-meta">
+                    <span class="user-name" id="momentUserName">
+                        <%= typeof user !=='undefined' ? user.name : 'Sparkle Student' %>
+                    </span>
+                    <span class="user-campus">
+                        <i class="fas fa-location-dot"></i>
+                        <%= typeof user !=='undefined' ? user.campus : 'Your Campus' %>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Moment Content -->
+            <div class="post-input-section">
+                <textarea class="post-textarea" id="momentCaption" rows="2"
+                    placeholder="What's this moment about?"></textarea>
+            </div>
+
+            <!-- Video Upload Area -->
+            <div class="media-upload-section">
+                <div class="media-upload-container" id="momentUploadArea"
+                    onclick="document.getElementById('momentVideoUpload').click()">
+                    <div class="upload-placeholder">
+                        <div class="upload-icon-circle" style="background: linear-gradient(135deg, #e91e63, #f06292);">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="upload-text">
+                            <span class="main-text">Add Video</span>
+                            <span class="sub-text">Share a short moment</span>
+                        </div>
+                    </div>
+                    <input type="file" id="momentVideoUpload" accept="video/*" class="hidden">
+                    <div id="momentPreview" class="media-preview-grid"></div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button class="btn-premium-submit" id="submitMomentBtn"
+                style="background: linear-gradient(135deg, #e91e63, #f06292);">
+                <span>Share Moment!</span>
+                <i class="fas fa-play"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Create AfterGlow Modal -->
+<div class="modal premium-modal" id="afterglowModal">
+    <div class="modal-content premium-modal-content">
+        <div class="modal-header premium-modal-header">
+            <div class="modal-title premium-modal-title">
+                <i class="fas fa-bolt text-primary" style="color: #9c27b0 !important;"></i> Create AfterGlow Story
+            </div>
+            <button class="close-modal premium-close-btn" id="closeAfterglowModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body premium-modal-body">
+            <!-- User Info Header -->
+            <div class="post-user-header">
+                <div class="avatar-wrapper">
+                    <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                        alt="User" class="post-user-avatar" id="afterglowUserAvatar"
+                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                    <div class="online-status active"></div>
+                </div>
+                <div class="user-meta">
+                    <span class="user-name" id="afterglowUserName">
+                        <%= typeof user !=='undefined' ? user.name : 'Sparkle Student' %>
+                    </span>
+                    <span class="user-campus">
+                        <i class="fas fa-location-dot"></i>
+                        <%= typeof user !=='undefined' ? user.campus : 'Your Campus' %>
+                    </span>
+                    <span
+                        style="display: inline-block; margin-left: 10px; background: linear-gradient(135deg, #9c27b0, #e91e63); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;">
+                        <i class="fas fa-clock"></i> 24 hours
+                    </span>
+                </div>
+            </div>
+
+            <!-- AfterGlow Content -->
+            <div class="post-input-section">
+                <textarea class="post-textarea" id="afterglowCaption" rows="2"
+                    placeholder="Share your story..."></textarea>
+            </div>
+
+            <!-- Media Upload Area -->
+            <div class="media-upload-section">
+                <div class="media-upload-container" id="afterglowUploadArea"
+                    onclick="document.getElementById('afterglowMediaUpload').click()">
+                    <div class="upload-placeholder">
+                        <div class="upload-icon-circle" style="background: linear-gradient(135deg, #9c27b0, #e91e63);">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="upload-text">
+                            <span class="main-text">Add Photo / Video</span>
+                            <span class="sub-text">Vanishes in 24 hours</span>
+                        </div>
+                    </div>
+                    <input type="file" id="afterglowMediaUpload" accept="image/*,video/*" class="hidden">
+                    <div id="afterglowPreview" class="media-preview-grid"></div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button class="btn-premium-submit" id="submitAfterglowBtn"
+                style="background: linear-gradient(135deg, #9c27b0, #e91e63);">
+                <span>Share AfterGlow!</span>
+                <i class="fas fa-bolt"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal" id="settingsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">Settings & Preferences</div>
+            <button class="close-modal" id="closeSettingsModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body p-0">
+            <div class="settings-tabs-wrapper">
+                <button class="tab-btn active" onclick="switchSettingsTab('profileSettings')">Profile</button>
+                <button class="tab-btn" onclick="switchSettingsTab('accountSettings')">Account</button>
+                <button class="tab-btn" onclick="switchSettingsTab('prefSettings')">Preferences</button>
+                <button class="tab-btn" onclick="switchSettingsTab('privacySettings')">Privacy</button>
+            </div>
+            <div class="p-4">
+                <div id="profileSettings" class="settings-tab-content">
+                    <h3 class="mb-3 fs-6">Edit Profile</h3>
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="editName"
+                            value="<%= typeof user !== 'undefined' ? user.name : '' %>">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Bio</label>
+                        <textarea class="form-control" id="editBio" rows="3"
+                            placeholder="Tell us about yourself..."><%= typeof user !== 'undefined' ? user.bio : '' %></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Campus</label>
+                        <select class="form-control" id="editCampus" name="campus">
+                            <option value="University of Nairobi" <%=typeof user !=='undefined' &&
+                                user.campus==='University of Nairobi' ? 'selected' : '' %>>University of Nairobi (UoN)
+                            </option>
+                            <option value="Kenyatta University" <%=typeof user !=='undefined' &&
+                                user.campus==='Kenyatta University' ? 'selected' : '' %>>Kenyatta University (KU)
+                            </option>
+                            <option value="JKUAT" <%=typeof user !=='undefined' &&
+                                user.campus==='Jomo Kenyatta University of Agriculture and Technology' ? 'selected' : ''
+                                %>>JKUAT
+                            </option>
+                            <!-- ... other options ... -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Major / Field of Study</label>
+                        <input type="text" class="form-control" id="editMajor"
+                            value="<%= typeof user !== 'undefined' ? user.major : '' %>"
+                            placeholder="e.g. Computer Science">
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="window.saveProfileChanges()">Save Changes</button>
+                </div>
+                <!-- Other tabs simplified for brevity or refactored similarly -->
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function switchSettingsTab(tabId) {
+        document.querySelectorAll('.settings-tab-content').forEach(el => el.style.display = 'none');
+        document.getElementById(tabId).style.display = 'block';
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.style.color = '#666';
+            btn.style.borderBottom = 'none';
+            btn.classList.remove('active');
+        });
+        event.target.style.color = 'var(--primary)';
+        event.target.style.borderBottom = '2px solid var(--primary)';
+    }
+    function logoutDevice(deviceId) {
+        if (confirm('Log out this device?')) {
+            alert('Device logged out successfully');
+        }
+    }
+    function logoutAllOtherDevices() {
+        if (confirm('Log out all other devices except this one?')) {
+            alert('All other devices logged out successfully');
+        }
+    }
+    function requestDataDownload() {
+        alert('Data download request submitted. You will receive an email with download link within 24 hours.');
+    }
+</script>
+</div>
+
+<!-- Confessions Modal -->
+<div class="modal" id="confessionsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-fire" style="color: #FF9800;"></i>Anonymous Confessions</div>
+            <button class="close-modal" id="closeConfessionsModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Confessions content -->
+        </div>
+    </div>
+</div>
+
+
+<!-- Enhanced Settings Modal -->
+<div class="modal" id="enhancedSettingsModal">
+    <div class="modal-content"
+        style="max-width: 900px; width: 95%; height: 85vh; padding: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; background: #fff;">
+        <div class="modal-header" style="border-bottom: 1px solid #efefef; padding: 15px 20px;">
+            <div class="modal-title" style="font-weight: 700; font-size: 18px;">Settings</div>
+            <button class="close-modal"
+                style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+        </div>
+        <div style="display: flex; flex: 1; overflow: hidden;">
+            <div style="width: 250px; border-right: 1px solid #efefef; background: #fff; overflow-y: auto;">
+                <div class="settings-nav-list" style="padding: 10px 0;">
+                    <button class="settings-nav-item active" onclick="switchEnhancedSetting('edit-profile-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;"><i
+                            class="fas fa-user-circle" style="font-size: 18px;"></i><span
+                            style="font-size: 14px; font-weight: 500;">Edit Profile</span></button>
+                    <button class="settings-nav-item" onclick="switchEnhancedSetting('security-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;"><i
+                            class="fas fa-shield-alt" style="font-size: 18px;"></i><span
+                            style="font-size: 14px; font-weight: 400;">Security</span></button>
+                    <button class="settings-nav-item" onclick="switchEnhancedSetting('privacy-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;"><i
+                            class="fas fa-lock" style="font-size: 18px;"></i><span
+                            style="font-size: 14px; font-weight: 400;">Privacy</span></button>
+                    <button class="settings-nav-item" onclick="switchEnhancedSetting('notification-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;"><i
+                            class="fas fa-bell" style="font-size: 18px;"></i><span
+                            style="font-size: 14px; font-weight: 400;">Notifications</span></button>
+                    <button class="settings-nav-item" onclick="switchEnhancedSetting('account-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;"><i
+                            class="fas fa-user-cog" style="font-size: 18px;"></i><span
+                            style="font-size: 14px; font-weight: 400;">Account</span></button>
+                    <div style="border-top: 1px solid #efefef; margin: 10px 0;"></div>
+                    <button class="settings-nav-item" onclick="logout()"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #ed4956;"><i
+                            class="fas fa-sign-out-alt" style="font-size: 18px;"></i><span
+                            style="font-size: 14px; font-weight: 500;">Log Out</span></button>
+                </div>
+            </div>
+            <div style="flex: 1; padding: 40px; background: #fff; overflow-y: auto;">
+                <div id="edit-profile-tab" class="enhanced-settings-content">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Edit Profile</div>
+                    <div style="display: flex; align-items: center; margin-bottom: 30px;">
+                        <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                            style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 20px;"
+                            onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                        <div>
+                            <div style="font-weight: 600; font-size: 16px;">
+                                <%= typeof user !=='undefined' ? user.username : 'User' %>
+                            </div>
+                            <button
+                                style="background: none; border: none; color: #0095f6; font-weight: 600; font-size: 14px; cursor: pointer; padding: 0;"
+                                onclick="document.getElementById('editAvatarInput').click()">Change profile
+                                photo</button>
+                            <input type="file" id="editAvatarInput" style="display: none;" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="settings-form-row" style="display: flex; margin-bottom: 15px;">
+                        <label
+                            style="width: 150px; font-weight: 600; text-align: right; padding-top: 8px; margin-right: 30px;">Name</label>
+                        <div style="flex: 1;"><input type="text" id="enhanced-edit-name" class="form-control"
+                                style="width: 100%;" value="<%= typeof user !== 'undefined' ? user.name : '' %>">
+                            <p style="font-size: 12px; color: #8e8e8e; margin-top: 5px;">Help people discover your
+                                account by using the name you're known by: either your full name, nickname, or business
+                                name.</p>
+                        </div>
+                    </div>
+                    <div class="settings-form-row" style="display: flex; margin-bottom: 15px;">
+                        <label
+                            style="width: 150px; font-weight: 600; text-align: right; padding-top: 8px; margin-right: 30px;">Bio</label>
+                        <div style="flex: 1;"><textarea id="enhanced-edit-bio" class="form-control" style="width: 100%;"
+                                rows="3"><%= typeof user !== 'undefined' ? user.bio : '' %></textarea>
+                            <p style="font-size: 12px; color: #8e8e8e; margin-top: 5px;">Briefly describe yourself to
+                                your campus community.</p>
+                        </div>
+                    </div>
+                    <div class="settings-form-row" style="display: flex; margin-bottom: 15px;">
+                        <label
+                            style="width: 150px; font-weight: 600; text-align: right; padding-top: 8px; margin-right: 30px;">Major</label>
+                        <div style="flex: 1;"><input type="text" id="enhanced-edit-major" class="form-control"
+                                style="width: 100%;" value="<%= typeof user !== 'undefined' ? user.major : '' %>"
+                                placeholder="e.g. Computer Science"></div>
+                    </div>
+                    <div class="settings-form-row" style="display: flex; margin-bottom: 15px;">
+                        <label
+                            style="width: 150px; font-weight: 600; text-align: right; padding-top: 8px; margin-right: 30px;">Campus</label>
+                        <div style="flex: 1;">
+                            <select id="enhanced-edit-campus" class="form-control" style="width: 100%;">
+                                <!-- ================= PUBLIC UNIVERSITIES ================= -->
+                                <option value="University of Nairobi" <%=typeof user !=='undefined' &&
+                                    user.campus==='University of Nairobi' ? 'selected' : '' %>>University of Nairobi
+                                    (UoN)</option>
+                                <option value="Kenyatta University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Kenyatta University' ? 'selected' : '' %>>Kenyatta University (KU)
+                                </option>
+                                <option value="Moi University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Moi University' ? 'selected' : '' %>>Moi University</option>
+                                <option value="Egerton University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Egerton University' ? 'selected' : '' %>>Egerton University</option>
+                                <option value="Jomo Kenyatta University of Agriculture and Technology" <%=typeof user
+                                    !=='undefined' &&
+                                    user.campus==='Jomo Kenyatta University of Agriculture and Technology' ? 'selected'
+                                    : '' %>>JKUAT</option>
+                                <option value="Maseno University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Maseno University' ? 'selected' : '' %>>Maseno University</option>
+                                <option value="Masinde Muliro University of Science and Technology" <%=typeof user
+                                    !=='undefined' &&
+                                    user.campus==='Masinde Muliro University of Science and Technology' ? 'selected'
+                                    : '' %>>MMUST</option>
+                                <option value="Dedan Kimathi University of Technology" <%=typeof user !=='undefined' &&
+                                    user.campus==='Dedan Kimathi University of Technology' ? 'selected' : '' %>>DeKUT
+                                </option>
+                                <option value="Karatina University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Karatina University' ? 'selected' : '' %>>KARU</option>
+                                <option value="Murang'a University of Technology" <%=typeof user !=='undefined' &&
+                                    user.campus==='Murang&apos;a University of Technology' ? 'selected' : '' %>>MUT
+                                </option>
+                                <option value="South Eastern Kenya University" <%=typeof user !=='undefined' &&
+                                    user.campus==='South Eastern Kenya University' ? 'selected' : '' %>>SEKU</option>
+                                <option value="Meru University of Science and Technology" <%=typeof user !=='undefined'
+                                    && user.campus==='Meru University of Science and Technology' ? 'selected' : '' %>
+                                    >MUST</option>
+                                <option value="Technical University of Kenya" <%=typeof user !=='undefined' &&
+                                    user.campus==='Technical University of Kenya' ? 'selected' : '' %>>TUK</option>
+                                <option value="Technical University of Mombasa" <%=typeof user !=='undefined' &&
+                                    user.campus==='Technical University of Mombasa' ? 'selected' : '' %>>TUM</option>
+                                <option value="Laikipia University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Laikipia University' ? 'selected' : '' %>>Laikipia University
+                                </option>
+                                <option value="Chuka University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Chuka University' ? 'selected' : '' %>>Chuka University</option>
+                                <option value="Pwani University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Pwani University' ? 'selected' : '' %>>Pwani University</option>
+                                <option value="Kibabii University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Kibabii University' ? 'selected' : '' %>>Kibabii University</option>
+                                <option value="Machakos University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Machakos University' ? 'selected' : '' %>>Machakos University
+                                </option>
+                                <option value="University of Embu" <%=typeof user !=='undefined' &&
+                                    user.campus==='University of Embu' ? 'selected' : '' %>>University of Embu</option>
+                                <option value="Kisii University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Kisii University' ? 'selected' : '' %>>Kisii University</option>
+                                <option value="Garissa University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Garissa University' ? 'selected' : '' %>>Garissa University</option>
+                                <option value="Rongo University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Rongo University' ? 'selected' : '' %>>Rongo University</option>
+                                <option value="Cooperative University of Kenya" <%=typeof user !=='undefined' &&
+                                    user.campus==='Cooperative University of Kenya' ? 'selected' : '' %>>CUK</option>
+
+                                <!-- ================= PRIVATE UNIVERSITIES ================= -->
+                                <option value="Strathmore University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Strathmore University' ? 'selected' : '' %>>Strathmore University
+                                </option>
+                                <option value="United States International University Africa" <%=typeof user
+                                    !=='undefined' && user.campus==='United States International University Africa'
+                                    ? 'selected' : '' %>>USIU-Africa</option>
+                                <option value="Mount Kenya University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Mount Kenya University' ? 'selected' : '' %>>Mount Kenya University
+                                </option>
+                                <option value="Catholic University of Eastern Africa" <%=typeof user !=='undefined' &&
+                                    user.campus==='Catholic University of Eastern Africa' ? 'selected' : '' %>>CUEA
+                                </option>
+                                <option value="Africa Nazarene University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Africa Nazarene University' ? 'selected' : '' %>>Africa Nazarene
+                                    University</option>
+                                <option value="Daystar University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Daystar University' ? 'selected' : '' %>>Daystar University</option>
+                                <option value="KCA University" <%=typeof user !=='undefined' &&
+                                    user.campus==='KCA University' ? 'selected' : '' %>>KCA University</option>
+                                <option value="Zetech University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Zetech University' ? 'selected' : '' %>>Zetech University</option>
+                                <option value="Kiriri Women's University of Science and Technology" <%=typeof user
+                                    !=='undefined' &&
+                                    user.campus==='Kiriri Women&apos;s University of Science and Technology'
+                                    ? 'selected' : '' %>>Kiriri Women's University</option>
+                                <option value="Pan Africa Christian University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Pan Africa Christian University' ? 'selected' : '' %>>PAC University
+                                </option>
+                                <option value="Gretsa University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Gretsa University' ? 'selected' : '' %>>Gretsa University</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-form-row" style="display: flex; margin-top: 30px;">
+                        <div style="width: 150px; margin-right: 30px;"></div>
+                        <button class="btn btn-primary" style="padding: 10px 25px;"
+                            onclick="saveDetailedProfile()">Submit</button>
+                    </div>
+                </div>
+                <div id="security-tab" class="enhanced-settings-content" style="display: none;">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Security</div>
+                    <div class="settings-section" style="margin-bottom: 30px;">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Change Password</div>
+                        <div class="form-group" style="margin-bottom: 15px;"><label class="form-label">Current
+                                Password</label><input type="password" id="change-pass-current" class="form-control"
+                                style="width: 100%;"></div>
+                        <div class="form-group" style="margin-bottom: 15px;"><label class="form-label">New
+                                Password</label><input type="password" id="change-pass-new" class="form-control"
+                                style="width: 100%;"></div>
+                        <div class="form-group" style="margin-bottom: 20px;"><label class="form-label">Confirm New
+                                Password</label><input type="password" id="change-pass-confirm" class="form-control"
+                                style="width: 100%;"></div>
+                        <button class="btn btn-primary" onclick="updatePassword()">Update Password</button>
+                    </div>
+                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
+                    <div class="settings-section">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Password Recovery</div>
+                        <button class="btn btn-outline-primary" style="font-size: 13px;"
+                            onclick="alert('Password reset link sent to your email.')">Send Reset Link to Email</button>
+                    </div>
+                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
+                    <div class="settings-section">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Advanced Security</div>
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding: 10px 0;">
+                            <div>
+                                <div style="font-weight: 500;">Two-Factor Authentication</div>
+                                <div style="font-size: 12px; color: #666;">Add an extra layer of security</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="enhanced-2fa-toggle"><span
+                                    class="slider round"></span></label>
+                        </div>
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding: 10px 0;">
+                            <div>
+                                <div style="font-weight: 500;">Login Alerts</div>
+                                <div style="font-size: 12px; color: #666;">Get notified for new logins</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="enhanced-login-alerts" checked><span
+                                    class="slider round"></span></label>
+                        </div>
+                    </div>
+                </div>
+                <div id="privacy-tab" class="enhanced-settings-content" style="display: none;">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Storage & Privacy</div>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Anonymous Identity</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Your profile will be hidden when participating
+                                anonymously.</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="enhanced-anonymous-toggle" <%=typeof user
+                                !=='undefined' && user.anonymous_enabled ? 'checked' : '' %>
+                            onchange="saveAppSetting('anonymous_enabled', this.checked)"><span
+                                class="slider round"></span></label>
+                    </div>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Profile Visibility</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Only users from your campus can see your
+                                profile.</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="enhanced-visibility-toggle" <%=typeof user
+                                !=='undefined' && user.profile_visibility==='campus' ? 'checked' : '' %>
+                            onchange="saveAppSetting('profile_visibility', this.checked ? 'campus' : 'public')"><span
+                                class="slider round"></span></label>
+                    </div>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Data Collection</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Allow analytics to improve experience</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="enhanced-data-collection" checked><span
+                                class="slider round"></span></label>
+                    </div>
+                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 15px;">Active Sessions</div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                                <div>
+                                    <div style="font-weight: 500;">Current Device</div>
+                                    <div style="font-size: 12px; color: #666;">Chrome on Windows • Now</div>
+                                </div>
+                                <span style="color: #28a745; font-size: 12px;">Active</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 500;">Mobile Device</div>
+                                    <div style="font-size: 12px; color: #666;">Safari on iPhone • 3 hours ago</div>
+                                </div>
+                                <button class="btn btn-outline-danger btn-sm"
+                                    onclick="removeDeviceSession('mobile')">Remove</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-danger" style="margin-top: 15px; font-size: 14px;"
+                            onclick="logoutAllSessions()"><i class="fas fa-sign-out-alt"></i> Logout All Other
+                            Sessions</button>
+                    </div>
+                </div>
+                <div id="notification-tab" class="enhanced-settings-content" style="display: none;">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Notifications</div>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Push Notifications</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Receive alerts on your device for new sparks
+                                and comments.</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="enhanced-push-notify" <%=typeof user
+                                !=='undefined' && user.push_notifications ? 'checked' : '' %>
+                            onchange="saveAppSetting('push_notifications', this.checked)"><span
+                                class="slider round"></span></label>
+                    </div>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Email Notifications</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Receive daily digests and important updates
+                                via email.</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="enhanced-email-notify" <%=typeof user
+                                !=='undefined' && user.email_notifications ? 'checked' : '' %>
+                            onchange="saveAppSetting('email_notifications', this.checked)"><span
+                                class="slider round"></span></label>
+                    </div>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">SMS Notifications</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Receive critical alerts via text message.
+                            </div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="enhanced-sms-notify"><span
+                                class="slider round"></span></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .settings-nav-item:hover {
+            background: #fafafa;
+        }
+
+        .settings-nav-item.active {
+            background: #fff !important;
+            color: #000 !important;
+            font-weight: 700 !important;
+            border-left: 2px solid #000 !important;
+        }
+
+        .settings-nav-item i {
+            width: 20px;
+        }
+
+        .settings-form-row input,
+        .settings-form-row textarea {
+            border: 1px solid #dbdbdb;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        .settings-form-row input:focus {
+            background: #fff;
+            border-color: #a8a8a8;
+            outline: none;
+        }
+    </style>
+    <script>
+        function switchEnhancedSetting(tabId, btn) {
+            document.querySelectorAll('.enhanced-settings-content').forEach(el => el.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+            document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        async function saveDetailedProfile() {
+            const name = document.getElementById('enhanced-edit-name').value;
+            const bio = document.getElementById('enhanced-edit-bio').value;
+            const campus = document.getElementById('enhanced-edit-campus').value;
+            const major = document.getElementById('enhanced-edit-major').value;
+            try {
+                if (typeof DashboardAPI === 'undefined') throw new Error('API not loaded');
+                await DashboardAPI.updateProfile({ name, bio, campus, major });
+                alert('Profile updated successfully!');
+                location.reload();
+            } catch (e) {
+                console.error(e);
+                alert('Failed to update profile: ' + e.message);
+            }
+        }
+        async function updatePassword() {
+            const currentPassword = document.getElementById('change-pass-current').value;
+            const newPassword = document.getElementById('change-pass-new').value;
+            const confirmPassword = document.getElementById('change-pass-confirm').value;
+            if (!currentPassword || !newPassword) {
+                alert('Please fill in all password fields');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                alert('New passwords do not match');
+                return;
+            }
+            try {
+                await DashboardAPI.changePassword(currentPassword, newPassword);
+                alert('Password updated successfully!');
+                document.getElementById('change-pass-current').value = '';
+                document.getElementById('change-pass-new').value = '';
+                document.getElementById('change-pass-confirm').value = '';
+            } catch (e) {
+                alert('Failed to update password: ' + e.message);
+            }
+        }
+        async function saveAppSetting(key, value) {
+            try {
+                const settings = {};
+                settings[key] = value;
+                await DashboardAPI.updateSettings(settings);
+                console.log(`Setting ${key} updated to ${value}`);
+            } catch (e) {
+                console.error('Failed to update setting:', e);
+                alert('Failed to save setting');
+            }
+        }
+        document.getElementById('editAvatarInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const loadingToast = alert('Uploading avatar...'); // Simple notification
+                await DashboardAPI.uploadAvatar(file);
+                alert('Avatar updated successfully!');
+                location.reload();
+            } catch (err) {
+                console.error('Avatar upload failed:', err);
+                alert('Failed to update avatar: ' + (err.message || 'Unknown error'));
+            }
+        });
+        function removeDeviceSession(deviceId) {
+            if (confirm('Remove this device session?')) {
+                alert('Device session removed');
+            }
+        }
+        function logoutAllSessions() {
+            if (confirm('Log out all other sessions except this one?')) {
+                alert('All other sessions logged out');
+            }
+        }
+        async function logout() {
+            try {
+                document.cookie = 'sparkleToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                document.cookie = 'sparkleToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
+                localStorage.clear();
+                try {
+                    await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                } catch (err) {
+                    console.warn('Backend logout call failed, proceeding with local logout', err);
+                }
+                window.location.replace('/login.html');
+            } catch (e) {
+                console.error('Logout failed', e);
+                window.location.replace('/login.html');
+            }
+        }
+        async function deleteAccount() {
+            if (!confirm('Are you absolutely sure you want to delete your account? This action cannot be undone and you will lose all your data.')) { return; }
+            const confirmation = prompt('Please type "DELETE" to confirm account deletion:');
+            if (confirmation !== 'DELETE') {
+                alert('Account deletion cancelled.');
+                return;
+            }
+            try {
+                const token = getCookie('sparkleToken');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                const response = await fetch('/api/users/me', { method: 'DELETE', headers: headers });
+                if (response.ok) {
+                    alert('Your account has been deleted.');
+                    logout();
+                } else {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to delete account');
+                }
+            } catch (error) {
+                console.error('Failed to delete account:', error);
+                alert('Failed to delete account: ' + (error.message || 'Unknown error'));
+            }
+        }
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+    </script>
+</div>
+
+
+<!-- Lost & Found Modal -->
+<div class="modal" id="lostFoundModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-search"></i> Report Lost/Found Item</div>
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group mb-3">
+                <label class="form-label">Item Name</label>
+                <input type="text" class="form-control" id="lfItemName" placeholder="e.g. Blue Backpack">
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label">Type</label>
+                <select class="form-control" id="lfType">
+                    <option value="lost">I Lost This</option>
+                    <option value="found">I Found This</option>
+                </select>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" id="lfLocation" placeholder="Where was it seen?">
+            </div>
+            <div class="form-group mb-4">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="lfDescription" rows="3"
+                    placeholder="Additional details..."></textarea>
+            </div>
+            <button class="btn btn-primary w-100" id="reportItemBtn">Post to Lost & Found</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Event Modal -->
+<div class="modal" id="createEventModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">Create Campus Event</div>
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group mb-3">
+                <label class="form-label">Event Title</label>
+                <input type="text" class="form-control" id="eventTitle">
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="eventDescription" rows="2"></textarea>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label">Start Time</label>
+                <input type="datetime-local" class="form-control" id="eventStartTime">
+            </div>
+            <div class="form-group mb-4">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" id="eventLocation">
+            </div>
+            <button class="btn btn-primary w-100" onclick="window.submitEvent()">Create Event</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Poll Modal -->
+<div class="modal" id="createPollModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">New Campus Poll</div>
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group mb-3">
+                <label class="form-label">Question</label>
+                <input type="text" class="form-control" id="pollQuestion" placeholder="What do you want to ask?">
+            </div>
+            <div class="form-group mb-3" id="pollOptionsContainer">
+                <label class="form-label">Options</label>
+                <input type="text" class="form-control poll-option mb-2" placeholder="Option 1">
+                <input type="text" class="form-control poll-option mb-2" placeholder="Option 2">
+            </div>
+            <button class="btn btn-outline-secondary btn-sm mb-3" onclick="addPollOptionField()">
+                <i class="fas fa-plus"></i> Add Option
+            </button>
+            <div class="form-check mb-4">
+                <input type="checkbox" class="form-check-input" id="pollAnonymous">
+                <label class="form-check-label" for="pollAnonymous">Anonymous Poll</label>
+            </div>
+            <button class="btn btn-primary w-100" onclick="window.submitPoll()">Launch Poll</button>
+        </div>
+    </div>
+</div>
+
+<!-- Go Live Modal -->
+<div class="modal" id="goLiveModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-video text-danger"></i> Go Live</div>
+            <button class="close-modal" onclick="closeGoLiveModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group mb-3">
+                <label class="form-label">Stream Title *</label>
+                <input type="text" class="form-control" id="streamTitle" placeholder="What are you streaming about?">
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="streamDescription" rows="3"
+                    placeholder="Tell viewers what to expect..."></textarea>
+            </div>
+            <div class="form-group mb-4">
+                <label class="form-label">Category</label>
+                <select class="form-control" id="streamCategory">
+                    <option value="study">📚 Study Session</option>
+                    <option value="gaming">🎮 Gaming</option>
+                    <option value="music">🎵 Music/Performance</option>
+                    <option value="tutorial">💡 Tutorial</option>
+                    <option value="qa">💬 Q&A</option>
+                    <option value="event">🎉 Campus Event</option>
+                    <option value="other">📺 Other</option>
+                </select>
+            </div>
+            <div class="alert alert-info py-2 px-3 mb-4" style="font-size: 13px;">
+                <strong>Before you go live:</strong>
+                <ul class="ps-3 mb-0 mt-1">
+                    <li>Stable internet connection</li>
+                    <li>Test camera and microphone</li>
+                    <li>Well-lit, quiet location</li>
+                </ul>
+            </div>
+            <button class="btn btn-primary w-100 live-gradient-btn" onclick="startLiveStream()">
+                <i class="fas fa-circle live-pulse"></i> Start Broadcast
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .live-gradient-btn {
+        background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
+        border: none;
+        font-weight: 600;
+        color: white;
+    }
+
+    .live-pulse {
+        color: #fff;
+        animation: pulse 1.5s infinite;
+        margin-right: 5px;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+    }
+</style>
+
+<script>
+    function addPollOptionField() {
+        const container = document.getElementById('pollOptionsContainer');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control poll-option';
+        input.style.marginBottom = '5px';
+        input.placeholder = `Option ${container.children.length}`;
+        container.appendChild(input);
+    }
+    function openGoLiveModal() {
+        document.getElementById('goLiveModal').style.display = 'flex';
+    }
+    function closeGoLiveModal() {
+        document.getElementById('goLiveModal').style.display = 'none';
+        document.getElementById('streamTitle').value = '';
+        document.getElementById('streamDescription').value = '';
+        document.getElementById('streamCategory').value = 'study';
+    }
+    async function startLiveStream() {
+        const title = document.getElementById('streamTitle').value.trim();
+        const description = document.getElementById('streamDescription').value.trim();
+        const category = document.getElementById('streamCategory').value;
+        if (!title) {
+            alert('Please enter a stream title');
+            return;
+        }
+        try {
+            const streamData = {
+                title,
+                description,
+                category,
+                stream_url: 'rtmp://placeholder-stream-url',
+                thumbnail_url: null,
+                campus: localStorage.getItem('sparkleUserCampus') || 'Sparkle Central'
+            };
+            await DashboardAPI.startStream(streamData);
+            alert('🔴 Stream started successfully!\n\nIn a production app, you would now be redirected to the streaming interface.');
+            closeGoLiveModal();
+        } catch (error) {
+            console.error('Failed to start stream:', error);
+            alert('Failed to start stream: ' + error.message);
+        }
+    }
+    function openCreatePollModal() {
+        document.getElementById('createPollModal').style.display = 'flex';
+    }
+    window.submitPoll = async function () {
+        const question = document.getElementById('pollQuestion').value.trim();
+        const optionInputs = document.querySelectorAll('.poll-option');
+        const options = Array.from(optionInputs).map(input => input.value.trim()).filter(val => val !== '');
+        const isAnonymous = document.getElementById('pollAnonymous').checked;
+        if (!question) {
+            alert('Please enter a poll question');
+            return;
+        }
+        if (options.length < 2) {
+            alert('Please add at least 2 options');
+            return;
+        }
+        try {
+            const pollData = {
+                question,
+                options,
+                is_anonymous: isAnonymous,
+                campus: localStorage.getItem('sparkleUserCampus') || 'Sparkle Central',
+                category: 'general',
+                expires_at: null
+            };
+            await DashboardAPI.createPoll(pollData);
+            alert('✅ Poll created successfully!');
+            document.getElementById('createPollModal').style.display = 'none';
+            document.getElementById('pollQuestion').value = '';
+            optionInputs.forEach(input => input.value = '');
+            document.getElementById('pollAnonymous').checked = false;
+        } catch (error) {
+            console.error('Failed to create poll:', error);
+            alert('Failed to create poll: ' + error.message);
+        }
+    };
+    function openEventModal() {
+        document.getElementById('createEventModal').style.display = 'flex';
+    }
+    window.submitEvent = async function () {
+        const title = document.getElementById('eventTitle').value.trim();
+        const description = document.getElementById('eventDescription').value.trim();
+        const location = document.getElementById('eventLocation').value.trim();
+        const startTime = document.getElementById('eventStartTime').value;
+        if (!title) {
+            alert('Please enter an event title');
+            return;
+        }
+        if (!startTime) {
+            alert('Please select a start time');
+            return;
+        }
+        try {
+            const eventData = {
+                title,
+                description,
+                location,
+                start_time: startTime,
+                end_time: null,
+                event_type: 'meetup',
+                campus: localStorage.getItem('sparkleUserCampus') || 'Sparkle Central',
+                image_url: null,
+                max_attendees: 0,
+                is_public: true
+            };
+            await DashboardAPI.createEvent(eventData);
+            alert('✅ Event created successfully!');
+            document.getElementById('createEventModal').style.display = 'none';
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('eventLocation').value = '';
+            document.getElementById('eventStartTime').value = '';
+        } catch (error) {
+            console.error('Failed to create event:', error);
+            alert('Failed to create event: ' + error.message);
+        }
+    };
+    window.addEventListener('click', function (event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    });
+</script>

@@ -1,0 +1,88 @@
+<%- include('partials/head', { title: 'Live Streams' }) %>
+
+    <body>
+        <%- include('partials/sidebar') %>
+
+            <!-- Main Content Container -->
+            <div class="container" id="mainContent">
+                <div id="streamsPage" class="page active">
+                    <div class="header glass">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="hamburger-btn" onclick="window.location.href='/dashboard'">
+                                <i class="fas fa-chevron-left"></i>
+                            </div>
+                            <div class="logo-text">Live Streams</div>
+                            <div class="groups-backend-status">
+                                <i class="fas fa-circle"
+                                    style="font-size:10px; animation: pulse 1.5s infinite; color: #ff3d6d;"></i>
+                                <span class="d-none d-sm-inline">On Air</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="discover-grid" id="streamsContent" style="padding-bottom: 80px;">
+                        <% if (typeof initialStreams !=='undefined' && initialStreams.length> 0) { %>
+                            <% initialStreams.forEach(stream=> { %>
+                                <div class="discover-card" onclick="watchStream('<%= stream.stream_id %>')">
+                                    <div class="discover-card-banner">
+                                        <img src="<%= stream.thumbnail_url || 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=800' %>"
+                                            alt="<%= stream.title %>">
+                                        <div class="discover-card-badge"
+                                            style="background: #ff3d6d; top: 12px; left: 12px; right: auto;">
+                                            LIVE
+                                        </div>
+                                        <div class="discover-card-badge" style="background: rgba(0,0,0,0.5);">
+                                            <i class="fas fa-eye"></i>
+                                            <%= stream.viewer_count || 0 %>
+                                        </div>
+                                    </div>
+                                    <div class="discover-card-content">
+                                        <div
+                                            style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                                            <img src="<%= stream.avatar_url || '/uploads/avatars/default.png' %>"
+                                                style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--primary);">
+                                            <div style="text-align: left;">
+                                                <h3 class="discover-card-name" style="margin: 0; font-size: 15px;">
+                                                    <%= stream.title %>
+                                                </h3>
+                                                <div style="font-size: 12px; color: var(--text-secondary);">
+                                                    <%= stream.streamer_name || stream.username %>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 12px; margin-top: auto;">
+                                            <div
+                                                style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                                                <%= stream.category || 'General' %>
+                                            </div>
+                                            <div style="font-size: 12px; font-weight: 700; color: var(--primary);">
+                                                Watch Now <i class="fas fa-play"
+                                                    style="font-size: 10px; margin-left: 4px;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }); %>
+                                    <% } else { %>
+                                        <div class="discover-empty-state">
+                                            <i class="fas fa-satellite-dish"></i>
+                                            <h4>No active streams right now</h4>
+                                            <p>Start a stream and share your campus moments!</p>
+                                        </div>
+                                        <% } %>
+                    </div>
+
+                    <button class="fab-btn" onclick="openGoLiveModal()">
+                        <i class="fas fa-video"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modals -->
+            <%- include('partials/dashboard-modals') %>
+                    <script src="/dashboardAPI.js"></script>
+    </body>
+
+    </html>

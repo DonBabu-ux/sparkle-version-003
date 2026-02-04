@@ -1,0 +1,1026 @@
+<!-- Create Post Modal -->
+<div class="modal" id="createModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">Create Post</div>
+            <button class="close-modal" id="closeCreateModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- User Info -->
+            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                    alt="User" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;"
+                    id="postUserAvatar">
+                <div>
+                    <div style="font-weight: 600;" id="postUserName">
+                        <%= typeof user !=='undefined' ? user.name : 'Sparkle Student' %>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">
+                        <i class="fas fa-graduation-cap"></i>
+                        <%= typeof user !=='undefined' ? user.campus : 'Your Campus' %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">What's on your mind?</label>
+                <textarea class="form-control" id="postCaption" rows="4"
+                    placeholder="Share your thoughts..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Add Media (Optional)</label>
+                <div style="border: 2px dashed var(--border); border-radius: 10px; padding: 30px; text-align: center; cursor: pointer;"
+                    id="mediaUploadArea">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: #ccc; margin-bottom: 10px;"></i>
+                    <p style="color: #666; margin-bottom: 5px;">Click to upload image or video</p>
+                    <p style="font-size: 12px; color: #999;">JPG, PNG, GIF, MP4 up to 50MB</p>
+                    <input type="file" id="mediaUpload" accept="image/*,video/*" style="display: none;">
+                </div>
+                <div id="mediaPreview" style="margin-top: 10px;"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Post Type</label>
+                <div class="post-type-selector">
+                    <button class="post-type-btn active" data-post-type="public">Public</button>
+                    <button class="post-type-btn" data-post-type="campus">Campus Only</button>
+                    <button class="post-type-btn" data-post-type="anonymous">Anonymous</button>
+                </div>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    <i class="fas fa-info-circle"></i>
+                    Anonymous posts hide your identity
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Add Tags (Optional)</label>
+                <input type="text" class="form-control" id="postTags" placeholder="#campuslife #study #fun">
+            </div>
+
+            <button class="btn btn-primary btn-block" id="submitPostBtn">
+                <i class="fas fa-paper-plane"></i> Share Post
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal" id="settingsModal">
+    <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
+        <div class="modal-header">
+            <div class="modal-title">Settings & Preferences</div>
+            <button class="close-modal" id="closeSettingsModal">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+
+            <div style="display: flex; border-bottom: 1px solid #eee;">
+                <button class="tab-btn active" onclick="switchSettingsTab('profileSettings')"
+                    style="flex:1; padding:15px; border:none; background:none; cursor:pointer; font-weight:600; color:var(--primary); border-bottom: 2px solid var(--primary);">Profile</button>
+                <button class="tab-btn" onclick="switchSettingsTab('accountSettings')"
+                    style="flex:1; padding:15px; border:none; background:none; cursor:pointer; font-weight:600; color:#666;">Account</button>
+                <button class="tab-btn" onclick="switchSettingsTab('prefSettings')"
+                    style="flex:1; padding:15px; border:none; background:none; cursor:pointer; font-weight:600; color:#666;">Preferences</button>
+            </div>
+
+            <div style="padding: 20px;">
+                <!-- Profile Settings -->
+                <div id="profileSettings" class="settings-tab-content">
+                    <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Edit Profile</h3>
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="editName"
+                            value="<%= typeof user !== 'undefined' ? user.name : '' %>">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Bio</label>
+                        <textarea class="form-control" id="editBio" rows="3"
+                            placeholder="Tell us about yourself..."><%= typeof user !== 'undefined' ? user.bio : '' %></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Campus</label>
+                        <select class="form-control" id="editCampus">
+                            <option value="Sparkle Central" <%=typeof user !=='undefined' &&
+                                user.campus==='Sparkle Central' ? 'selected' : '' %>>Sparkle Central</option>
+                            <option value="North Campus" <%=typeof user !=='undefined' && user.campus==='North Campus'
+                                ? 'selected' : '' %>>North Campus</option>
+                            <option value="South Campus" <%=typeof user !=='undefined' && user.campus==='South Campus'
+                                ? 'selected' : '' %>>South Campus</option>
+                            <option value="Technology Hub" <%=typeof user !=='undefined' &&
+                                user.campus==='Technology Hub' ? 'selected' : '' %>>Technology Hub</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Major / Field of Study</label>
+                        <input type="text" class="form-control" id="editMajor"
+                            value="<%= typeof user !== 'undefined' ? user.major : '' %>"
+                            placeholder="e.g. Computer Science">
+                    </div>
+                    <button class="btn btn-primary" onclick="window.saveProfileChanges()">Save Changes</button>
+                </div>
+
+                <!-- Account Settings -->
+                <div id="accountSettings" class="settings-tab-content" style="display: none;">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Account</div>
+
+                    <div class="settings-section" style="margin-bottom: 30px;">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Email Address</div>
+                        <input type="email" class="form-control"
+                            value="<%= typeof user !== 'undefined' ? user.email : '' %>" disabled
+                            style="background: #f8f9fa; border: 1px solid #dee2e6;">
+                        <small style="color: #666; margin-top: 5px; display: block;">Contact support to change your
+                            email address.</small>
+                    </div>
+
+                    <div class="settings-section" style="margin-bottom: 30px;">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Profile Details</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="font-size: 12px; color: #666;">Username</label>
+                                <div style="font-weight: 500;">@<%= typeof user !=='undefined' ? user.username : 'user'
+                                        %>
+                                </div>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; color: #666;">Campus</label>
+                                <div style="font-weight: 500;">
+                                    <%= typeof user !=='undefined' ? user.campus : 'Not set' %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
+
+                    <div class="settings-section" style="margin-bottom: 30px;">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Account Status</div>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <span
+                                style="display: inline-block; width: 10px; height: 10px; background: #28a745; border-radius: 50%;"></span>
+                            <span style="color: #666;">Active</span>
+                        </div>
+                        <small style="color: #666;">Member since <%= typeof user !=='undefined' && user.created_at ? new
+                                Date(user.created_at).toLocaleDateString() : 'N/A' %></small>
+                    </div>
+
+                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
+
+                    <div class="settings-section" style="margin-bottom: 30px;">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Session Management</div>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">You are currently signed in. Sign
+                            out to use a different account.</p>
+                        <button class="btn btn-outline-danger" onclick="logout()" style="font-size: 14px;">
+                            <i class="fas fa-sign-out-alt"></i> Sign Out
+                        </button>
+                    </div>
+
+                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
+
+                    <div class="settings-section">
+                        <div style="font-weight: 600; margin-bottom: 15px; color: #dc3545;">Danger Zone</div>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Once you delete your account,
+                            there is no going back. Please be certain.</p>
+                        <button class="btn btn-outline-danger" onclick="deleteAccount()" style="font-size: 14px;">
+                            <i class="fas fa-trash-alt"></i> Delete Account
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Preferences Settings -->
+                <div id="prefSettings" class="settings-tab-content" style="display: none;">
+                    <h3 style="margin-bottom: 15px; font-size: 1.1rem;">App Preferences</h3>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                        <div>
+                            <div style="font-weight: 600;">Dark Mode</div>
+                            <div style="font-size: 12px; color: #666;">Easier on the eyes at night</div>
+                        </div>
+                        <label class="switch"
+                            style="position: relative; display: inline-block; width: 50px; height: 26px;">
+                            <input type="checkbox" id="darkModeToggle">
+                            <span class="slider round"
+                                style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                        </label>
+                    </div>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-weight: 600;">Email Notifications</div>
+                            <div style="font-size: 12px; color: #666;">Receive updates via email</div>
+                        </div>
+                        <label class="switch"
+                            style="position: relative; display: inline-block; width: 50px; height: 26px;">
+                            <input type="checkbox" checked>
+                            <span class="slider round"
+                                style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <style>
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(24px);
+        }
+    </style>
+    <script>
+        function switchSettingsTab(tabId) {
+            document.querySelectorAll('.settings-tab-content').forEach(el => el.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.style.color = '#666';
+                btn.style.borderBottom = 'none';
+                btn.classList.remove('active');
+            });
+            event.target.style.color = 'var(--primary)';
+            event.target.style.borderBottom = '2px solid var(--primary)';
+        }
+    </script>
+</div>
+
+<!-- Confessions Modal -->
+<div class="modal" id="confessionsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-fire" style="color: #FF9800;"></i>
+                Anonymous Confessions
+            </div>
+            <button class="close-modal" id="closeConfessionsModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Confessions content -->
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Settings Modal (Instagram Style) -->
+<div class="modal" id="enhancedSettingsModal">
+    <div class="modal-content"
+        style="max-width: 900px; width: 95%; height: 85vh; padding: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; background: #fff;">
+        <div class="modal-header" style="border-bottom: 1px solid #efefef; padding: 15px 20px;">
+            <div class="modal-title" style="font-weight: 700; font-size: 18px;">Settings</div>
+            <button class="close-modal"
+                style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+        </div>
+        <div style="display: flex; flex: 1; overflow: hidden;">
+            <!-- Instagram-style Sidebar -->
+            <div style="width: 250px; border-right: 1px solid #efefef; background: #fff; overflow-y: auto;">
+                <div class="settings-nav-list" style="padding: 10px 0;">
+                    <button class="settings-nav-item active" onclick="switchEnhancedSetting('edit-profile-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-user-circle" style="font-size: 18px;"></i> <span
+                            style="font-size: 14px; font-weight: 500;">Edit Profile</span>
+                    </button>
+                    <button class="settings-nav-item" onclick="switchEnhancedSetting('security-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-shield-alt" style="font-size: 18px;"></i> <span
+                            style="font-size: 14px; font-weight: 400;">Security</span>
+                    </button>
+                    <button class="settings-nav-item" onclick="switchEnhancedSetting('privacy-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-lock" style="font-size: 18px;"></i> <span
+                            style="font-size: 14px; font-weight: 400;">Privacy</span>
+                    </button>
+                    <button class="settings-nav-item" onclick="switchEnhancedSetting('notification-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-bell" style="font-size: 18px;"></i> <span
+                            style="font-size: 14px; font-weight: 400;">Notifications</span>
+                    </button>
+                    <button class="settings-nav-item" onclick="switchEnhancedSetting('account-tab', this)"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-user-cog" style="font-size: 18px;"></i> <span
+                            style="font-size: 14px; font-weight: 400;">Account</span>
+                    </button>
+                    <div style="border-top: 1px solid #efefef; margin: 10px 0;"></div>
+                    <button class="settings-nav-item" onclick="logout()"
+                        style="width: 100%; text-align: left; padding: 12px 25px; border: none; background: none; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #ed4956;">
+                        <i class="fas fa-sign-out-alt" style="font-size: 18px;"></i> <span
+                            style="font-size: 14px; font-weight: 500;">Log Out</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div style="flex: 1; padding: 40px; background: #fff; overflow-y: auto;">
+                <!-- Edit Profile Tab -->
+                <div id="edit-profile-tab" class="enhanced-settings-content">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Edit Profile</div>
+                    <div style="display: flex; align-items: center; margin-bottom: 30px;">
+                        <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                            style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 20px;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 16px;">
+                                <%= typeof user !=='undefined' ? user.username : 'User' %>
+                            </div>
+                            <button
+                                style="background: none; border: none; color: #0095f6; font-weight: 600; font-size: 14px; cursor: pointer; padding: 0;"
+                                onclick="document.getElementById('editAvatarInput').click()">Change profile
+                                photo</button>
+                            <input type="file" id="editAvatarInput" style="display: none;" accept="image/*">
+                        </div>
+                    </div>
+
+                    <div class="settings-form-row" style="display: flex; margin-bottom: 15px;">
+                        <label
+                            style="width: 150px; font-weight: 600; text-align: right; padding-top: 8px; margin-right: 30px;">Name</label>
+                        <div style="flex: 1;">
+                            <input type="text" id="enhanced-edit-name" class="form-control" style="width: 100%;"
+                                value="<%= typeof user !== 'undefined' ? user.name : '' %>">
+                            <p style="font-size: 12px; color: #8e8e8e; margin-top: 5px;">Help people discover your
+                                account by using the name you're known by: either your full name, nickname, or business
+                                name.</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-form-row" style="display: flex; margin-bottom: 15px;">
+                        <label
+                            style="width: 150px; font-weight: 600; text-align: right; padding-top: 8px; margin-right: 30px;">Bio</label>
+                        <div style="flex: 1;">
+                            <textarea id="enhanced-edit-bio" class="form-control" style="width: 100%;"
+                                rows="3"><%= typeof user !== 'undefined' ? user.bio : '' %></textarea>
+                            <p style="font-size: 12px; color: #8e8e8e; margin-top: 5px;">Briefly describe yourself to
+                                your campus community.</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-form-row" style="display: flex; margin-bottom: 15px;">
+                        <label
+                            style="width: 150px; font-weight: 600; text-align: right; padding-top: 8px; margin-right: 30px;">Major</label>
+                        <div style="flex: 1;">
+                            <input type="text" id="enhanced-edit-major" class="form-control" style="width: 100%;"
+                                value="<%= typeof user !== 'undefined' ? user.major : '' %>"
+                                placeholder="e.g. Computer Science">
+                        </div>
+                    </div>
+
+                    <div class="settings-form-row" style="display: flex; margin-bottom: 15px;">
+                        <label
+                            style="width: 150px; font-weight: 600; text-align: right; padding-top: 8px; margin-right: 30px;">Campus</label>
+                        <div style="flex: 1;">
+                            <select id="enhanced-edit-campus" class="form-control" style="width: 100%;">
+                                <option value="Sparkle Central" <%=typeof user !=='undefined' &&
+                                    user.campus==='Sparkle Central' ? 'selected' : '' %>>Sparkle Central</option>
+                                <option value="North Campus" <%=typeof user !=='undefined' &&
+                                    user.campus==='North Campus' ? 'selected' : '' %>>North Campus</option>
+                                <option value="South Campus" <%=typeof user !=='undefined' &&
+                                    user.campus==='South Campus' ? 'selected' : '' %>>South Campus</option>
+                                <option value="Technology Hub" <%=typeof user !=='undefined' &&
+                                    user.campus==='Technology Hub' ? 'selected' : '' %>>Technology Hub</option>
+                                <option value="Stanford University" <%=typeof user !=='undefined' &&
+                                    user.campus==='Stanford University' ? 'selected' : '' %>>Stanford University
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-form-row" style="display: flex; margin-top: 30px;">
+                        <div style="width: 150px; margin-right: 30px;"></div>
+                        <button class="btn btn-primary" style="padding: 10px 25px;"
+                            onclick="saveDetailedProfile()">Submit</button>
+                    </div>
+                </div>
+
+                <!-- Security Tab -->
+                <div id="security-tab" class="enhanced-settings-content" style="display: none;">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Security</div>
+
+                    <div class="settings-section" style="margin-bottom: 30px;">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Change Password</div>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label class="form-label">Current Password</label>
+                            <input type="password" id="change-pass-current" class="form-control" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label class="form-label">New Password</label>
+                            <input type="password" id="change-pass-new" class="form-control" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="form-label">Confirm New Password</label>
+                            <input type="password" id="change-pass-confirm" class="form-control" style="width: 100%;">
+                        </div>
+
+                        <button class="btn btn-primary" onclick="updatePassword()">Update Password</button>
+                    </div>
+
+                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
+
+                    <div class="settings-section">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Password Recovery</div>
+                        <button class="btn btn-outline-primary" style="font-size: 13px;"
+                            onclick="alert('Password reset link sent to your email.')">Send Reset Link to Email</button>
+                    </div>
+                </div>
+
+                <!-- Privacy Tab -->
+                <div id="privacy-tab" class="enhanced-settings-content" style="display: none;">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Storage & Privacy</div>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Anonymous Identity</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Your profile will be hidden when participating
+                                anonymously.</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="enhanced-anonymous-toggle" <%=typeof user !=='undefined' &&
+                                user.anonymous_enabled ? 'checked' : '' %> onchange="saveAppSetting('anonymous_enabled',
+                            this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Profile Visibility</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Only users from your campus can see your
+                                profile.</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="enhanced-visibility-toggle" <%=typeof user !=='undefined' &&
+                                user.profile_visibility==='campus' ? 'checked' : '' %>
+                            onchange="saveAppSetting('profile_visibility', this.checked ? 'campus' : 'public')">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Notification Tab -->
+                <div id="notification-tab" class="enhanced-settings-content" style="display: none;">
+                    <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Notifications</div>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Push Notifications</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Receive alerts on your device for new sparks
+                                and comments.</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="enhanced-push-notify" <%=typeof user !=='undefined' &&
+                                user.push_notifications ? 'checked' : '' %>
+                            onchange="saveAppSetting('push_notifications', this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Email Notifications</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Receive daily digests and important updates
+                                via email.</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="enhanced-email-notify" <%=typeof user !=='undefined' &&
+                                user.email_notifications ? 'checked' : '' %>
+                            onchange="saveAppSetting('email_notifications', this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .settings-nav-item:hover {
+            background: #fafafa;
+        }
+
+        .settings-nav-item.active {
+            background: #fff !important;
+            color: #000 !important;
+            font-weight: 700 !important;
+            border-left: 2px solid #000 !important;
+        }
+
+        .settings-nav-item i {
+            width: 20px;
+        }
+
+        .settings-form-row input,
+        .settings-form-row textarea {
+            border: 1px solid #dbdbdb;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        .settings-form-row input:focus {
+            background: #fff;
+            border-color: #a8a8a8;
+            outline: none;
+        }
+    </style>
+    <script>
+        function switchEnhancedSetting(tabId, btn) {
+            document.querySelectorAll('.enhanced-settings-content').forEach(el => el.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+            document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        async function saveDetailedProfile() {
+            const name = document.getElementById('enhanced-edit-name').value;
+            const bio = document.getElementById('enhanced-edit-bio').value;
+            const campus = document.getElementById('enhanced-edit-campus').value;
+            const major = document.getElementById('enhanced-edit-major').value;
+
+            try {
+                if (typeof DashboardAPI === 'undefined') throw new Error('API not loaded');
+                await DashboardAPI.updateProfile({ name, bio, campus, major });
+                alert('Profile updated successfully!');
+                location.reload(); // Refresh to show changes
+            } catch (e) {
+                console.error(e);
+                alert('Failed to update profile: ' + e.message);
+            }
+        }
+
+        async function updatePassword() {
+            const currentPassword = document.getElementById('change-pass-current').value;
+            const newPassword = document.getElementById('change-pass-new').value;
+            const confirmPassword = document.getElementById('change-pass-confirm').value;
+
+            if (!currentPassword || !newPassword) {
+                alert('Please fill in all password fields');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alert('New passwords do not match');
+                return;
+            }
+
+            try {
+                await DashboardAPI.changePassword(currentPassword, newPassword);
+                alert('Password updated successfully!');
+                // Clear fields
+                document.getElementById('change-pass-current').value = '';
+                document.getElementById('change-pass-new').value = '';
+                document.getElementById('change-pass-confirm').value = '';
+            } catch (e) {
+                alert('Failed to update password: ' + e.message);
+            }
+        }
+
+        async function saveAppSetting(key, value) {
+            try {
+                const settings = {};
+                settings[key] = value;
+                await DashboardAPI.updateSettings(settings);
+                console.log(`Setting ${key} updated to ${value}`);
+            } catch (e) {
+                console.error('Failed to update setting:', e);
+                alert('Failed to save setting');
+            }
+        }
+
+        // Avatar change handler
+        document.getElementById('editAvatarInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // In a real app, you'd upload to S3/Cloudinary first
+            // For now, we'll simulate by using a URL if provided, 
+            // but the backend needs a URL. If we have a local preview,
+            // we'd need to upload it.
+
+            // Simulation: since we don't have a file upload handler yet, 
+            // alert that it's a demo or implement a simple base64 for now?
+            // Actually, let's just show a prompt for a URL for now to make it "functional"
+            const url = prompt("Enter the URL for your new profile picture:", "");
+            if (url) {
+                try {
+                    await DashboardAPI.uploadAvatar(url);
+                    alert('Avatar updated!');
+                    location.reload();
+                } catch (err) {
+                    alert('Failed to update avatar');
+                }
+            }
+        });
+
+        // Logout handler
+        async function logout() {
+            try {
+                // Determine if we are using cookie or localStorage for token (or both)
+                // Clear cookie by setting past expiry
+                document.cookie = 'sparkleToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                document.cookie = 'sparkleToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; domain=' + window.location.hostname;
+
+                // Clear any local storage items
+                localStorage.clear(); // Clear everything to be safe
+
+                // Call backend to invalidate if needed (non-blocking)
+                try {
+                    await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } catch (err) {
+                    console.warn('Backend logout call failed, proceeding with local logout', err);
+                }
+
+                // Redirect immediately
+                window.location.replace('/login.html');
+            } catch (e) {
+                console.error('Logout failed', e);
+                window.location.replace('/login.html');
+            }
+        }
+
+        // Delete Account handler
+        async function deleteAccount() {
+            if (!confirm('Are you absolutely sure you want to delete your account? This action cannot be undone and you will lose all your data.')) {
+                return;
+            }
+
+            const confirmation = prompt('Please type "DELETE" to confirm account deletion:');
+            if (confirmation !== 'DELETE') {
+                alert('Account deletion cancelled.');
+                return;
+            }
+
+            try {
+                // Use DashboardAPI if available, otherwise fetch
+                const token = getCookie('sparkleToken');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const response = await fetch('/api/users/me', {
+                    method: 'DELETE',
+                    headers: headers
+                });
+
+                if (response.ok) {
+                    alert('Your account has been deleted.');
+                    logout();
+                } else {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to delete account');
+                }
+            } catch (error) {
+                console.error('Failed to delete account:', error);
+                alert('Failed to delete account: ' + (error.message || 'Unknown error'));
+            }
+        }
+
+        // Helper to get cookie
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+    </script>
+</div>
+
+
+<!-- Lost & Found Modal -->
+<div class="modal" id="lostFoundModal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-search"></i> Report Lost/Found Item</div>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Item Name</label>
+                <input type="text" class="form-control" id="lfItemName" placeholder="e.g. Blue Backpack">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Type</label>
+                <select class="form-control" id="lfType">
+                    <option value="lost">I Lost This</option>
+                    <option value="found">I Found This</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" id="lfLocation" placeholder="Where was it seen?">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="lfDescription" rows="3"
+                    placeholder="Additional details..."></textarea>
+            </div>
+            <button class="btn btn-primary btn-block" id="reportItemBtn">Post to Lost & Found</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Event Modal -->
+<div class="modal" id="createEventModal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <div class="modal-title">Create Campus Event</div>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Event Title</label>
+                <input type="text" class="form-control" id="eventTitle">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="eventDescription" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Start Time</label>
+                <input type="datetime-local" class="form-control" id="eventStartTime">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" id="eventLocation">
+            </div>
+            <button class="btn btn-primary btn-block" onclick="window.submitEvent()">Create Event</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Poll Modal -->
+<div class="modal" id="createPollModal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <div class="modal-title">New Campus Poll</div>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Question</label>
+                <input type="text" class="form-control" id="pollQuestion" placeholder="What do you want to ask?">
+            </div>
+            <div class="form-group" id="pollOptionsContainer">
+                <label class="form-label">Options</label>
+                <input type="text" class="form-control poll-option" style="margin-bottom: 5px;" placeholder="Option 1">
+                <input type="text" class="form-control poll-option" style="margin-bottom: 5px;" placeholder="Option 2">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="addPollOptionField()" style="margin-bottom: 15px;">+ Add
+                Option</button>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="pollAnonymous"> Anonymous Poll
+                </label>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="window.submitPoll()">Launch Poll</button>
+        </div>
+    </div>
+</div>
+
+<!-- Go Live Modal -->
+<div class="modal" id="goLiveModal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-video" style="color: #ff4b2b;"></i> Go Live
+            </div>
+            <button class="close-modal" onclick="closeGoLiveModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Stream Title *</label>
+                <input type="text" class="form-control" id="streamTitle" placeholder="What are you streaming about?">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="streamDescription" rows="3"
+                    placeholder="Tell viewers what to expect..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-control" id="streamCategory">
+                    <option value="study">📚 Study Session</option>
+                    <option value="gaming">🎮 Gaming</option>
+                    <option value="music">🎵 Music/Performance</option>
+                    <option value="tutorial">💡 Tutorial</option>
+                    <option value="qa">💬 Q&A</option>
+                    <option value="event">🎉 Campus Event</option>
+                    <option value="other">📺 Other</option>
+                </select>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
+                    <i class="fas fa-info-circle"></i> <strong>Before you go live:</strong>
+                </div>
+                <ul style="font-size: 12px; color: #666; margin: 0; padding-left: 20px;">
+                    <li>Make sure you have a stable internet connection</li>
+                    <li>Test your camera and microphone</li>
+                    <li>Choose a well-lit, quiet location</li>
+                </ul>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="startLiveStream()"
+                style="background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%); border: none; font-weight: 600;">
+                <i class="fas fa-circle" style="color: #fff; animation: pulse 1.5s infinite;"></i>
+                Start Broadcast
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+    }
+</style>
+
+<script>
+    function addPollOptionField() {
+        const container = document.getElementById('pollOptionsContainer');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control poll-option';
+        input.style.marginBottom = '5px';
+        input.placeholder = `Option ${container.children.length}`;
+        container.appendChild(input);
+    }
+
+    // ====== QUICK ACTIONS MODAL HANDLERS ======
+
+    // Go Live Modal
+    function openGoLiveModal() {
+        document.getElementById('goLiveModal').style.display = 'flex';
+    }
+
+    function closeGoLiveModal() {
+        document.getElementById('goLiveModal').style.display = 'none';
+        // Clear form
+        document.getElementById('streamTitle').value = '';
+        document.getElementById('streamDescription').value = '';
+        document.getElementById('streamCategory').value = 'study';
+    }
+
+    async function startLiveStream() {
+        const title = document.getElementById('streamTitle').value.trim();
+        const description = document.getElementById('streamDescription').value.trim();
+        const category = document.getElementById('streamCategory').value;
+
+        if (!title) {
+            alert('Please enter a stream title');
+            return;
+        }
+
+        try {
+            const streamData = {
+                title,
+                description,
+                category,
+                stream_url: 'rtmp://placeholder-stream-url', // In production, this would be generated
+                thumbnail_url: null,
+                campus: localStorage.getItem('sparkleUserCampus') || 'Sparkle Central'
+            };
+
+            await DashboardAPI.startStream(streamData);
+            alert('🔴 Stream started successfully!\n\nIn a production app, you would now be redirected to the streaming interface.');
+            closeGoLiveModal();
+
+            // TODO: Redirect to stream page or open stream interface
+            // window.location.href = '/stream/' + streamId;
+        } catch (error) {
+            console.error('Failed to start stream:', error);
+            alert('Failed to start stream: ' + error.message);
+        }
+    }
+
+    // Create Poll Modal
+    function openCreatePollModal() {
+        document.getElementById('createPollModal').style.display = 'flex';
+    }
+
+    // Poll submission handler (wiring up existing modal)
+    window.submitPoll = async function () {
+        const question = document.getElementById('pollQuestion').value.trim();
+        const optionInputs = document.querySelectorAll('.poll-option');
+        const options = Array.from(optionInputs)
+            .map(input => input.value.trim())
+            .filter(val => val !== '');
+        const isAnonymous = document.getElementById('pollAnonymous').checked;
+
+        if (!question) {
+            alert('Please enter a poll question');
+            return;
+        }
+
+        if (options.length < 2) {
+            alert('Please add at least 2 options');
+            return;
+        }
+
+        try {
+            const pollData = {
+                question,
+                options,
+                is_anonymous: isAnonymous,
+                campus: localStorage.getItem('sparkleUserCampus') || 'Sparkle Central',
+                category: 'general',
+                expires_at: null // Never expires
+            };
+
+            await DashboardAPI.createPoll(pollData);
+            alert('✅ Poll created successfully!');
+
+            // Close modal and clear form
+            document.getElementById('createPollModal').style.display = 'none';
+            document.getElementById('pollQuestion').value = '';
+            optionInputs.forEach(input => input.value = '');
+            document.getElementById('pollAnonymous').checked = false;
+
+            // TODO: Refresh polls list or redirect
+        } catch (error) {
+            console.error('Failed to create poll:', error);
+            alert('Failed to create poll: ' + error.message);
+        }
+    };
+
+    // Campus Event Modal
+    function openEventModal() {
+        document.getElementById('createEventModal').style.display = 'flex';
+    }
+
+    // Event submission handler (wiring up existing modal)
+    window.submitEvent = async function () {
+        const title = document.getElementById('eventTitle').value.trim();
+        const description = document.getElementById('eventDescription').value.trim();
+        const location = document.getElementById('eventLocation').value.trim();
+        const startTime = document.getElementById('eventStartTime').value;
+
+        if (!title) {
+            alert('Please enter an event title');
+            return;
+        }
+
+        if (!startTime) {
+            alert('Please select a start time');
+            return;
+        }
+
+        try {
+            const eventData = {
+                title,
+                description,
+                location,
+                start_time: startTime,
+                end_time: null,
+                event_type: 'meetup',
+                campus: localStorage.getItem('sparkleUserCampus') || 'Sparkle Central',
+                image_url: null,
+                max_attendees: 0,
+                is_public: true
+            };
+
+            await DashboardAPI.createEvent(eventData);
+            alert('✅ Event created successfully!');
+
+            // Close modal and clear form
+            document.getElementById('createEventModal').style.display = 'none';
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('eventLocation').value = '';
+            document.getElementById('eventStartTime').value = '';
+
+            // TODO: Refresh events list or redirect
+        } catch (error) {
+            console.error('Failed to create event:', error);
+            alert('Failed to create event: ' + error.message);
+        }
+    };
+
+    // Close modals when clicking outside
+    window.addEventListener('click', function (event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    });
+</script>

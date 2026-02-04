@@ -1,0 +1,69 @@
+<div class="header glass">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <div class="hamburger-btn" onclick="toggleHamburger()" style="font-size: 20px; cursor: pointer;">
+            <i class="fas fa-bars"></i>
+        </div>
+        <div class="logo-text"
+            style="font-size: 26px; font-weight: 700; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif;">
+            Sparkle</div>
+    </div>
+    <div id="notificationIcon"
+        style="font-size: 22px; position: relative; cursor: pointer; display: flex; align-items: center; gap: 15px;">
+        <i class="far fa-bell"></i>
+        <span class="badge" id="notificationCount"
+            style="position: absolute; top: -5px; right: 25px; background: var(--danger); color: white; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; display: none; border: 2px solid var(--card-bg);"></span>
+
+        <!-- Quick Action Floating Icons -->
+        <div class="quick-action-icons" style="display: flex; align-items: center; gap: 10px;">
+            <!-- View Live Icon -->
+            <div class="quick-action-icon" onclick="window.location.href='/streams'" title="View Live Streams" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FF416C, #FF4B2B); 
+                       display: flex; align-items: center; justify-content: center; cursor: pointer; 
+                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(255, 65, 108, 0.3);">
+                <i class="fas fa-satellite-dish" style="color: white; font-size: 16px;"></i>
+            </div>
+
+            <!-- View Polls Icon -->
+            <div class="quick-action-icon" onclick="window.location.href='/polls'" title="View Polls" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); 
+                       display: flex; align-items: center; justify-content: center; cursor: pointer; 
+                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">
+                <i class="fas fa-vote-yea" style="color: white; font-size: 16px;"></i>
+            </div>
+
+            <!-- View Events Icon -->
+            <div class="quick-action-icon" onclick="window.location.href='/events'" title="View Campus Events" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #f2994a, #f2c94c); 
+                       display: flex; align-items: center; justify-content: center; cursor: pointer; 
+                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(242, 153, 74, 0.3);">
+                <i class="fas fa-calendar-alt" style="color: white; font-size: 16px;"></i>
+            </div>
+        </div>
+
+        <!-- User Avatar in Nav house 5.0 -->
+        <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+            alt="User" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--primary);"
+            onclick="window.location.href='/profile'"
+            onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+    </div>
+</div>
+
+<style>
+    .logo-text {
+        letter-spacing: -0.5px;
+        user-select: none;
+    }
+
+    .quick-action-icon:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .quick-action-icon:active {
+        transform: scale(0.95);
+    }
+
+    /* Hide Quick Action icons on mobile to avoid clutter */
+    @media (max-width: 768px) {
+        .quick-action-icons {
+            display: none !important;
+        }
+    }
+</style>

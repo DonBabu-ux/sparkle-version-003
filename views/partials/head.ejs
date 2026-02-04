@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>
+        <%= title %> | Sparkle
+    </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
+    <link rel="stylesheet" href="/css/components.css">
+    <script>
+        // Immediate cache clear for specific data keys to prevent "static data" issues
+        if (!sessionStorage.getItem('cache_cleared')) {
+            const keysToClear = ['sparkleCampus', 'mockData', 'currentUser'];
+            keysToClear.forEach(k => localStorage.removeItem(k));
+            sessionStorage.setItem('cache_cleared', 'true');
+            console.log('🧹 Session cache cleared');
+        }
+    </script>
+    <%- include('styles') %>
+</head>
+
+<body>
+    <%- include('loading-bar') %>

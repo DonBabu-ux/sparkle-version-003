@@ -1,0 +1,260 @@
+<%- include('partials/head', { title: 'Dashboard' }) %>
+
+    <body>
+        <%- include('partials/sidebar') %>
+
+            <!-- Main Content Container -->
+            <div class="container" id="mainContent">
+                <!-- Header -->
+                <div class="header glass">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div class="hamburger-btn" onclick="window.location.href='/groups'" style="cursor:pointer;">
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                        <div style="font-weight: 700; font-size: 18px;">Group Discussion</div>
+                    </div>
+                </div>
+
+                <!-- Group Detail Header -->
+                <div class="premium-detail-header">
+                    <div class="premium-detail-banner" style="height: 120px;">
+                        <!-- Discussion groups usually have smaller banners or abstract ones -->
+                    </div>
+                    <div class="premium-detail-info-row">
+                        <div class="premium-detail-logo">
+                            <% if (group.icon_url) { %>
+                                <img src="<%= group.icon_url %>" alt="<%= group.name %>">
+                                <% } else { %>
+                                    <div
+                                        style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--primary-gradient); border-radius:16px; color:white;">
+                                        <i class="<%= group.icon || 'fas fa-users' %> fa-2x"></i>
+                                    </div>
+                                    <% } %>
+                        </div>
+                        <div class="premium-detail-title-section">
+                            <div class="premium-detail-name">
+                                <%= group.name %>
+                            </div>
+                            <div class="premium-detail-meta">
+                                <span><i class="fas fa-users"></i>
+                                    <%= group.member_count || 0 %> Members
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="premium-detail-actions">
+                        <div style="display: flex; gap: 10px;">
+                            <% if (!group.user_status) { %>
+                                <button id="joinGroupBtn" class="btn btn-primary"
+                                    style="flex: 1; border-radius: 12px;">Join Group</button>
+                                <% } else if (group.user_status==='pending' ) { %>
+                                    <button class="btn btn-outline-secondary" style="flex: 1; border-radius: 12px;"
+                                        disabled>Pending Approval</button>
+                                    <% } else { %>
+                                        <button class="btn btn-outline-primary" style="flex: 1; border-radius: 12px;"
+                                            disabled>Member</button>
+                                        <% if (group.user_role==='admin' ) { %>
+                                            <button
+                                                onclick="document.getElementById('addMemberModal').style.display='flex'"
+                                                class="btn btn-primary" style="flex: 1; border-radius: 12px;">Add
+                                                Member</button>
+                                            <% } %>
+                                                <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create Post Section -->
+                <% if (group.user_status==='member' || group.user_role==='admin' ) { %>
+                    <div class="about-card" style="padding: 15px; margin-bottom: 20px;">
+                        <div style="display: flex; gap: 12px;">
+                            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                                style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid white; box-shadow: var(--shadow-sm);">
+                            <div style="flex: 1;">
+                                <textarea id="groupPostContent" class="premium-search-input"
+                                    placeholder="Share something with the group..."
+                                    style="width: 100%; border: none; background: #f8fafc; padding: 12px; border-radius: 12px; resize: none; min-height: 80px;"></textarea>
+                                <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                                    <button class="btn btn-primary" style="padding: 8px 24px; border-radius: 20px;"
+                                        onclick="submitGroupPost('<%= group.group_id %>')">Post</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <% } %>
+
+                        <!-- Feed -->
+                        <div class="feed" id="groupFeed" style="padding-bottom: 80px;">
+                            <% if (typeof initialPosts !=='undefined' && initialPosts.length> 0) { %>
+                                <% initialPosts.forEach(post=> { %>
+                                    <div class="post-card" data-post-id="<%= post.post_id %>">
+                                        <div class="post-header">
+                                            <div class="post-avatar-wrapper">
+                                                <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>"
+                                                    alt="<%= post.user_name %>" class="post-avatar">
+                                            </div>
+                                            <div class="post-user-info">
+                                                <div class="post-username">
+                                                    <%= post.user_name %>
+                                                </div>
+                                                <div class="post-time">
+                                                    <%= new Date(post.timestamp).toLocaleString() %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="post-caption">
+                                            <%= post.content %>
+                                        </div>
+                                        <% if (post.media_url) { %>
+                                            <img src="<%= post.media_url %>" class="post-media" alt="Post media">
+                                            <% } %>
+                                                <div class="post-actions">
+                                                    <button class="action-btn"><i class="far fa-heart"></i>
+                                                        <%= post.sparks || 0 %>
+                                                    </button>
+                                                    <button class="action-btn"><i class="far fa-comment"></i>
+                                                        Comment</button>
+                                                </div>
+                                    </div>
+                                    <% }); %>
+                                        <% } else { %>
+                                            <div class="discover-empty-state">
+                                                <i class="fas fa-comments"></i>
+                                                <h4>No posts yet</h4>
+                                                <p>Be the first to share something with the group!</p>
+                                            </div>
+                                            <% } %>
+                        </div>
+            </div>
+
+            <!-- Modals -->
+            <%- include('partials/dashboard-modals') %>
+
+                <!-- Add Member Modal -->
+                <div id="addMemberModal" class="premium-modal">
+                    <div class="premium-modal-content">
+                        <div class="premium-modal-header">
+                            <h3 class="premium-modal-title">Add Member</h3>
+                            <button onclick="document.getElementById('addMemberModal').style.display='none'"
+                                class="close-modal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="premium-modal-body">
+                            <div class="premium-search-container" style="margin-bottom: 15px;">
+                                <i class="fas fa-search text-primary"></i>
+                                <input type="text" id="memberSearch" class="premium-search-input"
+                                    placeholder="Search by name/username...">
+                            </div>
+                            <div id="memberResults" style="max-height: 300px; overflow-y: auto;">
+                                <!-- Results will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scripts -->
+                <script>
+                    async function submitGroupPost(groupId) {
+                        const content = document.getElementById('groupPostContent').value;
+                        if (!content.trim()) return;
+
+                        try {
+                            const response = await fetch(`/api/groups/${groupId}/posts`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${localStorage.getItem('sparkleToken')}`
+                                },
+                                body: JSON.stringify({ content })
+                            });
+
+                            const result = await response.json();
+                            if (response.ok) {
+                                location.reload();
+                            } else {
+                                alert(result.error || 'Failed to post');
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            alert('Error posting');
+                        }
+                    }
+
+                    const joinBtn = document.getElementById('joinGroupBtn');
+                    if (joinBtn) {
+                        joinBtn.addEventListener('click', async () => {
+                            try {
+                                const response = await fetch('/api/groups/<%= group.group_id %>/join', {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('sparkleToken')}` }
+                                });
+                                const result = await response.json();
+                                if (response.ok) {
+                                    alert(result.message);
+                                    location.reload();
+                                } else {
+                                    alert(result.error || 'Failed to join');
+                                }
+                            } catch (e) {
+                                alert('Error joining group');
+                            }
+                        });
+                    }
+
+                    async function addMember(userId) {
+                        try {
+                            const response = await fetch('/api/groups/<%= group.group_id %>/members', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${localStorage.getItem('sparkleToken')}`
+                                },
+                                body: JSON.stringify({ targetUserId: userId })
+                            });
+                            const result = await response.json();
+                            if (response.ok) {
+                                alert('Member added!');
+                                location.reload();
+                            } else {
+                                alert(result.error || 'Failed to add member');
+                            }
+                        } catch (e) {
+                            alert('Error adding member');
+                        }
+                    }
+
+                    const memberSearch = document.getElementById('memberSearch');
+                    if (memberSearch) {
+                        memberSearch.addEventListener('input', async (e) => {
+                            const q = e.target.value;
+                            if (q.length < 2) return;
+
+                            try {
+                                const response = await fetch(`/api/users/search?q=${q}`);
+                                const users = await response.json();
+                                const resultsDiv = document.getElementById('memberResults');
+                                resultsDiv.innerHTML = users.map(u => `
+                                    <div class="member-item">
+                                        <div style="display: flex; align-items: center; gap: 12px;">
+                                            <img src="${u.avatar_url || '/uploads/avatars/default.png'}" style="width: 40px; height: 40px; border-radius: 12px; object-fit: cover;">
+                                            <div>
+                                                <div style="font-size: 14px; font-weight: 700; color: var(--text-light);">${u.name}</div>
+                                                <div style="font-size: 12px; color: var(--text-secondary);">@${u.username}</div>
+                                            </div>
+                                        </div>
+                                        <button onclick="addMember('${u.user_id}')" class="btn btn-primary btn-sm" style="padding: 6px 16px; border-radius: 10px; font-size: 12px;">Add</button>
+                                    </div>
+                                `).join('');
+                            } catch (err) {
+                                console.error(err);
+                            }
+                        });
+                    }
+                </script>
+
+                    <script src="/dashboardAPI.js"></script>
+    </body>
+
+    </html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In | Sparkle</title>
+    <script>
+        // Immediate Background Auth Check
+        (function () {
+            function hasToken() {
+                try {
+                    if (document.cookie.includes('sparkleToken=')) {
+                        const cookies = document.cookie.split(';');
+                        for (let cookie of cookies) {
+                            const [name, value] = cookie.trim().split('=');
+                            if (name === 'sparkleToken' && value && value !== 'undefined') return true;
+                        }
+                    }
+                    const token = localStorage.getItem('sparkleToken');
+                    return !!(token && token !== 'undefined');
+                } catch (e) { return false; }
+            }
+            if (hasToken()) {
+                window.location.replace('/dashboard');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #FAFAFA;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            opacity: 0;
+            animation: pageFadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes pageFadeIn {
+            from {
+                opacity: 0;
+                background-color: #ffe6f0;
+            }
+
+            to {
+                opacity: 1;
+                background-color: #FAFAFA;
+            }
+        }
+
+        .auth-container {
+            display: flex;
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .visual-side {
+            flex: 1;
+            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
+            padding: 60px 40px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .auth-logo-container {
+            margin-bottom: 40px;
+        }
+
+        .auth-logo {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .auth-tagline {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.5;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 12px 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .features-list i {
+            font-size: 20px;
+        }
+
+        .form-side {
+            flex: 1;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .panel-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .panel-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #262626;
+            margin-bottom: 8px;
+        }
+
+        .panel-subtitle {
+            color: #8E8E8E;
+            font-size: 14px;
+        }
+
+        .auth-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .auth-message.show {
+            display: block;
+        }
+
+        .auth-message.error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .auth-message.success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+
+        .auth-form-group {
+            margin-bottom: 20px;
+        }
+
+        .auth-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #262626;
+            font-size: 14px;
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8E8E8E;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 1px solid #DBDBDB;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #FF3D6D;
+        }
+
+        .btn-auth-primary {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-auth-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-auth-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: #8E8E8E;
+            font-size: 13px;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #DBDBDB;
+        }
+
+        .auth-divider span {
+            padding: 0 16px;
+        }
+
+        .social-login {
+            margin-bottom: 20px;
+        }
+
+        .social-btn {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #DBDBDB;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .social-btn:hover {
+            background: #f9f9f9;
+        }
+
+        .social-icon {
+            font-size: 18px;
+        }
+
+        .google-icon {
+            color: #4285f4;
+        }
+
+        .auth-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #8E8E8E;
+        }
+
+        .auth-link a {
+            color: #FF3D6D;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+            }
+
+            .visual-side {
+                padding: 40px 20px;
+            }
+
+            .form-side {
+                padding: 40px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        <!-- Left Side: Visual/Image -->
+        <div class="visual-side">
+            <div class="auth-logo-container">
+                <div class="auth-logo">Sparkle</div>
+                <p class="auth-tagline">Connect with friends and the world around you on Sparkle.</p>
+            </div>
+
+            <ul class="features-list">
+                <li><i class="fas fa-images"></i> See photos and updates</li>
+                <li><i class="fas fa-hashtag"></i> Follow interests</li>
+                <li><i class="fas fa-comment-dots"></i> Join the conversation</li>
+            </ul>
+        </div>
+
+        <!-- Right Side: Form -->
+        <div class="form-side">
+            <div class="panel-header">
+                <h1 class="panel-title">Welcome Back</h1>
+                <p class="panel-subtitle">Log in to your account.</p>
+            </div>
+
+            <div id="login-message" class="auth-message"></div>
+
+            <form id="loginForm">
+                <div class="auth-form-group">
+                    <label class="auth-label" for="login-email">Username or Email</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="login-email" class="auth-input" placeholder="Phone, username, or email"
+                            required>
+                    </div>
+                </div>
+
+                <div class="auth-form-group">
+                    <label class="auth-label" for="login-password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="login-password" class="auth-input" placeholder="Password" required>
+                    </div>
+                </div>
+
+                <div class="auth-form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center;">
+                            <input type="checkbox" id="remember-me" style="margin-right: 8px;">
+                            <label for="remember-me" style="font-size: 13px; color: #262626;">Remember
+                                me</label>
+                        </div>
+                        <a href="#" style="font-size: 13px; color: #0095F6; text-decoration: none;">Forgot
+                            password?</a>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-auth-primary" id="login-submit">
+                    <i class="fas fa-sign-in-alt"></i> Log In
+                </button>
+
+            </form>
+
+            <div class="auth-divider"><span>OR</span></div>
+
+            <div class="social-login">
+                <button class="social-btn google">
+                    <i class="fab fa-google social-icon google-icon"></i>
+                    Log in with Google
+                </button>
+            </div>
+
+            <div class="auth-link">
+                Don't have an account? <a href="/signup">Sign up</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Script -->
+    <script src="/js/authAPI.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for saved email
+            const savedEmail = localStorage.getItem('sparkleUserEmail');
+            if (savedEmail) {
+                document.getElementById('login-email').value = savedEmail;
+                document.getElementById('remember-me').checked = true;
+            }
+
+            document.getElementById('loginForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const emailInput = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-password').value;
+                const loginBtn = document.getElementById('login-submit');
+
+                if (!emailInput || !password) {
+                    showMessage('Please fill all fields', 'error');
+                    return;
+                }
+
+                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+                loginBtn.disabled = true;
+
+                try {
+                    // Call Backend API
+                    // 'username' here can be email or username (handled by controller)
+                    const data = await AuthAPI.login(emailInput, password);
+
+                    if (document.getElementById('remember-me').checked) {
+                        localStorage.setItem('sparkleUserEmail', emailInput);
+                    } else {
+                        localStorage.removeItem('sparkleUserEmail');
+                    }
+
+                    showMessage('Login successful! Redirecting...', 'success');
+
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showMessage(error.message || 'Login failed', 'error');
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
+                    loginBtn.disabled = false;
+                }
+            });
+
+            function showMessage(message, type) {
+                const el = document.getElementById('login-message');
+                el.textContent = message;
+                el.className = `auth-message ${type} show`;
+            }
+        });
+    </script>
+</body>
+
+</html>

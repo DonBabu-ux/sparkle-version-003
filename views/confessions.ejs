@@ -1,0 +1,176 @@
+<%- include('partials/head', { title: title }) %>
+    <%- include('partials/sidebar') %>
+
+        <div class="container" id="mainContent">
+            <%- include('partials/navbar') %>
+
+                <main class="profile-container" style="max-width: 800px;">
+                    <div class="header glass" style="margin-bottom: 2rem;">
+                        <div style="display:flex; align-items:center; gap:15px;">
+                            <div class="icon-circle"
+                                style="background: var(--primary-gradient); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-mask"></i>
+                            </div>
+                            <div>
+                                <h1 style="margin: 0; font-size: 1.5rem;">Campus Confessions</h1>
+                                <p style="margin: 0; color: #8e8e8e; font-size: 0.9rem;">Share your secrets anonymously
+                                </p>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="showConfessModal()" style="border-radius: 12px;">
+                            <i class="fas fa-plus"></i> <span class="d-none d-sm-inline">Confess</span>
+                        </button>
+                    </div>
+
+                    <!-- Confessions List -->
+                    <div id="confessionsList" style="display: flex; flex-direction: column; gap: 20px;">
+                        <% if (confessions && confessions.length> 0) { %>
+                            <% confessions.forEach(confession=> { %>
+                                <div class="card glass"
+                                    style="padding: 20px; border-radius: 16px; position: relative; overflow: hidden;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                                        <span
+                                            style="font-size: 0.8rem; color: #8e8e8e; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                                            <i class="fas fa-clock"></i>
+                                            <%= new Date(confession.created_at).toLocaleDateString() %>
+                                        </span>
+                                        <span style="font-size: 0.8rem; color: var(--primary); font-weight: 600;">
+                                            #<%= confession.category %>
+                                        </span>
+                                    </div>
+                                    <p
+                                        style="font-size: 1.1rem; line-height: 1.6; color: #262626; margin-bottom: 20px;">
+                                        <%= confession.content %>
+                                    </p>
+                                    <div
+                                        style="display: flex; align-items: center; gap: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                                        <button class="reaction-btn"
+                                            onclick="react('<%= confession.confession_id %>', 'upvote')"
+                                            style="background: none; border: none; cursor: pointer; color: #8e8e8e; display: flex; align-items: center; gap: 5px; font-weight: 600;">
+                                            <i class="fas fa-arrow-up"></i> <span>
+                                                <%= confession.rating_count %>
+                                            </span>
+                                        </button>
+                                        <button class="reaction-btn"
+                                            onclick="react('<%= confession.confession_id %>', 'downvote')"
+                                            style="background: none; border: none; cursor: pointer; color: #8e8e8e;">
+                                            <i class="fas fa-arrow-down"></i>
+                                        </button>
+                                        <div style="margin-left: auto; color: #8e8e8e; font-size: 0.9rem;">
+                                            <i class="far fa-comment"></i>
+                                            <%= confession.comment_count %>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }) %>
+                                    <% } else { %>
+                                        <div class="empty-state">
+                                            <div class="empty-state-icon">
+                                                <i class="fas fa-feather"></i>
+                                            </div>
+                                            <h3>No Confessions Yet</h3>
+                                            <p>Be the first one to share a secret!</p>
+                                        </div>
+                                        <% } %>
+                    </div>
+                </main>
+        </div>
+
+        <!-- Confession Modal -->
+        <div id="confessModal" class="premium-modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div class="card glass" style="width: 90%; max-width: 500px; padding: 25px; border-radius: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Share a Confession</h3>
+                    <button onclick="hideConfessModal()"
+                        style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label
+                        style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Category</label>
+                    <select id="confessionCategory"
+                        style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd;">
+                        <option value="general">General</option>
+                        <option value="love">Crushes & Love</option>
+                        <option value="exam">Academic & Exams</option>
+                        <option value="rant">Rants</option>
+                        <option value="funny">Funny</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Your
+                        Secret</label>
+                    <textarea id="confessionContent" rows="5"
+                        style="width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ddd; resize: none;"
+                        placeholder="What's on your mind?"></textarea>
+                    <p style="font-size: 0.8rem; color: #8e8e8e; margin-top: 8px;"><i class="fas fa-info-circle"></i>
+                        This will be posted completely anonymously.</p>
+                </div>
+                <button class="btn btn-primary" onclick="submitConfession()"
+                    style="width: 100%; padding: 12px; border-radius: 12px; font-weight: 600;">
+                    Post Anonymously
+                </button>
+            </div>
+        </div>
+
+        <script>
+            function showConfessModal() {
+                document.getElementById('confessModal').style.display = 'flex';
+            }
+
+            function hideConfessModal() {
+                document.getElementById('confessModal').style.display = 'none';
+            }
+
+            async function submitConfession() {
+                const content = document.getElementById('confessionContent').value;
+                const category = document.getElementById('confessionCategory').value;
+
+                if (!content.trim()) return alert('Please enter your confession');
+
+                try {
+                    const token = localStorage.getItem('sparkle_token') || document.cookie.match(/sparkleToken=([^;]+)/)?.[1];
+                    const response = await fetch('/api/confessions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ content, category })
+                    });
+
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Failed to submit confession');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred');
+                }
+            }
+
+            async function react(id, type) {
+                try {
+                    const token = localStorage.getItem('sparkle_token') || document.cookie.match(/sparkleToken=([^;]+)/)?.[1];
+                    const response = await fetch(`/api/confessions/${id}/react`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ type })
+                    });
+
+                    if (response.ok) {
+                        location.reload();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        </script>
+
+            </body>
+
+            </html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Cache Buster - Sparkle</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>🧹 Cache Buster</h1>
+        <p>If you're seeing old data ("Alex Morgan", etc.), click the button below to force a complete cache clear.</p>
+
+        <div class="status" id="status">
+            Ready to clear cache...
+        </div>
+
+        <button class="btn" onclick="clearEverything()">
+            Clear All Cache & Reload
+        </button>
+
+        <button class="btn" onclick="goToDashboard()">
+            Go to Dashboard (Fresh)
+        </button>
+    </div>
+
+    <script>
+        async function clearEverything() {
+            const status = document.getElementById('status');
+            status.innerHTML = '🔄 Clearing cache...';
+
+            try {
+                // Clear localStorage
+                localStorage.clear();
+                status.innerHTML += '<br>✅ localStorage cleared';
+
+                // Clear sessionStorage
+                sessionStorage.clear();
+                status.innerHTML += '<br>✅ sessionStorage cleared';
+
+                // Clear Service Worker cache
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                    status.innerHTML += '<br>✅ Service workers cleared';
+                }
+
+                // Clear Cache API
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    status.innerHTML += '<br>✅ Cache API cleared';
+                }
+
+                status.innerHTML += '<br><br>✅ <strong>All cache cleared!</strong><br>Reloading in 2 seconds...';
+
+                setTimeout(() => {
+                    window.location.href = '/dashboard?nocache=' + Date.now();
+                }, 2000);
+
+            } catch (error) {
+                status.innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+
+        function goToDashboard() {
+            window.location.href = '/dashboard?nocache=' + Date.now();
+        }
+    </script>
+</body>
+
+</html>

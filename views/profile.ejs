@@ -1,0 +1,254 @@
+<%- include('partials/head', { title: title }) %>
+    <%- include('partials/sidebar') %>
+
+        <div class="container" id="mainContent">
+            <%- include('partials/navbar') %>
+
+                <main class="profile-container">
+                    <!-- Premium Profile Header Card -->
+                    <div class="profile-header-card">
+                        <div class="profile-header-top">
+                            <div class="avatar-section">
+                                <div class="profile-avatar-container">
+                                    <img src="<%= profile.avatar_url || '/uploads/avatars/default.png' %>"
+                                        alt="<%= profile.name %>"
+                                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                                </div>
+                            </div>
+
+                            <div class="profile-info">
+                                <div class="profile-info-header">
+                                    <h1>
+                                        <%= profile.username %>
+                                            <% if (profile.is_verified) { %>
+                                                <i class="fas fa-check-circle"
+                                                    style="color: var(--primary, #FF3D6D); font-size: 20px;"></i>
+                                                <% } %>
+                                    </h1>
+
+                                    <!-- Action Buttons -->
+                                    <% if (isOwnProfile) { %>
+                                        <a href="/settings" class="btn btn-secondary">Edit Profile</a>
+                                        <button class="btn btn-secondary" onclick="window.location.href='/dashboard'">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <% } else { %>
+                                            <button
+                                                class="btn <%= profile.is_followed_by_me ? 'btn-secondary' : 'btn-primary' %> follow-btn"
+                                                data-user-id="<%= profile.user_id %>" id="followButton">
+                                                <%= profile.is_followed_by_me ? 'Following' : 'Follow' %>
+                                            </button>
+                                            <button class="btn btn-secondary"
+                                                onclick="window.location.href='/messages?user=<%= profile.user_id %>'">
+                                                Message
+                                            </button>
+                                            <% } %>
+                                </div>
+
+                                <!-- Stats View -->
+                                <div class="profile-stats">
+                                    <div>
+                                        <span class="profile-stats-item">
+                                            <%= posts.length || 0 %>
+                                        </span>
+                                        <span class="profile-stats-label"> posts</span>
+                                    </div>
+                                    <div style="cursor: pointer;">
+                                        <span class="profile-stats-item" id="followersCount">
+                                            <%= profile.followers_count || 0 %>
+                                        </span>
+                                        <span class="profile-stats-label"> followers</span>
+                                    </div>
+                                    <div style="cursor: pointer;">
+                                        <span class="profile-stats-item" id="followingCount">
+                                            <%= profile.following_count || 0 %>
+                                        </span>
+                                        <span class="profile-stats-label"> following</span>
+                                    </div>
+                                </div>
+
+                                <!-- Bio Section -->
+                                <div class="profile-bio">
+                                    <div class="profile-bio-name">
+                                        <%= profile.name %>
+                                    </div>
+                                    <% if (profile.bio) { %>
+                                        <div class="profile-bio-text">
+                                            <%= profile.bio %>
+                                        </div>
+                                        <% } %>
+                                            <% if (profile.campus) { %>
+                                                <div class="profile-bio-campus">
+                                                    <i class="fas fa-graduation-cap"></i>
+                                                    <%= profile.campus %>
+                                                </div>
+                                                <% } %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Tabs -->
+                    <div class="profile-tabs">
+                        <div class="tab active" onclick="switchTab('posts')">
+                            <i class="fas fa-th"></i> POSTS
+                        </div>
+                        <div class="tab" onclick="switchTab('sparks')">
+                            <i class="fas fa-heart"></i> LIKED
+                        </div>
+                        <div class="tab" onclick="switchTab('saved')">
+                            <i class="fas fa-bookmark"></i> SAVED
+                        </div>
+                    </div>
+
+                    <!-- Posts Grid -->
+                    <div class="profile-posts-grid" id="postsGrid">
+                        <% if (posts && posts.length> 0) { %>
+                            <% posts.forEach(post=> { %>
+                                <div class="post-card" onclick="viewPost('<%= post.post_id %>')">
+                                    <% if (post.media_url) { %>
+                                        <img src="<%= post.media_url %>" alt="Post"
+                                            onerror="this.onerror=null;this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:#fafafa;&quot;><i class=&quot;fas fa-image&quot; style=&quot;font-size:48px;color:#dbdbdb;&quot;></i></div>';">
+                                        <% } else { %>
+                                            <div class="text-post-placeholder">
+                                                <p>
+                                                    <%= post.content.substring(0, 100) %>
+                                                        <%= post.content.length> 100 ? '...' : '' %>
+                                                </p>
+                                            </div>
+                                            <% } %>
+                                                <div class="post-overlay">
+                                                    <div><i class="fas fa-heart"></i>
+                                                        <%= post.sparks || 0 %>
+                                                    </div>
+                                                    <div><i class="fas fa-comment"></i>
+                                                        <%= post.comments || 0 %>
+                                                    </div>
+                                                </div>
+                                </div>
+                                <% }) %>
+                                    <% } else { %>
+                                        <div class="empty-state">
+                                            <div class="empty-state-icon">
+                                                <i class="fas fa-camera"></i>
+                                            </div>
+                                            <h3>No Posts Yet</h3>
+                                            <p>When <%= isOwnProfile ? 'you' : profile.username %> share<%= isOwnProfile
+                                                        ? '' : 's' %> posts, they'll appear here.</p>
+                                        </div>
+                                        <% } %>
+                    </div>
+                </main>
+        </div>
+
+        <script src="/js/dashboardAPI.js"></script>
+        <script src="/js/script.js"></script>
+        <script src="/js/dynamicPatch.js"></script>
+        <script>
+            // Follow/Unfollow functionality
+            document.getElementById('followButton')?.addEventListener('click', async function () {
+                const userId = this.dataset.userId;
+                const isFollowing = this.innerText.trim() === 'Following';
+
+                try {
+                    const action = this.innerText.trim() === 'Follow' ? 'follow' : 'unfollow';
+                    const data = action === 'follow'
+                        ? await DashboardAPI.followUser(userId)
+                        : await DashboardAPI.unfollowUser(userId);
+
+                    if (action === 'follow') {
+                        this.innerText = 'Following';
+                        this.classList.remove('btn-primary');
+                        this.classList.add('btn-secondary');
+                        updateFollowerCount(1);
+                    } else {
+                        this.innerText = 'Follow';
+                        this.classList.remove('btn-secondary');
+                        this.classList.add('btn-primary');
+                        updateFollowerCount(-1);
+                    }
+                } catch (error) {
+                    console.error('Follow error:', error);
+                    alert('Error updating follow status');
+                }
+            });
+
+            function getToken() {
+                const match = document.cookie.match(new RegExp('(^| )sparkleToken=([^;]+)'));
+                return match ? match[2] : localStorage.getItem('sparkleToken');
+            }
+
+            function updateFollowerCount(change) {
+                const followersElement = document.getElementById('followersCount');
+                if (followersElement) {
+                    const currentCount = parseInt(followersElement.textContent) || 0;
+                    followersElement.textContent = Math.max(0, currentCount + change);
+                }
+            }
+
+            function viewPost(postId) {
+                window.location.href = `/post/${postId}`;
+            }
+
+            async function switchTab(tabName) {
+                // Update active state
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+
+                const postsGrid = document.getElementById('postsGrid');
+
+                if (tabName === 'posts') {
+                    if (window.originalPostsHTML) {
+                        postsGrid.innerHTML = window.originalPostsHTML;
+                    }
+                    return;
+                }
+
+                // Save original HTML if not already saved
+                if (!window.originalPostsHTML) {
+                    window.originalPostsHTML = postsGrid.innerHTML;
+                }
+
+                // Show loading
+                postsGrid.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
+
+                try {
+                    const endpoint = tabName === 'saved' ? '/api/profile/saved' : `/api/posts/liked`;
+                    const response = await fetch(endpoint, {
+                        headers: { 'Authorization': `Bearer ${getToken()}` }
+                    });
+                    const posts = await response.json();
+
+                    if (posts.length === 0) {
+                        postsGrid.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-${tabName === 'sparks' ? 'heart' : 'bookmark'}"></i>
+                                </div>
+                                <h3>No ${tabName.charAt(0).toUpperCase() + tabName.slice(1)} Yet</h3>
+                                <p>When you ${tabName === 'sparks' ? 'like' : 'save'} posts, they'll appear here.</p>
+                            </div>
+                        `;
+                    } else {
+                        postsGrid.innerHTML = posts.map(post => `
+                            <div class="post-card" onclick="viewPost('${post.post_id}')">
+                                ${post.media_url ?
+                                `<img src="${post.media_url}" alt="Post" onerror="this.onerror=null;this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:#fafafa;&quot;><i class=&quot;fas fa-image&quot; style=&quot;font-size:48px;color:#dbdbdb;&quot;></i></div>';">` :
+                                `<div class="text-post-placeholder"><p>${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</p></div>`
+                            }
+                                <div class="post-overlay">
+                                    <div><i class="fas fa-heart"></i> ${post.sparks || 0}</div>
+                                    <div><i class="fas fa-comment"></i> ${post.comments || 0}</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } catch (error) {
+                    console.error('Error fetching tab data:', error);
+                    postsGrid.innerHTML = '<div class="empty-state"><p>Error loading content</p></div>';
+                }
+            }
+        </script>
+        </body>
+
+        </html>

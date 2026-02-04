@@ -1,0 +1,694 @@
+<%- include('partials/head', { title: title }) %>
+    <style>
+        /* Premium Club Detail Styles */
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --premium-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        .club-header {
+            position: relative;
+            border-radius: 30px;
+            overflow: hidden;
+            margin-bottom: 35px;
+            box-shadow: var(--premium-shadow);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+
+        .club-banner {
+            height: 350px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            transition: transform 0.5s ease;
+        }
+
+        .club-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.8));
+        }
+
+        .club-header-content {
+            position: relative;
+            padding: 0 45px 35px;
+            margin-top: -80px;
+            display: flex;
+            align-items: flex-end;
+            gap: 30px;
+            z-index: 2;
+        }
+
+        .club-logo-wrapper {
+            width: 170px;
+            height: 170px;
+            border-radius: 28px;
+            padding: 10px;
+            background: var(--bg-card);
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        .club-logo-wrapper img {
+            width: 100%;
+            height: 100%;
+            border-radius: 18px;
+            object-fit: cover;
+        }
+
+        .club-title-section {
+            flex: 1;
+            padding-bottom: 15px;
+        }
+
+        .club-name {
+            font-size: 3rem;
+            font-weight: 850;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            letter-spacing: -1.5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .club-meta {
+            display: flex;
+            gap: 25px;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .club-meta span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .club-meta i {
+            color: var(--primary);
+        }
+
+        .club-actions {
+            display: flex;
+            gap: 15px;
+            padding-bottom: 15px;
+        }
+
+        .section-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--text-primary);
+        }
+
+        .section-title i {
+            width: 38px;
+            height: 38px;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            box-shadow: 0 5px 15px rgba(255, 61, 109, 0.3);
+        }
+
+        .sidebar-glass-card {
+            background: rgba(var(--bg-card-rgb), 0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            border-radius: 18px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .member-item:hover {
+            background: var(--hover-color);
+            transform: translateX(5px);
+        }
+
+        .member-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            object-fit: cover;
+        }
+
+        .badge-premium {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .role-admin {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .role-moderator {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .role-member {
+            background: rgba(255, 61, 109, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(255, 61, 109, 0.2);
+        }
+
+        .event-item {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            background: var(--bg-body);
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .event-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .event-date {
+            background: var(--primary-gradient);
+            color: white;
+            width: 55px;
+            height: 55px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            font-weight: 800;
+            box-shadow: 0 8px 20px rgba(255, 61, 109, 0.2);
+        }
+
+        .event-date span:first-child {
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: -2px;
+        }
+
+        .event-date span:last-child {
+            font-size: 20px;
+        }
+
+        /* Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 650px;
+            border-radius: 32px;
+            padding: 40px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 15px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-body);
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(255, 61, 109, 0.1);
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .preview-box {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 2px dashed var(--border-color);
+            background: var(--bg-body);
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .upload-btn-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+
+        .preview-box:hover .upload-btn-overlay {
+            opacity: 1;
+        }
+    </style>
+
+    <body>
+        <%- include('partials/sidebar') %>
+
+            <div class="container" id="mainContent">
+                <%- include('partials/navbar') %>
+
+                    <main style="padding: 20px 40px;">
+                        <!-- Club Header Hero -->
+                        <div class="club-header">
+                            <div class="club-banner"
+                                style="background-image: url('<%= club.banner_url || 'https://images.unsplash.com/photo-1523050853063-bd388f9f79b5?q=80&w=2000' %>')">
+                            </div>
+
+                            <div class="club-header-content">
+                                <div class="club-logo-wrapper">
+                                    <img src="<%= club.logo_url || 'https://ui-avatars.com/api/?name='+encodeURIComponent(club.name)+'&background=random&color=fff' %>"
+                                        alt="<%= club.name %> logo" onerror="this.src='/uploads/avatars/default.png'">
+                                </div>
+
+                                <div class="club-title-section">
+                                    <h1 class="club-name">
+                                        <%= club.name %>
+                                    </h1>
+                                    <div class="club-meta">
+                                        <span><i class="fas fa-users"></i>
+                                            <%= club.member_count || 0 %> Members
+                                        </span>
+                                        <span><i class="fas fa-layer-group"></i>
+                                            <%= club.category %>
+                                        </span>
+                                        <span><i class="fas fa-university"></i>
+                                            <%= club.campus %>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="club-actions">
+                                    <% if (club.user_role==='admin' ) { %>
+                                        <button class="btn btn-secondary" onclick="openManageModal()">
+                                            <i class="fas fa-pencil-alt" style="margin-right: 8px;"></i> Edit Club
+                                        </button>
+                                        <% } %>
+
+                                            <% if (club.user_role) { %>
+                                                <button class="btn btn-secondary"
+                                                    onclick="leaveClub('<%= club.club_id %>')">
+                                                    <i class="fas fa-door-open" style="margin-right: 8px;"></i> Leave
+                                                </button>
+                                                <% } else { %>
+                                                    <button class="btn btn-primary"
+                                                        onclick="joinClub('<%= club.club_id %>')">
+                                                        <i class="fas fa-plus-circle" style="margin-right: 8px;"></i>
+                                                        Join Community
+                                                    </button>
+                                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Page Grid -->
+                        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:30px;">
+                            <!-- Main Content Column -->
+                            <div class="main-column">
+                                <div class="section-card">
+                                    <h3 class="section-title"><i class="fas fa-info-circle"></i> About</h3>
+                                    <p
+                                        style="line-height:1.8; color:var(--text-secondary); font-size:1.1rem; white-space: pre-wrap;">
+                                        <%= club.description %>
+                                    </p>
+                                </div>
+
+                                <div class="section-card">
+                                    <div
+                                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                                        <h3 class="section-title" style="margin:0;"><i class="fas fa-stream"></i> Club
+                                            Feed</h3>
+                                        <div style="display:flex; gap:10px;">
+                                            <button class="btn btn-sm btn-secondary active">Latest</button>
+                                            <button class="btn btn-sm btn-secondary">Featured</button>
+                                        </div>
+                                    </div>
+
+                                    <div id="announcementsList">
+                                        <div
+                                            style="text-align:center; padding:60px 20px; background:var(--bg-body); border-radius:30px; border: 2.5px dashed var(--border-color);">
+                                            <div
+                                                style="width:80px; height:80px; background:var(--bg-card); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow: var(--shadow-sm);">
+                                                <i class="fas fa-feather-alt"
+                                                    style="font-size:32px; color:var(--primary); opacity:0.5;"></i>
+                                            </div>
+                                            <h4
+                                                style="margin:0; font-size:1.3rem; font-weight:800; color:var(--text-primary);">
+                                                No stories yet</h4>
+                                            <p
+                                                style="color:var(--text-secondary); margin-top:10px; max-width:300px; margin-inline:auto;">
+                                                The club hasn't posted any updates yet. Join to stay informed about
+                                                future activities!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sidebar Column -->
+                            <div class="sidebar-column">
+                                <!-- Members Section -->
+                                <div class="section-card sidebar-glass-card">
+                                    <div
+                                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                                        <h3 style="margin:0; font-size:1.2rem; font-weight:800;">Members</h3>
+                                        <button class="btn btn-link"
+                                            style="padding:0; font-size:0.9rem; color:var(--primary); text-decoration:none; font-weight:700;"
+                                            onclick="openMembersModal()">View All</button>
+                                    </div>
+                                    <div id="membersList" style="display:flex; flex-direction:column; gap:10px;">
+                                        <p style="color:var(--text-secondary); text-align:center; padding:20px;"><i
+                                                class="fas fa-spinner fa-spin"></i> Finding members...</p>
+                                    </div>
+                                </div>
+
+                                <!-- Events Section -->
+                                <div class="section-card sidebar-glass-card">
+                                    <h3 class="section-title"><i class="fas fa-calendar-sparkles"
+                                            style="background: linear-gradient(135deg, #10b981, #3b82f6); box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);"></i>
+                                        Events</h3>
+                                    <div id="eventsList" style="display:flex; flex-direction:column; gap:18px;">
+                                        <% if (events && events.length> 0) { %>
+                                            <% events.forEach(event=> { %>
+                                                <div class="event-item">
+                                                    <div class="event-date">
+                                                        <span>
+                                                            <%= new Date(event.start_time).toLocaleDateString('en-US',
+                                                                {month: 'short' }) %>
+                                                        </span>
+                                                        <span>
+                                                            <%= new Date(event.start_time).getDate() %>
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <h4
+                                                            style="margin:0; font-size:1.05rem; font-weight:800; color:var(--text-primary);">
+                                                            <%= event.title %>
+                                                        </h4>
+                                                        <p
+                                                            style="margin:6px 0 0; font-size:0.85rem; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
+                                                            <i class="fas fa-map-marker-alt"
+                                                                style="color: var(--primary);"></i>
+                                                            <%= event.location %>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <% }) %>
+                                                    <% } else { %>
+                                                        <div
+                                                            style="text-align:center; padding:30px 20px; color:var(--text-secondary); border: 2px dashed var(--border-color); border-radius:24px; background:var(--bg-body);">
+                                                            <p style="margin:0; font-weight:600; font-size:0.95rem;">No
+                                                                upcoming events</p>
+                                                        </div>
+                                                        <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+            </div>
+
+            <!-- Management Modal -->
+            <div id="manageModal" class="modal-overlay" onclick="if(event.target === this) closeManageModal()">
+                <div class="modal-content">
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; border-bottom:1px solid var(--border-color); padding-bottom:20px;">
+                        <h3 style="margin:0; font-size:1.6rem; font-weight:850;">Update Club Identity</h3>
+                        <button class="btn btn-icon" onclick="closeManageModal()"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <form id="updateClubForm">
+                        <div class="upload-grid" style="margin-bottom: 30px;">
+                            <div>
+                                <label class="form-label">Profile Photo</label>
+                                <div class="preview-box" id="logoPreviewContainer">
+                                    <img src="<%= club.logo_url || '/uploads/avatars/default.png' %>" id="logoPreview">
+                                    <label class="upload-btn-overlay">
+                                        <i class="fas fa-camera fa-2x text-white"></i>
+                                        <input type="file" name="logo" hidden accept="image/*"
+                                            onchange="previewImage(this, 'logoPreview')">
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">Cover Banner</label>
+                                <div class="preview-box" id="bannerPreviewContainer">
+                                    <img src="<%= club.banner_url || 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=800' %>"
+                                        id="bannerPreview">
+                                    <label class="upload-btn-overlay">
+                                        <i class="fas fa-image fa-2x text-white"></i>
+                                        <input type="file" name="banner" hidden accept="image/*"
+                                            onchange="previewImage(this, 'bannerPreview')">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Club Name</label>
+                            <input type="text" name="name" class="form-input" value="<%= club.name %>" required>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;" class="form-group">
+                            <div>
+                                <label class="form-label">Category</label>
+                                <select name="category" class="form-input">
+                                    <% ['Academic', 'Social' , 'Sports' , 'Music/Arts' , 'Technology' , 'Volunteer'
+                                        ].forEach(cat=> { %>
+                                        <option value="<%= cat %>" <%=club.category===cat ? 'selected' : '' %>><%= cat
+                                                %>
+                                        </option>
+                                        <% }) %>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Campus</label>
+                                <input type="text" name="campus" class="form-input" value="<%= club.campus %>" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-input" rows="5" style="resize:none;"
+                                placeholder="What's your club mission?"><%= club.description %></textarea>
+                        </div>
+
+                        <div style="display:flex; gap:15px; margin-top:35px;">
+                            <button type="button" class="btn btn-secondary"
+                                style="flex:1; border-radius:18px; padding:15px;"
+                                onclick="closeManageModal()">Discard</button>
+                            <button type="submit" class="btn btn-primary"
+                                style="flex:1; border-radius:18px; padding:15px; font-weight:800;">Publish
+                                Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Members Modal -->
+            <div id="membersModal" class="modal-overlay" onclick="if(event.target === this) closeMembersModal()">
+                <div class="modal-content" style="max-width: 450px;">
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:15px; margin-bottom:20px;">
+                        <h4 style="margin:0; font-size:1.4rem; font-weight:850;">Community Network</h4>
+                        <button class="btn btn-icon" onclick="closeMembersModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="membersModalList"
+                        style="display:flex; flex-direction:column; gap:12px; max-height:500px; overflow-y:auto; padding-right:5px;">
+                        <div style="padding:40px; text-align:center; color:var(--text-secondary);">
+                            <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+                            <p style="margin-top:15px; font-weight:600;">Mapping connections...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                <script src="/js/dashboardAPI.js"></script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        loadSidebarMembers();
+                    });
+
+                    const clubId = '<%= club.club_id %>';
+
+                    // Modal Handlers
+                    function openManageModal() { document.getElementById('manageModal').style.display = 'flex'; }
+                    function closeManageModal() { document.getElementById('manageModal').style.display = 'none'; }
+
+                    function openMembersModal() {
+                        document.getElementById('membersModal').style.display = 'flex';
+                        loadFullMembers();
+                    }
+                    function closeMembersModal() { document.getElementById('membersModal').style.display = 'none'; }
+
+                    // Data Fetching
+                    async function loadSidebarMembers() {
+                        try {
+                            const response = await fetch(`/api/clubs/${clubId}/members`);
+                            const members = await response.json();
+                            const list = document.getElementById('membersList');
+
+                            if (!members || members.length === 0) {
+                                list.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:20px;">No members found</p>';
+                                return;
+                            }
+
+                            list.innerHTML = members.slice(0, 5).map(m => `
+                    <div class="member-item" onclick="window.location.href='/profile/${m.username}'">
+                        <img src="${m.avatar_url || '/uploads/avatars/default.png'}" class="member-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                        <div style="flex:1;">
+                            <p style="margin:0; font-size:0.95rem; font-weight:800; color:var(--text-primary);">${m.name}</p>
+                            <p style="margin:0; font-size:0.8rem; color:var(--text-secondary); opacity:0.8;">@${m.username}</p>
+                        </div>
+                        <span class="badge-premium role-${m.role.toLowerCase()}">${m.role}</span>
+                    </div>
+                `).join('');
+                        } catch (e) {
+                            console.error('Sidebar members error:', e);
+                        }
+                    }
+
+                    async function loadFullMembers() {
+                        const list = document.getElementById('membersModalList');
+                        try {
+                            const response = await fetch(`/api/clubs/${clubId}/members`);
+                            const members = await response.json();
+
+                            list.innerHTML = (members && members.length > 0) ? members.map(m => `
+                    <div class="member-item" onclick="window.location.href='/profile/${m.username}'" style="background:var(--bg-body);">
+                        <img src="${m.avatar_url || '/uploads/avatars/default.png'}" class="member-avatar">
+                        <div style="flex:1;">
+                            <p style="margin:0; font-weight:800; font-size:1rem;">${m.name}</p>
+                            <p style="margin:0; font-size:0.85rem; color:var(--text-secondary);">@${m.username}</p>
+                        </div>
+                        <span class="badge-premium role-${m.role.toLowerCase()}">${m.role}</span>
+                    </div>
+                `).join('') : '<p style="text-align:center; color:var(--text-secondary);">Nobody here yet...</p>';
+                        } catch (err) {
+                            list.innerHTML = '<p style="text-align:center; color:#ef4444; font-weight:700;">Infrastructure failure. Try again.</p>';
+                        }
+                    }
+
+                    // Image Preview
+                    function previewImage(input, previewId) {
+                        if (input.files && input.files[0]) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                document.getElementById(previewId).src = e.target.result;
+                            };
+                            reader.readAsDataURL(input.files[0]);
+                        }
+                    }
+
+                    // Update Handler
+                    document.getElementById('updateClubForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const btn = e.target.querySelector('button[type="submit"]');
+                        btn.innerText = 'Syncing...';
+                        btn.disabled = true;
+
+                        try {
+                            const formData = new FormData(e.target);
+                            await DashboardAPI.updateClub(clubId, formData);
+                            window.location.reload();
+                        } catch (err) {
+                            alert('Conflict in sync. Please try again.');
+                            btn.innerText = 'Publish Changes';
+                            btn.disabled = false;
+                        }
+                    });
+
+                    // Social Actions
+                    async function joinClub(id) {
+                        try {
+                            await DashboardAPI.joinClub(id);
+                            window.location.reload();
+                        } catch (err) { alert('Access denied. Check connection.'); }
+                    }
+
+                    async function leaveClub(id) {
+                        if (!confirm('Relinquish your membership?')) return;
+                        try {
+                            await DashboardAPI.leaveClub(id);
+                            window.location.reload();
+                        } catch (err) { alert('System error during exit.'); }
+                    }
+                </script>
+    </body>
+
+    </html>

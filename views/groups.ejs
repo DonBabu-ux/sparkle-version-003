@@ -1,0 +1,211 @@
+<%- include('partials/head', { title: 'Groups' }) %>
+
+
+    <body>
+        <%- include('partials/sidebar') %>
+
+            <!-- Main Content Container -->
+            <div class="container" id="mainContent">
+                <!-- Discover Groups Page -->
+                <div id="groupsPage" class="page active">
+                    <div class="header glass">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="hamburger-btn" onclick="window.location.href='/'">
+                                <i class="fas fa-chevron-left"></i>
+                            </div>
+                            <div class="logo-text">Discover Groups</div>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filters -->
+                    <div class="premium-search-container" style="margin: 20px 0;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="premium-search-input" placeholder="Search groups by name or topic...">
+                    </div>
+
+                    <div class="premium-tabs">
+                        <button class="premium-tab-btn active">All Groups</button>
+                        <button class="premium-tab-btn">My Groups</button>
+                        <button class="premium-tab-btn">Popular</button>
+                        <button class="premium-tab-btn">Study</button>
+                        <button class="premium-tab-btn">Sports</button>
+                    </div>
+
+                    <!-- Grid -->
+                    <div class="discover-grid" id="groupsContainer" style="padding-bottom: 80px;">
+                        <% if (typeof initialGroups !=='undefined' && initialGroups.length> 0) { %>
+                            <% initialGroups.forEach(group=> { %>
+                                <div class="discover-card"
+                                    onclick="window.location.href='/groups/<%= group.group_id %>'">
+                                    <div class="discover-card-banner"
+                                        style="background: var(--primary-gradient); height: 100px; display: flex; align-items: center; justify-content: center; color: white;">
+                                        <% if (group.icon_url) { %>
+                                            <img src="<%= group.icon_url %>"
+                                                style="width: 100%; height: 100%; object-fit: cover;">
+                                            <% } else { %>
+                                                <i class="<%= group.icon || 'fas fa-users' %>"
+                                                    style="font-size: 32px; opacity: 0.9;"></i>
+                                                <% } %>
+
+                                                    <div class="discover-card-badge"
+                                                        style="background: rgba(0,0,0,0.5); position: absolute; bottom: 12px; right: 12px; backdrop-filter: blur(5px);">
+                                                        <%= group.member_count || 0 %> members
+                                                    </div>
+                                    </div>
+                                    <div class="discover-card-content">
+                                        <div class="discover-card-category">
+                                            <%= group.category || 'General' %>
+                                        </div>
+                                        <h3 class="discover-card-name">
+                                            <%= group.name %>
+                                        </h3>
+                                        <p class="discover-card-bio" style="-webkit-line-clamp: 2; line-clamp: 2;">
+                                            <%= group.description || 'No description available.' %>
+                                        </p>
+
+                                        <div
+                                            style="display: flex; align-items: center; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
+                                            <% if (group.user_status==='active' ) { %>
+                                                <div
+                                                    style="display: flex; align-items: center; gap: 5px; color: var(--success); font-size: 12px; font-weight: 700;">
+                                                    <i class="fas fa-check-circle"></i> Joined
+                                                </div>
+                                                <% } else if (group.user_status==='pending' ) { %>
+                                                    <div
+                                                        style="display: flex; align-items: center; gap: 5px; color: var(--warning); font-size: 12px; font-weight: 700;">
+                                                        <i class="fas fa-clock"></i> Pending
+                                                    </div>
+                                                    <% } else { %>
+                                                        <div style="font-size: 12px; color: var(--text-secondary);">
+                                                            Public Group
+                                                        </div>
+                                                        <% } %>
+
+                                                            <div
+                                                                style="font-size: 12px; font-weight: 700; color: var(--primary);">
+                                                                View <i class="fas fa-arrow-right"
+                                                                    style="font-size: 10px;"></i>
+                                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }); %>
+                                    <% } else { %>
+                                        <div class="discover-empty-state">
+                                            <i class="fas fa-users-slash"></i>
+                                            <h4>No groups found</h4>
+                                            <p>Start a new community by creating a group!</p>
+                                        </div>
+                                        <% } %>
+                    </div>
+
+                    <button class="fab-btn" id="createGroupBtn">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Create Group Modal -->
+            <div id="createGroupModalWrapper" class="premium-modal">
+                <div class="premium-modal-content">
+                    <div class="premium-modal-header">
+                        <h3 class="premium-modal-title">Create New Group</h3>
+                        <button class="close-modal"
+                            onclick="document.getElementById('createGroupModalWrapper').style.display='none'">&times;</button>
+                    </div>
+                    <div class="premium-modal-body">
+                        <form id="createGroupFormAction">
+                            <div class="form-group">
+                                <label class="form-label">Group Name*</label>
+                                <input type="text" id="newGroupName" class="form-input" required
+                                    placeholder="e.g. Study Group 101">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Category*</label>
+                                <select id="newGroupCategory" class="form-input" required>
+                                    <option value="study">Study</option>
+                                    <option value="social">Social</option>
+                                    <option value="sports">Sports</option>
+                                    <option value="hobby">Hobby</option>
+                                    <option value="academic">Academic</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Icon URL (Optional)</label>
+                                <input type="text" id="newGroupIconUrl" class="form-input"
+                                    placeholder="e.g. /uploads/groups/study.png">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Description</label>
+                                <textarea id="newGroupDescription" class="form-input" rows="3"
+                                    placeholder="What is this group about?"></textarea>
+                            </div>
+
+                            <div class="form-group"
+                                style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                                <input type="checkbox" id="newGroupRequireApproval"
+                                    style="width: 18px; height: 18px; cursor: pointer;">
+                                <label for="newGroupRequireApproval"
+                                    style="margin: 0; font-size: 14px; cursor: pointer;">Require Approval to
+                                    Join</label>
+                            </div>
+
+                            <button type="submit" class="settings-save-btn" style="width: 100%; margin-top: 0;">Create
+                                Group</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <%- include('partials/dashboard-modals') %>
+                    <script src="/dashboardAPI.js"></script>
+                    <script>
+                        document.getElementById('createGroupBtn').addEventListener('click', () => {
+                            document.getElementById('createGroupModalWrapper').style.display = 'flex';
+                        });
+
+                        document.getElementById('createGroupFormAction').addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const btn = e.target.querySelector('button[type="submit"]');
+                            btn.disabled = true;
+                            btn.innerText = 'Creating...';
+
+                            const data = {
+                                name: document.getElementById('newGroupName').value,
+                                category: document.getElementById('newGroupCategory').value,
+                                description: document.getElementById('newGroupDescription').value,
+                                requires_approval: document.getElementById('newGroupRequireApproval').checked,
+                                icon_url: document.getElementById('newGroupIconUrl').value || null,
+                                campus: '<%= user.campus %>',
+                                is_public: true
+                            };
+
+                            try {
+                                const response = await fetch('/api/groups', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(data)
+                                });
+
+                                const result = await response.json();
+                                if (response.ok) {
+                                    window.location.href = `/groups/${result.groupId}`;
+                                } else {
+                                    alert(result.error || 'Failed to create group');
+                                    btn.disabled = false;
+                                    btn.innerText = 'Create Group';
+                                }
+                            } catch (err) {
+                                console.error('Error:', err);
+                                alert('An error occurred');
+                                btn.disabled = false;
+                                btn.innerText = 'Create Group';
+                            }
+                        });
+                    </script>
+    </body>
+
+    </html>

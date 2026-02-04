@@ -1,0 +1,23 @@
+<div class="bottom-nav">
+    <a href="/dashboard" class="b-nav-item <%= title === 'Dashboard' ? 'active' : '' %>">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+    </a>
+    <a href="/connect" class="b-nav-item <%= title === 'Connect' ? 'active' : '' %>">
+        <i class="fas fa-search"></i>
+        <span>Discover</span>
+    </a>
+    <div class="b-nav-item create-action"
+        onclick="/* Assuming logic exists to open modal, triggers usually via ID or class */ document.getElementById('createModal').style.display = 'flex'">
+        <i class="fas fa-plus-circle" style="font-size: 32px; color: var(--primary);"></i>
+    </div>
+    <a href="/moments" class="b-nav-item <%= title === 'Moments' ? 'active' : '' %>">
+        <i class="fas fa-play-circle"></i>
+        <span>Moments</span>
+    </a>
+    <div class="b-nav-item" onclick="toggleHamburger()">
+        <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+            style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1.5px solid currentColor;">
+        <span>You</span>
+    </div>
+</div>

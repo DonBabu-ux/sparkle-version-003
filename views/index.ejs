@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparkle</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+
+    <style>
+        /* ------------------ Performance Optimizations ------------------ */
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ------------------ Page Setup ------------------ */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg,
+                    #ff3d6d 0%,
+                    #f54791 25%,
+                    #ff6b8b 50%,
+                    #ff3d6d 75%,
+                    #f54791 100%);
+            background-size: 400% 400%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            animation: gradientShift 15s ease infinite;
+            opacity: 1;
+        }
+
+        /* ------------------ Animated Background ------------------ */
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* ------------------ Splash Container ------------------ */
+        .splash-container {
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            opacity: 1;
+        }
+
+        /* ------------------ Logo ------------------ */
+        .logo-wrapper {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 20px;
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2));
+        }
+
+        .logo-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 6.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg,
+                    #ffffff 0%,
+                    #ffe6f0 25%,
+                    #ffd1dc 50%,
+                    #ffe6f0 75%,
+                    #ffffff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: sparkleGlow 3s ease-in-out infinite;
+            z-index: 20;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        .logo-text {
+            margin-top: 16px;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg,
+                    #ffffff 0%,
+                    #ffe6f0 50%,
+                    #ffffff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            animation: textShimmer 4s ease-in-out infinite;
+            position: relative;
+        }
+
+        .logo-text::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 25%;
+            width: 50%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ffffff, transparent);
+            border-radius: 2px;
+            animation: linePulse 2s ease-in-out infinite;
+        }
+
+        /* ------------------ Logo Glow ------------------ */
+        @keyframes sparkleGlow {
+
+            0%,
+            100% {
+                opacity: 0.9;
+                transform: translate(-50%, -50%) scale(0.98);
+                filter: brightness(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.05);
+                filter: brightness(1.2);
+            }
+        }
+
+        @keyframes textShimmer {
+
+            0%,
+            100% {
+                background-position: -200% center;
+            }
+
+            50% {
+                background-position: 200% center;
+            }
+        }
+
+        @keyframes linePulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scaleX(0.8);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scaleX(1);
+            }
+        }
+
+        /* ------------------ Rotating Sparkle Ring ------------------ */
+        .ring-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180px;
+            height: 180px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            animation: rotateRing 3s linear infinite;
+            pointer-events: none;
+        }
+
+        .ring-container .sparkle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle at 30% 30%,
+                    #ffffff 0%,
+                    rgba(255, 255, 255, 0.8) 50%,
+                    transparent 100%);
+            border-radius: 50%;
+            filter: blur(0.5px);
+            box-shadow:
+                0 0 10px #fff,
+                0 0 20px rgba(255, 255, 255, 0.7),
+                0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes rotateRing {
+            from {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* ------------------ Loading Dots ------------------ */
+        .loading-dots {
+            margin-top: 200px;
+            display: flex;
+            justify-content: center;
+            gap: 22px;
+        }
+
+        .loading-dots div {
+            width: 22px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50%;
+            animation: dotBounce 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow:
+                0 0 15px rgba(255, 255, 255, 0.5),
+                inset 0 0 10px rgba(255, 255, 255, 0.8);
+            transform-origin: center;
+        }
+
+        .loading-dots div:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .loading-dots div:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .loading-dots div:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .loading-dots div:nth-child(4) {
+            animation-delay: 0.45s;
+        }
+
+        @keyframes dotBounce {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 0.6;
+            }
+
+            30% {
+                transform: translateY(-20px) scale(1.2);
+                opacity: 1;
+                box-shadow:
+                    0 0 25px rgba(255, 255, 255, 0.8),
+                    inset 0 0 15px rgba(255, 255, 255, 1);
+            }
+        }
+
+        /* ------------------ Content Fade Out ------------------ */
+        .splash-container.fade-out {
+            animation: contentFadeOut 0.5s ease forwards;
+        }
+
+        @keyframes contentFadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        /* ------------------ Page Fade to White ------------------ */
+        body.page-fade-out {
+            animation: pageFadeToWhite 0.5s ease forwards;
+        }
+
+        @keyframes pageFadeToWhite {
+            to {
+                background: #ffe6f0;
+                opacity: 1;
+            }
+        }
+
+        /* ------------------ Responsive Design ------------------ */
+        @media (max-width: 768px) {
+            .logo-wrapper {
+                width: 140px;
+                height: 140px;
+            }
+
+            .logo-icon {
+                font-size: 5rem;
+            }
+
+            .logo-text {
+                font-size: 2rem;
+            }
+
+            .ring-container {
+                width: 140px;
+                height: 140px;
+            }
+
+            .loading-dots div {
+                width: 18px;
+                height: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-wrapper {
+                width: 120px;
+                height: 120px;
+            }
+
+            .logo-icon {
+                font-size: 4rem;
+            }
+
+            .logo-text {
+                font-size: 1.8rem;
+            }
+
+            .ring-container {
+                width: 120px;
+                height: 120px;
+            }
+
+            .loading-dots {
+                gap: 16px;
+            }
+
+            .loading-dots div {
+                width: 16px;
+                height: 16px;
+            }
+        }
+
+        /* ------------------ Reduced Motion Support ------------------ */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .ring-container {
+                animation: none;
+            }
+
+            .logo-icon {
+                animation: none;
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="splash-container" id="splash">
+        <div class="logo-wrapper">
+            <div class="logo-icon">✦</div>
+            <div class="ring-container" id="ring"></div>
+        </div>
+
+        <div class="logo-text">Sparkle</div>
+
+        <div class="loading-dots">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+    </div>
+
+
+    <script>
+        // -------- Create Sparkles Immediately --------
+        (function createSparkles() {
+            const ring = document.getElementById('ring');
+            const sparkleCount = 16;
+            const radius = 90;
+
+            for (let i = 0; i < sparkleCount; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+
+                const angle = (i / sparkleCount) * Math.PI * 2;
+                sparkle.style.left = `${radius + radius * Math.cos(angle) - 6}px`;
+                sparkle.style.top = `${radius + radius * Math.sin(angle) - 6}px`;
+
+                ring.appendChild(sparkle);
+            }
+        })();
+
+        // -------- Optimized Auth Check --------
+        function checkAuthStatus() {
+            try {
+                // Check cookies first
+                if (document.cookie.includes('sparkleToken=')) {
+                    const cookies = document.cookie.split(';');
+                    for (let cookie of cookies) {
+                        const [name, value] = cookie.trim().split('=');
+                        if (name === 'sparkleToken' && value && value !== 'undefined') {
+                            return true;
+                        }
+                    }
+                }
+
+                // Check localStorage
+                const token = localStorage.getItem('sparkleToken');
+                return !!(token && token !== 'undefined');
+            } catch (error) {
+                console.warn('Auth check failed:', error);
+                return false;
+            }
+        }
+
+        // -------- Smooth Transition and Redirect --------
+        (function initRedirect() {
+            const splash = document.getElementById('splash');
+
+            // Step 1: Fade out the content first (at 2.5s)
+            setTimeout(() => {
+                splash.classList.add('fade-out');
+            }, 2500);
+
+            // Step 2: Fade the entire page to white (at 2.7s)
+            setTimeout(() => {
+                document.body.classList.add('page-fade-out');
+            }, 2700);
+
+            // Step 3: Redirect exactly when fade completes (at 3.1s)
+            setTimeout(() => {
+                const isLoggedIn = checkAuthStatus();
+                // Use replace to prevent back button issues
+                window.location.replace(isLoggedIn ? "/dashboard" : "/login");
+            }, 3100);
+
+            // Emergency fallback redirect
+            setTimeout(() => {
+                // If we're still on this page after 5 seconds, force redirect
+                if (window.location.pathname === '/' ||
+                    window.location.pathname.includes('index')) {
+                    window.location.replace("/login");
+                }
+            }, 4000);
+        })();
+
+        // -------- Prevent back button --------
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', () => {
+            history.pushState(null, null, location.href);
+        });
+    </script>
+</body>
+
+</html>

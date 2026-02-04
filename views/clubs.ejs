@@ -1,0 +1,446 @@
+<%- include('partials/head', { title: 'Campus Clubs' }) %>
+    <style>
+        /* Premium Clubs Directory Styles */
+        .discover-header {
+            margin-bottom: 40px;
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 30px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .discover-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: var(--primary-gradient);
+            filter: blur(100px);
+            opacity: 0.05;
+            z-index: 0;
+        }
+
+        .category-scroll {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 35px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            scrollbar-width: none;
+        }
+
+        .category-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cat-tab {
+            padding: 12px 24px;
+            border-radius: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .cat-tab:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .cat-tab.active {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            box-shadow: 0 10px 20px rgba(255, 61, 109, 0.2);
+        }
+
+        .clubs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+        }
+
+        .club-card {
+            background: var(--bg-card);
+            border-radius: 28px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border-color);
+            position: relative;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .club-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-color: var(--primary);
+        }
+
+        .club-card-banner {
+            height: 160px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .club-card-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.5));
+        }
+
+        .club-card-logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            border: 5px solid var(--bg-card);
+            position: absolute;
+            bottom: -36px;
+            left: 25px;
+            z-index: 2;
+            object-fit: cover;
+            background: var(--bg-card);
+            box-shadow: var(--shadow-md);
+        }
+
+        .club-card-content {
+            padding: 50px 25px 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .club-card-category {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--primary);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .club-card-name {
+            font-size: 1.4rem;
+            font-weight: 850;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .club-card-bio {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .club-card-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .club-card-footer span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .club-card-footer i {
+            color: var(--primary);
+            opacity: 0.7;
+        }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            width: 65px;
+            height: 65px;
+            border-radius: 22px;
+            background: var(--primary-gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 15px 30px rgba(255, 61, 109, 0.4);
+            cursor: pointer;
+            z-index: 100;
+            border: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .fab:hover {
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        /* Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(10px);
+            display: none;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 650px;
+            border-radius: 35px;
+            padding: 45px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-color);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+    </style>
+
+    <body>
+        <%- include('partials/sidebar') %>
+
+            <div class="container" id="mainContent">
+                <%- include('partials/navbar') %>
+
+                    <main style="padding: 20px 40px;">
+                        <div class="discover-header">
+                            <div
+                                style="position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <h1
+                                        style="font-size: 2.5rem; font-weight: 900; margin-bottom: 8px; letter-spacing: -1.5px;">
+                                        Communities</h1>
+                                    <p style="color:var(--text-secondary); font-size:1.1rem; font-weight:500;">Connect
+                                        with peers who share your passions at <%= user.campus %>
+                                    </p>
+                                </div>
+                                <button class="btn btn-primary"
+                                    style="padding: 15px 30px; border-radius:18px; font-weight:800;"
+                                    onclick="openCreateModal()">
+                                    <i class="fas fa-plus-circle" style="margin-right:10px;"></i> Start a Club
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Tabs -->
+                        <div class="category-scroll">
+                            <button class="cat-tab <%= !currentCategory || currentCategory === 'all' ? 'active' : '' %>"
+                                onclick="window.location.href='/clubs?category=all'">All Circles</button>
+                            <% ['Academic', 'Social' , 'Sports' , 'Music/Arts' , 'Technology' , 'Volunteer'
+                                ].forEach(cat=> { %>
+                                <button class="cat-tab <%= currentCategory === cat ? 'active' : '' %>"
+                                    onclick="window.location.href='/clubs?category=<%= cat %>'">
+                                    <%= cat %>
+                                </button>
+                                <% }) %>
+                        </div>
+
+                        <div class="clubs-grid">
+                            <% if (initialClubs && initialClubs.length> 0) { %>
+                                <% initialClubs.forEach(club=> { %>
+                                    <a href="/clubs/<%= club.club_id %>" class="club-card">
+                                        <div class="club-card-banner"
+                                            style="background-image: url('<%= club.banner_url || 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=800' %>')">
+                                        </div>
+                                        <img src="<%= club.logo_url || 'https://ui-avatars.com/api/?name='+encodeURIComponent(club.name)+'&background=random&color=fff' %>"
+                                            class="club-card-logo" onerror="this.src='/uploads/avatars/default.png'">
+
+                                        <div class="club-card-content">
+                                            <div class="club-card-category">
+                                                <%= club.category %>
+                                            </div>
+                                            <h3 class="club-card-name">
+                                                <%= club.name %>
+                                            </h3>
+                                            <p class="club-card-bio">
+                                                <%= club.description %>
+                                            </p>
+
+                                            <div class="club-card-footer">
+                                                <span><i class="fas fa-user-friends"></i>
+                                                    <%= club.member_count || 0 %> Members
+                                                </span>
+                                                <span><i class="fas fa-map-marker-alt"></i>
+                                                    <%= club.campus %>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <% }) %>
+                                        <% } else { %>
+                                            <div
+                                                style="grid-column: 1/-1; text-align:center; padding:100px 40px; background:var(--bg-card); border-radius:40px; border:2px dashed var(--border-color);">
+                                                <div
+                                                    style="width:100px; height:100px; background:var(--bg-body); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 25px;">
+                                                    <i class="fas fa-compass"
+                                                        style="font-size:42px; color:var(--primary); opacity:0.2;"></i>
+                                                </div>
+                                                <h2 style="font-weight:900; margin-bottom:15px; letter-spacing:-1px;">
+                                                    Untapped Potential</h2>
+                                                <p
+                                                    style="color:var(--text-secondary); font-size:1.1rem; max-width:400px; margin:0 auto 30px;">
+                                                    This category is waiting for its first community. Be the pioneer who
+                                                    starts it!</p>
+                                                <button class="btn btn-primary"
+                                                    style="padding: 16px 40px; border-radius:20px; font-weight:800;"
+                                                    onclick="openCreateModal()">Create the First Club</button>
+                                            </div>
+                                            <% } %>
+                        </div>
+                    </main>
+            </div>
+
+            <!-- Create Club Modal -->
+            <div id="createClubModal" class="modal-overlay" onclick="if(event.target === this) closeCreateModal()">
+                <div class="modal-content">
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:35px; border-bottom:1px solid var(--border-color); padding-bottom:20px;">
+                        <h3 style="margin:0; font-size:1.8rem; font-weight:900; letter-spacing:-1px;">Launch Your Circle
+                        </h3>
+                        <button class="btn btn-icon" onclick="closeCreateModal()"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <form id="createClubForm">
+                        <div class="form-group" style="margin-bottom:30px;">
+                            <label
+                                style="display:block; margin-bottom:12px; font-weight:800; font-size:1.1rem;">Branding
+                                Elements</label>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                                <div
+                                    style="background:var(--bg-body); padding:25px; border-radius:24px; border:1px solid var(--border-color); text-align:center;">
+                                    <div
+                                        style="width:60px; height:60px; background:var(--bg-card); border-radius:18px; display:flex; align-items:center; justify-content:center; margin:0 auto 15px; border:1px solid var(--border-color);">
+                                        <i class="fas fa-camera" style="color:var(--primary);"></i>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-secondary"
+                                        onclick="this.nextElementSibling.click()">Select Logo</button>
+                                    <input type="file" name="logo" hidden accept="image/*">
+                                </div>
+                                <div
+                                    style="background:var(--bg-body); padding:25px; border-radius:24px; border:1px solid var(--border-color); text-align:center;">
+                                    <div
+                                        style="width:60px; height:60px; background:var(--bg-card); border-radius:18px; display:flex; align-items:center; justify-content:center; margin:0 auto 15px; border:1px solid var(--border-color);">
+                                        <i class="fas fa-image" style="color:var(--primary);"></i>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-secondary"
+                                        onclick="this.nextElementSibling.click()">Select Banner</button>
+                                    <input type="file" name="banner" hidden accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:25px;">
+                            <label style="display:block; margin-bottom:10px; font-weight:700;">Name of the
+                                Community</label>
+                            <input type="text" name="name"
+                                style="width:100%; padding:16px; border-radius:18px; border:2px solid var(--border-color); background:var(--bg-body); color:var(--text-primary); font-weight:600;"
+                                placeholder="e.g. Future Founders" required>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:25px;">
+                            <div>
+                                <label style="display:block; margin-bottom:10px; font-weight:700;">Sphere</label>
+                                <select name="category"
+                                    style="width:100%; padding:16px; border-radius:18px; border:2px solid var(--border-color); background:var(--bg-body); color:var(--text-primary); cursor:pointer;">
+                                    <option value="Academic">Academic</option>
+                                    <option value="Social">Social</option>
+                                    <option value="Sports">Sports</option>
+                                    <option value="Music/Arts">Music/Arts</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Volunteer">Volunteer</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display:block; margin-bottom:10px; font-weight:700;">Base</label>
+                                <input type="text" name="campus" value="<%= user.campus %>"
+                                    style="width:100%; padding:16px; border-radius:18px; border:2px solid var(--border-color); background:var(--bg-body); opacity:0.8;"
+                                    readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:35px;">
+                            <label style="display:block; margin-bottom:10px; font-weight:700;">The Mission</label>
+                            <textarea name="description" rows="4"
+                                style="width:100%; padding:16px; border-radius:18px; border:2px solid var(--border-color); background:var(--bg-body); color:var(--text-primary); resize:none;"
+                                placeholder="Tell potential members what to expect..." required></textarea>
+                        </div>
+
+                        <div style="display:flex; gap:20px;">
+                            <button type="button" class="btn btn-secondary"
+                                style="flex:1; padding:18px; border-radius:20px; font-weight:700;"
+                                onclick="closeCreateModal()">Wait, go back</button>
+                            <button type="submit" class="btn btn-primary"
+                                style="flex:1; padding:18px; border-radius:20px; font-weight:800; font-size:1.1rem;">Launch
+                                Club</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <button class="fab" onclick="openCreateModal()">
+                <i class="fas fa-plus"></i>
+            </button>
+
+                <script src="/js/dashboardAPI.js"></script>
+                <script>
+                    function openCreateModal() { document.getElementById('createClubModal').style.display = 'flex'; }
+                    function closeCreateModal() { document.getElementById('createClubModal').style.display = 'none'; }
+
+                    document.getElementById('createClubForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const btn = e.target.querySelector('button[type="submit"]');
+                        btn.innerText = 'Initializing...';
+                        btn.disabled = true;
+
+                        try {
+                            const formData = new FormData(e.target);
+                            const result = await DashboardAPI.createClub(formData);
+                            if (result.club_id || result.clubId) {
+                                window.location.href = `/clubs/${result.club_id || result.clubId}`;
+                            } else {
+                                alert(result.error || 'Initialization failed.');
+                                btn.innerText = 'Launch Club';
+                                btn.disabled = false;
+                            }
+                        } catch (error) {
+                            console.error('Launch error:', error);
+                            alert('Atmospheric static. Try again later.');
+                            btn.innerText = 'Launch Club';
+                            btn.disabled = false;
+                        }
+                    });
+                </script>
+    </body>
+
+    </html>

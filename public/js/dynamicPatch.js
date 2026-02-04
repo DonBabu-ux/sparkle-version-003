@@ -433,14 +433,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ SYNC GLOBAL STATE ============
         if (typeof appState !== 'undefined') {
-            console.log('�� Syncing global appState with real user data...');
-            if (appState.currentUser) {
-                appState.currentUser.id = currentUserId;
-                appState.currentUser.username = currentUsername;
-                appState.currentUser.name = currentUserData.name || currentUsername;
-            } else {
-                console.warn('appState.currentUser is undefined');
+            console.log(' Syncing global appState with real user data...');
+            if (!appState.currentUser) {
+                appState.currentUser = { id: '', username: '', name: '' };
             }
+
+            appState.currentUser.id = currentUserId || 'guest';
+            appState.currentUser.username = currentUsername || 'Guest';
+            appState.currentUser.name = (currentUserData && currentUserData.name) || currentUsername || 'Guest User';
 
             // Initial sync of UI components
             if (typeof updateProfileDisplay === 'function') {

@@ -45,7 +45,12 @@ const appState = window.appState; // Maintain local reference for script.js
 
 // Sync with dataManager or localStorage immediately to prevent 'undefined' in other scripts
 if (typeof dataManager !== 'undefined') {
-    appState.currentUser = dataManager.getCurrentUser();
+    appState.currentUser = dataManager.getCurrentUser() || {
+        id: 'guest',
+        username: 'Guest',
+        name: 'Guest User',
+        avatar: '/uploads/avatars/default.png'
+    };
     console.log("👤 Initialized appState.currentUser from dataManager:", appState.currentUser?.username);
 } else {
     try {
@@ -53,9 +58,12 @@ if (typeof dataManager !== 'undefined') {
         if (savedUser) {
             appState.currentUser = JSON.parse(savedUser);
             console.log("👤 Initialized appState.currentUser from localStorage:", appState.currentUser?.username);
+        } else {
+            appState.currentUser = { id: 'guest', username: 'Guest', name: 'Guest User' };
         }
     } catch (e) {
         console.warn("Failed to load user during init:", e);
+        appState.currentUser = { id: 'guest', username: 'Guest', name: 'Guest User' };
     }
 }
 
@@ -1749,7 +1757,17 @@ function resumeStory() {
     isStoryPaused = false;
 
     const video = document.querySelector('#viewerMedia video');
-    if (video) video.play();
+    if (video) {
+        // Only try to play if video has a valid source and hasn't errored
+        if (video.readyState >= 1 && !video.error) {
+            video.play().catch(err => {
+                console.warn("Autoplay/Resume blocked or video error:", err);
+                // If it fails, we still want the timer to run so it eventually moves on
+            });
+        } else {
+            console.log("Video not ready or has error, skipping play()");
+        }
+    }
 
     storyStartTime = Date.now();
 

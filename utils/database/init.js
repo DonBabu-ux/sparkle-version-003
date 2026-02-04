@@ -1,4 +1,34 @@
 const pool = require('../../config/database');
+const logger = require('../logger');
+
+// Test database connection
+const testConnection = async () => {
+    try {
+        await pool.query('SELECT 1');
+        return true;
+    } catch (err) {
+        return false;
+    }
+};
+
+// Retry logic with exponential backoff
+const retryWithBackoff = async (fn, maxRetries = 3, initialDelay = 1000) => {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await fn();
+        } catch (err) {
+            const isLastAttempt = i === maxRetries - 1;
+            const delay = initialDelay * Math.pow(2, i);
+
+            if (isLastAttempt) {
+                throw err;
+            }
+
+            logger.warn(`Database operation failed, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+};
 
 const initNotificationsTable = async () => {
     try {
@@ -21,9 +51,10 @@ const initNotificationsTable = async () => {
                 FOREIGN KEY (actor_id) REFERENCES users(user_id) ON DELETE SET NULL
             )
         `);
-        console.log('✅ Notifications table verified');
+        logger.info('✅ Notifications table verified');
     } catch (err) {
-        console.error('❌ Failed to init notifications table:', err);
+        logger.error('❌ Failed to init notifications table:', err.message);
+        throw err;
     }
 };
 
@@ -63,9 +94,10 @@ const initUserInteractionsTables = async () => {
                 UNIQUE KEY unique_mute (muter_id, muted_id)
             )
         `);
-        console.log('✅ User interaction tables verified');
+        logger.info('✅ User interaction tables verified');
     } catch (err) {
-        console.error('❌ Failed to init user interaction tables:', err);
+        logger.error('❌ Failed to init user interaction tables:', err.message);
+        throw err;
     }
 };
 
@@ -100,17 +132,18 @@ const initMomentsTable = async () => {
         for (const col of columnsToAdd) {
             try {
                 await pool.query(`ALTER TABLE moments ADD COLUMN ${col.name} ${col.type}`);
-                console.log(`✅ Added ${col.name} column to moments table`);
+                logger.info(`✅ Added ${col.name} column to moments table`);
             } catch (err) {
                 if (err.code !== 'ER_DUP_FIELDNAME') {
-                    console.error(`Warning: Could not add ${col.name} column:`, err.message);
+                    logger.warn(`Could not add ${col.name} column:`, err.message);
                 }
             }
         }
 
-        console.log('✅ Moments table verified');
+        logger.info('✅ Moments table verified');
     } catch (err) {
-        console.error('❌ Failed to init moments table:', err);
+        logger.error('❌ Failed to init moments table:', err.message);
+        throw err;
     }
 };
 
@@ -128,17 +161,39 @@ const initMessagesTable = async () => {
                 INDEX idx_sent_at (sent_at)
             )
         `);
-        console.log('✅ Messages table verified');
+        logger.info('✅ Messages table verified');
     } catch (err) {
-        console.error('❌ Failed to init messages table:', err);
+        logger.error('❌ Failed to init messages table:', err.message);
+        throw err;
     }
 };
 
 const initDB = async () => {
-    await initNotificationsTable();
-    await initUserInteractionsTables();
-    await initMomentsTable();
-    await initMessagesTable();
+    // Test connection first
+    logger.info('Testing database connection...');
+    const isConnected = await testConnection();
+
+    if (!isConnected) {
+        logger.warn('⚠️  Database is not reachable. Server will start without database initialization.');
+        logger.warn('⚠️  Database operations will fail until connection is restored.');
+        return;
+    }
+
+    logger.info('✅ Database connection successful');
+
+    // Initialize tables with retry logic
+    try {
+        await retryWithBackoff(async () => {
+            await initNotificationsTable();
+            await initUserInteractionsTables();
+            await initMomentsTable();
+            await initMessagesTable();
+        });
+        logger.info('✅ Database initialization complete');
+    } catch (err) {
+        logger.error('❌ Database initialization failed after retries:', err.message);
+        logger.warn('⚠️  Server will continue running but database operations may fail');
+    }
 };
 
 module.exports = { initDB };

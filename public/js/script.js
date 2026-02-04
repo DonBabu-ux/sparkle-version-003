@@ -1673,19 +1673,25 @@ function showAfterglowViewer(story) {
     if (storyProgressInterval) clearInterval(storyProgressInterval);
 
     // Clear progress bars container and recreate based on story count
-    const progressBarContainer = document.querySelector('.afterglow-progress');
+    const progressBarContainer = document.getElementById('viewerProgress');
     if (progressBarContainer) {
         progressBarContainer.innerHTML = '';
-        activeStories.forEach((s, idx) => {
-            const bar = document.createElement('div');
-            bar.className = 'progress-segment-wrapper';
-            const inner = document.createElement('div');
-            inner.className = 'progress-segment-inner';
-            if (idx < currentStoryIndex) inner.style.width = '100%';
-            if (idx === currentStoryIndex) inner.id = 'activeProgressBar';
-            bar.appendChild(inner);
-            progressBarContainer.appendChild(bar);
-        });
+        // If we have activeStories, show segments for each
+        if (activeStories && activeStories.length > 0) {
+            activeStories.forEach((s, idx) => {
+                const bar = document.createElement('div');
+                bar.className = 'progress-segment-wrapper';
+                const inner = document.createElement('div');
+                inner.className = 'progress-segment-inner';
+                if (idx < currentStoryIndex) inner.style.width = '100%';
+                if (idx === currentStoryIndex) inner.id = 'activeProgressBar';
+                bar.appendChild(inner);
+                progressBarContainer.appendChild(bar);
+            });
+        } else {
+            // Fallback for single story
+            progressBarContainer.innerHTML = '<div class="progress-segment-wrapper"><div class="progress-segment-inner" id="activeProgressBar"></div></div>';
+        }
     }
 
     const mediaContainer = document.getElementById('viewerMedia');
@@ -2333,14 +2339,87 @@ window.submitPost = async function () {
         // Refresh feed
         window.forceFeedRefresh = true;
         loadFeedPosts();
+        submitBtn.innerHTML = originalText;
     } catch (error) {
         console.error("Failed to create post:", error);
         showNotification("Failed to share post. Please try again.");
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
     }
 };
 
-console.log("🚀 Sparkle Dashboard Fully Loaded!");
-console.log("👥 All 20 mock users are ready to load in Connect page");
+// AFTERGLOW INTERACTIONS
+function sparkAfterglow() {
+    const btn = document.querySelector('.spark-action .action-icon-circle');
+    if (btn) {
+        btn.style.transform = 'scale(1.3)';
+        setTimeout(() => btn.style.transform = 'scale(1)', 200);
+    }
+
+    const sparkCount = document.getElementById('sparkCount');
+    if (sparkCount) {
+        let count = parseInt(sparkCount.textContent) || 0;
+        sparkCount.textContent = count + 1;
+    }
+
+    showToast('✨ AfterGlow Sparked!');
+}
+
+function shareAfterglow() {
+    showToast('🔗 Share link copied to clipboard!');
+}
+
+function saveAfterglow() {
+    const icon = document.querySelector('.save-action i');
+    if (icon) {
+        icon.classList.toggle('far');
+        icon.classList.toggle('fas');
+    }
+    showToast('🔖 Saved to your collection');
+}
+
+function replyToAfterglow() {
+    showToast('💬 Reply feature coming soon!');
+}
+
+// Helper to show toasts (if not already defined)
+if (typeof showToast !== 'function') {
+    window.showToast = function (message) {
+        const toast = document.createElement('div');
+        toast.className = 'sparkle-toast';
+        toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:20px; z-index:10000; font-size:14px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); animation: slideUp 0.3s ease;';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(20px)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+}
+
+// Add animation for toast
+if (!document.getElementById('toast-style')) {
+    const style = document.createElement('style');
+    style.id = 'toast-style';
+    style.innerHTML = `
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(50px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// INITIALIZATION
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("🚀 Sparkle Dashboard Fully Loaded!");
+    // Sync appState with currentUser data if available
+    if (typeof dataManager !== 'undefined') {
+        const user = dataManager.getCurrentUser();
+        if (user && appState) {
+            appState.currentUser = user;
+        }
+    }
+});

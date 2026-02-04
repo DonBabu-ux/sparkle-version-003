@@ -1,10 +1,25 @@
 const pool = require('../config/database');
+const logger = require('../utils/logger');
 
 const renderMoments = async (req, res) => {
     try {
-        const [moments] = await pool.query('SELECT m.*, u.username, u.avatar_url FROM moments m JOIN users u ON m.user_id = u.user_id ORDER BY m.created_at DESC LIMIT 20');
+        const [moments] = await pool.query(`
+            SELECT 
+                m.*, 
+                u.username, 
+                u.name as user_name, 
+                u.avatar_url,
+                m.media_url as video_url,
+                (SELECT COUNT(*) FROM sparks s WHERE s.moment_id = m.moment_id) as likes,
+                (SELECT COUNT(*) FROM comments c WHERE c.moment_id = m.moment_id) as comments
+            FROM moments m 
+            JOIN users u ON m.user_id = u.user_id 
+            ORDER BY m.created_at DESC 
+            LIMIT 20
+        `);
         res.render('moments', { title: 'Moments', user: req.user, initialMoments: moments || [] });
     } catch (error) {
+        logger.error('Error loading moments:', error);
         res.render('moments', { title: 'Moments', user: req.user, initialMoments: [] });
     }
 };

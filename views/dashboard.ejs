@@ -76,78 +76,81 @@
 
         <!-- AfterGlow Viewer Modal -->
         <div id="afterglowViewer" class="afterglow-viewer-modal" style="display: none;">
-            <div class="afterglow-viewer-header">
-                <div class="viewer-author-info">
-                    <img id="viewerAvatar" src="" alt="Avatar" class="viewer-avatar"
-                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
-                    <div class="viewer-author-details">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div id="viewerUsername" class="viewer-username"></div>
-                            <span id="viewerCampus"
-                                style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; color: white;"></span>
+            <div class="afterglow-viewer-container">
+                <div class="afterglow-viewer-header">
+                    <div class="afterglow-progress" id="viewerProgress">
+                        <!-- Segments will be injected by script.js -->
+                    </div>
+                    <div class="viewer-author-info">
+                        <img id="viewerAvatar" src="" alt="Avatar" class="viewer-avatar"
+                            onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                        <div class="viewer-author-details">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div id="viewerUsername" class="viewer-username"></div>
+                                <span id="viewerCampus" class="viewer-campus-badge"></span>
+                            </div>
+                            <div id="viewerTime" class="viewer-time"></div>
                         </div>
-                        <div id="viewerTime" class="viewer-time"></div>
+                    </div>
+                    <div class="viewer-controls">
+                        <button class="viewer-btn viewer-close-btn" onclick="closeAfterglowViewer()">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="viewer-controls">
-                    <button class="viewer-btn viewer-close-btn" onclick="closeAfterglowViewer()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
 
-            <div class="afterglow-viewer-content" onmousedown="pauseStory()" onmouseup="resumeStory()"
-                onmouseleave="resumeStory()" ontouchstart="pauseStory()" ontouchend="resumeStory()">
-                <div id="viewerMedia" class="viewer-media">
-                    <!-- Media will be loaded here -->
+                <div class="afterglow-viewer-content">
+                    <!-- Navigation Areas (Tap to skip) -->
+                    <div class="story-nav-touch-area left" onclick="prevStory()"></div>
+                    <div class="story-nav-touch-area right" onclick="nextStory()"></div>
+
+                    <div id="viewerMedia" class="viewer-media">
+                        <!-- Media will be loaded here -->
+                    </div>
+
+                    <div class="afterglow-viewer-footer">
+                        <div class="viewer-stats-row">
+                            <span class="viewer-stat-item">
+                                <i class="fas fa-eye"></i>
+                                <span id="viewCount">0</span>
+                            </span>
+                            <span class="viewer-stat-item">
+                                <i class="fas fa-bolt"></i>
+                                <span id="sparkCount">0</span>
+                            </span>
+                        </div>
+                        <div id="viewerCaption" class="afterglow-caption"></div>
+
+                        <div class="viewer-actions">
+                            <button class="viewer-action-btn spark-action" onclick="sparkAfterglow()">
+                                <div class="action-icon-circle">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <span>Spark</span>
+                            </button>
+                            <button class="viewer-action-btn share-action" onclick="shareAfterglow()">
+                                <div class="action-icon-circle">
+                                    <i class="fas fa-share"></i>
+                                </div>
+                                <span>Share</span>
+                            </button>
+                            <button class="viewer-action-btn save-action" onclick="saveAfterglow()">
+                                <div class="action-icon-circle">
+                                    <i class="far fa-bookmark"></i>
+                                </div>
+                                <span>Save</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div id="viewerCaption" class="afterglow-caption"></div>
 
                 <!-- Desktop Navigation Arrows -->
-                <button class="desktop-nav-btn prev" onclick="nextStory()">
+                <button class="desktop-nav-btn prev" onclick="prevStory()">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-                <button class="desktop-nav-btn next" onclick="prevStory()">
+                <button class="desktop-nav-btn next" onclick="nextStory()">
                     <i class="fas fa-chevron-right"></i>
                 </button>
-
-                <div class="viewer-actions">
-                    <button class="viewer-action-btn" onclick="sparkAfterglow()">
-                        <i class="fas fa-bolt"></i>
-                        <span>Spark</span>
-                    </button>
-                    <button class="viewer-action-btn" onclick="shareAfterglow()">
-                        <i class="fas fa-share"></i>
-                        <span>Share</span>
-                    </button>
-                    <button class="viewer-action-btn" onclick="saveAfterglow()">
-                        <i class="far fa-bookmark"></i>
-                        <span>Save</span>
-                    </button>
-                    <button class="viewer-action-btn" onclick="replyToAfterglow()">
-                        <i class="far fa-comment"></i>
-                        <span>Reply</span>
-                    </button>
-                </div>
-
-                <div class="viewer-stats">
-                    <span class="viewer-stat">
-                        <i class="fas fa-eye"></i>
-                        <span id="viewCount">0</span> views
-                    </span>
-                    <span class="viewer-stat">
-                        <i class="fas fa-bolt" style="color: #e91e63;"></i>
-                        <span id="sparkCount">0</span> sparks
-                    </span>
-                    <span class="viewer-stat">
-                        <i class="fas fa-share" style="color: #4caf50;"></i>
-                        <span id="shareCount">0</span> shares
-                    </span>
-                </div>
-            </div>
-
-            <div class="afterglow-progress">
-                <div class="progress-bar" id="progressBar"></div>
             </div>
         </div>
 

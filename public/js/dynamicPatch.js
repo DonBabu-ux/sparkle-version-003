@@ -433,14 +433,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ SYNC GLOBAL STATE ============
         if (typeof appState !== 'undefined') {
-            console.log('�� Syncing global appState with real user data...');
-            if (appState.currentUser) {
-                appState.currentUser.id = currentUserId;
-                appState.currentUser.username = currentUsername;
-                appState.currentUser.name = currentUserData.name || currentUsername;
-            } else {
-                console.warn('appState.currentUser is undefined');
+            console.log(' Syncing global appState with real user data...');
+            if (!appState.currentUser) {
+                appState.currentUser = { id: '', username: '', name: '' };
             }
+
+            appState.currentUser.id = currentUserId || 'guest';
+            appState.currentUser.username = currentUsername || 'Guest';
+            appState.currentUser.name = (currentUserData && currentUserData.name) || currentUsername || 'Guest User';
 
             // Initial sync of UI components
             if (typeof updateProfileDisplay === 'function') {
@@ -794,18 +794,24 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ CORE LOADING FUNCTIONS ============
 
-        window.loadAfterglowStories = async function () {
-            console.log(' Loading stories from API...');
+        window.loadAfterglowStories = async function (options = {}) {
+            const isSilent = options.silent || false;
             const container = document.getElementById('afterglowStories');
             if (!container) return;
 
             try {
+                if (!isSilent) {
+                    console.log(' Loading stories from API...');
+                }
                 const stories = await DashboardAPI.loadStories();
+                const fragment = document.createDocumentFragment();
 
                 // Keep the "Create" card
                 const currentUserData = window.currentUserData || { avatar: '' };
-                container.innerHTML = `
-                    <div class="story-create-card" onclick="window.showCreateOptions()">
+                const createCard = document.createElement('div');
+                createCard.className = 'story-create-card';
+                createCard.onclick = () => window.showCreateOptions();
+                createCard.innerHTML = `
                         <div class="story-create-inner">
                             <div class="story-create-avatar-container">
                                 <img src="${currentUserData.avatar || '/uploads/avatars/default.png'}"
@@ -817,128 +823,105 @@ document.addEventListener('DOMContentLoaded', async function () {
                             </div>
                             <div class="story-create-label">Create AfterGlow</div>
                         </div>
-                    </div>
                 `;
+                fragment.appendChild(createCard);
 
                 if (stories.length === 0) {
                     const hint = document.createElement('div');
                     hint.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 0 10px;';
                     hint.innerHTML = `
                         <div style="color: #999; font-size: 12px; white-space: nowrap;">No active glows yet.</div>
-                        <button onclick="window.showCreateOptions()" style="background: rgba(156, 39, 176, 0.1); color: #9c27b0; border: 1px dashed #9c27b0; padding: 4px 12px; border-radius: 12px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; transition: all 0.2s;">
-                            Spark One! ?
-                        </button>
+                        <button onclick="window.showCreateOptions()" style="background: rgba(156, 39, 176, 0.1); color: #9c27b0; border: 1px dashed #9c27b0; padding: 4px 12px; border-radius: 12px; cursor: pointer; font-size: 11px; white-space: nowrap;">Spark One!</button>
                     `;
-                    container.appendChild(hint);
+                    fragment.appendChild(hint);
+                } else {
+                    const formatTime = (seconds) => {
+                        if (seconds <= 0) return 'Expired';
+                        const h = Math.floor(seconds / 3600);
+                        const m = Math.floor((seconds % 3600) / 60);
+                        if (h > 0) return `${h}h ${m} m`;
+                        return `${m} m`;
+                    };
+
+                    stories.forEach(story => {
+                        const storyEl = document.createElement('div');
+                        storyEl.className = 'story-view-card';
+                        storyEl.dataset.secondsLeft = story.secondsLeft;
+
+                        storyEl.innerHTML = `
+                            <div class="story-view-inner" >
+                                    <div class="story-avatar-container">
+                                        <div class="story-avatar-ring" style="opacity: ${Math.max(0.1, story.secondsLeft / 7200)};"></div>
+                                        <img src="${story.avatar || story.avatar_url || '/uploads/avatars/default.png'}" alt="${story.username}" class="story-avatar">
+                                    </div>
+                                    <div class="story-info">
+                                        <div class="story-username">${story.username}</div>
+                                        <div class="story-time">${formatTime(story.secondsLeft)}</div>
+                                    </div>
+                                </div>
+                            `;
+
+                        storyEl.addEventListener('click', () => {
+                            window.viewAfterglow(story);
+                        });
+                        fragment.appendChild(storyEl);
+                    });
                 }
 
-                if (window.afterglowTimerInterval) clearInterval(window.afterglowTimerInterval);
-
-                const formatTime = (seconds) => {
-                    if (seconds <= 0) return 'Expired';
-                    const h = Math.floor(seconds / 3600);
-                    const m = Math.floor((seconds % 3600) / 60);
-                    if (h > 0) return `${h}h ${m} m`;
-                    return `${m} m`;
-                };
-
-                stories.forEach(story => {
-                    const storyEl = document.createElement('div');
-                    storyEl.className = 'story-view-card';
-                    storyEl.dataset.secondsLeft = story.secondsLeft;
-
-                    storyEl.innerHTML = `
-                    <div class="story-view-inner" >
-                            <div class="story-avatar-container">
-                                <div class="story-avatar-ring" style="opacity: ${Math.max(0.1, story.secondsLeft / 86400)};"></div>
-                                <img src="${story.avatar || story.avatar_url || '/uploads/avatars/default.png'}" alt="${story.username}" class="story-avatar">
-                            </div>
-                            <div class="story-info">
-                                <div class="story-username">${story.username}</div>
-                                <div class="story-time">${formatTime(story.secondsLeft)}</div>
-                            </div>
-                        </div>
-                    `;
-
-                    storyEl.addEventListener('click', () => {
-                        window.viewAfterglow(story);
-                    });
-                    container.appendChild(storyEl);
-                });
-
-                // Update countdown every minute
-                window.afterglowTimerInterval = setInterval(() => {
-                    const items = container.querySelectorAll('.story-view-card');
-                    items.forEach(item => {
-                        let seconds = parseInt(item.dataset.secondsLeft);
-                        if (seconds > 0) {
-                            seconds -= 60;
-                            item.dataset.secondsLeft = seconds;
-                            const timeEl = item.querySelector('.story-time');
-                            if (timeEl) timeEl.textContent = formatTime(seconds);
-
-                            const ring = item.querySelector('.story-avatar-ring');
-                            if (ring) ring.style.opacity = Math.max(0.1, seconds / 7200);
-                        } else {
-                            item.remove();
-                        }
-                    });
-                }, 60000);
+                container.innerHTML = '';
+                container.appendChild(fragment);
 
             } catch (error) {
                 console.error('? Failed to load stories:', error);
             }
         };
 
-        window.viewAfterglow = function (story) {
-            const modal = document.getElementById('afterglowViewer');
-            if (!modal) {
-                alert(`AfterGlow by ${story.username}: ${story.caption} `);
-                return;
-            }
+        // Update countdown every minute
+        window.afterglowTimerInterval = setInterval(() => {
+            const container = document.getElementById('afterglowStories');
+            if (!container) return; // Ensure container exists before querying
+            const items = container.querySelectorAll('.story-view-card');
+            items.forEach(item => {
+                let seconds = parseInt(item.dataset.secondsLeft);
+                if (seconds > 0) {
+                    seconds -= 60;
+                    item.dataset.secondsLeft = seconds;
+                    const timeEl = item.querySelector('.story-time');
+                    if (timeEl) {
+                        const h = Math.floor(seconds / 3600);
+                        const m = Math.floor((seconds % 3600) / 60);
+                        if (h > 0) timeEl.textContent = `${h}h ${m} m`;
+                        else timeEl.textContent = `${m} m`;
+                    }
 
-            // Set data
-            document.getElementById('viewerAvatar').src = story.avatar;
-            document.getElementById('viewerUsername').textContent = story.username;
-
-            const formatTime = (seconds) => {
-                const h = Math.floor(seconds / 3600);
-                const m = Math.floor((seconds % 3600) / 60);
-                if (h > 0) return `<i class="fas fa-clock" ></i> ${h}h ${m}m left`;
-                return `<i class="fas fa-clock" ></i> ${m}m left`;
-            };
-
-            document.getElementById('viewerTime').innerHTML = formatTime(story.secondsLeft);
-
-            // Stats
-            document.getElementById('viewCount').textContent = story.views || 0;
-            document.getElementById('sparkCount').textContent = story.sparks || 0;
-            document.getElementById('shareCount').textContent = story.shares || 0;
-
-            // Set media
-            const mediaContainer = document.getElementById('viewerMedia');
-            const isVideo = story.media && (story.media.toLowerCase().endsWith('.mp4') || story.media.includes('video'));
-
-            mediaContainer.innerHTML = `
-                ${isVideo ? `<video src="${story.media}" autoplay controls style="width:100%; max-height:70vh; border-radius:12px;"></video>` : `<img src="${story.media}" style="width:100%; max-height:70vh; object-fit:contain; border-radius:12px;">`}
-                ${story.caption ? `<div class="afterglow-caption">${story.caption}</div>` : ''}
-                `;
-
-            // Show modal
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-
-            // Override original keydown listener briefly or just use standard
-            const handleKey = (e) => {
-                if (e.key === 'Escape') {
-                    modal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                    document.removeEventListener('keydown', handleKey);
-                    const video = mediaContainer.querySelector('video');
-                    if (video) video.pause();
+                    const ring = item.querySelector('.story-avatar-ring');
+                    if (ring) ring.style.opacity = Math.max(0.1, seconds / 7200);
+                } else {
+                    item.remove();
                 }
-            };
-            document.addEventListener('keydown', handleKey);
+            });
+        }, 60000);
+
+        // Removed redundant viewAfterglow override to allow script.js premium UI to work
+        window.viewAfterglow = function (story) {
+            if (typeof showAfterglowViewer === 'function') {
+                // Get all stories to set activeStories correctly for navigation
+                if (typeof DashboardAPI !== 'undefined') {
+                    DashboardAPI.loadStories().then(stories => {
+                        window.activeStories = stories || [];
+                        const index = stories.findIndex(s => (s.story_id || s.id) === (story.story_id || story.id));
+                        window.currentStoryIndex = index !== -1 ? index : 0;
+                        showAfterglowViewer(story);
+                    }).catch(err => {
+                        console.error("Failed to load stories for viewer:", err);
+                        showAfterglowViewer(story);
+                    });
+                } else {
+                    showAfterglowViewer(story);
+                }
+            } else {
+                console.warn("showAfterglowViewer not found in script.js");
+            }
         };
 
         window.loadGroups = async function () {
@@ -1098,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         // ============ AUTO-LOAD DATA ON PAGE LOAD ============
         // Automatically load Feed and Stories when dashboard is ready
         window.addEventListener('load', () => {
-            console.log('�� Dashboard loaded - Auto-loading Feed and Stories...');
+            console.log(' Dashboard loaded - Auto-loading Feed and Stories...');
 
             // Small delay to ensure DOM is fully ready
             setTimeout(() => {
@@ -1106,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 if (typeof window.loadFeedPosts === 'function') {
                     const feedContainer = document.getElementById('feed');
                     if (feedContainer) {
-                        console.log('�� Auto-loading Feed posts...');
+                        console.log(' Auto-loading Feed posts...');
                         window.loadFeedPosts();
                     }
                 }
@@ -1115,7 +1098,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 if (typeof window.loadAfterglowStories === 'function') {
                     const storiesContainer = document.getElementById('afterglowStories');
                     if (storiesContainer) {
-                        console.log('�� Auto-loading Stories...');
+                        console.log(' Auto-loading Stories...');
                         window.loadAfterglowStories();
                     }
                 }
@@ -1124,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 if (typeof window.loadMoments === 'function') {
                     const momentsContainer = document.getElementById('momentsList') || document.getElementById('momentsGrid');
                     if (momentsContainer) {
-                        console.log('� Auto-loading Moments...');
+                        console.log(' Auto-loading Moments...');
                         window.loadMoments();
                     }
                 }
@@ -1369,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
                 return; // Bypass original logic
 
-                console.log('�� Attempting to post:', { caption, hasFile: !!file, postType });
+                console.log(' Attempting to post:', { caption, hasFile: !!file, postType });
 
                 if (!caption && !file) {
                     showNotification('Please add a caption or media', 'error');
@@ -1382,7 +1365,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 try {
                     let mediaUrl = null;
                     if (file) {
-                        console.log('�� Uploading media to Cloudinary...');
+                        console.log(' Uploading media to Cloudinary...');
                         const formData = new FormData();
                         formData.append('media', file);
 
@@ -1397,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         if (!uploadResponse.ok) throw new Error('Media upload failed');
                         const uploadData = await uploadResponse.json();
                         mediaUrl = uploadData.url;
-                        console.log('� Media uploaded:', mediaUrl);
+                        console.log(' Media uploaded:', mediaUrl);
                     }
 
                     const tags = tagsRaw ? tagsRaw.split(' ').map(t => t.replace('#', '')) : [];
@@ -1429,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ USER PROFILE MODAL ============
         window.viewUserProfileFromAPI = async function (userId) {
-            console.log(`�� Loading profile for user ${userId} from API...`);
+            console.log(` Loading profile for user ${userId} from API...`);
             try {
                 showNotification('Loading profile...');
                 const [user, posts, followers, following] = await Promise.all([
@@ -1715,7 +1698,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ CHAT HISTORY INTEGRATION ============
         window.startChat = async function (contact) {
-            console.log(`�� Starting chat with ${contact.name}...`);
+            console.log(` Starting chat with ${contact.name}...`);
 
             const messagesContainer = document.getElementById('chatMessages');
             if (!messagesContainer) return;
@@ -1887,7 +1870,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
         window.startChatWithUser = async (userId) => {
-            console.log('�� Fetching user info to start chat:', userId);
+            console.log(' Fetching user info to start chat:', userId);
             try {
                 const user = await DashboardAPI.loadUserProfile(userId);
                 startChat({ id: user.id || userId, name: user.name || 'Student', avatar: user.avatar, username: user.username });
@@ -1913,7 +1896,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
             const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
 
-            console.log(`�� Loading marketplace (${category}, campus: ${userCampus}) from API...`);
+            console.log(` Loading marketplace (${category}, campus: ${userCampus}) from API...`);
             const container = document.getElementById('marketplaceContent') || document.getElementById('marketGrid');
             if (!container) {
                 console.warn('⚠️ Market container not found');
@@ -2062,7 +2045,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ OVERRIDE EVENTS LOADING ============
         window.loadEvents = async function (campus = 'all') {
-            console.log(`�� Loading events for ${campus}...`);
+            console.log(` Loading events for ${campus}...`);
             // Try multiple possible container IDs
             const container = document.getElementById('eventsContainer') || document.getElementById('eventsContent') || document.getElementById('eventsGrid');
 
@@ -2127,7 +2110,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         // ============ OVERRIDE PAGE SWITCHING ============
         const originalSwitchPage = window.switchPage;
         window.switchPage = async function (page) {
-            console.log('�� Switching to page (Dynamic):', page);
+            console.log(' Switching to page (Dynamic):', page);
 
             // Call original to handle UI toggling
             if (typeof originalSwitchPage === 'function') {
@@ -2147,40 +2130,40 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Dynamic Data Hooks - Load data for each page
             try {
                 if (page === 'home') {
-                    console.log('�� Loading home feed...');
+                    console.log(' Loading home feed...');
                     if (window.loadFeedPosts) await loadFeedPosts();
                     if (window.loadAfterglowStories) await loadAfterglowStories();
 
                 } else if (page === 'connect') {
-                    console.log('�� Loading connect users...');
+                    console.log(' Loading connect users...');
                     if (window.loadConnectUsers) await loadConnectUsers();
 
                 } else if (page === 'messages') {
-                    console.log('�� Loading messages...');
+                    console.log(' Loading messages...');
                     if (window.loadChatsFromAPI) await loadChatsFromAPI();
 
                 } else if (page === 'groups') {
-                    console.log('�� Loading groups...');
+                    console.log(' Loading groups...');
                     if (window.loadGroups) await loadGroups();
 
                 } else if (page === 'moments') {
-                    console.log('� Loading moments...');
+                    console.log(' Loading moments...');
                     if (window.loadMoments) await loadMoments();
 
                 } else if (page === 'market' || page === 'marketplace') {
-                    console.log('�� Loading marketplace...');
+                    console.log(' Loading marketplace...');
                     if (window.loadMarketplace) await loadMarketplace('all');
 
                 } else if (page === 'lostfound' || page === 'lost-found') {
-                    console.log('�� Loading lost & found...');
+                    console.log(' Loading lost & found...');
                     if (window.loadLostFoundContent) await loadLostFoundContent('all');
 
                 } else if (page === 'skills' || page === 'skill-market') {
-                    console.log('� Loading skill marketplace...');
+                    console.log(' Loading skill marketplace...');
                     if (window.loadSkillMarketContent) await loadSkillMarketContent('all');
 
                 } else if (page === 'profile') {
-                    console.log('�� Loading profile...');
+                    console.log(' Loading profile...');
                     if (window.updateProfileDisplay) await updateProfileDisplay();
                     if (window.switchProfileTab) await switchProfileTab('posts');
                 }
@@ -2194,7 +2177,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const profilePage = document.getElementById('profilePage');
             if (!profilePage) return;
 
-            console.log('�� Updating Profile Page with real data...');
+            console.log(' Updating Profile Page with real data...');
             try {
                 // Get current user ID (synced or default)
                 const userId = localStorage.getItem('sparkleUserId') || '1';
@@ -2273,64 +2256,56 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
         // ============ OVERRIDE FEED POSTS LOADING ============
-        window.loadFeedPosts = async function () {
+        window.loadFeedPosts = async function (options = {}) {
+            const isSilent = options.silent || false;
             const container = document.getElementById('feed');
-            if (!container) {
-                console.warn('⚠️ Feed container not found in DOM');
-                return;
-            }
+            if (!container) return;
 
             try {
-                console.log('�� Fetching feed posts from DashboardAPI...');
+                if (!isSilent) {
+                    container.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+                }
+
                 const posts = await DashboardAPI.loadFeed();
+                if (!posts) return;
 
-                if (!posts) {
-                    throw new Error('DashboardAPI.loadFeed returned null/undefined');
-                }
-
-                console.log(`�� Feed Loaded: ${posts.length} posts`);
-                container.innerHTML = '';
-
+                // Create fragment for flicker-free update
+                const fragment = document.createDocumentFragment();
                 if (posts.length === 0) {
-                    container.innerHTML = `
-                        <div style="text-align: center; padding: 40px 20px; color: #999;">
-                            <i class="fas fa-newspaper" style="font-size: 50px; margin-bottom: 20px;"></i>
-                            <h3>No posts yet</h3>
-                            <p>Be the first to share something!</p>
-                        </div>
+                    const empty = document.createElement('div');
+                    empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #999;';
+                    empty.innerHTML = `
+                        <i class="fas fa-newspaper" style="font-size: 50px; margin-bottom: 20px;"></i>
+                        <h3>No posts yet</h3>
+                        <p>Be the first to share something!</p>
                     `;
-                    return;
+                    fragment.appendChild(empty);
+                } else {
+                    posts.forEach(post => {
+                        try {
+                            const postEl = window.createPostElement(post);
+                            fragment.appendChild(postEl);
+                        } catch (e) {
+                            console.error('Render error:', e);
+                        }
+                    });
                 }
 
-                posts.forEach(post => {
-                    try {
-                        if (typeof window.createPostElement !== 'function') {
-                            throw new Error('window.createPostElement is not a function');
-                        }
-                        const postEl = window.createPostElement(post);
-                        container.appendChild(postEl);
-                    } catch (renderError) {
-                        console.error('❌ Failed to render individual post:', post, renderError);
-                    }
-                });
+                // Swap content quickly
+                container.innerHTML = '';
+                container.appendChild(fragment);
 
             } catch (error) {
                 console.error('❌ Failed to load feed:', error);
-                container.innerHTML = `
-                    <div style="text-align:center; padding:40px; color:var(--danger);">
-                        <i class="fas fa-exclamation-triangle" style="font-size:30px; margin-bottom:10px;"></i>
-                        <p>Failed to load feed. Check API connection.</p>
-                        <small style="color: #666; font-size: 11px;">Error: ${error.message}</small>
-                        <br><br>
-                        <button onclick="window.loadFeedPosts()" class="btn btn-sm" style="background:#eee;">Retry</button>
-                    </div>
-                `;
+                if (!isSilent) {
+                    container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--danger);">Failed to load feed. <br><button onclick="window.loadFeedPosts()" class="btn btn-sm" style="margin-top:10px;">Retry</button></div>`;
+                }
             }
         };
 
         // ============ OVERRIDE MESSAGING LOADING ============
         window.loadMessages = async function (type = 'direct') {
-            console.log(`�� Loading ${type} messages...`);
+            console.log(` Loading ${type} messages...`);
             if (type === 'direct' || type === 'anonymous') {
                 await loadChatsFromAPI();
             } else {
@@ -2642,107 +2617,63 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
         // ============ OVERRIDE CONNECT USERS LOADING ============
-        window.loadConnectUsers = async function (q = '', filterCampus = null) {
+        window.loadConnectUsers = async function (q = '', filterCampus = null, options = {}) {
+            const isSilent = options.silent || false;
             const container = document.getElementById('connectContainer');
-            if (!container) {
-                console.error('connectContainer not found');
-                return;
-            }
+            if (!container) return;
 
             try {
-                // container.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+                if (!isSilent && !q) {
+                    container.innerHTML = '<div style="padding:20px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></div>';
+                }
 
-                // Use searchUsers with query
+                const currentUserId = (JSON.parse(localStorage.getItem('sparkleUser') || '{}')).id || '';
                 const users = await DashboardAPI.searchUsers(q, filterCampus);
-                console.log(`�� Discover: Loaded ${users.length} users. Filter query: "${q}". Current user ID: "${currentUserId}"`);
-
-                // Filter out self
                 const availableUsers = users.filter(u => u.id !== currentUserId);
 
-                // Skip clearing if SSR content already exists and we are just initializing
-                if (container.querySelector('.connect-card') && !q && !filterCampus && !container.dataset.filtered) {
-                    console.log('? Connect users already rendered via SSR (Dynamic Patch)');
-                    return;
+                const fragment = document.createDocumentFragment();
+                if (availableUsers.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #999; width: 100%;';
+                    empty.innerHTML = `
+                        <i class="fas fa-users-slash" style="font-size: 40px; margin-bottom: 15px;"></i>
+                        <p>No students found matching your search</p>
+                    `;
+                    fragment.appendChild(empty);
+                } else {
+                    availableUsers.forEach(user => {
+                        const userEl = document.createElement('div');
+                        userEl.className = 'connect-card';
+                        userEl.innerHTML = `
+                            <div class="connect-card-inner">
+                                <div class="connect-avatar-container">
+                                    <img src="${user.avatar || '/uploads/avatars/default.png'}" alt="${user.name}" class="connect-avatar">
+                                    <div class="status-indicator online"></div>
+                                </div>
+                                <div class="connect-info">
+                                    <div class="connect-name">${user.name} @${user.username}</div>
+                                    <div class="connect-campus"><i class="fas fa-university"></i> ${user.campus || 'Main Campus'}</div>
+                                    <div class="connect-bio">${user.bio || 'Living the Sparkle life! ✨'}</div>
+                                </div>
+                                <div class="connect-actions">
+                                    <button class="btn btn-primary btn-sm" onclick="window.startChatWithUser('${user.id}')">
+                                        <i class="fas fa-comments"></i> Chat
+                                    </button>
+                                    <button class="btn btn-outline btn-sm" onclick="window.viewUserProfileFromAPI('${user.id}')">
+                                        Profile
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        fragment.appendChild(userEl);
+                    });
                 }
 
                 container.innerHTML = '';
-
-                if (availableUsers.length === 0) {
-                    container.innerHTML = `
-                        <div style="text-align: center; padding: 40px 20px; color: #999;">
-                            <i class="fas fa-users" style="font-size: 50px; margin-bottom: 15px;"></i>
-                            <h3>No new users to connect with</h3>
-                            <p>Try searching for specific classmates!</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                availableUsers.forEach(user => {
-                    const userCard = document.createElement('div');
-                    userCard.className = 'discover-card';
-                    userCard.onclick = () => viewUserProfileFromAPI(user.id);
-
-                    userCard.innerHTML = `
-                                <button onclick="event.stopPropagation(); removeSuggestion('${user.id}')"
-                                    style="position: absolute; top: 12px; right: 12px; border: none; background: rgba(0,0,0,0.05); color: #999; width: 24px; height: 24px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 3;">
-                                    <i class="fas fa-times" style="font-size: 10px;"></i>
-                                </button>
-                                
-                                <div class="discover-avatar-container">
-                                    <img src="${user.avatar || '/uploads/avatars/default.png'}" 
-                                         alt="${user.username}" class="discover-avatar">
-                                    ${user.isOnline ? '<div class="discover-status"></div>' : ''}
-                                </div>
-                                
-                                <div class="discover-name">
-                                    ${user.username}
-                                    ${user.isNew ? '<span style="background: var(--success); color: white; padding: 2px 6px; border-radius: 6px; font-size: 9px; margin-left: 4px; vertical-align: middle;">NEW</span>' : ''}
-                                </div>
-                                <div class="discover-info">
-                                    ${user.major || user.name || 'Sparkler'}
-                                </div>
-                                
-                                <div class="discover-campus">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    ${user.campus || 'Global'}
-                                </div>
-                                
-                                <button class="discover-btn ${user.isFollowed ? 'following' : 'follow'}" 
-                                        onclick="event.stopPropagation(); toggleFollow('${user.id}', this)">
-                                    ${user.isFollowed ? '<i class="fas fa-check"></i> Following' : '<i class="fas fa-plus"></i> Follow'}
-                                </button>
-                            `;
-
-                    container.appendChild(userCard);
-                });
-
-                // Update filters UI
-                const currentUserData = JSON.parse(localStorage.getItem('sparkleUser') || localStorage.getItem('currentUser') || '{}');
-                const currentCampus = currentUserData.campus;
-
-                document.querySelectorAll('#connectPage .premium-filter-btn').forEach(btn => {
-                    const text = btn.textContent.toLowerCase();
-
-                    btn.addEventListener('click', () => {
-                        document.querySelectorAll('#connectPage .premium-filter-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                    });
-
-                    if (text.includes('all')) btn.onclick = () => loadConnectUsers();
-                    if (text.includes('campus')) btn.onclick = () => loadConnectUsers('', currentCampus);
-                    if (text.includes('major')) {
-                        const myMajor = currentUserData.major || '';
-                        btn.onclick = () => {
-                            if (!myMajor) showNotification('Please set your major in profile settings first!');
-                            else loadConnectUsers(myMajor);
-                        };
-                    }
-                    if (text.includes('folks')) btn.onclick = () => loadConnectUsers('', null, true); // Assuming 3rd arg is for 'new'
-                });
+                container.appendChild(fragment);
 
             } catch (error) {
-                console.error('Failed to load connect users:', error);
+                console.error('Failed to load users:', error);
                 container.innerHTML = '<div style="color: red; text-align:center;">Failed to load users</div>';
             }
         };
@@ -2753,7 +2684,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ CUSTOM CHAT LOADING ============
         window.loadChatsFromAPI = async function (filterQuery = '') {
-            console.log('�� Loading chats from API...');
+            console.log(' Loading chats from API...');
 
             const listContainer = document.querySelector('.messages-list');
             if (!listContainer) return;
@@ -2761,7 +2692,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             try {
                 if (!filterQuery) listContainer.innerHTML = '<div style="padding:20px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></div>';
                 const chats = await DashboardAPI.loadChats();
-                console.log(`�� Loaded ${chats.length} chat sessions`);
+                console.log(` Loaded ${chats.length} chat sessions`);
 
                 const filteredChats = chats.filter(c => {
                     // Match search query
@@ -2814,7 +2745,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const lastMsgText = isAnonymous ? '<i>[Anonymous Message]</i>' : (chat.last_message_text || chat.last_message || 'Click to view conversation');
 
                     el.innerHTML = `
-                        <div class="avatar-container-premium">
+                        < div class="avatar-container-premium" >
                             <img src="${chatAvatar}" alt="User" class="avatar-premium" style="${isAnonymous ? 'filter: grayscale(1);' : ''}">
                             ${isAnonymous ? '<div style="position:absolute; bottom:0; right:0; background:#333; color:white; font-size:10px; padding:2px 4px; border-radius:4px;"><i class="fas fa-mask"></i></div>' : ''}
                         </div>
@@ -2827,7 +2758,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 ${lastMsgText}
                             </div>
                         </div>
-                     `;
+                    `;
                     listContainer.appendChild(el);
                 });
             } catch (e) {
@@ -2869,7 +2800,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         // Redundant loadSkillOffers definition removed
 
         window.requestSkillHelp = async function (offerId, tutorName) {
-            const message = prompt(`Send a message to ${tutorName}:`);
+            const message = prompt(`Send a message to ${tutorName}: `);
             if (!message) return;
 
             try {
@@ -2944,7 +2875,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 modal.className = 'modal';
                 modal.style.display = 'flex';
                 modal.innerHTML = `
-                    <div class="modal-content" style="max-height:80vh; overflow-y:auto; max-width:500px;">
+                        < div class="modal-content" style = "max-height:80vh; overflow-y:auto; max-width:500px;" >
                         <div class="modal-header">
                             <div class="modal-title"><i class="fas fa-user-secret"></i> Anonymous Confessions</div>
                             <button class="close-modal">&times;</button>
@@ -2972,8 +2903,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="submitConfession()">Whisper</button>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div >
+                        `;
 
                 document.body.appendChild(modal);
                 modal.querySelector('.close-modal').onclick = () => modal.remove();
@@ -3003,14 +2934,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const confessions = await DashboardAPI.loadConfessions();
 
                     listContainer.innerHTML = confessions.map(c => `
-                        <div style="background:white; border:1px solid #ddd; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                        < div style = "background:white; border:1px solid #ddd; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,0.05);" >
                             <div style="font-size:15px; line-height:1.5;">"${c.content || c.text}"</div>
                             <div style="display:flex; justify-content:space-between; margin-top:10px;font-size:12px;color:#999;">
                                 <span><i class="fas fa-graduation-cap"></i> ${c.campus || 'Campus'}</span>
                                 <span>${c.rating_count !== undefined ? c.rating_count : (c.reactions !== undefined ? c.reactions : 0)} <i class="fas fa-fire" style="color:orange;"></i></span>
                             </div>
-                        </div>
-                    `).join('') || '<div style="text-align:center; color:#999;">No confessions yet. Be the first to whisper.</div>';
+                        </div >
+                        `).join('') || '<div style="text-align:center; color:#999;">No confessions yet. Be the first to whisper.</div>';
                 }
 
             } catch (e) {
@@ -3025,7 +2956,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             modal.className = 'modal';
             modal.style.display = 'flex';
             modal.innerHTML = `
-                <div class="modal-content" style="max-width:500px;">
+                        < div class="modal-content" style = "max-width:500px;" >
                     <div class="modal-header">
                         <div class="modal-title"><i class="fas fa-code"></i> ${feature}</div>
                         <button class="close-modal">&times;</button>
@@ -3045,8 +2976,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                             </ul>
                         </div>
                     </div>
-                </div>
-            `;
+                </div >
+                        `;
             document.body.appendChild(modal);
             modal.querySelector('.close-modal').onclick = () => modal.remove();
         };
@@ -3062,10 +2993,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const container = document.getElementById('pollOptionsContainer');
                 if (container) {
                     container.innerHTML = `
-                        <label class="form-label">Options</label>
-                        <input type="text" class="form-control poll-option" style="margin-bottom: 5px;" placeholder="Option 1">
-                        <input type="text" class="form-control poll-option" style="margin-bottom: 5px;" placeholder="Option 2">
-                    `;
+                        < label class="form-label" > Options</label >
+                            <input type="text" class="form-control poll-option" style="margin-bottom: 5px;" placeholder="Option 1">
+                                <input type="text" class="form-control poll-option" style="margin-bottom: 5px;" placeholder="Option 2">
+                                    `;
                 }
             } else {
                 console.warn('createPollModal not found in DOM');
@@ -3103,7 +3034,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             try {
-                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{ }');
                 await DashboardAPI.createPoll({
                     question,
                     options,
@@ -3132,7 +3063,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         // ============ EVENTS - FULL IMPLEMENTATION ============
         window.viewEvents = async () => {
             try {
-                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{ }');
                 const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
 
                 // Load events for user's campus or all
@@ -3148,16 +3079,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                 modal.className = 'modal';
                 modal.style.display = 'flex';
                 modal.innerHTML = `
-                    <div class="modal-content" style="max-width:600px; max-height:80vh; overflow-y:auto;">
-                        <div class="modal-header">
-                            <div class="modal-title"><i class="fas fa-calendar-alt"></i> Campus Events</div>
-                            <button class="close-modal">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <button class="btn btn-primary btn-block" style="margin-bottom:20px;" onclick="createEvent()">
-                                <i class="fas fa-plus"></i> Create Event
-                            </button>
-                            ${events.length === 0 ? '<p style="text-align:center; color:#999;">No upcoming events</p>' : events.map(e => `
+                                    <div class="modal-content" style="max-width:600px; max-height:80vh; overflow-y:auto;">
+                                        <div class="modal-header">
+                                            <div class="modal-title"><i class="fas fa-calendar-alt"></i> Campus Events</div>
+                                            <button class="close-modal">&times;</button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <button class="btn btn-primary btn-block" style="margin-bottom:20px;" onclick="createEvent()">
+                                                <i class="fas fa-plus"></i> Create Event
+                                            </button>
+                                            ${events.length === 0 ? '<p style="text-align:center; color:#999;">No upcoming events</p>' : events.map(e => `
                                 <div style="background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px;">
                                     <h4 style="margin:0 0 10px 0;">${e.title}</h4>
                                     <p style="margin:0 0 10px 0; color:#666; font-size:14px;">${e.description || ''}</p>
@@ -3173,9 +3104,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     </div>
                                 </div>
                             `).join('')}
-                        </div>
-                    </div>
-                `;
+                                        </div>
+                                    </div>
+                                    `;
                 document.body.appendChild(modal);
                 modal.querySelector('.close-modal').onclick = () => modal.remove();
             } catch (e) {
@@ -3209,7 +3140,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             try {
-                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{ }');
                 await DashboardAPI.createEvent({
                     title,
                     description,
@@ -3254,34 +3185,34 @@ document.addEventListener('DOMContentLoaded', async function () {
             modal.className = 'modal';
             modal.style.display = 'flex';
             modal.innerHTML = `
-                <div class="modal-content" style="max-width:500px;">
-                    <div class="modal-header">
-                        <div class="modal-title"><i class="fas fa-video"></i> Start Live Stream</div>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Stream Title</label>
-                            <input type="text" class="form-control" id="streamTitle" placeholder="What are you streaming?">
-                        </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <textarea class="form-control" id="streamDescription" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Category</label>
-                            <select class="form-control" id="streamCategory">
-                                <option>Gaming</option>
-                                <option>Study</option>
-                                <option>Music</option>
-                                <option>Chat</option>
-                                <option>Other</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary btn-block" onclick="submitStream()">Go Live</button>
-                    </div>
-                </div>
-            `;
+                                    <div class="modal-content" style="max-width:500px;">
+                                        <div class="modal-header">
+                                            <div class="modal-title"><i class="fas fa-video"></i> Start Live Stream</div>
+                                            <button class="close-modal">&times;</button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label>Stream Title</label>
+                                                <input type="text" class="form-control" id="streamTitle" placeholder="What are you streaming?">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Description</label>
+                                                <textarea class="form-control" id="streamDescription" rows="2"></textarea>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Category</label>
+                                                <select class="form-control" id="streamCategory">
+                                                    <option>Gaming</option>
+                                                    <option>Study</option>
+                                                    <option>Music</option>
+                                                    <option>Chat</option>
+                                                    <option>Other</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn btn-primary btn-block" onclick="submitStream()">Go Live</button>
+                                        </div>
+                                    </div>
+                                    `;
             document.body.appendChild(modal);
             modal.querySelector('.close-modal').onclick = () => modal.remove();
         };
@@ -3296,7 +3227,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             try {
-                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{ }');
                 const result = await DashboardAPI.startStream({
                     title,
                     description,
@@ -3319,43 +3250,43 @@ document.addEventListener('DOMContentLoaded', async function () {
             modal.className = 'modal';
             modal.style.display = 'flex';
             modal.innerHTML = `
-                <div class="modal-content" style="max-width:500px;">
-                    <div class="modal-header">
-                        <div class="modal-title"><i class="fas fa-graduation-cap"></i> Offer Your Skills</div>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Skill Type</label>
-                            <select class="form-control" id="skillType">
-                                <option value="tutoring">Tutoring</option>
-                                <option value="tech">Tech Help</option>
-                                <option value="language">Language</option>
-                                <option value="music">Music</option>
-                                <option value="sports">Sports</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Title</label>
-                            <input type="text" class="form-control" id="skillTitle" placeholder="e.g., Math Tutoring, Guitar Lessons">
-                        </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <textarea class="form-control" id="skillDescription" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Price</label>
-                            <select class="form-control" id="skillPriceType">
-                                <option value="free">Free</option>
-                                <option value="paid">Paid</option>
-                                <option value="negotiable">Negotiable</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary btn-block" onclick="submitSkillOffer()">Offer Skill</button>
-                    </div>
-                </div>
-            `;
+                                    <div class="modal-content" style="max-width:500px;">
+                                        <div class="modal-header">
+                                            <div class="modal-title"><i class="fas fa-graduation-cap"></i> Offer Your Skills</div>
+                                            <button class="close-modal">&times;</button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label>Skill Type</label>
+                                                <select class="form-control" id="skillType">
+                                                    <option value="tutoring">Tutoring</option>
+                                                    <option value="tech">Tech Help</option>
+                                                    <option value="language">Language</option>
+                                                    <option value="music">Music</option>
+                                                    <option value="sports">Sports</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Title</label>
+                                                <input type="text" class="form-control" id="skillTitle" placeholder="e.g., Math Tutoring, Guitar Lessons">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Description</label>
+                                                <textarea class="form-control" id="skillDescription" rows="3"></textarea>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Price</label>
+                                                <select class="form-control" id="skillPriceType">
+                                                    <option value="free">Free</option>
+                                                    <option value="paid">Paid</option>
+                                                    <option value="negotiable">Negotiable</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn btn-primary btn-block" onclick="submitSkillOffer()">Offer Skill</button>
+                                        </div>
+                                    </div>
+                                    `;
             document.body.appendChild(modal);
             modal.querySelector('.close-modal').onclick = () => modal.remove();
         };
@@ -3371,7 +3302,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             try {
-                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{ }');
                 await DashboardAPI.createSkillOffer({
                     skill_type,
                     title,
@@ -3424,7 +3355,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             try {
-                const user = JSON.parse(localStorage.getItem('sparkleUser') || localStorage.getItem('currentUser') || '{}');
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || localStorage.getItem('currentUser') || '{ }');
                 await DashboardAPI.reportLostFoundItem({
                     type,
                     item_name: title,
@@ -3458,7 +3389,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ SIDEBAR BADGE SYNCHRONIZATION ============
         window.updateSidebarBadges = async function () {
-            console.log('�� Updating sidebar badges...');
+            console.log(' Updating sidebar badges...');
             try {
                 // 1. Groups Badge (Joined groups)
                 const groups = await DashboardAPI.loadGroups();
@@ -3495,7 +3426,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
         // ============ AUTO-RELOAD DATA ============
-        console.log('�� Loading dynamic data...');
+        console.log(' Dashboard is live! Initializing data...');
         await loadFeedPosts();
         await loadAfterglowStories();
         await loadGroups();
@@ -3506,14 +3437,28 @@ document.addEventListener('DOMContentLoaded', async function () {
         // Initial badge update
         await updateSidebarBadges();
 
-        // Refresh badges every 30 seconds
-        setInterval(updateSidebarBadges, 30000);
+        // Silent Background Refresh every 15 seconds
+        setInterval(async () => {
+            console.log('🔄 Silent Background Refresh...');
+            // Don't refresh if a modal is open (optional safety)
+            if (document.querySelector('.modal[style*="display: flex"]') || document.querySelector('.afterglow-viewer-modal[style*="display: flex"]')) {
+                console.log('⏸️ Refresh paused - Modal active');
+                return;
+            }
 
-        console.log('� Dashboard is now fully dynamic!');
+            await Promise.allSettled([
+                loadFeedPosts({ silent: true }),
+                loadAfterglowStories({ silent: true }),
+                loadConnectUsers({ silent: true }),
+                updateSidebarBadges()
+            ]);
+        }, 15000);
+
+        console.log(' Dashboard is now fully dynamic!');
 
         // ============ SEARCH LISTENERS ============
         document.getElementById('userSearchInput')?.addEventListener('input', debounce(async (e) => {
-            console.log('�� Searching users:', e.target.value);
+            console.log(' Searching users:', e.target.value);
             await loadConnectUsers(e.target.value);
         }, 500));
 

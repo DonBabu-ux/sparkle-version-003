@@ -39,20 +39,27 @@ const ejsAuthMiddleware = async (req, res, next) => {
     });
 
     const token = req.cookies?.sparkleToken;
-    if (!token) return res.redirect('/login');
+    if (!token) {
+        console.warn('⚠️ ejsAuthMiddleware: No token cookie found, redirecting to login');
+        return res.redirect('/login?reason=no_token');
+    }
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         const [users] = await pool.query('SELECT user_id, name, username, campus, avatar_url FROM users WHERE user_id = ?', [decoded.userId]);
 
-        if (users.length === 0) return res.redirect('/login');
+        if (users.length === 0) {
+            console.warn('⚠️ authMiddleware: User not found in DB for valid token');
+            return res.redirect('/login?reason=user_not_found');
+        }
 
         req.user = { ...decoded, ...users[0] };
         res.locals.user = req.user;
         next();
     } catch (err) {
+        console.error('❌ ejsAuthMiddleware Error:', err.message);
         res.clearCookie('sparkleToken');
-        res.redirect('/login');
+        res.redirect('/login?reason=auth_failed');
     }
 };
 

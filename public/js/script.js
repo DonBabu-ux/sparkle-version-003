@@ -45,7 +45,12 @@ const appState = window.appState; // Maintain local reference for script.js
 
 // Sync with dataManager or localStorage immediately to prevent 'undefined' in other scripts
 if (typeof dataManager !== 'undefined') {
-    appState.currentUser = dataManager.getCurrentUser();
+    appState.currentUser = dataManager.getCurrentUser() || {
+        id: 'guest',
+        username: 'Guest',
+        name: 'Guest User',
+        avatar: '/uploads/avatars/default.png'
+    };
     console.log("👤 Initialized appState.currentUser from dataManager:", appState.currentUser?.username);
 } else {
     try {
@@ -53,9 +58,12 @@ if (typeof dataManager !== 'undefined') {
         if (savedUser) {
             appState.currentUser = JSON.parse(savedUser);
             console.log("👤 Initialized appState.currentUser from localStorage:", appState.currentUser?.username);
+        } else {
+            appState.currentUser = { id: 'guest', username: 'Guest', name: 'Guest User' };
         }
     } catch (e) {
         console.warn("Failed to load user during init:", e);
+        appState.currentUser = { id: 'guest', username: 'Guest', name: 'Guest User' };
     }
 }
 
@@ -64,14 +72,43 @@ if (typeof dataManager !== 'undefined') {
 // CORE PAGE FUNCTIONS
 // ================================
 
-// Global error handler for broken images (e.g. 403 Forbidden external links)
+// Global error handler for broken images/videos (e.g. DNS failure, 403 Forbidden)
 window.addEventListener('error', function (e) {
     if (e.target.tagName === 'IMG') {
         const src = e.target.src;
+        // Prevent infinite loops if fallback fails
+        if (e.target.dataset.fallbackApplied) return;
+        e.target.dataset.fallbackApplied = "true";
+
         if (src.includes('avatar')) {
             e.target.src = '/uploads/avatars/default.png';
+        } else if (src.includes('cloudinary.com')) {
+            // Specific placeholder for Cloudinary DNS/loading issues
+            e.target.style.background = '#f0f0f0';
+            e.target.src = 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000'; // Campus vibe
+            console.warn("Cloudinary image failed to load, using campus fallback");
         } else {
-            e.target.src = 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000'; // Default campus vibe image
+            e.target.src = 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000';
+        }
+    } else if (e.target.tagName === 'VIDEO') {
+        if (e.target.dataset.fallbackApplied) return;
+        e.target.dataset.fallbackApplied = "true";
+
+        console.warn("Video failed to load, showing placeholder:", e.target.src);
+
+        // Find parent and show a placeholder instead of just a black box
+        const container = e.target.parentElement;
+        if (container) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'video-error-placeholder';
+            placeholder.style.cssText = 'width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#1a1a1a; color:white; font-size:14px; text-align:center; padding:20px;';
+            placeholder.innerHTML = `
+                <i class="fas fa-video-slash" style="font-size:30px; margin-bottom:10px; color:#ff4757;"></i>
+                <div>Media unavailable</div>
+                <div style="font-size:10px; color:#888; margin-top:5px;">Please check your connection</div>
+            `;
+            e.target.style.display = 'none';
+            container.appendChild(placeholder);
         }
     }
 }, true);
@@ -1636,19 +1673,25 @@ function showAfterglowViewer(story) {
     if (storyProgressInterval) clearInterval(storyProgressInterval);
 
     // Clear progress bars container and recreate based on story count
-    const progressBarContainer = document.querySelector('.afterglow-progress');
+    const progressBarContainer = document.getElementById('viewerProgress');
     if (progressBarContainer) {
         progressBarContainer.innerHTML = '';
-        activeStories.forEach((s, idx) => {
-            const bar = document.createElement('div');
-            bar.className = 'progress-segment-wrapper';
-            const inner = document.createElement('div');
-            inner.className = 'progress-segment-inner';
-            if (idx < currentStoryIndex) inner.style.width = '100%';
-            if (idx === currentStoryIndex) inner.id = 'activeProgressBar';
-            bar.appendChild(inner);
-            progressBarContainer.appendChild(bar);
-        });
+        // If we have activeStories, show segments for each
+        if (activeStories && activeStories.length > 0) {
+            activeStories.forEach((s, idx) => {
+                const bar = document.createElement('div');
+                bar.className = 'progress-segment-wrapper';
+                const inner = document.createElement('div');
+                inner.className = 'progress-segment-inner';
+                if (idx < currentStoryIndex) inner.style.width = '100%';
+                if (idx === currentStoryIndex) inner.id = 'activeProgressBar';
+                bar.appendChild(inner);
+                progressBarContainer.appendChild(bar);
+            });
+        } else {
+            // Fallback for single story
+            progressBarContainer.innerHTML = '<div class="progress-segment-wrapper"><div class="progress-segment-inner" id="activeProgressBar"></div></div>';
+        }
     }
 
     const mediaContainer = document.getElementById('viewerMedia');
@@ -1666,7 +1709,11 @@ function showAfterglowViewer(story) {
     if (caption) caption.textContent = story.caption || '';
 
     // Handle Media
-    mediaContainer.innerHTML = '';
+    mediaContainer.innerHTML = `
+        <div class="media-loading-spinner" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color:rgba(255,255,255,0.5);"></i>
+        </div>
+    `;
     const mediaUrl = story.media_url || story.media;
     const isVideo = mediaUrl?.match(/\.(mp4|webm|ogg|mov)$/i);
 
@@ -1678,25 +1725,63 @@ function showAfterglowViewer(story) {
         video.playsInline = true;
         video.style.width = '100%';
         video.style.height = '100%';
-        video.style.objectFit = 'contain'; // Show full visibility
+        video.style.objectFit = 'contain';
+        video.style.opacity = '0';
+        video.style.transition = 'opacity 0.3s ease';
+
         mediaContainer.appendChild(video);
 
-        video.onloadedmetadata = () => {
+        video.onplaying = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            video.style.opacity = '1';
             startStoryTimer(video.duration * 1000);
         };
+
+        video.onwaiting = () => pauseStory();
+        video.oncanplay = () => { if (isStoryPaused) resumeStory(); };
+
         video.onerror = () => {
             console.error("Video failed to load:", mediaUrl);
-            startStoryTimer(5000);
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            mediaContainer.innerHTML = `
+                <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:white;">
+                    <i class="fas fa-exclamation-triangle" style="font-size:40px; color:#ff4757; margin-bottom:15px;"></i>
+                    <div style="font-weight:600;">Media Unavailable</div>
+                    <div style="font-size:12px; color:#888; margin-top:5px;">Check your internet connection</div>
+                </div>
+            `;
+            startStoryTimer(3000); // Skip faster if it fails
         };
     } else {
         const img = document.createElement('img');
         img.src = mediaUrl;
         img.style.width = '100%';
         img.style.height = '100%';
-        img.style.objectFit = 'contain'; // Show full visibility
-        mediaContainer.appendChild(img);
+        img.style.objectFit = 'contain';
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.3s ease';
 
-        startStoryTimer(5000);
+        img.onload = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            img.style.opacity = '1';
+            mediaContainer.appendChild(img);
+            startStoryTimer(5000);
+        };
+
+        img.onerror = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            mediaContainer.innerHTML = `
+                <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:white;">
+                    <i class="fas fa-image" style="font-size:40px; color:#333; margin-bottom:15px;"></i>
+                    <div style="font-weight:600;">Image Unavailable</div>
+                </div>
+            `;
+            startStoryTimer(3000);
+        };
     }
 
     modal.style.display = 'flex';
@@ -1749,7 +1834,17 @@ function resumeStory() {
     isStoryPaused = false;
 
     const video = document.querySelector('#viewerMedia video');
-    if (video) video.play();
+    if (video) {
+        // Only try to play if video has a valid source and hasn't errored
+        if (video.readyState >= 1 && !video.error) {
+            video.play().catch(err => {
+                console.warn("Autoplay/Resume blocked or video error:", err);
+                // If it fails, we still want the timer to run so it eventually moves on
+            });
+        } else {
+            console.log("Video not ready or has error, skipping play()");
+        }
+    }
 
     storyStartTime = Date.now();
 
@@ -2276,14 +2371,87 @@ window.submitPost = async function () {
         // Refresh feed
         window.forceFeedRefresh = true;
         loadFeedPosts();
+        submitBtn.innerHTML = originalText;
     } catch (error) {
         console.error("Failed to create post:", error);
         showNotification("Failed to share post. Please try again.");
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
     }
 };
 
-console.log("🚀 Sparkle Dashboard Fully Loaded!");
-console.log("👥 All 20 mock users are ready to load in Connect page");
+// AFTERGLOW INTERACTIONS
+function sparkAfterglow() {
+    const btn = document.querySelector('.spark-action .action-icon-circle');
+    if (btn) {
+        btn.style.transform = 'scale(1.3)';
+        setTimeout(() => btn.style.transform = 'scale(1)', 200);
+    }
+
+    const sparkCount = document.getElementById('sparkCount');
+    if (sparkCount) {
+        let count = parseInt(sparkCount.textContent) || 0;
+        sparkCount.textContent = count + 1;
+    }
+
+    showToast('✨ AfterGlow Sparked!');
+}
+
+function shareAfterglow() {
+    showToast('🔗 Share link copied to clipboard!');
+}
+
+function saveAfterglow() {
+    const icon = document.querySelector('.save-action i');
+    if (icon) {
+        icon.classList.toggle('far');
+        icon.classList.toggle('fas');
+    }
+    showToast('🔖 Saved to your collection');
+}
+
+function replyToAfterglow() {
+    showToast('💬 Reply feature coming soon!');
+}
+
+// Helper to show toasts (if not already defined)
+if (typeof showToast !== 'function') {
+    window.showToast = function (message) {
+        const toast = document.createElement('div');
+        toast.className = 'sparkle-toast';
+        toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:20px; z-index:10000; font-size:14px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); animation: slideUp 0.3s ease;';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(20px)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+}
+
+// Add animation for toast
+if (!document.getElementById('toast-style')) {
+    const style = document.createElement('style');
+    style.id = 'toast-style';
+    style.innerHTML = `
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(50px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// INITIALIZATION
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("🚀 Sparkle Dashboard Fully Loaded!");
+    // Sync appState with currentUser data if available
+    if (typeof dataManager !== 'undefined') {
+        const user = dataManager.getCurrentUser();
+        if (user && appState) {
+            appState.currentUser = user;
+        }
+    }
+});

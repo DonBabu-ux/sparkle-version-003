@@ -32,10 +32,11 @@
             position: relative;
             height: 100vh;
             width: 100vw;
-            max-width: 500px;
+            max-width: 480px;
             margin: 0 auto;
             background: #000;
             overflow: hidden;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.5);
         }
 
         .moments-scroller {
@@ -75,6 +76,69 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: opacity 0.3s;
+        }
+
+        .media-loading-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 5;
+        }
+
+        .media-error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, #222 0%, #000 100%);
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            z-index: 6;
+        }
+
+        .media-error-overlay i {
+            font-size: 50px;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.2;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.2;
+            }
+        }
+
+        .mini-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255, 61, 109, 0.3);
+            border-top: 3px solid #ff3d6d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
         /* UI Overlays */
@@ -83,10 +147,11 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 40%;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+            height: 50%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 100%);
             z-index: 2;
-            padding: 20px;
+            padding: 24px 80px 30px 16px;
+            /* Extra right padding for side actions */
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
@@ -98,7 +163,7 @@
         }
 
         .user-info {
-            margin-bottom: 70px;
+            margin-bottom: 20px;
         }
 
         .user-meta {
@@ -160,13 +225,14 @@
         /* Side Actions */
         .side-actions {
             position: absolute;
-            right: 12px;
-            bottom: 100px;
+            right: 8px;
+            bottom: 40px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
             align-items: center;
-            z-index: 3;
+            z-index: 10;
+            padding: 20px 8px;
         }
 
         .action-btn-circle {
@@ -183,30 +249,47 @@
         }
 
         .icon-circle {
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
+            width: 46px;
+            height: 46px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 24px;
             color: #fff;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
         }
 
-        .liked .icon-circle {
-            color: #ff3d6d !important;
-            background: rgba(255, 61, 109, 0.2);
-            border-color: #ff3d6d;
+        .icon-circle i {
+            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+        }
+
+        .liked .icon-circle i {
+            color: #ff3d6d;
+            animation: heartBeat 0.3s ease-out;
+        }
+
+        @keyframes heartBeat {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.3);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .count-label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
             color: #fff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
         }
 
         /* Header */
@@ -423,13 +506,30 @@
     </div>
 
     <script>
-        // Using Base64 to pass data ensures that auto-formatters won't mangle the EJS tags or the JSON content.
-        const moments = JSON.parse(atob("<%- Buffer.from(JSON.stringify(initialMoments || [])).toString('base64') %>"));
-        const user = JSON.parse(atob("<%- Buffer.from(JSON.stringify(user || {})).toString('base64') %>"));
+        // Inject data directly while ensuring it's safe for JS
+        let moments = [];
+        let user = {};
+
+        try {
+            // Using Base64 as the ultimate fallback - it's the most robust way to pass data to JS
+            const rawMoments = "<%- Buffer.from(JSON.stringify(initialMoments || [])).toString('base64') %>";
+            const rawUser = "<%- Buffer.from(JSON.stringify(user || {})).toString('base64') %>";
+
+            moments = JSON.parse(atob(rawMoments || "W10=")); // Default to "[]" in base64
+            user = JSON.parse(atob(rawUser || "e30="));    // Default to "{}" in base64
+
+            console.log("DEBUG FRONTEND: Successfully injected moments:", moments.length);
+        } catch (e) {
+            console.error("DEBUG FRONTEND: Fallback triggered. Error parsing data:", e);
+            moments = [];
+            user = {};
+        }
+
         let isMuted = true;
         let observer;
 
         function init() {
+            console.log("DEBUG FRONTEND: Initializing feed...");
             renderFeed();
             setupObserver();
 
@@ -443,7 +543,10 @@
 
         function renderFeed() {
             const feed = document.getElementById('mainFeed');
+            console.log("DEBUG FRONTEND: Rendering feed with", moments.length, "items");
+
             if (!moments || moments.length === 0) {
+                console.log("DEBUG FRONTEND: Feed is empty, showing empty state.");
                 feed.innerHTML = `
                     <div class="moment-card" style="padding: 40px; text-align: center;">
                         <div style="background: rgba(255,255,255,0.05); padding: 50px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);">
@@ -460,33 +563,56 @@
         }
 
         function createMomentHTML(m, i) {
-            const videoSrc = m.video_url || m.media_url;
+            const mediaSrc = m.video_url || m.media_url;
+            const isVideo = m.media_type !== 'image';
             const tags = m.caption ? (m.caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
             const cleanCaption = m.caption ? m.caption.replace(/#[a-zA-Z0-9_]+/g, '').trim() : '';
             const avatar = m.avatar_url || '/uploads/avatars/default.png';
 
+            let mediaHTML = '';
+            if (isVideo) {
+                mediaHTML = `
+                    <video class="sparkle-video" style="opacity:0" loop playsinline muted="${isMuted}" preload="auto" 
+                           onplaying="handleMediaLoad(this)" onwaiting="handleMediaWaiting(this)">
+                        <source src="${mediaSrc}" type="video/mp4" onerror="handleMediaError(this)">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+            } else {
+                mediaHTML = `
+                    <img src="${mediaSrc}" class="sparkle-video" style="opacity:0; object-fit: cover;" 
+                         onload="handleMediaLoad(this)" onerror="handleMediaError(this)">
+                `;
+            }
+
             return `
                 <div class="moment-card" data-id="${m.moment_id}">
                     <div class="video-container" id="container-${m.moment_id}" ondblclick="handleDoubleTap(event, '${m.moment_id}')" onclick="togglePlay('${m.moment_id}')">
-                        <video class="sparkle-video" loop playsinline muted="${isMuted}" preload="auto">
-                            <source src="${videoSrc}" type="video/mp4">
-                        </video>
+                        <div class="media-loading-overlay">
+                            <div class="mini-spinner"></div>
+                        </div>
+                        <div class="media-error-overlay">
+                            <i class="fas fa-redo-alt"></i>
+                            <p style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Oops! Trying to restore...</p>
+                            <span style="font-size: 12px; opacity: 0.5;">Switching to a backup source</span>
+                        </div>
+                        ${mediaHTML}
                     </div>
 
                     <div class="ui-overlay">
                         <div class="user-info">
                             <div class="user-meta" onclick="location.href='/profile/${m.username}'">
                                 <div class="avatar-circle">
-                                    <img src="${avatar}" alt="${m.user_name}">
+                                    <img src="${avatar}" alt="${m.user_name}" onerror="this.src='/uploads/avatars/default.png'; this.onerror=null;">
                                 </div>
                                 <div class="name-box">
-                                    <h3>${m.user_name || 'Sparkle User'}</h3>
-                                    <p>@${m.username}</p>
+                                    <h3 style="font-size: 17px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${m.user_name || 'Sparkle User'}</h3>
+                                    <p style="font-size: 13px; opacity: 0.9; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">@${m.username}</p>
                                 </div>
                             </div>
-                            <div class="caption">${cleanCaption}</div>
+                            <div class="caption" style="font-size: 15px; margin-bottom: 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${cleanCaption}</div>
                             <div class="tags">
-                                ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                                ${tags.map(t => `<span class="tag" style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${t}</span>`).join('')}
                             </div>
                         </div>
                     </div>
@@ -512,13 +638,99 @@
             `;
         }
 
+        async function safePlay(video) {
+            if (!video) return;
+            // If video is not ready, we wait for it
+            if (video.readyState < 2) {
+                video.addEventListener('canplay', () => safePlay(video), { once: true });
+                return;
+            }
+            try {
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    await playPromise;
+                }
+            } catch (e) {
+                if (e.name !== 'AbortError') {
+                    console.log("Playback error:", e);
+                }
+            }
+        }
+
+        function handleMediaLoad(el) {
+            const container = el.closest('.video-container');
+            if (!container) return;
+            const loader = container.querySelector('.media-loading-overlay');
+            const error = container.querySelector('.media-error-overlay');
+            if (loader) loader.style.display = 'none';
+            if (error) error.style.display = 'none';
+            el.style.opacity = '1';
+        }
+
+        function handleMediaWaiting(el) {
+            const container = el.closest('.video-container');
+            if (!container) return;
+            const loader = container.querySelector('.media-loading-overlay');
+            if (loader) loader.style.display = 'flex';
+        }
+
+        function handleMediaError(el) {
+            console.warn("Media failed to load, applying high-quality fallback...");
+            const container = el.closest('.video-container');
+            if (!container) return;
+
+            // Show restoring state
+            const errorOverlay = container.querySelector('.media-error-overlay');
+            if (errorOverlay) {
+                errorOverlay.style.display = 'flex';
+                errorOverlay.querySelector('p').textContent = "Restoring moment...";
+            }
+
+            const fallbackId = Math.floor(Math.random() * 1000);
+            const fallbackUrl = `https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&q=80&w=1080&h=1920&fallback=${fallbackId}`;
+
+            if (el.tagName === 'IMG') {
+                el.src = fallbackUrl;
+                el.onerror = () => {
+                    const loader = container.querySelector('.media-loading-overlay');
+                    if (loader) loader.style.display = 'none';
+                    if (errorOverlay) {
+                        errorOverlay.querySelector('p').textContent = "Media Unavailable";
+                        errorOverlay.querySelector('i').className = "fas fa-exclamation-triangle";
+                    }
+                    el.style.opacity = '0';
+                };
+                el.onload = () => handleMediaLoad(el);
+            } else {
+                const videoEl = el.closest('video');
+                if (videoEl) {
+                    const newImg = document.createElement('img');
+                    newImg.className = 'sparkle-video';
+                    newImg.src = fallbackUrl;
+                    newImg.style.opacity = '0';
+                    newImg.onload = () => {
+                        handleMediaLoad(newImg);
+                        if (errorOverlay) errorOverlay.style.display = 'none';
+                    };
+                    newImg.onerror = () => {
+                        if (errorOverlay) {
+                            errorOverlay.querySelector('p').textContent = "Media Unavailable";
+                        }
+                    };
+                    videoEl.replaceWith(newImg);
+                }
+            }
+        }
+
         function setupObserver() {
             const options = { threshold: 0.6 };
             observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const video = entry.target.querySelector('video');
+                    if (!video) return;
+
                     if (entry.isIntersecting) {
-                        video.play().catch(e => console.log("Auto-play blocked:", e));
+                        safePlay(video);
                     } else {
                         video.pause();
                         video.currentTime = 0;
@@ -531,7 +743,8 @@
 
         function togglePlay(id) {
             const video = document.querySelector(`[data-id="${id}"] video`);
-            if (video.paused) video.play();
+            if (!video) return;
+            if (video.paused) safePlay(video);
             else video.pause();
         }
 
@@ -574,8 +787,13 @@
 
         function openComments(id) { alert('Comments coming soon!'); }
         function shareMoment(id) {
-            navigator.clipboard.writeText(window.location.origin + '/moments/' + id);
-            alert('Link copied to clipboard!');
+            const url = window.location.origin + '/moments/' + id;
+            if (navigator.share) {
+                navigator.share({ title: 'Sparkle Moment', url }).catch(() => { });
+            } else {
+                navigator.clipboard.writeText(url);
+                alert('Link copied to clipboard!');
+            }
         }
         function saveMoment(id) { alert('Moment saved to collection!'); }
 

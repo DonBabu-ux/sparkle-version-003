@@ -355,8 +355,9 @@ window.createPostElement = function (post) {
     const isLiked = post.is_liked || post.isLiked || false;
     const isSaved = post.is_saved || post.isSaved || false;
     const postId = post.post_id || post.id;
+    const hasImage = !!(post.media_url || post.media);
 
-    // Robust timestamp handling: Don't format if already a string like "5m ago"
+    // Robust timestamp handling
     let displayTime = post.timestamp;
     if (post.timestamp_raw) {
         displayTime = DashboardAPI.formatTimestamp(post.timestamp_raw);
@@ -364,73 +365,86 @@ window.createPostElement = function (post) {
         displayTime = DashboardAPI.formatTimestamp(post.timestamp);
     }
 
-    // Robust tags handling: Handle both "tag1, tag2" string and ["tag1", "tag2"] array
-    let tagsHTML = '';
-    if (post.tags) {
-        const tagsArray = Array.isArray(post.tags) ? post.tags : post.tags.split(',');
-        tagsHTML = tagsArray
-            .map(tag => tag && tag.trim() ? `<span class="post-tag">#${tag.trim().replace(/^#/, '')}</span>` : '')
-            .join('');
-    }
-
     const postEl = document.createElement('div');
-    postEl.className = 'post-card';
+    postEl.className = `post-card ${hasImage ? 'with-image' : 'text-only'}`;
     postEl.setAttribute('data-post-id', postId);
 
     postEl.innerHTML = `
+        <!-- POST HEADER -->
         <div class="post-header">
-            <div class="post-avatar-wrapper">
+            <div class="post-author">
                 <img src="${post.avatar || post.avatar_url || '/uploads/avatars/default.png'}" alt="${post.username}" class="post-avatar">
-            </div>
-            <div class="post-user-info">
-                <div class="post-username">${post.user_name || post.username || post.name || 'Sparkler'}</div>
-                <div class="post-campus">
-                    <i class="fas fa-graduation-cap"></i>
-                    ${post.campus || 'Generic Campus'}
+                <div class="post-author-info">
+                    <div class="post-username">@${post.username || 'sparkler'}</div>
+                    <div class="post-meta">
+                        <span class="post-campus">${post.campus || 'Sparkle Central'}</span>
+                        <span class="post-time">• ${displayTime || 'Just now'}</span>
+                    </div>
                 </div>
             </div>
-            <div class="post-time">${displayTime || 'Just now'}</div>
+            <button class="post-options-btn"><i class="fas fa-ellipsis-v"></i></button>
         </div>
-        
-        <div class="post-content-area">
-            <div class="post-caption">
-                ${(post.content || post.caption || '').length > 350 ? `
-                    <span class="content-short">${(post.content || post.caption || '').substring(0, 300)}...</span>
-                    <span class="content-full" style="display:none;">${post.content || post.caption || ''}</span>
-                    <button class="see-more-btn" onclick="toggleSeeMore(this)" style="color: #0095F6; background: none; border: none; padding: 0; font-weight: 600; cursor: pointer; margin-left: 5px; font-size: 14px;">See More</button>
-                ` : (post.content || post.caption || '')}
-            </div>
-            <div class="post-tags">
-                ${tagsHTML}
+
+        <!-- POST CONTENT AREA -->
+        <div class="post-content">
+            
+            <!-- CONDITIONAL: Post with Image -->
+            ${hasImage ? `
+            <div class="post-media">
+                <img src="${post.media_url || post.media}" alt="Post image" class="post-image" onerror="this.parentElement.style.display='none'">
+            </div>` : ''}
+
+            <!-- POST TITLE & TEXT -->
+            <div class="post-text-content ${!hasImage ? 'no-media' : ''}">
+                <h3 class="post-title">
+                    <div class="post-title-icon ${post.type || 'public'}">
+                        <i class="fas fa-${post.icon || 'file-alt'}"></i>
+                    </div>
+                    ${post.title || 'Sparkle Update'}
+                </h3>
+                
+                <div class="post-body">
+                    ${(post.content || post.caption || '').length > 350 ? `
+                        <span class="content-short">${(post.content || post.caption || '').substring(0, 300)}...</span>
+                        <span class="content-full" style="display:none;">${post.content || post.caption || ''}</span>
+                        <button class="see-more-btn" onclick="window.toggleSeeMore(this)">Read more...</button>
+                    ` : (post.content || post.caption || '')}
+                </div>
             </div>
         </div>
 
-        ${(post.media_url || post.media) ? `
-        <div class="post-media-container">
-            <img src="${post.media_url || post.media}" alt="Post" class="post-media">
-        </div>` : ''}
-
+        <!-- POST FOOTER/ACTIONS -->
         <div class="post-actions">
-            <div class="post-action-left">
-                <button class="action-btn spark-btn ${isLiked ? 'active' : ''}" onclick="toggleSpark('${postId}', this)">
-                    <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
-                    <span class="spark-count">${post.sparks || 0}</span>
-                </button>
-                <button class="action-btn comment-btn" onclick="showComments('${postId}')">
-                    <i class="far fa-comment"></i>
-                    <span class="comment-count">${post.comments || 0}</span>
-                </button>
-                <button class="action-btn share-btn" onclick="sharePost('${postId}')">
-                    <i class="far fa-paper-plane"></i>
-                </button>
-            </div>
-            <button class="action-btn save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSavePost('${postId}')" style="margin-left: auto;">
-                <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+            <button class="action-btn spark-btn ${isLiked ? 'active' : ''}" onclick="toggleSpark('${postId}', this)">
+                <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
+                <span class="spark-count">${post.sparks || 0}</span>
             </button>
+            <button class="action-btn comment-btn" onclick="showComments('${postId}')">
+                <i class="far fa-comment"></i>
+                <span class="comment-count">${post.comments || 0}</span>
+            </button>
+            <button class="action-btn share-btn" data-type="post" data-id="${postId}" onclick="window.shareManager.openShareSheet('post', '${postId}')">
+                <i class="far fa-share-square"></i>
+                <span>Share</span>
+            </button>
+            <button class="action-btn save-btn ${isSaved ? 'active' : ''}" onclick="toggleSavePost('${postId}', this)">
+                <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+                <span>Save</span>
+            </button>
+        </div>
+
+        <!-- Post Stats -->
+        <div class="post-stats">
+            <span class="stat-item">
+                <i class="far fa-eye"></i> ${post.views || 0} views
+            </span>
+            <span class="stat-item">
+                <i class="far fa-comments"></i> ${post.comments || 0} comments
+            </span>
         </div>
     `;
     return postEl;
-}
+};
 
 // Global function to toggle 'See More' on long posts
 window.toggleSeeMore = function (btn) {
@@ -1109,16 +1123,16 @@ async function toggleSavePost(postId) {
     }
 }
 
-async function sharePost(postId) {
-    try {
-        await DashboardAPI.sharePost(postId);
-        showNotification('Link copied & post shared! 📤');
-        // Copy link to clipboard (mock)
+function sharePost(postId) {
+    if (window.shareManager) {
+        window.shareManager.openShareSheet('post', postId);
+    } else {
+        console.error('ShareManager not initialized');
+        // Fallback
         const url = window.location.origin + '/post/' + postId;
-        navigator.clipboard.writeText(url).catch(() => { });
-    } catch (error) {
-        console.error('Share error:', error);
-        showNotification('Failed to share post.');
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link copied to clipboard!');
+        });
     }
 }
 
@@ -1597,7 +1611,11 @@ function reactToConfession(confessionId) {
 }
 
 function shareConfession(confessionId) {
-    showNotification('Confession shared!');
+    if (window.shareManager) {
+        window.shareManager.openShareSheet('confession', confessionId);
+    } else {
+        showNotification('Confession shared!');
+    }
 }
 
 function showConfessionComments(confessionId) {
@@ -2398,7 +2416,21 @@ function sparkAfterglow() {
 }
 
 function shareAfterglow() {
-    showToast('🔗 Share link copied to clipboard!');
+    if (currentStoryIndex === -1 || !activeStories[currentStoryIndex]) {
+        console.error('No active story to share');
+        return;
+    }
+    const story = activeStories[currentStoryIndex];
+    const storyId = story.id || story.story_id;
+
+    if (window.shareManager) {
+        window.shareManager.openShareSheet('story', storyId);
+    } else {
+        showToast('Shared to clipboard!');
+        try {
+            navigator.clipboard.writeText(window.location.origin + '/stories/' + storyId);
+        } catch (e) { }
+    }
 }
 
 function saveAfterglow() {

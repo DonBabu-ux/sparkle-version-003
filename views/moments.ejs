@@ -626,9 +626,9 @@
                             <div class="icon-circle"><i class="fas fa-comment"></i></div>
                             <span class="count-label">${formatCount(m.comments || 0)}</span>
                         </div>
-                        <div class="action-btn-circle" onclick="shareMoment('${m.moment_id}')">
+                        <div class="action-btn-circle share-btn" data-type="moment" data-id="${m.moment_id}">
                             <div class="icon-circle"><i class="fas fa-paper-plane"></i></div>
-                            <span class="count-label">${formatCount(m.shares || 0)}</span>
+                            <span class="count-label">${formatCount(m.share_count || 0)}</span>
                         </div>
                         <div class="action-btn-circle" onclick="saveMoment('${m.moment_id}')">
                             <div class="icon-circle"><i class="fas fa-bookmark"></i></div>
@@ -766,17 +766,31 @@
             toggleLike(id, true);
         }
 
-        function toggleLike(id, forceLike = false) {
+        async function toggleLike(id, forceLike = false) {
             const card = document.querySelector(`[data-id="${id}"]`);
             if (!card) return;
             const btn = card.querySelector('.action-btn-circle:first-child');
+            const countLabel = btn.querySelector('.count-label');
             const isLiked = btn.classList.contains('liked');
 
             if (forceLike && isLiked) return;
 
+            // Optimistic UI update
             btn.classList.toggle('liked', forceLike || !isLiked);
+            let currentCount = parseInt(countLabel.innerText.replace(/[^0-9]/g, '')) || 0;
+            countLabel.innerText = formatCount(isLiked ? Math.max(0, currentCount - 1) : currentCount + 1);
 
-            // API call would go here
+            try {
+                const result = await DashboardAPI.sparkMoment(id);
+                if (result.status === 'success') {
+                    countLabel.innerText = formatCount(result.likes);
+                }
+            } catch (error) {
+                console.error('Like error:', error);
+                // Revert on error
+                btn.classList.toggle('liked', isLiked);
+                countLabel.innerText = formatCount(currentCount);
+            }
         }
 
         function formatCount(num) {
@@ -786,19 +800,17 @@
         }
 
         function openComments(id) { alert('Comments coming soon!'); }
-        function shareMoment(id) {
-            const url = window.location.origin + '/moments/' + id;
-            if (navigator.share) {
-                navigator.share({ title: 'Sparkle Moment', url }).catch(() => { });
-            } else {
-                navigator.clipboard.writeText(url);
-                alert('Link copied to clipboard!');
-            }
-        }
+
         function saveMoment(id) { alert('Moment saved to collection!'); }
 
-        window.addEventListener('load', init);
     </script>
+
+    <%- include('partials/share-modal') %>
+        <script src="/js/dashboardAPI.js"></script>
+        <script src="/js/shareManager.js"></script>
+        <script>
+            window.addEventListener('load', init);
+        </script>
 </body>
 
 </html>

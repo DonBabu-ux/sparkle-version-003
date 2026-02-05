@@ -99,7 +99,8 @@ const renderPost = async (req, res) => {
         const sanitizedPost = {
             ...post,
             media_url: getSafeMediaUrl(post.media_url),
-            avatar_url: getSafeAvatarUrl(post.avatar_url)
+            avatar_url: getSafeAvatarUrl(post.avatar_url),
+            title: post.title || (post.content ? post.content.split('\n')[0].substring(0, 50) : 'Sparkle Highlight')
         };
 
         const comments = await Post.getComments(id);

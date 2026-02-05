@@ -14,6 +14,7 @@ const confessionRoutes = require('./confession.routes');
 const clubsRoutes = require('./clubs.routes');
 
 const uploadRoutes = require('./upload.routes');
+const shareRoutes = require('./share.routes');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -22,6 +23,7 @@ router.use('/posts', postsRoutes);
 router.use('/stories', storiesRoutes);
 router.use('/moments', momentsRoutes);
 router.use('/upload', uploadRoutes);
+router.use('/share', shareRoutes);
 
 // Mount feature routes directly at the root of /api to match dashboardAPI.js hardcoded paths
 router.use('/', campusRoutes);

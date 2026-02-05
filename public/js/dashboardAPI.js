@@ -354,7 +354,10 @@ const DashboardAPI = {
                         is_saved: !!(post.is_saved || post.isSaved), // Legacy support
                         isAnonymous: post.post_type === 'anonymous' || post.isAnonymous || false,
                         type: post.post_type || 'public',
-                        tags: post.tags || []
+                        tags: post.tags || [],
+                        title: post.title || (post.content ? post.content.split('\n')[0].substring(0, 50) : 'Untitled Post'),
+                        views: post.view_count || 0,
+                        icon: post.icon || this.determinePostIcon(post)
                     };
                 } catch (mapError) {
                     console.error('❌ DashboardAPI: Error mapping post:', post, mapError);
@@ -478,6 +481,20 @@ const DashboardAPI = {
         let normalizedUrl = url.replace(/\\/g, '/');
         if (normalizedUrl.startsWith('uploads/')) return '/' + normalizedUrl;
         return `/uploads/${normalizedUrl}`;
+    },
+
+    determinePostIcon(post) {
+        const content = (post.content || '').toLowerCase();
+        const type = (post.post_type || 'public').toLowerCase();
+
+        if (type === 'anonymous') return 'user-secret';
+        if (content.includes('?') || content.includes('anyone') || content.includes('help')) return 'question-circle';
+        if (content.includes('breaking') || content.includes('alert') || content.includes('news')) return 'newspaper';
+        if (content.includes('event') || content.includes('party') || content.includes('meetup')) return 'calendar-alt';
+        if (content.includes('warning') || content.includes('attention') || content.includes('notice')) return 'exclamation-triangle';
+        if (content.includes('discuss') || content.includes('opinion') || content.includes('thoughts')) return 'comments';
+
+        return 'file-alt'; // Default icon
     },
 
     // ============ STORIES (AFTERGLOW) ============
@@ -609,6 +626,17 @@ const DashboardAPI = {
             return await this.request('/moments', options);
         } catch (error) {
             console.error('Failed to create moment:', error);
+            throw error;
+        }
+    },
+
+    async sparkMoment(momentId) {
+        try {
+            return await this.request(`/moments/${momentId}/spark`, {
+                method: 'POST'
+            });
+        } catch (error) {
+            console.error('Failed to spark moment:', error);
             throw error;
         }
     },

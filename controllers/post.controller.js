@@ -102,11 +102,23 @@ const savePost = async (req, res) => {
     }
 };
 
+const sharePost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        await Post.incrementShare(postId);
+        res.json({ message: 'Post share count updated' });
+    } catch (error) {
+        logger.error('Share post error:', error);
+        res.status(500).json({ error: 'Failed to update share count' });
+    }
+};
+
 module.exports = {
     createPost,
     deletePost,
     sparkPost,
     getComments,
     addComment,
-    savePost
+    savePost,
+    sharePost
 };

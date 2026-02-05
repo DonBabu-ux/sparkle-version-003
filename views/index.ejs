@@ -401,7 +401,7 @@
         // -------- Optimized Auth Check --------
         function checkAuthStatus() {
             try {
-                // Check cookies first
+                // Check cookies first - this is the source of truth for SSR pages
                 if (document.cookie.includes('sparkleToken=')) {
                     const cookies = document.cookie.split(';');
                     for (let cookie of cookies) {
@@ -411,10 +411,7 @@
                         }
                     }
                 }
-
-                // Check localStorage
-                const token = localStorage.getItem('sparkleToken');
-                return !!(token && token !== 'undefined');
+                return false;
             } catch (error) {
                 console.warn('Auth check failed:', error);
                 return false;

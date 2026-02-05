@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 
 const renderMoments = async (req, res) => {
     try {
+        console.log('DEBUG: Fetching moments for render...');
         const [moments] = await pool.query(`
             SELECT 
                 m.*, 
@@ -10,15 +11,34 @@ const renderMoments = async (req, res) => {
                 u.name as user_name, 
                 u.avatar_url,
                 m.media_url as video_url,
-                (SELECT COUNT(*) FROM sparks s WHERE s.moment_id = m.moment_id) as likes,
-                (SELECT COUNT(*) FROM comments c WHERE c.moment_id = m.moment_id) as comments
+                m.like_count as likes,
+                m.comment_count as comments
             FROM moments m 
             JOIN users u ON m.user_id = u.user_id 
             ORDER BY m.created_at DESC 
             LIMIT 20
         `);
-        res.render('moments', { title: 'Moments', user: req.user, initialMoments: moments || [] });
+        // Stabilize and sanitize data before sending
+        const sanitizedMoments = (moments || []).map(m => {
+            let mediaUrl = m.video_url || m.media_url || '';
+
+            // Fix picsum or empty URLs server-side
+            if (!mediaUrl || mediaUrl.includes('📸os')) {
+                const randomId = Math.floor(Math.random() * 1000);
+                mediaUrl = `https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&q=80&w=1080&h=1920&stabilizer=${randomId}`;
+            }
+
+            return {
+                ...m,
+                media_url: mediaUrl,
+                video_url: mediaUrl,
+                avatar_url: m.avatar_url || '/uploads/avatars/default.png'
+            };
+        });
+
+        res.render('moments', { title: 'Moments', user: req.user, initialMoments: sanitizedMoments });
     } catch (error) {
+        console.error('DEBUG ERROR loading moments:', error);
         logger.error('Error loading moments:', error);
         res.render('moments', { title: 'Moments', user: req.user, initialMoments: [] });
     }
@@ -28,8 +48,8 @@ const getMomentsStream = async (req, res) => {
     try {
         const [moments] = await pool.query(`
             SELECT m.*, u.username, u.name as user_name, u.avatar_url,
-            (SELECT COUNT(*) FROM sparks s WHERE s.moment_id = m.moment_id) as likes,
-            (SELECT COUNT(*) FROM comments c WHERE c.moment_id = m.moment_id) as comments
+            m.like_count as likes,
+            m.comment_count as comments
             FROM moments m 
             JOIN users u ON m.user_id = u.user_id 
             ORDER BY m.created_at DESC

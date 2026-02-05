@@ -193,9 +193,14 @@ const initStoriesTable = async () => {
 };
 
 const initDB = async () => {
-    // Test connection first
+    // Test connection first with retry logic
     logger.info('Testing database connection...');
-    const isConnected = await testConnection();
+    let isConnected = false;
+    try {
+        isConnected = await retryWithBackoff(testConnection, 5, 2000);
+    } catch (err) {
+        logger.error('❌ Database connection test failed after retries:', err.message);
+    }
 
     if (!isConnected) {
         logger.warn('⚠️  Database is not reachable. Server will start without database initialization.');

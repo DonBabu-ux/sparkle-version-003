@@ -8,7 +8,14 @@
     <script>
         // Immediate Background Auth Check
         (function () {
-            function hasToken() {
+            // If we're coming from a failed auth check, don't auto-redirect back to dashboard
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('reason')) {
+                console.warn('Auto-redirect suppressed: ' + urlParams.get('reason'));
+                return;
+            }
+
+            function hasCookieToken() {
                 try {
                     if (document.cookie.includes('sparkleToken=')) {
                         const cookies = document.cookie.split(';');
@@ -17,11 +24,10 @@
                             if (name === 'sparkleToken' && value && value !== 'undefined') return true;
                         }
                     }
-                    const token = localStorage.getItem('sparkleToken');
-                    return !!(token && token !== 'undefined');
+                    return false;
                 } catch (e) { return false; }
             }
-            if (hasToken()) {
+            if (hasCookieToken()) {
                 window.location.replace('/dashboard');
             }
         })();

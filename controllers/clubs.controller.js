@@ -5,10 +5,20 @@ const logger = require('../utils/logger');
 const renderClubs = async (req, res) => {
     try {
         const clubs = await Club.getAll();
+        const stabilizedClubs = (clubs || []).map(club => {
+            if (!club.logo_url || club.logo_url.includes('picsum.photos')) {
+                club.logo_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(club.name)}&background=random&color=fff&size=256`;
+            }
+            if (!club.banner_url || club.banner_url.includes('picsum.photos')) {
+                club.banner_url = `https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=1200&q=80`;
+            }
+            return club;
+        });
+
         res.render('clubs', {
             title: 'Campus Clubs',
             user: req.user,
-            initialClubs: clubs || [],
+            initialClubs: stabilizedClubs,
             currentCampus: 'all',
             currentCategory: 'all',
             searchQuery: ''
@@ -33,6 +43,14 @@ const renderClubDetail = async (req, res) => {
 
         if (!club) {
             return res.status(404).render('404', { title: 'Club Not Found' });
+        }
+
+        // Stabilize club media
+        if (!club.logo_url || club.logo_url.includes('picsum.photos')) {
+            club.logo_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(club.name)}&background=random&color=fff&size=256`;
+        }
+        if (!club.banner_url || club.banner_url.includes('picsum.photos')) {
+            club.banner_url = `https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=1200&q=80`;
         }
 
         const events = await Club.getEvents(req.params.id);

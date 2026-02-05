@@ -14,6 +14,7 @@ router.post('/:id/spark', authMiddleware, validate(postIdSchema, 'params'), post
 router.post('/:id/save', authMiddleware, validate(postIdSchema, 'params'), postController.savePost);
 router.get('/:id/comments', authMiddleware, validate(postIdSchema, 'params'), postController.getComments);
 router.post('/:id/comments', authMiddleware, validate(postIdSchema, 'params'), validate(addCommentSchema), postController.addComment);
+router.post('/:id/share', authMiddleware, validate(postIdSchema, 'params'), postController.sharePost);
 router.delete('/:id', authMiddleware, validate(postIdSchema, 'params'), postController.deletePost);
 
 module.exports = router;

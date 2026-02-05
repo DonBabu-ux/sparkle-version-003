@@ -1709,7 +1709,11 @@ function showAfterglowViewer(story) {
     if (caption) caption.textContent = story.caption || '';
 
     // Handle Media
-    mediaContainer.innerHTML = '';
+    mediaContainer.innerHTML = `
+        <div class="media-loading-spinner" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color:rgba(255,255,255,0.5);"></i>
+        </div>
+    `;
     const mediaUrl = story.media_url || story.media;
     const isVideo = mediaUrl?.match(/\.(mp4|webm|ogg|mov)$/i);
 
@@ -1721,24 +1725,33 @@ function showAfterglowViewer(story) {
         video.playsInline = true;
         video.style.width = '100%';
         video.style.height = '100%';
-        video.style.objectFit = 'contain'; // Show full visibility
+        video.style.objectFit = 'contain';
+        video.style.opacity = '0';
+        video.style.transition = 'opacity 0.3s ease';
+
         mediaContainer.appendChild(video);
 
-        video.onloadedmetadata = () => {
+        video.onplaying = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            video.style.opacity = '1';
             startStoryTimer(video.duration * 1000);
         };
+
+        video.onwaiting = () => pauseStory();
+        video.oncanplay = () => { if (isStoryPaused) resumeStory(); };
+
         video.onerror = () => {
             console.error("Video failed to load:", mediaUrl);
-            const parent = video.parentElement;
-            if (parent) {
-                parent.innerHTML = `
-                    <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:white;">
-                        <i class="fas fa-exclamation-triangle" style="font-size:40px; color:#ff4757; margin-bottom:15px;"></i>
-                        <div style="font-weight:600;">Media Unavailable</div>
-                        <div style="font-size:12px; color:#888; margin-top:5px;">Check your internet connection</div>
-                    </div>
-                `;
-            }
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            mediaContainer.innerHTML = `
+                <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:white;">
+                    <i class="fas fa-exclamation-triangle" style="font-size:40px; color:#ff4757; margin-bottom:15px;"></i>
+                    <div style="font-weight:600;">Media Unavailable</div>
+                    <div style="font-size:12px; color:#888; margin-top:5px;">Check your internet connection</div>
+                </div>
+            `;
             startStoryTimer(3000); // Skip faster if it fails
         };
     } else {
@@ -1746,10 +1759,29 @@ function showAfterglowViewer(story) {
         img.src = mediaUrl;
         img.style.width = '100%';
         img.style.height = '100%';
-        img.style.objectFit = 'contain'; // Show full visibility
-        mediaContainer.appendChild(img);
+        img.style.objectFit = 'contain';
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.3s ease';
 
-        startStoryTimer(5000);
+        img.onload = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            img.style.opacity = '1';
+            mediaContainer.appendChild(img);
+            startStoryTimer(5000);
+        };
+
+        img.onerror = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            mediaContainer.innerHTML = `
+                <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:white;">
+                    <i class="fas fa-image" style="font-size:40px; color:#333; margin-bottom:15px;"></i>
+                    <div style="font-weight:600;">Image Unavailable</div>
+                </div>
+            `;
+            startStoryTimer(3000);
+        };
     }
 
     modal.style.display = 'flex';

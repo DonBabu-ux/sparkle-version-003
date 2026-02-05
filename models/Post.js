@@ -189,6 +189,17 @@ class Post {
         );
         return posts;
     }
+
+    /**
+     * Increment share count for post
+     */
+    static async incrementShare(postId) {
+        await pool.query(
+            'UPDATE posts SET share_count = share_count + 1 WHERE post_id = ?',
+            [postId]
+        );
+        return true;
+    }
 }
 
 module.exports = Post;

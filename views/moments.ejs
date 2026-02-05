@@ -562,11 +562,23 @@
             feed.innerHTML = moments.map((m, i) => createMomentHTML(m, i)).join('');
         }
 
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function createMomentHTML(m, i) {
             const mediaSrc = m.video_url || m.media_url;
             const isVideo = m.media_type !== 'image';
             const tags = m.caption ? (m.caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
-            const cleanCaption = m.caption ? m.caption.replace(/#[a-zA-Z0-9_]+/g, '').trim() : '';
+            // Sanitize caption to prevent XSS
+            const rawCaption = m.caption ? m.caption.replace(/#[a-zA-Z0-9_]+/g, '').trim() : '';
+            const cleanCaption = escapeHtml(rawCaption);
             const avatar = m.avatar_url || '/uploads/avatars/default.png';
 
             let mediaHTML = '';

@@ -352,10 +352,29 @@ async function loadFeedPosts() {
 // Global function to create a post element (used by dynamicPatch.js)
 // Global function to create a post element (used by dynamicPatch.js) house 5.0
 window.createPostElement = function (post) {
+    // Helper to prevent XSS
+    const escapeHtml = (text) => {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
     const isLiked = post.is_liked || post.isLiked || false;
     const isSaved = post.is_saved || post.isSaved || false;
-    const postId = post.post_id || post.id;
+    const postId = escapeHtml(post.post_id || post.id);
     const hasImage = !!(post.media_url || post.media);
+    const mediaUrl = escapeHtml(post.media_url || post.media || '');
+    const avatarUrl = escapeHtml(post.avatar || post.avatar_url || '/uploads/avatars/default.png');
+    const username = escapeHtml(post.username || 'sparkler');
+    const campus = escapeHtml(post.campus || 'Sparkle Central');
+    const title = escapeHtml(post.title || 'Sparkle Update');
+    const content = escapeHtml(post.content || post.caption || '');
+    const icon = escapeHtml(post.icon || 'file-alt');
+    const type = escapeHtml(post.type || 'public');
 
     // Robust timestamp handling
     let displayTime = post.timestamp;
@@ -364,6 +383,7 @@ window.createPostElement = function (post) {
     } else if (post.timestamp && !isNaN(new Date(post.timestamp).getTime())) {
         displayTime = DashboardAPI.formatTimestamp(post.timestamp);
     }
+    displayTime = escapeHtml(displayTime);
 
     const postEl = document.createElement('div');
     postEl.className = `post-card ${hasImage ? 'with-image' : 'text-only'}`;
@@ -373,11 +393,11 @@ window.createPostElement = function (post) {
         <!-- POST HEADER -->
         <div class="post-header">
             <div class="post-author">
-                <img src="${post.avatar || post.avatar_url || '/uploads/avatars/default.png'}" alt="${post.username}" class="post-avatar">
+                <img src="${avatarUrl}" alt="${username}" class="post-avatar">
                 <div class="post-author-info">
-                    <div class="post-username">@${post.username || 'sparkler'}</div>
+                    <div class="post-username">@${username}</div>
                     <div class="post-meta">
-                        <span class="post-campus">${post.campus || 'Sparkle Central'}</span>
+                        <span class="post-campus">${campus}</span>
                         <span class="post-time">• ${displayTime || 'Just now'}</span>
                     </div>
                 </div>
@@ -391,24 +411,24 @@ window.createPostElement = function (post) {
             <!-- CONDITIONAL: Post with Image -->
             ${hasImage ? `
             <div class="post-media">
-                <img src="${post.media_url || post.media}" alt="Post image" class="post-image" onerror="this.parentElement.style.display='none'">
+                <img src="${mediaUrl}" alt="Post image" class="post-image" onerror="this.parentElement.style.display='none'">
             </div>` : ''}
 
             <!-- POST TITLE & TEXT -->
             <div class="post-text-content ${!hasImage ? 'no-media' : ''}">
                 <h3 class="post-title">
-                    <div class="post-title-icon ${post.type || 'public'}">
-                        <i class="fas fa-${post.icon || 'file-alt'}"></i>
+                    <div class="post-title-icon ${type}">
+                        <i class="fas fa-${icon}"></i>
                     </div>
-                    ${post.title || 'Sparkle Update'}
+                    ${title}
                 </h3>
                 
                 <div class="post-body">
-                    ${(post.content || post.caption || '').length > 350 ? `
-                        <span class="content-short">${(post.content || post.caption || '').substring(0, 300)}...</span>
-                        <span class="content-full" style="display:none;">${post.content || post.caption || ''}</span>
+                    ${content.length > 350 ? `
+                        <span class="content-short">${content.substring(0, 300)}...</span>
+                        <span class="content-full" style="display:none;">${content}</span>
                         <button class="see-more-btn" onclick="window.toggleSeeMore(this)">Read more...</button>
-                    ` : (post.content || post.caption || '')}
+                    ` : content}
                 </div>
             </div>
         </div>

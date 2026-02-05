@@ -58,6 +58,26 @@ class Post {
     }
 
     /**
+     * Get feed of posts from groups the user is a member of
+     */
+    static async getGroupFeed(userId, limit = 50) {
+        const [posts] = await pool.query(
+            `SELECT p.*, u.username, u.name as user_name, u.avatar_url, g.name as group_name, g.icon_url as group_icon,
+                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
+             FROM posts p 
+             JOIN users u ON p.user_id = u.user_id 
+             JOIN groups g ON p.group_id = g.group_id
+             JOIN group_members gm ON g.group_id = gm.group_id
+             WHERE gm.user_id = ? AND gm.status = 'active' AND p.post_type = 'group'
+             ORDER BY p.created_at DESC 
+             LIMIT ?`,
+            [userId, limit]
+        );
+        return posts;
+    }
+
+    /**
      * Get user posts
      */
     static async getUserPosts(userId, limit = 20) {

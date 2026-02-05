@@ -34,7 +34,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
 
 // Static Files
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // View Engine
 app.set('view engine', 'ejs');
@@ -74,7 +74,27 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(PORT, () => {
+const http = require('http');
+const { Server } = require('socket.io');
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Adjust in production
+        methods: ["GET", "POST"]
+    }
+});
+
+// Middleware to attach io to req
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
+// Setup Socket logic
+require('./controllers/groupChat.controller').setupChatWebSocket(io);
+
+server.listen(PORT, () => {
     logger.info(`------------------------------------------`);
     logger.info(` Sparkle Server running on port ${PORT}`);
     logger.info(` Views directory: ${path.join(__dirname, 'views')}`);

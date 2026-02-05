@@ -45,6 +45,10 @@ const DashboardAPI = {
         console.log('✅ Route log cleared');
     },
 
+    fetchWithAuth(endpoint, options = {}) {
+        return this.request(endpoint, options);
+    },
+
     async request(endpoint, options = {}) {
         const startTime = performance.now();
         const token = localStorage.getItem('sparkleToken');
@@ -344,8 +348,8 @@ const DashboardAPI = {
                         media_url: mediaUrl, // Legacy support
                         caption: post.content || post.caption || '',
                         content: post.content || post.caption || '', // Legacy support
-                        timestamp_raw: post.created_at || post.timestamp, // Original date
-                        timestamp: this.formatTimestamp(post.timestamp || post.created_at),
+                        timestamp_raw: post.created_at || post.timestamp,
+                        timestamp: this.formatTimestamp(post.created_at || post.timestamp),
                         sparks: parseInt(post.sparks || post.spark_count || 0),
                         comments: parseInt(post.comments || post.comment_count || 0),
                         isLiked: !!(post.is_liked || post.isLiked),
@@ -1218,6 +1222,7 @@ const DashboardAPI = {
         if (!timestamp) return 'Just now';
 
         const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return 'Just now';
         const now = new Date();
         const diff = now - date;
 
@@ -1232,6 +1237,88 @@ const DashboardAPI = {
         if (days < 7) return `${days}d ago`;
 
         return date.toLocaleDateString();
+    },
+
+    // === Group Chat API ===
+
+    async createGroupChat(data) {
+        return this.fetchWithAuth('/chats', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async getUserChats() {
+        return this.fetchWithAuth('/chats');
+    },
+
+    async getChatDetails(chatId) {
+        return this.fetchWithAuth(`/chats/${chatId}`);
+    },
+
+    async getGroupMessages(chatId) {
+        return this.fetchWithAuth(`/chats/${chatId}/messages`);
+    },
+
+    async addGroupMembers(chatId, userIds) {
+        return this.fetchWithAuth(`/chats/${chatId}/members`, {
+            method: 'POST',
+            body: JSON.stringify({ user_ids: userIds })
+        });
+    },
+
+    // WebSocket Setup
+    setupChatWebSocket(currentUserId) {
+        if (this.socket) return this.socket;
+
+        if (typeof io === 'undefined') {
+            console.error('Socket.io client not loaded');
+            return null;
+        }
+
+        this.socket = io({
+            query: { userId: currentUserId }
+        });
+
+        this.socket.on('connect', () => {
+            console.log('Connected to WebSocket');
+        });
+
+        return this.socket;
+    },
+
+    joinChatRoom(chatId) {
+        if (this.socket) {
+            this.socket.emit('join_chat', chatId);
+        }
+    },
+
+    sendGroupMessage(chatId, content, type = 'text', senderId) {
+        if (this.socket) {
+            this.socket.emit('send_group_message', { chatId, content, type, senderId });
+        }
+    },
+
+    // === Group API ===
+    async loadGroups() {
+        try {
+            const res = await this.fetchWithAuth('/chats');
+            if (res && Array.isArray(res)) {
+                return res.filter(c => c.is_group);
+            }
+            return [];
+        } catch (e) {
+            console.error('loadGroups failed', e);
+            return [];
+        }
+    },
+
+    async joinGroup(groupId) {
+        return this.fetchWithAuth(`/chats/${groupId}/join`, { method: 'POST' });
+    },
+
+    async loadGroupFeed() {
+        return [];
     }
 };
 

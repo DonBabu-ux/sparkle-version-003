@@ -71,9 +71,33 @@ class Group {
     }
 
     /**
+     * Get member status
+     */
+    static async getMember(groupId, userId) {
+        const [members] = await pool.query(
+            'SELECT * FROM group_members WHERE group_id = ? AND user_id = ?',
+            [groupId, userId]
+        );
+        return members[0] || null;
+    }
+
+    /**
      * Add member to group
      */
     static async addMember(groupId, userId, role = 'member') {
+        // Check if already exists
+        const existing = await this.getMember(groupId, userId);
+        if (existing) {
+            if (existing.status !== 'active') {
+                await pool.query(
+                    'UPDATE group_members SET status = "active" WHERE membership_id = ?',
+                    [existing.membership_id]
+                );
+                return existing.membership_id;
+            }
+            return existing.membership_id; // Already active
+        }
+
         const membershipId = crypto.randomUUID();
         await pool.query(
             'INSERT INTO group_members (membership_id, group_id, user_id, role, status) VALUES (?, ?, ?, ?, ?)',
@@ -119,6 +143,64 @@ class Group {
 
         const [groups] = await pool.query(query, params);
         return groups;
+    }
+
+    /**
+     * Get groups where user is a member
+     */
+    static async getUserGroups(userId) {
+        const [groups] = await pool.query(
+            `SELECT g.*, u.name as creator_name,
+                    (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id AND status = 'active') as member_count,
+                    gm.status as user_status, gm.role as user_role
+             FROM groups g 
+             JOIN users u ON g.creator_id = u.user_id 
+             JOIN group_members gm ON g.group_id = gm.group_id
+             WHERE gm.user_id = ? AND gm.status = 'active'
+             ORDER BY g.created_at DESC`,
+            [userId]
+        );
+        return groups;
+    }
+
+    /**
+     * Get groups managed by user (admin or creator)
+     */
+    static async getManagedGroups(userId) {
+        const [groups] = await pool.query(
+            `SELECT g.*, u.name as creator_name,
+                    (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id AND status = 'active') as member_count,
+                    gm.status as user_status, gm.role as user_role
+             FROM groups g 
+             JOIN users u ON g.creator_id = u.user_id 
+             JOIN group_members gm ON g.group_id = gm.group_id
+             WHERE gm.user_id = ? AND (gm.role = 'admin' OR gm.role = 'creator') AND gm.status = 'active'
+             ORDER BY g.created_at DESC`,
+            [userId]
+        );
+        return groups;
+    }
+
+    /**
+     * Update group details
+     */
+    static async update(groupId, updates) {
+        const fields = [];
+        const values = [];
+
+        Object.keys(updates).forEach(key => {
+            // Whitelist fields to allow update
+            if (['name', 'description', 'icon_url', 'banner_url', 'category', 'privacy'].includes(key)) {
+                fields.push(`${key} = ?`);
+                values.push(updates[key]);
+            }
+        });
+
+        if (fields.length === 0) return false;
+
+        values.push(groupId);
+        await pool.query(`UPDATE groups SET ${fields.join(', ')} WHERE group_id = ?`, values);
+        return true;
     }
 }
 

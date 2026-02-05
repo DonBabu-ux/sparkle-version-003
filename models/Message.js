@@ -16,34 +16,27 @@ class Message {
         return partnerId;
     }
 
-    // Send message
-    // conversationId here IS the recipient_id
-    static async sendMessage(recipientId, senderId, messageText) {
+    // Send message (support for Direct and Group)
+    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null }) {
         const messageId = crypto.randomUUID();
 
-        // Verify recipient exists
-        const [users] = await db.query('SELECT user_id FROM users WHERE user_id = ?', [recipientId]);
-        if (users.length === 0) throw new Error('Recipient not found');
+        // Validation
+        if (!chatId && !recipientId) throw new Error('Recipient or Chat ID required');
 
         await db.query(`
-            INSERT INTO messages (message_id, sender_id, recipient_id, content, sent_at)
-            VALUES (?, ?, ?, ?, NOW())
-        `, [messageId, senderId, recipientId, messageText]);
+            INSERT INTO messages (
+                message_id, chat_id, recipient_id, sender_id, content, type, media_url, sent_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        `, [messageId, chatId || null, recipientId || null, senderId, content, type, mediaUrl]);
 
         return messageId;
     }
 
-    // Get messages for conversation
-    // conversationId here IS the partner's userId
+    // Get messages for conversation (Personal)
     static async getMessages(partnerId, currentUserId) {
-        // Query messages where (sender=Me AND recipient=Them) OR (sender=Them AND recipient=Me)
         const [messages] = await db.query(`
             SELECT 
-                m.message_id,
-                m.sender_id,
-                m.recipient_id,
-                m.content,
-                m.sent_at,
+                m.*,
                 u.name as sender_name, 
                 u.username as sender_username, 
                 u.avatar_url as sender_avatar
@@ -57,8 +50,27 @@ class Message {
         return messages;
     }
 
-    // Get user's conversations
+    // Get messages for Group Chat
+    static async getGroupMessages(chatId) {
+        const [messages] = await db.query(`
+            SELECT 
+                m.*,
+                u.name as sender_name, 
+                u.username as sender_username, 
+                u.avatar_url as sender_avatar
+            FROM messages m
+            JOIN users u ON m.sender_id = u.user_id
+            WHERE m.chat_id = ?
+            ORDER BY m.sent_at ASC
+        `, [chatId]);
+
+        return messages;
+    }
+
+    // Get user's conversations (Mixed: Direct + Groups will be handled by merging lists or separate calls)
+    // This existing method is for 1-on-1. We will keep it but GroupChat.getUserChats handles groups.
     static async getUserConversations(userId) {
+        // ... (Existing logic for direct messages)
         const [rows] = await db.query(`
             SELECT 
                 m.content as last_message,
@@ -78,7 +90,7 @@ class Message {
                     IF(sender_id = ?, recipient_id, sender_id) as partner_id,
                     MAX(sent_at) as max_sent_at
                 FROM messages
-                WHERE sender_id = ? OR recipient_id = ?
+                WHERE (sender_id = ? OR recipient_id = ?) AND chat_id IS NULL
                 GROUP BY partner_id
             ) latest ON (
                 IF(m.sender_id = ?, m.recipient_id, m.sender_id) = latest.partner_id 
@@ -91,7 +103,6 @@ class Message {
         return rows;
     }
 
-    // Check mutual follow status
     static async checkFollowStatus(currentUserId, targetUserId) {
         const [results] = await db.query(`
             SELECT 

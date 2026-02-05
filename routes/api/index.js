@@ -15,10 +15,12 @@ const clubsRoutes = require('./clubs.routes');
 
 const uploadRoutes = require('./upload.routes');
 const shareRoutes = require('./share.routes');
+const groupChatRoutes = require('./groupChat.routes');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/messages', messagesRoutes);
+router.use('/chats', groupChatRoutes);
 router.use('/posts', postsRoutes);
 router.use('/stories', storiesRoutes);
 router.use('/moments', momentsRoutes);

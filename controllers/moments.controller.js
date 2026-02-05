@@ -23,7 +23,7 @@ const renderMoments = async (req, res) => {
             let mediaUrl = m.video_url || m.media_url || '';
 
             // Fix picsum or empty URLs server-side
-            if (!mediaUrl || mediaUrl.includes('📸os')) {
+            if (!mediaUrl || mediaUrl.includes('📸os') || mediaUrl.includes('picsum')) {
                 const randomId = Math.floor(Math.random() * 1000);
                 mediaUrl = `https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&q=80&w=1080&h=1920&stabilizer=${randomId}`;
             }

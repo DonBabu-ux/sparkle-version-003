@@ -2507,3 +2507,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+// Global Group Functions for Sidebar
+window.createGroup = function () {
+    // If we are on messages page, open the modal
+    if (window.openGroupModal) {
+        window.openGroupModal();
+    } else {
+        // Redirect to messages page with action param
+        window.location.href = '/messages?action=create_group';
+    }
+};
+
+window.showGroupManagement = function () {
+    window.location.href = '/groups'; // Or open a modal if implemented
+};
+
+window.showGroupFeed = function () {
+    showModal('groupFeed');
+};
+
+window.loadGroupFeed = async function () {
+    // Implementation for loading group feed in modal
+    const container = document.getElementById('groupFeedModalContent'); // Assuming modal structure
+    if (container) container.innerHTML = '<p style="padding:20px;">Group Feed feature coming soon!</p>';
+};
+
+// Handle URL params for actions (e.g. redirect from Create Group)
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'create_group') {
+        // Wait for page init then open modal
+        setTimeout(() => {
+            if (window.openGroupModal) window.openGroupModal();
+        }, 500);
+    }
+});

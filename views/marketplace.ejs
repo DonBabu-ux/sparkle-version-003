@@ -1,99 +1,727 @@
 <%- include('partials/head', { title: 'Marketplace' }) %>
 
+<style>
+    /* Custom styles for marketplace */
+    .marketplace-nav {
+        background: var(--primary-gradient);
+        padding: 10px 20px;
+        border-radius: 0 0 20px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+    
+    .marketplace-nav-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: white;
+        font-weight: 700;
+        font-size: 20px;
+    }
+    
+    .nav-brand i {
+        font-size: 24px;
+    }
+    
+    .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .nav-icon-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .nav-icon-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff4757;
+        color: white;
+        font-size: 11px;
+        font-weight: 600;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--primary);
+    }
+    
+    .search-and-filter {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex: 1;
+        max-width: 500px;
+        margin: 0 20px;
+    }
+    
+    .marketplace-search {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 25px;
+        padding: 10px 20px;
+        font-size: 14px;
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    .marketplace-search:focus {
+        outline: none;
+        background: white;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    }
+    
+    .filter-btn {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 14px;
+        color: var(--primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-btn:hover {
+        background: white;
+        transform: translateY(-2px);
+    }
+    
+    @media (max-width: 768px) {
+        .marketplace-nav-content {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .search-and-filter {
+            order: 3;
+            width: 100%;
+            margin: 10px 0 0 0;
+        }
+        
+        .nav-brand span {
+            display: none;
+        }
+    }
+</style>
 
-    <body>
-        <%- include('partials/sidebar') %>
+<body>
+    <%- include('partials/sidebar') %>
 
-            <!-- Main Content Container -->
-            <div class="container" id="mainContent">
-                <!-- Marketplace Page -->
-                <div id="marketplacePage" class="page active">
-                    <div class="header glass">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <div class="hamburger-btn" onclick="window.location.href='/'">
-                                <i class="fas fa-chevron-left"></i>
-                            </div>
-                            <div class="logo-text">Marketplace</div>
+    <!-- Main Content Container -->
+    <div class="container" id="mainContent">
+        <!-- Colored Navigation Bar -->
+        <div class="marketplace-nav">
+            <div class="marketplace-nav-content">
+                <!-- Brand/Home -->
+                <div class="nav-brand">
+                    <i class="fas fa-store"></i>
+                    <span>Marketplace</span>
+                </div>
+                
+                <!-- Search and Filter -->
+                <div class="search-and-filter">
+                    <input type="text" id="marketplaceSearch" class="marketplace-search" 
+                           placeholder="Search for items, services...">
+                    <button class="filter-btn" id="filterBtn">
+                        <i class="fas fa-filter"></i>
+                        <span>Filters</span>
+                    </button>
+                </div>
+                
+                <!-- Navigation Actions -->
+                <div class="nav-actions">
+                    <!-- Home Button -->
+                    <button class="nav-icon-btn" onclick="window.location.href='/'">
+                        <i class="fas fa-home"></i>
+                    </button>
+                    
+                    <!-- Notifications Button -->
+                    <button class="nav-icon-btn" id="notificationBtn" onclick="toggleNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationCount">3</span>
+                    </button>
+                    
+                    <!-- Create Listing Button -->
+                    <button class="btn btn-light" id="createListingBtn" style="border-radius: 20px;">
+                        <i class="fas fa-plus"></i> 
+                        <span class="d-none d-md-inline">Sell Item</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Marketplace Page -->
+        <div id="marketplacePage" class="page active">
+            <!-- Category Tabs -->
+            <div class="premium-tabs">
+                <button class="premium-tab-btn active" onclick="loadMarketplace('all')">All</button>
+                <button class="premium-tab-btn" onclick="loadMarketplace('student_market')">Student Market</button>
+                <button class="premium-tab-btn" onclick="loadMarketplace('secondhand')">Second-Hand</button>
+                <button class="premium-tab-btn" onclick="loadMarketplace('services')">Services</button>
+                <button class="premium-tab-btn" onclick="loadMarketplace('electronics')">Electronics</button>
+                <button class="premium-tab-btn" onclick="loadMarketplace('books')">Books</button>
+                <button class="premium-tab-btn" onclick="loadMarketplace('clothing')">Clothing</button>
+                <button class="premium-tab-btn" onclick="loadMarketplace('furniture')">Furniture</button>
+            </div>
+
+            <!-- Filter Sidebar (Hidden by default) -->
+            <div class="filter-sidebar" id="filterSidebar">
+                <div class="filter-header">
+                    <h5>Filters</h5>
+                    <button class="btn-close" onclick="closeFilterSidebar()"></button>
+                </div>
+                
+                <div class="filter-section">
+                    <h6>Price Range</h6>
+                    <div class="price-range">
+                        <div class="price-inputs">
+                            <input type="number" id="minPrice" placeholder="Min" class="form-control">
+                            <span>to</span>
+                            <input type="number" id="maxPrice" placeholder="Max" class="form-control">
                         </div>
-                        <button class="btn btn-primary" id="createListingBtn" style="border-radius: 14px;">
-                            <i class="fas fa-plus"></i> <span class="d-none d-sm-inline">Sell Item</span>
-                        </button>
+                        <input type="range" id="priceSlider" min="0" max="1000" value="500" class="form-range">
                     </div>
-
-                    <div class="premium-tabs">
-                        <button class="premium-tab-btn active" onclick="loadMarketplace('all')">All</button>
-                        <button class="premium-tab-btn" onclick="loadMarketplace('student_market')">Student
-                            Market</button>
-                        <button class="premium-tab-btn" onclick="loadMarketplace('secondhand')">Second-Hand</button>
-                        <button class="premium-tab-btn" onclick="loadMarketplace('services')">Services</button>
+                </div>
+                
+                <div class="filter-section">
+                    <h6>Condition</h6>
+                    <div class="condition-filters">
+                        <label class="filter-checkbox">
+                            <input type="checkbox" value="new"> New
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" value="like_new"> Like New
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" value="good" checked> Good
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" value="fair"> Fair
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" value="poor"> Poor
+                        </label>
                     </div>
-
-                    <div class="discover-grid" id="marketplaceContent" style="padding-bottom: 80px;">
-                        <% if (typeof initialListings !=='undefined' && initialListings.length> 0) { %>
-                            <% initialListings.forEach(listing=> {
-                                let images = [];
-                                try {
-                                if (typeof listing.image_urls === 'string') {
-                                images = JSON.parse(listing.image_urls);
-                                } else {
-                                images = listing.image_urls || [];
-                                }
-                                } catch(e) {
-                                images = listing.image_urls ? [listing.image_urls] : [];
-                                }
-                                const firstImage = Array.isArray(images) && images.length > 0 ? images[0] :
-                                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400';
-                                %>
-                                <div class="discover-card" data-listing-id="<%= listing.listing_id %>">
-                                    <div class="discover-card-banner">
-                                        <img src="<%= firstImage %>" alt="<%= listing.title %>">
-                                        <div class="discover-card-badge"
-                                            style="background: var(--primary-gradient); position: absolute; top: 12px; right: 12px;">
-                                            $<%= listing.price %>
-                                        </div>
-                                    </div>
-                                    <div class="discover-card-content">
-                                        <h3 class="discover-card-name">
-                                            <%= listing.title %>
-                                        </h3>
-                                        <p class="discover-card-bio" style="font-size: 13px; -webkit-line-clamp: 2;">
-                                            <%= listing.description || '' %>
-                                        </p>
-
-                                        <div
-                                            style="display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-                                            <div
-                                                style="width: 24px; height: 24px; border-radius: 50%; background: var(--border); overflow: hidden;">
-                                                <img src="/uploads/avatars/default.png"
-                                                    style="width: 100%; height: 100%; object-fit: cover;">
-                                            </div>
-                                            <span
-                                                style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
-                                                <%= listing.seller_username %>
-                                            </span>
-                                        </div>
-
-                                        <button class="btn btn-outline-primary btn-sm"
-                                            style="width: 100%; margin-top: 15px; border-radius: 10px;"
-                                            onclick="window.location.href='/messages?user=<%= listing.seller_id %>'">
-                                            <i class="far fa-envelope"></i> Contact Seller
-                                        </button>
-                                    </div>
-                                </div>
-                                <% }); %>
-                                    <% } else { %>
-                                        <div class="discover-empty-state">
-                                            <i class="fas fa-shopping-bag"></i>
-                                            <h4>No listings yet</h4>
-                                            <p>Be the first to sell something on campus!</p>
-                                        </div>
-                                        <% } %>
-                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <h6>Location</h6>
+                    <select id="locationFilter" class="form-select">
+                        <option value="">All Locations</option>
+                        <option value="main_campus">Main Campus</option>
+                        <option value="north_campus">North Campus</option>
+                        <option value="south_campus">South Campus</option>
+                        <option value="downtown">Downtown</option>
+                    </select>
+                </div>
+                
+                <div class="filter-section">
+                    <h6>Sort By</h6>
+                    <select id="sortFilter" class="form-select">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="popular">Most Popular</option>
+                    </select>
+                </div>
+                
+                <div class="filter-actions">
+                    <button class="btn btn-outline-secondary" onclick="clearFilters()">Clear All</button>
+                    <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
                 </div>
             </div>
 
-            <%- include('partials/dashboard-modals') %>
-                    <script src="/js/dashboardAPI.js"></script>
-    </body>
+            <!-- Main Content Area -->
+            <div class="marketplace-content">
+                <!-- Listings Container -->
+                <div class="discover-grid" id="marketplaceContent">
+                    <% if (typeof initialListings !== 'undefined' && initialListings.length > 0) { %>
+                        <% initialListings.forEach(listing => { 
+                            let images = [];
+                            try {
+                                if (typeof listing.image_urls === 'string') {
+                                    images = JSON.parse(listing.image_urls);
+                                } else {
+                                    images = listing.image_urls || [];
+                                }
+                            } catch(e) {
+                                images = listing.image_urls ? [listing.image_urls] : [];
+                            }
+                            const firstImage = Array.isArray(images) && images.length > 0 ? images[0] : 
+                                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400';
+                        %>
+                            <div class="discover-card" data-listing-id="<%= listing.listing_id %>">
+                                <div class="discover-card-banner">
+                                    <img src="<%= firstImage %>" alt="<%= listing.title %>" loading="lazy">
+                                    <div class="discover-card-badge"
+                                        style="background: var(--primary-gradient); position: absolute; top: 12px; right: 12px;">
+                                        $<%= listing.price %>
+                                    </div>
+                                    <% if (listing.status === 'sold') { %>
+                                        <div class="sold-overlay">SOLD</div>
+                                    <% } %>
+                                </div>
+                                <div class="discover-card-content">
+                                    <h3 class="discover-card-name">
+                                        <%= listing.title %>
+                                    </h3>
+                                    <p class="discover-card-bio" style="font-size: 13px; -webkit-line-clamp: 2;">
+                                        <%= listing.description || '' %>
+                                    </p>
+                                    
+                                    <div class="listing-meta">
+                                        <div class="seller-info">
+                                            <div class="seller-avatar">
+                                                <img src="<%= listing.seller_avatar || '/uploads/avatars/default.png' %>"
+                                                    alt="<%= listing.seller_username %>">
+                                            </div>
+                                            <div class="seller-details">
+                                                <span class="seller-name"><%= listing.seller_username %></span>
+                                                <span class="listing-date"><%= new Date(listing.created_at).toLocaleDateString() %></span>
+                                            </div>
+                                        </div>
+                                        <div class="listing-stats">
+                                            <span class="view-count">
+                                                <i class="fas fa-eye"></i> <%= listing.view_count || 0 %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <button class="btn btn-outline-primary btn-sm contact-seller-btn"
+                                            style="width: 100%; margin-top: 15px; border-radius: 10px;"
+                                            onclick="contactSeller('<%= listing.seller_id %>', '<%= listing.listing_id %>')">
+                                        <i class="far fa-envelope"></i> Contact Seller
+                                    </button>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="discover-empty-state">
+                            <i class="fas fa-shopping-bag"></i>
+                            <h4>No listings yet</h4>
+                            <p>Be the first to sell something on campus!</p>
+                        </div>
+                    <% } %>
+                </div>
+                
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="text-center my-4" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                
+                <!-- Load More Button -->
+                <div class="text-center my-4" id="loadMoreContainer" style="display: none;">
+                    <button class="btn btn-outline-primary" id="loadMoreBtn">Load More</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    </html>
+    <!-- Notifications Dropdown -->
+    <div class="notifications-dropdown" id="notificationsDropdown">
+        <div class="notifications-header">
+            <h5>Notifications</h5>
+            <button class="btn btn-link" onclick="markAllAsRead()">Mark all as read</button>
+        </div>
+        <div class="notifications-list" id="notificationsList">
+            <!-- Notifications will be loaded here -->
+            <div class="notification-item unread">
+                <div class="notification-icon">
+                    <i class="fas fa-shopping-cart text-primary"></i>
+                </div>
+                <div class="notification-content">
+                    <p><strong>New message</strong> about your listing "Textbook for sale"</p>
+                    <small>2 minutes ago</small>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notification-icon">
+                    <i class="fas fa-heart text-danger"></i>
+                </div>
+                <div class="notification-content">
+                    <p>Someone saved your item "Study Desk"</p>
+                    <small>1 hour ago</small>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notification-icon">
+                    <i class="fas fa-tag text-success"></i>
+                </div>
+                <div class="notification-content">
+                    <p>Price drop on similar item: "iPhone 12"</p>
+                    <small>3 hours ago</small>
+                </div>
+            </div>
+        </div>
+        <div class="notifications-footer">
+            <a href="/notifications" class="btn btn-link">View all notifications</a>
+        </div>
+    </div>
+
+    <!-- Create Listing Modal -->
+    <%- include('partials/listing-modal') %>
+    
+    <!-- Dashboard Modals -->
+    <%- include('partials/dashboard-modals') %>
+
+    <!-- JavaScript -->
+    <script>
+        // Global variables
+        let currentCategory = 'all';
+        let currentPage = 1;
+        let isLoading = false;
+        let hasMore = true;
+        let currentFilters = {};
+        
+        // DOM Ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize marketplace
+            loadMarketplace('all');
+            
+            // Event Listeners
+            document.getElementById('filterBtn').addEventListener('click', openFilterSidebar);
+            document.getElementById('createListingBtn').addEventListener('click', showCreateListingModal);
+            document.getElementById('marketplaceSearch').addEventListener('input', debounce(handleSearch, 300));
+            document.getElementById('loadMoreBtn').addEventListener('click', loadMoreListings);
+            
+            // Load notifications count
+            loadNotificationsCount();
+            
+            // Close notifications when clicking outside
+            document.addEventListener('click', function(event) {
+                const dropdown = document.getElementById('notificationsDropdown');
+                const btn = document.getElementById('notificationBtn');
+                if (!dropdown.contains(event.target) && !btn.contains(event.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        });
+        
+        // Load marketplace listings
+        async function loadMarketplace(category, reset = true) {
+            if (reset) {
+                currentPage = 1;
+                hasMore = true;
+            }
+            
+            currentCategory = category;
+            updateActiveTab(category);
+            
+            // Show loading
+            const contentDiv = document.getElementById('marketplaceContent');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            
+            if (reset) {
+                contentDiv.innerHTML = '';
+                loadingSpinner.style.display = 'block';
+                loadMoreContainer.style.display = 'none';
+            }
+            
+            try {
+                // Build query string
+                let query = `category=${category}&page=${currentPage}`;
+                for (const [key, value] of Object.entries(currentFilters)) {
+                    if (value) query += `&${key}=${value}`;
+                }
+                
+                const response = await fetch(`/api/marketplace/listings?${query}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (reset) {
+                        contentDiv.innerHTML = '';
+                    }
+                    
+                    if (data.listings.length === 0) {
+                        contentDiv.innerHTML = `
+                            <div class="discover-empty-state">
+                                <i class="fas fa-search"></i>
+                                <h4>No listings found</h4>
+                                <p>Try adjusting your filters or search terms</p>
+                            </div>
+                        `;
+                        loadMoreContainer.style.display = 'none';
+                    } else {
+                        renderListings(data.listings, reset);
+                        
+                        // Check if there are more listings
+                        hasMore = data.listings.length >= 20;
+                        if (hasMore) {
+                            loadMoreContainer.style.display = 'block';
+                        } else {
+                            loadMoreContainer.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading listings:', error);
+                contentDiv.innerHTML = `
+                    <div class="discover-empty-state">
+                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                        <h4>Error loading listings</h4>
+                        <p>Please try again later</p>
+                    </div>
+                `;
+            } finally {
+                loadingSpinner.style.display = 'none';
+            }
+        }
+        
+        // Render listings
+        function renderListings(listings, reset) {
+            const contentDiv = document.getElementById('marketplaceContent');
+            
+            if (!reset && contentDiv.children.length > 0) {
+                // Append to existing listings
+                const existingIds = new Set();
+                document.querySelectorAll('.discover-card').forEach(card => {
+                    existingIds.add(card.dataset.listingId);
+                });
+                
+                // Filter out duplicates
+                listings = listings.filter(listing => !existingIds.has(listing.listing_id));
+            }
+            
+            listings.forEach(listing => {
+                const images = listing.image_urls || [];
+                const firstImage = images.length > 0 ? images[0] : 
+                    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400';
+                
+                const card = document.createElement('div');
+                card.className = 'discover-card';
+                card.dataset.listingId = listing.listing_id;
+                
+                const date = new Date(listing.created_at);
+                const formattedDate = date.toLocaleDateString();
+                
+                card.innerHTML = `
+                    <div class="discover-card-banner">
+                        <img src="${firstImage}" alt="${listing.title}" loading="lazy">
+                        <div class="discover-card-badge"
+                            style="background: var(--primary-gradient); position: absolute; top: 12px; right: 12px;">
+                            $${listing.price}
+                        </div>
+                        ${listing.status === 'sold' ? '<div class="sold-overlay">SOLD</div>' : ''}
+                    </div>
+                    <div class="discover-card-content">
+                        <h3 class="discover-card-name">${listing.title}</h3>
+                        <p class="discover-card-bio" style="font-size: 13px; -webkit-line-clamp: 2;">
+                            ${listing.description || ''}
+                        </p>
+                        
+                        <div class="listing-meta">
+                            <div class="seller-info">
+                                <div class="seller-avatar">
+                                    <img src="${listing.seller_avatar || '/uploads/avatars/default.png'}"
+                                        alt="${listing.seller_username}">
+                                </div>
+                                <div class="seller-details">
+                                    <span class="seller-name">${listing.seller_username}</span>
+                                    <span class="listing-date">${formattedDate}</span>
+                                </div>
+                            </div>
+                            <div class="listing-stats">
+                                <span class="view-count">
+                                    <i class="fas fa-eye"></i> ${listing.view_count || 0}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-outline-primary btn-sm contact-seller-btn"
+                                style="width: 100%; margin-top: 15px; border-radius: 10px;"
+                                onclick="contactSeller('${listing.seller_id}', '${listing.listing_id}')">
+                            <i class="far fa-envelope"></i> Contact Seller
+                        </button>
+                    </div>
+                `;
+                
+                contentDiv.appendChild(card);
+            });
+        }
+        
+        // Load more listings
+        function loadMoreListings() {
+            if (isLoading || !hasMore) return;
+            
+            currentPage++;
+            loadMarketplace(currentCategory, false);
+        }
+        
+        // Update active tab
+        function updateActiveTab(category) {
+            document.querySelectorAll('.premium-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Find and activate the correct tab
+            document.querySelectorAll('.premium-tab-btn').forEach(btn => {
+                if (btn.textContent.trim().toLowerCase().replace('-', '_').replace(' ', '_') === 
+                    category.toLowerCase()) {
+                    btn.classList.add('active');
+                } else if (category === 'all' && btn.textContent.trim() === 'All') {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        // Contact seller
+        async function contactSeller(sellerId, listingId) {
+            try {
+                const response = await fetch('/api/marketplace/contact-seller', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sellerId, listingId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert(data.message || 'Failed to contact seller');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            }
+        }
+        
+        // Search functionality
+        function handleSearch() {
+            const searchTerm = document.getElementById('marketplaceSearch').value;
+            currentFilters.search = searchTerm;
+            loadMarketplace(currentCategory, true);
+        }
+        
+        // Filter sidebar functions
+        function openFilterSidebar() {
+            document.getElementById('filterSidebar').classList.add('show');
+        }
+        
+        function closeFilterSidebar() {
+            document.getElementById('filterSidebar').classList.remove('show');
+        }
+        
+        function applyFilters() {
+            // Get filter values
+            currentFilters = {
+                min_price: document.getElementById('minPrice').value,
+                max_price: document.getElementById('maxPrice').value,
+                condition: Array.from(document.querySelectorAll('.condition-filters input:checked'))
+                    .map(cb => cb.value).join(','),
+                location: document.getElementById('locationFilter').value,
+                sort: document.getElementById('sortFilter').value
+            };
+            
+            closeFilterSidebar();
+            loadMarketplace(currentCategory, true);
+        }
+        
+        function clearFilters() {
+            document.getElementById('minPrice').value = '';
+            document.getElementById('maxPrice').value = '';
+            document.querySelectorAll('.condition-filters input').forEach(cb => cb.checked = false);
+            document.querySelector('.condition-filters input[value="good"]').checked = true;
+            document.getElementById('locationFilter').value = '';
+            document.getElementById('sortFilter').value = 'newest';
+            
+            currentFilters = {};
+            loadMarketplace(currentCategory, true);
+        }
+        
+        // Notifications
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationsDropdown');
+            dropdown.classList.toggle('show');
+        }
+        
+        async function loadNotificationsCount() {
+            try {
+                const response = await fetch('/api/notifications/unread-count');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('notificationCount').textContent = data.count;
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+            }
+        }
+        
+        function markAllAsRead() {
+            // Implement mark all as read functionality
+            document.querySelectorAll('.notification-item.unread').forEach(item => {
+                item.classList.remove('unread');
+            });
+            document.getElementById('notificationCount').textContent = '0';
+        }
+        
+        // Show create listing modal
+        function showCreateListingModal() {
+            const modal = new bootstrap.Modal(document.getElementById('createListingModal'));
+            modal.show();
+        }
+        
+        // Utility function for debouncing
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Global function for tab switching (for inline onclick)
+        window.loadMarketplace = loadMarketplace;
+        window.contactSeller = contactSeller;
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom Marketplace JS -->
+    <script src="/js/marketplace.js"></script>
+</body>
+</html>

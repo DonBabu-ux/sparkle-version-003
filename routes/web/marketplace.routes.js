@@ -1,10 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const marketplaceController = require('../../controllers/marketplace.controller');
-const { ejsAuthMiddleware } = require('../../middleware/auth.middleware');
+const { authMiddleware } = require('../../middleware/auth.middleware');
 
-router.get('/marketplace', ejsAuthMiddleware, marketplaceController.renderMarketplace);
-router.get('/lost-found', ejsAuthMiddleware, marketplaceController.renderLostFound);
-router.get('/skill-market', ejsAuthMiddleware, marketplaceController.renderSkillMarket);
+// Main marketplace page
+router.get('/marketplace', marketplaceController.renderMarketplace);
+
+// Lost & Found page
+router.get('/lost-found', marketplaceController.renderLostFound);
+
+// Skill Marketplace page
+router.get('/skill-market', marketplaceController.renderSkillMarket);
+
+// Single listing page
+router.get('/marketplace/listings/:id', marketplaceController.renderListingDetail);
+
+// User's listings page (requires auth)
+router.get('/my-listings', authMiddleware, marketplaceController.renderUserListings);
+
+// User's marketplace chats (requires auth)
+router.get('/marketplace/chats', authMiddleware, marketplaceController.renderMarketplaceChats);
 
 module.exports = router;

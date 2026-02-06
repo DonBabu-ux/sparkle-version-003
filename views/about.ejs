@@ -15,6 +15,7 @@
                 min-height: 100vh;
                 display: block;
                 overflow: hidden;
+                position: relative;
             }
             
             .phone-container {
@@ -23,45 +24,55 @@
                 border-radius: 0 !important;
                 margin: 0 !important;
                 padding: 10px !important;
+                width: 100% !important;
             }
             
             .phone-screen {
                 border-radius: 20px !important;
+                height: calc(100vh - 20px) !important;
             }
             
             .demo-info {
                 display: none !important;
             }
             
-            /* Mobile Navigation Button */
-            .mobile-nav-button {
-                display: block !important;
+            /* Mobile Navigation Buttons */
+            .mobile-nav-container {
+                display: flex !important;
                 position: fixed;
-                top: 20px;
-                left: 20px;
+                top: 15px;
+                left: 15px;
+                right: 15px;
                 z-index: 10000;
+                justify-content: space-between;
+            }
+            
+            .mobile-nav-button {
+                display: flex !important;
                 background: var(--gradient);
                 color: white;
-                width: 50px;
-                height: 50px;
+                width: 45px;
+                height: 45px;
                 border-radius: 50%;
-                display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 1.2rem;
+                font-size: 1.1rem;
                 cursor: pointer;
                 box-shadow: 0 4px 15px rgba(255, 0, 102, 0.3);
+                border: none;
                 animation: pulse 2s infinite;
+                margin: 0 5px;
+            }
+            
+            .mobile-nav-button:nth-child(2) {
+                animation-delay: 0.5s;
+                background: linear-gradient(135deg, #667eea, #764ba2);
             }
             
             @keyframes pulse {
                 0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
+                50% { transform: scale(1.05); }
                 100% { transform: scale(1); }
-            }
-            
-            .mobile-nav-button:hover {
-                transform: scale(1.1);
             }
             
             /* Hide regular home button on mobile */
@@ -73,6 +84,7 @@
             .phone-notch {
                 width: 160px !important;
                 height: 20px !important;
+                top: 10px !important;
             }
             
             /* Full screen adjustments */
@@ -80,10 +92,78 @@
                 box-shadow: none !important;
                 border: none !important;
             }
+            
+            /* About Modal */
+            .about-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                z-index: 20000;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            
+            .about-content {
+                background: white;
+                border-radius: 20px;
+                padding: 30px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                position: relative;
+                animation: modalFade 0.3s ease;
+            }
+            
+            @keyframes modalFade {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .close-modal {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background: var(--gradient);
+                color: white;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 0.9rem;
+            }
+            
+            /* Adjust phone screen for safe areas */
+            @supports (padding: max(0px)) {
+                .phone-container {
+                    padding-top: max(10px, env(safe-area-inset-top));
+                    padding-bottom: max(10px, env(safe-area-inset-bottom));
+                    padding-left: max(10px, env(safe-area-inset-left));
+                    padding-right: max(10px, env(safe-area-inset-right));
+                }
+                
+                .mobile-nav-container {
+                    top: max(15px, env(safe-area-inset-top));
+                    left: max(15px, env(safe-area-inset-left));
+                    right: max(15px, env(safe-area-inset-right));
+                }
+            }
         }
         
-        /* Hide mobile nav button on desktop by default */
-        .mobile-nav-button {
+        /* Hide mobile nav on desktop by default */
+        .mobile-nav-container {
+            display: none;
+        }
+        
+        .about-modal {
             display: none;
         }
         
@@ -719,9 +799,54 @@
     </style>
 </head>
 <body>
-    <!-- Mobile Navigation Button -->
-    <div class="mobile-nav-button" onclick="restartDemo()">
-        <i class="fas fa-home"></i>
+    <!-- Mobile Navigation Buttons -->
+    <div class="mobile-nav-container">
+        <button class="mobile-nav-button" onclick="restartDemo()">
+            <i class="fas fa-home"></i>
+        </button>
+        <button class="mobile-nav-button" onclick="showAboutModal()">
+            <i class="fas fa-info"></i>
+        </button>
+    </div>
+
+    <!-- About Modal -->
+    <div class="about-modal" id="aboutModal">
+        <div class="about-content">
+            <div class="close-modal" onclick="hideAboutModal()">
+                <i class="fas fa-times"></i>
+            </div>
+            <h2 style="color: var(--dark-pink); margin-bottom: 20px; text-align: center;">About Sparkle</h2>
+            <div style="color: #333; line-height: 1.6;">
+                <p style="margin-bottom: 15px;"><strong>Sparkle</strong> is the ultimate campus social app designed exclusively for students to connect, share, and thrive in their academic journey.</p>
+                
+                <h3 style="color: var(--primary-pink); margin: 20px 0 10px;">✨ Key Features:</h3>
+                <ul style="margin-left: 20px; margin-bottom: 20px;">
+                    <li><strong>Campus Moments:</strong> Share your campus experiences with friends</li>
+                    <li><strong>Study Groups:</strong> Connect with classmates for collaborative learning</li>
+                    <li><strong>Campus Events:</strong> Never miss out on campus activities and parties</li>
+                    <li><strong>Marketplace:</strong> Buy, sell, or trade textbooks and essentials</li>
+                    <li><strong>Story Sharing:</strong> Post updates with photos, music, and filters</li>
+                    <li><strong>Messaging:</strong> Real-time chat with friends and study groups</li>
+                </ul>
+                
+                <h3 style="color: var(--primary-pink); margin: 20px 0 10px;">🎯 Our Mission:</h3>
+                <p style="margin-bottom: 15px;">To create a vibrant, safe, and engaging digital campus community where every student can find their place, make meaningful connections, and enhance their college experience.</p>
+                
+                <h3 style="color: var(--primary-pink); margin: 20px 0 10px;">🏆 Why Choose Sparkle?</h3>
+                <ul style="margin-left: 20px; margin-bottom: 20px;">
+                    <li>Exclusive to verified students</li>
+                    <li>Campus-focused features</li>
+                    <li>24/7 support team</li>
+                    <li>Privacy-first approach</li>
+                    <li>Real campus integration</li>
+                </ul>
+                
+                <div style="background: var(--light-pink); padding: 20px; border-radius: 15px; margin-top: 20px;">
+                    <h4 style="color: var(--dark-pink); margin-bottom: 10px;">Join Thousands of Students!</h4>
+                    <p style="color: #333;">Sparkle is already connecting students across 50+ campuses nationwide. Be part of the movement!</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Loading Indicator -->
@@ -1092,21 +1217,7 @@
         let autoPlayInterval;
         const sceneDuration = 2000; // 2 seconds per scene
         
-        // Initialize demo
-        function initDemo() {
-            // Hide loading indicator
-            setTimeout(() => {
-                document.getElementById('loadingIndicator').style.display = 'none';
-            }, 1500);
-            
-            // Start auto-play
-            startAutoPlay();
-            
-            // Add scene-specific animations
-            setupSceneAnimations();
-        }
-        
-        // Start auto-play
+        // Fix auto-restart function
         function startAutoPlay() {
             if (autoPlayInterval) {
                 clearInterval(autoPlayInterval);
@@ -1116,11 +1227,23 @@
                 if (currentScene < totalScenes) {
                     nextScene();
                 } else {
-                    // At the end, add some celebration and restart
+                    // At the end, add celebration and auto-restart
                     addCelebration();
+                    
+                    // Auto-restart after celebration
                     setTimeout(() => {
-                        restartDemo();
-                    }, 1000);
+                        // Hide all scenes
+                        for (let i = 1; i <= totalScenes; i++) {
+                            document.getElementById(`scene${i}`).classList.remove('active');
+                        }
+                        
+                        // Reset to first scene
+                        currentScene = 1;
+                        document.getElementById('scene1').classList.add('active');
+                        
+                        // Continue auto-play
+                        startAutoPlay();
+                    }, 1500); // Give time for celebration before restart
                 }
             }, sceneDuration);
         }
@@ -1356,7 +1479,7 @@
             }
         }
         
-        // Restart demo
+        // Restart demo manually
         function restartDemo() {
             // Show loading indicator
             document.getElementById('loadingIndicator').style.display = 'flex';
@@ -1379,6 +1502,30 @@
             }, 1500);
         }
         
+        // About modal functions
+        function showAboutModal() {
+            // Pause auto-play when showing modal
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+            }
+            
+            document.getElementById('aboutModal').style.display = 'flex';
+        }
+        
+        function hideAboutModal() {
+            document.getElementById('aboutModal').style.display = 'none';
+            
+            // Resume auto-play
+            startAutoPlay();
+        }
+        
+        // Close modal on outside click
+        document.getElementById('aboutModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideAboutModal();
+            }
+        });
+        
         // Pause on hover (optional)
         document.querySelector('.phone-container').addEventListener('mouseenter', () => {
             clearInterval(autoPlayInterval);
@@ -1389,7 +1536,33 @@
         });
         
         // Initialize on load
-        document.addEventListener('DOMContentLoaded', initDemo);
+        document.addEventListener('DOMContentLoaded', function() {
+            initDemo();
+            
+            // Adjust phone screen size for mobile
+            if (window.innerWidth <= 768) {
+                const phoneScreen = document.querySelector('.phone-screen');
+                const notch = document.querySelector('.phone-notch');
+                
+                // Calculate safe area for notch phones
+                const notchHeight = notch.offsetHeight + 10; // Add some padding
+                phoneScreen.style.height = `calc(100% - ${notchHeight}px)`;
+                phoneScreen.style.marginTop = `${notchHeight}px`;
+            }
+        });
+        
+        function initDemo() {
+            // Hide loading indicator
+            setTimeout(() => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }, 1500);
+            
+            // Start auto-play
+            startAutoPlay();
+            
+            // Add scene-specific animations
+            setupSceneAnimations();
+        }
     </script>
 </body>
 </html>

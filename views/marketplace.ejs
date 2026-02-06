@@ -712,6 +712,48 @@
                 timeout = setTimeout(later, wait);
             };
         }
+
+
+// Add to your existing Marketplace class:
+
+/**
+ * Increment view count for a listing
+ */
+static async incrementViewCount(listingId) {
+    try {
+        await pool.query(
+            'UPDATE marketplace_listings SET view_count = view_count + 1 WHERE listing_id = ?',
+            [listingId]
+        );
+        return true;
+    } catch (error) {
+        console.error('Error incrementing view count:', error);
+        return false;
+    }
+}
+
+/**
+ * Get user's own listings
+ */
+static async getUserListings(userId) {
+    try {
+        const [listings] = await pool.query(
+            `SELECT m.*, 
+                    (SELECT COUNT(*) FROM listing_media WHERE listing_id = m.listing_id) as media_count,
+                    (SELECT media_url FROM listing_media WHERE listing_id = m.listing_id AND media_type = 'image' 
+                     ORDER BY upload_order LIMIT 1) as thumbnail_url
+             FROM marketplace_listings m 
+             WHERE m.seller_id = ?
+             ORDER BY m.created_at DESC`,
+            [userId]
+        );
+        
+        return listings;
+    } catch (error) {
+        console.error('Error getting user listings:', error);
+        return [];
+    }
+}
         
         // Global function for tab switching (for inline onclick)
         window.loadMarketplace = loadMarketplace;

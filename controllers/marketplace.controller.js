@@ -78,6 +78,141 @@ const renderSkillMarket = async (req, res) => {
     }
 };
 
+// Render single listing page
+const renderListingDetail = async (req, res) => {
+    try {
+        console.log('Rendering listing detail for ID:', req.params.id);
+        
+        const listingId = req.params.id;
+        let listing;
+        
+        try {
+            // Try to get listing with media
+            listing = await Marketplace.getListingWithMedia(listingId);
+            
+            if (!listing) {
+                console.log('Listing not found:', listingId);
+                return res.status(404).render('404', { 
+                    title: 'Listing Not Found',
+                    message: 'This listing does not exist or has been removed.'
+                });
+            }
+            
+            // Increment view count (don't fail if this errors)
+            try {
+                await Marketplace.incrementViewCount(listingId);
+            } catch (viewError) {
+                console.warn('Could not increment view count:', viewError.message);
+            }
+            
+        } catch (dbError) {
+            console.error('Database error loading listing:', dbError);
+            return res.status(500).render('error', {
+                title: 'Error',
+                message: 'Failed to load listing details from database'
+            });
+        }
+        
+        // Sanitize media URLs
+        if (listing.media && Array.isArray(listing.media)) {
+            listing.media = listing.media.map(media => ({
+                ...media,
+                media_url: getSafeMediaUrl(media.media_url)
+            }));
+        }
+        
+        res.render('marketplace/listing-detail', {
+            title: listing.title || 'Listing Details',
+            listing: listing,
+            user: req.user || req.session?.user,
+            campus: req.session?.campus || 'main_campus'
+        });
+        
+    } catch (error) {
+        console.error('Error rendering listing detail:', error);
+        res.status(500).render('error', {
+            title: 'Error',
+            message: 'Failed to load listing details'
+        });
+    }
+};
+
+// Render user's listings
+const renderUserListings = async (req, res) => {
+    try {
+        const userId = req.user?.user_id || req.session?.userId;
+        
+        if (!userId) {
+            return res.redirect('/login');
+        }
+        
+        let listings = [];
+        try {
+            listings = await Marketplace.getUserListings(userId);
+        } catch (dbError) {
+            console.warn('Could not load user listings:', dbError.message);
+        }
+        
+        // Process listings
+        const processedListings = listings.map(listing => {
+            const thumbnail = listing.thumbnail_url || listing.image_url;
+            return {
+                ...listing,
+                thumbnail_url: getSafeMediaUrl(thumbnail),
+                status_display: listing.status === 'active' ? 'Active' : 
+                              listing.status === 'sold' ? 'Sold' : 
+                              listing.status === 'pending' ? 'Pending' : 'Unknown'
+            };
+        });
+        
+        res.render('marketplace/my-listings', {
+            title: 'My Listings',
+            listings: processedListings,
+            user: req.user || req.session?.user,
+            campus: req.session?.campus || 'main_campus'
+        });
+        
+    } catch (error) {
+        console.error('Error rendering user listings:', error);
+        res.status(500).render('error', {
+            title: 'Error',
+            message: 'Failed to load your listings'
+        });
+    }
+};
+
+// Render marketplace chats
+const renderMarketplaceChats = async (req, res) => {
+    try {
+        const userId = req.user?.user_id || req.session?.userId;
+        
+        if (!userId) {
+            return res.redirect('/login');
+        }
+        
+        let chats = [];
+        try {
+            chats = await Marketplace.getUserChats(userId);
+        } catch (dbError) {
+            console.warn('Could not load user chats:', dbError.message);
+        }
+        
+        res.render('marketplace/chats', {
+            title: 'Marketplace Chats',
+            chats: chats || [],
+            user: req.user || req.session?.user,
+            campus: req.session?.campus || 'main_campus'
+        });
+        
+    } catch (error) {
+        console.error('Error rendering marketplace chats:', error);
+        res.status(500).render('error', {
+            title: 'Error',
+            message: 'Failed to load chats'
+        });
+    }
+};
+
 // ========== API ROUTES (JSON) ==========
 
 // Get listings with error handling
@@ -140,6 +275,62 @@ const getListings = async (req, res) => {
             success: true, 
             listings: [],
             message: 'Service temporarily unavailable'
+        });
+    }
+};
+
+// Get single listing by ID
+const getListingById = async (req, res) => {
+    try {
+        console.log('GET /api/marketplace/listings/:id called, ID:', req.params.id);
+        
+        const listingId = req.params.id;
+        let listing;
+        
+        try {
+            listing = await Marketplace.getListingWithMedia(listingId);
+            
+            if (!listing) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Listing not found'
+                });
+            }
+            
+            // Increment view count
+            try {
+                await Marketplace.incrementViewCount(listingId);
+            } catch (viewError) {
+                console.warn('Could not increment view count:', viewError.message);
+            }
+            
+        } catch (dbError) {
+            console.error('Database error in getListingById:', dbError);
+            return res.status(500).json({
+                success: false,
+                message: 'Database error loading listing'
+            });
+        }
+        
+        // Sanitize media URLs
+        if (listing.media && Array.isArray(listing.media)) {
+            listing.media = listing.media.map(media => ({
+                ...media,
+                media_url: getSafeMediaUrl(media.media_url)
+            }));
+        }
+        
+        res.json({
+            success: true,
+            listing: listing
+        });
+        
+    } catch (error) {
+        console.error('Error in getListingById:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get listing',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
@@ -216,67 +407,306 @@ const createListing = async (req, res) => {
     }
 };
 
-// Simple placeholder for other methods (implement these later)
-const getListingById = async (req, res) => {
-    res.json({ success: true, message: 'getListingById - to be implemented' });
-};
-
+// Contact seller
 const contactSeller = async (req, res) => {
-    res.json({ success: true, message: 'contactSeller - to be implemented' });
+    try {
+        console.log('POST /api/marketplace/contact-seller called');
+        
+        const buyerId = req.user?.user_id || req.session?.userId;
+        const { sellerId, listingId } = req.body;
+        
+        if (!buyerId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+        
+        if (buyerId === sellerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot contact yourself'
+            });
+        }
+        
+        // Get or create chat
+        let chat;
+        try {
+            chat = await Marketplace.getOrCreateChat(buyerId, sellerId, listingId);
+        } catch (chatError) {
+            console.error('Chat creation error:', chatError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to create chat'
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            chatId: chat.chat_id,
+            redirect: `/messages?chat=${chat.chat_id}`
+        });
+        
+    } catch (error) {
+        console.error('Error in contactSeller:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to contact seller',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
 };
 
+// Get user's chats
 const getUserChats = async (req, res) => {
-    res.json({ success: true, message: 'getUserChats - to be implemented' });
+    try {
+        const userId = req.user?.user_id || req.session?.userId;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+        
+        let chats = [];
+        try {
+            chats = await Marketplace.getUserChats(userId);
+        } catch (dbError) {
+            console.error('Database error in getUserChats:', dbError);
+        }
+        
+        res.json({ 
+            success: true, 
+            chats: chats || []
+        });
+        
+    } catch (error) {
+        console.error('Error in getUserChats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch chats'
+        });
+    }
 };
 
+// Get chat messages
 const getChatMessages = async (req, res) => {
-    res.json({ success: true, message: 'getChatMessages - to be implemented' });
+    try {
+        const userId = req.user?.user_id || req.session?.userId;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+        
+        let messages = [];
+        try {
+            messages = await Marketplace.getChatMessages(req.params.chatId);
+        } catch (dbError) {
+            console.error('Database error in getChatMessages:', dbError);
+        }
+        
+        res.json({ 
+            success: true, 
+            messages: messages || []
+        });
+        
+    } catch (error) {
+        console.error('Error in getChatMessages:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch messages'
+        });
+    }
 };
 
+// Send message
 const sendMessage = async (req, res) => {
-    res.json({ success: true, message: 'sendMessage - to be implemented' });
+    try {
+        const senderId = req.user?.user_id || req.session?.userId;
+        const { content } = req.body;
+        const { chatId } = req.params;
+        
+        if (!senderId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+        
+        if (!content || content.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'Message content is required'
+            });
+        }
+        
+        let messageId;
+        try {
+            messageId = await Marketplace.sendMessage(chatId, senderId, content);
+        } catch (dbError) {
+            console.error('Database error in sendMessage:', dbError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to send message'
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            messageId: messageId
+        });
+        
+    } catch (error) {
+        console.error('Error in sendMessage:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send message'
+        });
+    }
 };
 
+// Lost & Found items
 const getLostFoundItems = async (req, res) => {
     try {
-        const items = await Marketplace.getLostFoundItems(req.query);
-        const sanitizedItems = items.map(i => ({ ...i, image_url: getSafeMediaUrl(i.image_url) }));
-        res.json({ success: true, items: sanitizedItems });
+        let items = [];
+        try {
+            items = await Marketplace.getLostFoundItems(req.query);
+        } catch (dbError) {
+            console.error('Database error in getLostFoundItems:', dbError);
+        }
+        
+        const sanitizedItems = items.map(i => ({ 
+            ...i, 
+            image_url: getSafeMediaUrl(i.image_url) 
+        }));
+        
+        res.json({ 
+            success: true, 
+            items: sanitizedItems || []
+        });
+        
     } catch (error) {
         console.error('Error in getLostFoundItems:', error);
-        res.status(500).json({ success: false, error: 'Failed to fetch items' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch items'
+        });
     }
 };
 
 const createLostFoundItem = async (req, res) => {
     try {
-        const reporterId = req.user.user_id || req.user.userId || req.session.userId;
-        const itemId = await Marketplace.createLostFoundItem(reporterId, req.body);
-        res.status(201).json({ success: true, message: 'Item reported successfully', item_id: itemId });
+        const reporterId = req.user?.user_id || req.session?.userId;
+        
+        if (!reporterId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+        
+        if (!req.body.title || !req.body.description || !req.body.type) {
+            return res.status(400).json({
+                success: false,
+                message: 'Title, description, and type are required'
+            });
+        }
+        
+        let itemId;
+        try {
+            itemId = await Marketplace.createLostFoundItem(reporterId, req.body);
+        } catch (dbError) {
+            console.error('Database error in createLostFoundItem:', dbError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to create item'
+            });
+        }
+        
+        res.status(201).json({ 
+            success: true, 
+            message: 'Item reported successfully', 
+            item_id: itemId
+        });
+        
     } catch (error) {
         console.error('Error in createLostFoundItem:', error);
-        res.status(500).json({ success: false, error: 'Failed to create item' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to create item'
+        });
     }
 };
 
+// Skill offers
 const getSkillOffers = async (req, res) => {
     try {
-        const offers = await Marketplace.getSkillOffers(req.query);
-        res.json({ success: true, offers });
+        let offers = [];
+        try {
+            offers = await Marketplace.getSkillOffers(req.query);
+        } catch (dbError) {
+            console.error('Database error in getSkillOffers:', dbError);
+        }
+        
+        res.json({ 
+            success: true, 
+            offers: offers || []
+        });
+        
     } catch (error) {
         console.error('Error in getSkillOffers:', error);
-        res.status(500).json({ success: false, error: 'Failed to fetch skill offers' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch skill offers'
+        });
     }
 };
 
 const createSkillOffer = async (req, res) => {
     try {
-        const userId = req.user.user_id || req.user.userId || req.session.userId;
-        const offerId = await Marketplace.createSkillOffer(userId, req.body);
-        res.status(201).json({ success: true, message: 'Skill offer created successfully', offer_id: offerId });
+        const userId = req.user?.user_id || req.session?.userId;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+        
+        if (!req.body.title || !req.body.description) {
+            return res.status(400).json({
+                success: false,
+                message: 'Title and description are required'
+            });
+        }
+        
+        let offerId;
+        try {
+            offerId = await Marketplace.createSkillOffer(userId, req.body);
+        } catch (dbError) {
+            console.error('Database error in createSkillOffer:', dbError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to create skill offer'
+            });
+        }
+        
+        res.status(201).json({ 
+            success: true, 
+            message: 'Skill offer created successfully', 
+            offer_id: offerId
+        });
+        
     } catch (error) {
         console.error('Error in createSkillOffer:', error);
-        res.status(500).json({ success: false, error: 'Failed to create skill offer' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to create skill offer'
+        });
     }
 };
 
@@ -285,23 +715,20 @@ module.exports = {
     renderMarketplace,
     renderLostFound,
     renderSkillMarket,
+    renderListingDetail,
+    renderUserListings,
+    renderMarketplaceChats,
     
-    // Listing Routes
+    // API Routes
     getListings,
     getListingById,
     createListing,
-    
-    // Chat Routes
     contactSeller,
     getUserChats,
     getChatMessages,
     sendMessage,
-    
-    // Lost & Found Routes
     getLostFoundItems,
     createLostFoundItem,
-    
-    // Skill Routes
     getSkillOffers,
     createSkillOffer
 };

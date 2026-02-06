@@ -1,12 +1,8 @@
-
-
-
-
 SET FOREIGN_KEY_CHECKS = 0;
 
-
-
-
+-- ============================================
+-- USERS & AUTHENTICATION
+-- ============================================
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `user_id` CHAR(36) NOT NULL,  
@@ -32,10 +28,7 @@ CREATE TABLE `users` (
   INDEX `idx_users_campus` (`campus`),
   INDEX `idx_users_username` (`username`),
   INDEX `idx_users_joined` (`joined_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `password_reset_tokens`;
 CREATE TABLE `password_reset_tokens` (
@@ -49,11 +42,11 @@ CREATE TABLE `password_reset_tokens` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_token_expiry` (`expires_at`),
   INDEX `idx_token_user` (`user_id`, `used_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
-
+-- ============================================
+-- ACHIEVEMENTS
+-- ============================================
 DROP TABLE IF EXISTS `achievements`;
 CREATE TABLE `achievements` (
   `achievement_id` CHAR(36) NOT NULL,
@@ -66,10 +59,7 @@ CREATE TABLE `achievements` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`achievement_id`),
   INDEX `idx_achievements_category` (`category`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `user_achievements`;
 CREATE TABLE `user_achievements` (
@@ -83,11 +73,11 @@ CREATE TABLE `user_achievements` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   FOREIGN KEY (`achievement_id`) REFERENCES `achievements`(`achievement_id`) ON DELETE CASCADE,
   INDEX `idx_user_achievements_user` (`user_id`, `unlocked_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
-
+-- ============================================
+-- SOCIAL FEATURES
+-- ============================================
 DROP TABLE IF EXISTS `follows`;
 CREATE TABLE `follows` (
   `follower_id` CHAR(36) NOT NULL,
@@ -99,10 +89,7 @@ CREATE TABLE `follows` (
   FOREIGN KEY (`following_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_follows_follower` (`follower_id`, `created_at`),
   INDEX `idx_follows_following` (`following_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `posts`;
 CREATE TABLE `posts` (
@@ -129,10 +116,7 @@ CREATE TABLE `posts` (
   INDEX `idx_posts_group` (`group_id`),
   INDEX `idx_posts_popularity` (`spark_count`, `created_at`),
   INDEX `idx_posts_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `comments`;
 CREATE TABLE `comments` (
@@ -153,10 +137,7 @@ CREATE TABLE `comments` (
   INDEX `idx_comments_post` (`post_id`, `created_at` ASC),
   INDEX `idx_comments_user` (`user_id`, `created_at`),
   INDEX `idx_comments_parent` (`parent_comment_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `sparks`;
 CREATE TABLE `sparks` (
@@ -179,8 +160,7 @@ CREATE TABLE `sparks` (
     (post_id IS NOT NULL AND comment_id IS NULL) OR 
     (post_id IS NULL AND comment_id IS NOT NULL)
   )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `bookmarks`;
 CREATE TABLE `bookmarks` (
@@ -193,16 +173,16 @@ CREATE TABLE `bookmarks` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   FOREIGN KEY (`post_id`) REFERENCES `posts`(`post_id`) ON DELETE CASCADE,
   INDEX `idx_bookmarks_user` (`user_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
-
+-- ============================================
+-- NOTIFICATIONS
+-- ============================================
 DROP TABLE IF EXISTS `notifications`;
 CREATE TABLE `notifications` (
   `notification_id` CHAR(36) NOT NULL,
   `user_id` CHAR(36) NOT NULL,
-  `type` ENUM('spark', 'comment', 'follow', 'message', 'group_invite', 'achievement', 'mention', 'share') NOT NULL,
+  `type` ENUM('spark', 'comment', 'follow', 'message', 'group_invite', 'achievement', 'mention', 'share', 'marketplace_contact') NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `content` TEXT NOT NULL,
   `related_id` VARCHAR(50) DEFAULT NULL,
@@ -218,11 +198,11 @@ CREATE TABLE `notifications` (
   FOREIGN KEY (`actor_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
   INDEX `idx_notifications_user` (`user_id`, `is_read`, `created_at`),
   INDEX `idx_notifications_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
-
+-- ============================================
+-- CLUBS
+-- ============================================
 DROP TABLE IF EXISTS `clubs`;
 CREATE TABLE `clubs` (
   `club_id` CHAR(36) NOT NULL,
@@ -247,10 +227,7 @@ CREATE TABLE `clubs` (
   INDEX `idx_clubs_campus` (`campus`, `is_verified`, `created_at`),
   INDEX `idx_clubs_category` (`category`, `campus`),
   INDEX `idx_clubs_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `club_members`;
 CREATE TABLE `club_members` (
@@ -268,10 +245,7 @@ CREATE TABLE `club_members` (
   FOREIGN KEY (`invited_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
   INDEX `idx_club_members_user` (`user_id`, `joined_at`),
   INDEX `idx_club_members_club` (`club_id`, `role`, `joined_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `club_events`;
 CREATE TABLE `club_events` (
@@ -294,11 +268,11 @@ CREATE TABLE `club_events` (
   INDEX `idx_club_events_club` (`club_id`, `start_time`),
   INDEX `idx_club_events_campus` (`campus`, `start_time`),
   INDEX `idx_club_events_upcoming` (`start_time`, `is_public`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
-
+-- ============================================
+-- EVENTS
+-- ============================================
 DROP TABLE IF EXISTS `campus_events`;
 CREATE TABLE `campus_events` (
   `event_id` CHAR(36) NOT NULL,
@@ -324,10 +298,7 @@ CREATE TABLE `campus_events` (
   INDEX `idx_campus_events_campus` (`campus`, `start_time`),
   INDEX `idx_campus_events_upcoming` (`start_time`, `is_public`),
   INDEX `idx_campus_events_creator` (`creator_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `event_rsvps`;
 CREATE TABLE `event_rsvps` (
@@ -344,11 +315,11 @@ CREATE TABLE `event_rsvps` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_rsvps_user` (`user_id`, `created_at`),
   INDEX `idx_rsvps_event` (`event_id`, `event_type`, `status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
-
+-- ============================================
+-- CONFESSIONS
+-- ============================================
 DROP TABLE IF EXISTS `confessions`;
 CREATE TABLE `confessions` (
   `confession_id` CHAR(36) NOT NULL,
@@ -366,9 +337,7 @@ CREATE TABLE `confessions` (
   INDEX `idx_confessions_campus` (`campus`, `created_at`),
   INDEX `idx_confessions_popular` (`rating_count`, `created_at`),
   INDEX `idx_confessions_best` (`is_best_of_day`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `confession_reactions`;
 CREATE TABLE `confession_reactions` (
@@ -382,10 +351,11 @@ CREATE TABLE `confession_reactions` (
   FOREIGN KEY (`confession_id`) REFERENCES `confessions`(`confession_id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_confession_reactions_confession` (`confession_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
+-- ============================================
+-- GROUPS
+-- ============================================
 DROP TABLE IF EXISTS `groups`;
 CREATE TABLE `groups` (
   `group_id` CHAR(36) NOT NULL,
@@ -405,9 +375,7 @@ CREATE TABLE `groups` (
   INDEX `idx_groups_campus` (`campus`, `created_at`),
   INDEX `idx_groups_category` (`category`),
   INDEX `idx_groups_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `group_members`;
 CREATE TABLE `group_members` (
@@ -425,10 +393,11 @@ CREATE TABLE `group_members` (
   FOREIGN KEY (`invited_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
   INDEX `idx_group_members_user` (`user_id`, `joined_at`),
   INDEX `idx_group_members_group` (`group_id`, `role`, `joined_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
+-- ============================================
+-- CHAT & MESSAGING
+-- ============================================
 DROP TABLE IF EXISTS `group_chats`;
 CREATE TABLE `group_chats` (
   `chat_id` CHAR(36) NOT NULL,
@@ -449,7 +418,28 @@ CREATE TABLE `group_chats` (
   PRIMARY KEY (`chat_id`),
   FOREIGN KEY (`creator_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_group_chats_creator` (`creator_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- NEW TABLE: Personal chats for 1-on-1 conversations
+DROP TABLE IF EXISTS `personal_chats`;
+CREATE TABLE `personal_chats` (
+  `chat_id` CHAR(36) NOT NULL,
+  `participant1_id` CHAR(36) NOT NULL,
+  `participant2_id` CHAR(36) NOT NULL,
+  `listing_id` CHAR(36) DEFAULT NULL,
+  `last_message` TEXT DEFAULT NULL,
+  `last_message_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`chat_id`),
+  FOREIGN KEY (`participant1_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`participant2_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`listing_id`) REFERENCES `marketplace_listings`(`listing_id`) ON DELETE SET NULL,
+  UNIQUE KEY `unique_personal_chat` (`participant1_id`, `participant2_id`, `listing_id`),
+  INDEX `idx_personal_chats_participant1` (`participant1_id`, `last_message_time`),
+  INDEX `idx_personal_chats_participant2` (`participant2_id`, `last_message_time`),
+  INDEX `idx_personal_chats_listing` (`listing_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `group_chat_members`;
 CREATE TABLE `group_chat_members` (
@@ -466,7 +456,7 @@ CREATE TABLE `group_chat_members` (
   FOREIGN KEY (`chat_id`) REFERENCES `group_chats`(`chat_id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_chat_members_user` (`user_id`, `joined_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `video_calls`;
 CREATE TABLE `video_calls` (
@@ -479,15 +469,16 @@ CREATE TABLE `video_calls` (
   PRIMARY KEY (`call_id`),
   FOREIGN KEY (`chat_id`) REFERENCES `group_chats`(`chat_id`) ON DELETE CASCADE,
   FOREIGN KEY (`started_by`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Updated messages table to support both personal and group chats
 DROP TABLE IF EXISTS `messages`;
 CREATE TABLE `messages` (
   `message_id` CHAR(36) NOT NULL,
   `chat_id` CHAR(36) DEFAULT NULL,
+  `personal_chat_id` CHAR(36) DEFAULT NULL,
   `sender_id` CHAR(36) NOT NULL,
-  `recipient_id` CHAR(36) DEFAULT NULL,
-  `type` ENUM('text', 'image', 'video', 'voice_note', 'post_share', 'system', 'call') DEFAULT 'text',
+  `type` ENUM('text', 'image', 'video', 'voice_note', 'post_share', 'system', 'call', 'marketplace_listing') DEFAULT 'text',
   `content` TEXT DEFAULT NULL,
   `media_url` VARCHAR(500) DEFAULT NULL,
   `is_read` TINYINT(1) DEFAULT 0,
@@ -495,19 +486,21 @@ CREATE TABLE `messages` (
   `read_at` TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (`message_id`),
   FOREIGN KEY (`chat_id`) REFERENCES `group_chats`(`chat_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`personal_chat_id`) REFERENCES `personal_chats`(`chat_id`) ON DELETE CASCADE,
   FOREIGN KEY (`sender_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`recipient_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
-  INDEX `idx_messages_chat` (`chat_id`, `sent_at`),
+  INDEX `idx_messages_group_chat` (`chat_id`, `sent_at`),
+  INDEX `idx_messages_personal_chat` (`personal_chat_id`, `sent_at`),
   INDEX `idx_messages_sender` (`sender_id`, `sent_at`),
-  INDEX `idx_messages_recipient` (`recipient_id`, `is_read`, `sent_at`),
+  INDEX `idx_messages_unread` (`sender_id`, `is_read`, `sent_at`),
   CHECK (
-    (chat_id IS NOT NULL AND recipient_id IS NULL) OR 
-    (chat_id IS NULL AND recipient_id IS NOT NULL)
+    (chat_id IS NOT NULL AND personal_chat_id IS NULL) OR 
+    (chat_id IS NULL AND personal_chat_id IS NOT NULL)
   )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
+-- ============================================
+-- MARKETPLACE
+-- ============================================
 DROP TABLE IF EXISTS `marketplace_listings`;
 CREATE TABLE `marketplace_listings` (
   `listing_id` CHAR(36) NOT NULL,
@@ -519,19 +512,36 @@ CREATE TABLE `marketplace_listings` (
   `condition` ENUM('new', 'like_new', 'good', 'fair', 'poor') DEFAULT 'good',
   `campus` VARCHAR(100) NOT NULL,
   `location` VARCHAR(255) DEFAULT NULL,
-  `image_url` VARCHAR(500) DEFAULT NULL,
   `is_sold` TINYINT(1) DEFAULT 0,
+  `status` ENUM('active', 'sold', 'pending', 'deleted') DEFAULT 'active',
   `sold_at` TIMESTAMP NULL DEFAULT NULL,
+  `tags` JSON DEFAULT NULL,
+  `view_count` INT DEFAULT 0,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`listing_id`),
   FOREIGN KEY (`seller_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
-  INDEX `idx_marketplace_campus` (`campus`, `is_sold`, `created_at`),
-  INDEX `idx_marketplace_category` (`category`, `is_sold`),
-  INDEX `idx_marketplace_seller` (`seller_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+  INDEX `idx_marketplace_campus` (`campus`, `status`, `created_at`),
+  INDEX `idx_marketplace_category` (`category`, `status`),
+  INDEX `idx_marketplace_seller` (`seller_id`, `created_at`),
+  INDEX `idx_marketplace_price` (`price`),
+  INDEX `idx_marketplace_status` (`status`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
+-- NEW TABLE: Multiple media files per listing
+DROP TABLE IF EXISTS `listing_media`;
+CREATE TABLE `listing_media` (
+  `media_id` CHAR(36) NOT NULL,
+  `listing_id` CHAR(36) NOT NULL,
+  `media_url` VARCHAR(500) NOT NULL,
+  `media_type` ENUM('image', 'video') NOT NULL,
+  `upload_order` INT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`media_id`),
+  FOREIGN KEY (`listing_id`) REFERENCES `marketplace_listings`(`listing_id`) ON DELETE CASCADE,
+  INDEX `idx_listing_media_listing` (`listing_id`, `upload_order`),
+  INDEX `idx_listing_media_type` (`media_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `lost_found_items`;
 CREATE TABLE `lost_found_items` (
@@ -556,48 +566,7 @@ CREATE TABLE `lost_found_items` (
   INDEX `idx_lost_found_campus` (`campus`, `status`, `created_at`),
   INDEX `idx_lost_found_type` (`type`, `status`, `created_at`),
   INDEX `idx_lost_found_reporter` (`reporter_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
-DROP TABLE IF EXISTS `stories`;
-CREATE TABLE `stories` (
-  `story_id` CHAR(36) NOT NULL,
-  `user_id` CHAR(36) NOT NULL,
-  `media_url` VARCHAR(500) NOT NULL,
-  `media_type` ENUM('image', 'video') DEFAULT 'image',
-  `caption` VARCHAR(255) DEFAULT NULL,
-  `view_count` INT DEFAULT 0,
-  `share_count` INT DEFAULT 0,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `expires_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL 24 HOUR),
-  PRIMARY KEY (`story_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
-  INDEX `idx_stories_user` (`user_id`, `created_at`),
-  INDEX `idx_stories_active` (`expires_at`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
-
-DROP TABLE IF EXISTS `moments`;
-CREATE TABLE `moments` (
-  `moment_id` CHAR(36) NOT NULL,
-  `user_id` CHAR(36) NOT NULL,
-  `media_url` VARCHAR(500) NOT NULL,
-  `media_type` ENUM('image', 'video') DEFAULT 'image',
-  `caption` TEXT DEFAULT NULL,
-  `view_count` INT DEFAULT 0,
-  `like_count` INT DEFAULT 0,
-  `comment_count` INT DEFAULT 0,
-  `share_count` INT DEFAULT 0,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`moment_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
-  INDEX `idx_moments_user` (`user_id`, `created_at`),
-  INDEX `idx_moments_popular` (`like_count`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `skill_offers`;
 CREATE TABLE `skill_offers` (
@@ -618,10 +587,49 @@ CREATE TABLE `skill_offers` (
   INDEX `idx_skill_offers_campus` (`campus`, `is_active`, `created_at`),
   INDEX `idx_skill_offers_category` (`category`, `is_active`),
   INDEX `idx_skill_offers_user` (`user_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================
+-- STORIES & MOMENTS
+-- ============================================
+DROP TABLE IF EXISTS `stories`;
+CREATE TABLE `stories` (
+  `story_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `media_url` VARCHAR(500) NOT NULL,
+  `media_type` ENUM('image', 'video') DEFAULT 'image',
+  `caption` VARCHAR(255) DEFAULT NULL,
+  `view_count` INT DEFAULT 0,
+  `share_count` INT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `expires_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL 24 HOUR),
+  PRIMARY KEY (`story_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX `idx_stories_user` (`user_id`, `created_at`),
+  INDEX `idx_stories_active` (`expires_at`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+DROP TABLE IF EXISTS `moments`;
+CREATE TABLE `moments` (
+  `moment_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `media_url` VARCHAR(500) NOT NULL,
+  `media_type` ENUM('image', 'video') DEFAULT 'image',
+  `caption` TEXT DEFAULT NULL,
+  `view_count` INT DEFAULT 0,
+  `like_count` INT DEFAULT 0,
+  `comment_count` INT DEFAULT 0,
+  `share_count` INT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`moment_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX `idx_moments_user` (`user_id`, `created_at`),
+  INDEX `idx_moments_popular` (`like_count`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================
+-- LIVE STREAMS
+-- ============================================
 DROP TABLE IF EXISTS `live_streams`;
 CREATE TABLE `live_streams` (
   `stream_id` CHAR(36) NOT NULL,
@@ -641,10 +649,11 @@ CREATE TABLE `live_streams` (
   INDEX `idx_live_streams_status` (`status`, `started_at`),
   INDEX `idx_live_streams_campus` (`campus`, `status`),
   INDEX `idx_live_streams_streamer` (`streamer_id`, `started_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
+-- ============================================
+-- POLLS
+-- ============================================
 DROP TABLE IF EXISTS `polls`;
 CREATE TABLE `polls` (
   `poll_id` CHAR(36) NOT NULL,
@@ -662,9 +671,7 @@ CREATE TABLE `polls` (
   INDEX `idx_polls_campus` (`campus`, `created_at`),
   INDEX `idx_polls_creator` (`creator_id`, `created_at`),
   INDEX `idx_polls_active` (`expires_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `poll_options`;
 CREATE TABLE `poll_options` (
@@ -676,9 +683,7 @@ CREATE TABLE `poll_options` (
   PRIMARY KEY (`option_id`),
   FOREIGN KEY (`poll_id`) REFERENCES `polls`(`poll_id`) ON DELETE CASCADE,
   INDEX `idx_poll_options_poll` (`poll_id`, `option_order`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `poll_votes`;
 CREATE TABLE `poll_votes` (
@@ -694,10 +699,11 @@ CREATE TABLE `poll_votes` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_poll_votes_poll` (`poll_id`, `voted_at`),
   INDEX `idx_poll_votes_user` (`user_id`, `voted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-
+-- ============================================
+-- USER MODERATION
+-- ============================================
 DROP TABLE IF EXISTS `user_blocks`;
 CREATE TABLE `user_blocks` (
   `block_id` CHAR(36) NOT NULL,
@@ -710,8 +716,7 @@ CREATE TABLE `user_blocks` (
   FOREIGN KEY (`blocked_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_blocks_blocker` (`blocker_id`),
   INDEX `idx_blocks_blocked` (`blocked_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `user_reports`;
 CREATE TABLE `user_reports` (
@@ -726,8 +731,7 @@ CREATE TABLE `user_reports` (
   FOREIGN KEY (`reported_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_reports_reporter` (`reporter_id`),
   INDEX `idx_reports_reported` (`reported_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `user_mutes`;
 CREATE TABLE `user_mutes` (
@@ -741,10 +745,61 @@ CREATE TABLE `user_mutes` (
   FOREIGN KEY (`muted_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_mutes_muter` (`muter_id`),
   INDEX `idx_mutes_muted` (`muted_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================
+-- ADDITIONAL TABLES FOR MARKETPLACE
+-- ============================================
+-- NEW TABLE: Marketplace favorites/wishlist
+DROP TABLE IF EXISTS `marketplace_favorites`;
+CREATE TABLE `marketplace_favorites` (
+  `favorite_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `listing_id` CHAR(36) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`favorite_id`),
+  UNIQUE KEY `unique_user_listing_favorite` (`user_id`, `listing_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`listing_id`) REFERENCES `marketplace_listings`(`listing_id`) ON DELETE CASCADE,
+  INDEX `idx_marketplace_favorites_user` (`user_id`, `created_at`),
+  INDEX `idx_marketplace_favorites_listing` (`listing_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- NEW TABLE: Marketplace search history
+DROP TABLE IF EXISTS `marketplace_search_history`;
+CREATE TABLE `marketplace_search_history` (
+  `search_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `search_query` VARCHAR(255) NOT NULL,
+  `category` VARCHAR(50) DEFAULT NULL,
+  `campus` VARCHAR(100) DEFAULT NULL,
+  `min_price` DECIMAL(10, 2) DEFAULT NULL,
+  `max_price` DECIMAL(10, 2) DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`search_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX `idx_marketplace_search_user` (`user_id`, `created_at`),
+  INDEX `idx_marketplace_search_query` (`search_query`),
+  INDEX `idx_marketplace_search_time` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- NEW TABLE: Marketplace notifications
+DROP TABLE IF EXISTS `marketplace_notifications`;
+CREATE TABLE `marketplace_notifications` (
+  `notification_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `type` ENUM('new_message', 'price_drop', 'similar_item', 'item_sold', 'item_viewed') NOT NULL,
+  `listing_id` CHAR(36) DEFAULT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `content` TEXT NOT NULL,
+  `is_read` TINYINT(1) DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `read_at` TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (`notification_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`listing_id`) REFERENCES `marketplace_listings`(`listing_id`) ON DELETE SET NULL,
+  INDEX `idx_marketplace_notifications_user` (`user_id`, `is_read`, `created_at`),
+  INDEX `idx_marketplace_notifications_type` (`type`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;
-
-
-

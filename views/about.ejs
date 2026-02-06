@@ -1040,98 +1040,161 @@
     <!-- Cheer Animation Overlay -->
     <div class="cheer-overlay" id="cheerOverlay"></div>
 
-    <script>
-        // Demo state
-        let currentScene = 1;
-        const totalScenes = 6;
-        let hasPostedStory = false;
+  <script>
+    // Demo state
+    let currentScene = 1;
+    const totalScenes = 6;
+    let hasPostedStory = false;
+    let isAutoPlaying = true;
+    let autoPlayInterval;
+    const sceneDuration = 4000; // 4 seconds per scene
 
-        // Initialize demo
-        function initDemo() {
-            updateProgress();
-            updateSteps();
-            updateTimeline();
+    // Initialize demo
+    function initDemo() {
+        updateProgress();
+        updateSteps();
+        updateTimeline();
+        startAutoPlay();
+        
+        // Show auto-play status
+        showAutoPlayStatus();
+    }
+
+    // Start auto-play
+    function startAutoPlay() {
+        if (autoPlayInterval) {
+            clearInterval(autoPlayInterval);
         }
-
-        // Next scene
-        function nextScene() {
+        
+        autoPlayInterval = setInterval(() => {
             if (currentScene < totalScenes) {
-                // Special actions based on current scene
-                switch(currentScene) {
-                    case 1:
-                        // Simulate sign up
-                        console.log("User signed up successfully!");
-                        break;
-                    case 2:
-                        // Dashboard accessed
-                        console.log("Dashboard loaded");
-                        break;
-                    case 3:
-                        // Story posted
-                        if (!hasPostedStory) {
-                            postStory();
-                            hasPostedStory = true;
-                        }
-                        break;
-                    case 4:
-                        // Messages checked
-                        simulateChat();
-                        break;
-                    case 5:
-                        // Moments scrolled
-                        showNewMoment();
-                        break;
-                }
-
-                // Move to next scene
-                document.getElementById(`scene${currentScene}`).classList.remove('active');
-                document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.remove('active');
-                document.getElementById(`step${currentScene}`).classList.remove('active');
-                
-                currentScene++;
-                
-                document.getElementById(`scene${currentScene}`).classList.add('active');
-                document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.add('active');
-                document.getElementById(`step${currentScene}`).classList.add('active');
-                
-                updateProgress();
-                updateTimeline();
-                
-                // Update button states
-                document.getElementById('prevBtn').disabled = currentScene === 1;
-                document.getElementById('nextBtn').disabled = currentScene === totalScenes;
+                nextScene();
+            } else {
+                // At the end, show cheer and restart after delay
+                showCheers();
+                setTimeout(() => {
+                    restartDemo();
+                    setTimeout(() => {
+                        startAutoPlay();
+                    }, 500);
+                }, 3000);
             }
-        }
+        }, sceneDuration);
+    }
 
-        // Previous scene
-        function prevScene() {
-            if (currentScene > 1) {
-                document.getElementById(`scene${currentScene}`).classList.remove('active');
-                document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.remove('active');
-                document.getElementById(`step${currentScene}`).classList.remove('active');
-                
-                currentScene--;
-                
-                document.getElementById(`scene${currentScene}`).classList.add('active');
-                document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.add('active');
-                document.getElementById(`step${currentScene}`).classList.add('active');
-                
-                updateProgress();
-                updateTimeline();
-                
-                // Update button states
-                document.getElementById('prevBtn').disabled = currentScene === 1;
-                document.getElementById('nextBtn').disabled = currentScene === totalScenes;
+    // Stop auto-play
+    function stopAutoPlay() {
+        if (autoPlayInterval) {
+            clearInterval(autoPlayInterval);
+            autoPlayInterval = null;
+        }
+    }
+
+    // Toggle auto-play
+    function toggleAutoPlay() {
+        isAutoPlaying = !isAutoPlaying;
+        if (isAutoPlaying) {
+            startAutoPlay();
+        } else {
+            stopAutoPlay();
+        }
+        showAutoPlayStatus();
+    }
+
+    // Show auto-play status
+    function showAutoPlayStatus() {
+        // Remove existing status if any
+        const existingStatus = document.querySelector('.auto-play-status');
+        if (existingStatus) {
+            existingStatus.remove();
+        }
+        
+        const status = document.createElement('div');
+        status.className = 'auto-play-status';
+        status.innerHTML = `
+            <div style="
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: rgba(255, 255, 255, 0.9);
+                padding: 10px 20px;
+                border-radius: 50px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                z-index: 1000;
+                border: 2px solid ${isAutoPlaying ? '#4CAF50' : '#f44336'};
+                animation: fadeIn 0.5s ease;
+            ">
+                <i class="fas ${isAutoPlaying ? 'fa-play' : 'fa-pause'}" 
+                   style="color: ${isAutoPlaying ? '#4CAF50' : '#f44336'}"></i>
+                <span style="color: var(--dark-pink); font-weight: 600;">
+                    ${isAutoPlaying ? 'Auto-playing' : 'Paused'}
+                </span>
+                <button onclick="toggleAutoPlay()" style="
+                    background: ${isAutoPlaying ? '#f44336' : '#4CAF50'};
+                    color: white;
+                    border: none;
+                    padding: 5px 15px;
+                    border-radius: 20px;
+                    cursor: pointer;
+                    font-weight: 600;
+                ">
+                    ${isAutoPlaying ? 'Pause' : 'Play'}
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(status);
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            status.style.opacity = '0.5';
+            status.style.transition = 'opacity 0.5s';
+        }, 3000);
+    }
+
+    // Next scene
+    function nextScene() {
+        if (currentScene < totalScenes) {
+            // Special actions based on current scene
+            switch(currentScene) {
+                case 1:
+                    // Simulate sign up
+                    console.log("User signed up successfully!");
+                    break;
+                case 2:
+                    // Dashboard accessed
+                    console.log("Dashboard loaded");
+                    break;
+                case 3:
+                    // Story posted
+                    if (!hasPostedStory) {
+                        postStory();
+                        hasPostedStory = true;
+                    }
+                    break;
+                case 4:
+                    // Messages checked
+                    simulateChat();
+                    break;
+                case 5:
+                    // Moments scrolled
+                    showNewMoment();
+                    // Small cheer when posting is seen
+                    setTimeout(() => {
+                        miniCheer();
+                    }, 1500);
+                    break;
             }
-        }
 
-        // Go to specific scene
-        function goToScene(sceneNumber) {
+            // Move to next scene
             document.getElementById(`scene${currentScene}`).classList.remove('active');
             document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.remove('active');
             document.getElementById(`step${currentScene}`).classList.remove('active');
             
-            currentScene = sceneNumber;
+            currentScene++;
             
             document.getElementById(`scene${currentScene}`).classList.add('active');
             document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.add('active');
@@ -1144,193 +1207,375 @@
             document.getElementById('prevBtn').disabled = currentScene === 1;
             document.getElementById('nextBtn').disabled = currentScene === totalScenes;
         }
+    }
 
-        // Update progress bar
-        function updateProgress() {
-            const progress = ((currentScene - 1) / (totalScenes - 1)) * 100;
-            document.getElementById('progressBar').style.width = `${progress}%`;
+    // Previous scene
+    function prevScene() {
+        // When manually navigating, pause auto-play
+        if (isAutoPlaying) {
+            stopAutoPlay();
+            isAutoPlaying = false;
+            showAutoPlayStatus();
         }
-
-        // Update step indicators
-        function updateSteps() {
-            document.querySelectorAll('.step-indicator').forEach((step, index) => {
-                if (index + 1 <= currentScene) {
-                    step.classList.add('active');
-                } else {
-                    step.classList.remove('active');
-                }
-            });
-        }
-
-        // Update timeline
-        function updateTimeline() {
-            document.querySelectorAll('.timeline-step').forEach((step, index) => {
-                const stepNumber = index + 1;
-                if (stepNumber < currentScene) {
-                    step.classList.add('completed');
-                    step.classList.remove('active');
-                } else if (stepNumber === currentScene) {
-                    step.classList.add('active');
-                    step.classList.remove('completed');
-                } else {
-                    step.classList.remove('active', 'completed');
-                }
-            });
-        }
-
-        // Simulate story posting
-        function captureStory() {
-            const cameraBtn = document.querySelector('.camera-btn i');
-            cameraBtn.className = 'fas fa-check-circle';
-            cameraBtn.style.color = '#4CAF50';
+        
+        if (currentScene > 1) {
+            document.getElementById(`scene${currentScene}`).classList.remove('active');
+            document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.remove('active');
+            document.getElementById(`step${currentScene}`).classList.remove('active');
             
-            setTimeout(() => {
-                cameraBtn.className = 'fas fa-circle';
-                cameraBtn.style.color = '';
-            }, 1000);
-        }
-
-        function postStory() {
-            // Show success message
-            console.log("Story posted successfully!");
+            currentScene--;
             
-            // In a real demo, this would show a success animation
-            setTimeout(() => {
-                // Continue to next scene automatically
-            }, 500);
+            document.getElementById(`scene${currentScene}`).classList.add('active');
+            document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.add('active');
+            document.getElementById(`step${currentScene}`).classList.add('active');
+            
+            updateProgress();
+            updateTimeline();
+            
+            // Update button states
+            document.getElementById('prevBtn').disabled = currentScene === 1;
+            document.getElementById('nextBtn').disabled = currentScene === totalScenes;
         }
+    }
 
-        // Simulate chat interaction
-        function openChat(name) {
-            const groupChat = document.getElementById('groupChat');
-            if (name === 'Study') {
-                groupChat.innerHTML = `You: "I'll be there in 10!"`;
-                groupChat.style.color = 'var(--primary-pink)';
-                groupChat.style.fontWeight = '600';
+    // Go to specific scene
+    function goToScene(sceneNumber) {
+        // When manually navigating, pause auto-play
+        if (isAutoPlaying) {
+            stopAutoPlay();
+            isAutoPlaying = false;
+            showAutoPlayStatus();
+        }
+        
+        document.getElementById(`scene${currentScene}`).classList.remove('active');
+        document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.remove('active');
+        document.getElementById(`step${currentScene}`).classList.remove('active');
+        
+        currentScene = sceneNumber;
+        
+        document.getElementById(`scene${currentScene}`).classList.add('active');
+        document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.add('active');
+        document.getElementById(`step${currentScene}`).classList.add('active');
+        
+        updateProgress();
+        updateTimeline();
+        
+        // Update button states
+        document.getElementById('prevBtn').disabled = currentScene === 1;
+        document.getElementById('nextBtn').disabled = currentScene === totalScenes;
+    }
+
+    // Update progress bar
+    function updateProgress() {
+        const progress = ((currentScene - 1) / (totalScenes - 1)) * 100;
+        document.getElementById('progressBar').style.width = `${progress}%`;
+    }
+
+    // Update step indicators
+    function updateSteps() {
+        document.querySelectorAll('.step-indicator').forEach((step, index) => {
+            if (index + 1 <= currentScene) {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
             }
-            
-            // In a real demo, this would open the chat interface
-            console.log(`Opening chat with ${name}`);
-        }
+        });
+    }
 
-        function simulateChat() {
-            // Simulate typing indicator
-            const typingIndicator = document.createElement('div');
-            typingIndicator.className = 'chat-item';
+    // Update timeline
+    function updateTimeline() {
+        document.querySelectorAll('.timeline-step').forEach((step, index) => {
+            const stepNumber = index + 1;
+            if (stepNumber < currentScene) {
+                step.classList.add('completed');
+                step.classList.remove('active');
+            } else if (stepNumber === currentScene) {
+                step.classList.add('active');
+                step.classList.remove('completed');
+            } else {
+                step.classList.remove('active', 'completed');
+            }
+        });
+    }
+
+    // Simulate story posting
+    function captureStory() {
+        const cameraBtn = document.querySelector('.camera-btn i');
+        cameraBtn.className = 'fas fa-check-circle';
+        cameraBtn.style.color = '#4CAF50';
+        
+        setTimeout(() => {
+            cameraBtn.className = 'fas fa-circle';
+            cameraBtn.style.color = '';
+        }, 1000);
+    }
+
+    function postStory() {
+        // Show success message
+        console.log("Story posted successfully!");
+        
+        // Small animation for successful post
+        miniCheer();
+    }
+
+    // Simulate chat interaction
+    function openChat(name) {
+        const groupChat = document.getElementById('groupChat');
+        if (name === 'Study') {
+            groupChat.innerHTML = `You: "I'll be there in 10!"`;
+            groupChat.style.color = 'var(--primary-pink)';
+            groupChat.style.fontWeight = '600';
+        }
+        
+        // In a real demo, this would open the chat interface
+        console.log(`Opening chat with ${name}`);
+    }
+
+    function simulateChat() {
+        // Simulate typing indicator
+        const chatList = document.querySelector('.chat-list');
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'chat-item';
+        typingIndicator.innerHTML = `
+            <div class="chat-avatar">Y</div>
+            <div class="chat-info">
+                <h4>You</h4>
+                <p style="color: var(--gray);"><i>Typing...</i></p>
+            </div>
+        `;
+        
+        // Insert at top
+        chatList.insertBefore(typingIndicator, chatList.firstChild);
+        
+        setTimeout(() => {
             typingIndicator.innerHTML = `
                 <div class="chat-avatar">Y</div>
                 <div class="chat-info">
                     <h4>You</h4>
-                    <p style="color: var(--gray);"><i>Typing...</i></p>
+                    <p style="color: var(--primary-pink); font-weight: 600;">This app is amazing! 🎉</p>
                 </div>
             `;
             
+            // Remove after showing for a bit
             setTimeout(() => {
-                typingIndicator.innerHTML = `
-                    <div class="chat-avatar">Y</div>
-                    <div class="chat-info">
-                        <h4>You</h4>
-                        <p style="color: var(--primary-pink); font-weight: 600;">This app is amazing! 🎉</p>
-                    </div>
-                `;
+                typingIndicator.style.opacity = '0';
+                typingIndicator.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    typingIndicator.remove();
+                }, 500);
             }, 1500);
-        }
+        }, 1500);
+    }
 
-        // Show newly posted moment
-        function showNewMoment() {
+    // Show newly posted moment
+    function showNewMoment() {
+        setTimeout(() => {
+            const newMoment = document.getElementById('newMoment');
+            newMoment.style.display = 'block';
+            newMoment.style.opacity = '0';
+            newMoment.style.transform = 'translateY(20px)';
+            newMoment.style.transition = 'all 0.5s ease';
+            
             setTimeout(() => {
-                document.getElementById('newMoment').style.display = 'block';
-                document.getElementById('newMoment').scrollIntoView({ behavior: 'smooth' });
-            }, 500);
-        }
+                newMoment.style.opacity = '1';
+                newMoment.style.transform = 'translateY(0)';
+                newMoment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }, 500);
+    }
 
-        // Show cheer animation
-        function showCheers() {
-            const overlay = document.getElementById('cheerOverlay');
-            overlay.style.display = 'block';
-            
-            // Create multiple cheer particles
-            const emojis = ['🎉', '✨', '🌟', '🥳', '🎊', '💖', '💫', '🔥'];
-            
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => {
-                    const particle = document.createElement('div');
-                    particle.className = 'cheer-particle';
-                    particle.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
-                    particle.style.left = `${Math.random() * 100}%`;
-                    particle.style.top = `${Math.random() * 100}%`;
-                    particle.style.fontSize = `${Math.random() * 2 + 1.5}rem`;
-                    
-                    overlay.appendChild(particle);
-                    
-                    // Remove particle after animation
-                    setTimeout(() => {
-                        particle.remove();
-                    }, 2000);
-                }, i * 100);
-            }
-            
-            // Hide overlay after animation
+    // Mini cheer animation
+    function miniCheer() {
+        const emojis = ['✨', '🌟', '🎉'];
+        const container = document.querySelector('.demo-content');
+        
+        for (let i = 0; i < 5; i++) {
             setTimeout(() => {
-                overlay.style.display = 'none';
-                overlay.innerHTML = '';
-            }, 2500);
-            
-            // If on last scene, show completion
-            if (currentScene === totalScenes) {
+                const cheer = document.createElement('div');
+                cheer.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+                cheer.style.position = 'absolute';
+                cheer.style.left = `${Math.random() * 80 + 10}%`;
+                cheer.style.top = `${Math.random() * 50 + 25}%`;
+                cheer.style.fontSize = '1.5rem';
+                cheer.style.zIndex = '100';
+                cheer.style.pointerEvents = 'none';
+                cheer.style.animation = 'miniCheer 1s ease-out forwards';
+                
+                // Add CSS animation
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes miniCheer {
+                        0% {
+                            opacity: 0;
+                            transform: translateY(0) scale(0.5);
+                        }
+                        50% {
+                            opacity: 1;
+                            transform: translateY(-30px) scale(1.2);
+                        }
+                        100% {
+                            opacity: 0;
+                            transform: translateY(-60px) scale(0.5);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                container.appendChild(cheer);
+                
                 setTimeout(() => {
-                    alert("🎉 Demo Complete! You've experienced the full Sparkle journey. Ready to join?");
+                    cheer.remove();
                 }, 1000);
-            }
+            }, i * 200);
         }
+    }
 
-        // Restart demo
-        function restartDemo() {
-            currentScene = 1;
-            hasPostedStory = false;
-            
-            // Reset all scenes
-            for (let i = 1; i <= totalScenes; i++) {
-                document.getElementById(`scene${i}`).classList.remove('active');
-                document.querySelector(`.step-indicator[data-step="${i}"]`).classList.remove('active');
-                document.getElementById(`step${i}`).classList.remove('active', 'completed');
-            }
-            
-            // Show first scene
-            document.getElementById('scene1').classList.add('active');
-            document.querySelector('.step-indicator[data-step="1"]').classList.add('active');
-            document.getElementById('step1').classList.add('active');
-            
-            // Reset progress
-            updateProgress();
-            
-            // Hide new moment
-            document.getElementById('newMoment').style.display = 'none';
-            
-            // Reset chat
-            const groupChat = document.getElementById('groupChat');
-            groupChat.innerHTML = 'Alex: "Who\'s ready for the exam?"';
-            groupChat.style.color = 'var(--gray)';
-            groupChat.style.fontWeight = 'normal';
-            
-            // Update button states
-            document.getElementById('prevBtn').disabled = true;
-            document.getElementById('nextBtn').disabled = false;
+    // Show cheer animation
+    function showCheers() {
+        const overlay = document.getElementById('cheerOverlay');
+        overlay.style.display = 'block';
+        
+        // Create multiple cheer particles
+        const emojis = ['🎉', '✨', '🌟', '🥳', '🎊', '💖', '💫', '🔥'];
+        
+        for (let i = 0; i < 20; i++) {
+            setTimeout(() => {
+                const particle = document.createElement('div');
+                particle.className = 'cheer-particle';
+                particle.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.fontSize = `${Math.random() * 2 + 1.5}rem`;
+                
+                overlay.appendChild(particle);
+                
+                // Remove particle after animation
+                setTimeout(() => {
+                    particle.remove();
+                }, 2000);
+            }, i * 100);
         }
+        
+        // Hide overlay after animation
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.innerHTML = '';
+        }, 2500);
+    }
 
-        // Keyboard navigation
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight') {
-                nextScene();
-            } else if (e.key === 'ArrowLeft') {
-                prevScene();
-            } else if (e.key === 'c' || e.key === 'C') {
-                showCheers();
+    // Restart demo
+    function restartDemo() {
+        currentScene = 1;
+        hasPostedStory = false;
+        
+        // Reset all scenes
+        for (let i = 1; i <= totalScenes; i++) {
+            document.getElementById(`scene${i}`).classList.remove('active');
+            document.querySelector(`.step-indicator[data-step="${i}"]`).classList.remove('active');
+            document.getElementById(`step${i}`).classList.remove('active', 'completed');
+        }
+        
+        // Show first scene
+        document.getElementById('scene1').classList.add('active');
+        document.querySelector('.step-indicator[data-step="1"]').classList.add('active');
+        document.getElementById('step1').classList.add('active');
+        
+        // Reset progress
+        updateProgress();
+        
+        // Hide new moment
+        const newMoment = document.getElementById('newMoment');
+        newMoment.style.display = 'none';
+        newMoment.style.opacity = '1';
+        newMoment.style.transform = 'none';
+        
+        // Reset chat
+        const groupChat = document.getElementById('groupChat');
+        groupChat.innerHTML = 'Alex: "Who\'s ready for the exam?"';
+        groupChat.style.color = 'var(--gray)';
+        groupChat.style.fontWeight = 'normal';
+        
+        // Update button states
+        document.getElementById('prevBtn').disabled = true;
+        document.getElementById('nextBtn').disabled = false;
+    }
+
+    // Add CSS for auto-play status
+    const autoPlayCSS = `
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .auto-play-status:hover {
+            opacity: 1 !important;
+        }
+    `;
+    
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = autoPlayCSS;
+    document.head.appendChild(styleSheet);
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') {
+            if (isAutoPlaying) {
+                stopAutoPlay();
+                isAutoPlaying = false;
+                showAutoPlayStatus();
             }
-        });
+            nextScene();
+        } else if (e.key === 'ArrowLeft') {
+            if (isAutoPlaying) {
+                stopAutoPlay();
+                isAutoPlaying = false;
+                showAutoPlayStatus();
+            }
+            prevScene();
+        } else if (e.key === 'c' || e.key === 'C') {
+            showCheers();
+        } else if (e.key === ' ' || e.key === 'Spacebar') {
+            // Space bar toggles auto-play
+            e.preventDefault();
+            toggleAutoPlay();
+        }
+    });
 
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', initDemo);
-    </script>
+    // Pause auto-play when mouse is over demo area (optional)
+    document.querySelector('.video-player').addEventListener('mouseenter', () => {
+        if (isAutoPlaying) {
+            stopAutoPlay();
+            // Show paused status but don't change the flag
+            showAutoPlayStatus();
+        }
+    });
+
+    document.querySelector('.video-player').addEventListener('mouseleave', () => {
+        if (isAutoPlaying) {
+            startAutoPlay();
+            showAutoPlayStatus();
+        }
+    });
+
+    // Update control buttons to pause auto-play when clicked
+    document.getElementById('prevBtn').addEventListener('click', function() {
+        if (isAutoPlaying) {
+            stopAutoPlay();
+            isAutoPlaying = false;
+            showAutoPlayStatus();
+        }
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', function() {
+        if (isAutoPlaying) {
+            stopAutoPlay();
+            isAutoPlaying = false;
+            showAutoPlayStatus();
+        }
+    });
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', initDemo);
+</script>
 </body>
 </html>

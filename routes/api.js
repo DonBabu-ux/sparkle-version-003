@@ -25,7 +25,7 @@ router.get('/marketplace/chats', authMiddleware, marketplaceController.renderMar
 
 // Home page
 router.get('/', (req, res) => {
-    res.render('index', { 
+    res.render('dashboard', { 
         title: 'Home',
         user: req.user || req.session?.user
     });

@@ -7,6 +7,87 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* Add new CSS for mobile responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+                margin: 0;
+                min-height: 100vh;
+                display: block;
+                overflow: hidden;
+            }
+            
+            .phone-container {
+                max-width: 100% !important;
+                height: 100vh !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+                padding: 10px !important;
+            }
+            
+            .phone-screen {
+                border-radius: 20px !important;
+            }
+            
+            .demo-info {
+                display: none !important;
+            }
+            
+            /* Mobile Navigation Button */
+            .mobile-nav-button {
+                display: block !important;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 10000;
+                background: var(--gradient);
+                color: white;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.2rem;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(255, 0, 102, 0.3);
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+            
+            .mobile-nav-button:hover {
+                transform: scale(1.1);
+            }
+            
+            /* Hide regular home button on mobile */
+            .home-button {
+                display: none !important;
+            }
+            
+            /* Adjust phone notch for mobile */
+            .phone-notch {
+                width: 160px !important;
+                height: 20px !important;
+            }
+            
+            /* Full screen adjustments */
+            .phone-container {
+                box-shadow: none !important;
+                border: none !important;
+            }
+        }
+        
+        /* Hide mobile nav button on desktop by default */
+        .mobile-nav-button {
+            display: none;
+        }
+        
+        /* Existing CSS continues below... */
         :root {
             --primary-pink: #ff4d8d;
             --secondary-pink: #ff80b3;
@@ -638,6 +719,11 @@
     </style>
 </head>
 <body>
+    <!-- Mobile Navigation Button -->
+    <div class="mobile-nav-button" onclick="restartDemo()">
+        <i class="fas fa-home"></i>
+    </div>
+
     <!-- Loading Indicator -->
     <div class="loading-indicator" id="loadingIndicator">
         <div class="loader"></div>

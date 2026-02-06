@@ -136,6 +136,271 @@
             display: none;
         }
     }
+
+
+
+
+
+
+
+
+/* Notifications Dropdown */
+.notifications-dropdown {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    width: 350px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+    display: none;
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.notifications-dropdown.show {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.notifications-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--background);
+}
+
+.notifications-header h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.notifications-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background: var(--background-light);
+}
+
+.notification-item.unread {
+    background: rgba(var(--primary-rgb), 0.05);
+}
+
+.notification-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--background-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-content p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.notification-content small {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.notifications-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    background: var(--background);
+}
+
+/* Filter Sidebar */
+.filter-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 350px;
+    height: 100vh;
+    background: white;
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+    z-index: 1002;
+    padding: 20px;
+    transition: right 0.3s ease;
+    overflow-y: auto;
+}
+
+.filter-sidebar.show {
+    right: 0;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+}
+
+.filter-section {
+    margin-bottom: 25px;
+}
+
+.filter-section h6 {
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.price-range {
+    margin-top: 10px;
+}
+
+.price-inputs {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.price-inputs input {
+    flex: 1;
+}
+
+.condition-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 5px 0;
+}
+
+.filter-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.filter-actions .btn {
+    flex: 1;
+}
+
+/* Sold Overlay */
+.sold-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 24px;
+    border-radius: 15px 15px 0 0;
+}
+
+/* Listing Meta */
+.listing-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+}
+
+.seller-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.seller-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.seller-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.seller-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.seller-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.listing-date {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.listing-stats {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.view-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 </style>
 
 <body>

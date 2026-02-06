@@ -1,124 +1,1336 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Sparkle</title>
+    <title>Sparkle Interactive Demo - Complete User Journey</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        .about-container {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
+        :root {
+            --primary-pink: #ff4d8d;
+            --secondary-pink: #ff80b3;
+            --light-pink: #ffccdd;
+            --hot-pink: #ff0066;
+            --dark-pink: #cc3366;
+            --sparkle-gold: #ffd700;
+            --text-color: #5a0033;
+            --gradient: linear-gradient(135deg, var(--primary-pink), var(--hot-pink));
+            --shadow: 0 10px 30px rgba(255, 0, 102, 0.2);
+            --sparkle-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
         }
 
-        .about-header {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #fff0f5, #ffe6ee, #ffd6e0);
+            min-height: 100vh;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .demo-header {
             text-align: center;
-            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(255, 0, 102, 0.1);
+            border-bottom: 3px solid var(--primary-pink);
         }
 
-        .about-header h1 {
-            font-size: 2.5rem;
+        .demo-header h1 {
+            font-size: 3.5rem;
             background: var(--gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            margin-bottom: 15px;
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .demo-header p {
+            color: var(--dark-pink);
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Demo Container */
+        .demo-container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+        }
+
+        /* Video Player Area */
+        .video-player {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(255, 0, 102, 0.25);
+            position: relative;
+            overflow: hidden;
+            border: 5px solid white;
+        }
+
+        .video-player::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            background: linear-gradient(45deg, 
+                var(--primary-pink), 
+                var(--hot-pink), 
+                var(--sparkle-gold), 
+                var(--primary-pink));
+            border-radius: 30px;
+            z-index: -1;
+            animation: borderGlow 4s linear infinite;
+            background-size: 300% 300%;
+        }
+
+        @keyframes borderGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Demo Screen - Simulated App Interface */
+        .demo-screen {
+            width: 100%;
+            height: 600px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Demo Top Bar */
+        .demo-top-bar {
+            background: var(--gradient);
+            padding: 15px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .demo-time {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .demo-battery {
+            width: 30px;
+            height: 15px;
+            border: 2px solid white;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .demo-battery::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 3px;
+            width: 4px;
+            height: 7px;
+            background: white;
+            border-radius: 2px;
+        }
+
+        .demo-battery-level {
+            width: 80%;
+            height: 100%;
+            background: white;
+        }
+
+        /* Demo App Content */
+        .demo-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        /* Demo Scene - Different app screens */
+        .demo-scene {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+        }
+
+        .demo-scene.active {
+            display: flex;
+            animation: sceneFade 0.5s ease;
+        }
+
+        @keyframes sceneFade {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 30px;
+        }
+
+        .sparkle-logo {
+            font-size: 5rem;
+            color: var(--primary-pink);
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0) rotate(0); }
+            25% { transform: translateY(-20px) rotate(5deg); }
+            75% { transform: translateY(-10px) rotate(-5deg); }
+        }
+
+        .welcome-text h2 {
+            font-size: 2.5rem;
+            color: var(--dark-pink);
             margin-bottom: 10px;
         }
 
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
+        /* Signup Form */
+        .signup-form {
+            width: 100%;
+            max-width: 400px;
+            background: var(--light-pink);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(255, 77, 141, 0.2);
         }
 
-        .feature-card {
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid var(--secondary-pink);
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-pink);
+        }
+
+        /* Dashboard Screen */
+        .dashboard-screen {
+            display: flex;
+            height: 100%;
+        }
+
+        .demo-sidebar {
+            width: 250px;
+            background: var(--light-pink);
             padding: 20px;
-            border-radius: 12px;
-            background: #f8f9fa;
-            text-align: center;
-            transition: transform 0.2s;
+            border-right: 3px solid var(--primary-pink);
         }
 
-        .feature-card:hover {
-            transform: translateY(-5px);
+        .demo-nav-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
         }
 
-        .feature-icon {
+        .demo-nav-item:hover {
+            background: var(--primary-pink);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .demo-nav-item.active {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 5px 15px rgba(255, 0, 102, 0.3);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Post Story Screen */
+        .post-story {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .story-camera {
+            width: 300px;
+            height: 300px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .camera-view {
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .camera-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+
+        .camera-btn {
             width: 60px;
             height: 60px;
-            margin: 0 auto 15px;
             border-radius: 50%;
             background: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            color: var(--primary);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            font-size: 1.5rem;
+            color: var(--primary-pink);
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Messages Screen */
+        .messages-screen {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--light-pink);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .chat-item:hover {
+            background: var(--light-pink);
+        }
+
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .chat-info h4 {
+            color: var(--dark-pink);
+            margin-bottom: 5px;
+        }
+
+        /* Moments Screen */
+        .moments-screen {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .moment-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(255, 77, 141, 0.1);
+            margin-bottom: 20px;
+            animation: cardAppear 0.5s ease;
+        }
+
+        @keyframes cardAppear {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .moment-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .moment-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient);
+        }
+
+        .moment-content {
+            margin: 15px 0;
+        }
+
+        .moment-actions {
+            display: flex;
+            gap: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--light-pink);
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--dark-pink);
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .action-btn:hover {
+            color: var(--primary-pink);
+        }
+
+        /* Cheer Animation */
+        .cheer-container {
+            position: absolute;
+            bottom: 100px;
+            right: 50px;
+        }
+
+        .cheer-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(255, 0, 102, 0.3);
+            animation: cheerPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes cheerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Demo Controls */
+        .demo-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            padding: 30px;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(255, 0, 102, 0.15);
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .control-btn {
+            padding: 15px 30px;
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 0, 102, 0.2);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 0, 102, 0.3);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .demo-progress {
+            flex: 1;
+            max-width: 500px;
+            background: var(--light-pink);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+
+        /* Demo Steps Indicator */
+        .demo-steps {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .step-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--light-pink);
+            transition: all 0.3s;
+        }
+
+        .step-indicator.active {
+            background: var(--primary-pink);
+            transform: scale(1.3);
+            box-shadow: 0 0 10px var(--primary-pink);
+        }
+
+        /* Cheer Animation Overlay */
+        .cheer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+        }
+
+        .cheer-particle {
+            position: absolute;
+            font-size: 2rem;
+            animation: cheerFloat 2s ease-out forwards;
+        }
+
+        @keyframes cheerFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) rotate(0deg) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) rotate(360deg) scale(0);
+            }
+        }
+
+        /* Timeline */
+        .demo-timeline {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(255, 0, 102, 0.15);
+        }
+
+        .timeline-title {
+            color: var(--dark-pink);
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.8rem;
+        }
+
+        .timeline-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .timeline-steps::before {
+            content: '';
+            position: absolute;
+            top: 25px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--light-pink);
+            z-index: 1;
+        }
+
+        .timeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+            position: relative;
+            width: 120px;
+        }
+
+        .timeline-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--light-pink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--dark-pink);
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .timeline-step.active .timeline-icon {
+            background: var(--gradient);
+            color: white;
+            transform: scale(1.2);
+            box-shadow: 0 5px 20px rgba(255, 0, 102, 0.3);
+        }
+
+        .timeline-step.completed .timeline-icon {
+            background: var(--gradient);
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .demo-screen {
+                height: 500px;
+            }
+
+            .demo-header h1 {
+                font-size: 2.5rem;
+            }
+
+            .control-btn {
+                padding: 12px 20px;
+                font-size: 0.9rem;
+            }
+
+            .demo-controls {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .demo-progress {
+                width: 100%;
+            }
+
+            .timeline-steps {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 30px;
+            }
+
+            .timeline-steps::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .demo-screen {
+                height: 400px;
+            }
+
+            .sparkle-logo {
+                font-size: 3rem;
+            }
+
+            .welcome-text h2 {
+                font-size: 1.8rem;
+            }
         }
     </style>
 </head>
+<body>
+    <div class="demo-header">
+        <h1>✨ Sparkle Interactive Demo ✨</h1>
+        <p>Watch the complete user journey: Sign up → Dashboard → Post Story → Messages → Moments → Cheer!</p>
+    </div>
 
-<body style="background: #f0f2f5;">
-
-    <%- include('partials/sidebar') %>
-
-        <main style="margin-left: 280px; padding: 20px;">
-            <div class="about-container">
-                <div class="about-header">
-                    <h1>About Sparkle</h1>
-                    <p style="color: #666; font-size: 1.1rem;">The Ultimate Campus Social Experience</p>
+    <div class="demo-container">
+        <!-- Timeline -->
+        <div class="demo-timeline">
+            <h2 class="timeline-title">User Journey Timeline</h2>
+            <div class="timeline-steps">
+                <div class="timeline-step completed" id="step1">
+                    <div class="timeline-icon"><i class="fas fa-user-plus"></i></div>
+                    <span>Sign Up</span>
                 </div>
-
-                <div style="line-height: 1.6; color: #444; margin-bottom: 40px;">
-                    <p><strong>Sparkle</strong> is designed to connect students across campus in meaningful ways.
-                        Whether you're looking to share moments, find study partners, buy/sell items, or just confess
-                        your campus crush anonymously, Sparkle has you covered.</p>
-                    <p style="margin-top: 15px;">Built by students, for students. Our mission is to make campus life
-                        more vibrant, connected, and fun.</p>
+                <div class="timeline-step" id="step2">
+                    <div class="timeline-icon"><i class="fas fa-tachometer-alt"></i></div>
+                    <span>Dashboard</span>
                 </div>
-
-                <h2 style="text-align: center; color: #333;">Why Sparkle?</h2>
-
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-                        <h3>Sparks & Connections</h3>
-                        <p>Connect with peers, spark conversations, and build your network.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-video"></i></div>
-                        <h3>Moments</h3>
-                        <p>Share short, fleeting video moments from your daily campus life.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-store"></i></div>
-                        <h3>Marketplace</h3>
-                        <p>Buy, sell, or trade items securely with other students.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-user-secret"></i></div>
-                        <h3>Anonymous</h3>
-                        <p>Share confessions or thoughts anonymously without fear.</p>
-                    </div>
+                <div class="timeline-step" id="step3">
+                    <div class="timeline-icon"><i class="fas fa-camera"></i></div>
+                    <span>Post Story</span>
                 </div>
-
-                <div style="margin-top: 50px; text-align: center; padding-top: 30px; border-top: 1px solid #eee;">
-                    <p style="color: #999; font-size: 0.9rem;">&copy; 2026 Sparkle Campus Network. All rights reserved.
-                    </p>
-                    <p style="margin-top: 10px;">
-                        <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
-                    </p>
+                <div class="timeline-step" id="step4">
+                    <div class="timeline-icon"><i class="fas fa-comments"></i></div>
+                    <span>Messages</span>
+                </div>
+                <div class="timeline-step" id="step5">
+                    <div class="timeline-icon"><i class="fas fa-scroll"></i></div>
+                    <span>Scroll Moments</span>
+                </div>
+                <div class="timeline-step" id="step6">
+                    <div class="timeline-icon"><i class="fas fa-glass-cheers"></i></div>
+                    <span>Cheer & Logout</span>
                 </div>
             </div>
-        </main>
+        </div>
 
+        <!-- Video Player Area -->
+        <div class="video-player">
+            <div class="demo-screen">
+                <!-- Top Bar -->
+                <div class="demo-top-bar">
+                    <div class="demo-time">
+                        <i class="fas fa-wifi"></i>
+                        <span>9:41 AM</span>
+                    </div>
+                    <div class="demo-app-title">Sparkle</div>
+                    <div class="demo-battery">
+                        <div class="demo-battery-level"></div>
+                    </div>
+                </div>
+
+                <!-- Demo Scenes -->
+                <div class="demo-content">
+                    <!-- Welcome/Login Scene -->
+                    <div class="demo-scene active" id="scene1">
+                        <div class="welcome-screen">
+                            <div class="sparkle-logo">
+                                <i class="fas fa-sparkles"></i>
+                            </div>
+                            <div class="welcome-text">
+                                <h2>Welcome to Sparkle!</h2>
+                                <p style="color: var(--gray); margin-bottom: 30px;">Join thousands of students connecting on campus</p>
+                            </div>
+                            <div class="signup-form">
+                                <input type="text" class="form-input" placeholder="Full Name" value="Alex Johnson">
+                                <input type="email" class="form-input" placeholder="Email" value="alex@campus.edu">
+                                <input type="password" class="form-input" placeholder="Password" value="••••••••">
+                                <button class="control-btn" style="width: 100%;" onclick="nextScene()">
+                                    <i class="fas fa-user-plus"></i> Sign Up Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Scene -->
+                    <div class="demo-scene" id="scene2">
+                        <div class="dashboard-screen">
+                            <div class="demo-sidebar">
+                                <div class="demo-nav-item active">
+                                    <i class="fas fa-home"></i> Dashboard
+                                </div>
+                                <div class="demo-nav-item" onclick="goToScene(3)">
+                                    <i class="fas fa-camera"></i> Post Story
+                                </div>
+                                <div class="demo-nav-item" onclick="goToScene(4)">
+                                    <i class="fas fa-comments"></i> Messages
+                                </div>
+                                <div class="demo-nav-item" onclick="goToScene(5)">
+                                    <i class="fas fa-scroll"></i> Moments
+                                </div>
+                                <div class="demo-nav-item">
+                                    <i class="fas fa-store"></i> Marketplace
+                                </div>
+                                <div class="demo-nav-item">
+                                    <i class="fas fa-user-friends"></i> Friends
+                                </div>
+                            </div>
+                            <div class="main-content">
+                                <h3 style="color: var(--dark-pink); margin-bottom: 20px;">Welcome back, Alex! 👋</h3>
+                                <div style="background: var(--light-pink); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                                    <h4>Today's Highlights</h4>
+                                    <p>• 5 new friend requests</p>
+                                    <p>• 3 unread messages</p>
+                                    <p>• Campus event at 4 PM</p>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                                        <i class="fas fa-video" style="color: var(--primary-pink); margin-bottom: 10px;"></i>
+                                        <p>Post a Moment</p>
+                                    </div>
+                                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                                        <i class="fas fa-shopping-bag" style="color: var(--primary-pink); margin-bottom: 10px;"></i>
+                                        <p>Marketplace</p>
+                                    </div>
+                                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                                        <i class="fas fa-calendar" style="color: var(--primary-pink); margin-bottom: 10px;"></i>
+                                        <p>Events</p>
+                                    </div>
+                                    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                                        <i class="fas fa-graduation-cap" style="color: var(--primary-pink); margin-bottom: 10px;"></i>
+                                        <p>Study Groups</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Post Story Scene -->
+                    <div class="demo-scene" id="scene3">
+                        <div class="post-story">
+                            <h2 style="color: var(--dark-pink);">Share Your Campus Moment 📸</h2>
+                            <div class="story-camera">
+                                <div class="camera-view">
+                                    <div class="camera-controls">
+                                        <div class="camera-btn" onclick="captureStory()">
+                                            <i class="fas fa-circle"></i>
+                                        </div>
+                                        <div class="camera-btn" onclick="nextScene()">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <p style="color: var(--gray);">Record a 15-second video or take a photo to share with campus!</p>
+                                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                                    <button class="control-btn" onclick="captureStory()">
+                                        <i class="fas fa-camera"></i> Capture
+                                    </button>
+                                    <button class="control-btn" onclick="nextScene()">
+                                        <i class="fas fa-share"></i> Post & Continue
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Scene -->
+                    <div class="demo-scene" id="scene4">
+                        <div class="messages-screen">
+                            <h2 style="color: var(--dark-pink); margin-bottom: 20px;">Messages 💬</h2>
+                            <div class="chat-list">
+                                <div class="chat-item" onclick="openChat('Sarah')">
+                                    <div class="chat-avatar">S</div>
+                                    <div class="chat-info">
+                                        <h4>Sarah Chen</h4>
+                                        <p style="color: var(--gray);">Hey! Are you coming to the study session?</p>
+                                    </div>
+                                </div>
+                                <div class="chat-item" onclick="openChat('Mike')">
+                                    <div class="chat-avatar">M</div>
+                                    <div class="chat-info">
+                                        <h4>Mike Rodriguez</h4>
+                                        <p style="color: var(--gray);">Found that textbook you were looking for!</p>
+                                    </div>
+                                </div>
+                                <div class="chat-item" onclick="openChat('Campus')">
+                                    <div class="chat-avatar">C</div>
+                                    <div class="chat-info">
+                                        <h4>Campus Events</h4>
+                                        <p style="color: var(--gray);">New event: Tech Talk tomorrow at 3 PM</p>
+                                    </div>
+                                </div>
+                                <div class="chat-item" onclick="openChat('Study')">
+                                    <div class="chat-avatar">G</div>
+                                    <div class="chat-info">
+                                        <h4>Study Group</h4>
+                                        <p style="color: var(--gray);" id="groupChat">Alex: "Who's ready for the exam?"</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px; padding: 15px; background: var(--light-pink); border-radius: 10px;">
+                                <p style="color: var(--dark-pink); font-weight: 600;">Start new conversation:</p>
+                                <input type="text" class="form-input" placeholder="Search for friends..." style="margin-top: 10px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Moments Scene -->
+                    <div class="demo-scene" id="scene5">
+                        <div class="moments-screen">
+                            <h2 style="color: var(--dark-pink); margin-bottom: 20px;">Campus Moments 🌟</h2>
+                            <div class="moment-card">
+                                <div class="moment-header">
+                                    <div class="moment-avatar"></div>
+                                    <div>
+                                        <h4>Emma Wilson</h4>
+                                        <p style="color: var(--gray); font-size: 0.9rem;">2 hours ago</p>
+                                    </div>
+                                </div>
+                                <div class="moment-content">
+                                    <p>Just aced my final presentation! 🎉 The campus library has been my second home this semester.</p>
+                                </div>
+                                <div class="moment-actions">
+                                    <div class="action-btn">
+                                        <i class="fas fa-heart"></i> 24
+                                    </div>
+                                    <div class="action-btn">
+                                        <i class="fas fa-comment"></i> 8
+                                    </div>
+                                    <div class="action-btn">
+                                        <i class="fas fa-share"></i> Share
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="moment-card">
+                                <div class="moment-header">
+                                    <div class="moment-avatar"></div>
+                                    <div>
+                                        <h4>Campus Events</h4>
+                                        <p style="color: var(--gray); font-size: 0.9rem;">5 hours ago</p>
+                                    </div>
+                                </div>
+                                <div class="moment-content">
+                                    <p>🎵 Live music at the quad today! 4-7 PM. Bring your friends and enjoy the vibes. #CampusLife</p>
+                                </div>
+                                <div class="moment-actions">
+                                    <div class="action-btn">
+                                        <i class="fas fa-heart"></i> 89
+                                    </div>
+                                    <div class="action-btn">
+                                        <i class="fas fa-comment"></i> 23
+                                    </div>
+                                    <div class="action-btn">
+                                        <i class="fas fa-share"></i> Share
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="moment-card" id="newMoment" style="display: none;">
+                                <div class="moment-header">
+                                    <div class="moment-avatar"></div>
+                                    <div>
+                                        <h4>Alex Johnson</h4>
+                                        <p style="color: var(--gray); font-size: 0.9rem;">Just now</p>
+                                    </div>
+                                </div>
+                                <div class="moment-content">
+                                    <p>Just shared my first Sparkle moment! Loving this campus vibe! ✨ #FirstPost #SparkleApp</p>
+                                </div>
+                                <div class="moment-actions">
+                                    <div class="action-btn">
+                                        <i class="fas fa-heart"></i> 1
+                                    </div>
+                                    <div class="action-btn">
+                                        <i class="fas fa-comment"></i> 0
+                                    </div>
+                                    <div class="action-btn">
+                                        <i class="fas fa-share"></i> Share
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cheer & Logout Scene -->
+                    <div class="demo-scene" id="scene6">
+                        <div class="welcome-screen">
+                            <div class="sparkle-logo" style="font-size: 4rem;">
+                                <i class="fas fa-glass-cheers"></i>
+                            </div>
+                            <div class="welcome-text">
+                                <h2>Awesome Experience! 🎉</h2>
+                                <p style="color: var(--gray); max-width: 500px; margin: 20px auto;">
+                                    You've successfully experienced the complete Sparkle journey! From signing up to sharing moments and connecting with friends.
+                                </p>
+                                <div style="background: var(--light-pink); padding: 20px; border-radius: 15px; margin: 20px 0;">
+                                    <h4>Your Sparkle Stats:</h4>
+                                    <p>✓ Account Created Successfully</p>
+                                    <p>✓ Dashboard Accessed</p>
+                                    <p>✓ Story Posted</p>
+                                    <p>✓ Messages Checked</p>
+                                    <p>✓ Moments Scrolled</p>
+                                </div>
+                                <button class="control-btn" onclick="showCheers()">
+                                    <i class="fas fa-glass-cheers"></i> Cheer for Sparkle!
+                                </button>
+                                <button class="control-btn" style="background: var(--dark-pink); margin-top: 15px;" onclick="restartDemo()">
+                                    <i class="fas fa-redo"></i> Watch Again
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cheer Button -->
+                <div class="cheer-container">
+                    <div class="cheer-btn" onclick="showCheers()">
+                        <i class="fas fa-glass-cheers"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Controls -->
+        <div class="demo-controls">
+            <button class="control-btn" onclick="prevScene()" id="prevBtn">
+                <i class="fas fa-arrow-left"></i> Previous
+            </button>
+            <div class="demo-progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <button class="control-btn" onclick="nextScene()" id="nextBtn">
+                Next <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <!-- Steps Indicator -->
+        <div class="demo-steps">
+            <div class="step-indicator active" data-step="1"></div>
+            <div class="step-indicator" data-step="2"></div>
+            <div class="step-indicator" data-step="3"></div>
+            <div class="step-indicator" data-step="4"></div>
+            <div class="step-indicator" data-step="5"></div>
+            <div class="step-indicator" data-step="6"></div>
+        </div>
+    </div>
+
+    <!-- Cheer Animation Overlay -->
+    <div class="cheer-overlay" id="cheerOverlay"></div>
+
+    <script>
+        // Demo state
+        let currentScene = 1;
+        const totalScenes = 6;
+        let hasPostedStory = false;
+
+        // Initialize demo
+        function initDemo() {
+            updateProgress();
+            updateSteps();
+            updateTimeline();
+        }
+
+        // Next scene
+        function nextScene() {
+            if (currentScene < totalScenes) {
+                // Special actions based on current scene
+                switch(currentScene) {
+                    case 1:
+                        // Simulate sign up
+                        console.log("User signed up successfully!");
+                        break;
+                    case 2:
+                        // Dashboard accessed
+                        console.log("Dashboard loaded");
+                        break;
+                    case 3:
+                        // Story posted
+                        if (!hasPostedStory) {
+                            postStory();
+                            hasPostedStory = true;
+                        }
+                        break;
+                    case 4:
+                        // Messages checked
+                        simulateChat();
+                        break;
+                    case 5:
+                        // Moments scrolled
+                        showNewMoment();
+                        break;
+                }
+
+                // Move to next scene
+                document.getElementById(`scene${currentScene}`).classList.remove('active');
+                document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.remove('active');
+                document.getElementById(`step${currentScene}`).classList.remove('active');
+                
+                currentScene++;
+                
+                document.getElementById(`scene${currentScene}`).classList.add('active');
+                document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.add('active');
+                document.getElementById(`step${currentScene}`).classList.add('active');
+                
+                updateProgress();
+                updateTimeline();
+                
+                // Update button states
+                document.getElementById('prevBtn').disabled = currentScene === 1;
+                document.getElementById('nextBtn').disabled = currentScene === totalScenes;
+            }
+        }
+
+        // Previous scene
+        function prevScene() {
+            if (currentScene > 1) {
+                document.getElementById(`scene${currentScene}`).classList.remove('active');
+                document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.remove('active');
+                document.getElementById(`step${currentScene}`).classList.remove('active');
+                
+                currentScene--;
+                
+                document.getElementById(`scene${currentScene}`).classList.add('active');
+                document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.add('active');
+                document.getElementById(`step${currentScene}`).classList.add('active');
+                
+                updateProgress();
+                updateTimeline();
+                
+                // Update button states
+                document.getElementById('prevBtn').disabled = currentScene === 1;
+                document.getElementById('nextBtn').disabled = currentScene === totalScenes;
+            }
+        }
+
+        // Go to specific scene
+        function goToScene(sceneNumber) {
+            document.getElementById(`scene${currentScene}`).classList.remove('active');
+            document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.remove('active');
+            document.getElementById(`step${currentScene}`).classList.remove('active');
+            
+            currentScene = sceneNumber;
+            
+            document.getElementById(`scene${currentScene}`).classList.add('active');
+            document.querySelector(`.step-indicator[data-step="${currentScene}"]`).classList.add('active');
+            document.getElementById(`step${currentScene}`).classList.add('active');
+            
+            updateProgress();
+            updateTimeline();
+            
+            // Update button states
+            document.getElementById('prevBtn').disabled = currentScene === 1;
+            document.getElementById('nextBtn').disabled = currentScene === totalScenes;
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            const progress = ((currentScene - 1) / (totalScenes - 1)) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        // Update step indicators
+        function updateSteps() {
+            document.querySelectorAll('.step-indicator').forEach((step, index) => {
+                if (index + 1 <= currentScene) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+        }
+
+        // Update timeline
+        function updateTimeline() {
+            document.querySelectorAll('.timeline-step').forEach((step, index) => {
+                const stepNumber = index + 1;
+                if (stepNumber < currentScene) {
+                    step.classList.add('completed');
+                    step.classList.remove('active');
+                } else if (stepNumber === currentScene) {
+                    step.classList.add('active');
+                    step.classList.remove('completed');
+                } else {
+                    step.classList.remove('active', 'completed');
+                }
+            });
+        }
+
+        // Simulate story posting
+        function captureStory() {
+            const cameraBtn = document.querySelector('.camera-btn i');
+            cameraBtn.className = 'fas fa-check-circle';
+            cameraBtn.style.color = '#4CAF50';
+            
+            setTimeout(() => {
+                cameraBtn.className = 'fas fa-circle';
+                cameraBtn.style.color = '';
+            }, 1000);
+        }
+
+        function postStory() {
+            // Show success message
+            console.log("Story posted successfully!");
+            
+            // In a real demo, this would show a success animation
+            setTimeout(() => {
+                // Continue to next scene automatically
+            }, 500);
+        }
+
+        // Simulate chat interaction
+        function openChat(name) {
+            const groupChat = document.getElementById('groupChat');
+            if (name === 'Study') {
+                groupChat.innerHTML = `You: "I'll be there in 10!"`;
+                groupChat.style.color = 'var(--primary-pink)';
+                groupChat.style.fontWeight = '600';
+            }
+            
+            // In a real demo, this would open the chat interface
+            console.log(`Opening chat with ${name}`);
+        }
+
+        function simulateChat() {
+            // Simulate typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'chat-item';
+            typingIndicator.innerHTML = `
+                <div class="chat-avatar">Y</div>
+                <div class="chat-info">
+                    <h4>You</h4>
+                    <p style="color: var(--gray);"><i>Typing...</i></p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                typingIndicator.innerHTML = `
+                    <div class="chat-avatar">Y</div>
+                    <div class="chat-info">
+                        <h4>You</h4>
+                        <p style="color: var(--primary-pink); font-weight: 600;">This app is amazing! 🎉</p>
+                    </div>
+                `;
+            }, 1500);
+        }
+
+        // Show newly posted moment
+        function showNewMoment() {
+            setTimeout(() => {
+                document.getElementById('newMoment').style.display = 'block';
+                document.getElementById('newMoment').scrollIntoView({ behavior: 'smooth' });
+            }, 500);
+        }
+
+        // Show cheer animation
+        function showCheers() {
+            const overlay = document.getElementById('cheerOverlay');
+            overlay.style.display = 'block';
+            
+            // Create multiple cheer particles
+            const emojis = ['🎉', '✨', '🌟', '🥳', '🎊', '💖', '💫', '🔥'];
+            
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const particle = document.createElement('div');
+                    particle.className = 'cheer-particle';
+                    particle.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+                    particle.style.left = `${Math.random() * 100}%`;
+                    particle.style.top = `${Math.random() * 100}%`;
+                    particle.style.fontSize = `${Math.random() * 2 + 1.5}rem`;
+                    
+                    overlay.appendChild(particle);
+                    
+                    // Remove particle after animation
+                    setTimeout(() => {
+                        particle.remove();
+                    }, 2000);
+                }, i * 100);
+            }
+            
+            // Hide overlay after animation
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                overlay.innerHTML = '';
+            }, 2500);
+            
+            // If on last scene, show completion
+            if (currentScene === totalScenes) {
+                setTimeout(() => {
+                    alert("🎉 Demo Complete! You've experienced the full Sparkle journey. Ready to join?");
+                }, 1000);
+            }
+        }
+
+        // Restart demo
+        function restartDemo() {
+            currentScene = 1;
+            hasPostedStory = false;
+            
+            // Reset all scenes
+            for (let i = 1; i <= totalScenes; i++) {
+                document.getElementById(`scene${i}`).classList.remove('active');
+                document.querySelector(`.step-indicator[data-step="${i}"]`).classList.remove('active');
+                document.getElementById(`step${i}`).classList.remove('active', 'completed');
+            }
+            
+            // Show first scene
+            document.getElementById('scene1').classList.add('active');
+            document.querySelector('.step-indicator[data-step="1"]').classList.add('active');
+            document.getElementById('step1').classList.add('active');
+            
+            // Reset progress
+            updateProgress();
+            
+            // Hide new moment
+            document.getElementById('newMoment').style.display = 'none';
+            
+            // Reset chat
+            const groupChat = document.getElementById('groupChat');
+            groupChat.innerHTML = 'Alex: "Who\'s ready for the exam?"';
+            groupChat.style.color = 'var(--gray)';
+            groupChat.style.fontWeight = 'normal';
+            
+            // Update button states
+            document.getElementById('prevBtn').disabled = true;
+            document.getElementById('nextBtn').disabled = false;
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                nextScene();
+            } else if (e.key === 'ArrowLeft') {
+                prevScene();
+            } else if (e.key === 'c' || e.key === 'C') {
+                showCheers();
+            }
+        });
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', initDemo);
+    </script>
 </body>
-
 </html>

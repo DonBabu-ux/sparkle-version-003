@@ -9,7 +9,7 @@ class Marketplace {
         let query = `SELECT m.*, u.username as seller_username, u.avatar_url as seller_avatar
                      FROM marketplace_listings m 
                      JOIN users u ON m.seller_id = u.user_id 
-                     WHERE m.is_sold = FALSE AND m.status = 'active'`;
+                     WHERE m.is_sold = FALSE`;
         const params = [];
 
         if (filters.campus) {
@@ -30,7 +30,7 @@ class Marketplace {
         query += ' ORDER BY m.created_at DESC LIMIT 20';
 
         const [listings] = await pool.query(query, params);
-        
+
         // Get media for each listing
         for (let listing of listings) {
             const [media] = await pool.query(
@@ -40,7 +40,7 @@ class Marketplace {
             listing.media = media;
             listing.image_urls = media.filter(m => m.media_type === 'image').map(m => m.media_url);
         }
-        
+
         return listings;
     }
 
@@ -51,7 +51,7 @@ class Marketplace {
         let query = `SELECT m.*, u.username as seller_username, u.avatar_url as seller_avatar
                      FROM marketplace_listings m 
                      JOIN users u ON m.seller_id = u.user_id 
-                     WHERE m.status = 'active'`;
+                     WHERE m.is_sold = FALSE`;
         const params = [];
 
         // Category filter
@@ -92,7 +92,7 @@ class Marketplace {
         }
 
         query += ' ORDER BY m.created_at DESC';
-        
+
         // Pagination
         if (filters.limit) {
             query += ' LIMIT ?';
@@ -104,7 +104,7 @@ class Marketplace {
         }
 
         const [listings] = await pool.query(query, params);
-        
+
         // Get media for each listing
         for (let listing of listings) {
             const [media] = await pool.query(
@@ -114,7 +114,7 @@ class Marketplace {
             listing.media = media;
             listing.image_urls = media.filter(m => m.media_type === 'image').map(m => m.media_url);
         }
-        
+
         return listings;
     }
 
@@ -176,8 +176,8 @@ class Marketplace {
     static async createListing(sellerId, listingData) {
         const listingId = crypto.randomUUID();
         await pool.query(
-            `INSERT INTO marketplace_listings (listing_id, seller_id, title, description, price, category, condition, campus, location, image_url, status) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO marketplace_listings (listing_id, seller_id, title, description, price, category, condition, campus, location, image_url) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 listingId,
                 sellerId,
@@ -188,8 +188,7 @@ class Marketplace {
                 listingData.condition || 'good',
                 listingData.campus,
                 listingData.location || null,
-                listingData.image_url || null,
-                'active'
+                listingData.image_url || null
             ]
         );
         return listingId;
@@ -201,15 +200,15 @@ class Marketplace {
     static async createListingWithMedia(sellerId, listingData, mediaFiles = []) {
         const listingId = crypto.randomUUID();
         const connection = await pool.getConnection();
-        
+
         try {
             await connection.beginTransaction();
-            
+
             // Insert listing
             await connection.query(
                 `INSERT INTO marketplace_listings 
-                (listing_id, seller_id, title, description, price, category, condition, campus, location, status, tags) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (listing_id, seller_id, title, description, price, category, condition, campus, location, tags) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     listingId,
                     sellerId,
@@ -220,11 +219,10 @@ class Marketplace {
                     listingData.condition || 'good',
                     listingData.campus,
                     listingData.location || null,
-                    'active',
                     listingData.tags ? JSON.stringify(listingData.tags) : null
                 ]
             );
-            
+
             // Insert media files
             for (let i = 0; i < mediaFiles.length; i++) {
                 const media = mediaFiles[i];
@@ -240,7 +238,7 @@ class Marketplace {
                     ]
                 );
             }
-            
+
             await connection.commit();
             return listingId;
         } catch (error) {
@@ -262,11 +260,11 @@ class Marketplace {
              WHERE m.listing_id = ?`,
             [listingId]
         );
-        
+
         if (listings.length === 0) return null;
-        
+
         const listing = listings[0];
-        
+
         // Get media files
         const [media] = await pool.query(
             `SELECT * FROM listing_media 
@@ -274,7 +272,7 @@ class Marketplace {
              ORDER BY upload_order ASC`,
             [listingId]
         );
-        
+
         listing.media = media;
         listing.image_urls = media.filter(m => m.media_type === 'image').map(m => m.media_url);
         return listing;
@@ -333,18 +331,18 @@ class Marketplace {
     static async getOrCreateChat(userId1, userId2, listingId = null) {
         // Ensure consistent ordering for unique constraint
         const [participant1, participant2] = [userId1, userId2].sort();
-        
+
         const [existingChats] = await pool.query(
             `SELECT * FROM chats 
              WHERE participant1_id = ? AND participant2_id = ? 
              AND (listing_id = ? OR (listing_id IS NULL AND ? IS NULL))`,
             [participant1, participant2, listingId, listingId]
         );
-        
+
         if (existingChats.length > 0) {
             return existingChats[0];
         }
-        
+
         // Create new chat
         const chatId = crypto.randomUUID();
         await pool.query(
@@ -352,12 +350,12 @@ class Marketplace {
              VALUES (?, ?, ?, ?)`,
             [chatId, participant1, participant2, listingId]
         );
-        
-        return { 
-            chat_id: chatId, 
-            participant1_id: participant1, 
-            participant2_id: participant2, 
-            listing_id: listingId 
+
+        return {
+            chat_id: chatId,
+            participant1_id: participant1,
+            participant2_id: participant2,
+            listing_id: listingId
         };
     }
 
@@ -366,18 +364,18 @@ class Marketplace {
      */
     static async sendMessage(chatId, senderId, content) {
         const messageId = crypto.randomUUID();
-        
+
         const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
-            
+
             // Insert message
             await connection.query(
                 `INSERT INTO messages (message_id, chat_id, sender_id, content) 
                  VALUES (?, ?, ?, ?)`,
                 [messageId, chatId, senderId, content]
             );
-            
+
             // Update chat last message
             await connection.query(
                 `UPDATE chats 
@@ -385,7 +383,7 @@ class Marketplace {
                  WHERE chat_id = ?`,
                 [content.length > 200 ? content.substring(0, 197) + '...' : content, chatId]
             );
-            
+
             await connection.commit();
             return messageId;
         } catch (error) {
@@ -409,7 +407,7 @@ class Marketplace {
              LIMIT ?`,
             [chatId, limit]
         );
-        
+
         return messages.reverse(); // Return in chronological order
     }
 
@@ -439,7 +437,7 @@ class Marketplace {
              ORDER BY c.last_message_time DESC`,
             [userId, userId, userId, userId]
         );
-        
+
         return chats;
     }
 
@@ -456,7 +454,7 @@ class Marketplace {
              AND m.is_read = FALSE`,
             [chatId, userId]
         );
-        
+
         return true;
     }
 
@@ -473,7 +471,7 @@ class Marketplace {
              AND m.is_read = FALSE`,
             [userId, userId, userId]
         );
-        
+
         return result[0]?.unread_count || 0;
     }
 
@@ -481,13 +479,14 @@ class Marketplace {
      * Update listing status
      */
     static async updateListingStatus(listingId, status) {
+        const isSold = status === 'sold' ? 1 : 0;
         await pool.query(
             `UPDATE marketplace_listings 
-             SET status = ?, updated_at = CURRENT_TIMESTAMP 
+             SET is_sold = ?, updated_at = CURRENT_TIMESTAMP 
              WHERE listing_id = ?`,
-            [status, listingId]
+            [isSold, listingId]
         );
-        
+
         return true;
     }
 
@@ -498,19 +497,19 @@ class Marketplace {
         const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
-            
+
             // Delete media first
             await connection.query(
                 'DELETE FROM listing_media WHERE listing_id = ?',
                 [listingId]
             );
-            
+
             // Delete listing
             const [result] = await connection.query(
                 'DELETE FROM marketplace_listings WHERE listing_id = ? AND seller_id = ?',
                 [listingId, sellerId]
             );
-            
+
             await connection.commit();
             return result.affectedRows > 0;
         } catch (error) {
@@ -533,7 +532,7 @@ class Marketplace {
              ORDER BY m.created_at DESC`,
             [userId]
         );
-        
+
         // Get first image for each listing
         for (let listing of listings) {
             if (listing.media_count > 0) {
@@ -544,7 +543,7 @@ class Marketplace {
                 listing.image_url = media[0]?.media_url || null;
             }
         }
-        
+
         return listings;
     }
 
@@ -579,7 +578,7 @@ class Marketplace {
              WHERE c.chat_id = ? AND (c.participant1_id = ? OR c.participant2_id = ?)`,
             [userId, userId, userId, chatId, userId, userId]
         );
-        
+
         return chats[0] || null;
     }
 }

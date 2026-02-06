@@ -7,7 +7,14 @@
             "use": "@vercel/node",
             "config": {
                 "includeFiles": [
-                    "frontend/**"
+                    "views/**",
+                    "public/**",
+                    "models/**",
+                    "controllers/**",
+                    "routes/**",
+                    "config/**",
+                    "utils/**",
+                    "middleware/**"
                 ]
             }
         }

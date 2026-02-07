@@ -1,10 +1,7 @@
 const Joi = require('joi');
 
-/**
- * Validation middleware factory
- */
 const validate = (schema, property = 'body') => {
-    return (req, res, next) => {
+    const middleware = (req, res, next) => {
         const { error, value } = schema.validate(req[property], {
             abortEarly: false,
             stripUnknown: true
@@ -26,6 +23,12 @@ const validate = (schema, property = 'body') => {
         req[property] = value;
         next();
     };
+
+    // Attach schema to the middleware function for introspection
+    middleware.schema = schema;
+    middleware.property = property;
+
+    return middleware;
 };
 
 module.exports = { validate };

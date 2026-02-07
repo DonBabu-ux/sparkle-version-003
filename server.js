@@ -52,9 +52,33 @@ app.use((req, res, next) => {
     next();
 });
 
+// API Tester & Route Debugging (Development Only)
+if (process.env.NODE_ENV !== 'production') {
+    const { scanRoutes } = require('./utils/route-scanner');
+    const { ejsAuthMiddleware } = require('./middleware/auth.middleware');
+
+    app.get('/api/debug/routes', ejsAuthMiddleware, (req, res) => {
+        try {
+            const routes = scanRoutes(app);
+            res.json(routes);
+        } catch (error) {
+            console.error('[API Debug Error] Failed to scan routes:', error);
+            res.status(500).json({ error: 'Failed to scan routes' });
+        }
+    });
+
+    app.get('/api-tester', ejsAuthMiddleware, (req, res) => {
+        res.render('api-tester', {
+            title: 'Sparkle API Tester',
+            user: req.user
+        });
+    });
+}
+
 // Routes
 app.use('/api', apiRoutes);
 app.use('/', webRoutes);
+
 
 // 404 Handler
 app.use((req, res) => {

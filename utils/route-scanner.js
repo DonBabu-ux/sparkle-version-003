@@ -4,12 +4,36 @@
 function scanRoutes(app) {
     const routes = [];
 
+    function extractValidation(route) {
+        const validation = {};
+        if (route.stack) {
+            route.stack.forEach(layer => {
+                if (layer.handle) {
+                    // console.log(`Checking layer for ${route.path}:`, layer.name); 
+                    // Note: layer.name might be 'middleware' or 'bound dispatch'
+
+                    if (layer.handle.schema) {
+                        console.log(`[Scanner] Found schema for ${route.path}`);
+                        const property = layer.handle.property || 'body';
+                        try {
+                            validation[property] = layer.handle.schema.describe();
+                        } catch (e) {
+                            console.error(`[Scanner] Error describing schema:`, e);
+                        }
+                    }
+                }
+            });
+        }
+        return validation;
+    }
+
     function processLayer(layer, prefix = '') {
         if (layer.route) {
             // It's a direct route
             const path = (prefix + layer.route.path).replace(/\/+/g, '/');
             const methods = Object.keys(layer.route.methods).map(m => m.toUpperCase());
-            routes.push({ path, methods });
+            const validation = extractValidation(layer.route);
+            routes.push({ path, methods, validation });
         } else if (layer.name === 'router' && layer.handle.stack) {
             // It's a router (sub-middleware)
             let newPrefix = prefix;

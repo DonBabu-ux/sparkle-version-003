@@ -1,8 +1,9 @@
+const path = require('path');
 const express = require('express');
 const router = express.Router();
-const clubsController = require('../../controllers/clubs.controller');
-const { authMiddleware } = require('../../middleware/auth.middleware');
-const { upload } = require('../../middleware/upload.middleware');
+const clubsController = require(path.join(__dirname, '..', '..', 'controllers', 'clubs.controller');
+const { authMiddleware } = require(path.join(__dirname, '..', '..', 'middleware', 'auth.middleware');
+const { upload } = require(path.join(__dirname, '..', '..', 'middleware', 'upload.middleware');
 
 router.get('/', authMiddleware, clubsController.getClubs);
 router.post('/', authMiddleware, upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'banner', maxCount: 1 }]), clubsController.createClub);
@@ -13,3 +14,4 @@ router.post('/:id/join', authMiddleware, clubsController.joinClub);
 router.post('/:id/leave', authMiddleware, clubsController.leaveClub);
 
 module.exports = router;
+

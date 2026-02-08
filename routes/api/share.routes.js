@@ -1,7 +1,8 @@
+const path = require('path');
 const express = require('express');
 const router = express.Router();
 const pool = require('../../config/database');
-const { authMiddleware } = require('../../middleware/auth.middleware');
+const { authMiddleware } = require(path.join(__dirname, '..', '..', 'middleware', 'auth.middleware');
 
 // Track Share Analytics
 router.post('/track', authMiddleware, async (req, res) => {
@@ -70,3 +71,4 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+

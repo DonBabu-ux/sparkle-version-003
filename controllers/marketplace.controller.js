@@ -37,16 +37,16 @@ const renderMarketplace = async (req, res) => {
         res.render('marketplace', {
             title: 'Marketplace',
             initialListings: sanitizedListings || [],
-            user: req.session.user,
-            campus: req.session.user?.campus || 'main_campus'
+            user: req.session ? req.session.user : null,
+            campus: req.session?.user?.campus || 'main_campus'
         });
     } catch (error) {
         logger.error('Render marketplace error:', error);
         res.render('marketplace', {
             title: 'Marketplace',
             initialListings: [],
-            user: req.session.user,
-            campus: req.session.user?.campus || 'main_campus'
+            user: req.session ? req.session.user : null,
+            campus: req.session?.user?.campus || 'main_campus'
         });
     }
 };
@@ -73,7 +73,7 @@ const renderListingDetail = async (req, res) => {
         res.render('marketplace/listing-detail', {
             title: listing.title || 'Listing Details',
             listing: listing,
-            user: req.session.user
+            user: req.session ? req.session.user : null
         });
     } catch (error) {
         logger.error('Render listing detail error:', error);
@@ -86,7 +86,7 @@ const renderListingDetail = async (req, res) => {
 
 const renderUserListings = async (req, res) => {
     try {
-        const userId = req.session.user?.user_id;
+        const userId = req.session?.user?.user_id;
         if (!userId) {
             return res.redirect('/login');
         }
@@ -123,7 +123,7 @@ const getListings = [
         try {
             const filters = {
                 ...req.query,
-                campus: req.session.user?.campus || req.query.campus || 'main_campus'
+                campus: req.session?.user?.campus || req.query.campus || 'main_campus'
             };
 
             const result = await Marketplace.getListings(filters);
@@ -195,7 +195,7 @@ const createListing = [
     validate(marketplaceSchemas.createListing),
     async (req, res) => {
         try {
-            const userId = req.session.user?.user_id;
+            const userId = req.session?.user?.user_id;
             if (!userId) {
                 return res.status(401).json({
                     success: false,
@@ -234,7 +234,7 @@ const updateListing = [
     validate(marketplaceSchemas.updateListing),
     async (req, res) => {
         try {
-            const userId = req.session.user?.user_id;
+            const userId = req.session?.user?.user_id;
             if (!userId) {
                 return res.status(401).json({
                     success: false,
@@ -267,7 +267,7 @@ const updateListing = [
 
 const deleteListing = async (req, res) => {
     try {
-        const userId = req.session.user?.user_id;
+        const userId = req.session?.user?.user_id;
         if (!userId) {
             return res.status(401).json({
                 success: false,
@@ -295,7 +295,7 @@ const contactSeller = [
     validate(marketplaceSchemas.contactSeller),
     async (req, res) => {
         try {
-            const buyerId = req.session.user?.user_id;
+            const buyerId = req.session?.user?.user_id;
             if (!buyerId) {
                 return res.status(401).json({
                     success: false,
@@ -336,7 +336,7 @@ const contactSeller = [
 
 const getUserChats = async (req, res) => {
     try {
-        const userId = req.session.user?.user_id;
+        const userId = req.session?.user?.user_id;
         if (!userId) {
             return res.status(401).json({
                 success: false,
@@ -361,7 +361,7 @@ const getUserChats = async (req, res) => {
 
 const getChatMessages = async (req, res) => {
     try {
-        const userId = req.session.user?.user_id;
+        const userId = req.session?.user?.user_id;
         if (!userId) {
             return res.status(401).json({
                 success: false,
@@ -391,7 +391,7 @@ const sendMessage = [
     validate(marketplaceSchemas.sendMessage),
     async (req, res) => {
         try {
-            const senderId = req.session.user?.user_id;
+            const senderId = req.session?.user?.user_id;
             if (!senderId) {
                 return res.status(401).json({
                     success: false,
@@ -433,7 +433,7 @@ const toggleFavorite = [
     validate(marketplaceSchemas.toggleFavorite, 'body'),
     async (req, res) => {
         try {
-            const userId = req.session.user?.user_id;
+            const userId = req.session?.user?.user_id;
             if (!userId) {
                 return res.status(401).json({
                     success: false,
@@ -460,7 +460,7 @@ const toggleFavorite = [
 
 const getFavorites = async (req, res) => {
     try {
-        const userId = req.session.user?.user_id;
+        const userId = req.session?.user?.user_id;
         if (!userId) {
             return res.status(401).json({
                 success: false,
@@ -485,7 +485,7 @@ const getFavorites = async (req, res) => {
 
 const getCounts = async (req, res) => {
     try {
-        const userId = req.session.user?.user_id;
+        const userId = req.session?.user?.user_id;
         if (!userId) {
             return res.json({
                 favoritesCount: 0,
@@ -537,7 +537,7 @@ const createLostFoundItem = [
     validate(marketplaceSchemas.createLostFoundItem),
     async (req, res) => {
         try {
-            const reporterId = req.session.user?.user_id;
+            const reporterId = req.session?.user?.user_id;
             if (!reporterId) {
                 return res.status(401).json({
                     success: false,
@@ -581,7 +581,7 @@ const createSkillOffer = [
     validate(marketplaceSchemas.createSkillOffer),
     async (req, res) => {
         try {
-            const userId = req.session.user?.user_id;
+            const userId = req.session?.user?.user_id;
             if (!userId) {
                 return res.status(401).json({
                     success: false,

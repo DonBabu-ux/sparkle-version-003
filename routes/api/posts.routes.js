@@ -1,11 +1,12 @@
+const path = require('path');
 const express = require('express');
 const router = express.Router();
-const postController = require('../../controllers/post.controller');
-const feedController = require('../../controllers/feed.controller');
-const { authMiddleware } = require('../../middleware/auth.middleware');
+const postController = require(path.join(__dirname, '..', '..', 'controllers', 'post.controller');
+const feedController = require(path.join(__dirname, '..', '..', 'controllers', 'feed.controller');
+const { authMiddleware } = require(path.join(__dirname, '..', '..', 'middleware', 'auth.middleware');
 
-const { validate } = require('../../middleware/validation.middleware');
-const { upload } = require('../../middleware/upload.middleware');
+const { validate } = require(path.join(__dirname, '..', '..', 'middleware', 'validation.middleware');
+const { upload } = require(path.join(__dirname, '..', '..', 'middleware', 'upload.middleware');
 const { createPostSchema, addCommentSchema, postIdSchema } = require('../../validators/post.validator');
 
 router.get('/feed', authMiddleware, feedController.getFeedPosts);
@@ -18,3 +19,4 @@ router.post('/:id/share', authMiddleware, validate(postIdSchema, 'params'), post
 router.delete('/:id', authMiddleware, validate(postIdSchema, 'params'), postController.deletePost);
 
 module.exports = router;
+

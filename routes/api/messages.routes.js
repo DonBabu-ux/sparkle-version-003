@@ -1,7 +1,8 @@
+const path = require('path');
 const express = require('express');
 const router = express.Router();
-const messageController = require('../../controllers/messages.controller');
-const { authMiddleware } = require('../../middleware/auth.middleware');
+const messageController = require(path.join(__dirname, '..', '..', 'controllers', 'messages.controller');
+const { authMiddleware } = require(path.join(__dirname, '..', '..', 'middleware', 'auth.middleware');
 
 router.use(authMiddleware);
 
@@ -14,3 +15,4 @@ router.post('/start', messageController.startConversation);
 router.post('/:partnerId', messageController.sendMessage); // Frontend uses this for sending
 
 module.exports = router;
+

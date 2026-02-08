@@ -1,8 +1,9 @@
+const path = require('path');
 const express = require('express');
 const router = express.Router();
-const groupChatController = require('../../controllers/groupChat.controller');
-const { authMiddleware } = require('../../middleware/auth.middleware');
-const { upload } = require('../../middleware/upload.middleware');
+const groupChatController = require(path.join(__dirname, '..', '..', 'controllers', 'groupChat.controller');
+const { authMiddleware } = require(path.join(__dirname, '..', '..', 'middleware', 'auth.middleware');
+const { upload } = require(path.join(__dirname, '..', '..', 'middleware', 'upload.middleware');
 
 // Chat Management
 router.post('/', authMiddleware, upload.single('pfp'), groupChatController.createGroupChat);
@@ -21,3 +22,4 @@ router.put('/:chatId', authMiddleware, upload.single('pfp'), groupChatController
 // TODO: Add other routes as needed (leave, settings, etc.) based on future requirements
 
 module.exports = router;
+

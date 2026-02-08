@@ -1,10 +1,11 @@
+const path = require('path');
 const express = require('express');
 const router = express.Router();
-const userController = require('../../controllers/user.controller');
-const { authMiddleware } = require('../../middleware/auth.middleware');
+const userController = require(path.join(__dirname, '..', '..', 'controllers', 'user.controller');
+const { authMiddleware } = require(path.join(__dirname, '..', '..', 'middleware', 'auth.middleware');
 
-const { validate } = require('../../middleware/validation.middleware');
-const { upload } = require('../../middleware/upload.middleware');
+const { validate } = require(path.join(__dirname, '..', '..', 'middleware', 'validation.middleware');
+const { upload } = require(path.join(__dirname, '..', '..', 'middleware', 'upload.middleware');
 const { searchSchema, updateProfileSchema, updatePasswordSchema, userIdSchema } = require('../../validators/user.validator');
 
 router.get('/me', authMiddleware, userController.getCurrentUser);
@@ -24,3 +25,4 @@ router.post('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), use
 router.delete('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
 
 module.exports = router;
+

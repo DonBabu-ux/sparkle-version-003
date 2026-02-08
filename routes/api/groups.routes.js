@@ -1,8 +1,9 @@
+const path = require('path');
 const express = require('express');
 const router = express.Router();
-const groupsController = require('../../controllers/groups.controller');
-const { authMiddleware } = require('../../middleware/auth.middleware');
-const { upload } = require('../../middleware/upload.middleware');
+const groupsController = require(path.join(__dirname, '..', '..', 'controllers', 'groups.controller');
+const { authMiddleware } = require(path.join(__dirname, '..', '..', 'middleware', 'auth.middleware');
+const { upload } = require(path.join(__dirname, '..', '..', 'middleware', 'upload.middleware');
 
 router.get('/campus', authMiddleware, groupsController.getCampusGroups);
 router.post('/', authMiddleware, upload.single('pfp'), groupsController.createGroup);
@@ -11,3 +12,4 @@ router.put('/:id', authMiddleware, upload.single('pfp'), groupsController.update
 router.post('/:id/posts', authMiddleware, groupsController.createGroupPost);
 
 module.exports = router;
+

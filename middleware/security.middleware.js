@@ -1,5 +1,6 @@
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const csrf = require('csurf');
 const { body, validationResult } = require('express-validator');
 
 /**
@@ -24,6 +25,17 @@ const authRateLimiter = createRateLimiter(15 * 60 * 1000, 5); // 5 requests per 
  * General API rate limiter
  */
 const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 60); // 60 requests per minute
+
+/**
+ * CSRF Protection middleware
+ */
+const csrfProtection = csrf({ 
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+    }
+});
 
 /**
  * Sanitization middleware to prevent XSS
@@ -70,6 +82,7 @@ module.exports = {
     createRateLimiter,
     authRateLimiter,
     apiRateLimiter,
+    csrfProtection,  // Added this
     sanitizeInput,
     securityHeaders
 };

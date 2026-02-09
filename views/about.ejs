@@ -1,40 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sparkle • Campus Social Network</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Main Variables */
+        /* Main Variables - Pink Theme */
         :root {
-            --sparkle-pink: #ec4899;
-            --sparkle-pink-light: #f472b6;
-            --sparkle-pink-lighter: #fce7f3;
-            --sparkle-pink-dark: #be185d;
-            --sparkle-purple: #8b5cf6;
+            --sparkle-pink: #ff3d6d;
+            /* Primary Pink */
+            --sparkle-pink-light: #ff6b8b;
+            --sparkle-pink-lighter: #ffe6f0;
+            /* Very Light Pink Background */
+            --sparkle-pink-dark: #d6336c;
+            --sparkle-purple: #f54791;
+            /* Secondary Pink */
             --sparkle-gradient: linear-gradient(135deg, var(--sparkle-pink) 0%, var(--sparkle-purple) 100%);
-            --pink-gradient: linear-gradient(135deg, #ec4899 0%, #f472b6 50%, #f9a8d4 100%);
-            --sparkle-light-gradient: linear-gradient(135deg, #fce7f3 0%, #f5f3ff 100%);
+            --pink-gradient: linear-gradient(135deg, #ff3d6d 0%, #ff6b8b 50%, #f54791 100%);
+            --sparkle-light-gradient: linear-gradient(135deg, #ffe6f0 0%, #fff0f5 100%);
             --sparkle-dark: #1a1a2e;
             --sparkle-gray: #f5f5f7;
-            --sparkle-border: #f0c6d8;
-            --shadow: 0 8px 30px rgba(236, 72, 153, 0.12);
-            --shadow-hover: 0 15px 40px rgba(236, 72, 153, 0.25);
-            --shadow-strong: 0 20px 60px rgba(236, 72, 153, 0.3);
-            
+            --sparkle-border: #ffc2d1;
+            --shadow: 0 8px 30px rgba(255, 61, 109, 0.12);
+            --shadow-hover: 0 15px 40px rgba(255, 61, 109, 0.25);
+            --shadow-strong: 0 20px 60px rgba(255, 61, 109, 0.3);
+
             /* Demo Variables */
-            --primary-pink: #ff4d8d;
-            --secondary-pink: #ff80b3;
-            --light-pink: #ffccdd;
-            --hot-pink: #ff0066;
-            --dark-pink: #cc3366;
+            --primary-pink: #ff3d6d;
+            --secondary-pink: #ff6b8b;
+            --light-pink: #ffe6f0;
+            --hot-pink: #f54791;
+            --dark-pink: #d6336c;
             --sparkle-gold: #ffd700;
             --text-color: #5a0033;
             --gradient: linear-gradient(135deg, var(--primary-pink), var(--hot-pink));
-            
+
             /* App Colors */
             --app-bg: #ffffff;
             --app-header: #ffffff;
@@ -73,7 +78,7 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+            border-bottom: 1px solid rgba(255, 61, 109, 0.1);
         }
 
         .nav-container {
@@ -107,10 +112,23 @@
         }
 
         @keyframes sparkleFloat {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-5px) rotate(5deg); }
-            50% { transform: translateY(0) rotate(0deg); }
-            75% { transform: translateY(-3px) rotate(-5deg); }
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateY(-5px) rotate(5deg);
+            }
+
+            50% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            75% {
+                transform: translateY(-3px) rotate(-5deg);
+            }
         }
 
         .brand-text {
@@ -440,7 +458,7 @@
         }
 
         .feature-card:hover .feature-icon {
-            transform: scale(1.1) rotate(10deg);
+            transform: scale(1.02) rotate(2deg);
         }
 
         .feature-card:hover .feature-icon::after {
@@ -616,14 +634,19 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
             background-size: 50px 50px;
             animation: float 20s linear infinite;
         }
 
         @keyframes float {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(-50px, -50px) rotate(360deg); }
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(-50px, -50px) rotate(360deg);
+            }
         }
 
         .cta-title {
@@ -709,9 +732,9 @@
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-5px);
-            border-color: white;
+            background: rgba(255, 61, 109, 0.05);
+            transform: translateY(-2px);
+            border-color: var(--sparkle-pink);
         }
 
         .btn-demo {
@@ -722,15 +745,23 @@
         }
 
         @keyframes demoPulse {
-            0% { box-shadow: 0 10px 30px rgba(255, 0, 102, 0.3); }
-            50% { box-shadow: 0 10px 30px rgba(255, 0, 102, 0.6), 0 0 40px rgba(255, 0, 102, 0.4); }
-            100% { box-shadow: 0 10px 30px rgba(255, 0, 102, 0.3); }
+            0% {
+                box-shadow: 0 10px 30px rgba(255, 0, 102, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 10px 30px rgba(255, 0, 102, 0.6), 0 0 40px rgba(255, 0, 102, 0.4);
+            }
+
+            100% {
+                box-shadow: 0 10px 30px rgba(255, 0, 102, 0.3);
+            }
         }
 
         .btn-demo:hover {
             animation: none;
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 15px 40px rgba(255, 0, 102, 0.4);
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(255, 61, 109, 0.2);
         }
 
         /* Footer */
@@ -825,7 +856,7 @@
 
         .social-link:hover {
             background: var(--sparkle-gradient);
-            transform: translateY(-5px);
+            transform: translateY(-2px);
         }
 
         /* DEMO MODAL STYLES */
@@ -854,8 +885,15 @@
         }
 
         @keyframes modalFadeIn {
-            from { opacity: 0; transform: scale(0.9) translateY(20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
         }
 
         .close-demo {
@@ -879,7 +917,7 @@
         }
 
         .close-demo:hover {
-            transform: scale(1.1) rotate(90deg);
+            transform: scale(1.05) rotate(90deg);
             background: var(--hot-pink);
         }
 
@@ -891,7 +929,7 @@
             background: linear-gradient(145deg, #1a1a1a, #000);
             border-radius: 46px;
             padding: 18px;
-            box-shadow: 
+            box-shadow:
                 0 40px 80px rgba(255, 0, 102, 0.3),
                 inset 0 0 0 4px #333,
                 inset 0 0 50px rgba(255, 255, 255, 0.05),
@@ -918,7 +956,7 @@
             align-items: center;
             gap: 8px;
             padding: 0 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
             border: 1px solid #333;
         }
 
@@ -974,8 +1012,15 @@
         }
 
         @keyframes sceneFade {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* iOS Status Bar */
@@ -1089,7 +1134,7 @@
         }
 
         .app-icon:hover {
-            transform: translateY(-5px);
+            transform: translateY(-2px);
             background: var(--sparkle-gradient);
             color: white;
         }
@@ -1125,7 +1170,7 @@
         }
 
         .conversation-item:hover {
-            transform: translateX(5px);
+            transform: translateX(2px);
             background: var(--sparkle-gradient);
             color: white;
         }
@@ -1161,7 +1206,7 @@
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             border: 1px solid var(--app-border);
         }
 
@@ -1224,13 +1269,20 @@
             background: white;
             border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
             animation: modalSlideUp 0.4s ease;
         }
 
         @keyframes modalSlideUp {
-            from { opacity: 0; transform: translateY(50px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .help-header {
@@ -1266,8 +1318,15 @@
         }
 
         @keyframes messageSlide {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .bot-message {
@@ -1315,8 +1374,8 @@
         }
 
         .help-input button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(236, 72, 153, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(255, 61, 109, 0.3);
         }
 
         .help-options {
@@ -1380,7 +1439,7 @@
             .hero-title {
                 font-size: 2.8rem;
             }
-            
+
             .feature-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -1390,11 +1449,11 @@
             .main-nav {
                 height: 70px;
             }
-            
+
             .nav-container {
                 padding: 0 20px;
             }
-            
+
             .nav-links {
                 display: none;
                 position: absolute;
@@ -1408,44 +1467,44 @@
                 z-index: 1000;
                 border-radius: 0 0 20px 20px;
             }
-            
+
             .nav-links.active {
                 display: flex;
             }
-            
+
             .mobile-menu-btn {
                 display: block;
             }
-            
+
             .hero-title {
                 font-size: 2.3rem;
             }
-            
+
             .feature-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .team-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
-            
+
             .cta-buttons {
                 flex-direction: column;
             }
-            
+
             .btn {
                 width: 100%;
             }
-            
+
             .mobile-nav-container {
                 display: flex;
             }
-            
+
             .demo-container {
                 max-width: 100%;
                 padding: 0;
             }
-            
+
             .phone-container {
                 max-width: 100% !important;
                 height: 100vh !important;
@@ -1454,21 +1513,21 @@
                 padding: 10px !important;
                 width: 100% !important;
             }
-            
+
             .phone-screen {
                 border-radius: 20px !important;
                 height: calc(100vh - 20px) !important;
             }
-            
+
             .close-demo {
                 top: 15px;
                 right: 15px;
             }
-            
+
             .dynamic-island {
                 display: none;
             }
-            
+
             @supports (padding: max(0px)) {
                 .phone-container {
                     padding-top: max(10px, env(safe-area-inset-top));
@@ -1476,7 +1535,7 @@
                     padding-left: max(10px, env(safe-area-inset-left));
                     padding-right: max(10px, env(safe-area-inset-right));
                 }
-                
+
                 .mobile-nav-container {
                     top: max(15px, env(safe-area-inset-top));
                     left: max(15px, env(safe-area-inset-left));
@@ -1489,19 +1548,19 @@
             .main-content {
                 padding: 100px 15px 40px;
             }
-            
+
             .hero-section {
                 padding: 40px 15px;
             }
-            
+
             .hero-title {
                 font-size: 2rem;
             }
-            
+
             .team-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .stats-container {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -1520,6 +1579,7 @@
                 opacity: 1;
                 transform: translateY(0) rotate(0deg);
             }
+
             100% {
                 opacity: 0;
                 transform: translateY(-100px) rotate(360deg);
@@ -1538,10 +1598,13 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <!-- Navigation Bar -->
     <nav class="main-nav">
@@ -1594,10 +1657,10 @@
         <div class="hero-section">
             <h1 class="hero-title">✨ About Sparkle</h1>
             <p class="hero-subtitle">
-                Where Campus Connections Come to Life! Join over 750,000 students across 20+ campuses 
+                Where Campus Connections Come to Life! Join over 750,000 students across 20+ campuses
                 in our vibrant, pink-powered social network designed exclusively for student life.
             </p>
-            
+
             <div class="cta-buttons">
                 <button class="btn btn-demo" onclick="openDemo()">
                     <i class="fas fa-play-circle"></i> View Interactive Demo
@@ -1634,7 +1697,7 @@
         <!-- Features Grid -->
         <div class="feature-grid">
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-sparkles"></i></div>
+                <div class="feature-icon"><i class="fas fa-magic"></i></div>
                 <h3>Sparkle Feed</h3>
                 <p>Personalized campus feed with trending content, memes, and viral moments from your university.</p>
                 <div class="feature-tags">
@@ -1643,7 +1706,7 @@
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-heart-circle-bolt"></i></div>
+                <div class="feature-icon"><i class="fas fa-heart-pulse"></i></div>
                 <h3>Crush Radar</h3>
                 <p>Anonymous crush notifications with fun icebreakers. Discover mutual admirers safely!</p>
                 <div class="feature-tags">
@@ -1652,7 +1715,7 @@
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-users-sparkles"></i></div>
+                <div class="feature-icon"><i class="fas fa-users-viewfinder"></i></div>
                 <h3>Spark Squads</h3>
                 <p>Create or join interest-based groups for study sessions, events, and social activities.</p>
                 <div class="feature-tags">
@@ -1661,7 +1724,7 @@
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-calendar-star"></i></div>
+                <div class="feature-icon"><i class="fas fa-calendar-alt"></i></div>
                 <h3>Event Galaxy</h3>
                 <p>Interactive campus calendar with virtual and in-person events, parties, and workshops.</p>
                 <div class="feature-tags">
@@ -1670,7 +1733,7 @@
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-shop-sparkles"></i></div>
+                <div class="feature-icon"><i class="fas fa-store"></i></div>
                 <h3>Pink Marketplace</h3>
                 <p>Curated marketplace for textbooks, dorm decor, fashion, and handmade student crafts.</p>
                 <div class="feature-tags">
@@ -1679,7 +1742,7 @@
                 </div>
             </div>
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-book-sparkles"></i></div>
+                <div class="feature-icon"><i class="fas fa-book-open"></i></div>
                 <h3>Study Sparkle</h3>
                 <p>Collaborative study tools with focus timers, shared notes, and virtual study rooms.</p>
                 <div class="feature-tags">
@@ -1692,23 +1755,26 @@
         <!-- Team Section -->
         <div class="team-section">
             <h2 style="text-align: center; color: var(--sparkle-pink); font-size: 2rem; margin-bottom: 10px;">
-                ✨ Our Sparkle Squad
+                Our Sparkle Squad
             </h2>
-            <p style="text-align: center; color: var(--app-text-light); margin-bottom: 40px; max-width: 800px; margin-left: auto; margin-right: auto;">
-                We're passionate students who believe campus life should be magical, connected, 
+            <p
+                style="text-align: center; color: var(--app-text-light); margin-bottom: 40px; max-width: 800px; margin-left: auto; margin-right: auto;">
+                We're passionate students who believe campus life should be magical, connected,
                 and full of sparkles! Every feature is designed with love from our dorm rooms.
             </p>
-            
+
             <div class="team-grid">
                 <div class="team-card">
                     <div class="team-avatar">
                         <!-- Replace with your image URL -->
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face" alt="Don the Techie">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"
+                            alt="Don the Techie">
                     </div>
                     <h4>Don the Techie</h4>
                     <p class="team-role">Chief Sparkle Officer</p>
                     <p class="team-education">Karatina University '18 • IT & Web Development</p>
-                    <p class="team-quote">"I believe every campus connection should spark joy and create lasting memories!"</p>
+                    <p class="team-quote">"I believe every campus connection should spark joy and create lasting
+                        memories!"</p>
                     <div class="team-social">
                         <a href="#"><i class="fab fa-twitter"></i></a>
                         <a href="#"><i class="fab fa-linkedin"></i></a>
@@ -1718,27 +1784,35 @@
                 <div class="team-card">
                     <div class="team-avatar">
                         <!-- Replace with your image URL -->
-                        <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&crop=face" alt="Supero Mosh">
+                        <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&crop=face"
+                            alt="senior49 (Mato)">
                     </div>
-                    <h4>Supero Mosh</h4>
-                    <p class="team-role">Sparkle Tech Wizard</p>
-                    <p class="team-education">Karatina University '19 • AI & Machine Learning</p>
-                    <p class="team-quote">"Building magic with code, one sparkle at a time! Making campus life extraordinary."</p>
+                    <h4>senior49 (Mato)</h4>
+                    <p class="team-role">Sparkle Techie</p>
+                    <p class="team-education">Karatina University •
+                        Full-stack web developer
+                        AI & ML dev
+                    </p>
+                    <p class="team-quote">"Building magic with code, one sparkle at a time! Making campus life
+                        extraordinary."</p>
                     <div class="team-social">
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-linkedin"></i></a>
-                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#" target="_blank" rel="noopener noreferrer"><i class="fab fa-twitter"></i></a>
+                        <a href="#" target="_blank" rel="noopener noreferrer"><i class="fab fa-linkedin"></i></a>
+                        <a href="https://www.github.com/superomosh94" target="_blank" rel="noopener noreferrer"><i
+                                class="fab fa-github"></i></a>
                     </div>
                 </div>
                 <div class="team-card">
                     <div class="team-avatar">
                         <!-- Replace with your image URL -->
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face" alt="Naty Leila">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face"
+                            alt="Naty Leila">
                     </div>
                     <h4>Naty Leila</h4>
                     <p class="team-role">Community Sparkler</p>
                     <p class="team-education">Karatina University '26 • Nursing & Marketing</p>
-                    <p class="team-quote">"Connecting hearts across campuses worldwide! Making every student feel at home."</p>
+                    <p class="team-quote">"Connecting hearts across campuses worldwide! Making every student feel at
+                        home."</p>
                     <div class="team-social">
                         <a href="#"><i class="fab fa-twitter"></i></a>
                         <a href="#"><i class="fab fa-linkedin"></i></a>
@@ -1752,7 +1826,7 @@
         <div class="cta-section">
             <h2 class="cta-title">Ready to Sparkle Up Your Campus Life?</h2>
             <p class="cta-subtitle">
-                Join thousands of students who've transformed their campus experience from ordinary 
+                Join thousands of students who've transformed their campus experience from ordinary
                 to extraordinary with Sparkle's magical features!
             </p>
             <div class="cta-buttons">
@@ -1776,7 +1850,7 @@
                 <div class="footer-section">
                     <h4>Sparkle</h4>
                     <p style="color: #ccc; line-height: 1.6; margin-bottom: 20px; font-size: 0.95rem;">
-                        The ultimate campus social experience connecting students worldwide. 
+                        The ultimate campus social experience connecting students worldwide.
                         Built by students, for students.
                     </p>
                     <div class="social-links">
@@ -1786,17 +1860,17 @@
                         <a href="#" class="social-link"><i class="fab fa-github"></i></a>
                     </div>
                 </div>
-                
+
                 <div class="footer-section">
                     <h4>Features</h4>
                     <ul class="footer-links">
                         <li><a href="/connect"><i class="fas fa-compass"></i> Explore Campus</a></li>
                         <li><a href="/events"><i class="fas fa-calendar-star"></i> Events</a></li>
                         <li><a href="/marketplace"><i class="fas fa-store"></i> Marketplace</a></li>
-                        <li><a href="/study"><i class="fas fa-book-sparkles"></i> Study Tools</a></li>
+                        <li><a href="/study"><i class="fas fa-book-open"></i> Study Tools</a></li>
                     </ul>
                 </div>
-                
+
                 <div class="footer-section">
                     <h4>Support</h4>
                     <ul class="footer-links">
@@ -1806,7 +1880,7 @@
                         <li><a href="#"><i class="fas fa-file-contract"></i> Terms</a></li>
                     </ul>
                 </div>
-                
+
                 <div class="footer-section">
                     <h4>Contact</h4>
                     <ul class="footer-links">
@@ -1817,10 +1891,11 @@
                     </ul>
                 </div>
             </div>
-            
+
             <div class="footer-bottom">
                 <p>&copy; 2026 Sparkle Campus Network. All rights reserved.</p>
-                <p>Made with <i class="fas fa-heart" style="color: var(--sparkle-pink);"></i> for students worldwide by Lilbee Logics</p>
+                <p>Made with <i class="fas fa-heart" style="color: var(--sparkle-pink);"></i> for students worldwide by
+                    Lilbee Logics</p>
             </div>
         </div>
     </footer>
@@ -1841,7 +1916,7 @@
                         Here are some quick options:
                     </div>
                 </div>
-                
+
                 <div class="help-options">
                     <button class="help-option" onclick="sendBotMessage('How do I sign up?')">
                         <i class="fas fa-user-plus"></i> Sign Up Help
@@ -1856,9 +1931,10 @@
                         <i class="fas fa-flag"></i> Report Issue
                     </button>
                 </div>
-                
+
                 <div class="help-input">
-                    <input type="text" id="helpInput" placeholder="Type your question here..." onkeypress="handleHelpKeyPress(event)">
+                    <input type="text" id="helpInput" placeholder="Type your question here..."
+                        onkeypress="handleHelpKeyPress(event)">
                     <button onclick="sendUserMessage()">
                         <i class="fas fa-paper-plane"></i> Send
                     </button>
@@ -1873,7 +1949,7 @@
             <button class="close-demo" onclick="closeDemo()">
                 <i class="fas fa-times"></i>
             </button>
-            
+
             <!-- Mobile Navigation Buttons -->
             <div class="mobile-nav-container">
                 <button class="mobile-nav-button" onclick="goToDashboard()">
@@ -1893,7 +1969,7 @@
                     <div class="island-camera"></div>
                     <div class="island-speaker"></div>
                 </div>
-                
+
                 <div class="phone-screen">
                     <!-- Scene 1: Welcome -->
                     <div class="demo-scene active" id="scene1">
@@ -1905,8 +1981,9 @@
                                 <i class="fas fa-battery-full"></i>
                             </div>
                         </div>
-                        
-                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center;">
+
+                        <div
+                            style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center;">
                             <div style="font-size: 4rem; color: var(--sparkle-pink); margin-bottom: 20px;">
                                 <i class="fas fa-sparkles"></i>
                             </div>
@@ -1914,11 +1991,14 @@
                             <p style="color: var(--app-text-light); margin-bottom: 30px;">
                                 Join thousands of students connecting on campus
                             </p>
-                            
+
                             <div style="width: 100%; max-width: 300px;">
-                                <input type="text" class="form-input" placeholder="Full Name" value="Alex Johnson" style="width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid var(--sparkle-border); border-radius: 12px; font-size: 1rem;">
-                                <input type="email" class="form-input" placeholder="Email" value="alex@campus.edu" style="width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid var(--sparkle-border); border-radius: 12px; font-size: 1rem;">
-                                <button style="width: 100%; padding: 16px; background: var(--sparkle-gradient); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                                <input type="text" class="form-input" placeholder="Full Name" value="Alex Johnson"
+                                    style="width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid var(--sparkle-border); border-radius: 12px; font-size: 1rem;">
+                                <input type="email" class="form-input" placeholder="Email" value="alex@campus.edu"
+                                    style="width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid var(--sparkle-border); border-radius: 12px; font-size: 1rem;">
+                                <button
+                                    style="width: 100%; padding: 16px; background: var(--sparkle-gradient); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer;">
                                     Create Account
                                 </button>
                             </div>
@@ -1935,18 +2015,19 @@
                                 <i class="fas fa-battery-three-quarters"></i>
                             </div>
                         </div>
-                        
+
                         <div class="app-header">
                             <div class="user-info">
                                 <div class="user-avatar-small">AJ</div>
                                 <div>
                                     <div style="font-size: 1.1rem; font-weight: 700;">Alex Johnson</div>
-                                    <div style="font-size: 0.85rem; color: var(--app-text-light);">@alexj • CS Major</div>
+                                    <div style="font-size: 0.85rem; color: var(--app-text-light);">@alexj • CS Major
+                                    </div>
                                 </div>
                             </div>
                             <i class="fas fa-bell" style="font-size: 1.3rem; color: var(--app-text-light);"></i>
                         </div>
-                        
+
                         <div class="dashboard-content">
                             <div class="quick-stats">
                                 <div class="stat-card">
@@ -1966,7 +2047,7 @@
                                     <div style="color: var(--app-text-light);">Events</div>
                                 </div>
                             </div>
-                            
+
                             <h3 style="color: var(--sparkle-pink); margin-bottom: 20px;">Quick Actions</h3>
                             <div class="app-grid">
                                 <div class="app-icon">
@@ -1994,15 +2075,18 @@
                                     <div>Settings</div>
                                 </div>
                             </div>
-                            
+
                             <h3 style="color: var(--sparkle-pink); margin: 30px 0 15px;">Today's Events</h3>
-                            <div style="background: var(--sparkle-pink-lighter); padding: 15px; border-radius: 15px; margin-bottom: 15px;">
+                            <div
+                                style="background: var(--sparkle-pink-lighter); padding: 15px; border-radius: 15px; margin-bottom: 15px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <div style="font-weight: 700; color: var(--sparkle-pink);">Campus Mixer</div>
-                                        <div style="color: var(--app-text-light); font-size: 0.9rem;">Student Union • 7 PM</div>
+                                        <div style="color: var(--app-text-light); font-size: 0.9rem;">Student Union • 7
+                                            PM</div>
                                     </div>
-                                    <button style="padding: 8px 16px; background: var(--sparkle-gradient); color: white; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600;">RSVP</button>
+                                    <button
+                                        style="padding: 8px 16px; background: var(--sparkle-gradient); color: white; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600;">RSVP</button>
                                 </div>
                             </div>
                         </div>
@@ -2015,32 +2099,37 @@
                             <div style="font-weight: 700; color: var(--sparkle-pink);">Connect</div>
                             <i class="fas fa-search" style="color: var(--app-text-light);"></i>
                         </div>
-                        
+
                         <div style="padding: 20px; flex: 1;">
                             <div style="text-align: center; margin-bottom: 30px;">
                                 <div style="font-size: 3rem; color: var(--sparkle-pink); margin-bottom: 10px;">
                                     <i class="fas fa-heart-circle-bolt"></i>
                                 </div>
                                 <h2 style="color: var(--sparkle-pink); margin-bottom: 10px;">Find Your Campus Match</h2>
-                                <p style="color: var(--app-text-light);">Connect with students who share your interests</p>
+                                <p style="color: var(--app-text-light);">Connect with students who share your interests
+                                </p>
                             </div>
-                            
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
-                                <div style="text-align: center; padding: 20px 10px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
+
+                            <div
+                                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
+                                <div
+                                    style="text-align: center; padding: 20px 10px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
                                     <div style="font-size: 2rem; color: var(--sparkle-pink); margin-bottom: 10px;">
                                         <i class="fas fa-music"></i>
                                     </div>
                                     <div style="font-weight: 600; color: var(--sparkle-pink);">Music</div>
                                     <div style="color: var(--app-text-light); font-size: 0.9rem;">45 students</div>
                                 </div>
-                                <div style="text-align: center; padding: 20px 10px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
+                                <div
+                                    style="text-align: center; padding: 20px 10px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
                                     <div style="font-size: 2rem; color: var(--sparkle-pink); margin-bottom: 10px;">
                                         <i class="fas fa-basketball"></i>
                                     </div>
                                     <div style="font-weight: 600; color: var(--sparkle-pink);">Sports</div>
                                     <div style="color: var(--app-text-light); font-size: 0.9rem;">67 students</div>
                                 </div>
-                                <div style="text-align: center; padding: 20px 10px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
+                                <div
+                                    style="text-align: center; padding: 20px 10px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
                                     <div style="font-size: 2rem; color: var(--sparkle-pink); margin-bottom: 10px;">
                                         <i class="fas fa-laptop-code"></i>
                                     </div>
@@ -2048,8 +2137,9 @@
                                     <div style="color: var(--app-text-light); font-size: 0.9rem;">89 students</div>
                                 </div>
                             </div>
-                            
-                            <button style="width: 100%; padding: 16px; background: var(--sparkle-gradient); color: white; border: none; border-radius: 15px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+
+                            <button
+                                style="width: 100%; padding: 16px; background: var(--sparkle-gradient); color: white; border: none; border-radius: 15px; font-size: 1rem; font-weight: 600; cursor: pointer;">
                                 <i class="fas fa-sparkles"></i> Start Matching
                             </button>
                         </div>
@@ -2062,40 +2152,45 @@
                             <div style="font-weight: 700; color: var(--sparkle-pink);">Messages</div>
                             <i class="fas fa-edit" style="color: var(--app-text-light);"></i>
                         </div>
-                        
+
                         <div class="conversations">
                             <div class="conversation-item">
                                 <div class="conversation-avatar">SC</div>
                                 <div style="flex: 1;">
                                     <div style="font-weight: 700; color: var(--sparkle-pink);">Sarah Chen</div>
-                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">Are you coming to study session?</div>
+                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">Are you coming to
+                                        study session?</div>
                                 </div>
-                                <div style="color: var(--sparkle-pink); font-size: 0.8rem; font-weight: 600;">2 min</div>
+                                <div style="color: var(--sparkle-pink); font-size: 0.8rem; font-weight: 600;">2 min
+                                </div>
                             </div>
-                            
+
                             <div class="conversation-item">
                                 <div class="conversation-avatar">MR</div>
                                 <div style="flex: 1;">
                                     <div style="font-weight: 700; color: var(--sparkle-pink);">Mike Rodriguez</div>
-                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">Found that textbook you needed!</div>
+                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">Found that textbook
+                                        you needed!</div>
                                 </div>
                                 <div style="color: var(--app-text-light); font-size: 0.8rem;">1 hr</div>
                             </div>
-                            
+
                             <div class="conversation-item">
                                 <div class="conversation-avatar">SG</div>
                                 <div style="flex: 1;">
                                     <div style="font-weight: 700; color: var(--sparkle-pink);">Study Group</div>
-                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">Emma: Who's ready for exams?</div>
+                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">Emma: Who's ready for
+                                        exams?</div>
                                 </div>
                                 <div style="color: var(--app-text-light); font-size: 0.8rem;">3 hr</div>
                             </div>
-                            
+
                             <div class="conversation-item">
                                 <div class="conversation-avatar">CE</div>
                                 <div style="flex: 1;">
                                     <div style="font-weight: 700; color: var(--sparkle-pink);">Campus Events</div>
-                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">Live music at quad today!</div>
+                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">Live music at quad
+                                        today!</div>
                                 </div>
                                 <div style="color: var(--app-text-light); font-size: 0.8rem;">5 hr</div>
                             </div>
@@ -2109,39 +2204,52 @@
                             <div style="font-weight: 700; color: var(--sparkle-pink);">Marketplace</div>
                             <i class="fas fa-plus" style="color: var(--app-text-light);"></i>
                         </div>
-                        
+
                         <div style="padding: 20px; flex: 1;">
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                                <div style="background: var(--sparkle-pink-lighter); border-radius: 15px; padding: 15px; text-align: center;">
-                                    <div style="height: 100px; background: linear-gradient(135deg, #fce7f3, #f5f3ff); border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+                                <div
+                                    style="background: var(--sparkle-pink-lighter); border-radius: 15px; padding: 15px; text-align: center;">
+                                    <div
+                                        style="height: 100px; background: linear-gradient(135deg, #fce7f3, #f5f3ff); border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
                                         <i class="fas fa-book" style="font-size: 2rem; color: var(--sparkle-pink);"></i>
                                     </div>
                                     <div style="font-weight: 700; color: var(--sparkle-pink);">Calculus Textbook</div>
                                     <div style="color: var(--app-text-light); font-size: 0.9rem;">$25 • Like new</div>
                                 </div>
-                                
-                                <div style="background: var(--sparkle-pink-lighter); border-radius: 15px; padding: 15px; text-align: center;">
-                                    <div style="height: 100px; background: linear-gradient(135deg, #fce7f3, #f5f3ff); border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-laptop" style="font-size: 2rem; color: var(--sparkle-pink);"></i>
+
+                                <div
+                                    style="background: var(--sparkle-pink-lighter); border-radius: 15px; padding: 15px; text-align: center;">
+                                    <div
+                                        style="height: 100px; background: linear-gradient(135deg, #fce7f3, #f5f3ff); border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-laptop"
+                                            style="font-size: 2rem; color: var(--sparkle-pink);"></i>
                                     </div>
                                     <div style="font-weight: 700; color: var(--sparkle-pink);">MacBook Air</div>
-                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">$750 • 2022 Model</div>
+                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">$750 • 2022 Model
+                                    </div>
                                 </div>
-                                
-                                <div style="background: var(--sparkle-pink-lighter); border-radius: 15px; padding: 15px; text-align: center;">
-                                    <div style="height: 100px; background: linear-gradient(135deg, #fce7f3, #f5f3ff); border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-tshirt" style="font-size: 2rem; color: var(--sparkle-pink);"></i>
+
+                                <div
+                                    style="background: var(--sparkle-pink-lighter); border-radius: 15px; padding: 15px; text-align: center;">
+                                    <div
+                                        style="height: 100px; background: linear-gradient(135deg, #fce7f3, #f5f3ff); border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-tshirt"
+                                            style="font-size: 2rem; color: var(--sparkle-pink);"></i>
                                     </div>
                                     <div style="font-weight: 700; color: var(--sparkle-pink);">Campus Hoodie</div>
                                     <div style="color: var(--app-text-light); font-size: 0.9rem;">$35 • Size M</div>
                                 </div>
-                                
-                                <div style="background: var(--sparkle-pink-lighter); border-radius: 15px; padding: 15px; text-align: center;">
-                                    <div style="height: 100px; background: linear-gradient(135deg, #fce7f3, #f5f3ff); border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-gamepad" style="font-size: 2rem; color: var(--sparkle-pink);"></i>
+
+                                <div
+                                    style="background: var(--sparkle-pink-lighter); border-radius: 15px; padding: 15px; text-align: center;">
+                                    <div
+                                        style="height: 100px; background: linear-gradient(135deg, #fce7f3, #f5f3ff); border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-gamepad"
+                                            style="font-size: 2rem; color: var(--sparkle-pink);"></i>
                                     </div>
                                     <div style="font-weight: 700; color: var(--sparkle-pink);">Nintendo Switch</div>
-                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">$250 • With games</div>
+                                    <div style="color: var(--app-text-light); font-size: 0.9rem;">$250 • With games
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2154,7 +2262,7 @@
                             <div style="font-weight: 700; color: var(--sparkle-pink);">Study Sparkle</div>
                             <i class="fas fa-graduation-cap" style="color: var(--app-text-light);"></i>
                         </div>
-                        
+
                         <div style="padding: 20px; flex: 1;">
                             <div style="text-align: center; margin-bottom: 30px;">
                                 <div style="font-size: 3rem; color: var(--sparkle-pink); margin-bottom: 10px;">
@@ -2163,33 +2271,48 @@
                                 <h2 style="color: var(--sparkle-pink); margin-bottom: 10px;">Study Session</h2>
                                 <p style="color: var(--app-text-light);">Focus timer: 45:00 remaining</p>
                             </div>
-                            
-                            <div style="background: var(--sparkle-pink-lighter); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+
+                            <div
+                                style="background: var(--sparkle-pink-lighter); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                                     <div>
-                                        <div style="font-weight: 700; color: var(--sparkle-pink);">Calculus Study Group</div>
-                                        <div style="color: var(--app-text-light); font-size: 0.9rem;">4 members online</div>
+                                        <div style="font-weight: 700; color: var(--sparkle-pink);">Calculus Study Group
+                                        </div>
+                                        <div style="color: var(--app-text-light); font-size: 0.9rem;">4 members online
+                                        </div>
                                     </div>
-                                    <div style="padding: 8px 16px; background: var(--sparkle-gradient); color: white; border-radius: 10px; font-size: 0.9rem; font-weight: 600;">
+                                    <div
+                                        style="padding: 8px 16px; background: var(--sparkle-gradient); color: white; border-radius: 10px; font-size: 0.9rem; font-weight: 600;">
                                         Join
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 10px;">
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--sparkle-gradient);"></div>
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--sparkle-pink);"></div>
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--sparkle-purple);"></div>
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--sparkle-pink-light);"></div>
+                                    <div
+                                        style="width: 40px; height: 40px; border-radius: 50%; background: var(--sparkle-gradient);">
+                                    </div>
+                                    <div
+                                        style="width: 40px; height: 40px; border-radius: 50%; background: var(--sparkle-pink);">
+                                    </div>
+                                    <div
+                                        style="width: 40px; height: 40px; border-radius: 50%; background: var(--sparkle-purple);">
+                                    </div>
+                                    <div
+                                        style="width: 40px; height: 40px; border-radius: 50%; background: var(--sparkle-pink-light);">
+                                    </div>
                                 </div>
                             </div>
-                            
+
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                                <div style="text-align: center; padding: 20px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
+                                <div
+                                    style="text-align: center; padding: 20px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
                                     <div style="font-size: 2rem; color: var(--sparkle-pink); margin-bottom: 10px;">
                                         <i class="fas fa-share-nodes"></i>
                                     </div>
                                     <div style="font-weight: 600; color: var(--sparkle-pink);">Shared Notes</div>
                                 </div>
-                                <div style="text-align: center; padding: 20px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
+                                <div
+                                    style="text-align: center; padding: 20px; background: var(--sparkle-pink-lighter); border-radius: 15px;">
                                     <div style="font-size: 2rem; color: var(--sparkle-pink); margin-bottom: 10px;">
                                         <i class="fas fa-video"></i>
                                     </div>
@@ -2201,18 +2324,27 @@
 
                     <!-- Scene 7: Final -->
                     <div class="demo-scene" id="scene7">
-                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; background: linear-gradient(135deg, var(--sparkle-pink-lighter), white);">
+                        <div
+                            style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; background: linear-gradient(135deg, var(--sparkle-pink-lighter), white);">
                             <div style="font-size: 5rem; color: var(--sparkle-pink); margin-bottom: 20px;">
                                 <i class="fas fa-sparkles"></i>
                             </div>
-                            <h2 style="color: var(--sparkle-pink); font-size: 2rem; margin-bottom: 15px;">Welcome to Sparkle!</h2>
-                            <p style="color: var(--app-text-light); font-size: 1.1rem; margin-bottom: 30px; max-width: 300px;">
+                            <h2 style="color: var(--sparkle-pink); font-size: 2rem; margin-bottom: 15px;">Welcome to
+                                Sparkle!</h2>
+                            <p
+                                style="color: var(--app-text-light); font-size: 1.1rem; margin-bottom: 30px; max-width: 300px;">
                                 Your campus life just got more magical
                             </p>
                             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--sparkle-gradient);"></div>
-                                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--sparkle-pink);"></div>
-                                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--sparkle-purple);"></div>
+                                <div
+                                    style="width: 50px; height: 50px; border-radius: 50%; background: var(--sparkle-gradient);">
+                                </div>
+                                <div
+                                    style="width: 50px; height: 50px; border-radius: 50%; background: var(--sparkle-pink);">
+                                </div>
+                                <div
+                                    style="width: 50px; height: 50px; border-radius: 50%; background: var(--sparkle-purple);">
+                                </div>
                             </div>
                             <p style="color: var(--app-text-light); margin-top: 20px; font-size: 0.9rem;">
                                 Join thousands of students already connected
@@ -2230,7 +2362,7 @@
         const totalScenes = 7;
         let autoPlayInterval;
         const sceneDuration = 3000; // 3 seconds per scene
-        
+
         // Bot responses
         const botResponses = {
             'default': 'I can help you with sign-ups, features, safety, and more! What would you like to know?',
@@ -2243,14 +2375,14 @@
             'thanks': 'You\'re welcome! 😊 Let me know if you need anything else.',
             'help': 'I can help with: account issues, features, safety concerns, and campus events. What do you need?'
         };
-        
+
         // Modal functions
         function openDemo() {
             document.getElementById('demoModal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
             initDemo();
         }
-        
+
         function closeDemo() {
             document.getElementById('demoModal').style.display = 'none';
             document.body.style.overflow = 'auto';
@@ -2258,39 +2390,39 @@
                 clearInterval(autoPlayInterval);
             }
         }
-        
+
         function openHelp() {
             document.getElementById('helpModal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
             closeDemo();
         }
-        
+
         function closeHelp() {
             document.getElementById('helpModal').style.display = 'none';
             document.body.style.overflow = 'auto';
         }
-        
+
         // Bot functions
         function sendUserMessage() {
             const input = document.getElementById('helpInput');
             const message = input.value.trim();
             if (!message) return;
-            
+
             addUserMessage(message);
             input.value = '';
-            
+
             // Bot response
             setTimeout(() => {
                 const response = getBotResponse(message);
                 addBotMessage(response);
             }, 1000);
         }
-        
+
         function sendBotMessage(message) {
             const response = getBotResponse(message);
             addBotMessage(response);
         }
-        
+
         function getBotResponse(message) {
             const lowerMessage = message.toLowerCase();
             for (const [key, response] of Object.entries(botResponses)) {
@@ -2300,7 +2432,7 @@
             }
             return botResponses.default;
         }
-        
+
         function addUserMessage(text) {
             const messagesDiv = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
@@ -2309,7 +2441,7 @@
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
-        
+
         function addBotMessage(text) {
             const messagesDiv = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
@@ -2318,19 +2450,19 @@
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
-        
+
         function handleHelpKeyPress(event) {
             if (event.key === 'Enter') {
                 sendUserMessage();
             }
         }
-        
+
         // Demo functions
         function startAutoPlay() {
             if (autoPlayInterval) {
                 clearInterval(autoPlayInterval);
             }
-            
+
             autoPlayInterval = setInterval(() => {
                 if (currentScene < totalScenes) {
                     nextScene();
@@ -2343,40 +2475,40 @@
                 }
             }, sceneDuration);
         }
-        
+
         function restartDemo() {
             if (autoPlayInterval) {
                 clearInterval(autoPlayInterval);
             }
-            
+
             for (let i = 1; i <= totalScenes; i++) {
                 document.getElementById(`scene${i}`).classList.remove('active');
             }
-            
+
             currentScene = 1;
             document.getElementById('scene1').classList.add('active');
             startAutoPlay();
         }
-        
+
         function goToDashboard() {
             if (autoPlayInterval) {
                 clearInterval(autoPlayInterval);
             }
-            
+
             for (let i = 1; i <= totalScenes; i++) {
                 document.getElementById(`scene${i}`).classList.remove('active');
             }
-            
+
             currentScene = 2;
             document.getElementById('scene2').classList.add('active');
             highlightDashboardItem();
-            
+
             // Resume autoplay after 5 seconds
             setTimeout(() => {
                 startAutoPlay();
             }, 5000);
         }
-        
+
         function nextScene() {
             if (currentScene < totalScenes) {
                 performSceneAction(currentScene);
@@ -2386,9 +2518,9 @@
                 addSceneTransition();
             }
         }
-        
+
         function performSceneAction(sceneNumber) {
-            switch(sceneNumber) {
+            switch (sceneNumber) {
                 case 1: simulateTyping(); break;
                 case 2: highlightDashboardItem(); break;
                 case 3: simulateMatching(); break;
@@ -2397,14 +2529,14 @@
                 case 6: simulateStudySession(); break;
             }
         }
-        
+
         function initDemo() {
             setTimeout(() => {
                 startAutoPlay();
                 setupSceneAnimations();
             }, 500);
         }
-        
+
         function simulateTyping() {
             const inputs = document.querySelectorAll('.form-input');
             inputs.forEach((input, index) => {
@@ -2416,15 +2548,15 @@
                 }, index * 300);
             });
         }
-        
+
         function highlightDashboardItem() {
             const icons = document.querySelectorAll('.app-icon');
             const randomIcon = icons[Math.floor(Math.random() * icons.length)];
-            randomIcon.style.transform = 'scale(1.1)';
-            randomIcon.style.boxShadow = '0 5px 20px rgba(236, 72, 153, 0.3)';
+            randomIcon.style.transform = 'scale(1.05)';
+            randomIcon.style.boxShadow = '0 5px 20px rgba(255, 61, 109, 0.3)';
             randomIcon.style.background = 'var(--sparkle-gradient)';
             randomIcon.style.color = 'white';
-            
+
             setTimeout(() => {
                 randomIcon.style.transform = 'scale(1)';
                 randomIcon.style.boxShadow = 'none';
@@ -2432,7 +2564,7 @@
                 randomIcon.style.color = '';
             }, 1000);
         }
-        
+
         function simulateMatching() {
             const categories = document.querySelectorAll('.app-grid > div');
             categories.forEach((cat, index) => {
@@ -2446,7 +2578,7 @@
                 }, index * 300);
             });
         }
-        
+
         function simulateNewMessage() {
             const conversations = document.querySelector('.conversations');
             const newMessage = document.createElement('div');
@@ -2462,39 +2594,39 @@
             newMessage.style.opacity = '0';
             newMessage.style.transform = 'translateX(-20px)';
             conversations.insertBefore(newMessage, conversations.firstChild);
-            
+
             setTimeout(() => {
                 newMessage.style.opacity = '1';
                 newMessage.style.transform = 'translateX(0)';
                 newMessage.style.transition = 'all 0.5s ease';
             }, 10);
         }
-        
+
         function simulateMarketplaceItem() {
             const items = document.querySelectorAll('.app-grid > div');
             const randomItem = items[Math.floor(Math.random() * items.length)];
             randomItem.style.transform = 'scale(1.05)';
             randomItem.style.boxShadow = '0 10px 25px rgba(236, 72, 153, 0.3)';
-            
+
             setTimeout(() => {
                 randomItem.style.transform = 'scale(1)';
                 randomItem.style.boxShadow = 'none';
             }, 1000);
         }
-        
+
         function simulateStudySession() {
             const studyGroup = document.querySelector('.dashboard-content > div');
             if (studyGroup) {
                 studyGroup.style.transform = 'translateY(-5px)';
                 studyGroup.style.boxShadow = '0 10px 25px rgba(236, 72, 153, 0.2)';
-                
+
                 setTimeout(() => {
                     studyGroup.style.transform = 'translateY(0)';
                     studyGroup.style.boxShadow = 'none';
                 }, 1000);
             }
         }
-        
+
         function setupSceneAnimations() {
             // Add floating particles to final scene
             const finalScreen = document.getElementById('scene7');
@@ -2502,7 +2634,7 @@
                 addSparkleParticle(finalScreen);
             }, 300);
         }
-        
+
         function addSceneTransition() {
             const scene = document.getElementById(`scene${currentScene}`);
             for (let i = 0; i < 3; i++) {
@@ -2511,7 +2643,7 @@
                 }, i * 200);
             }
         }
-        
+
         function addMiniSparkle(container) {
             const sparkle = document.createElement('div');
             sparkle.className = 'cheer-particle';
@@ -2520,10 +2652,10 @@
             sparkle.style.top = `${Math.random() * 80 + 10}%`;
             sparkle.style.fontSize = '1rem';
             container.appendChild(sparkle);
-            
+
             setTimeout(() => sparkle.remove(), 2000);
         }
-        
+
         function addSparkleParticle(container) {
             const particle = document.createElement('div');
             particle.className = 'cheer-particle';
@@ -2532,10 +2664,10 @@
             particle.style.top = `${Math.random() * 100}%`;
             particle.style.fontSize = `${Math.random() * 1 + 0.5}rem`;
             container.appendChild(particle);
-            
+
             setTimeout(() => particle.remove(), 2000);
         }
-        
+
         function addCelebration() {
             const finalScreen = document.getElementById('scene7');
             for (let i = 0; i < 20; i++) {
@@ -2547,41 +2679,41 @@
                     emoji.style.top = `${Math.random() * 100}%`;
                     emoji.style.fontSize = `${Math.random() * 2 + 1}rem`;
                     finalScreen.appendChild(emoji);
-                    
+
                     setTimeout(() => emoji.remove(), 2000);
                 }, i * 100);
             }
         }
-        
+
         // Navigation functions
         function toggleMobileMenu() {
             const navLinks = document.getElementById('navLinks');
             navLinks.classList.toggle('active');
         }
-        
+
         // Event listeners
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 closeDemo();
                 closeHelp();
             }
         });
-        
+
         // Close modals on outside click
-        document.getElementById('demoModal').addEventListener('click', function(e) {
+        document.getElementById('demoModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeDemo();
             }
         });
-        
-        document.getElementById('helpModal').addEventListener('click', function(e) {
+
+        document.getElementById('helpModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeHelp();
             }
         });
-        
+
         // Initialize on load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Add initial bot message
             setTimeout(() => {
                 addBotMessage("Welcome to Sparkle Support! I'm here to help you with:");
@@ -2591,7 +2723,7 @@
                 addBotMessage("• Reporting issues");
                 addBotMessage("What would you like to know?");
             }, 500);
-            
+
             // Adjust for mobile
             if (window.innerWidth <= 768) {
                 const style = document.createElement('style');
@@ -2604,4 +2736,5 @@
         });
     </script>
 </body>
+
 </html>

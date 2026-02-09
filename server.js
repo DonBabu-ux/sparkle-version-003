@@ -132,14 +132,14 @@ require('./controllers/groupChat.controller').setupChatWebSocket(io);
 io.on('connection', (socket) => {
     const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId;
     logger.info(`🔌 New socket connection: ${socket.id} | User: ${userId || 'Anonymous'}`);
-    
+
     if (userId) {
         // Store user's socket connection
         userSockets.set(userId, socket.id);
-        
+
         // Join user's personal room
         socket.join(`user_${userId}`);
-        
+
         // Join user's campus room for marketplace updates
         const userCampus = socket.handshake.auth?.campus || socket.handshake.query?.campus;
         if (userCampus) {
@@ -147,35 +147,35 @@ io.on('connection', (socket) => {
             logger.info(`User ${userId} joined campus room: ${userCampus}`);
         }
     }
-    
+
     // ========== MARKETPLACE EVENTS ==========
-    
+
     // Join marketplace chat room
     socket.on('join_marketplace_chat', (chatId) => {
         socket.join(`marketplace_chat_${chatId}`);
         logger.info(`User joined marketplace chat: ${chatId}`);
-        
+
         // Send join confirmation
         socket.emit('chat_joined', { chatId, timestamp: new Date() });
     });
-    
+
     // Leave marketplace chat room
     socket.on('leave_marketplace_chat', (chatId) => {
         socket.leave(`marketplace_chat_${chatId}`);
         logger.info(`User left marketplace chat: ${chatId}`);
     });
-    
+
     // Listen for new marketplace messages
     socket.on('marketplace_message', async (data) => {
         try {
             const { chatId, message, senderId } = data;
-            
+
             // Validate required fields
             if (!chatId || !message || !senderId) {
                 socket.emit('message_error', { error: 'Missing required fields' });
                 return;
             }
-            
+
             // Broadcast to chat room (excluding sender)
             socket.to(`marketplace_chat_${chatId}`).emit('new_marketplace_message', {
                 chatId,
@@ -184,26 +184,26 @@ io.on('connection', (socket) => {
                 timestamp: new Date().toISOString(),
                 messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
             });
-            
+
             // Send delivery confirmation to sender
-            socket.emit('message_delivered', { 
-                chatId, 
+            socket.emit('message_delivered', {
+                chatId,
                 messageId: data.messageId,
-                timestamp: new Date() 
+                timestamp: new Date()
             });
-            
+
             logger.info(`Marketplace message sent in chat ${chatId} by user ${senderId}`);
-            
+
         } catch (error) {
             logger.error('Error handling marketplace message:', error);
             socket.emit('message_error', { error: 'Failed to send message' });
         }
     });
-    
+
     // User typing indicator in marketplace chat
     socket.on('marketplace_typing', (data) => {
         const { chatId, userId, isTyping } = data;
-        
+
         // Broadcast typing indicator to chat room (excluding sender)
         socket.to(`marketplace_chat_${chatId}`).emit('user_marketplace_typing', {
             chatId,
@@ -212,11 +212,11 @@ io.on('connection', (socket) => {
             timestamp: new Date()
         });
     });
-    
+
     // New marketplace listing notification
     socket.on('new_marketplace_listing', (listing) => {
         const { listingId, campus, sellerId, title } = listing;
-        
+
         // Notify users in the same campus (except the seller)
         socket.to(`campus_${campus}`).emit('marketplace_listing_added', {
             listingId,
@@ -226,14 +226,14 @@ io.on('connection', (socket) => {
             timestamp: new Date(),
             message: `New listing in ${campus}: ${title}`
         });
-        
+
         logger.info(`New marketplace listing broadcasted to campus ${campus}: ${title}`);
     });
-    
+
     // Listing status update (sold, reserved, etc.)
     socket.on('marketplace_listing_updated', (data) => {
         const { listingId, status, buyerId, sellerId } = data;
-        
+
         // Notify seller if buyer is different
         if (buyerId && sellerId && buyerId !== sellerId) {
             io.to(`user_${sellerId}`).emit('listing_sold', {
@@ -244,35 +244,35 @@ io.on('connection', (socket) => {
                 message: `Your listing has been ${status}`
             });
         }
-        
+
         // Notify interested users
         socket.to(`listing_${listingId}`).emit('listing_status_changed', {
             listingId,
             status,
             timestamp: new Date()
         });
-        
+
         logger.info(`Marketplace listing ${listingId} status updated to ${status}`);
     });
-    
+
     // User joins a specific listing room (for real-time updates)
     socket.on('join_listing', (listingId) => {
         socket.join(`listing_${listingId}`);
         logger.info(`User joined listing room: ${listingId}`);
     });
-    
+
     // User leaves a specific listing room
     socket.on('leave_listing', (listingId) => {
         socket.leave(`listing_${listingId}`);
         logger.info(`User left listing room: ${listingId}`);
     });
-    
+
     // ========== NOTIFICATION EVENTS ==========
-    
+
     // Send notification to specific user
     socket.on('send_notification', (data) => {
         const { userId, type, title, message, listingId } = data;
-        
+
         const targetSocketId = userSockets.get(userId);
         if (targetSocketId) {
             io.to(targetSocketId).emit('notification', {
@@ -283,22 +283,22 @@ io.on('connection', (socket) => {
                 timestamp: new Date(),
                 isRead: false
             });
-            
+
             logger.info(`Notification sent to user ${userId}: ${title}`);
         }
     });
-    
+
     // ========== CONNECTION MANAGEMENT ==========
-    
+
     // Handle disconnection
     socket.on('disconnect', (reason) => {
         logger.info(`🔌 Socket disconnected: ${socket.id} | Reason: ${reason}`);
-        
+
         // Remove user from socket map
         if (userId) {
             userSockets.delete(userId);
         }
-        
+
         // Clean up any marketplace chat rooms
         const rooms = Array.from(socket.rooms);
         rooms.forEach(room => {
@@ -307,21 +307,21 @@ io.on('connection', (socket) => {
             }
         });
     });
-    
+
     // Error handling
     socket.on('error', (error) => {
         logger.error(`Socket error for ${socket.id}:`, error);
     });
-    
+
     // Heartbeat/ping for connection health
     socket.on('ping', (data) => {
-        socket.emit('pong', { 
+        socket.emit('pong', {
             timestamp: new Date(),
             serverTime: Date.now(),
-            ...data 
+            ...data
         });
     });
-    
+
     // Send connection confirmation
     socket.emit('connected', {
         socketId: socket.id,
@@ -356,7 +356,7 @@ function sendMarketplaceNotification(userId, notification) {
  */
 function broadcastNewListing(listing) {
     const { campus, sellerId } = listing;
-    
+
     // Don't notify the seller
     io.to(`campus_${campus}`).except(`user_${sellerId}`).emit('new_listing_available', {
         ...listing,
@@ -385,14 +385,20 @@ global.sendMarketplaceNotification = sendMarketplaceNotification;
 global.broadcastNewListing = broadcastNewListing;
 global.notifyChatMessage = notifyChatMessage;
 
-server.listen(PORT, () => {
-    logger.info(`------------------------------------------`);
-    logger.info(`🔥 Sparkle Server running on port ${PORT}`);
-    logger.info(`📁 Views directory: ${path.join(__dirname, 'views')}`);
-    logger.info(`📁 Public directory: ${path.join(__dirname, 'public')}`);
-    logger.info(`🔌 WebSocket Server: Ready for marketplace`);
-    logger.info(`------------------------------------------`);
-});
+// Start server only if run directly
+if (require.main === module) {
+    server.listen(PORT, () => {
+        logger.info(`------------------------------------------`);
+        logger.info(`🔥 Sparkle Server running on port ${PORT}`);
+        logger.info(`📁 Views directory: ${path.join(__dirname, 'views')}`);
+        logger.info(`📁 Public directory: ${path.join(__dirname, 'public')}`);
+        logger.info(`🔌 WebSocket Server: Ready for marketplace`);
+        logger.info(`------------------------------------------`);
+    });
+}
 
-// Export for testing
-module.exports = { app, server, io };
+// Export app for Vercel
+module.exports = app;
+// Attach server and io for testing/other uses
+module.exports.server = server;
+module.exports.io = io;

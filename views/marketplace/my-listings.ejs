@@ -1,0 +1,162 @@
+<%- include('../partials/head', { title: title }) %>
+
+    <style>
+        .my-listings-container {
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .listing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .listing-item {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            border: 1px solid #ffd6e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .listing-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .listing-img {
+            height: 200px;
+            width: 100%;
+            object-fit: cover;
+        }
+
+        .listing-details {
+            padding: 20px;
+            flex: 1;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #e3fcef;
+            color: #00875a;
+        }
+
+        .status-sold {
+            background: #ffebe6;
+            color: #de350b;
+        }
+
+        .listing-actions {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+    </style>
+
+    <body>
+        <%- include('../partials/sidebar') %>
+
+            <div class="my-listings-container">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>My Listings</h1>
+                    <a href="/marketplace/create-listing" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Listing
+                    </a>
+                </div>
+
+                <% if (listings && listings.length> 0) { %>
+                    <div class="listing-grid">
+                        <% listings.forEach(listing=> { %>
+                            <div class="listing-item">
+                                <img src="<%= listing.thumbnail_url || '/images/default-listing.jpg' %>"
+                                    class="listing-img" alt="<%= listing.title %>">
+
+                                <div class="listing-details">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span
+                                            class="status-badge <%= listing.is_sold ? 'status-sold' : 'status-active' %>">
+                                            <%= listing.status_display %>
+                                        </span>
+                                        <span class="text-muted small">
+                                            <%= new Date(listing.created_at).toLocaleDateString() %>
+                                        </span>
+                                    </div>
+                                    <h5 class="mb-1">
+                                        <%= listing.title %>
+                                    </h5>
+                                    <p class="text-primary fw-bold">$<%= listing.price %>
+                                    </p>
+                                    <p class="text-muted small mb-0">
+                                        <%= listing.campus %>
+                                    </p>
+                                </div>
+
+                                <div class="listing-actions">
+                                    <a href="/marketplace/listings/<%= listing.listing_id %>"
+                                        class="btn btn-sm btn-outline-primary">View</a>
+                                    <a href="/marketplace/edit-listing/<%= listing.listing_id %>"
+                                        class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    <% if (!listing.is_sold) { %>
+                                        <button onclick="markAsSold('<%= listing.listing_id %>')"
+                                            class="btn btn-sm btn-success">Mark Sold</button>
+                                        <% } %>
+                                            <button onclick="deleteListing('<%= listing.listing_id %>')"
+                                                class="btn btn-sm btn-danger">Delete</button>
+                                </div>
+                            </div>
+                            <% }); %>
+                    </div>
+                    <% } else { %>
+                        <div class="text-center py-5 glass mt-4">
+                            <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                            <h3>No listings found</h3>
+                            <p>You haven't posted any items for sale yet.</p>
+                            <a href="/marketplace/create-listing" class="btn btn-primary mt-2">Start Selling</a>
+                        </div>
+                        <% } %>
+            </div>
+
+            <script>
+                async function markAsSold(listingId) {
+                    if (!confirm('Mark this item as sold?')) return;
+                    try {
+                        const response = await fetch(`/api/marketplace/listings/${listingId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 1 }) // is_sold = 1
+                        });
+                        const data = await response.json();
+                        if (data.success) window.location.reload();
+                        else alert(data.message);
+                    } catch (err) { alert('Operation failed'); }
+                }
+
+                async function deleteListing(listingId) {
+                    if (!confirm('Are you sure you want to delete this listing?')) return;
+                    try {
+                        const response = await fetch(`/api/marketplace/listings/${listingId}`, {
+                            method: 'DELETE'
+                        });
+                        const data = await response.json();
+                        if (data.success) window.location.reload();
+                        else alert(data.message);
+                    } catch (err) { alert('Operation failed'); }
+                }
+            </script>
+    </body>
+
+    </html>

@@ -13,13 +13,50 @@ const getSafeMediaUrl = (url) => {
     return null;
 };
 
+// Simple normalizeUser - just ensures avatar_url exists without changing structure
+const normalizeUser = (user) => {
+    if (!user) return null;
+
+    // Clone the user object to avoid mutations
+    const normalized = { ...user };
+
+    // Ensure avatar_url exists
+    if (!normalized.avatar_url) {
+        normalized.avatar_url = '/uploads/avatars/default.png';
+    }
+
+    // Ensure user_id exists (some controllers might use id)
+    if (!normalized.user_id && normalized.id) {
+        normalized.user_id = normalized.id;
+    }
+
+    // Ensure campus exists
+    if (!normalized.campus) {
+        normalized.campus = 'main_campus';
+    }
+
+    // Ensure name exists
+    if (!normalized.name && normalized.username) {
+        normalized.name = normalized.username;
+    } else if (!normalized.name && normalized.email) {
+        normalized.name = normalized.email.split('@')[0];
+    } else if (!normalized.name) {
+        normalized.name = 'User';
+    }
+
+    return normalized;
+};
+
 // ========== WEB ROUTES ==========
 
 const renderMarketplace = async (req, res) => {
     try {
+        // Get user with safe defaults
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+
         const filters = {
             category: req.query.category || 'all',
-            campus: req.session?.user?.campus || 'main_campus',
+            campus: user?.campus || req.query.campus || 'main_campus',
             limit: 20
         };
 
@@ -27,38 +64,57 @@ const renderMarketplace = async (req, res) => {
 
         const sanitizedListings = listings.map(listing => {
             const images = (listing.image_urls || []).map(url => getSafeMediaUrl(url)).filter(url => url);
+            // Simple date formatting for SSR
+            const date = new Date(listing.created_at);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            let dateDisplay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (diffDays === 0) dateDisplay = 'Today';
+            else if (diffDays === 1) dateDisplay = 'Yesterday';
+            else if (diffDays < 7) dateDisplay = `${diffDays} days ago`;
+
             return {
                 ...listing,
                 image_urls: images.length > 0 ? images : ['/images/default-listing.jpg'],
-                image_url: images[0] || '/images/default-listing.jpg'
+                image_url: images[0] || '/images/default-listing.jpg',
+                date_display: dateDisplay
             };
         });
 
         res.render('marketplace', {
             title: 'Marketplace',
             initialListings: sanitizedListings || [],
-            user: req.session ? req.session.user : null,
-            campus: req.session?.user?.campus || 'main_campus'
+            user: user,
+            campus: user?.campus || 'main_campus'
         });
     } catch (error) {
         logger.error('Render marketplace error:', error);
+
+        // Get user with safe defaults
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+
         res.render('marketplace', {
             title: 'Marketplace',
             initialListings: [],
-            user: req.session ? req.session.user : null,
-            campus: req.session?.user?.campus || 'main_campus'
+            user: user,
+            campus: user?.campus || 'main_campus'
         });
     }
 };
 
 const renderListingDetail = async (req, res) => {
     try {
+        // Get user with safe defaults
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+
         const listing = await Marketplace.getListingWithMedia(req.params.id);
 
         if (!listing) {
             return res.status(404).render('404', {
                 title: 'Listing Not Found',
-                message: 'This listing does not exist or has been removed.'
+                message: 'This listing does not exist or has been removed.',
+                user: user
             });
         }
 
@@ -73,44 +129,49 @@ const renderListingDetail = async (req, res) => {
         res.render('marketplace/listing-detail', {
             title: listing.title || 'Listing Details',
             listing: listing,
-            user: req.session ? req.session.user : null
+            user: user
         });
     } catch (error) {
         logger.error('Render listing detail error:', error);
+
+        // Get user with safe defaults
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+
         res.status(500).render('error', {
             title: 'Error',
-            message: 'Failed to load listing details'
+            message: 'Failed to load listing details',
+            user: user
         });
     }
 };
 
 const renderUserListings = async (req, res) => {
     try {
-        const userId = req.session?.user?.user_id;
-        if (!userId) {
+        const user = normalizeUser(req.session?.user);
+
+        if (!user || !user.user_id) {
             return res.redirect('/login');
         }
 
-        const listings = await Marketplace.getUserListings(userId);
+        const listings = await Marketplace.getUserListings(user.user_id);
 
         const processedListings = listings.map(listing => ({
             ...listing,
             thumbnail_url: getSafeMediaUrl(listing.thumbnail_url || listing.image_url),
-            status_display: listing.status === 'active' ? 'Active' :
-                          listing.status === 'sold' ? 'Sold' :
-                          listing.status === 'pending' ? 'Pending' : 'Unknown'
+            status_display: listing.is_sold ? 'Sold' : 'Active'
         }));
 
         res.render('marketplace/my-listings', {
             title: 'My Listings',
             listings: processedListings,
-            user: req.session.user
+            user: user
         });
     } catch (error) {
         logger.error('Render user listings error:', error);
         res.status(500).render('error', {
             title: 'Error',
-            message: 'Failed to load your listings'
+            message: 'Failed to load your listings',
+            user: normalizeUser(req.session?.user)
         });
     }
 };
@@ -121,9 +182,10 @@ const getListings = [
     validate(marketplaceSchemas.searchListings, 'query'),
     async (req, res) => {
         try {
+            const user = req.session?.user ? normalizeUser(req.session.user) : null;
             const filters = {
                 ...req.query,
-                campus: req.session?.user?.campus || req.query.campus || 'main_campus'
+                campus: user?.campus || req.query.campus || 'main_campus'
             };
 
             const result = await Marketplace.getListings(filters);
@@ -195,8 +257,8 @@ const createListing = [
     validate(marketplaceSchemas.createListing),
     async (req, res) => {
         try {
-            const userId = req.session?.user?.user_id;
-            if (!userId) {
+            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -212,7 +274,7 @@ const createListing = [
                 }));
             }
 
-            const listingId = await Marketplace.createListingWithMedia(userId, req.body, mediaFiles);
+            const listingId = await Marketplace.createListingWithMedia(user.user_id, req.body, mediaFiles);
 
             res.status(201).json({
                 success: true,
@@ -234,8 +296,8 @@ const updateListing = [
     validate(marketplaceSchemas.updateListing),
     async (req, res) => {
         try {
-            const userId = req.session?.user?.user_id;
-            if (!userId) {
+            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -246,7 +308,7 @@ const updateListing = [
             const { status, ...updates } = req.body;
 
             if (status) {
-                await Marketplace.updateListingStatus(listingId, userId, status);
+                await Marketplace.updateListingStatus(listingId, user.user_id, status);
             }
 
             // TODO: Add logic to update other fields
@@ -267,8 +329,8 @@ const updateListing = [
 
 const deleteListing = async (req, res) => {
     try {
-        const userId = req.session?.user?.user_id;
-        if (!userId) {
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
                 message: 'Authentication required'
@@ -276,7 +338,7 @@ const deleteListing = async (req, res) => {
         }
 
         const { listingId } = req.params;
-        await Marketplace.deleteListing(listingId, userId);
+        await Marketplace.deleteListing(listingId, user.user_id);
 
         res.json({
             success: true,
@@ -295,8 +357,8 @@ const contactSeller = [
     validate(marketplaceSchemas.contactSeller),
     async (req, res) => {
         try {
-            const buyerId = req.session?.user?.user_id;
-            if (!buyerId) {
+            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -305,18 +367,18 @@ const contactSeller = [
 
             const { sellerId, listingId, message } = req.body;
 
-            if (buyerId === sellerId) {
+            if (user.user_id === sellerId) {
                 return res.status(400).json({
                     success: false,
                     message: 'Cannot contact yourself'
                 });
             }
 
-            const chat = await Marketplace.getOrCreateChat(buyerId, sellerId, listingId);
+            const chat = await Marketplace.getOrCreateChat(user.user_id, sellerId, listingId);
 
             // Send initial message if provided
             if (message && message.trim()) {
-                await Marketplace.sendMessage(chat.chat_id, buyerId, message);
+                await Marketplace.sendMessage(chat.chat_id, user.user_id, message);
             }
 
             res.json({
@@ -336,15 +398,15 @@ const contactSeller = [
 
 const getUserChats = async (req, res) => {
     try {
-        const userId = req.session?.user?.user_id;
-        if (!userId) {
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
                 message: 'Authentication required'
             });
         }
 
-        const chats = await Marketplace.getUserChats(userId);
+        const chats = await Marketplace.getUserChats(user.user_id);
 
         res.json({
             success: true,
@@ -361,8 +423,8 @@ const getUserChats = async (req, res) => {
 
 const getChatMessages = async (req, res) => {
     try {
-        const userId = req.session?.user?.user_id;
-        if (!userId) {
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
                 message: 'Authentication required'
@@ -370,9 +432,9 @@ const getChatMessages = async (req, res) => {
         }
 
         const messages = await Marketplace.getChatMessages(req.params.chatId);
-        
+
         // Mark messages as read
-        await Marketplace.markMessagesAsRead(req.params.chatId, userId);
+        await Marketplace.markMessagesAsRead(req.params.chatId, user.user_id);
 
         res.json({
             success: true,
@@ -391,8 +453,8 @@ const sendMessage = [
     validate(marketplaceSchemas.sendMessage),
     async (req, res) => {
         try {
-            const senderId = req.session?.user?.user_id;
-            if (!senderId) {
+            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -402,14 +464,14 @@ const sendMessage = [
             const { chatId } = req.params;
             const { content } = req.body;
 
-            const messageId = await Marketplace.sendMessage(chatId, senderId, content);
+            const messageId = await Marketplace.sendMessage(chatId, user.user_id, content);
 
             // Emit socket event for real-time messaging
             if (req.io) {
                 req.io.to(chatId).emit('new_message', {
                     chatId,
                     messageId,
-                    senderId,
+                    senderId: user.user_id,
                     content,
                     timestamp: new Date()
                 });
@@ -433,8 +495,8 @@ const toggleFavorite = [
     validate(marketplaceSchemas.toggleFavorite, 'body'),
     async (req, res) => {
         try {
-            const userId = req.session?.user?.user_id;
-            if (!userId) {
+            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -442,7 +504,7 @@ const toggleFavorite = [
             }
 
             const { listingId } = req.body;
-            const result = await Marketplace.toggleFavorite(userId, listingId);
+            const result = await Marketplace.toggleFavorite(user.user_id, listingId);
 
             res.json({
                 success: true,
@@ -460,15 +522,15 @@ const toggleFavorite = [
 
 const getFavorites = async (req, res) => {
     try {
-        const userId = req.session?.user?.user_id;
-        if (!userId) {
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
                 message: 'Authentication required'
             });
         }
 
-        const favorites = await Marketplace.getUserFavorites(userId);
+        const favorites = await Marketplace.getUserFavorites(user.user_id);
 
         res.json({
             success: true,
@@ -485,8 +547,8 @@ const getFavorites = async (req, res) => {
 
 const getCounts = async (req, res) => {
     try {
-        const userId = req.session?.user?.user_id;
-        if (!userId) {
+        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        if (!user || !user.user_id) {
             return res.json({
                 favoritesCount: 0,
                 wishlistCount: 0,
@@ -494,7 +556,7 @@ const getCounts = async (req, res) => {
             });
         }
 
-        const counts = await Marketplace.getCounts(userId);
+        const counts = await Marketplace.getCounts(user.user_id);
 
         res.json({
             success: true,
@@ -514,20 +576,20 @@ const getCounts = async (req, res) => {
 const getLostFoundItems = async (req, res) => {
     try {
         const items = await Marketplace.getLostFoundItems(req.query);
-        
-        const sanitizedItems = items.map(i => ({ 
-            ...i, 
-            image_url: getSafeMediaUrl(i.image_url) 
+
+        const sanitizedItems = items.map(i => ({
+            ...i,
+            image_url: getSafeMediaUrl(i.image_url)
         }));
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             items: sanitizedItems || []
         });
     } catch (error) {
         logger.error('Get lost & found items error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Failed to fetch items'
         });
     }
@@ -537,8 +599,8 @@ const createLostFoundItem = [
     validate(marketplaceSchemas.createLostFoundItem),
     async (req, res) => {
         try {
-            const reporterId = req.session?.user?.user_id;
-            if (!reporterId) {
+            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -546,14 +608,14 @@ const createLostFoundItem = [
             }
 
             // TODO: Implement createLostFoundItem in model
-            res.status(201).json({ 
-                success: true, 
+            res.status(201).json({
+                success: true,
                 message: 'Item reported successfully'
             });
         } catch (error) {
             logger.error('Create lost & found item error:', error);
-            res.status(500).json({ 
-                success: false, 
+            res.status(500).json({
+                success: false,
                 message: 'Failed to create item'
             });
         }
@@ -564,14 +626,14 @@ const createLostFoundItem = [
 const getSkillOffers = async (req, res) => {
     try {
         const offers = await Marketplace.getSkillOffers(req.query);
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             offers: offers || []
         });
     } catch (error) {
         logger.error('Get skill offers error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Failed to fetch skill offers'
         });
     }
@@ -581,8 +643,8 @@ const createSkillOffer = [
     validate(marketplaceSchemas.createSkillOffer),
     async (req, res) => {
         try {
-            const userId = req.session?.user?.user_id;
-            if (!userId) {
+            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -590,14 +652,14 @@ const createSkillOffer = [
             }
 
             // TODO: Implement createSkillOffer in model
-            res.status(201).json({ 
-                success: true, 
+            res.status(201).json({
+                success: true,
                 message: 'Skill offer created successfully'
             });
         } catch (error) {
             logger.error('Create skill offer error:', error);
-            res.status(500).json({ 
-                success: false, 
+            res.status(500).json({
+                success: false,
                 message: 'Failed to create skill offer'
             });
         }
@@ -609,7 +671,7 @@ module.exports = {
     renderMarketplace,
     renderListingDetail,
     renderUserListings,
-    
+
     // API Routes
     getListings,
     getListingById,

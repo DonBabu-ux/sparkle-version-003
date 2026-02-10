@@ -8,11 +8,12 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 20, // Increased from 10
     queueLimit: 0,
     connectTimeout: 60000,
     enableKeepAlive: true,
-    keepAliveInitialDelay: 0
+    keepAliveInitialDelay: 0,
+    idleTimeout: 60000 // Added idle timeout to recycle connections
 });
 
 // Keep-Alive Mechanism to prevent ECONNRESET on remote DBs

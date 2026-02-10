@@ -17,7 +17,19 @@ const uploadRoutes = require('./upload.routes');
 const shareRoutes = require('./share.routes');
 const groupChatRoutes = require('./groupChat.routes');
 
+const pool = require('../../config/database');
+
 router.use('/auth', authRoutes);
+
+// Health Check Endpoint
+router.get('/health', async (req, res) => {
+    try {
+        await pool.query('SELECT 1');
+        res.json({ status: 'success', database: 'connected', timestamp: new Date() });
+    } catch (error) {
+        res.status(503).json({ status: 'error', database: 'disconnected', error: error.message });
+    }
+});
 router.use('/users', userRoutes);
 router.use('/messages', messagesRoutes);
 router.use('/chats', groupChatRoutes);

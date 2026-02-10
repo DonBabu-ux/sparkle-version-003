@@ -147,6 +147,31 @@ const initMomentsTable = async () => {
     }
 };
 
+const initGroupsTable = async () => {
+    try {
+        // Harmonize existing groups table structure
+        const columnsToAdd = [
+            { name: 'icon_url', type: 'VARCHAR(500)' }
+        ];
+
+        for (const col of columnsToAdd) {
+            try {
+                await pool.query(`ALTER TABLE groups ADD COLUMN ${col.name} ${col.type}`);
+                logger.debug(`✅ Added ${col.name} column to groups table`);
+            } catch (err) {
+                if (err.code !== 'ER_DUP_FIELDNAME') {
+                    logger.warn(`Could not add ${col.name} column to groups:`, err.message);
+                }
+            }
+        }
+
+        logger.debug('✅ Groups table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init groups table:', err.message);
+        throw err;
+    }
+};
+
 const initMessagesTable = async () => {
     try {
         await pool.query(`
@@ -216,6 +241,7 @@ const initDB = async () => {
             await initNotificationsTable();
             await initUserInteractionsTables();
             await initMomentsTable();
+            await initGroupsTable();
             await initMessagesTable();
             await initStoriesTable();
         });

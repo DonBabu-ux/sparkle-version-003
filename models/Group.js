@@ -50,8 +50,8 @@ class Group {
         const slug = groupData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
         await pool.query(
-            `INSERT INTO groups (group_id, creator_id, name, slug, description, campus, category, is_public, banner_url) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO groups (group_id, creator_id, name, slug, description, campus, category, is_public, banner_url, icon_url) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 groupId,
                 creatorId,
@@ -61,7 +61,8 @@ class Group {
                 groupData.campus,
                 groupData.category || null,
                 groupData.is_public !== false ? 1 : 0,
-                groupData.banner_url || null
+                groupData.banner_url || null,
+                groupData.icon_url || null
             ]
         );
 

@@ -51,7 +51,7 @@ const initNotificationsTable = async () => {
                 FOREIGN KEY (actor_id) REFERENCES users(user_id) ON DELETE SET NULL
             )
         `);
-        logger.info('✅ Notifications table verified');
+        logger.debug('✅ Notifications table verified');
     } catch (err) {
         logger.error('❌ Failed to init notifications table:', err.message);
         throw err;
@@ -94,7 +94,7 @@ const initUserInteractionsTables = async () => {
                 UNIQUE KEY unique_mute (muter_id, muted_id)
             )
         `);
-        logger.info('✅ User interaction tables verified');
+        logger.debug('✅ User interaction tables verified');
     } catch (err) {
         logger.error('❌ Failed to init user interaction tables:', err.message);
         throw err;
@@ -132,7 +132,7 @@ const initMomentsTable = async () => {
         for (const col of columnsToAdd) {
             try {
                 await pool.query(`ALTER TABLE moments ADD COLUMN ${col.name} ${col.type}`);
-                logger.info(`✅ Added ${col.name} column to moments table`);
+                logger.debug(`✅ Added ${col.name} column to moments table`);
             } catch (err) {
                 if (err.code !== 'ER_DUP_FIELDNAME') {
                     logger.warn(`Could not add ${col.name} column:`, err.message);
@@ -140,9 +140,34 @@ const initMomentsTable = async () => {
             }
         }
 
-        logger.info('✅ Moments table verified');
+        logger.debug('✅ Moments table verified');
     } catch (err) {
         logger.error('❌ Failed to init moments table:', err.message);
+        throw err;
+    }
+};
+
+const initGroupsTable = async () => {
+    try {
+        // Harmonize existing groups table structure
+        const columnsToAdd = [
+            { name: 'icon_url', type: 'VARCHAR(500)' }
+        ];
+
+        for (const col of columnsToAdd) {
+            try {
+                await pool.query(`ALTER TABLE groups ADD COLUMN ${col.name} ${col.type}`);
+                logger.debug(`✅ Added ${col.name} column to groups table`);
+            } catch (err) {
+                if (err.code !== 'ER_DUP_FIELDNAME') {
+                    logger.warn(`Could not add ${col.name} column to groups:`, err.message);
+                }
+            }
+        }
+
+        logger.debug('✅ Groups table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init groups table:', err.message);
         throw err;
     }
 };
@@ -161,7 +186,7 @@ const initMessagesTable = async () => {
                 INDEX idx_sent_at (sent_at)
             )
         `);
-        logger.info('✅ Messages table verified');
+        logger.debug('✅ Messages table verified');
     } catch (err) {
         logger.error('❌ Failed to init messages table:', err.message);
         throw err;
@@ -185,7 +210,7 @@ const initStoriesTable = async () => {
                 INDEX idx_user_created (user_id, created_at DESC)
             )
         `);
-        logger.info('✅ Stories table verified');
+        logger.debug('✅ Stories table verified');
     } catch (err) {
         logger.error('❌ Failed to init stories table:', err.message);
         throw err;
@@ -194,7 +219,7 @@ const initStoriesTable = async () => {
 
 const initDB = async () => {
     // Test connection first with retry logic
-    logger.info('Testing database connection...');
+    logger.debug('Testing database connection...');
     let isConnected = false;
     try {
         isConnected = await retryWithBackoff(testConnection, 5, 2000);
@@ -208,7 +233,7 @@ const initDB = async () => {
         return;
     }
 
-    logger.info('✅ Database connection successful');
+    logger.debug('✅ Database connection successful');
 
     // Initialize tables with retry logic
     try {
@@ -216,10 +241,11 @@ const initDB = async () => {
             await initNotificationsTable();
             await initUserInteractionsTables();
             await initMomentsTable();
+            await initGroupsTable();
             await initMessagesTable();
             await initStoriesTable();
         });
-        logger.info('✅ Database initialization complete');
+        logger.debug('✅ Database initialization complete');
     } catch (err) {
         logger.error('❌ Database initialization failed after retries:', err.message);
         logger.warn('⚠️  Server will continue running but database operations may fail');

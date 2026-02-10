@@ -22,7 +22,7 @@ router.use('/', messagingWebRoutes);
 router.use('/', clubsWebRoutes);
 router.use('/', groupsWebRoutes);
 router.use('/', momentsWebRoutes);
-router.use('/s', socialRoutes);
+router.use('/', socialRoutes);
 router.use('/', confessionWebRoutes);
 
 module.exports = router;

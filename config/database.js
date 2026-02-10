@@ -7,44 +7,45 @@ const pool = mysql.createPool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
-    
+
     // Production optimizations
     waitForConnections: true,
-    connectionLimit: 20, // Increased for production
-    queueLimit: 100,
-    connectTimeout: 30000,
-    
+    connectionLimit: 20,
+    queueLimit: 0,
+    connectTimeout: 60000,
+
     // SSL for production (most cloud DBs require this)
     ssl: process.env.NODE_ENV === 'production' ? {
         rejectUnauthorized: true
     } : undefined,
-    
-    // Performance
+
+    // Performance & Resilience
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
-    
+    idleTimeout: 60000, // Recycle idle connections
+
     // Timezone
     timezone: 'Z', // UTC
-    
+
     // Connection retry
     enableResetConnection: true
 });
 
 // Connection validation
 pool.on('connection', (connection) => {
-    console.log('✅ New database connection established');
+    // logger.debug('✅ New database connection established');
 });
 
 pool.on('acquire', (connection) => {
-    console.log('🔗 Connection acquired');
+    // logger.debug('🔗 Connection acquired');
 });
 
 pool.on('release', (connection) => {
-    console.log('🔄 Connection released');
+    // logger.debug('🔄 Connection released');
 });
 
 pool.on('enqueue', () => {
-    console.log('⏳ Waiting for available connection...');
+    // logger.debug('⏳ Waiting for available connection...');
 });
 
 // Graceful shutdown

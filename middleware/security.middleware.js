@@ -29,7 +29,7 @@ const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 60); // 60 requests per 
 /**
  * CSRF Protection middleware
  */
-const csrfProtection = csrf({ 
+const csrfProtection = csrf({
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -72,7 +72,7 @@ const securityHeaders = helmet({
             scriptSrcAttr: ["'unsafe-inline'"],
             imgSrc: ["'self'", "blob:", "data:", "https:", "http:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-            connectSrc: ["'self'", "ws:", "wss:"],
+            connectSrc: ["'self'", "ws:", "wss:", "https://cdn.socket.io"],
             mediaSrc: ["'self'", "blob:", "data:", "https:", "http:"],
         },
     },

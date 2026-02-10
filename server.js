@@ -25,7 +25,7 @@ initDB().catch(err => {
 // Security & Performance Middleware
 app.use(securityHeaders);
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
+    origin: process.env.NODE_ENV === 'production'
         ? ['https://sparkle-version-003.vercel.app', 'https://yourdomain.com'] // Add your domains
         : '*',
     credentials: true
@@ -41,7 +41,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Logging
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'short', {
     stream: { write: message => logger.info(message.trim()) },
     skip: (req) => req.url.includes('com.chrome.devtools.json') // Skip devtools noise
 }));
@@ -76,14 +76,14 @@ app.get('/health/db', async (req, res) => {
         // Try to get a database connection
         const pool = require('./config/database');
         const [result] = await pool.query('SELECT 1 as test, NOW() as db_time');
-        
+
         health.database = {
             connected: true,
             response_time: new Date() - new Date(health.timestamp),
             result: result[0]
         };
         health.status = 'healthy';
-        
+
         res.json(health);
     } catch (error) {
         health.status = 'unhealthy';
@@ -92,7 +92,7 @@ app.get('/health/db', async (req, res) => {
             code: error.code,
             errno: error.errno
         };
-        
+
         logger.error('Database health check failed:', error);
         res.status(503).json(health);
     }
@@ -199,12 +199,12 @@ app.use((err, req, res, next) => {
         method: req.method,
         ip: req.ip
     });
-    
+
     // Don't expose internal errors in production
-    const errorMessage = process.env.NODE_ENV === 'production' 
-        ? 'Internal Server Error' 
+    const errorMessage = process.env.NODE_ENV === 'production'
+        ? 'Internal Server Error'
         : err.message;
-    
+
     res.status(err.status || 500).render('error', {
         title: 'Error',
         error: errorMessage
@@ -257,7 +257,7 @@ try {
 
 io.on('connection', (socket) => {
     const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId;
-    logger.info(`🔌 New socket connection: ${socket.id} | User: ${userId || 'Anonymous'}`);
+    logger.debug(`🔌 New socket connection: ${socket.id} | User: ${userId || 'Anonymous'}`);
 
     if (userId) {
         // Store user's socket connection
@@ -270,7 +270,7 @@ io.on('connection', (socket) => {
         const userCampus = socket.handshake.auth?.campus || socket.handshake.query?.campus;
         if (userCampus) {
             socket.join(`campus_${userCampus}`);
-            logger.info(`User ${userId} joined campus room: ${userCampus}`);
+            logger.debug(`User ${userId} joined campus room: ${userCampus}`);
         }
     }
 
@@ -279,7 +279,7 @@ io.on('connection', (socket) => {
     // Join marketplace chat room
     socket.on('join_marketplace_chat', (chatId) => {
         socket.join(`marketplace_chat_${chatId}`);
-        logger.info(`User joined marketplace chat: ${chatId}`);
+        logger.debug(`User joined marketplace chat: ${chatId}`);
 
         // Send join confirmation
         socket.emit('chat_joined', { chatId, timestamp: new Date() });
@@ -288,7 +288,7 @@ io.on('connection', (socket) => {
     // Leave marketplace chat room
     socket.on('leave_marketplace_chat', (chatId) => {
         socket.leave(`marketplace_chat_${chatId}`);
-        logger.info(`User left marketplace chat: ${chatId}`);
+        logger.debug(`User left marketplace chat: ${chatId}`);
     });
 
     // Listen for new marketplace messages
@@ -318,7 +318,7 @@ io.on('connection', (socket) => {
                 timestamp: new Date()
             });
 
-            logger.info(`Marketplace message sent in chat ${chatId} by user ${senderId}`);
+            logger.debug(`Marketplace message sent in chat ${chatId} by user ${senderId}`);
 
         } catch (error) {
             logger.error('Error handling marketplace message:', error);
@@ -353,7 +353,7 @@ io.on('connection', (socket) => {
             message: `New listing in ${campus}: ${title}`
         });
 
-        logger.info(`New marketplace listing broadcasted to campus ${campus}: ${title}`);
+        logger.debug(`New marketplace listing broadcasted to campus ${campus}: ${title}`);
     });
 
     // Listing status update (sold, reserved, etc.)
@@ -378,19 +378,19 @@ io.on('connection', (socket) => {
             timestamp: new Date()
         });
 
-        logger.info(`Marketplace listing ${listingId} status updated to ${status}`);
+        logger.debug(`Marketplace listing ${listingId} status updated to ${status}`);
     });
 
     // User joins a specific listing room (for real-time updates)
     socket.on('join_listing', (listingId) => {
         socket.join(`listing_${listingId}`);
-        logger.info(`User joined listing room: ${listingId}`);
+        logger.debug(`User joined listing room: ${listingId}`);
     });
 
     // User leaves a specific listing room
     socket.on('leave_listing', (listingId) => {
         socket.leave(`listing_${listingId}`);
-        logger.info(`User left listing room: ${listingId}`);
+        logger.debug(`User left listing room: ${listingId}`);
     });
 
     // ========== NOTIFICATION EVENTS ==========
@@ -410,7 +410,7 @@ io.on('connection', (socket) => {
                 isRead: false
             });
 
-            logger.info(`Notification sent to user ${userId}: ${title}`);
+            logger.debug(`Notification sent to user ${userId}: ${title}`);
         }
     });
 
@@ -418,7 +418,7 @@ io.on('connection', (socket) => {
 
     // Handle disconnection
     socket.on('disconnect', (reason) => {
-        logger.info(`🔌 Socket disconnected: ${socket.id} | Reason: ${reason}`);
+        logger.debug(`🔌 Socket disconnected: ${socket.id} | Reason: ${reason}`);
 
         // Remove user from socket map
         if (userId) {

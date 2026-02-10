@@ -26,7 +26,8 @@ async function retryQuery(queryFn, maxRetries = 3, baseDelay = 1000) {
             // Don't wait after the last attempt
             if (attempt < maxRetries) {
                 const delay = baseDelay * Math.pow(2, attempt);
-                console.warn(`⚠️ Database query failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`);
+                const logger = require('../logger');
+                logger.debug(`⚠️ Database query failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }

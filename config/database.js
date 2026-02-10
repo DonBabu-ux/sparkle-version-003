@@ -33,19 +33,19 @@ const pool = mysql.createPool({
 
 // Connection validation
 pool.on('connection', (connection) => {
-    console.log('✅ New database connection established');
+    // logger.debug('✅ New database connection established');
 });
 
 pool.on('acquire', (connection) => {
-    console.log('🔗 Connection acquired');
+    // logger.debug('🔗 Connection acquired');
 });
 
 pool.on('release', (connection) => {
-    console.log('🔄 Connection released');
+    // logger.debug('🔄 Connection released');
 });
 
 pool.on('enqueue', () => {
-    console.log('⏳ Waiting for available connection...');
+    // logger.debug('⏳ Waiting for available connection...');
 });
 
 // Graceful shutdown

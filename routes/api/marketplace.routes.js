@@ -10,8 +10,8 @@ router.use(apiRateLimiter);
 
 // Health check
 router.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         service: 'Marketplace API',
         timestamp: new Date().toISOString()
     });
@@ -20,7 +20,7 @@ router.get('/health', (req, res) => {
 // Public endpoints (no auth required)
 router.get('/listings', marketplaceController.getListings);
 router.get('/listings/:id', marketplaceController.getListingById);
-router.get('/lost-found', marketplaceController.getLostFoundItems);
+router.get('/lost-found/items', marketplaceController.getLostFoundItems);
 router.get('/skill-offers', marketplaceController.getSkillOffers);
 
 // Protected endpoints (require authentication)

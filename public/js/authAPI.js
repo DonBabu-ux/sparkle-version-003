@@ -1,6 +1,7 @@
 /**
  * authAPI.js - Authentication Utility for Sparkle
  * Production-ready with retry logic, error handling, and debugging
+ * Browser-compatible version (no ES6 modules)
  */
 
 const AuthAPI = {
@@ -13,13 +14,13 @@ const AuthAPI = {
      */
     async _fetchWithRetry(url, options, retries = this.maxRetries) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         try {
             const response = await fetch(url, {
                 ...options,
                 signal: controller.signal,
-                credentials: 'include' // Include cookies for auth
+                credentials: 'include'
             });
 
             clearTimeout(timeoutId);
@@ -227,8 +228,7 @@ const AuthAPI = {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    },
-                    timeout: 5000 // 5 second timeout
+                    }
                 }).catch(e => {
                     console.warn('Logout notification failed (non-critical):', e.message);
                 });
@@ -484,20 +484,16 @@ const AuthAPI = {
     }
 };
 
-// Make available globally
-if (typeof window !== 'undefined') {
-    window.AuthAPI = AuthAPI;
-    
-    // Auto-validate session on page load
-    window.addEventListener('load', () => {
-        if (AuthAPI.isLoggedIn()) {
-            AuthAPI.validateSession().then(result => {
-                if (!result.valid) {
-                    console.log('Session invalidated:', result.reason);
-                }
-            });
-        }
-    });
-}
+// Make available globally - SIMPLIFIED VERSION
+window.AuthAPI = AuthAPI;
 
-export default AuthAPI;
+// Auto-validate session on page load
+window.addEventListener('load', () => {
+    if (AuthAPI.isLoggedIn()) {
+        AuthAPI.validateSession().then(result => {
+            if (!result.valid) {
+                console.log('Session invalidated:', result.reason);
+            }
+        });
+    }
+});

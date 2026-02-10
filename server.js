@@ -16,25 +16,116 @@ const logger = require('./utils/logger');
 const app = express();
 
 // Database Initialization
-initDB().catch(err => logger.error('Database initialization failed:', err));
+initDB().catch(err => {
+    logger.error('Database initialization failed:', err);
+    // Don't crash the server, but log heavily
+    console.error('CRITICAL: Database initialization failed. API will fail.');
+});
 
 // Security & Performance Middleware
 app.use(securityHeaders);
-app.use(cors());
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['https://sparkle-version-003.vercel.app', 'https://yourdomain.com'] // Add your domains
+        : '*',
+    credentials: true
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(sanitizeInput);
 
-// Logging - use 'dev' format in development for less noise
+// Apply rate limiting to API routes in production
+if (process.env.NODE_ENV === 'production') {
+    app.use('/api', apiRateLimiter);
+}
+
+// Logging
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
     stream: { write: message => logger.info(message.trim()) },
     skip: (req) => req.url.includes('com.chrome.devtools.json') // Skip devtools noise
 }));
 
+// =============================================
+// HEALTH CHECK ENDPOINTS
+// =============================================
+
+// Basic health check (no DB check)
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'sparkle-api',
+        version: process.env.npm_package_version || '1.0.0'
+    });
+});
+
+// Database health check
+app.get('/health/db', async (req, res) => {
+    const health = {
+        status: 'checking',
+        timestamp: new Date().toISOString(),
+        database: {
+            connected: false,
+            error: null
+        }
+    };
+
+    try {
+        // Try to get a database connection
+        const pool = require('./config/database');
+        const [result] = await pool.query('SELECT 1 as test, NOW() as db_time');
+        
+        health.database = {
+            connected: true,
+            response_time: new Date() - new Date(health.timestamp),
+            result: result[0]
+        };
+        health.status = 'healthy';
+        
+        res.json(health);
+    } catch (error) {
+        health.status = 'unhealthy';
+        health.database.error = {
+            message: error.message,
+            code: error.code,
+            errno: error.errno
+        };
+        
+        logger.error('Database health check failed:', error);
+        res.status(503).json(health);
+    }
+});
+
+// Full system diagnostics (for debugging)
+app.get('/diagnostics', (req, res) => {
+    res.json({
+        environment: {
+            NODE_ENV: process.env.NODE_ENV || 'not set',
+            PORT: PORT,
+            DB_HOST: process.env.DB_HOST ? 'set' : 'not set',
+            DB_NAME: process.env.DB_NAME ? 'set' : 'not set',
+            JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'not set',
+            VERCEL: process.env.VERCEL ? 'yes' : 'no'
+        },
+        system: {
+            platform: process.platform,
+            node_version: process.version,
+            memory: process.memoryUsage(),
+            uptime: process.uptime()
+        },
+        timestamp: new Date().toISOString()
+    });
+});
+
+// =============================================
+// STATIC FILES & VIEW ENGINE
+// =============================================
+
 // Static Files
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'))); // UNCOMMENT THIS
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // View Engine
 app.set('view engine', 'ejs');
@@ -52,7 +143,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// API Tester & Route Debugging (Development Only)
+// =============================================
+// DEVELOPMENT TOOLS (Only in non-production)
+// =============================================
+
 if (process.env.NODE_ENV !== 'production') {
     const { scanRoutes } = require('./utils/route-scanner');
     const { ejsAuthMiddleware } = require('./middleware/auth.middleware');
@@ -75,9 +169,17 @@ if (process.env.NODE_ENV !== 'production') {
     });
 }
 
+// =============================================
+// MAIN ROUTES
+// =============================================
+
 // Routes
 app.use('/api', apiRoutes);
 app.use('/', webRoutes);
+
+// =============================================
+// ERROR HANDLING
+// =============================================
 
 // 404 Handler
 app.use((req, res) => {
@@ -88,14 +190,30 @@ app.use((req, res) => {
     res.status(404).render('404', { title: '404 - Page Not Found' });
 });
 
-// Error Handler
+// Global error handler
 app.use((err, req, res, next) => {
-    console.error('❌ Server Error:', err.stack);
+    logger.error('❌ Server Error:', {
+        message: err.message,
+        stack: err.stack,
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+    });
+    
+    // Don't expose internal errors in production
+    const errorMessage = process.env.NODE_ENV === 'production' 
+        ? 'Internal Server Error' 
+        : err.message;
+    
     res.status(err.status || 500).render('error', {
         title: 'Error',
-        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
+        error: errorMessage
     });
 });
+
+// =============================================
+// WEBSOCKET SETUP
+// =============================================
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -103,14 +221,18 @@ const { Server } = require('socket.io');
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", // Adjust in production
-        methods: ["GET", "POST"]
+        origin: process.env.NODE_ENV === 'production'
+            ? ['https://sparkle-version-003.vercel.app']
+            : '*',
+        methods: ["GET", "POST"],
+        credentials: true
     },
     connectionStateRecovery: {
-        // Enable reconnection with state recovery
         maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
         skipMiddlewares: true
-    }
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 // Middleware to attach io to req
@@ -119,11 +241,15 @@ app.use((req, res, next) => {
     next();
 });
 
-// User socket connections map (in-memory, consider Redis for production)
+// User socket connections map
 const userSockets = new Map();
 
 // Setup Socket logic for group chats
-require('./controllers/groupChat.controller').setupChatWebSocket(io);
+try {
+    require('./controllers/groupChat.controller').setupChatWebSocket(io);
+} catch (error) {
+    logger.warn('Group chat controller not found or failed:', error.message);
+}
 
 // =============================================
 // MARKETPLACE SOCKET.IO INTEGRATION
@@ -385,14 +511,20 @@ global.sendMarketplaceNotification = sendMarketplaceNotification;
 global.broadcastNewListing = broadcastNewListing;
 global.notifyChatMessage = notifyChatMessage;
 
+// =============================================
+// SERVER STARTUP
+// =============================================
+
 // Start server only if run directly
 if (require.main === module) {
     server.listen(PORT, () => {
         logger.info(`------------------------------------------`);
         logger.info(`🔥 Sparkle Server running on port ${PORT}`);
+        logger.info(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
         logger.info(`📁 Views directory: ${path.join(__dirname, 'views')}`);
         logger.info(`📁 Public directory: ${path.join(__dirname, 'public')}`);
         logger.info(`🔌 WebSocket Server: Ready for marketplace`);
+        logger.info(`🏥 Health checks: /health, /health/db`);
         logger.info(`------------------------------------------`);
     });
 }

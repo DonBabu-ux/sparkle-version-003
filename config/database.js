@@ -1,5 +1,5 @@
+// config/database.js - PRODUCTION VERSION
 const mysql = require('mysql2/promise');
-require('dotenv').config();
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -7,22 +7,57 @@ const pool = mysql.createPool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
+
+    // Production optimizations
     waitForConnections: true,
-    connectionLimit: 20, // Increased from 10
+    connectionLimit: 20,
     queueLimit: 0,
     connectTimeout: 60000,
+
+    // SSL for production (most cloud DBs require this)
+    ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: true
+    } : undefined,
+
+    // Performance & Resilience
     enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
-    idleTimeout: 60000 // Added idle timeout to recycle connections
+    keepAliveInitialDelay: 10000,
+    idleTimeout: 60000, // Recycle idle connections
+
+    // Timezone
+    timezone: 'Z', // UTC
+
+    // Connection retry
+    enableResetConnection: true
 });
 
-// Keep-Alive Mechanism to prevent ECONNRESET on remote DBs
-setInterval(async () => {
+// Connection validation
+pool.on('connection', (connection) => {
+    console.log('✅ New database connection established');
+});
+
+pool.on('acquire', (connection) => {
+    console.log('🔗 Connection acquired');
+});
+
+pool.on('release', (connection) => {
+    console.log('🔄 Connection released');
+});
+
+pool.on('enqueue', () => {
+    console.log('⏳ Waiting for available connection...');
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
     try {
-        await pool.query('SELECT 1');
+        await pool.end();
+        console.log('Database pool closed gracefully');
+        process.exit(0);
     } catch (err) {
-        // Ignore errors, just trying to keep connection open
+        console.error('Error closing database pool:', err);
+        process.exit(1);
     }
-}, 10000); // Ping every 10 seconds
+});
 
 module.exports = pool;

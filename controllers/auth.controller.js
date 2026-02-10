@@ -1,110 +1,185 @@
+// controllers/auth.controller.js - PRODUCTION VERSION
 const { query } = require('../utils/database/query');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
 
+// Helper to sanitize avatars
+const getSafeAvatarUrl = (url) => {
+    if (!url) return '/uploads/avatars/default.png';
+    if (url.startsWith('/uploads/')) return url;
+    if (url.startsWith('http')) return url;
+    return '/uploads/avatars/default.png';
+};
+
+// Validate JWT secret
+const validateJWTSecret = () => {
+    if (!JWT_SECRET) {
+        throw new Error('JWT_SECRET is not configured');
+    }
+    if (JWT_SECRET === 'your_jwt_secret_here' || JWT_SECRET.length < 32) {
+        throw new Error('JWT_SECRET is not secure. Use a strong random string.');
+    }
+    return true;
+};
+
 const signup = async (req, res) => {
     try {
         const { name, username, email, password, campus, major, year } = req.body;
-
-        if (!name || !username || !email || !password) {
-            return res.status(400).json({ status: 'error', message: 'Missing required fields' });
+        // Validation
+        if (!name || !username || !email || !password || !campus) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'All required fields must be provided'
+            });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Invalid email format'
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 12); // Increased cost factor for production
         const userId = crypto.randomUUID();
 
-        // Match columns in db.sql: username, email, password_hash, campus, major, year_of_study
         await query(
             'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [userId, name, username, email, hashedPassword, campus, major, year]
         );
 
-        res.status(201).json({ status: 'success', message: 'User created' });
-    } catch (error) {
-        console.error('❌ Signup Error:', error);
+        // Generate token for immediate login
+        validateJWTSecret();
+        const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '7d' });
 
-        // Provide user-friendly error messages
-        let userMessage = 'Signup failed. Please try again.';
+        res.status(201).json({
+            status: 'success',
+            message: 'User created successfully',
+            token,
+            user: {
+                id: userId,
+                name,
+                username,
+                email,
+                campus,
+                major,
+                year,
+                loggedIn: true
+            }
+        });
+    } catch (error) {
+        console.error('Signup Error:', error.message);
+
+        // Handle specific errors
         if (error.code === 'ER_DUP_ENTRY') {
-            userMessage = 'Username or email already exists.';
-        } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNRESET' || error.code === 'PROTOCOL_CONNECTION_LOST') {
-            userMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+            return res.status(409).json({
+                status: 'error',
+                message: 'User with this email or username already exists'
+            });
         }
 
-        res.status(500).json({ status: 'error', message: userMessage, error: userMessage });
+        res.status(500).json({
+            status: 'error',
+            message: 'Failed to create account'
+        });
     }
-};
-
-// Helper to sanitize avatars - prioritizes internal uploads
-const getSafeAvatarUrl = (url) => {
-    if (url && url.startsWith('/uploads/')) return url;
-    return '/uploads/avatars/default.png';
 };
 
 const login = async (req, res) => {
     try {
-        console.log('🔐 Login attempt:', { username: req.body.username, hasPassword: !!req.body.password });
+        const { username, password } = req.body;
 
-        const { username, password } = req.body; // Frontend sends 'username' field which might contain email
-
+        // Basic validation
         if (!username || !password) {
-            console.error('❌ Missing credentials');
-            return res.status(400).json({ status: 'error', message: 'Username and password are required' });
+            return res.status(400).json({
+                status: 'error',
+                message: 'Username and password are required'
+            });
         }
 
-        // Support login by email OR username
-        console.log('📊 Querying database for user:', username);
+        // Validate JWT configuration
+        validateJWTSecret();
+
+        // Query user from database - using retry wrapper
         const [users] = await query(
-            'SELECT * FROM users WHERE email = ? OR username = ?',
+            'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1',
             [username, username]
         );
 
-        console.log('📊 Users found:', users.length);
-
         if (users.length === 0) {
-            console.error('❌ User not found');
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+            return res.status(401).json({
+                status: 'error',
+                message: 'Invalid credentials'
+            });
         }
 
-        console.log('🔑 Comparing passwords...');
-        const passwordMatch = await bcrypt.compare(password, users[0].password_hash);
-        console.log('🔑 Password match:', passwordMatch);
+        const user = users[0];
 
+        // Verify password
+        const passwordMatch = await bcrypt.compare(password, user.password_hash);
         if (!passwordMatch) {
-            console.error('❌ Password mismatch');
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+            return res.status(401).json({
+                status: 'error',
+                message: 'Invalid credentials'
+            });
         }
 
-        console.log('✅ Login successful, generating token...');
-        const token = jwt.sign({ userId: users[0].user_id }, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('sparkleToken', token, { httpOnly: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
-
-        // Don't send password hash back and sanitize avatar
-        const userResponse = {
-            ...users[0],
-            avatar_url: getSafeAvatarUrl(users[0].avatar_url)
+        // Generate JWT token
+        const tokenPayload = {
+            userId: user.user_id,
+            email: user.email,
+            username: user.username
         };
-        delete userResponse.password_hash;
 
-        console.log('✅ Sending success response');
-        res.json({ status: 'success', token, user: userResponse });
-    } catch (error) {
-        console.error('❌ Login Error (FULL):', error);
-        console.error('❌ Error stack:', error.stack);
-        console.error('❌ Error details:', {
-            name: error.name,
-            message: error.message,
-            code: error.code,
-            errno: error.errno,
-            sqlMessage: error.sqlMessage
+        const token = jwt.sign(tokenPayload, JWT_SECRET, {
+            expiresIn: '7d'
         });
 
-        // Provide user-friendly error messages
+        // Set secure cookie
+        res.cookie('sparkleToken', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/'
+        });
+
+        // Prepare user response
+        const userResponse = {
+            id: user.user_id,
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            campus: user.campus,
+            major: user.major,
+            year: user.year_of_study,
+            avatar_url: getSafeAvatarUrl(user.avatar_url),
+            created_at: user.created_at,
+            loggedIn: true
+        };
+
+        // Successful response
+        res.json({
+            status: 'success',
+            token,
+            user: userResponse
+        });
+
+    } catch (error) {
+        console.error('Login Error:', error.message);
+
+        // Handle specific errors
         let userMessage = 'Login failed. Please try again.';
         if (error.code === 'ETIMEDOUT' || error.code === 'ECONNRESET' || error.code === 'PROTOCOL_CONNECTION_LOST') {
             userMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+        } else if (error.message.includes('JWT_SECRET')) {
+            userMessage = 'Server configuration error';
+        } else if (error.code === 'ECONNREFUSED' || error.code === 'ER_ACCESS_DENIED_ERROR') {
+            userMessage = 'Database connection failed';
         }
 
         res.status(500).json({
@@ -116,11 +191,31 @@ const login = async (req, res) => {
 };
 
 const logout = (req, res) => {
-    res.clearCookie('sparkleToken');
-    res.json({ status: 'success', message: 'Logged out' });
+    res.clearCookie('sparkleToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/'
+    });
+
+    res.json({
+        status: 'success',
+        message: 'Logged out successfully'
+    });
 };
 
-const verifyEmail = (req, res) => { res.json({ status: 'success' }); };
-const forgotPassword = (req, res) => { res.json({ status: 'success' }); };
+const verifyEmail = (req, res) => {
+    res.status(501).json({
+        status: 'error',
+        message: 'Email verification not implemented'
+    });
+};
+
+const forgotPassword = (req, res) => {
+    res.status(501).json({
+        status: 'error',
+        message: 'Password reset not implemented'
+    });
+};
 
 module.exports = { signup, login, logout, verifyEmail, forgotPassword };

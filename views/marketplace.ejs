@@ -215,6 +215,9 @@
             --danger: #ff1744;
             --dark: #262626;
             --light: #fafafa;
+            --pink-light: #fff0f5;
+            --pink-primary: #ff6b8b;
+            --pink-dark: #ff3d6d;
             --gradient-primary: linear-gradient(45deg, #E1306C 0%, #833AB4 100%);
             --gradient-secondary: linear-gradient(45deg, #405DE6 0%, #833AB4 100%);
             --gradient-accent: linear-gradient(45deg, #FFDC80 0%, #F56040 100%);
@@ -1097,20 +1100,23 @@
         /* ===== FILTER SIDEBAR STYLES ===== */
         .filter-sidebar {
             position: fixed;
-            top: 0;
-            right: -400px;
-            width: 380px;
-            height: 100vh;
-            background: white;
+            top: 70px;
+            /* Below header */
+            left: -320px;
+            width: 300px;
+            height: calc(100vh - 70px);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
             box-shadow: var(--shadow-lg);
-            z-index: 1100;
+            z-index: 1000;
             transition: var(--transition);
             overflow-y: auto;
-            border-left: 1px solid #ffd6e0;
+            border-right: 1px solid #ffd6e0;
+            padding-bottom: 80px;
         }
 
         .filter-sidebar.active {
-            right: 0;
+            left: 0;
         }
 
         .filter-header {
@@ -1742,6 +1748,125 @@
                 min-width: 22px;
                 min-height: 22px;
             }
+
+            /* Additional enhancements from marketplace-enhancements.html */
+            .photo-preview-item {
+                position: relative;
+                width: 100px;
+                height: 100px;
+                border-radius: 8px;
+                overflow: hidden;
+                border: 2px solid #ffd6e0;
+            }
+
+            .photo-preview-item img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .remove-photo-btn {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background: rgba(225, 48, 108, 0.9);
+                border: none;
+                color: white;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: var(--transition);
+                z-index: 2;
+            }
+
+            .remove-photo-btn:hover {
+                background: #ff1744;
+                transform: scale(1.1);
+            }
+
+            /* List View Styles */
+            .listings-grid.list-view {
+                grid-template-columns: 1fr !important;
+                gap: 20px;
+            }
+
+            .listings-grid.list-view .listing-card {
+                display: flex;
+                flex-direction: row;
+                height: auto;
+                max-height: 250px;
+            }
+
+            .listings-grid.list-view .listing-card-inner {
+                display: flex;
+                flex-direction: row;
+                width: 100%;
+            }
+
+            .listings-grid.list-view .listing-image {
+                width: 250px;
+                height: 100%;
+                flex-shrink: 0;
+            }
+
+            .listings-grid.list-view .listing-content {
+                padding: 20px;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            .listings-grid.list-view .listing-footer {
+                margin-top: auto;
+            }
+
+            /* Wizard Modal Styles */
+            .wizard-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(5px);
+                z-index: 2000;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+
+            .wizard-modal.active {
+                display: flex;
+            }
+
+            .wizard-container {
+                background: white;
+                border-radius: 20px;
+                max-width: 700px;
+                width: 100%;
+                max-height: 90vh;
+                overflow-y: auto;
+                padding: 30px;
+                position: relative;
+                box-shadow: var(--shadow-lg);
+            }
+
+            .step-indicator.active div {
+                background: var(--gradient-primary) !important;
+                color: white !important;
+                box-shadow: var(--shadow-glow);
+            }
+
+            .step-indicator.completed div {
+                background: var(--success) !important;
+                color: white !important;
+            }
         }
     </style>
 
@@ -1768,6 +1893,16 @@
 
                         <!-- Actions -->
                         <div class="nav-actions">
+                            <!-- View Toggle -->
+                            <div class="view-toggle d-none d-md-flex me-2">
+                                <button class="nav-action-btn active" data-view="grid" title="Grid View">
+                                    <i class="fas fa-th"></i>
+                                </button>
+                                <button class="nav-action-btn" data-view="list" title="List View">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+
                             <!-- Home -->
                             <button class="nav-action-btn" onclick="window.location.href='/dashboard'"
                                 data-bs-toggle="tooltip" title="Dashboard">
@@ -1793,13 +1928,14 @@
                                 <span class="notification-badge" id="notificationCount">0</span>
                             </button>
 
-                            <!-- Filter -->
-                            <button class="nav-action-btn" id="filterBtn" data-bs-toggle="tooltip" title="Filters">
+                            <!-- Filter Toggle -->
+                            <button class="nav-action-btn filter-toggle-btn" id="filterBtn" data-bs-toggle="tooltip"
+                                title="Filters">
                                 <i class="fas fa-filter"></i>
                             </button>
 
                             <!-- Sell Button -->
-                            <button class="btn btn-premium" id="createListingBtn">
+                            <button class="btn btn-premium open-create-wizard" id="createListingBtn">
                                 <i class="fas fa-plus"></i>
                                 <span class="d-none d-md-inline ms-2">Post Listing</span>
                             </button>
@@ -1847,7 +1983,7 @@
                                         <div class="listing-image">
                                             <img src="<%= listing.image_url || '/images/default-listing.jpg' %>"
                                                 alt="<%= listing.title %>"
-                                                onerror="this.src='/images/default-listing.jpg'">
+                                                onerror="this.onerror=null; this.src='/images/default-listing.jpg'">
                                             <% if (listing.is_sold) { %>
                                                 <div class="sold-badge"><i class="fas fa-tag me-1"></i>SOLD</div>
                                                 <% } %>
@@ -1884,7 +2020,7 @@
                                                 <div class="seller-avatar">
                                                     <img src="<%= listing.seller_avatar || '/images/default-avatar.png' %>"
                                                         alt="<%= listing.seller_username %>"
-                                                        onerror="this.src='/images/default-avatar.png'">
+                                                        onerror="this.onerror=null; this.src='/images/default-avatar.png'">
                                                 </div>
                                                 <div class="seller-details">
                                                     <span class="seller-name">
@@ -1939,85 +2075,119 @@
             <!-- Modal Overlay -->
             <div class="modal-overlay" id="modalOverlay"></div>
 
-            <!-- Premium Filter Sidebar -->
+            <!-- Premium Filter Sidebar (Redesigned) -->
             <div class="filter-sidebar" id="filterSidebar">
-                <div class="filter-header">
-                    <h4><i class="fas fa-sliders-h me-2"></i>Advanced Filters</h4>
-                    <button class="btn-close" onclick="closeFilterSidebar()">×</button>
+                <div class="filter-header"
+                    style="background: var(--gradient-primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
+                    <h4 style="margin: 0; font-size: 18px; font-weight: 600;">
+                        <i class="fas fa-filter me-2"></i>Filters
+                    </h4>
+                    <button class="clear-filters btn btn-link text-white p-0"
+                        style="font-size: 13px; text-decoration: none; opacity: 0.9;">
+                        Clear All
+                    </button>
+                    <button class="btn-close text-white" onclick="closeFilterSidebar()"
+                        style="background: none; border: none; font-size: 24px;">×</button>
                 </div>
 
-                <div class="filter-section">
-                    <h6><i class="fas fa-dollar-sign me-2"></i>Price Range</h6>
-                    <div class="price-range mt-3">
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                            <div class="flex-grow-1">
-                                <label class="form-label">Min Price</label>
-                                <input type="number" id="minPrice" class="form-control" placeholder="$0" min="0">
+                <div class="filter-content p-4">
+                    <!-- Price Range -->
+                    <div class="filter-section mb-4 pb-4 border-bottom">
+                        <h6 class="mb-3" style="color: var(--primary); font-weight: 700;">💰 Price Range</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span id="minPriceDisplay" class="text-muted small">$0</span>
+                            <span id="maxPriceDisplay" class="text-muted small">$10,000</span>
+                        </div>
+                        <input type="range" id="minPrice" class="form-range mb-3" min="0" max="10000" value="0"
+                            step="10">
+                        <input type="range" id="maxPrice" class="form-range" min="0" max="10000" value="10000"
+                            step="10">
+                    </div>
+
+                    <!-- Categories -->
+                    <div class="filter-section mb-4 pb-4 border-bottom">
+                        <h6 class="mb-3" style="color: var(--primary); font-weight: 700;">📂 Categories</h6>
+                        <div class="category-filters">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input category-filter" type="checkbox" value="electronics"
+                                    id="catElec">
+                                <label class="form-check-label" for="catElec">💻 Electronics</label>
                             </div>
-                            <div class="flex-grow-1">
-                                <label class="form-label">Max Price</label>
-                                <input type="number" id="maxPrice" class="form-control" placeholder="$1000" min="0">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input category-filter" type="checkbox" value="books"
+                                    id="catBooks">
+                                <label class="form-check-label" for="catBooks">📚 Books</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input category-filter" type="checkbox" value="clothing"
+                                    id="catClothing">
+                                <label class="form-check-label" for="catClothing">👕 Clothing</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input category-filter" type="checkbox" value="furniture"
+                                    id="catFurniture">
+                                <label class="form-check-label" for="catFurniture">🪑 Furniture</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input category-filter" type="checkbox" value="other"
+                                    id="catOther">
+                                <label class="form-check-label" for="catOther">📦 Other</label>
                             </div>
                         </div>
-                        <input type="range" class="form-range" min="0" max="1000" value="500" id="priceSlider">
+                    </div>
+
+                    <!-- Condition -->
+                    <div class="filter-section mb-4 pb-4 border-bottom">
+                        <h6 class="mb-3" style="color: var(--primary); font-weight: 700;">✨ Condition</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-sm btn-outline-pink condition-btn" data-condition="new">New</button>
+                            <button class="btn btn-sm btn-outline-pink condition-btn" data-condition="like_new">Like
+                                New</button>
+                            <button class="btn btn-sm btn-outline-pink condition-btn"
+                                data-condition="good">Good</button>
+                            <button class="btn btn-sm btn-outline-pink condition-btn"
+                                data-condition="fair">Fair</button>
+                        </div>
+                    </div>
+
+                    <!-- Sort -->
+                    <div class="filter-section">
+                        <h6 class="mb-3" style="color: var(--primary); font-weight: 700;">🔄 Sort By</h6>
+                        <select id="sortBy" class="form-select">
+                            <option value="newest">Newest First</option>
+                            <option value="price_low">Price: Low to High</option>
+                            <option value="price_high">Price: High to Low</option>
+                            <option value="popular">Most Popular</option>
+                        </select>
                     </div>
                 </div>
+            </div>
+            <option value="">All Campuses</option>
+            <option value="main_campus">Main Campus</option>
+            <option value="north_campus">North Campus</option>
+            <option value="south_campus">South Campus</option>
+            <option value="downtown">Downtown</option>
+            </select>
+            </div>
 
-                <div class="filter-section">
-                    <h6><i class="fas fa-certificate me-2"></i>Condition</h6>
-                    <div class="condition-filters mt-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="new" id="condNew">
-                            <label class="form-check-label" for="condNew">New</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="like_new" id="condLikeNew">
-                            <label class="form-check-label" for="condLikeNew">Like New</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="good" id="condGood" checked>
-                            <label class="form-check-label" for="condGood">Good</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="fair" id="condFair">
-                            <label class="form-check-label" for="condFair">Fair</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="poor" id="condPoor">
-                            <label class="form-check-label" for="condPoor">Poor</label>
-                        </div>
-                    </div>
-                </div>
+            <div class="filter-section">
+                <h6><i class="fas fa-sort me-2"></i>Sort By</h6>
+                <select id="sortFilter" class="form-select mt-2">
+                    <option value="created_at">Newest First</option>
+                    <option value="price">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                    <option value="view_count">Most Viewed</option>
+                </select>
+            </div>
 
-                <div class="filter-section">
-                    <h6><i class="fas fa-map-marker-alt me-2"></i>Location</h6>
-                    <select id="campusFilter" class="form-select mt-2">
-                        <option value="">All Campuses</option>
-                        <option value="main_campus">Main Campus</option>
-                        <option value="north_campus">North Campus</option>
-                        <option value="south_campus">South Campus</option>
-                        <option value="downtown">Downtown</option>
-                    </select>
-                </div>
-
-                <div class="filter-section">
-                    <h6><i class="fas fa-sort me-2"></i>Sort By</h6>
-                    <select id="sortFilter" class="form-select mt-2">
-                        <option value="created_at">Newest First</option>
-                        <option value="price">Price: Low to High</option>
-                        <option value="price_desc">Price: High to Low</option>
-                        <option value="view_count">Most Viewed</option>
-                    </select>
-                </div>
-
-                <div class="filter-actions mt-4">
-                    <button class="btn btn-outline-secondary w-100 mb-2" onclick="clearFilters()">
-                        <i class="fas fa-times me-2"></i>Clear All Filters
-                    </button>
-                    <button class="btn btn-premium w-100" onclick="applyFilters()">
-                        <i class="fas fa-check me-2"></i>Apply Filters
-                    </button>
-                </div>
+            <div class="filter-actions mt-4">
+                <button class="btn btn-outline-secondary w-100 mb-2" onclick="clearFilters()">
+                    <i class="fas fa-times me-2"></i>Clear All Filters
+                </button>
+                <button class="btn btn-premium w-100" onclick="applyFilters()">
+                    <i class="fas fa-check me-2"></i>Apply Filters
+                </button>
+            </div>
             </div>
 
             <!-- Premium Notifications Dropdown -->
@@ -2150,11 +2320,8 @@
                 document.addEventListener('DOMContentLoaded', function () {
                     console.log('Marketplace initialized');
 
-                    // Initialize tooltips
-                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                        return new bootstrap.Tooltip(tooltipTriggerEl);
-                    });
+                    // Initialize tooltips - using native title attribute instead of bootstrap
+                    // Tooltips will work with browser's default tooltip behavior
 
                     // Setup event listeners
                     setupEventListeners();
@@ -2285,7 +2452,7 @@
 
                         // Join campus room
                         if (currentUserCampus) {
-                            marketplaceSocket.joinCampusRoom(currentUserCampus);
+                            marketplaceSocket.emit('joinCampusRoom', currentUserCampus);
                         }
                     });
 
@@ -2331,7 +2498,7 @@
                             ...filters
                         });
 
-                        const response = await fetch(`/api/marketplace/listings?${params}`);
+                        const response = await fetch(`/api/listings?${params}`);
 
                         if (!response.ok) {
                             throw new Error(`HTTP ${response.status}`);
@@ -2351,7 +2518,7 @@
 
                 async function fetchCounts() {
                     try {
-                        const response = await fetch('/api/marketplace/counts');
+                        const response = await fetch('/api/counts');
                         const data = await response.json();
 
                         if (data.success) {
@@ -2604,7 +2771,7 @@
                     try {
                         showLoading(true);
 
-                        const response = await fetch(`/api/marketplace/listings?search=${encodeURIComponent(searchTerm)}&limit=50`);
+                        const response = await fetch(`/api/listings?search=${encodeURIComponent(searchTerm)}&limit=50`);
                         const data = await response.json();
 
                         const content = document.getElementById('marketplaceContent');
@@ -2670,7 +2837,7 @@
 
                 async function quickView(listingId) {
                     try {
-                        const response = await fetch(`/api/marketplace/listings/${listingId}`);
+                        const response = await fetch(`/api/listings/${listingId}`);
                         const data = await response.json();
 
                         if (data.success) {
@@ -3302,7 +3469,7 @@
                     const notificationsDropdown = document.getElementById('notificationsDropdown');
                     const notificationBtn = document.getElementById('notificationBtn');
 
-                    if (notificationsDropdown.classList.contains('active') &&
+                    if (notificationsDropdown && notificationsDropdown.classList.contains('active') &&
                         !notificationsDropdown.contains(event.target) &&
                         !notificationBtn.contains(event.target)) {
                         notificationsDropdown.classList.remove('active');
@@ -3310,6 +3477,153 @@
                     }
                 });
             </script>
+
+            <!-- Multi-step Wizard Template -->
+            <div id="createListingWizard" class="wizard-modal">
+                <div class="wizard-container glass">
+                    <button class="close-wizard" onclick="toggleWizard(false)"
+                        style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; color: #E1306C; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+
+                    <!-- Step Indicators -->
+                    <div class="wizard-steps"
+                        style="display: flex; justify-content: space-between; margin-bottom: 30px; position: relative;">
+                        <div class="step-line"
+                            style="position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: #ffd6e0; z-index: 0;">
+                        </div>
+                        <div class="step-indicator active" data-step="1"
+                            style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <div
+                                style="width: 40px; height: 40px; border-radius: 50%; background: #ffd6e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.3s;">
+                                1</div>
+                            <span style="font-size: 12px; color: #666;">Photos</span>
+                        </div>
+                        <div class="step-indicator" data-step="2"
+                            style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <div
+                                style="width: 40px; height: 40px; border-radius: 50%; background: #ffd6e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.3s;">
+                                2</div>
+                            <span style="font-size: 12px; color: #666;">Details</span>
+                        </div>
+                        <div class="step-indicator" data-step="3"
+                            style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <div
+                                style="width: 40px; height: 40px; border-radius: 50%; background: #ffd6e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.3s;">
+                                3</div>
+                            <span style="font-size: 12px; color: #666;">Location</span>
+                        </div>
+                        <div class="step-indicator" data-step="4"
+                            style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <div
+                                style="width: 40px; height: 40px; border-radius: 50%; background: #ffd6e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.3s;">
+                                4</div>
+                            <span style="font-size: 12px; color: #666;">Preview</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Photos -->
+                    <div class="wizard-step active" data-step="1">
+                        <h2 style="color: #E1306C; margin-bottom: 20px;">📸 Photos & Title</h2>
+                        <div style="margin-bottom: 25px; padding: 30px; border: 2px dashed #ffd6e0; border-radius: 15px; text-align: center; cursor: pointer; background: #fafafa;"
+                            onclick="document.getElementById('wizardPhotos').click()">
+                            <i class="fas fa-cloud-upload-alt"
+                                style="font-size: 40px; color: #E1306C; margin-bottom: 10px;"></i>
+                            <p style="margin: 0; font-weight: 600;">Click to upload item photos</p>
+                            <span style="font-size: 12px; color: #666;">Max 10 images, JPG or PNG</span>
+                            <input type="file" id="wizardPhotos" multiple accept="image/*" style="display: none;">
+                        </div>
+                        <div id="photoPreviewContainer"
+                            style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;"></div>
+
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Title *</label>
+                            <input type="text" id="wizardTitle" class="form-control"
+                                placeholder="What are you selling?">
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Details -->
+                    <div class="wizard-step" data-step="2" style="display: none;">
+                        <h2 style="color: #E1306C; margin-bottom: 20px;">📝 Item Details</h2>
+                        <div class="form-group mb-3">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Category *</label>
+                            <select id="wizardCategory" class="form-select">
+                                <option value="">Select Category</option>
+                                <option value="electronics">Electronics</option>
+                                <option value="books">Books</option>
+                                <option value="furniture">Furniture</option>
+                                <option value="clothing">Clothing</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Condition *</label>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="btn btn-outline-secondary condition-btn"
+                                    data-condition="new">New</button>
+                                <button class="btn btn-outline-secondary condition-btn" data-condition="like_new">Like
+                                    New</button>
+                                <button class="btn btn-outline-secondary condition-btn"
+                                    data-condition="good">Good</button>
+                                <button class="btn btn-outline-secondary condition-btn"
+                                    data-condition="fair">Fair</button>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Price *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="wizardPrice" class="form-control" placeholder="0.00"
+                                    step="0.01">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Description</label>
+                            <textarea id="wizardDescription" class="form-control" rows="4"
+                                placeholder="Describe the item..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Location -->
+                    <div class="wizard-step" data-step="3" style="display: none;">
+                        <h2 style="color: #E1306C; margin-bottom: 20px;">📍 Location</h2>
+                        <div class="form-group mb-3">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Campus *</label>
+                            <select id="wizardCampus" class="form-select">
+                                <option value="main_campus">Main Campus</option>
+                                <option value="north_campus">North Campus</option>
+                                <option value="south_campus">South Campus</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Meeting Location
+                                *</label>
+                            <input type="text" id="wizardLocation" class="form-control"
+                                placeholder="e.g. Student Union, Library">
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Preview -->
+                    <div class="wizard-step" data-step="4" style="display: none;">
+                        <h2 style="color: #E1306C; margin-bottom: 20px;">✨ Preview</h2>
+                        <div id="listingPreview" class="glass p-3 rounded-4 mb-3">
+                            <!-- JS will populate this -->
+                        </div>
+                    </div>
+
+                    <!-- Wizard Navigation -->
+                    <div class="wizard-footer d-flex justify-content-between mt-4">
+                        <button class="btn btn-outline-secondary wizard-prev-btn" style="display: none;">Back</button>
+                        <button class="btn btn-premium wizard-next-btn ms-auto">Next Step</button>
+                        <button class="btn btn-success wizard-submit-btn ms-auto" style="display: none;">Post
+                            Listing</button>
+                    </div>
+                </div>
+            </div>
+
+            <script src="/js/dashboardAPI.js"></script>
+            <script src="/js/marketplace-enhancements.js"></script>
     </body>
 
     </html>

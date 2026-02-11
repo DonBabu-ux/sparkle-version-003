@@ -1,136 +1,422 @@
-<%- include('partials/head', { title: title }) %>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/head', { title: 'Confessions | Sparkle' }) %>
+        <style>
+            /* Confessions Specific Styles */
+            body {
+                background-color: #0F172A;
+                /* Dark theme for stories */
+                color: white;
+                overflow: hidden;
+                /* Prevent body scroll to focus on container */
+            }
+
+            .main-content {
+                height: 100vh;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+            }
+
+            .stories-container {
+                height: 100%;
+                width: 100%;
+                max-width: 600px;
+                /* Tik-tok style width */
+                overflow-y: scroll;
+                scroll-snap-type: y mandatory;
+                position: relative;
+                scrollbar-width: none;
+                /* Firefox */
+            }
+
+            .stories-container::-webkit-scrollbar {
+                display: none;
+                /* Chrome/Safari */
+            }
+
+            .story-slide {
+                height: 100vh;
+                width: 100%;
+                scroll-snap-align: start;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: relative;
+                /* Gradient background for each slide to break monotony */
+                background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.8) 100%);
+            }
+
+            .story-card {
+                width: 90%;
+                padding: 40px;
+                border-radius: 30px;
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+                text-align: center;
+                position: relative;
+                animation: zoomIn 0.5s ease;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 400px;
+            }
+
+            @keyframes zoomIn {
+                from {
+                    transform: scale(0.9);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .story-category {
+                display: inline-block;
+                padding: 6px 16px;
+                background: var(--primary);
+                /* Use global pink */
+                color: white;
+                border-radius: 50px;
+                font-size: 13px;
+                font-weight: 700;
+                text-transform: uppercase;
+                margin-bottom: 25px;
+                letter-spacing: 1px;
+                box-shadow: 0 5px 15px rgba(255, 61, 109, 0.4);
+            }
+
+            .story-text {
+                font-size: 28px;
+                font-weight: 600;
+                line-height: 1.6;
+                margin-bottom: 50px;
+                color: #ffffff;
+                font-family: 'Outfit', sans-serif;
+                text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            }
+
+            .story-actions {
+                display: flex;
+                justify-content: center;
+                gap: 25px;
+            }
+
+            .reaction-btn {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                width: 65px;
+                height: 65px;
+                border-radius: 50%;
+                font-size: 26px;
+                color: white;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .reaction-btn:hover {
+                transform: scale(1.15);
+                background: rgba(255, 255, 255, 0.2);
+                border-color: rgba(255, 255, 255, 0.4);
+            }
+
+            .reaction-btn:active {
+                transform: scale(0.95);
+            }
+
+            .reaction-btn.active {
+                background: var(--primary);
+                color: white;
+                border-color: var(--primary);
+                box-shadow: 0 0 20px rgba(255, 61, 109, 0.5);
+            }
+
+            .reaction-count {
+                font-size: 11px;
+                margin-top: 4px;
+                opacity: 0.9;
+                font-weight: 600;
+            }
+
+            /* Floating Create Button */
+            .fab-create {
+                position: fixed;
+                bottom: 40px;
+                right: 40px;
+                background: var(--primary-gradient);
+                color: white;
+                width: 70px;
+                height: 70px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 28px;
+                box-shadow: 0 10px 25px rgba(255, 61, 109, 0.5);
+                cursor: pointer;
+                z-index: 100;
+                border: none;
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+
+            .fab-create:hover {
+                transform: scale(1.1) rotate(90deg);
+            }
+
+            /* Custom Modal Styling */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                backdrop-filter: blur(8px);
+            }
+
+            .modal-card {
+                background: #1E293B;
+                padding: 40px;
+                border-radius: 25px;
+                width: 90%;
+                max-width: 500px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                animation: slideUp 0.4s ease;
+            }
+
+            @keyframes slideUp {
+                from {
+                    transform: translateY(20px);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            .modal-title {
+                color: white;
+                font-size: 24px;
+                margin-bottom: 25px;
+                text-align: center;
+                font-weight: 700;
+            }
+
+            .modal-input,
+            .modal-select {
+                width: 100%;
+                background: rgba(255, 255, 255, 0.05);
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 16px;
+                color: white;
+                font-size: 16px;
+                margin-bottom: 20px;
+                transition: all 0.2s;
+            }
+
+            .modal-input:focus,
+            .modal-select:focus {
+                outline: none;
+                border-color: var(--primary);
+                background: rgba(255, 255, 255, 0.08);
+            }
+
+            .modal-select option {
+                background: #1E293B;
+                color: white;
+            }
+
+            .btn-submit {
+                width: 100%;
+                background: var(--primary-gradient);
+                color: white;
+                border: none;
+                padding: 16px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 16px;
+                cursor: pointer;
+                transition: transform 0.2s;
+                margin-top: 10px;
+            }
+
+            .btn-submit:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px -5px rgba(255, 61, 109, 0.4);
+            }
+
+            .btn-cancel {
+                background: transparent;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: white;
+            }
+
+            .verified-badge {
+                background: rgba(255, 215, 0, 0.2);
+                color: #FFD700;
+                border: 1px solid rgba(255, 215, 0, 0.3);
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+                margin-top: 10px;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+            }
+        </style>
+</head>
+
+<body>
     <%- include('partials/sidebar') %>
 
-        <div class="container" id="mainContent">
-            <%- include('partials/navbar') %>
+        <div class="main-content">
+            <div class="stories-container" id="storiesContainer">
+                <% if (confessions && confessions.length> 0) { %>
+                    <% confessions.forEach(confession=> { %>
+                        <div class="story-slide">
+                            <div class="story-card">
+                                <span class="story-category">
+                                    <%= confession.category || 'General' %>
+                                </span>
 
-                <main class="profile-container" style="max-width: 800px;">
-                    <div class="header glass" style="margin-bottom: 2rem;">
-                        <div style="display:flex; align-items:center; gap:15px;">
-                            <div class="icon-circle"
-                                style="background: var(--primary-gradient); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-mask"></i>
-                            </div>
-                            <div>
-                                <h1 style="margin: 0; font-size: 1.5rem;">Campus Confessions</h1>
-                                <p style="margin: 0; color: #8e8e8e; font-size: 0.9rem;">Share your secrets anonymously
-                                </p>
+                                <div class="story-text">"<%= confession.content %>"</div>
+
+                                <div class="story-actions">
+                                    <button class="reaction-btn"
+                                        onclick="react('<%= confession.confession_id %>', 'heart', this)">
+                                        <i class="fas fa-heart"></i>
+                                        <span class="reaction-count">
+                                            <%= confession.rating_count || 0 %>
+                                        </span>
+                                    </button>
+                                    <button class="reaction-btn"
+                                        onclick="react('<%= confession.confession_id %>', 'fire', this)">
+                                        <i class="fas fa-fire"></i>
+                                    </button>
+                                    <button class="reaction-btn"
+                                        onclick="react('<%= confession.confession_id %>', 'laugh', this)">
+                                        <i class="fas fa-laugh-squint"></i>
+                                    </button>
+                                    <button class="reaction-btn"
+                                        onclick="react('<%= confession.confession_id %>', 'downvote', this)">
+                                        <i class="fas fa-thumbs-down"></i>
+                                    </button>
+                                </div>
+
+                                <div
+                                    style="margin-top: 30px; font-size: 13px; color: rgba(255,255,255,0.4); display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                                    <span>
+                                        <%= new Date(confession.created_at).toLocaleDateString() %> • Anonymous
+                                    </span>
+                                    <span class="verified-badge"><i class="fas fa-check-circle"></i> AI Filtered</span>
+                                </div>
                             </div>
                         </div>
-                        <button class="btn btn-primary" onclick="showConfessModal()" style="border-radius: 12px;">
-                            <i class="fas fa-plus"></i> <span class="d-none d-sm-inline">Confess</span>
-                        </button>
-                    </div>
-
-                    <!-- Confessions List -->
-                    <div id="confessionsList" style="display: flex; flex-direction: column; gap: 20px;">
-                        <% if (confessions && confessions.length> 0) { %>
-                            <% confessions.forEach(confession=> { %>
-                                <div class="card glass"
-                                    style="padding: 20px; border-radius: 16px; position: relative; overflow: hidden;">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                                        <span
-                                            style="font-size: 0.8rem; color: #8e8e8e; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
-                                            <i class="fas fa-clock"></i>
-                                            <%= new Date(confession.created_at).toLocaleDateString() %>
-                                        </span>
-                                        <span style="font-size: 0.8rem; color: var(--primary); font-weight: 600;">
-                                            #<%= confession.category %>
-                                        </span>
-                                    </div>
-                                    <p
-                                        style="font-size: 1.1rem; line-height: 1.6; color: #262626; margin-bottom: 20px;">
-                                        <%= confession.content %>
-                                    </p>
-                                    <div
-                                        style="display: flex; align-items: center; gap: 20px; border-top: 1px solid #eee; padding-top: 15px;">
-                                        <button class="reaction-btn"
-                                            onclick="react('<%= confession.confession_id %>', 'upvote')"
-                                            style="background: none; border: none; cursor: pointer; color: #8e8e8e; display: flex; align-items: center; gap: 5px; font-weight: 600;">
-                                            <i class="fas fa-arrow-up"></i> <span>
-                                                <%= confession.rating_count %>
-                                            </span>
+                        <% }); %>
+                            <% } else { %>
+                                <div class="story-slide">
+                                    <div class="story-card">
+                                        <div class="story-text">No confessions yet.<br>Be the first to share your
+                                            secret!</div>
+                                        <button class="btn-submit" onclick="openModal()"
+                                            style="width: auto; padding-left: 30px; padding-right: 30px;">
+                                            Share Secret
                                         </button>
-                                        <button class="reaction-btn"
-                                            onclick="react('<%= confession.confession_id %>', 'downvote')"
-                                            style="background: none; border: none; cursor: pointer; color: #8e8e8e;">
-                                            <i class="fas fa-arrow-down"></i>
-                                        </button>
-                                        <div style="margin-left: auto; color: #8e8e8e; font-size: 0.9rem;">
-                                            <i class="far fa-comment"></i>
-                                            <%= confession.comment_count %>
-                                        </div>
                                     </div>
                                 </div>
-                                <% }) %>
-                                    <% } else { %>
-                                        <div class="empty-state">
-                                            <div class="empty-state-icon">
-                                                <i class="fas fa-feather"></i>
-                                            </div>
-                                            <h3>No Confessions Yet</h3>
-                                            <p>Be the first one to share a secret!</p>
-                                        </div>
-                                        <% } %>
-                    </div>
-                </main>
+                                <% } %>
+            </div>
         </div>
 
-        <!-- Confession Modal -->
-        <div id="confessModal" class="premium-modal"
-            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-            <div class="card glass" style="width: 90%; max-width: 500px; padding: 25px; border-radius: 20px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                    <h3 style="margin: 0;">Share a Confession</h3>
-                    <button onclick="hideConfessModal()"
-                        style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <label
-                        style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Category</label>
-                    <select id="confessionCategory"
-                        style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd;">
+        <!-- Create Button -->
+        <button class="fab-create" onclick="openModal()">
+            <i class="fas fa-pen-nib"></i>
+        </button>
+
+        <!-- Modal -->
+        <div id="confessModal" class="modal-overlay">
+            <div class="modal-card">
+                <h3 class="modal-title">Share a Secret</h3>
+                <form id="confessForm">
+                    <select id="category" class="modal-select">
                         <option value="general">General</option>
                         <option value="love">Crushes & Love</option>
                         <option value="exam">Academic & Exams</option>
                         <option value="rant">Rants</option>
                         <option value="funny">Funny</option>
+                        <option value="gossip">Campus Tea 🍵</option>
                     </select>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Your
-                        Secret</label>
-                    <textarea id="confessionContent" rows="5"
-                        style="width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ddd; resize: none;"
-                        placeholder="What's on your mind?"></textarea>
-                    <p style="font-size: 0.8rem; color: #8e8e8e; margin-top: 8px;"><i class="fas fa-info-circle"></i>
-                        This will be posted completely anonymously.</p>
-                </div>
-                <button class="btn btn-primary" onclick="submitConfession()"
-                    style="width: 100%; padding: 12px; border-radius: 12px; font-weight: 600;">
-                    Post Anonymously
-                </button>
+
+                    <textarea id="content" class="modal-input" rows="5"
+                        placeholder="Type your confession anonymously..." required></textarea>
+
+                    <p
+                        style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 25px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-shield-alt" style="color: var(--primary);"></i>
+                        Your identity is hidden. Content is AI-moderated.
+                    </p>
+
+                    <div style="display: flex; gap: 15px;">
+                        <button type="button" class="btn-submit btn-cancel" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn-submit">Post Secret</button>
+                    </div>
+                </form>
             </div>
         </div>
 
+        <script src="/js/apiClient.js"></script>
         <script>
-            function showConfessModal() {
+            function openModal() {
                 document.getElementById('confessModal').style.display = 'flex';
             }
 
-            function hideConfessModal() {
+            function closeModal() {
                 document.getElementById('confessModal').style.display = 'none';
             }
 
-            async function submitConfession() {
-                const content = document.getElementById('confessionContent').value;
-                const category = document.getElementById('confessionCategory').value;
+            // Close on outside click
+            window.onclick = function (event) {
+                if (event.target.classList.contains('modal-overlay')) {
+                    closeModal();
+                }
+            }
 
-                if (!content.trim()) return alert('Please enter your confession');
+            document.getElementById('confessForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const content = document.getElementById('content').value;
+                const category = document.getElementById('category').value;
+                const btn = e.target.querySelector('button[type="submit"]');
+                const originalText = btn.innerText;
+
+                btn.innerText = 'Posting...';
+                btn.disabled = true;
 
                 try {
-                    const token = localStorage.getItem('sparkle_token') || document.cookie.match(/sparkleToken=([^;]+)/)?.[1];
-                    const response = await fetch('/api/confessions', {
+                    // Use fetch directly with token
+                    const token = getCookie('sparkleToken');
+                    const res = await fetch('/api/confessions', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -139,21 +425,42 @@
                         body: JSON.stringify({ content, category })
                     });
 
-                    if (response.ok) {
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        // Show success animation or alert
+                        alert('Confession posted anonymously! 🎭');
                         location.reload();
                     } else {
-                        alert('Failed to submit confession');
+                        alert(data.error || 'Failed to post.');
                     }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred');
+                } catch (err) {
+                    console.error(err);
+                    alert('Error posting confession. Please try again.');
+                } finally {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
                 }
-            }
+            });
 
-            async function react(id, type) {
+            async function react(id, type, btn) {
                 try {
-                    const token = localStorage.getItem('sparkle_token') || document.cookie.match(/sparkleToken=([^;]+)/)?.[1];
-                    const response = await fetch(`/api/confessions/${id}/react`, {
+                    // Optimistic UI update
+                    btn.classList.add('active');
+
+                    // Add simple animation
+                    const icon = btn.querySelector('i');
+                    icon.style.transform = 'scale(1.4)';
+                    setTimeout(() => icon.style.transform = 'scale(1)', 200);
+
+                    const countSpan = btn.querySelector('.reaction-count');
+                    if (countSpan) {
+                        let count = parseInt(countSpan.innerText) || 0;
+                        countSpan.innerText = count + 1;
+                    }
+
+                    const token = getCookie('sparkleToken');
+                    await fetch(`/api/confessions/${id}/react`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -162,15 +469,18 @@
                         body: JSON.stringify({ type })
                     });
 
-                    if (response.ok) {
-                        location.reload();
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
+                } catch (err) {
+                    console.error('Reaction failed:', err);
+                    // Revert style if failed (optional, keeping it simple)
                 }
             }
+
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            }
         </script>
+</body>
 
-            </body>
-
-            </html>
+</html>

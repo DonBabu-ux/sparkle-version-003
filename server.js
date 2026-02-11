@@ -1,8 +1,11 @@
+// Server Entry Point
+// Updated at: 2026-02-11T01:05:00+03:00 to force restart
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+// server.js - Restart Triggered
 require('dotenv').config();
 
 const { PORT } = require('./config/constants');

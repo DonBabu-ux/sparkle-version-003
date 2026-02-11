@@ -544,6 +544,9 @@ CREATE TABLE `listing_media` (
   INDEX `idx_listing_media_type` (`media_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================
+-- LOST & FOUND
+-- ============================================
 DROP TABLE IF EXISTS `lost_found_items`;
 CREATE TABLE `lost_found_items` (
   `item_id` CHAR(36) NOT NULL,
@@ -555,7 +558,7 @@ CREATE TABLE `lost_found_items` (
   `campus` VARCHAR(100) NOT NULL,
   `location` VARCHAR(255) DEFAULT NULL,
   `date_lost_found` DATE DEFAULT NULL,
-  `image_url` VARCHAR(500) DEFAULT NULL,
+  `contact_info` VARCHAR(255) DEFAULT NULL,
   `status` ENUM('open', 'claimed', 'closed') DEFAULT 'open',
   `claimed_by` CHAR(36) DEFAULT NULL,
   `claimed_at` TIMESTAMP NULL DEFAULT NULL,
@@ -569,6 +572,21 @@ CREATE TABLE `lost_found_items` (
   INDEX `idx_lost_found_reporter` (`reporter_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+DROP TABLE IF EXISTS `lost_found_media`;
+CREATE TABLE `lost_found_media` (
+  `media_id` CHAR(36) NOT NULL,
+  `item_id` CHAR(36) NOT NULL,
+  `media_url` VARCHAR(500) NOT NULL,
+  `media_type` ENUM('image', 'video') NOT NULL,
+  `upload_order` INT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`media_id`),
+  FOREIGN KEY (`item_id`) REFERENCES `lost_found_items`(`item_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================
+-- SKILL MARKETPLACE
+-- ============================================
 DROP TABLE IF EXISTS `skill_offers`;
 CREATE TABLE `skill_offers` (
   `offer_id` CHAR(36) NOT NULL,
@@ -578,6 +596,7 @@ CREATE TABLE `skill_offers` (
   `category` VARCHAR(50) DEFAULT NULL,
   `skill_type` VARCHAR(100) DEFAULT NULL,
   `price` DECIMAL(10, 2) DEFAULT NULL,
+  `currency` VARCHAR(10) DEFAULT 'USD',
   `is_free` TINYINT(1) DEFAULT 0,
   `campus` VARCHAR(100) NOT NULL,
   `is_active` TINYINT(1) DEFAULT 1,
@@ -588,6 +607,37 @@ CREATE TABLE `skill_offers` (
   INDEX `idx_skill_offers_campus` (`campus`, `is_active`, `created_at`),
   INDEX `idx_skill_offers_category` (`category`, `is_active`),
   INDEX `idx_skill_offers_user` (`user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `skill_bookings`;
+CREATE TABLE `skill_bookings` (
+  `booking_id` CHAR(36) NOT NULL,
+  `offer_id` CHAR(36) NOT NULL,
+  `booker_id` CHAR(36) NOT NULL,
+  `status` ENUM('pending', 'accepted', 'completed', 'cancelled') DEFAULT 'pending',
+  `booking_date` DATETIME NOT NULL,
+  `duration_minutes` INT DEFAULT 60,
+  `notes` TEXT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`booking_id`),
+  FOREIGN KEY (`offer_id`) REFERENCES `skill_offers`(`offer_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`booker_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX `idx_bookings_offer` (`offer_id`, `status`),
+  INDEX `idx_bookings_booker` (`booker_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `skill_reviews`;
+CREATE TABLE `skill_reviews` (
+  `review_id` CHAR(36) NOT NULL,
+  `offer_id` CHAR(36) NOT NULL,
+  `reviewer_id` CHAR(36) NOT NULL,
+  `rating` INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  `comment` TEXT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`review_id`),
+  FOREIGN KEY (`offer_id`) REFERENCES `skill_offers`(`offer_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  UNIQUE KEY `unique_review` (`offer_id`, `reviewer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
@@ -802,5 +852,90 @@ CREATE TABLE `marketplace_notifications` (
   INDEX `idx_marketplace_notifications_user` (`user_id`, `is_read`, `created_at`),
   INDEX `idx_marketplace_notifications_type` (`type`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================
+-- MARKETPLACE IMPROVEMENTS
+-- ============================================
+DROP TABLE IF EXISTS `safe_meetup_locations`;
+CREATE TABLE `safe_meetup_locations` (
+  `location_id` CHAR(36) NOT NULL,
+  `campus` VARCHAR(100) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `building` VARCHAR(255) DEFAULT NULL,
+  `description` TEXT DEFAULT NULL,
+  `latitude` DECIMAL(10, 8) DEFAULT NULL,
+  `longitude` DECIMAL(11, 8) DEFAULT NULL,
+  `is_verified` TINYINT(1) DEFAULT 1,
+  `is_24_7` TINYINT(1) DEFAULT 0,
+  `has_security` TINYINT(1) DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`location_id`),
+  INDEX `idx_campus` (`campus`),
+  INDEX `idx_verified` (`is_verified`, `campus`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `listing_reports`;
+CREATE TABLE `listing_reports` (
+  `report_id` CHAR(36) NOT NULL,
+  `listing_id` CHAR(36) NOT NULL,
+  `reporter_id` CHAR(36) NOT NULL,
+  `reason` ENUM('spam', 'inappropriate', 'scam', 'misleading', 'duplicate', 'other') NOT NULL,
+  `details` TEXT DEFAULT NULL,
+  `status` ENUM('pending', 'reviewed', 'resolved', 'dismissed') DEFAULT 'pending',
+  `reviewed_by` CHAR(36) DEFAULT NULL,
+  `reviewed_at` TIMESTAMP NULL DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`report_id`),
+  FOREIGN KEY (`listing_id`) REFERENCES `marketplace_listings`(`listing_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reporter_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reviewed_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
+  INDEX `idx_status` (`status`, `created_at`),
+  INDEX `idx_listing` (`listing_id`),
+  INDEX `idx_reporter` (`reporter_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `marketplace_reviews`;
+CREATE TABLE `marketplace_reviews` (
+  `review_id` CHAR(36) NOT NULL,
+  `listing_id` CHAR(36) NOT NULL,
+  `reviewer_id` CHAR(36) NOT NULL,
+  `reviewee_id` CHAR(36) NOT NULL,
+  `rating` TINYINT NOT NULL,
+  `comment` TEXT DEFAULT NULL,
+  `transaction_type` ENUM('buyer', 'seller') NOT NULL,
+  `is_anonymous` TINYINT(1) DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`review_id`),
+  FOREIGN KEY (`listing_id`) REFERENCES `marketplace_listings`(`listing_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reviewee_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  UNIQUE KEY `unique_review` (`listing_id`, `reviewer_id`),
+  INDEX `idx_reviewee` (`reviewee_id`, `created_at`),
+  INDEX `idx_rating` (`rating`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `marketplace_user_blocks`;
+CREATE TABLE `marketplace_user_blocks` (
+  `block_id` CHAR(36) NOT NULL,
+  `blocker_id` CHAR(36) NOT NULL,
+  `blocked_id` CHAR(36) NOT NULL,
+  `reason` VARCHAR(255) DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`block_id`),
+  UNIQUE KEY `unique_block` (`blocker_id`, `blocked_id`),
+  FOREIGN KEY (`blocker_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`blocked_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX `idx_blocker` (`blocker_id`),
+  INDEX `idx_blocked` (`blocked_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO safe_meetup_locations (location_id, campus, name, building, description, is_verified, is_24_7, has_security) VALUES
+(UUID(), 'main_campus', 'Main Library Entrance', 'Central Library', 'Well-lit entrance with 24/7 security cameras', 1, 1, 1),
+(UUID(), 'main_campus', 'Student Union Food Court', 'Student Union Building', 'Busy public area during daytime hours', 1, 0, 1),
+(UUID(), 'main_campus', 'Campus Security Office', 'Administration Building', 'Campus security office - safest option', 1, 1, 1),
+(UUID(), 'main_campus', 'Recreation Center Lobby', 'Recreation Center', 'High traffic area with staff present', 1, 0, 1),
+(UUID(), 'main_campus', 'Campus Quad', 'Outdoor', 'Open public space, recommended during daylight', 1, 0, 0),
+(UUID(), 'main_campus', 'Bookstore Entrance', 'Campus Bookstore', 'Public area with regular foot traffic', 1, 0, 1);
 
 SET FOREIGN_KEY_CHECKS = 1;

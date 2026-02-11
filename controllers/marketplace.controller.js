@@ -666,6 +666,323 @@ const createSkillOffer = [
     }
 ];
 
+// ========== NEW SAFETY & REVIEW FEATURES ==========
+
+const getSafeMeetupLocations = async (req, res) => {
+    try {
+        const pool = require('../config/database');
+        const campus = req.query.campus || req.user?.campus || 'main_campus';
+
+        const [locations] = await pool.query(
+            'SELECT * FROM safe_meetup_locations WHERE campus = ? AND is_verified = 1 ORDER BY has_security DESC, is_24_7 DESC',
+            [campus]
+        );
+
+        res.json({
+            success: true,
+            locations
+        });
+    } catch (error) {
+        logger.error('Get safe meetup locations error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch safe meetup locations'
+        });
+    }
+};
+
+const reportListing = async (req, res) => {
+    try {
+        const user = req.user || req.session?.user;
+        if (!user || !user.user_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        const pool = require('../config/database');
+        const { id } = req.params;
+        const { reason, details } = req.body;
+        const report_id = require('crypto').randomUUID();
+
+        await pool.query(
+            'INSERT INTO listing_reports (report_id, listing_id, reporter_id, reason, details) VALUES (?, ?, ?, ?, ?)',
+            [report_id, id, user.user_id, reason, details]
+        );
+
+        res.json({
+            success: true,
+            message: 'Report submitted successfully'
+        });
+    } catch (error) {
+        logger.error('Report listing error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to submit report'
+        });
+    }
+};
+
+const blockUser = async (req, res) => {
+    try {
+        const user = req.user || req.session?.user;
+        if (!user || !user.user_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        const pool = require('../config/database');
+        const { id } = req.params;
+        const { reason } = req.body;
+        const block_id = require('crypto').randomUUID();
+
+        await pool.query(
+            'INSERT INTO marketplace_user_blocks (block_id, blocker_id, blocked_id, reason) VALUES (?, ?, ?, ?)',
+            [block_id, user.user_id, id, reason]
+        );
+
+        res.json({
+            success: true,
+            message: 'User blocked successfully'
+        });
+    } catch (error) {
+        logger.error('Block user error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to block user'
+        });
+    }
+};
+
+const createReview = async (req, res) => {
+    try {
+        const user = req.user || req.session?.user;
+        if (!user || !user.user_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        const pool = require('../config/database');
+        const { listing_id, reviewee_id, rating, comment, transaction_type } = req.body;
+        const review_id = require('crypto').randomUUID();
+
+        await pool.query(
+            'INSERT INTO marketplace_reviews (review_id, listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [review_id, listing_id, user.user_id, reviewee_id, rating, comment, transaction_type]
+        );
+
+        res.json({
+            success: true,
+            message: 'Review submitted successfully'
+        });
+    } catch (error) {
+        logger.error('Create review error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create review'
+        });
+    }
+};
+
+const getUserReviews = async (req, res) => {
+    try {
+        const pool = require('../config/database');
+        const { id } = req.params;
+
+        const [reviews] = await pool.query(
+            `SELECT r.*, u.name as reviewer_name, u.avatar_url as reviewer_avatar 
+             FROM marketplace_reviews r 
+             JOIN users u ON r.reviewer_id = u.user_id 
+             WHERE r.reviewee_id = ? 
+             ORDER BY r.created_at DESC 
+             LIMIT 50`,
+            [id]
+        );
+
+        const [stats] = await pool.query(
+            `SELECT 
+                COUNT(*) as total_reviews,
+                AVG(rating) as average_rating,
+                SUM(CASE WHEN transaction_type = 'buyer' THEN 1 ELSE 0 END) as buyer_reviews,
+                SUM(CASE WHEN transaction_type = 'seller' THEN 1 ELSE 0 END) as seller_reviews
+             FROM marketplace_reviews 
+             WHERE reviewee_id = ?`,
+            [id]
+        );
+
+        res.json({
+            success: true,
+            reviews,
+            stats: stats[0]
+        });
+    } catch (error) {
+        logger.error('Get user reviews error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch reviews'
+        });
+    }
+};
+
+const boostListing = async (req, res) => {
+    try {
+        const user = req.user || req.session?.user;
+        if (!user || !user.user_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        const pool = require('../config/database');
+        const { id } = req.params;
+
+        // Check if user owns the listing
+        const [listings] = await pool.query(
+            'SELECT seller_id FROM marketplace_listings WHERE listing_id = ?',
+            [id]
+        );
+
+        if (listings.length === 0 || listings[0].seller_id !== user.user_id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized'
+            });
+        }
+
+        await pool.query(
+            'UPDATE marketplace_listings SET boost_count = boost_count + 1, last_boosted_at = NOW() WHERE listing_id = ?',
+            [id]
+        );
+
+        res.json({
+            success: true,
+            message: 'Listing boosted successfully'
+        });
+    } catch (error) {
+        logger.error('Boost listing error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to boost listing'
+        });
+    }
+};
+
+const markAsSold = async (req, res) => {
+    try {
+        const user = req.user || req.session?.user;
+        if (!user || !user.user_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        const pool = require('../config/database');
+        const { id } = req.params;
+
+        // Check if user owns the listing
+        const [listings] = await pool.query(
+            'SELECT seller_id FROM marketplace_listings WHERE listing_id = ?',
+            [id]
+        );
+
+        if (listings.length === 0 || listings[0].seller_id !== user.user_id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized'
+            });
+        }
+
+        await pool.query(
+            'UPDATE marketplace_listings SET status = ?, sold_at = NOW(), is_sold = 1 WHERE listing_id = ?',
+            ['sold', id]
+        );
+
+        res.json({
+            success: true,
+            message: 'Listing marked as sold'
+        });
+    } catch (error) {
+        logger.error('Mark as sold error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to mark listing as sold'
+        });
+    }
+};
+
+const relistItem = async (req, res) => {
+    try {
+        const user = req.user || req.session?.user;
+        if (!user || !user.user_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        const pool = require('../config/database');
+        const { id } = req.params;
+
+        // Get original listing
+        const [listings] = await pool.query(
+            'SELECT * FROM marketplace_listings WHERE listing_id = ? AND seller_id = ?',
+            [id, user.user_id]
+        );
+
+        if (listings.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Listing not found'
+            });
+        }
+
+        const original = listings[0];
+        const new_listing_id = require('crypto').randomUUID();
+
+        // Create new listing with same details
+        await pool.query(
+            `INSERT INTO marketplace_listings 
+             (listing_id, seller_id, title, description, price, category, condition, campus, location, status) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+            [new_listing_id, user.user_id, original.title, original.description, original.price,
+                original.category, original.condition, original.campus, original.location]
+        );
+
+        // Copy media
+        const [media] = await pool.query(
+            'SELECT * FROM listing_media WHERE listing_id = ?',
+            [id]
+        );
+
+        for (const m of media) {
+            const media_id = require('crypto').randomUUID();
+            await pool.query(
+                'INSERT INTO listing_media (media_id, listing_id, media_url, media_type, upload_order) VALUES (?, ?, ?, ?, ?)',
+                [media_id, new_listing_id, m.media_url, m.media_type, m.upload_order]
+            );
+        }
+
+        res.json({
+            success: true,
+            message: 'Item relisted successfully',
+            listing_id: new_listing_id
+        });
+    } catch (error) {
+        logger.error('Relist item error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to relist item'
+        });
+    }
+};
+
 module.exports = {
     // Web Routes
     renderMarketplace,
@@ -688,5 +1005,15 @@ module.exports = {
     getLostFoundItems,
     createLostFoundItem,
     getSkillOffers,
-    createSkillOffer
+    createSkillOffer,
+
+    // New Safety & Review Features
+    getSafeMeetupLocations,
+    reportListing,
+    blockUser,
+    createReview,
+    getUserReviews,
+    boostListing,
+    markAsSold,
+    relistItem
 };

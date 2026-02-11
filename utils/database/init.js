@@ -217,6 +217,111 @@ const initStoriesTable = async () => {
     }
 };
 
+const initLostFoundTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS lost_found_items (
+                item_id CHAR(36) PRIMARY KEY,
+                reporter_id CHAR(36) NOT NULL,
+                type ENUM('lost', 'found') NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                category VARCHAR(50) DEFAULT NULL,
+                campus VARCHAR(100) NOT NULL,
+                location VARCHAR(255) DEFAULT NULL,
+                date_lost_found DATE DEFAULT NULL,
+                contact_info VARCHAR(255) DEFAULT NULL,
+                status ENUM('open', 'claimed', 'closed') DEFAULT 'open',
+                claimed_by CHAR(36) DEFAULT NULL,
+                claimed_at TIMESTAMP NULL DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (reporter_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (claimed_by) REFERENCES users(user_id) ON DELETE SET NULL,
+                INDEX idx_lost_found_campus (campus, status, created_at),
+                INDEX idx_lost_found_type (type, status, created_at)
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS lost_found_media (
+                media_id CHAR(36) PRIMARY KEY,
+                item_id CHAR(36) NOT NULL,
+                media_url VARCHAR(500) NOT NULL,
+                media_type ENUM('image', 'video') NOT NULL,
+                upload_order INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (item_id) REFERENCES lost_found_items(item_id) ON DELETE CASCADE
+            )
+        `);
+        logger.debug('✅ Lost & Found tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init Lost & Found tables:', err.message);
+        throw err;
+    }
+};
+
+const initSkillMarketTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS skill_offers (
+                offer_id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                category VARCHAR(50) DEFAULT NULL,
+                skill_type VARCHAR(100) DEFAULT NULL,
+                price DECIMAL(10, 2) DEFAULT NULL,
+                currency VARCHAR(10) DEFAULT 'USD',
+                is_free TINYINT(1) DEFAULT 0,
+                campus VARCHAR(100) NOT NULL,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_skill_offers_campus (campus, is_active, created_at),
+                INDEX idx_skill_offers_category (category, is_active),
+                INDEX idx_skill_offers_user (user_id, created_at)
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS skill_bookings (
+                booking_id CHAR(36) PRIMARY KEY,
+                offer_id CHAR(36) NOT NULL,
+                booker_id CHAR(36) NOT NULL,
+                status ENUM('pending', 'accepted', 'completed', 'cancelled') DEFAULT 'pending',
+                booking_date DATETIME NOT NULL,
+                duration_minutes INT DEFAULT 60,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (offer_id) REFERENCES skill_offers(offer_id) ON DELETE CASCADE,
+                FOREIGN KEY (booker_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_bookings_offer (offer_id, status),
+                INDEX idx_bookings_booker (booker_id, status)
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS skill_reviews (
+                review_id CHAR(36) PRIMARY KEY,
+                offer_id CHAR(36) NOT NULL,
+                reviewer_id CHAR(36) NOT NULL,
+                rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+                comment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (offer_id) REFERENCES skill_offers(offer_id) ON DELETE CASCADE,
+                FOREIGN KEY (reviewer_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                UNIQUE KEY unique_review (offer_id, reviewer_id)
+            )
+        `);
+        logger.debug('✅ Skill Marketplace tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init Skill Marketplace tables:', err.message);
+        throw err;
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -244,6 +349,8 @@ const initDB = async () => {
             await initGroupsTable();
             await initMessagesTable();
             await initStoriesTable();
+            await initLostFoundTable();
+            await initSkillMarketTable();
         });
         logger.debug('✅ Database initialization complete');
     } catch (err) {

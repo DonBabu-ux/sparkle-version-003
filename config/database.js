@@ -25,10 +25,7 @@ const pool = mysql.createPool({
     idleTimeout: 60000, // Recycle idle connections
 
     // Timezone
-    timezone: 'Z', // UTC
-
-    // Connection retry
-    enableResetConnection: true
+    timezone: 'Z' // UTC
 });
 
 // Connection validation

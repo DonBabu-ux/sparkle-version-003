@@ -45,14 +45,6 @@ class GroupChatController {
 
             res.status(201).json({ status: 'success', data: { chatId } });
 
-            // Notify via Socket
-            if (req.io) {
-                const members = [creatorId, ...(member_ids || [])];
-                members.forEach(uid => {
-                    req.io.to(`user:${uid}`).emit('new_group_chat', { chatId, name });
-                });
-            }
-
         } catch (error) {
             console.error('Create Chat Error:', error);
             res.status(500).json({ status: 'error', error: error.message });
@@ -128,63 +120,6 @@ class GroupChatController {
             console.error('Update Group Error:', error);
             res.status(500).json({ status: 'error', error: error.message });
         }
-    }
-
-
-    // === WebSocket Logic ===
-
-    setupChatWebSocket(io) {
-        const chatNamespace = io.of('/chat'); // Or just use root io if preferred
-
-        io.on('connection', (socket) => {
-            console.log('User connected to socket:', socket.id);
-            const userId = socket.handshake.query.userId;
-
-            if (userId) {
-                socket.join(`user:${userId}`);
-                console.log(`User ${userId} joined room user:${userId}`);
-            }
-
-            socket.on('join_chat', (chatId) => {
-                socket.join(`chat:${chatId}`);
-                console.log(`Socket ${socket.id} joined chat:${chatId}`);
-            });
-
-            socket.on('send_group_message', async (data) => {
-                try {
-                    const { chatId, content, type, senderId } = data;
-
-                    // Save to DB
-                    const messageId = await Message.sendMessage({
-                        chatId,
-                        senderId, // In production verify this matches socket user
-                        content,
-                        type: type || 'text'
-                    });
-
-                    // Update Last Message
-                    await GroupChat.updateLastMessage(chatId);
-
-                    // Broadcast
-                    io.to(`chat:${chatId}`).emit('new_message', {
-                        message_id: messageId,
-                        chat_id: chatId,
-                        sender_id: senderId,
-                        content,
-                        type,
-                        sent_at: new Date()
-                    });
-
-                } catch (err) {
-                    console.error('Socket Message Error:', err);
-                    socket.emit('error', { message: 'Failed to send message' });
-                }
-            });
-
-            socket.on('disconnect', () => {
-                // console.log('User disconnected');
-            });
-        });
     }
 }
 

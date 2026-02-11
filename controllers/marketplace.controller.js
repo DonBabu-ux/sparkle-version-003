@@ -466,17 +466,6 @@ const sendMessage = [
 
             const messageId = await Marketplace.sendMessage(chatId, user.user_id, content);
 
-            // Emit socket event for real-time messaging
-            if (req.io) {
-                req.io.to(chatId).emit('new_message', {
-                    chatId,
-                    messageId,
-                    senderId: user.user_id,
-                    content,
-                    timestamp: new Date()
-                });
-            }
-
             res.json({
                 success: true,
                 messageId: messageId

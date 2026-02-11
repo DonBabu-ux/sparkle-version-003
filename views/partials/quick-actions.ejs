@@ -1,0 +1,160 @@
+<div id="quickActionsOverlay" class="qa-overlay" style="display: none;">
+    <div class="qa-menu glass">
+        <div class="qa-header">
+            <h3>Quick Actions</h3>
+            <button onclick="toggleQuickActions()" class="qa-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="qa-grid">
+            <a href="/dashboard?action=new-post" class="qa-item"
+                onclick="toggleQuickActions(); openCreateModal(); return false;">
+                <div class="qa-icon" style="background: #3b82f6;"><i class="fas fa-pen"></i></div>
+                <span>New Post</span>
+            </a>
+            <a href="/moments?action=upload" class="qa-item">
+                <div class="qa-icon" style="background: #ec4899;"><i class="fas fa-video"></i></div>
+                <span>New Moment</span>
+            </a>
+            <a href="#" class="qa-item"
+                onclick="alert('Go Live feature coming soon!'); toggleQuickActions(); return false;">
+                <div class="qa-icon" style="background: #ef4444;"><i class="fas fa-broadcast-tower"></i></div>
+                <span>Go Live</span>
+            </a>
+            <a href="/lost-found?tab=report" class="qa-item">
+                <div class="qa-icon" style="background: #f59e0b;"><i class="fas fa-search-location"></i></div>
+                <span>Lost & Found</span>
+            </a>
+            <a href="/skill-marketplace" class="qa-item" onclick="localStorage.setItem('sm_action', 'create');">
+                <div class="qa-icon" style="background: #10b981;"><i class="fas fa-graduation-cap"></i></div>
+                <span>Offer Skill</span>
+            </a>
+            <a href="/confessions" class="qa-item" onclick="localStorage.setItem('confess_open', 'true');">
+                <div class="qa-icon" style="background: #8b5cf6;"><i class="fas fa-user-secret"></i></div>
+                <span>Confess</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .qa-overlay {
+        position: fixed;
+        bottom: 80px;
+        /* Above navbar */
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 20px;
+        backdrop-filter: blur(5px);
+        animation: fadeIn 0.2s ease;
+    }
+
+    .qa-menu {
+        width: 90%;
+        max-width: 400px;
+        background: white;
+        border-radius: 25px;
+        padding: 25px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .qa-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .qa-header h3 {
+        margin: 0;
+        color: #1e293b;
+        font-size: 18px;
+    }
+
+    .qa-close {
+        background: #f1f5f9;
+        border: none;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        color: #64748b;
+        cursor: pointer;
+    }
+
+    .qa-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+
+    .qa-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 500;
+        transition: transform 0.2s;
+    }
+
+    .qa-item:hover {
+        transform: translateY(-5px);
+    }
+
+    .qa-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+
+<script>
+    function toggleQuickActions() {
+        const overlay = document.getElementById('quickActionsOverlay');
+        if (overlay.style.display === 'none') {
+            overlay.style.display = 'flex';
+        } else {
+            overlay.style.display = 'none';
+        }
+    }
+
+    // Close when clicking outside menu
+    document.getElementById('quickActionsOverlay')?.addEventListener('click', function (e) {
+        if (e.target === this) toggleQuickActions();
+    });
+</script>

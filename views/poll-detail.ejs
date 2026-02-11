@@ -102,7 +102,19 @@
             </div>
 
             <%- include('partials/dashboard-modals') %>
-                    <script src="/js/dashboardAPI.js"></script>
+                <script src="/js/dashboardAPI.js"></script>
+                <script>
+                    async function votePoll(pollId, optionId) {
+                        try {
+                            const loadingToast = alert('Submitting vote...'); // Simple feedback
+                            await DashboardAPI.votePoll(pollId, optionId);
+                            alert('Vote submitted!');
+                            window.location.reload();
+                        } catch (e) {
+                            alert('Failed to vote: ' + e.message);
+                        }
+                    }
+                </script>
     </body>
 
     </html>

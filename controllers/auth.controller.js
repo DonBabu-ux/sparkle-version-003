@@ -218,4 +218,13 @@ const forgotPassword = (req, res) => {
     });
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword };
+const validateToken = (req, res) => {
+    // authMiddleware already validates the token and attaches user to req
+    res.json({
+        status: 'success',
+        valid: true,
+        user: req.user
+    });
+};
+
+module.exports = { signup, login, logout, verifyEmail, forgotPassword, validateToken };

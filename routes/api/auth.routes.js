@@ -30,5 +30,6 @@ router.post('/login', validate(loginSchema), authController.login);
 router.post('/logout', authMiddleware, authController.logout);
 router.post('/verify-email', authController.verifyEmail);
 router.post('/forgot-password', authController.forgotPassword);
+router.get('/validate', authMiddleware, authController.validateToken);
 
 module.exports = router;

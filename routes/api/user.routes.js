@@ -9,7 +9,8 @@ const { searchSchema, updateProfileSchema, updatePasswordSchema, userIdSchema } 
 
 router.get('/me', authMiddleware, userController.getCurrentUser);
 router.get('/search', authMiddleware, validate(searchSchema, 'query'), userController.searchUsers);
-router.get('/friends/search', authMiddleware, userController.searchFollowingUsers); // For messaging restricted to following
+router.get('/following', authMiddleware, userController.searchFollowingUsers);
+router.put('/settings', authMiddleware, userController.updateSettings); // For messaging restricted to following
 router.put('/profile', authMiddleware, validate(updateProfileSchema), userController.updateProfile);
 router.post('/avatar', authMiddleware, upload.single('avatar'), userController.uploadAvatar);
 router.put('/password', authMiddleware, validate(updatePasswordSchema), userController.updatePassword);

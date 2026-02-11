@@ -7,8 +7,7 @@
         <i class="fas fa-search"></i>
         <span>Discover</span>
     </a>
-    <div class="b-nav-item create-action"
-        onclick="/* Assuming logic exists to open modal, triggers usually via ID or class */ document.getElementById('createModal').style.display = 'flex'">
+    <div class="b-nav-item create-action" onclick="toggleQuickActions()">
         <i class="fas fa-plus-circle" style="font-size: 32px; color: var(--primary);"></i>
     </div>
     <a href="/moments" class="b-nav-item <%= title === 'Moments' ? 'active' : '' %>">
@@ -21,3 +20,4 @@
         <span>You</span>
     </div>
 </div>
+<%- include('quick-actions') %>

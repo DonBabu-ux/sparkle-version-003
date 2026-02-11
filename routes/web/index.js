@@ -24,5 +24,7 @@ router.use('/', groupsWebRoutes);
 router.use('/', momentsWebRoutes);
 router.use('/', socialRoutes);
 router.use('/', confessionWebRoutes);
+router.use('/', require('./lost-found.routes'));
+router.use('/', require('./skill-market.routes'));
 
 module.exports = router;

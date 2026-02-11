@@ -20,8 +20,8 @@ router.get('/health', (req, res) => {
 // Public endpoints (no auth required)
 router.get('/listings', marketplaceController.getListings);
 router.get('/listings/:id', marketplaceController.getListingById);
-router.get('/lost-found/items', marketplaceController.getLostFoundItems);
-router.get('/skill-offers', marketplaceController.getSkillOffers);
+
+
 
 // Protected endpoints (require authentication)
 router.post('/listings', authMiddleware, marketplaceController.createListing);
@@ -38,14 +38,28 @@ router.get('/chats/:chatId/messages', authMiddleware, marketplaceController.getC
 router.post('/chats/:chatId/messages', authMiddleware, marketplaceController.sendMessage);
 
 // Lost & Found (protected)
-router.post('/lost-found', authMiddleware, marketplaceController.createLostFoundItem);
+// Lost & Found routes moved to lost-found.routes.js
 
 // Skill Offers (protected)
-router.post('/skill-offers', authMiddleware, marketplaceController.createSkillOffer);
+// Skill Offers routes moved to skill-market.routes.js
 
 // User listings
 router.get('/user/listings', authMiddleware, (req, res) => {
     res.redirect('/my-listings');
 });
+
+// Safety Features
+router.get('/safe-locations', marketplaceController.getSafeMeetupLocations);
+router.post('/listings/:id/report', authMiddleware, marketplaceController.reportListing);
+router.post('/users/:id/block', authMiddleware, marketplaceController.blockUser);
+
+// Reviews
+router.post('/reviews', authMiddleware, marketplaceController.createReview);
+router.get('/users/:id/reviews', marketplaceController.getUserReviews);
+
+// Listing Management
+router.post('/listings/:id/boost', authMiddleware, marketplaceController.boostListing);
+router.post('/listings/:id/mark-sold', authMiddleware, marketplaceController.markAsSold);
+router.post('/listings/:id/relist', authMiddleware, marketplaceController.relistItem);
 
 module.exports = router;

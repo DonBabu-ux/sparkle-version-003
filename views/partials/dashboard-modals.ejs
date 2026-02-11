@@ -321,6 +321,167 @@
 </div>
 
 
+<!-- Create Event Modal -->
+<div class="modal premium-modal" id="eventModal">
+    <div class="modal-content premium-modal-content">
+        <div class="modal-header premium-modal-header">
+            <div class="modal-title premium-modal-title">
+                <i class="fas fa-calendar-plus text-primary" style="color: #ff5722 !important;"></i> Create Campus Event
+            </div>
+            <button class="close-modal premium-close-btn" id="closeEventModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body premium-modal-body">
+            <div class="post-input-section">
+                <input type="text" class="post-input" id="eventTitle" placeholder="Event Title"
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                <textarea class="post-textarea" id="eventDesc" rows="3" placeholder="Event Description..."></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <input type="datetime-local" id="eventStart"
+                    style="padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                <input type="text" id="eventLocation" placeholder="Location"
+                    style="padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+            </div>
+
+            <button class="btn-premium-submit" id="submitEventBtn"
+                style="background: linear-gradient(135deg, #ff5722, #f44336);">
+                <span>Create Event</span>
+                <i class="fas fa-calendar-check"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Simple Modal Logic if not handled centrally
+    document.getElementById('closeEventModal')?.addEventListener('click', () => {
+        document.getElementById('eventModal').style.display = 'none';
+    });
+
+    document.getElementById('submitEventBtn')?.addEventListener('click', async () => {
+        const title = document.getElementById('eventTitle').value;
+        const description = document.getElementById('eventDesc').value;
+        const start_time = document.getElementById('eventStart').value;
+        const location = document.getElementById('eventLocation').value;
+
+        if (!title || !start_time) return alert('Title and Start Time required');
+
+        try {
+            await DashboardAPI.createEvent({
+                title, description, start_time, location,
+                campus: '<%= typeof user !== "undefined" ? user.campus : "main" %>',
+                is_public: true
+            });
+            alert('Event created!');
+            window.location.reload();
+        } catch (e) {
+            alert('Error creating event: ' + e.message);
+        }
+    });
+
+    // Global opener
+    window.openEventModal = () => {
+        document.getElementById('eventModal').style.display = 'flex';
+    };
+</script>
+
+<!-- Create Poll Modal -->
+<div class="modal premium-modal" id="createPollModal">
+    <div class="modal-content premium-modal-content">
+        <div class="modal-header premium-modal-header">
+            <div class="modal-title premium-modal-title">
+                <i class="fas fa-poll text-primary" style="color: #9c27b0 !important;"></i> Create New Poll
+            </div>
+            <button class="close-modal premium-close-btn" id="closePollModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body premium-modal-body">
+            <div class="post-input-section">
+                <input type="text" class="post-input" id="pollQuestion" placeholder="Ask a question..."
+                    style="width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ddd; border-radius: 12px; font-weight: 600;">
+            </div>
+
+            <div id="pollOptionsContainer">
+                <div class="poll-option-input" style="margin-bottom: 10px;">
+                    <input type="text" class="post-input option-input" placeholder="Option 1"
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                </div>
+                <div class="poll-option-input" style="margin-bottom: 10px;">
+                    <input type="text" class="post-input option-input" placeholder="Option 2"
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                </div>
+            </div>
+
+            <button class="btn btn-outline-primary btn-sm" onclick="addPollOption()" style="margin-bottom: 20px;">
+                <i class="fas fa-plus"></i> Add Option
+            </button>
+
+            <div style="margin-bottom: 20px;">
+                <label class="switch" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="pollAnonymous">
+                    <span class="slider round"
+                        style="position: relative; display: inline-block; width: 40px; height: 20px;"></span>
+                    <span style="font-size: 14px; color: var(--text-secondary);">Post Anonymously</span>
+                </label>
+            </div>
+
+            <button class="btn-premium-submit" id="submitPollBtn"
+                style="background: linear-gradient(135deg, #9c27b0, #673ab7);">
+                <span>Launch Poll</span>
+                <i class="fas fa-rocket"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Poll Modal Logic
+    document.getElementById('closePollModal')?.addEventListener('click', () => {
+        document.getElementById('createPollModal').style.display = 'none';
+    });
+
+    window.openCreatePollModal = () => {
+        document.getElementById('createPollModal').style.display = 'flex';
+    };
+
+    window.addPollOption = () => {
+        const container = document.getElementById('pollOptionsContainer');
+        const count = container.children.length + 1;
+        if (count > 5) return alert('Max 5 options allowed');
+
+        const div = document.createElement('div');
+        div.className = 'poll-option-input';
+        div.style.marginBottom = '10px';
+        div.innerHTML = `<input type="text" class="post-input option-input" placeholder="Option ${count}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">`;
+        container.appendChild(div);
+    };
+
+    document.getElementById('submitPollBtn')?.addEventListener('click', async () => {
+        const question = document.getElementById('pollQuestion').value;
+        const optionInputs = document.querySelectorAll('.option-input');
+        const options = Array.from(optionInputs).map(input => input.value).filter(val => val.trim() !== '');
+        const is_anonymous = document.getElementById('pollAnonymous').checked;
+
+        if (!question || options.length < 2) return alert('Question and at least 2 options required');
+
+        try {
+            await DashboardAPI.createPoll({
+                question, options,
+                campus: '<%= typeof user !== "undefined" ? user.campus : "main" %>',
+                is_anonymous
+            });
+            alert('Poll created!');
+            window.location.reload();
+        } catch (e) {
+            alert('Error creating poll: ' + e.message);
+        }
+    });
+</script>
+
 <!-- Enhanced Settings Modal -->
 <div class="modal" id="enhancedSettingsModal">
     <div class="modal-content"

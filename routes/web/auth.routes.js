@@ -8,4 +8,6 @@ router.get('/signup', webController.renderSignup);
 router.get('/about', webController.renderAbout);
 router.get('/cache-buster', webController.renderCacheBuster);
 
+// router.get('/about', ... ) handled above
+
 module.exports = router;

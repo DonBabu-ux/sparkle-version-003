@@ -662,17 +662,42 @@ const DashboardAPI = {
 
     // ============ LOST & FOUND ============
     async reportLostFoundItem(itemData) {
-        return this.request('/lost-found/items', {
-            method: 'POST',
-            body: JSON.stringify(itemData)
-        });
+        let options;
+        if (itemData.media instanceof File || (Array.isArray(itemData.media) && itemData.media[0] instanceof File)) {
+            const formData = new FormData();
+            formData.append('type', itemData.type);
+            formData.append('title', itemData.title);
+            formData.append('description', itemData.description);
+            formData.append('campus', itemData.campus || localStorage.getItem('sparkleUserCampus') || 'main');
+
+            if (itemData.category) formData.append('category', itemData.category);
+            if (itemData.location) formData.append('location', itemData.location);
+            if (itemData.date_lost_found) formData.append('date_lost_found', itemData.date_lost_found);
+            if (itemData.contact_info) formData.append('contact_info', itemData.contact_info);
+
+            if (Array.isArray(itemData.media)) {
+                itemData.media.forEach(file => formData.append('media', file));
+            } else {
+                formData.append('media', itemData.media);
+            }
+
+            options = { method: 'POST', body: formData };
+        } else {
+            options = {
+                method: 'POST',
+                body: JSON.stringify(itemData)
+            };
+        }
+
+        return this.request('/lost-found', options);
     },
 
     async loadLostFoundItems(type, campus) {
         const params = new URLSearchParams();
         if (type && type !== 'all') params.append('type', type);
         if (campus) params.append('campus', campus);
-        const items = await this.request(`/lost-found/items?${params.toString()}`);
+        const data = await this.request(`/lost-found/items?${params.toString()}`);
+        const items = data.items || [];
         return items.map(item => ({
             ...item,
             id: item.item_id,
@@ -689,37 +714,23 @@ const DashboardAPI = {
 
     // ============ SKILL MARKETPLACE ============
     async createSkillOffer(offerData) {
-        return this.request('/skills/offers', {
+        return this.request('/skill-market/offers', {
             method: 'POST',
-            body: JSON.stringify({
-                skill_type: offerData.skill_type,
-                title: offerData.title,
-                description: offerData.description,
-                subjects: offerData.subjects || [],
-                price_type: offerData.price_type,
-                price: offerData.price || 0,
-                availability: offerData.availability || {},
-                campus: offerData.campus || 'Campus'
-            })
+            body: JSON.stringify(offerData)
         });
     },
 
-    async loadSkillOffers(type, campus) {
+    async loadSkillOffers(category, campus) {
         const params = new URLSearchParams();
-        if (type && type !== 'all') params.append('type', type);
+        if (category && category !== 'all') params.append('category', category);
         if (campus) params.append('campus', campus);
-        const offers = await this.request(`/skills/offers?${params.toString()}`);
-        return offers.map(offer => ({
-            ...offer,
-            id: offer.offer_id,
-            type: offer.skill_type
-        }));
+        return this.request(`/skill-market/offers?${params.toString()}`);
     },
 
-    async requestSkill(offerId, message) {
-        return this.request(`/skills/${offerId}/request`, {
+    async bookSkillSession(offerId, bookingData) {
+        return this.request(`/skill-market/offers/${offerId}/book`, {
             method: 'POST',
-            body: JSON.stringify({ message })
+            body: JSON.stringify(bookingData)
         });
     },
 
@@ -1118,8 +1129,9 @@ const DashboardAPI = {
             if (campus && campus !== 'all') params.append('campus', campus);
 
             const queryString = params.toString() ? `?${params.toString()}` : '';
-            const endpoint = `/market/listings${queryString}`;
-            const listings = await this.request(endpoint);
+            const endpoint = `/listings${queryString}`;
+            const data = await this.request(endpoint);
+            const listings = data.listings || [];
             return listings.map(listing => ({
                 id: listing.listing_id,
                 title: listing.title,
@@ -1141,7 +1153,7 @@ const DashboardAPI = {
 
     async createListing(listingData) {
         try {
-            const result = await this.request('/market/listings', {
+            const result = await this.request('/listings', {
                 method: 'POST',
                 body: JSON.stringify({
                     title: listingData.title,
@@ -1161,8 +1173,9 @@ const DashboardAPI = {
 
     async markListingAsSold(listingId) {
         try {
-            const result = await this.request(`/market/${listingId}/sold`, {
-                method: 'PUT'
+            const result = await this.request(`/listings/${listingId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status: 'sold' })
             });
             return result;
         } catch (error) {

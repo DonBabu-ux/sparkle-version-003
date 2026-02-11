@@ -64,8 +64,9 @@
                                                     <%= event.creator_name %>
                                                 </strong>
                                             </div>
-                                            <div style="font-size: 12px; font-weight: 700; color: var(--primary);">
-                                                RSVP <i class="fas fa-arrow-right" style="font-size: 10px;"></i>
+                                            <div style="font-size: 12px; font-weight: 700; color: var(--primary); cursor: pointer;"
+                                                onclick="event.stopPropagation(); rsvpForEvent('<%= event.event_id %>')">
+                                                RSVP / Join <i class="fas fa-check-circle"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -88,7 +89,17 @@
 
             <!-- Modals -->
             <%- include('partials/dashboard-modals') %>
-                    <script src="/js/dashboardAPI.js"></script>
+                <script src="/js/dashboardAPI.js"></script>
+                <script>
+                    async function rsvpForEvent(eventId) {
+                        try {
+                            await DashboardAPI.rsvpEvent(eventId, 'going');
+                            alert('You are now attending this event!');
+                        } catch (e) {
+                            alert('Failed to RSVP: ' + e.message);
+                        }
+                    }
+                </script>
     </body>
 
     </html>

@@ -12,6 +12,8 @@ const groupsRoutes = require('./groups.routes');
 const marketplaceRoutes = require('./marketplace.routes');
 const confessionRoutes = require('./confession.routes');
 const clubsRoutes = require('./clubs.routes');
+const lostFoundRoutes = require('./lost-found.routes');
+const skillMarketRoutes = require('./skill-market.routes');
 
 const uploadRoutes = require('./upload.routes');
 const shareRoutes = require('./share.routes');
@@ -45,5 +47,7 @@ router.use('/', marketplaceRoutes);
 router.use('/groups', groupsRoutes);
 router.use('/confessions', confessionRoutes);
 router.use('/clubs', clubsRoutes);
+router.use('/lost-found', lostFoundRoutes);
+router.use('/skill-market', skillMarketRoutes);
 
 module.exports = router;

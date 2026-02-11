@@ -60,6 +60,37 @@ const updateProfile = async (req, res) => {
     }
 };
 
+const updateSettings = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const updates = {};
+
+        // whitelist allowed settings
+        const allowedSettings = [
+            'anonymous_enabled',
+            'profile_visibility',
+            'push_notifications',
+            'email_notifications',
+            'is_online' // activity status
+        ];
+
+        for (const key of Object.keys(req.body)) {
+            if (allowedSettings.includes(key)) {
+                updates[key] = req.body[key];
+            }
+        }
+
+        if (Object.keys(updates).length > 0) {
+            await User.update(userId, updates);
+        }
+
+        res.json({ message: 'Settings updated successfully', updates });
+    } catch (error) {
+        logger.error('Update settings error:', error);
+        res.status(500).json({ error: 'Failed to update settings' });
+    }
+};
+
 const uploadAvatar = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
@@ -195,5 +226,7 @@ module.exports = {
     getFollowers,
     getFollowing,
     getUserProfile,
-    getUserPosts
+    getUserProfile,
+    getUserPosts,
+    updateSettings
 };

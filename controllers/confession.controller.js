@@ -25,6 +25,14 @@ const createConfession = async (req, res) => {
 
         if (!content) return res.status(400).json({ error: 'Content is required' });
 
+        // Basic "AI" Filter (Keyword based for now)
+        const badWords = ['hate', 'violence', 'kill', 'stupid', 'idiot']; // Expand as needed
+        const hasBadWords = badWords.some(word => content.toLowerCase().includes(word));
+
+        if (hasBadWords) {
+            return res.status(400).json({ error: 'Your confession matches our negative content filter. Please be kind!' });
+        }
+
         const id = await Confession.create(content, campus, category);
         res.status(201).json({ message: 'Confession submitted anonymously', id });
     } catch (error) {

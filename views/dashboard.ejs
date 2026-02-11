@@ -1,6 +1,56 @@
 <%- include('partials/head', { title: 'Dashboard' }) %>
 
     <style>
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                padding-bottom: 80px;
+                padding-top: 70px;
+                /* Space for navbar */
+            }
+
+            .afterglow-section {
+                margin: 0 -15px 20px -15px;
+                padding: 15px;
+                background: white;
+            }
+
+            .stories-container {
+                gap: 12px !important;
+                padding-bottom: 5px;
+            }
+
+            .story-create-card,
+            .story-card {
+                min-width: 110px !important;
+                height: 160px !important;
+            }
+
+            .story-create-avatar {
+                width: 45px !important;
+                height: 45px !important;
+            }
+
+            .afterglow-title {
+                font-size: 18px !important;
+            }
+
+            .vanish-timer {
+                font-size: 10px !important;
+            }
+
+            .posts-feed {
+                padding: 0;
+            }
+
+            .post-card {
+                margin-bottom: 15px;
+                border-radius: 16px !important;
+            }
+        }
+    </style>
+
+    <style>
         body {
             opacity: 0;
             animation: pageFadeIn 0.4s ease-out forwards;

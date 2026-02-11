@@ -35,14 +35,14 @@ const AuthAPI = {
             return response;
         } catch (error) {
             clearTimeout(timeoutId);
-            
+
             // Network error, retry
             if (retries > 0 && error.name !== 'AbortError') {
                 console.warn(`⚠️ Network error, retrying... (${retries} left)`);
                 await new Promise(resolve => setTimeout(resolve, this.retryDelay));
                 return this._fetchWithRetry(url, options, retries - 1);
             }
-            
+
             throw error;
         }
     },
@@ -73,40 +73,39 @@ const AuthAPI = {
      */
     async login(username, password) {
         const startTime = Date.now();
-        console.group('🔑 AuthAPI Login');
-        console.log('📤 Request:', { username, password: '••••••' });
+
+        console.groupCollapsed('🔐 Login Request');
+        console.log('Username:', username);
+        console.log('Timestamp:', new Date().toISOString());
 
         try {
-            // Validate input
-            if (!username?.trim() || !password?.trim()) {
+            // Input validation
+            if (!username?.trim() || !password) {
                 throw new Error('Username and password are required');
             }
 
+            // Make login request
             const response = await this._fetchWithRetry(`${this.baseUrl}/login`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({ username, password })
             });
 
-            const responseTime = Date.now() - startTime;
-            console.log(`⏱️ Response time: ${responseTime}ms`);
-            console.log(`📥 Status: ${response.status} ${response.statusText}`);
-
             const data = await response.json();
-            console.log('📥 Response data:', data);
 
             // Validate response
             const validatedData = this._validateResponse(response, data);
 
             // Save session
             this.setSession(validatedData.token, validatedData.user);
-            
-            console.log('✅ Login successful');
+
+            const responseTime = Date.now() - startTime;
+            console.log(`✅ Login successful in ${responseTime}ms`);
             console.groupEnd();
-            
+
             return validatedData;
 
         } catch (error) {
@@ -117,10 +116,10 @@ const AuthAPI = {
                 status: error.status,
                 data: error.data
             });
-            
+
             // Handle specific error cases
             let userMessage = 'Login failed';
-            
+
             if (error.name === 'AbortError') {
                 userMessage = 'Request timeout. Please check your connection.';
             } else if (error.status === 401) {
@@ -132,11 +131,11 @@ const AuthAPI = {
             } else if (error.message.includes('Network')) {
                 userMessage = 'Network error. Please check your connection.';
             }
-            
+
             const enhancedError = new Error(userMessage);
             enhancedError.originalError = error;
             enhancedError.isAuthError = true;
-            
+
             console.groupEnd();
             throw enhancedError;
         }
@@ -146,14 +145,11 @@ const AuthAPI = {
      * Signup user with validation
      */
     async signup(userData) {
-        console.group('📝 AuthAPI Signup');
-        console.log('📤 Request:', { ...userData, password: '••••••' });
-
         try {
             // Required fields
             const required = ['name', 'username', 'email', 'password', 'campus'];
             const missing = required.filter(field => !userData[field]);
-            
+
             if (missing.length > 0) {
                 throw new Error(`Missing required fields: ${missing.join(', ')}`);
             }
@@ -171,7 +167,7 @@ const AuthAPI = {
 
             const response = await this._fetchWithRetry(`${this.baseUrl}/signup`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
@@ -179,7 +175,6 @@ const AuthAPI = {
             });
 
             const data = await response.json();
-            console.log('📥 Response:', data);
 
             const validatedData = this._validateResponse(response, data);
 
@@ -188,26 +183,23 @@ const AuthAPI = {
                 this.setSession(validatedData.token, validatedData.user);
             }
 
-            console.log('✅ Signup successful');
-            console.groupEnd();
-            
             return validatedData;
 
         } catch (error) {
             console.error('❌ Signup failed:', error.message);
-            
+
             // Handle specific errors
             let userMessage = 'Signup failed';
-            
+
             if (error.status === 409) {
                 userMessage = 'User with this email or username already exists';
             } else if (error.status === 400) {
                 userMessage = error.data?.message || 'Invalid registration data';
             }
-            
+
             const enhancedError = new Error(userMessage);
             enhancedError.originalError = error;
-            
+
             console.groupEnd();
             throw enhancedError;
         }
@@ -217,8 +209,7 @@ const AuthAPI = {
      * Logout with server notification
      */
     async logout() {
-        console.log('👋 AuthAPI Logout');
-        
+
         try {
             const token = localStorage.getItem('sparkleToken');
             if (token) {
@@ -238,7 +229,7 @@ const AuthAPI = {
         } finally {
             // Always clear local session
             this.clearSession();
-            
+
             // Redirect to login
             window.location.href = '/login';
         }
@@ -248,7 +239,6 @@ const AuthAPI = {
      * Forgot password request
      */
     async forgotPassword(email) {
-        console.log('🔓 AuthAPI Forgot Password:', { email });
 
         try {
             if (!email?.trim()) {
@@ -262,7 +252,7 @@ const AuthAPI = {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || data.error || 'Password reset request failed');
             }
@@ -280,7 +270,6 @@ const AuthAPI = {
      * Upload media file
      */
     async uploadMedia(file) {
-        console.log('📤 AuthAPI Upload Media:', file.name);
 
         const token = this.getSession().token;
         if (!token) {
@@ -311,7 +300,7 @@ const AuthAPI = {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.error || `Upload failed: ${response.status}`);
             }
@@ -340,13 +329,11 @@ const AuthAPI = {
                 loggedIn: true,
                 sessionStart: new Date().toISOString()
             }));
-            
+
             // Dispatch event for other parts of the app
             window.dispatchEvent(new CustomEvent('authChange', {
                 detail: { isLoggedIn: true, user }
             }));
-            
-            console.log('💾 Session saved');
         } catch (error) {
             console.error('Failed to save session:', error);
             throw new Error('Failed to save login session');
@@ -357,13 +344,11 @@ const AuthAPI = {
         try {
             localStorage.removeItem('sparkleToken');
             localStorage.removeItem('sparkleUser');
-            
+
             // Dispatch logout event
             window.dispatchEvent(new CustomEvent('authChange', {
                 detail: { isLoggedIn: false, user: null }
             }));
-            
-            console.log('🗑️ Session cleared');
         } catch (error) {
             console.error('Failed to clear session:', error);
         }
@@ -373,18 +358,18 @@ const AuthAPI = {
         try {
             const userJson = localStorage.getItem('sparkleUser');
             const token = localStorage.getItem('sparkleToken');
-            
+
             if (!userJson || !token) {
                 return { user: null, token: null };
             }
 
             const user = JSON.parse(userJson);
-            
+
             // Check if token is expired (optional - usually validated server-side)
             if (user.sessionStart) {
                 const sessionAge = Date.now() - new Date(user.sessionStart).getTime();
                 const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-                
+
                 if (sessionAge > maxAge) {
                     console.warn('Session expired');
                     this.clearSession();
@@ -429,7 +414,7 @@ const AuthAPI = {
      */
     async validateSession() {
         const { token } = this.getSession();
-        
+
         if (!token) {
             return { valid: false, reason: 'No token' };
         }
@@ -458,7 +443,7 @@ const AuthAPI = {
      */
     async refreshToken() {
         const { token } = this.getSession();
-        
+
         if (!token) {
             throw new Error('No token to refresh');
         }
@@ -470,7 +455,7 @@ const AuthAPI = {
             });
 
             const data = await response.json();
-            
+
             if (response.ok && data.token) {
                 this.setSession(data.token, data.user || this.getCurrentUser());
                 return data.token;

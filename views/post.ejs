@@ -22,48 +22,13 @@
                         (c.includes('discuss') || c.includes('opinion') || c.includes('thoughts')) return 'comments' ;
                         return 'file-alt' ; } const postIcon=getIcon(post.content, post.post_type); %>
 
-                        <div class="post-card single-view <%= hasImage ? 'with-image' : 'text-only' %>"
-                            data-id="<%= post.post_id %>">
-                            <!-- POST HEADER -->
-                            <div class="post-header">
-                                <div class="post-author">
-                                    <div class="post-avatar-wrapper">
-                                        <a href="/profile/<%= post.user_id %>">
-                                            <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>"
-                                                alt="<%= post.user_name %>" class="post-avatar"
-                                                onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
-                                        </a>
-                                    </div>
-                                    <div class="post-author-info">
-                                        <div class="post-username"
-                                            onclick="window.location.href='/profile/<%= post.user_id %>'">
-                                            @<%= post.username || post.user_name.toLowerCase().replace(/\s/g, '' ) %>
-                                        </div>
-                                        <div class="post-meta">
-                                            <span class="post-campus">
-                                                <i class="fas fa-graduation-cap"></i>
-                                                <%= post.campus || 'Sparkle Campus' %>
-                                            </span>
-                                            <span class="post-time">• <%= new Date(post.created_at).toLocaleDateString()
-                                                    %></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <% if (user && user.user_id===post.user_id) { %>
-                                    <button class="post-options-btn" style="color: #ff4757;"
-                                        onclick="deletePost(this, '<%= post.post_id %>')">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                    <% } else { %>
-                                        <button class="post-options-btn"><i class="fas fa-ellipsis-v"></i></button>
-                                        <% } %>
-                            </div>
+                        <div class="post-card single-view <%= post.is_pinned ? 'pinned' : '' %> <%= !post.media_url ? 'text-only' : '' %>"
+                            data-post-id="<%= post.post_id %>">
 
-                            <!-- POST CONTENT AREA -->
+                            <!-- 1. MEDIA SECTION (Media First) -->
                             <div class="post-content">
-                                <!-- CONDITIONAL: Media Layer -->
                                 <% if (post.media_url) { %>
-                                    <div class="post-media">
+                                    <div class="post-media-container">
                                         <% if (post.media_type==='video' || (typeof post.media_url==='string' &&
                                             post.media_url.match(/\.(mp4|webm|ogg)$/i))) { %>
                                             <video src="<%= post.media_url %>" controls class="post-image"></video>
@@ -72,125 +37,167 @@
                                                 <% } %>
                                     </div>
                                     <% } %>
+                            </div>
 
-                                        <!-- POST TEXT AREA -->
-                                        <div class="post-text-content <%= !hasImage ? 'no-media' : '' %>">
-                                            <h3 class="post-title">
-                                                <div class="post-title-icon <%= post.post_type || 'public' %>">
-                                                    <i class="fas fa-<%= postIcon %>"></i>
-                                                </div>
-                                                <%= post.title || 'Sparkle Highlight' %>
-                                            </h3>
+                            <!-- 2. HEADER SECTION (60px) -->
+                            <div class="post-header">
+                                <a href="/profile/<%= post.user_id %>">
+                                    <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>"
+                                        alt="<%= post.user_name %>" class="post-avatar"
+                                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                                </a>
+                                <div class="post-author-info">
+                                    <div class="post-username-row">
+                                        <span class="post-username"
+                                            onclick="window.location.href='/profile/<%= post.user_id %>'">
+                                            @<%= post.username || post.user_name.toLowerCase().replace(/\s/g, '' ) %>
+                                        </span>
+                                        <span class="post-time-simple">• <%= new
+                                                Date(post.created_at).toLocaleDateString() %></span>
+                                    </div>
+                                    <div class="post-meta-row">
+                                        <%= post.campus || 'Main Campus' %> • <%= post.major || 'Student' %>
+                                    </div>
+                                </div>
+                                <% if (user && user.id===post.user_id) { %>
+                                    <button class="post-options-btn" style="color: var(--danger);"
+                                        onclick="deletePost(this, '<%= post.post_id %>')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    <% } else { %>
+                                        <button class="post-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+                                        <% } %>
+                            </div>
 
-                                            <div class="post-body">
-                                                <%= post.content %>
-                                            </div>
+                            <!-- 3. TEXT CONTENT AREA -->
+                            <div class="post-text-body">
+                                <% if (post.title) { %>
+                                    <div class="post-title-row">
+                                        <div class="post-type-icon <%= post.post_type || 'public' %>">
+                                            <i class="fas fa-<%= postIcon %>"></i>
+                                        </div>
+                                        <span class="post-title-text">
+                                            <%= post.title %>
+                                        </span>
+                                    </div>
+                                    <% } %>
+
+                                        <div class="post-caption-full">
+                                            <%= post.content %>
                                         </div>
                             </div>
 
-                            <!-- POST FOOTER/ACTIONS -->
-                            <div class="post-actions">
-                                <button class="action-btn spark-btn <%= post.user_has_liked ? 'active' : '' %>"
+                            <!-- 4. METRICS BAR -->
+                            <div class="post-metrics-bar">
+                                <div class="metric-item"><i class="fas fa-bolt"></i> <span class="spark-count">
+                                        <%= post.sparks || 0 %>
+                                    </span></div>
+                                <div class="metric-item"><i class="far fa-comment"></i> <span class="comment-count">
+                                        <%= comments ? comments.length : 0 %>
+                                    </span></div>
+                                <div class="metric-item"><i class="far fa-eye"></i> <span class="view-count">
+                                        <%= post.view_count || 0 %>
+                                    </span></div>
+                                <div class="metric-item"><i class="fas fa-share"></i> <span class="share-count">
+                                        <%= post.share_count || 0 %>
+                                    </span></div>
+                            </div>
+
+                            <!-- 5. ACTION BAR (Instagram-Style) -->
+                            <div class="post-action-bar">
+                                <button class="action-btn-custom spark <%= post.user_has_liked ? 'active' : '' %>"
                                     onclick="window.toggleSpark('<%= post.post_id %>', this)">
                                     <i class="<%= post.user_has_liked ? 'fas' : 'far' %> fa-bolt"></i>
-                                    <span class="spark-count">
-                                        <%= post.sparks || 0 %>
-                                    </span>
+                                    <span>Spark</span>
                                 </button>
-                                <button class="action-btn comment-btn">
+                                <button class="action-btn-custom comment"
+                                    onclick="document.getElementById('newCommentInput').focus()">
                                     <i class="far fa-comment"></i>
-                                    <span class="comment-count">
-                                        <%= comments ? comments.length : 0 %>
-                                    </span>
+                                    <span>Comment</span>
                                 </button>
-                                <button class="action-btn share-btn" data-type="post" data-id="<%= post.post_id %>">
+                                <button class="action-btn-custom share" data-type="post" data-id="<%= post.post_id %>"
+                                    onclick="window.shareManager.openShareSheet('post', '<%= post.post_id %>')">
                                     <i class="far fa-share-square"></i>
                                     <span>Share</span>
                                 </button>
-                                <button class="action-btn save-btn"
+                                <button class="action-btn-custom save <%= post.user_has_saved ? 'active' : '' %>"
                                     onclick="toggleSavePost('<%= post.post_id %>', this)">
-                                    <i class="far fa-bookmark"></i>
+                                    <i class="<%= post.user_has_saved ? 'fas' : 'far' %> fa-bookmark"></i>
                                     <span>Save</span>
                                 </button>
                             </div>
 
-                            <!-- Post Stats Overlay -->
-                            <div class="post-stats">
-                                <span class="stat-item">
-                                    <i class="far fa-eye"></i>
-                                    <%= post.view_count || 0 %> views
-                                </span>
-                                <span class="stat-item">
-                                    <i class="far fa-comments"></i>
-                                    <%= comments ? comments.length : 0 %> comments
-                                </span>
+                            <!-- 6. QUICK COMMENT INPUT (SSR Context slightly different) -->
+                            <div class="post-comment-quick">
+                                <input type="text" id="postQuickInput" class="comment-input-min"
+                                    placeholder="Add a comment..."
+                                    onkeypress="if(event.key === 'Enter') submitComment('<%= post.post_id %>')">
                             </div>
                         </div>
+        </div>
 
-                        <!-- MODERN COMMENTS SECTION -->
-                        <div class="comments-section">
-                            <div class="section-header">
-                                <h3>Conversation</h3>
-                                <span class="comment-pill">
-                                    <%= comments ? comments.length : 0 %> Total
-                                </span>
-                            </div>
+        <!-- MODERN COMMENTS SECTION -->
+        <div class="comments-section">
+            <div class="section-header">
+                <h3>Conversation</h3>
+                <span class="comment-pill">
+                    <%= comments ? comments.length : 0 %> Total
+                </span>
+            </div>
 
-                            <!-- Premium Comment Input -->
-                            <div class="premium-comment-input">
-                                <div class="user-bubble">
-                                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
-                                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+            <!-- Premium Comment Input -->
+            <div class="premium-comment-input">
+                <div class="user-bubble">
+                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                </div>
+                <div class="input-wrapper">
+                    <input type="text" id="newCommentInput" placeholder="Add a spark to the discussion...">
+                    <button class="post-comment-btn" onclick="submitComment('<%= post.post_id %>')">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="comments-list" id="commentsList">
+                <% if (!comments || comments.length===0) { %>
+                    <div class="empty-comments">
+                        <i class="far fa-comments"></i>
+                        <p>No comments yet. Be the first to spark a conversation!</p>
+                    </div>
+                    <% } else { %>
+                        <% comments.forEach(comment=> { %>
+                            <div class="comment-item">
+                                <div class="comment-avatar-area">
+                                    <img src="<%= comment.avatar_url || '/uploads/avatars/default.png' %>"
+                                        class="comment-avatar">
                                 </div>
-                                <div class="input-wrapper">
-                                    <input type="text" id="newCommentInput"
-                                        placeholder="Add a spark to the discussion...">
-                                    <button class="post-comment-btn" onclick="submitComment('<%= post.post_id %>')">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="comments-list" id="commentsList">
-                                <% if (!comments || comments.length===0) { %>
-                                    <div class="empty-comments">
-                                        <i class="far fa-comments"></i>
-                                        <p>No comments yet. Be the first to spark a conversation!</p>
+                                <div class="comment-bubble">
+                                    <div class="comment-info">
+                                        <span class="comment-username">@<%= comment.username %></span>
+                                        <span class="comment-time">
+                                            <%= new Date(comment.created_at).toLocaleTimeString([], {hour: '2-digit' ,
+                                                minute:'2-digit'}) %>
+                                        </span>
                                     </div>
-                                    <% } else { %>
-                                        <% comments.forEach(comment=> { %>
-                                            <div class="comment-item">
-                                                <div class="comment-avatar-area">
-                                                    <img src="<%= comment.avatar_url || '/uploads/avatars/default.png' %>"
-                                                        class="comment-avatar">
-                                                </div>
-                                                <div class="comment-bubble">
-                                                    <div class="comment-info">
-                                                        <span class="comment-username">@<%= comment.username %></span>
-                                                        <span class="comment-time">
-                                                            <%= new Date(comment.created_at).toLocaleTimeString([],
-                                                                {hour: '2-digit' , minute:'2-digit'}) %>
-                                                        </span>
-                                                    </div>
-                                                    <div class="comment-text">
-                                                        <%= comment.content %>
-                                                    </div>
-                                                    <div class="comment-actions">
-                                                        <button class="comment-mini-btn"><i
-                                                                class="far fa-heart"></i></button>
-                                                        <button class="comment-mini-btn">Reply</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <% }) %>
-                                                <% } %>
+                                    <div class="comment-text">
+                                        <%= comment.content %>
+                                    </div>
+                                    <div class="comment-actions">
+                                        <button class="comment-mini-btn"><i class="far fa-heart"></i></button>
+                                        <button class="comment-mini-btn">Reply</button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                </main>
+                            <% }) %>
+                                <% } %>
+            </div>
+        </div>
+        </main>
         </div>
 
         <%- include('partials/share-modal') %>
-            <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
             <script src="/js/dashboardAPI.js"></script>
             <script src="/js/shareManager.js"></script>
             <script src="/js/script.js"></script>

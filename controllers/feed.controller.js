@@ -67,6 +67,8 @@ const getFeedPosts = async (req, res) => {
 
 const getStories = async (req, res) => {
     try {
+        const currentUserId = req.user.userId || req.user.user_id;
+
         const [stories] = await pool.query(`
             SELECT 
                 s.*,
@@ -77,9 +79,10 @@ const getStories = async (req, res) => {
             FROM stories s
             JOIN users u ON s.user_id = u.user_id
             WHERE s.created_at > NOW() - INTERVAL 24 HOUR
+            AND (s.user_id = ? OR s.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?))
             ORDER BY s.created_at DESC
             LIMIT 50
-        `);
+        `, [currentUserId, currentUserId]);
         res.json(stories);
     } catch (error) {
         logger.error('Get Stories Error:', error);

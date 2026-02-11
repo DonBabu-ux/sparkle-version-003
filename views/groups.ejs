@@ -665,6 +665,56 @@
                             transform: translateY(0);
                         }
                     }
+
+                    @media (max-width: 768px) {
+                        .container {
+                            padding: 15px;
+                            padding-bottom: 80px;
+                        }
+
+                        .header.glass {
+                            padding: 15px;
+                        }
+
+                        .logo-text {
+                            font-size: 20px !important;
+                        }
+
+                        .discover-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 16px !important;
+                        }
+
+                        .discover-card-banner {
+                            height: 120px !important;
+                        }
+
+                        .discover-card-content {
+                            padding: 20px !important;
+                        }
+
+                        .discover-card-name {
+                            font-size: 1.2rem !important;
+                        }
+
+                        .premium-tabs {
+                            overflow-x: auto;
+                            display: flex;
+                            padding-bottom: 10px;
+                            gap: 10px;
+                            scrollbar-width: none;
+                        }
+
+                        .premium-tabs::-webkit-scrollbar {
+                            display: none;
+                        }
+
+                        .premium-tab-btn {
+                            white-space: nowrap;
+                            padding: 8px 16px !important;
+                            font-size: 13px !important;
+                        }
+                    }
                 </style>
     </body>
 

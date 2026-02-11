@@ -12,6 +12,7 @@ const webRoutes = require('./routes/web');
 
 const { securityHeaders, apiRateLimiter, sanitizeInput } = require('./middleware/security.middleware');
 const logger = require('./utils/logger');
+const firebaseConfig = require('./config/firebase.config');
 
 const app = express();
 
@@ -25,6 +26,13 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(sanitizeInput);
+
+// Make Firebase config and user available to all views
+app.use((req, res, next) => {
+    res.locals.firebaseConfig = firebaseConfig;
+    res.locals.user = req.user || null;
+    next();
+});
 
 // Logging - use 'dev' format in development for less noise
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {

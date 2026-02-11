@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
+const { downloadExternalImage } = require('../utils/media.utils');
 
 // Helper to sanitize avatars
 const getSafeAvatarUrl = (url) => {
@@ -148,6 +149,23 @@ const login = async (req, res) => {
             path: '/'
         });
 
+        // Lazy migration: If avatar is a CDN link, download it locally
+        let safeAvatarUrl = user.avatar_url;
+        if (safeAvatarUrl && (safeAvatarUrl.includes('fbcdn.net') || safeAvatarUrl.includes('fbsbx.com'))) {
+            try {
+                const localAvatar = await downloadExternalImage(safeAvatarUrl, 'avatars');
+                if (localAvatar && localAvatar.startsWith('/uploads/')) {
+                    safeAvatarUrl = localAvatar;
+                    // Update the user's avatar_url in the database for future requests
+                    const User = require('../models/User'); // Import here to avoid circular dependency if any
+                    await User.update(user.user_id, { avatar_url: safeAvatarUrl });
+                    console.log(`✅ Successfully migrated avatar for user ${user.username} to local storage: ${safeAvatarUrl}`);
+                }
+            } catch (dlError) {
+                console.error(`❌ Failed to lazily migrate avatar for user ${user.username}:`, dlError.message);
+            }
+        }
+
         // Prepare user response
         const userResponse = {
             id: user.user_id,
@@ -157,7 +175,7 @@ const login = async (req, res) => {
             campus: user.campus,
             major: user.major,
             year: user.year_of_study,
-            avatar_url: getSafeAvatarUrl(user.avatar_url),
+            avatar_url: getSafeAvatarUrl(safeAvatarUrl),
             created_at: user.created_at,
             loggedIn: true
         };

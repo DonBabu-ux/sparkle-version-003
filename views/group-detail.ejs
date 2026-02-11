@@ -1,4 +1,58 @@
 <%- include('partials/head', { title: 'Dashboard' }) %>
+    <style>
+        /* Mobile Enhancements */
+        @media (max-width: 768px) {
+            #mainContent {
+                padding-top: 60px !important;
+            }
+
+            .premium-detail-header {
+                border-radius: 0;
+                margin-bottom: 15px;
+            }
+
+            .premium-detail-banner {
+                height: 100px !important;
+            }
+
+            .premium-detail-info-row {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                padding: 0 15px 20px;
+                margin-top: -40px;
+                gap: 15px;
+            }
+
+            .premium-detail-logo {
+                width: 100px !important;
+                height: 100px !important;
+                border-radius: 24px !important;
+            }
+
+            .premium-detail-name {
+                font-size: 1.5rem !important;
+            }
+
+            .premium-detail-actions {
+                padding: 0 15px 20px;
+            }
+
+            .premium-detail-actions>div {
+                flex-direction: column;
+            }
+
+            .about-card {
+                border-radius: 20px;
+                margin: 0 10px 15px;
+            }
+
+            .post-card {
+                margin: 0 0 10px 0 !important;
+                border-radius: 0 !important;
+            }
+        }
+    </style>
 
     <body>
         <%- include('partials/sidebar') %>
@@ -103,34 +157,85 @@
                         <div class="feed" id="groupFeed" style="padding-bottom: 80px;">
                             <% if (typeof initialPosts !=='undefined' && initialPosts.length> 0) { %>
                                 <% initialPosts.forEach(post=> { %>
-                                    <div class="post-card" data-post-id="<%= post.post_id %>">
+                                    <div class="post-card <%= !post.media_url ? 'text-only' : '' %>"
+                                        data-post-id="<%= post.post_id %>">
+                                        <!-- 1. MEDIA SECTION (Media First) -->
+                                        <div class="post-content">
+                                            <% if (post.media_url) { %>
+                                                <div class="post-media-container">
+                                                    <img src="<%= post.media_url %>" class="post-image"
+                                                        alt="Post media">
+                                                </div>
+                                                <% } %>
+                                        </div>
+
+                                        <!-- 2. HEADER SECTION (60px) -->
                                         <div class="post-header">
-                                            <div class="post-avatar-wrapper">
-                                                <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>"
-                                                    alt="<%= post.user_name %>" class="post-avatar">
+                                            <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>"
+                                                alt="<%= post.user_name %>" class="post-avatar">
+                                            <div class="post-author-info">
+                                                <div class="post-username-row">
+                                                    <span class="post-username">@<%= post.user_name %></span>
+                                                    <span class="post-time-simple">• <%= new
+                                                            Date(post.created_at).toLocaleDateString() %></span>
+                                                </div>
+                                                <div class="post-meta-row">
+                                                    Member • <%= post.campus || 'Main Campus' %>
+                                                </div>
                                             </div>
-                                            <div class="post-user-info">
-                                                <div class="post-username">
-                                                    <%= post.user_name %>
-                                                </div>
-                                                <div class="post-time">
-                                                    <%= new Date(post.created_at).toLocaleString() %>
-                                                </div>
+                                            <button class="post-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+                                        </div>
+
+                                        <!-- 3. TEXT CONTENT AREA -->
+                                        <div class="post-text-body">
+                                            <div class="post-caption-full">
+                                                <%= post.content %>
                                             </div>
                                         </div>
-                                        <div class="post-caption">
-                                            <%= post.content %>
+
+                                        <!-- 4. METRICS BAR -->
+                                        <div class="post-metrics-bar">
+                                            <div class="metric-item"><i class="fas fa-bolt"></i> <span
+                                                    class="spark-count">
+                                                    <%= post.sparks || 0 %>
+                                                </span></div>
+                                            <div class="metric-item"><i class="far fa-comment"></i> <span
+                                                    class="comment-count">
+                                                    <%= post.comments || 0 %>
+                                                </span></div>
+                                            <div class="metric-item"><i class="far fa-eye"></i> <span
+                                                    class="view-count">
+                                                    <%= post.views || 0 %>
+                                                </span></div>
+                                            <div class="metric-item"><i class="fas fa-share"></i> <span
+                                                    class="share-count">
+                                                    <%= post.shares || 0 %>
+                                                </span></div>
                                         </div>
-                                        <% if (post.media_url) { %>
-                                            <img src="<%= post.media_url %>" class="post-media" alt="Post media">
-                                            <% } %>
-                                                <div class="post-actions">
-                                                    <button class="action-btn"><i class="far fa-heart"></i>
-                                                        <%= post.sparks || 0 %>
-                                                    </button>
-                                                    <button class="action-btn"><i class="far fa-comment"></i>
-                                                        Comment</button>
-                                                </div>
+
+                                        <!-- 5. ACTION BAR -->
+                                        <div class="post-action-bar">
+                                            <button class="action-btn-custom spark"
+                                                onclick="window.toggleSpark('<%= post.post_id %>', this)">
+                                                <i class="far fa-bolt"></i>
+                                                <span>Spark</span>
+                                            </button>
+                                            <button class="action-btn-custom comment"
+                                                onclick="window.location.href='/post/<%= post.post_id %>'">
+                                                <i class="far fa-comment"></i>
+                                                <span>Comment</span>
+                                            </button>
+                                            <button class="action-btn-custom share"
+                                                onclick="window.shareManager.openShareSheet('post', '<%= post.post_id %>')">
+                                                <i class="far fa-share-square"></i>
+                                                <span>Share</span>
+                                            </button>
+                                            <button class="action-btn-custom save"
+                                                onclick="window.toggleSavePost('<%= post.post_id %>', this)">
+                                                <i class="far fa-bookmark"></i>
+                                                <span>Save</span>
+                                            </button>
+                                        </div>
                                     </div>
                                     <% }); %>
                                         <% } else { %>

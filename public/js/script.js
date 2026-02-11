@@ -366,122 +366,183 @@ window.createPostElement = function (post) {
     const isLiked = post.is_liked || post.isLiked || false;
     const isSaved = post.is_saved || post.isSaved || false;
     const postId = escapeHtml(post.post_id || post.id);
-    const hasImage = !!(post.media_url || post.media);
-    const mediaUrl = escapeHtml(post.media_url || post.media || '');
     const avatarUrl = escapeHtml(post.avatar || post.avatar_url || '/uploads/avatars/default.png');
     const username = escapeHtml(post.username || 'sparkler');
-    const campus = escapeHtml(post.campus || 'Sparkle Central');
-    const title = escapeHtml(post.title || 'Sparkle Update');
+    const campus = escapeHtml(post.campus || 'Main Campus');
+    const major = escapeHtml(post.major || 'Student');
+    const title = escapeHtml(post.title || '');
     const content = escapeHtml(post.content || post.caption || '');
     const icon = escapeHtml(post.icon || 'file-alt');
     const type = escapeHtml(post.type || 'public');
+    const isPinned = post.is_pinned || false;
 
-    // Robust timestamp handling
-    let displayTime = post.timestamp;
-    if (post.timestamp_raw) {
-        displayTime = DashboardAPI.formatTimestamp(post.timestamp_raw);
-    } else if (post.timestamp && !isNaN(new Date(post.timestamp).getTime())) {
-        displayTime = DashboardAPI.formatTimestamp(post.timestamp);
-    }
-    displayTime = escapeHtml(displayTime);
+    // Media Logic
+    const media = post.media_url || post.media || post.media_urls || [];
+    const mediaList = Array.isArray(media) ? media : (media ? [media] : []);
+    const hasMedia = mediaList.length > 0;
+    const isMagazineLayout = post.layout === 'magazine' || (hasMedia && content.length > 200 && mediaList.length === 1);
+
+    // Robust timestamp
+    let displayTime = 'Just now';
+    if (post.timestamp_raw) displayTime = DashboardAPI.formatTimestamp(post.timestamp_raw);
+    else if (post.timestamp) displayTime = DashboardAPI.formatTimestamp(post.timestamp);
 
     const postEl = document.createElement('div');
-    postEl.className = `post-card ${hasImage ? 'with-image' : 'text-only'}`;
+    postEl.className = `post-card ${isPinned ? 'pinned' : ''} ${!hasMedia ? 'text-only' : ''}`;
     postEl.setAttribute('data-post-id', postId);
 
-    postEl.innerHTML = `
-        <!-- POST HEADER -->
+    // 1. HEADER SECTION
+    let headerHtml = `
         <div class="post-header">
-            <div class="post-author">
-                <img src="${avatarUrl}" alt="${username}" class="post-avatar">
-                <div class="post-author-info">
-                    <div class="post-username">@${username}</div>
-                    <div class="post-meta">
-                        <span class="post-campus">${campus}</span>
-                        <span class="post-time">• ${displayTime || 'Just now'}</span>
+            <img src="${avatarUrl}" alt="${username}" class="post-avatar">
+            <div class="post-author-info">
+                <div class="post-username-row">
+                    <span class="post-username">@${username}</span>
+                    <span class="post-time-simple">• ${displayTime}</span>
+                </div>
+                <div class="post-meta-row">${campus} • ${major}</div>
+            </div>
+            <button class="post-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+        </div>
+    `;
+
+    // 2. MEDIA SECTION (If not magazine)
+    let mediaHtml = '';
+    if (hasMedia && !isMagazineLayout) {
+        if (mediaList.length === 1) {
+            mediaHtml = `
+                <div class="post-media-container">
+                    <img src="${escapeHtml(mediaList[0])}" alt="Post image" class="post-image" loading="lazy">
+                </div>
+            `;
+        } else {
+            const gridClass = mediaList.length >= 4 ? 'grid-4' : `grid-${mediaList.length}`;
+            const visibleMedia = mediaList.slice(0, 4);
+            mediaHtml = `
+                <div class="post-media-container">
+                    <div class="post-media-grid ${gridClass}">
+                        ${visibleMedia.map((src, idx) => `
+                            <div class="grid-item">
+                                <img src="${escapeHtml(src)}" alt="Grid image" loading="lazy">
+                                ${idx === 3 && mediaList.length > 4 ? `<div class="grid-more-overlay">+${mediaList.length - 4}</div>` : ''}
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
+            `;
+        }
+    }
+
+    // 3. TEXT CONTENT SECTION
+    let textContentHtml = '';
+    const isLongText = content.length > 250;
+
+    if (title || content) {
+        if (isMagazineLayout) {
+            textContentHtml = `
+            <div class="post-text-body magazine-layout">
+                <img src="${escapeHtml(mediaList[0])}" class="magazine-img" alt="Magazine media">
+                <div class="post-title-row">
+                    <div class="post-type-icon ${type}"><i class="fas fa-${icon}"></i></div>
+                    <span class="post-title-text">${title || 'Sparkle Update'}</span>
+                </div>
+                <div class="post-caption-full">${content}</div>
             </div>
-            <button class="post-options-btn"><i class="fas fa-ellipsis-v"></i></button>
-        </div>
-
-        <!-- POST CONTENT AREA -->
-        <div class="post-content">
-            
-            <!-- CONDITIONAL: Post with Image -->
-            ${hasImage ? `
-            <div class="post-media">
-                <img src="${mediaUrl}" alt="Post image" class="post-image" onerror="this.parentElement.style.display='none'">
-            </div>` : ''}
-
-            <!-- POST TITLE & TEXT -->
-            <div class="post-text-content ${!hasImage ? 'no-media' : ''}">
-                <h3 class="post-title">
-                    <div class="post-title-icon ${type}">
-                        <i class="fas fa-${icon}"></i>
+        `;
+        } else {
+            textContentHtml = `
+            <div class="post-text-body">
+                ${title ? `
+                    <div class="post-title-row">
+                        <div class="post-type-icon ${type}"><i class="fas fa-${icon}"></i></div>
+                        <span class="post-title-text">${title}</span>
                     </div>
-                    ${title}
-                </h3>
-                
-                <div class="post-body">
-                    ${content.length > 350 ? `
-                        <span class="content-short">${content.substring(0, 300)}...</span>
-                        <span class="content-full" style="display:none;">${content}</span>
-                        <button class="see-more-btn" onclick="window.toggleSeeMore(this)">Read more...</button>
-                    ` : content}
+                ` : ''}
+                <div class="post-caption-container">
+                    <div class="post-caption-preview ${isLongText ? 'has-fade' : ''}" id="caption-${postId}">
+                        ${content}
+                    </div>
+                    ${isLongText ? `<div class="see-more-link" onclick="window.togglePostExpansion('${postId}', this)">See More</div>` : ''}
                 </div>
             </div>
-        </div>
+        `;
+        }
+    }
 
-        <!-- POST FOOTER/ACTIONS -->
-        <div class="post-actions">
-            <button class="action-btn spark-btn ${isLiked ? 'active' : ''}" onclick="toggleSpark('${postId}', this)">
+    // 4. METRICS BAR
+    const metricsHtml = `
+        <div class="post-metrics-bar">
+            <div class="metric-item"><i class="fas fa-bolt"></i> <span class="spark-count">${post.sparks || 0}</span></div>
+            <div class="metric-item"><i class="far fa-comment"></i> <span class="comment-count">${post.comments || 0}</span></div>
+            <div class="metric-item"><i class="far fa-eye"></i> <span class="view-count">${post.views || 0}</span></div>
+            <div class="metric-item"><i class="fas fa-share"></i> <span class="share-count">${post.shares || 0}</span></div>
+        </div>
+    `;
+
+    // 5. ACTION BAR
+    const actionsHtml = `
+        <div class="post-action-bar">
+            <button class="action-btn-custom spark ${isLiked ? 'active' : ''}" onclick="window.toggleSpark('${postId}', this)">
                 <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
-                <span class="spark-count">${post.sparks || 0}</span>
+                <span>Spark</span>
             </button>
-            <button class="action-btn comment-btn" onclick="showComments('${postId}')">
+            <button class="action-btn-custom comment" onclick="window.showComments('${postId}')">
                 <i class="far fa-comment"></i>
-                <span class="comment-count">${post.comments || 0}</span>
+                <span>Comment</span>
             </button>
-            <button class="action-btn share-btn" data-type="post" data-id="${postId}" onclick="window.shareManager.openShareSheet('post', '${postId}')">
+            <button class="action-btn-custom share" onclick="window.shareManager.openShareSheet('post', '${postId}')">
                 <i class="far fa-share-square"></i>
                 <span>Share</span>
             </button>
-            <button class="action-btn save-btn ${isSaved ? 'active' : ''}" onclick="toggleSavePost('${postId}', this)">
+            <button class="action-btn-custom save ${isSaved ? 'active' : ''}" onclick="window.toggleSavePost('${postId}', this)">
                 <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
                 <span>Save</span>
             </button>
         </div>
+    `;
 
-        <!-- Post Stats -->
-        <div class="post-stats">
-            <span class="stat-item">
-                <i class="far fa-eye"></i> ${post.views || 0} views
-            </span>
-            <span class="stat-item">
-                <i class="far fa-comments"></i> ${post.comments || 0} comments
-            </span>
+    // 6. QUICK COMMENT INPUT
+    const commentInputHtml = `
+        <div class="post-comment-quick">
+            <input type="text" class="comment-input-min" placeholder="Add a comment..." onkeypress="if(event.key === 'Enter') window.quickComment('${postId}', this.value)">
         </div>
     `;
+
+    // ASSEMBLE (Media handling: "Media First" - Media above Header)
+    postEl.innerHTML = mediaHtml + headerHtml + textContentHtml + metricsHtml + actionsHtml + commentInputHtml;
+
     return postEl;
 };
 
-// Global function to toggle 'See More' on long posts
-window.toggleSeeMore = function (btn) {
-    const parent = btn.parentElement;
-    const shortText = parent.querySelector('.content-short');
-    const fullText = parent.querySelector('.content-full');
+// Toggle function for "See More"
+window.togglePostExpansion = function (postId, btn) {
+    const preview = document.getElementById(`caption-${postId}`);
+    if (!preview) return;
 
-    if (fullText.style.display === 'none') {
-        fullText.style.display = 'inline';
-        shortText.style.display = 'none';
-        btn.textContent = 'Show Less';
+    if (preview.classList.contains('has-fade')) {
+        preview.classList.remove('has-fade');
+        preview.style.maxHeight = 'none';
+        btn.textContent = 'See Less';
     } else {
-        fullText.style.display = 'none';
-        shortText.style.display = 'inline';
+        preview.classList.add('has-fade');
+        preview.style.maxHeight = '4.8em';
         btn.textContent = 'See More';
     }
 };
+
+// Placeholder for quick comment logic
+window.quickComment = async function (postId, text) {
+    if (!text.trim()) return;
+    try {
+        console.log(`💬 Adding quick comment to ${postId}: ${text}`);
+        // Actual implementation would call API
+        alert('Comment sparking! (Demo logic)');
+    } catch (err) {
+        console.error('Failed to add comment:', err);
+    }
+};
+
+// (Legacy toggleSeeMore removed in favor of togglePostExpansion)
 
 // CONNECT PAGE - Load Users
 async function loadConnectUsers() {
@@ -1119,23 +1180,23 @@ async function addComment(postId) {
     }
 }
 
-async function toggleSavePost(postId) {
+async function toggleSavePost(postId, button) {
     try {
         const result = await DashboardAPI.savePost(postId);
-        const saveBtn = document.querySelector(`[data-post-id="${postId}"] .save-btn`);
+        const saveBtn = button || document.querySelector(`[data-post-id="${postId}"] .save-btn-custom`);
 
         if (result.action === 'saved') {
             if (saveBtn) {
-                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i>';
-                saveBtn.classList.add('saved');
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i><span>Saved</span>';
+                saveBtn.classList.add('active');
             }
             showNotification('Post saved! 🔖');
         } else {
             if (saveBtn) {
-                saveBtn.innerHTML = '<i class="far fa-bookmark"></i>';
-                saveBtn.classList.remove('saved');
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i><span>Save</span>';
+                saveBtn.classList.remove('active');
             }
-            showNotification('Post removed from saved');
+            showNotification('Removed from saved');
         }
     } catch (error) {
         console.error('Save error:', error);

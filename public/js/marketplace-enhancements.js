@@ -29,13 +29,11 @@ const MarketplaceEnhancements = {
 
     // Initialize all features
     init() {
-        console.log('🚀 Initializing Marketplace Enhancements...');
         this.initViewToggle();
         this.initFilters();
         this.initWizard();
         this.initEnhancedListings();
         this.loadSafeMeetupLocations();
-        console.log('✅ Marketplace Enhancements initialized');
     },
 
     // ========== VIEW TOGGLE ==========
@@ -145,7 +143,6 @@ const MarketplaceEnhancements = {
     },
 
     applyFilters() {
-        console.log('🔍 Applying filters:', this.state.filters);
 
         const queryParams = new URLSearchParams();
         if (this.state.filters.minPrice > 0) queryParams.append('minPrice', this.state.filters.minPrice);

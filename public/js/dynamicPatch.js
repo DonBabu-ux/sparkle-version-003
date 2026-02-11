@@ -1,7 +1,30 @@
 ﻿// dynamicPatch.js - Makes Dashboard Dynamic with Real API Data
 // This script patches the existing script.js functions to use DashboardAPI
 
-console.log('?? Loading Dynamic API Patch...');
+console.log('🚀 Loading Dynamic API Patch...');
+
+// Global listener for image load errors to handle 403 Forbidden or broken links
+window.addEventListener('error', (event) => {
+    if (event.target.tagName === 'IMG') {
+        const img = event.target;
+        const src = img.src;
+
+        // If it's an avatar or a known problematic CDN link
+        if (img.classList.contains('avatar') || img.classList.contains('user-avatar') ||
+            src.includes('fbcdn.net') || src.includes('fbsbx.com') || src.includes('avatar')) {
+
+            // Don't loop infinitely if fallback also fails
+            if (img.dataset.fallbackApplied) return;
+
+            console.warn('⚠️ Image failed to load, applying fallback:', src);
+            img.dataset.fallbackApplied = 'true';
+            img.src = '/uploads/avatars/default.png';
+
+            // Add a class for styling if needed
+            img.classList.add('fallback-avatar');
+        }
+    }
+}, true); // Use capture phase to catch errors on elements
 
 // ============ INJECT CREATE BUTTON (FAB) ============
 function injectCreateButton() {

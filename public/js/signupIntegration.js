@@ -17,7 +17,7 @@ class SignupBackend {
                     email: userData.email,
                     password: userData.password,
                     campus: userData.campus || 'University',
-                    major: userData.major || 'Undeclared',
+                    major: userData.major || 'Sparkler',
                     year: userData.year || 'Freshman'
                 })
             });
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
             password: document.getElementById('password')?.value || '',
             bio: document.getElementById('bio')?.value?.trim() || '',
             campus: document.getElementById('campus')?.value || 'University',
-            major: document.getElementById('major')?.value || 'Undeclared',
+            major: document.getElementById('major')?.value || 'Sparkler',
             year: document.getElementById('year')?.value || 'Freshman',
             gender: document.getElementById('gender')?.value || '',
             birthdate: document.getElementById('birthdate')?.value || '',

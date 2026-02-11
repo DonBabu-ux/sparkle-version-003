@@ -245,8 +245,56 @@
             }
 
             @media (max-width: 768px) {
+                .settings-container {
+                    padding: 15px;
+                    padding-bottom: 80px;
+                    padding-top: 70px;
+                }
+
                 .settings-layout {
                     grid-template-columns: 1fr;
+                    gap: 15px;
+                }
+
+                .settings-sidebar {
+                    display: flex;
+                    overflow-x: auto;
+                    gap: 10px;
+                    padding: 10px;
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+
+                .settings-sidebar::-webkit-scrollbar {
+                    display: none;
+                }
+
+                .settings-nav-item {
+                    white-space: nowrap;
+                    width: auto;
+                    padding: 8px 16px;
+                    margin-bottom: 0;
+                    flex-shrink: 0;
+                }
+
+                .settings-nav-item.logout {
+                    margin-top: 0;
+                    border-top: none;
+                    padding-top: 8px;
+                }
+
+                .settings-content {
+                    padding: 20px;
+                }
+
+                .settings-header h2 {
+                    font-size: 20px;
+                }
+
+                .profile-upload {
+                    flex-direction: column;
+                    align-items: center;
+                    text-align: center;
                 }
             }
         </style>
@@ -584,6 +632,9 @@
                 function handleLogout() {
                     if (confirm('Are you sure you want to log out?')) {
                         document.cookie = "sparkleToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        localStorage.removeItem('sparkleToken');
+                        localStorage.removeItem('currentUser');
+                        localStorage.removeItem('sparkleUser');
                         window.location.href = '/login';
                     }
                 }
@@ -614,7 +665,14 @@
                 function getCookie(name) {
                     const value = `; ${document.cookie}`;
                     const parts = value.split(`; ${name}=`);
-                    if (parts.length === 2) return parts.pop().split(';').shift();
+                    let token = null;
+                    if (parts.length === 2) token = parts.pop().split(';').shift();
+
+                    // Fallback to localStorage if cookie is missing
+                    if (!token && name === 'sparkleToken') {
+                        token = localStorage.getItem('sparkleToken');
+                    }
+                    return token;
                 }
             </script>
 </body>

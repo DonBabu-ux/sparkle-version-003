@@ -23,13 +23,9 @@
         }
 
         // Firebase Config Deployment
-        <% 
-            const firebaseConfigStr = JSON.stringify(locals.firebaseConfig || {});
-        const currentUserStr = JSON.stringify(locals.user || {});
-        %>
-            window.firebaseConfig = <%- firebaseConfigStr %>;
-        window.currentUser = <%- currentUserStr %>;
-        window.currentUserId = '<%= (locals.user && locals.user.user_id) ? locals.user.user_id : "" %>';
+        window.firebaseConfig = <% - JSON.stringify(firebaseConfig || {}) %>;
+        window.currentUser = <% - JSON.stringify(user || {}) %>;
+        window.currentUserId = '<%= user?.user_id || "" %>';
     </script>
 
     <!-- Firebase SDK (Modular CDN) -->
@@ -37,8 +33,7 @@
     {
       "imports": {
         "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
-        "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js",
-        "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"
+        "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"
       }
     }
     </script>

@@ -9,7 +9,8 @@ class User {
         const [users] = await pool.query(
             `SELECT user_id, name, username, email, avatar_url, campus, major, year_of_study, bio, joined_at, is_online,
                     (SELECT COUNT(*) FROM follows WHERE following_id = users.user_id) as followers_count,
-                    (SELECT COUNT(*) FROM follows WHERE follower_id = users.user_id) as following_count
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = users.user_id) as following_count,
+                    (SELECT COUNT(*) FROM posts WHERE user_id = users.user_id) as posts_count
              FROM users WHERE user_id = ?`,
             [userId]
         );
@@ -104,14 +105,14 @@ class User {
     static async search(query, currentUserId, limit = 20) {
         if (!query || !query.trim()) {
             const [users] = await pool.query(
-                'SELECT user_id, name, username, avatar_url, campus FROM users WHERE user_id != ? LIMIT ?',
+                'SELECT user_id, name, username, avatar_url, campus, major FROM users WHERE user_id != ? LIMIT ?',
                 [currentUserId, limit]
             );
             return users;
         }
 
         const [users] = await pool.query(
-            'SELECT user_id, name, username, avatar_url, campus FROM users WHERE (name LIKE ? OR username LIKE ?) AND user_id != ? LIMIT ?',
+            'SELECT user_id, name, username, avatar_url, campus, major FROM users WHERE (name LIKE ? OR username LIKE ?) AND user_id != ? LIMIT ?',
             [`%${query}%`, `%${query}%`, currentUserId, limit]
         );
         return users;
@@ -123,7 +124,7 @@ class User {
     static async searchFollowing(query, currentUserId, limit = 20) {
         if (!query || !query.trim()) {
             const [users] = await pool.query(
-                `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus
+                `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major
              FROM follows f
              JOIN users u ON f.following_id = u.user_id
              WHERE f.follower_id = ?
@@ -134,7 +135,7 @@ class User {
         }
 
         const [users] = await pool.query(
-            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major
          FROM follows f
          JOIN users u ON f.following_id = u.user_id
          WHERE f.follower_id = ? 

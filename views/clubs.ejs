@@ -253,6 +253,103 @@
             max-height: 90vh;
             overflow-y: auto;
         }
+
+        /* Mobile Enhancements */
+        @media (max-width: 768px) {
+            .clubs-container {
+                padding: 20px 15px 100px;
+                padding-top: 70px;
+            }
+
+            .discover-header {
+                padding: 30px 20px;
+                border-radius: 25px;
+                margin-bottom: 25px;
+                text-align: center;
+            }
+
+            .discover-header>div {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .discover-header h1 {
+                font-size: 1.8rem !important;
+            }
+
+            .discover-header p {
+                font-size: 0.95rem !important;
+            }
+
+            .discover-header .btn-primary {
+                width: 100%;
+                padding: 12px !important;
+            }
+
+            .category-scroll {
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+            }
+
+            .cat-tab {
+                padding: 10px 20px;
+                font-size: 0.85rem;
+            }
+
+            .clubs-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .club-card {
+                border-radius: 25px;
+            }
+
+            .club-card-banner {
+                height: 140px;
+            }
+
+            .club-card-logo {
+                width: 60px;
+                height: 60px;
+                bottom: -30px;
+                left: 20px;
+                border-radius: 18px;
+            }
+
+            .club-card-content {
+                padding: 40px 20px 20px;
+            }
+
+            .club-card-name {
+                font-size: 1.3rem;
+            }
+
+            .club-card-bio {
+                font-size: 0.85rem;
+            }
+
+            .fab {
+                width: 55px;
+                height: 55px;
+                bottom: 85px;
+                /* Above bottom nav */
+                right: 20px;
+            }
+
+            .modal-content {
+                padding: 25px;
+                border-radius: 30px;
+            }
+
+            .modal-content h3 {
+                font-size: 1.4rem !important;
+            }
+
+            #createClubForm>div:first-child>div {
+                grid-template-columns: 1fr !important;
+            }
+        }
     </style>
 
     <body>

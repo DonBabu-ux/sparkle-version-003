@@ -41,7 +41,7 @@
             z-index: 1100;
             display: none;
             flex-direction: column;
-            border: 1px solid #ffd6e0;
+            border: 1px solid rgba(255, 61, 109, 0.2);
         }
 
         .chat-modal.active {
@@ -77,7 +77,7 @@
         .message-content {
             padding: 10px 15px;
             border-radius: 18px;
-            background: #fff0f5;
+            background: rgba(255, 61, 109, 0.05);
             color: #262626;
             word-wrap: break-word;
         }
@@ -89,7 +89,7 @@
 
         .message-time {
             font-size: 11px;
-            color: #E1306C;
+            color: #FF3D6D;
             margin-top: 4px;
             text-align: right;
         }
@@ -101,14 +101,14 @@
 
         .chat-input-container {
             padding: 15px;
-            border-top: 1px solid #ffd6e0;
-            background: #fff0f5;
+            border-top: 1px solid rgba(255, 61, 109, 0.1);
+            background: rgba(255, 61, 109, 0.02);
         }
 
         .chat-input {
             width: 100%;
             padding: 12px 15px;
-            border: 2px solid #ffd6e0;
+            border: 2px solid rgba(255, 61, 109, 0.1);
             border-radius: var(--border-radius-xl);
             font-size: 14px;
             resize: none;
@@ -116,12 +116,12 @@
 
         .chat-input:focus {
             outline: none;
-            border-color: #E1306C;
+            border-color: #FF3D6D;
         }
 
         .typing-indicator {
             font-size: 12px;
-            color: #E1306C;
+            color: #FF3D6D;
             padding: 5px 15px;
             display: none;
         }
@@ -207,24 +207,24 @@
         /* All your existing styles remain the same below... */
         /* Instagram Pink Theme Marketplace Styles */
         :root {
-            --primary: #E1306C;
+            --primary: #FF3D6D;
             --secondary: #833AB4;
-            --accent: #FFDC80;
-            --success: #00c853;
-            --warning: #ff9800;
-            --danger: #ff1744;
-            --dark: #262626;
-            --light: #fafafa;
+            --accent: #FFD700;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #1E293B;
+            --light: #F8F9FA;
             --pink-light: #fff0f5;
-            --pink-primary: #ff6b8b;
-            --pink-dark: #ff3d6d;
-            --gradient-primary: linear-gradient(45deg, #E1306C 0%, #833AB4 100%);
-            --gradient-secondary: linear-gradient(45deg, #405DE6 0%, #833AB4 100%);
-            --gradient-accent: linear-gradient(45deg, #FFDC80 0%, #F56040 100%);
-            --shadow-sm: 0 2px 8px rgba(225, 48, 108, 0.1);
-            --shadow-md: 0 4px 20px rgba(225, 48, 108, 0.15);
-            --shadow-lg: 0 10px 40px rgba(225, 48, 108, 0.2);
-            --shadow-glow: 0 0 20px rgba(225, 48, 108, 0.3);
+            --pink-primary: #FF6B8B;
+            --pink-dark: #FF3D6D;
+            --gradient-primary: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
+            --gradient-secondary: linear-gradient(135deg, #405DE6 0%, #833AB4 100%);
+            --gradient-accent: linear-gradient(45deg, #FFD700 0%, #F59E0B 100%);
+            --shadow-sm: 0 2px 8px rgba(255, 61, 109, 0.1);
+            --shadow-md: 0 4px 20px rgba(255, 61, 109, 0.15);
+            --shadow-lg: 0 10px 40px rgba(255, 61, 109, 0.2);
+            --shadow-glow: 0 0 20px rgba(255, 61, 109, 0.3);
             --border-radius: 12px;
             --border-radius-lg: 20px;
             --border-radius-xl: 30px;
@@ -236,8 +236,8 @@
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 225, 225, 0.5);
-            box-shadow: 0 8px 32px 0 rgba(225, 48, 108, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(255, 61, 109, 0.1);
         }
 
         .glass-dark {
@@ -312,7 +312,7 @@
 
         .marketplace-search:focus {
             outline: none;
-            border-color: #E1306C;
+            border-color: #FF3D6D;
             box-shadow: var(--shadow-glow);
             transform: translateY(-1px);
         }
@@ -436,7 +436,7 @@
 
         .premium-tab-btn {
             background: white;
-            border: 2px solid #ffd6e0;
+            border: 2px solid rgba(255, 61, 109, 0.1);
             border-radius: var(--border-radius-xl);
             padding: 12px 28px;
             font-weight: 700;
@@ -472,7 +472,7 @@
             border-color: var(--primary);
             color: var(--primary);
             transform: translateY(-2px);
-            background: rgba(225, 48, 108, 0.05);
+            background: rgba(255, 61, 109, 0.05);
         }
 
         .premium-tab-btn.active:before {
@@ -487,11 +487,11 @@
 
             0%,
             100% {
-                box-shadow: 0 0 20px rgba(225, 48, 108, 0.3);
+                box-shadow: 0 0 20px rgba(255, 61, 109, 0.3);
             }
 
             50% {
-                box-shadow: 0 0 30px rgba(225, 48, 108, 0.6);
+                box-shadow: 0 0 30px rgba(255, 61, 109, 0.6);
             }
         }
 
@@ -537,8 +537,8 @@
 
         .listing-card:hover {
             transform: translateY(-10px) scale(1.02);
-            box-shadow: 0 15px 45px rgba(225, 48, 108, 0.25);
-            border-color: #E1306C;
+            box-shadow: 0 15px 45px rgba(255, 61, 109, 0.25);
+            border-color: #FF3D6D;
         }
 
         .listing-card:after {
@@ -624,19 +624,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #E1306C;
+            color: #FF3D6D;
             cursor: pointer;
             transition: var(--transition);
             font-size: 18px;
         }
 
         .wishlist-btn.active {
-            background: #E1306C;
+            background: #FF3D6D;
             color: white;
         }
 
         .wishlist-btn:hover {
-            background: #E1306C;
+            background: #FF3D6D;
             color: white;
             transform: scale(1.1);
         }
@@ -768,8 +768,8 @@
         }
 
         .category-tag {
-            background: #fff0f5;
-            color: #E1306C;
+            background: rgba(255, 61, 109, 0.1);
+            color: #FF3D6D;
             padding: 6px 12px;
             border-radius: 20px;
             font-size: 12px;
@@ -777,7 +777,7 @@
         }
 
         .listing-date {
-            color: #E1306C;
+            color: #FF3D6D;
             font-size: 12px;
         }
 
@@ -803,7 +803,7 @@
             gap: 12px;
             margin-bottom: 20px;
             padding-top: 20px;
-            border-top: 1px solid #ffd6e0;
+            border-top: 1px solid rgba(255, 61, 109, 0.1);
         }
 
         .seller-avatar {
@@ -811,7 +811,7 @@
             height: 45px;
             border-radius: 50%;
             overflow: hidden;
-            border: 3px solid #fff0f5;
+            border: 3px solid rgba(255, 61, 109, 0.1);
         }
 
         .seller-avatar img {
@@ -837,7 +837,7 @@
         }
 
         .rating-count {
-            color: #E1306C;
+            color: #FF3D6D;
             margin-left: 5px;
         }
 
@@ -856,7 +856,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            color: #E1306C;
+            color: #FF3D6D;
             font-size: 13px;
         }
 
@@ -883,7 +883,7 @@
             border-radius: var(--border-radius-lg);
             padding: 25px;
             box-shadow: var(--shadow-sm);
-            border: 1px solid #ffd6e0;
+            border: 1px solid rgba(255, 61, 109, 0.1);
         }
 
         .skeleton-image {
@@ -896,7 +896,7 @@
 
         .skeleton-title {
             height: 20px;
-            background: #fff0f5;
+            background: rgba(255, 61, 109, 0.05);
             border-radius: 10px;
             margin-bottom: 10px;
             width: 70%;
@@ -904,7 +904,7 @@
 
         .skeleton-text {
             height: 15px;
-            background: #fff0f5;
+            background: rgba(255, 61, 109, 0.05);
             border-radius: 10px;
             margin-bottom: 8px;
             width: 90%;
@@ -912,7 +912,7 @@
 
         .skeleton-button {
             height: 40px;
-            background: #fff0f5;
+            background: rgba(255, 61, 109, 0.05);
             border-radius: 20px;
             margin-top: 20px;
         }
@@ -935,7 +935,7 @@
             border-radius: var(--border-radius-lg);
             box-shadow: var(--shadow-md);
             margin: 50px 0;
-            border: 1px solid #ffd6e0;
+            border: 1px solid rgba(255, 61, 109, 0.1);
         }
 
         .empty-state-icon {
@@ -966,7 +966,7 @@
 
         .premium-empty-state h3 {
             font-size: 28px;
-            color: #E1306C;
+            color: #FF3D6D;
             margin-bottom: 15px;
             font-weight: 700;
         }
@@ -999,8 +999,8 @@
             transform: translateX(100%);
             opacity: 0;
             transition: var(--transition);
-            border-left: 4px solid #E1306C;
-            border: 1px solid #ffd6e0;
+            border-left: 4px solid #FF3D6D;
+            border: 1px solid rgba(255, 61, 109, 0.1);
         }
 
         .premium-toast.show {
@@ -1013,7 +1013,7 @@
         }
 
         .toast-error {
-            border-left-color: #E1306C;
+            border-left-color: #FF3D6D;
         }
 
         .toast-info {
@@ -1040,7 +1040,7 @@
         }
 
         .toast-error .toast-content i {
-            color: #E1306C;
+            color: #FF3D6D;
         }
 
         .toast-info .toast-content i {
@@ -1054,7 +1054,7 @@
         .toast-close {
             background: none;
             border: none;
-            color: #E1306C;
+            color: #FF3D6D;
             cursor: pointer;
             padding: 5px;
             font-size: 14px;
@@ -1111,7 +1111,7 @@
             z-index: 1000;
             transition: var(--transition);
             overflow-y: auto;
-            border-right: 1px solid #ffd6e0;
+            border-right: 1px solid rgba(255, 61, 109, 0.1);
             padding-bottom: 80px;
         }
 
@@ -1154,11 +1154,11 @@
 
         .filter-section {
             padding: 20px;
-            border-bottom: 1px solid #ffd6e0;
+            border-bottom: 1px solid rgba(255, 61, 109, 0.1);
         }
 
         .filter-section h6 {
-            color: #E1306C;
+            color: #FF3D6D;
             font-weight: 600;
             margin-bottom: 15px;
             font-size: 14px;
@@ -1172,15 +1172,15 @@
         }
 
         .price-range .form-control {
-            border: 1px solid #ffd6e0;
+            border: 1px solid rgba(255, 61, 109, 0.2);
             border-radius: var(--border-radius);
             padding: 10px 15px;
             font-size: 14px;
         }
 
         .price-range .form-control:focus {
-            border-color: #E1306C;
-            box-shadow: 0 0 0 0.2rem rgba(225, 48, 108, 0.25);
+            border-color: #FF3D6D;
+            box-shadow: 0 0 0 0.2rem rgba(255, 61, 109, 0.25);
         }
 
         .form-range {
@@ -1196,21 +1196,21 @@
             -webkit-appearance: none;
             width: 22px;
             height: 22px;
-            background: #E1306C;
+            background: #FF3D6D;
             border-radius: 50%;
             cursor: pointer;
             border: 3px solid white;
-            box-shadow: 0 2px 6px rgba(225, 48, 108, 0.3);
+            box-shadow: 0 2px 6px rgba(255, 61, 109, 0.3);
         }
 
         .form-range::-moz-range-thumb {
             width: 22px;
             height: 22px;
-            background: #E1306C;
+            background: #FF3D6D;
             border-radius: 50%;
             cursor: pointer;
             border: 3px solid white;
-            box-shadow: 0 2px 6px rgba(225, 48, 108, 0.3);
+            box-shadow: 0 2px 6px rgba(255, 61, 109, 0.3);
         }
 
         .condition-filters {
@@ -1231,13 +1231,13 @@
             width: 18px;
             height: 18px;
             margin: 0;
-            border: 2px solid #ffd6e0;
+            border: 2px solid rgba(255, 61, 109, 0.2);
             cursor: pointer;
         }
 
         .form-check-input:checked {
-            background-color: #E1306C;
-            border-color: #E1306C;
+            background-color: #FF3D6D;
+            border-color: #FF3D6D;
         }
 
         .form-check-input:focus {
@@ -1318,7 +1318,7 @@
             z-index: 1099;
             display: none;
             flex-direction: column;
-            border: 1px solid #ffd6e0;
+            border: 1px solid rgba(255, 61, 109, 0.1);
             overflow: hidden;
         }
 
@@ -1370,13 +1370,13 @@
             align-items: flex-start;
             gap: 12px;
             padding: 12px 20px;
-            border-bottom: 1px solid #ffd6e0;
+            border-bottom: 1px solid rgba(255, 61, 109, 0.1);
             cursor: pointer;
             transition: var(--transition);
         }
 
         .notification-item:hover {
-            background: #fff0f5;
+            background: rgba(255, 61, 109, 0.05);
         }
 
         .notification-item.unread {
@@ -1386,12 +1386,12 @@
         .notification-icon {
             width: 36px;
             height: 36px;
-            background: #fff0f5;
+            background: rgba(255, 61, 109, 0.1);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #E1306C;
+            color: #FF3D6D;
             font-size: 14px;
             flex-shrink: 0;
         }
@@ -1411,14 +1411,14 @@
         .notification-time {
             display: block;
             font-size: 11px;
-            color: #E1306C;
+            color: #FF3D6D;
             margin-top: 4px;
         }
 
         .notifications-footer {
             padding: 15px 20px;
-            border-top: 1px solid #ffd6e0;
-            background: #fff0f5;
+            border-top: 1px solid rgba(255, 61, 109, 0.1);
+            background: rgba(255, 61, 109, 0.02);
         }
 
         .notifications-footer .btn {
@@ -1756,7 +1756,7 @@
                 height: 100px;
                 border-radius: 8px;
                 overflow: hidden;
-                border: 2px solid #ffd6e0;
+                border: 2px solid rgba(255, 61, 109, 0.1);
             }
 
             .photo-preview-item img {
@@ -1769,7 +1769,7 @@
                 position: absolute;
                 top: 5px;
                 right: 5px;
-                background: rgba(225, 48, 108, 0.9);
+                background: rgba(255, 61, 109, 0.9);
                 border: none;
                 color: white;
                 width: 24px;
@@ -1881,7 +1881,7 @@
                         <!-- Brand -->
                         <div class="nav-brand">
                             <i class="fas fa-store"></i>
-                            <span>Instagram Marketplace</span>
+                            <span>Sparkle Marketplace</span>
                         </div>
 
                         <!-- Search -->
@@ -2291,13 +2291,6 @@
                 </button>
             </div>
 
-            <!-- Socket Connection Status -->
-            <div id="socketStatus" class="socket-status disconnected">
-                🔴 Connecting...
-            </div>
-
-            <!-- Socket.io -->
-            <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 
             <!-- Instagram Marketplace JS -->
             <script>
@@ -2344,8 +2337,6 @@
 
                     fetchCounts();
 
-                    // Initialize WebSocket connection
-                    initWebSocket();
 
                     // Initialize price slider
                     initPriceSlider();
@@ -2422,66 +2413,6 @@
                 // ============================================
                 // WEBSOCKET INTEGRATION
                 // ============================================
-                function initWebSocket() {
-                    try {
-                        marketplaceSocket = io({
-                            auth: {
-                                userId: currentUserId,
-                                campus: currentUserCampus
-                            },
-                            reconnection: true,
-                            reconnectionAttempts: 5,
-                            reconnectionDelay: 1000
-                        });
-
-                        setupSocketEvents();
-                    } catch (error) {
-                        console.error('Failed to initialize WebSocket:', error);
-                        showToast('Real-time features unavailable', 'warning');
-                    }
-                }
-
-                function setupSocketEvents() {
-                    if (!marketplaceSocket) return;
-
-                    // Connection events
-                    marketplaceSocket.on('connect', () => {
-                        console.log('✅ Connected to Marketplace WebSocket');
-                        updateSocketStatus(true);
-                        showToast('Connected to real-time updates', 'success');
-
-                        // Join campus room
-                        if (currentUserCampus) {
-                            marketplaceSocket.emit('joinCampusRoom', currentUserCampus);
-                        }
-                    });
-
-                    marketplaceSocket.on('disconnect', (reason) => {
-                        console.log('❌ Disconnected from WebSocket:', reason);
-                        updateSocketStatus(false);
-                    });
-
-                    marketplaceSocket.on('connect_error', (error) => {
-                        console.error('WebSocket connection error:', error);
-                        updateSocketStatus(false);
-                    });
-
-                    // Marketplace events
-                    marketplaceSocket.on('new_marketplace_message', handleNewMessage);
-                    marketplaceSocket.on('marketplace_listing_added', handleNewListing);
-                    marketplaceSocket.on('listing_sold', handleListingSold);
-                    marketplaceSocket.on('listing_status_changed', handleListingStatusChange);
-                    marketplaceSocket.on('user_marketplace_typing', handleTypingIndicator);
-                    marketplaceSocket.on('marketplace_notification', handleNotification);
-                    marketplaceSocket.on('chat_message_received', handleChatMessage);
-                    marketplaceSocket.on('new_listing_available', handleNewListingAvailable);
-
-                    // Utility events
-                    marketplaceSocket.on('message_delivered', handleMessageDelivered);
-                    marketplaceSocket.on('message_error', handleMessageError);
-                    marketplaceSocket.on('chat_joined', handleChatJoined);
-                    marketplaceSocket.on('connected', handleConnected);
-                }
 
                 // ============================================
                 // MARKETPLACE DATA FUNCTIONS
@@ -3623,6 +3554,8 @@
             </div>
 
             <script src="/js/dashboardAPI.js"></script>
+            <script type="module" src="/js/firebase-realtime.js"></script>
+            <script src="/js/marketplace-socket.js"></script>
             <script src="/js/marketplace-enhancements.js"></script>
     </body>
 

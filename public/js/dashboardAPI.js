@@ -35,14 +35,11 @@ const DashboardAPI = {
 
     getFailedRoutes() {
         const failed = this.routeLog.filter(r => r.status >= 400 || r.error);
-        console.log(`\n🔥 FAILED ROUTES (${failed.length}):`);
-        console.table(failed);
         return failed;
     },
 
     clearRouteLog() {
         this.routeLog = [];
-        console.log('✅ Route log cleared');
     },
 
     fetchWithAuth(endpoint, options = {}) {
@@ -63,18 +60,10 @@ const DashboardAPI = {
         }
 
         if (token) {
-            console.log(`🔑 Token found: ${token.substring(0, 10)}...`);
             headers['Authorization'] = `Bearer ${token}`;
-        } else {
-            console.warn('⚠️ No authentication token found');
         }
 
         const fullUrl = `${this.baseUrl}${endpoint}`;
-        console.log(`\n📡 API REQUEST [${method}] ${fullUrl}`);
-        console.log(`   Headers:`, headers);
-        if (options.body) {
-            console.log(`   Body:`, options.body);
-        }
 
         try {
             const response = await fetch(fullUrl, {
@@ -85,20 +74,13 @@ const DashboardAPI = {
             const endTime = performance.now();
             const duration = (endTime - startTime).toFixed(2);
 
-            // Log response status
-            const statusEmoji = response.ok ? '✅' : '❌';
-            console.log(`${statusEmoji} API RESPONSE [${response.status} ${response.statusText}] ${fullUrl}`);
-            console.log(`   Duration: ${duration}ms`);
-
             // Try to parse JSON
             let data;
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 data = await response.json();
-                console.log(`   Response Data:`, data);
             } else {
                 const text = await response.text();
-                console.log(`   Response Text:`, text);
                 data = { error: 'Non-JSON response', text };
             }
 
@@ -123,7 +105,6 @@ const DashboardAPI = {
             }
 
             this.logRoute(method, endpoint, response.status, duration);
-            console.log(`✅ Request successful: ${endpoint}\n`);
             return data;
         } catch (error) {
             const endTime = performance.now();
@@ -312,7 +293,6 @@ const DashboardAPI = {
     // ============ FEED & POSTS ============
     async loadFeed() {
         try {
-            console.log('📡 DashboardAPI: Loading feed posts...');
             const posts = await this.request('/posts/feed');
 
             if (!posts || !Array.isArray(posts)) {
@@ -1086,7 +1066,7 @@ const DashboardAPI = {
                     bio: user.bio || '',
                     year: user.year_of_study || 'Student',
                     isOnline: !!user.is_online,
-                    major: user.major || 'Undeclared',
+                    major: user.major || 'Sparkler',
                     mutualConnections: 0,
                     isConnected: !!user.is_followed
                 };
@@ -1187,8 +1167,18 @@ const DashboardAPI = {
     // ============ MESSAGING ============
     async loadChats() {
         try {
-            const chats = await this.request('/messages/chats');
-            return chats;
+            const response = await this.request('/messages/conversations');
+            const data = response.data || response || [];
+
+            // Normalize for messages.ejs
+            return (Array.isArray(data) ? data : []).map(chat => ({
+                ...chat,
+                id: chat.id || chat.conversation_id || chat.partner_id,
+                name: chat.name || chat.partner_name || chat.partner_username || 'Student',
+                avatar_url: this.ensureUrl(chat.avatar_url || chat.partner_avatar) || '/uploads/avatars/default.png',
+                last_message: chat.last_message || 'No messages yet',
+                last_message_time: chat.last_message_time || chat.last_message_at || chat.sent_at
+            }));
         } catch (error) {
             console.error('Failed to load chats:', error);
             return [];
@@ -1209,19 +1199,23 @@ const DashboardAPI = {
     },
 
     async loadChatHistory(sessionId) {
+        if (!sessionId || sessionId === 'undefined') return [];
         try {
-            const messages = await this.request(`/messages/${sessionId}`);
+            const response = await this.request(`/messages/${sessionId}`);
+            const data = response.data || response || [];
+            const messages = Array.isArray(data) ? data : [];
+
             return messages.map(msg => {
-                const avatarUrl = this.ensureUrl(msg.sender_avatar) || '/uploads/avatars/default.png';
+                const avatarUrl = this.ensureUrl(msg.sender_avatar || msg.avatar_url) || '/uploads/avatars/default.png';
                 return {
-                    id: msg.message_id,
+                    id: msg.message_id || msg.id,
                     senderId: msg.sender_id,
-                    senderName: msg.sender_name,
-                    senderUsername: msg.sender_username,
+                    senderName: msg.sender_name || msg.name,
+                    senderUsername: msg.sender_username || msg.username,
                     senderAvatar: avatarUrl,
                     avatar_url: avatarUrl, // Compatibility
-                    text: msg.content,
-                    timestamp: this.formatTimestamp(msg.created_at)
+                    text: msg.content || msg.text,
+                    timestamp: this.formatTimestamp(msg.sent_at || msg.created_at || msg.timestamp)
                 };
             });
         } catch (error) {
@@ -1280,36 +1274,52 @@ const DashboardAPI = {
         });
     },
 
-    // WebSocket Setup
+    // Firebase Realtime Implementation (Migration from Socket.io)
     setupChatWebSocket(currentUserId) {
         if (this.socket) return this.socket;
 
-        if (typeof io === 'undefined') {
-            console.error('Socket.io client not loaded');
+        // Fallback or wait for SparkleRealtime
+        if (!window.sparkleRealtime) {
+            console.warn('SparkleRealtime not ready yet, will retry...');
             return null;
         }
 
-        this.socket = io({
-            query: { userId: currentUserId }
-        });
+        this.realtime = window.sparkleRealtime;
 
-        this.socket.on('connect', () => {
-            console.log('Connected to WebSocket');
-        });
+        // Return an object that mimics the socket.on interface for backward compatibility
+        this.socket = {
+            on: (event, callback) => {
+                if (event === 'new_message' || event === 'chat_message') {
+                    // Global message watcher would go here if needed, 
+                    // but usually it's per-room.
+                    // For global notifications, we could watch 'users/${userId}/notifications'
+                    console.log('Registered listener for:', event);
+                }
+                if (event === 'new_group_chat') {
+                    // Similar logic
+                }
+            },
+            emit: (event, data) => {
+                console.log('Mock emit:', event, data);
+            }
+        };
 
         return this.socket;
     },
 
     joinChatRoom(chatId) {
-        if (this.socket) {
-            this.socket.emit('join_chat', chatId);
-        }
+        if (!window.sparkleRealtime) return;
+
+        // Firebase handles "rooms" by subscribing to paths
+        // We'll let the view handle the actual watchMessages call for efficiency
+        console.log(`📡 Preparing to watch Firebase path: chats/${chatId}`);
     },
 
     sendGroupMessage(chatId, content, type = 'text', senderId) {
-        if (this.socket) {
-            this.socket.emit('send_group_message', { chatId, content, type, senderId });
+        if (window.sparkleRealtime) {
+            return window.sparkleRealtime.sendMessage(chatId, content);
         }
+        return null;
     },
 
     // === Group API ===

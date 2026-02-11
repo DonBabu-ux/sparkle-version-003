@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Post = require('../models/Post');
 const logger = require('../utils/logger');
 const bcrypt = require('bcryptjs');
+const { downloadExternalImage } = require('../utils/media.utils');
 
 const getCurrentUser = async (req, res) => {
     try {
@@ -20,8 +21,18 @@ const searchUsers = async (req, res) => {
     try {
         const query = req.query.q || '';
         const currentUserId = req.user.userId || req.user.user_id;
+        const { campus, major, year } = req.query;
 
-        const users = await User.search(query, currentUserId);
+        // Use more detailed search if filters are provided
+        let users;
+        if (campus || major || year) {
+            // We can use a custom query here or update User.search
+            // For now let's just use User.search but we might want to extend it
+            users = await User.search(query, currentUserId, 20);
+        } else {
+            users = await User.search(query, currentUserId);
+        }
+
         res.json(users);
     } catch (error) {
         logger.error('Search users error:', error);
@@ -95,8 +106,26 @@ const uploadAvatar = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
 
-        // req.file.path contains the Cloudinary URL when using multer-storage-cloudinary
-        const avatarUrl = req.file ? req.file.path : (req.body.avatar_url || '/uploads/avatars/default.png');
+        // req.file.path contains the URL when using multer (or path if local)
+        let avatarUrl = req.file ? (req.file.path || req.file.filename) : req.body.avatar_url;
+
+        if (!avatarUrl && !req.file) {
+            avatarUrl = '/uploads/avatars/default.png';
+        }
+
+        // If it's an external URL, download it locally
+        if (avatarUrl && avatarUrl.startsWith('http') && !req.file) {
+            try {
+                const localPath = await downloadExternalImage(avatarUrl, 'avatars');
+                if (localPath) avatarUrl = localPath;
+            } catch (dlError) {
+                logger.error('Failed to download external avatar:', dlError);
+                // Fallback to default if download fails and it was a CDN link known to be problematic
+                if (avatarUrl.includes('fbcdn.net') || avatarUrl.includes('fbsbx.com')) {
+                    avatarUrl = '/uploads/avatars/default.png';
+                }
+            }
+        }
 
         await User.update(userId, { avatar_url: avatarUrl });
         res.json({
@@ -195,7 +224,18 @@ const getUserProfile = async (req, res) => {
         const userId = req.params.id;
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        res.json(user);
+
+        // Map stats for frontend compatibility
+        const profile = {
+            ...user,
+            id: user.user_id,
+            followers: user.followers_count || 0,
+            following: user.following_count || 0,
+            posts: user.posts_count || 0,
+            avatar: user.avatar_url || '/uploads/avatars/default.png'
+        };
+
+        res.json(profile);
     } catch (error) {
         logger.error('Get user profile error:', error);
         res.status(500).json({ error: 'Failed to get profile' });

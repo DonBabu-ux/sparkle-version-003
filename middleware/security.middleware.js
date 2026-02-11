@@ -68,11 +68,11 @@ const securityHeaders = helmet({
         directives: {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.socket.io"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
             scriptSrcAttr: ["'unsafe-inline'"],
             imgSrc: ["'self'", "blob:", "data:", "https:", "http:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-            connectSrc: ["'self'", "ws:", "wss:", "https://cdn.socket.io"],
+            connectSrc: ["'self'", "https://*.firebaseio.com", "wss://*.firebaseio.com", "https://*.googleapis.com", "https://www.gstatic.com"],
             mediaSrc: ["'self'", "blob:", "data:", "https:", "http:"],
         },
     },

@@ -1,133 +1,204 @@
 <%- include('partials/head', { title: 'Connect' }) %>
 
+    <style>
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                padding-bottom: 80px;
+            }
 
+            .discover-page-header {
+                gap: 10px;
+            }
 
-    <!-- Main Content Container -->
-    <div class="container" id="mainContent">
-        <!-- Connect Page -->
-        <div id="connectPage" class="page active">
-            <div class="header glass">
-                <div class="discover-page-header">
-                    <div class="discover-page-icon">
-                        <i class="fas fa-user-friends"></i>
-                    </div>
-                    <div>
-                        <div class="logo discover-page-title">Discover</div>
-                        <div class="discover-page-subtitle">Find your campus sparks</div>
+            .discover-page-title {
+                font-size: 24px !important;
+            }
+
+            .premium-search-container {
+                margin: 15px 0;
+                padding: 12px 20px;
+            }
+
+            .premium-filter-bar {
+                display: flex;
+                overflow-x: auto;
+                padding: 10px 0;
+                gap: 10px;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .premium-filter-bar::-webkit-scrollbar {
+                display: none;
+            }
+
+            .premium-filter-btn {
+                white-space: nowrap;
+                padding: 8px 16px;
+                font-size: 13px;
+                flex-shrink: 0;
+            }
+
+            .discover-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px !important;
+                padding: 10px 0;
+            }
+
+            .discover-card {
+                padding: 15px !important;
+            }
+
+            .discover-avatar {
+                width: 70px !important;
+                height: 70px !important;
+            }
+
+            .discover-name {
+                font-size: 14px !important;
+            }
+
+            .discover-info,
+            .discover-campus {
+                font-size: 11px !important;
+            }
+
+            .discover-btn {
+                padding: 8px !important;
+                font-size: 12px !important;
+            }
+        }
+    </style>
+
+    <%- include('partials/sidebar') %>
+
+        <!-- Main Content Container -->
+        <div class="container" id="mainContent">
+            <!-- Connect Page -->
+            <div id="connectPage" class="page active">
+                <div class="header glass">
+                    <div class="discover-page-header">
+                        <div class="discover-page-icon">
+                            <i class="fas fa-user-friends"></i>
+                        </div>
+                        <div>
+                            <div class="logo discover-page-title">Discover</div>
+                            <div class="discover-page-subtitle">Find your campus sparks</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Discover Search -->
-            <div class="premium-search-container">
-                <i class="fas fa-search text-primary"></i>
-                <input type="text" id="userSearchInput" class="premium-search-input"
-                    placeholder="Search students, majors, campus...">
-            </div>
+                <!-- Discover Search -->
+                <div class="premium-search-container">
+                    <i class="fas fa-search text-primary"></i>
+                    <input type="text" id="userSearchInput" class="premium-search-input"
+                        placeholder="Search students, majors, campus...">
+                </div>
 
-            <!-- Connection Filters -->
-            <div class="premium-filter-bar">
-                <button class="premium-filter-btn active" onclick="filterUsers('all')">
-                    <i class="fas fa-globe"></i> All
-                </button>
-                <button class="premium-filter-btn" onclick="filterUsers('campus', '<%= user.campus %>')">
-                    <i class="fas fa-university"></i> My Campus
-                </button>
-                <button class="premium-filter-btn" onclick="filterUsers('major', '<%= user.major %>')">
-                    <i class="fas fa-book-open"></i> Same Major
-                </button>
-                <button class="premium-filter-btn" onclick="filterUsers('year', '<%= user.year_of_study %>')">
-                    <i class="fas fa-graduation-cap"></i> My Year
-                </button>
-            </div>
+                <!-- Connection Filters -->
+                <div class="premium-filter-bar">
+                    <button class="premium-filter-btn active" onclick="filterUsers('all')">
+                        <i class="fas fa-globe"></i> All
+                    </button>
+                    <button class="premium-filter-btn" onclick="filterUsers('campus', '<%= user.campus %>')">
+                        <i class="fas fa-university"></i> My Campus
+                    </button>
+                    <button class="premium-filter-btn" onclick="filterUsers('major', '<%= user.major %>')">
+                        <i class="fas fa-book-open"></i> Same Major
+                    </button>
+                    <button class="premium-filter-btn" onclick="filterUsers('year', '<%= user.year_of_study %>')">
+                        <i class="fas fa-graduation-cap"></i> My Year
+                    </button>
+                </div>
 
-            <!-- User Grid -->
-            <div class="discover-grid" id="connectContainer">
-                <% if (typeof initialUsers !=='undefined' && initialUsers.length> 0) { %>
-                    <% initialUsers.forEach(u=> { %>
-                        <div class="discover-card" onclick="showProfileModal('<%= u.user_id %>')">
-                            <% if (!u.is_followed) { %>
-                                <button onclick="event.stopPropagation(); removeSuggestion('<%= u.user_id %>')"
-                                    class="discover-close-btn">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                                <% } %>
-
-                                    <div class="discover-avatar-container">
-                                        <img src="<%= u.avatar_url || '/uploads/avatars/default.png' %>"
-                                            alt="<%= u.username %>" class="discover-avatar">
-                                        <% if (u.is_online) { %>
-                                            <div class="discover-status"></div>
-                                            <% } %>
-                                    </div>
-
-                                    <div class="discover-name">
-                                        <%= u.username %>
-                                            <% if (u.is_new_user) { %>
-                                                <span class="discover-new-badge">NEW</span>
-                                                <% } %>
-                                    </div>
-
-                                    <div class="discover-info">
-                                        <%= u.major || u.specialty || 'Sparkler' %>
-                                    </div>
-
-                                    <div class="discover-campus">
-                                        <i class="fas fa-map-marker-alt"></i>
-                                        <%= u.campus || 'Global' %>
-                                    </div>
-
-                                    <button class="discover-btn <%= u.is_followed ? 'following' : 'follow' %>"
-                                        data-user-id="<%= u.user_id %>"
-                                        onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
-                                        <% if (u.is_followed) { %>
-                                            <i class="fas fa-check"></i> Following
-                                            <% } else { %>
-                                                <i class="fas fa-plus"></i> Follow
-                                                <% } %>
+                <!-- User Grid -->
+                <div class="discover-grid" id="connectContainer">
+                    <% if (typeof initialUsers !=='undefined' && initialUsers.length> 0) { %>
+                        <% initialUsers.forEach(u=> { %>
+                            <div class="discover-card" onclick="showProfileModal('<%= u.user_id %>')">
+                                <% if (!u.is_followed) { %>
+                                    <button onclick="event.stopPropagation(); removeSuggestion('<%= u.user_id %>')"
+                                        class="discover-close-btn">
+                                        <i class="fas fa-times"></i>
                                     </button>
-                        </div>
-                        <% }); %>
-                            <% } else { %>
-                                <div class="discover-empty-state">
-                                    <i class="fas fa-users-slash"></i>
-                                    <h4>No Students Found</h4>
-                                    <p>Try adjusted your filters to find more campus sparks!</p>
-                                </div>
-                                <% } %>
+                                    <% } %>
+
+                                        <div class="discover-avatar-container">
+                                            <img src="<%= u.avatar_url || '/uploads/avatars/default.png' %>"
+                                                alt="<%= u.username %>" class="discover-avatar">
+                                            <% if (u.is_online) { %>
+                                                <div class="discover-status"></div>
+                                                <% } %>
+                                        </div>
+
+                                        <div class="discover-name">
+                                            <%= u.username %>
+                                                <% if (u.is_new_user) { %>
+                                                    <span class="discover-new-badge">NEW</span>
+                                                    <% } %>
+                                        </div>
+
+                                        <div class="discover-info">
+                                            <%= u.major || 'Sparkler' %>
+                                        </div>
+
+                                        <div class="discover-campus">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            <%= u.campus || 'Global' %>
+                                        </div>
+
+                                        <button class="discover-btn <%= u.is_followed ? 'following' : 'follow' %>"
+                                            data-user-id="<%= u.user_id %>"
+                                            onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
+                                            <% if (u.is_followed) { %>
+                                                <i class="fas fa-check"></i> Following
+                                                <% } else { %>
+                                                    <i class="fas fa-plus"></i> Follow
+                                                    <% } %>
+                                        </button>
+                            </div>
+                            <% }); %>
+                                <% } else { %>
+                                    <div class="discover-empty-state">
+                                        <i class="fas fa-users-slash"></i>
+                                        <h4>No Students Found</h4>
+                                        <p>Try adjusted your filters to find more campus sparks!</p>
+                                    </div>
+                                    <% } %>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Profile Modal -->
-    <div id="profileModal" class="premium-modal">
-        <div class="premium-modal-content">
-            <!-- Modal Header -->
-            <div class="premium-modal-header">
-                <h3 class="premium-modal-title">Student Profile</h3>
-                <button onclick="closeProfileModal()" class="close-modal">
+        <!-- Profile Modal -->
+        <div id="profileModal" class="premium-modal">
+            <div class="premium-modal-content">
+                <!-- Modal Header -->
+                <div class="premium-modal-header">
+                    <h3 class="premium-modal-title">Student Profile</h3>
+                    <button onclick="closeProfileModal()" class="close-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Profile Content -->
+                <div id="profileModalContent" class="premium-modal-body no-padding">
+                    <!-- Content loaded dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Expanded Image Modal -->
+        <div id="imageModal" class="image-modal-overlay">
+            <div class="image-modal-content">
+                <img id="expandedImage" src="" alt="Expanded profile">
+                <button onclick="closeImageModal()" class="image-modal-close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-
-            <!-- Profile Content -->
-            <div id="profileModalContent" class="premium-modal-body no-padding">
-                <!-- Content loaded dynamically -->
-            </div>
         </div>
-    </div>
 
-    <!-- Expanded Image Modal -->
-    <div id="imageModal" class="image-modal-overlay">
-        <div class="image-modal-content">
-            <img id="expandedImage" src="" alt="Expanded profile">
-            <button onclick="closeImageModal()" class="image-modal-close">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    </div>
-
-    <%- include('partials/bottom-nav') %>
+        <%- include('partials/bottom-nav') %>
 
             <script src="/js/dashboardAPI.js"></script>
             <script>
@@ -326,6 +397,7 @@
                         if (!followBtn) return;
 
                         const isFollowing = followBtn.classList.contains('following');
+                        const card = followBtn.closest('.discover-card');
 
                         if (isFollowing) {
                             followBtn.classList.remove('following');
@@ -337,6 +409,20 @@
                             followBtn.classList.add('following');
                             followBtn.innerHTML = '<i class="fas fa-check"></i> Following';
                             await DashboardAPI.followUser(userId);
+
+                            // Move card to bottom if it's in the grid
+                            if (card && !fromModal) {
+                                card.style.transition = 'all 0.5s ease';
+                                card.style.opacity = '0.5';
+                                card.style.transform = 'scale(0.95)';
+
+                                setTimeout(() => {
+                                    const container = document.getElementById('connectContainer');
+                                    container.appendChild(card);
+                                    card.style.opacity = '1';
+                                    card.style.transform = 'scale(1)';
+                                }, 500);
+                            }
                         }
 
                         if (fromModal) {

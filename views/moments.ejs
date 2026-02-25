@@ -8,360 +8,277 @@
     <title>Sparkle - Moments</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-    <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
     <style>
-        :root {
-            --moment-bg: #000;
-            --moment-text: #fff;
-            --moment-primary: #FF3D6D;
-            --moment-glass: rgba(255, 255, 255, 0.15);
-        }
-
-        body.moments-page-body {
+        * {
             margin: 0;
             padding: 0;
-            background: #000;
-            color: #fff;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
         }
 
-        .moments-container {
+        :root {
+            --bg-primary: #000;
+            --text-primary: #fff;
+            --accent-pink: #FF3D6D;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.15);
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
             position: relative;
             height: 100vh;
-            width: 100vw;
             max-width: 480px;
             margin: 0 auto;
-            background: #000;
+            background: var(--bg-primary);
             overflow: hidden;
-            box-shadow: 0 0 100px rgba(0, 0, 0, 0.5);
         }
 
-        .moments-scroller {
+        /* Main Feed - Vertical Scroller */
+        .feed-scroller {
             height: 100%;
             overflow-y: scroll;
             scroll-snap-type: y mandatory;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            position: relative;
-            z-index: 1;
         }
 
-        .moments-scroller::-webkit-scrollbar {
+        .feed-scroller::-webkit-scrollbar {
             display: none;
         }
 
-        .moment-card {
+        /* Video Card */
+        .video-card {
             position: relative;
             height: 100%;
             width: 100%;
             scroll-snap-align: start;
-            scroll-snap-stop: always;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             background: #000;
         }
 
-        .video-container {
+        .video-wrapper {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
-        }
-
-        .sparkle-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: opacity 0.3s;
-        }
-
-        .media-loading-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            z-index: 5;
-        }
-
-        .media-error-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(circle, #222 0%, #000 100%);
-            color: #fff;
-            padding: 20px;
-            text-align: center;
-            z-index: 6;
-        }
-
-        .media-error-overlay i {
-            font-size: 50px;
-            color: rgba(255, 255, 255, 0.2);
-            margin-bottom: 20px;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-                opacity: 0.2;
-            }
-
-            50% {
-                transform: scale(1.1);
-                opacity: 0.4;
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 0.2;
-            }
-        }
-
-        .mini-spinner {
-            width: 30px;
-            height: 30px;
-            border: 3px solid rgba(255, 61, 109, 0.3);
-            border-top: 3px solid #ff3d6d;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* UI Overlays - Fixed z-index layering */
-        .ui-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 50%;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 40%, transparent 100%);
-            z-index: 2;
-            padding: 24px 80px 85px 16px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            pointer-events: none;
-        }
-
-        .ui-overlay>* {
-            pointer-events: auto;
-        }
-
-        .user-info {
-            margin-bottom: 20px;
-            position: relative;
-            z-index: 3;
-        }
-
-        .user-meta {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 15px;
             cursor: pointer;
         }
 
-        .avatar-circle {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .avatar-circle img {
+        .video-element {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        .name-box h3 {
-            font-size: 16px;
-            font-weight: 700;
-            margin: 0;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        .name-box p {
-            font-size: 14px;
-            opacity: 0.8;
-            margin: 0;
-        }
-
-        .caption {
-            font-size: 15px;
-            line-height: 1.4;
-            margin-bottom: 10px;
-            opacity: 0.95;
-            max-width: 80%;
-        }
-
-        .tags {
+        /* Video Info Overlay - Bottom Section */
+        .video-info-overlay {
+            position: absolute;
+            bottom: 80px;
+            left: 16px;
+            right: 80px;
+            z-index: 10;
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 8px;
         }
 
-        .tag {
-            font-weight: 600;
-            color: var(--moment-primary);
-            border-radius: 4px;
+        .user-info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
         }
 
-        /* Side Actions - Higher z-index to stay above content */
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-pink);
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .username {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .follow-btn {
+            font-size: 12px;
+            color: var(--accent-pink);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-block;
+            padding: 2px 0;
+        }
+
+        .follow-btn.following {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .follow-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .video-caption {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            margin-top: 4px;
+        }
+
+        .hashtags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .hashtag {
+            font-size: 13px;
+            color: var(--accent-pink);
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            cursor: pointer;
+        }
+
+        .hashtag:hover {
+            text-decoration: underline;
+        }
+
+        /* Side Actions - Right Side */
         .side-actions {
             position: absolute;
-            right: 8px;
-            bottom: 40px;
+            right: 12px;
+            bottom: 100px;
+            z-index: 15;
             display: flex;
             flex-direction: column;
-            gap: 16px;
             align-items: center;
-            z-index: 20;
-            padding: 20px 8px;
+            gap: 20px;
         }
 
-        .action-btn-circle {
+        .action-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .action-circle {
+            width: 48px;
+            height: 48px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
             transition: transform 0.2s;
         }
 
-        .action-btn-circle:active {
+        .action-circle:active {
             transform: scale(0.9);
         }
 
-        .icon-circle {
-            width: 46px;
-            height: 46px;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(5px);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: #fff;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-        }
-
-        .icon-circle i {
-            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
-        }
-
-        .liked .icon-circle i {
-            color: #ff3d6d;
+        .action-circle.liked i {
+            color: var(--accent-pink);
             animation: heartBeat 0.3s ease-out;
         }
 
         @keyframes heartBeat {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.3);
-            }
-            100% {
-                transform: scale(1);
-            }
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
         }
 
-        .count-label {
-            font-size: 13px;
+        .action-count {
+            font-size: 12px;
             font-weight: 600;
             color: #fff;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
 
-        /* Enhanced Header - Topmost layer */
-        .moments-header {
+        /* Header Section */
+        .app-header {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            padding: 12px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            right: 0;
             z-index: 30;
+            padding: 12px 16px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
             pointer-events: none;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
         }
 
-        .moments-header>* {
-            pointer-events: auto;
-        }
-
-        .header-top-row {
+        .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%;
+            margin-bottom: 12px;
+            pointer-events: auto;
         }
 
-        .moments-logo {
+        .logo {
             font-size: 24px;
             font-weight: 900;
-            letter-spacing: 2px;
-            background: linear-gradient(135deg, #fff 0%, #aaa 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+            color: var(--accent-pink);
+            text-shadow: 0 0 20px rgba(255, 61, 109, 0.5);
         }
 
-        .header-actions {
+        .header-icons {
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .icon-btn {
+        .header-icon {
             width: 40px;
             height: 40px;
-            border-radius: 12px;
             background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 18px;
-            cursor: pointer;
             color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
         }
 
-        /* Google-style Search Bar */
-        .search-container {
-            width: 100%;
-            padding: 4px 0 4px 0;
+        /* Search Section */
+        .search-section {
+            position: relative;
+            pointer-events: auto;
+            margin-bottom: 12px;
         }
 
         .search-bar {
@@ -370,263 +287,206 @@
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(10px);
             border-radius: 30px;
-            padding: 10px 16px;
+            padding: 8px 16px;
             border: 1px solid rgba(255, 255, 255, 0.15);
             transition: all 0.3s ease;
         }
 
         .search-bar:focus-within {
             background: rgba(0, 0, 0, 0.7);
-            border-color: rgba(255, 61, 109, 0.5);
-            box-shadow: 0 4px 15px rgba(255, 61, 109, 0.2);
+            border-color: var(--accent-pink);
+            box-shadow: 0 0 15px rgba(255, 61, 109, 0.3);
         }
 
         .search-bar i {
             color: rgba(255, 255, 255, 0.7);
             font-size: 16px;
-            margin-right: 10px;
+            margin-right: 12px;
         }
 
         .search-bar input {
+            flex: 1;
             background: transparent;
             border: none;
             outline: none;
             color: #fff;
-            font-size: 16px;
-            width: 100%;
+            font-size: 15px;
             font-family: 'Inter', sans-serif;
         }
 
         .search-bar input::placeholder {
             color: rgba(255, 255, 255, 0.5);
-            font-weight: 400;
         }
 
-        .search-bar .clear-search {
+        .clear-search {
             cursor: pointer;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-            color: #fff;
-        }
-
-        .search-bar .clear-search:hover {
-            opacity: 1;
-        }
-
-        /* Oval-shaped Category Filters */
-        .categories-container {
-            width: 100%;
-            overflow-x: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            padding: 4px 0;
-        }
-
-        .categories-container::-webkit-scrollbar {
+            color: rgba(255, 255, 255, 0.5);
+            padding: 4px;
             display: none;
         }
 
-        .categories-scroll {
+        .clear-search:hover {
+            color: var(--accent-pink);
+        }
+
+        /* Search History Dropdown */
+        .search-history {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(20, 20, 20, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            margin-top: 8px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            z-index: 40;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .search-history.show {
+            display: block;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .clear-history {
+            color: var(--accent-pink);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+        }
+
+        .history-left i {
+            color: var(--accent-pink);
+            font-size: 14px;
+        }
+
+        .delete-history-item {
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .delete-history-item:hover {
+            color: var(--accent-pink);
+        }
+
+        /* Category Filters */
+        .categories-wrapper {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            pointer-events: auto;
+            margin-top: 8px;
+        }
+
+        .categories-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+
+        .categories-list {
             display: flex;
             gap: 10px;
             padding: 4px 0;
-            white-space: nowrap;
         }
 
-        .category-item {
+        .category-pill {
             font-size: 13px;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.9);
-            cursor: pointer;
-            padding: 8px 18px;
+            color: #fff;
             background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px);
+            padding: 8px 18px;
             border-radius: 25px;
             border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: all 0.2s ease;
-            letter-spacing: 0.3px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .category-item:hover {
+        .category-pill:hover {
             background: rgba(255, 255, 255, 0.2);
             border-color: rgba(255, 255, 255, 0.3);
         }
 
-        .category-item.active {
-            background: #FF3D6D;
-            color: white;
-            border-color: #FF3D6D;
-            font-weight: 600;
-            box-shadow: 0 2px 8px rgba(255, 61, 109, 0.3);
-        }
-
-        /* Skeleton Loading Animation */
-        .skeleton-card {
-            position: relative;
-            height: 100%;
-            width: 100%;
-            scroll-snap-align: start;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .skeleton-content {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s linear infinite;
-            border-radius: 0;
-        }
-
-        .skeleton-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 50%;
-            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, transparent 100%);
-            z-index: 2;
-            padding: 24px 80px 85px 16px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-        }
-
-        .skeleton-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            margin-bottom: 15px;
-            animation: pulse-skeleton 1.5s ease-in-out infinite;
-        }
-
-        .skeleton-line {
-            height: 16px;
-            width: 60%;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            animation: pulse-skeleton 1.5s ease-in-out infinite;
-        }
-
-        .skeleton-line.short {
-            width: 40%;
-        }
-
-        .skeleton-line.long {
-            width: 80%;
-        }
-
-        .skeleton-side {
-            position: absolute;
-            right: 20px;
-            bottom: 40px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            z-index: 3;
-        }
-
-        .skeleton-circle {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            animation: pulse-skeleton 1.5s ease-in-out infinite;
-        }
-
-        @keyframes shimmer {
-            0% {
-                background-position: -200% 0;
-            }
-            100% {
-                background-position: 200% 0;
-            }
-        }
-
-        @keyframes pulse-skeleton {
-            0%, 100% {
-                opacity: 0.3;
-            }
-            50% {
-                opacity: 0.6;
-            }
-        }
-
-        /* End of Feed Message */
-        .end-feed-message {
-            height: 100px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 15px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-            background: transparent;
-            scroll-snap-align: none;
-            gap: 10px;
-            padding: 20px 0;
-        }
-
-        .end-feed-message i {
-            font-size: 30px;
-            color: #FF3D6D;
-            margin-bottom: 10px;
-            opacity: 0.8;
-        }
-
-        .end-feed-message span {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
+        .category-pill.active {
+            background: var(--accent-pink);
+            border-color: var(--accent-pink);
         }
 
         /* Bottom Navigation */
-        .bottom-nav-moments {
+        .bottom-nav {
             position: absolute;
             bottom: 0;
             left: 0;
-            width: 100%;
+            right: 0;
             height: 70px;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.7) 50%, transparent);
+            background: linear-gradient(to top, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.8) 70%, transparent 100%);
+            backdrop-filter: blur(5px);
             display: flex;
             justify-content: space-around;
             align-items: center;
             z-index: 25;
-            backdrop-filter: blur(5px);
         }
 
-        .nav-item-moments {
+        .nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 4px;
             color: rgba(255, 255, 255, 0.6);
             font-size: 10px;
-            cursor: pointer;
             text-decoration: none;
             transition: color 0.2s;
+            cursor: pointer;
         }
 
-        .nav-item-moments:hover {
+        .nav-item:hover {
             color: #fff;
         }
 
-        .nav-item-moments.active {
+        .nav-item.active {
             color: #fff;
         }
 
-        .nav-item-moments i {
+        .nav-item i {
             font-size: 20px;
         }
 
-        .center-add-moment {
+        .add-button {
             width: 45px;
             height: 30px;
             background: #fff;
@@ -639,293 +499,623 @@
             transition: transform 0.2s;
         }
 
-        .center-add-moment:hover {
+        .add-button:hover {
             transform: scale(1.05);
         }
 
+        /* Long Press Menu */
+        .long-press-menu {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(20, 20, 20, 0.98);
+            backdrop-filter: blur(10px);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .long-press-menu.show {
+            transform: translateY(0);
+        }
+
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-menu {
+            font-size: 24px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .menu-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 61, 109, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--accent-pink);
+        }
+
+        .menu-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Skeleton Loading */
+        .skeleton-card {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            scroll-snap-align: start;
+            background: #000;
+        }
+
+        .skeleton-media {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        .skeleton-overlay {
+            position: absolute;
+            bottom: 80px;
+            left: 16px;
+            right: 80px;
+            z-index: 2;
+        }
+
+        .skeleton-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            margin-bottom: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .skeleton-line {
+            height: 16px;
+            width: 60%;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .skeleton-line.short {
+            width: 40%;
+        }
+
+        .skeleton-line.long {
+            width: 80%;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        /* End Message */
+        .end-message {
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            gap: 10px;
+            scroll-snap-align: none;
+        }
+
+        .end-message i {
+            font-size: 30px;
+            color: var(--accent-pink);
+        }
+
         /* Loading Screen */
-        .loading-screen-immersive {
+        .loading-screen {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
             background: #000;
             z-index: 100;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.5s;
         }
 
-        .sparkle-loader {
-            text-align: center;
-        }
-
-        .spinner-immersive {
+        .spinner {
             width: 50px;
             height: 50px;
             border: 4px solid rgba(255, 61, 109, 0.3);
-            border-top: 4px solid #ff3d6d;
+            border-top-color: var(--accent-pink);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
         }
 
-        /* Double Tap Heart Animation */
-        .tap-heart {
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Double Tap Heart */
+        .floating-heart {
             position: fixed;
-            font-size: 100px;
-            color: #ff3d6d;
+            font-size: 80px;
+            color: var(--accent-pink);
             pointer-events: none;
-            z-index: 1000;
-            animation: heartPop 0.8s ease-out forwards;
+            z-index: 200;
+            animation: floatHeart 0.8s ease-out forwards;
         }
 
-        @keyframes heartPop {
+        @keyframes floatHeart {
             0% {
-                transform: scale(0) rotate(-20deg);
+                transform: scale(0) rotate(-10deg);
                 opacity: 0;
             }
             50% {
-                transform: scale(1.2) rotate(10deg);
+                transform: scale(1.2) rotate(5deg);
                 opacity: 1;
             }
             100% {
-                transform: scale(1) rotate(0deg);
+                transform: scale(1) rotate(0);
                 opacity: 0;
-                margin-top: -100px;
+                transform: translateY(-100px);
             }
         }
 
-        /* No Results State */
-        .no-results {
-            position: absolute;
-            top: 50%;
+        /* Toast Notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 100px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: rgba(255, 255, 255, 0.6);
-            z-index: 5;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            z-index: 60;
+            border: 1px solid var(--accent-pink);
+            box-shadow: 0 4px 15px rgba(255, 61, 109, 0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
         }
     </style>
 </head>
 
-<body class="moments-page-body">
-    <div class="moments-container">
-        <!-- Vertical scroll container for TikTok-like experience -->
-        <div class="moments-scroller" id="mainFeed">
-            <!-- Skeleton will be shown initially, then replaced with moments -->
-        </div>
+<body>
+    <div class="app-container">
+        <!-- Main Feed -->
+        <div class="feed-scroller" id="feedContainer"></div>
 
-        <!-- Global UI Overlays -->
-        <div class="loading-screen-immersive" id="loadingScreen">
-            <div class="sparkle-loader">
-                <div class="spinner-immersive"></div>
-                <p style="font-weight: 800; letter-spacing: 1px; color: #fff;">SPARKLE</p>
-            </div>
-        </div>
-
-        <!-- Enhanced Floating Top Header with Search and Categories -->
-        <div class="moments-header">
-            <div class="header-top-row">
-                <div class="moments-logo">SPARKLE</div>
-                <div class="header-actions">
-                    <div class="icon-btn" onclick="toggleGlobalSound()" id="soundToggle">
+        <!-- Header -->
+        <div class="app-header">
+            <div class="header-top">
+                <div class="logo">SPARKLE</div>
+                <div class="header-icons">
+                    <div class="header-icon" onclick="toggleMute()" id="muteBtn">
                         <i class="fas fa-volume-mute"></i>
                     </div>
-                    <div class="icon-btn" onclick="location.href='/dashboard'">
+                    <div class="header-icon" onclick="goBack()">
                         <i class="fas fa-times"></i>
                     </div>
                 </div>
             </div>
-            
-            <!-- Google-style Search Bar -->
-            <div class="search-container">
+
+            <!-- Search Section with Input -->
+            <div class="search-section">
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
                     <input type="text" id="searchInput" placeholder="Search videos..." autocomplete="off">
-                    <i class="fas fa-times-circle clear-search" id="clearSearch" style="display: none;" onclick="clearSearch()"></i>
+                    <i class="fas fa-times-circle clear-search" id="clearSearch" onclick="clearSearch()"></i>
+                </div>
+
+                <!-- Search History Dropdown -->
+                <div class="search-history" id="searchHistory">
+                    <div class="history-header">
+                        <span>Recent searches</span>
+                        <span class="clear-history" onclick="clearAllHistory(event)">Clear all</span>
+                    </div>
+                    <div id="historyList"></div>
                 </div>
             </div>
 
-            <!-- Oval-shaped Category Filters -->
-            <div class="categories-container">
-                <div class="categories-scroll" id="categoryFilters">
-                    <div class="category-item active" data-category="all">All</div>
-                    <div class="category-item" data-category="sports">Sports</div>
-                    <div class="category-item" data-category="lifestyle">Lifestyle</div>
-                    <div class="category-item" data-category="music">Music</div>
-                    <div class="category-item" data-category="fashion">Fashion</div>
-                    <div class="category-item" data-category="food">Food</div>
-                    <div class="category-item" data-category="travel">Travel</div>
-                    <div class="category-item" data-category="tech">Tech</div>
-                    <div class="category-item" data-category="gaming">Gaming</div>
-                    <div class="category-item" data-category="dance">Dance</div>
-                    <div class="category-item" data-category="health">Health & Fitness</div>
+            <!-- Categories -->
+            <div class="categories-wrapper">
+                <div class="categories-list" id="categoryList">
+                    <span class="category-pill active" data-cat="all">All</span>
+                    <span class="category-pill" data-cat="sports">Sports</span>
+                    <span class="category-pill" data-cat="music">Music</span>
+                    <span class="category-pill" data-cat="food">Food</span>
+                    <span class="category-pill" data-cat="travel">Travel</span>
+                    <span class="category-pill" data-cat="tech">Tech</span>
+                    <span class="category-pill" data-cat="fashion">Fashion</span>
+                    <span class="category-pill" data-cat="dance">Dance</span>
+                    <span class="category-pill" data-cat="fitness">Fitness</span>
+                    <span class="category-pill" data-cat="gaming">Gaming</span>
+                    <span class="category-pill" data-cat="lifestyle">Lifestyle</span>
                 </div>
             </div>
         </div>
 
         <!-- Bottom Navigation -->
-        <div class="bottom-nav-moments">
-            <a href="/dashboard" class="nav-item-moments">
+        <div class="bottom-nav">
+            <a href="/dashboard" class="nav-item">
                 <i class="fas fa-home"></i>
                 <span>Home</span>
             </a>
-            <a href="/connect" class="nav-item-moments">
+            <a href="/connect" class="nav-item">
                 <i class="fas fa-search"></i>
                 <span>Discover</span>
             </a>
-            <div class="nav-item-moments active" onclick="location.href='/moments'">
-                <div class="center-add-moment"><i class="fas fa-plus"></i></div>
+            <div class="nav-item active" onclick="location.href='/moments'">
+                <div class="add-button"><i class="fas fa-plus"></i></div>
             </div>
-            <a href="/messages" class="nav-item-moments">
+            <a href="/messages" class="nav-item">
                 <i class="fas fa-comment"></i>
                 <span>Chats</span>
             </a>
-            <a href="/profile" class="nav-item-moments">
+            <a href="/profile" class="nav-item">
                 <i class="fas fa-user"></i>
                 <span>Me</span>
             </a>
         </div>
+
+        <!-- Long Press Menu -->
+        <div class="long-press-menu" id="longPressMenu">
+            <div class="menu-header">
+                <h3>Video options</h3>
+                <span class="close-menu" onclick="hideLongPressMenu()">&times;</span>
+            </div>
+            <div class="menu-items">
+                <div class="menu-item" onclick="reportVideo()">
+                    <div class="menu-icon"><i class="fas fa-flag"></i></div>
+                    <span class="menu-label">Report</span>
+                </div>
+                <div class="menu-item" onclick="saveToCollection()">
+                    <div class="menu-icon"><i class="fas fa-bookmark"></i></div>
+                    <span class="menu-label">Save</span>
+                </div>
+                <div class="menu-item" onclick="shareVideo()">
+                    <div class="menu-icon"><i class="fas fa-share"></i></div>
+                    <span class="menu-label">Share</span>
+                </div>
+                <div class="menu-item" onclick="downloadVideo()">
+                    <div class="menu-icon"><i class="fas fa-download"></i></div>
+                    <span class="menu-label">Download</span>
+                </div>
+                <div class="menu-item" onclick="hideVideo()">
+                    <div class="menu-icon"><i class="fas fa-eye-slash"></i></div>
+                    <span class="menu-label">Not interested</span>
+                </div>
+                <div class="menu-item" onclick="copyLink()">
+                    <div class="menu-icon"><i class="fas fa-link"></i></div>
+                    <span class="menu-label">Copy link</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="spinner"></div>
+        </div>
     </div>
 
+    <!-- Share Modal Partial -->
+    <div id="shareModal" class="share-modal" style="display: none;">
+        <div class="share-modal-content">
+            <div class="share-modal-header">
+                <h3>Share to...</h3>
+                <i class="fas fa-times" onclick="closeShareModal()"></i>
+            </div>
+            <div class="share-options">
+                <div class="share-option" onclick="shareTo('facebook')">
+                    <i class="fab fa-facebook"></i>
+                    <span>Facebook</span>
+                </div>
+                <div class="share-option" onclick="shareTo('twitter')">
+                    <i class="fab fa-twitter"></i>
+                    <span>Twitter</span>
+                </div>
+                <div class="share-option" onclick="shareTo('whatsapp')">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>WhatsApp</span>
+                </div>
+                <div class="share-option" onclick="shareTo('telegram')">
+                    <i class="fab fa-telegram"></i>
+                    <span>Telegram</span>
+                </div>
+                <div class="share-option" onclick="shareTo('copy')">
+                    <i class="fas fa-link"></i>
+                    <span>Copy Link</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .share-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .share-modal-content {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--accent-pink);
+        }
+
+        .share-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .share-modal-header h3 {
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .share-modal-header i {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+
+        .share-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .share-option i {
+            font-size: 24px;
+            color: var(--accent-pink);
+        }
+
+        .share-option span {
+            font-size: 12px;
+            color: #fff;
+        }
+    </style>
+
     <script>
-        // Real mock videos data for each category with varied counts
+        // Mock Videos Data
         const mockVideos = [
-            // Sports videos (4 videos)
+            // Sports videos
             {
                 moment_id: 'sports1',
-                username: 'sports_star',
+                username: 'alex_fitness',
                 user_name: 'Alex Thompson',
-                avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/1.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-man-kicking-a-soccer-ball-on-the-field-32448-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-man-kicking-a-soccer-ball-on-the-field-32448-large.mp4',
                 media_type: 'video',
-                caption: 'Game day intensity! #sports #soccer #training',
+                caption: 'Game day intensity! 🔥 #sports #soccer #training',
                 likes: 15234,
                 comments: 892,
-                share_count: 345
+                share_count: 345,
+                category: 'sports'
             },
             {
                 moment_id: 'sports2',
-                username: 'basketball_pro',
+                username: 'hoops_master',
                 user_name: 'Mike Johnson',
-                avatar_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/2.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-basketball-player-making-a-shot-40607-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-basketball-player-making-a-shot-40607-large.mp4',
                 media_type: 'video',
-                caption: 'Nothing but net! #sports #basketball #hoops',
+                caption: 'Nothing but net! 🏀 #sports #basketball #hoops',
                 likes: 23456,
                 comments: 1234,
-                share_count: 567
+                share_count: 567,
+                category: 'sports'
             },
             {
                 moment_id: 'sports3',
                 username: 'tennis_ace',
                 user_name: 'Sarah Williams',
-                avatar_url: 'https://images.unsplash.com/photo-1494790108777-296d5a7ed5d9?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/1.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-playing-tennis-4035-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-playing-tennis-4035-large.mp4',
                 media_type: 'video',
                 caption: 'Perfect serve! 🎾 #sports #tennis #champion',
                 likes: 18765,
                 comments: 945,
-                share_count: 432
+                share_count: 432,
+                category: 'sports'
             },
             {
                 moment_id: 'sports4',
                 username: 'swim_champ',
                 user_name: 'Michael Phelps',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/3.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-swimmer-doing-butterfly-stroke-40598-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-swimmer-doing-butterfly-stroke-40598-large.mp4',
                 media_type: 'video',
                 caption: 'Morning swim practice 🏊 #sports #swimming #fitness',
                 likes: 32145,
                 comments: 1876,
-                share_count: 654
+                share_count: 654,
+                category: 'sports'
             },
 
-            // Health & Fitness videos (6 videos)
+            // Fitness videos (6 videos)
             {
-                moment_id: 'health1',
+                moment_id: 'fitness1',
                 username: 'yoga_master',
                 user_name: 'Priya Sharma',
-                avatar_url: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/2.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-on-the-beach-4693-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-on-the-beach-4693-large.mp4',
                 media_type: 'video',
-                caption: 'Morning yoga flow 🧘 #health #yoga #wellness',
+                caption: 'Morning yoga flow 🧘 #fitness #yoga #wellness',
                 likes: 28456,
                 comments: 1456,
-                share_count: 789
+                share_count: 789,
+                category: 'fitness'
             },
             {
-                moment_id: 'health2',
+                moment_id: 'fitness2',
                 username: 'healthy_eats',
                 user_name: 'Lisa Chen',
-                avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/3.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-cutting-vegetables-on-a-chopping-board-32635-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-cutting-vegetables-on-a-chopping-board-32635-large.mp4',
                 media_type: 'video',
-                caption: 'Healthy meal prep for the week 🥗 #health #nutrition #healthyfood',
+                caption: 'Healthy meal prep for the week 🥗 #fitness #nutrition #healthyfood',
                 likes: 19876,
                 comments: 1087,
-                share_count: 543
+                share_count: 543,
+                category: 'fitness'
             },
             {
-                moment_id: 'health3',
+                moment_id: 'fitness3',
                 username: 'meditation_guru',
                 user_name: 'David Kim',
-                avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/4.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-meditating-on-a-rock-in-the-middle-of-the-sea-32825-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-meditating-on-a-rock-in-the-middle-of-the-sea-32825-large.mp4',
                 media_type: 'video',
-                caption: 'Find your inner peace 🕊️ #health #meditation #mindfulness',
+                caption: 'Find your inner peace 🕊️ #fitness #meditation #mindfulness',
                 likes: 34567,
                 comments: 2345,
-                share_count: 1234
+                share_count: 1234,
+                category: 'fitness'
             },
             {
-                moment_id: 'health4',
+                moment_id: 'fitness4',
                 username: 'fitness_tips',
                 user_name: 'James Wilson',
-                avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/5.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-man-training-at-home-with-dumbbells-32636-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-man-training-at-home-with-dumbbells-32636-large.mp4',
                 media_type: 'video',
-                caption: 'Home workout routine 💪 #health #fitness #workout',
+                caption: 'Home workout routine 💪 #fitness #workout #gym',
                 likes: 26789,
                 comments: 1567,
-                share_count: 876
+                share_count: 876,
+                category: 'fitness'
             },
             {
-                moment_id: 'health5',
+                moment_id: 'fitness5',
                 username: 'wellness_coach',
                 user_name: 'Emma Thompson',
-                avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/4.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-drinking-water-after-exercising-32637-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-drinking-water-after-exercising-32637-large.mp4',
                 media_type: 'video',
-                caption: 'Stay hydrated! 💧 #health #wellness #hydration',
+                caption: 'Stay hydrated! 💧 #fitness #wellness #hydration',
                 likes: 15678,
                 comments: 876,
-                share_count: 432
+                share_count: 432,
+                category: 'fitness'
             },
             {
-                moment_id: 'health6',
+                moment_id: 'fitness6',
                 username: 'mental_health',
                 user_name: 'Dr. Sarah',
-                avatar_url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/5.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-writing-in-a-notebook-32638-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-writing-in-a-notebook-32638-large.mp4',
                 media_type: 'video',
-                caption: 'Journaling for mental health 📝 #health #mentalhealth #selfcare',
+                caption: 'Journaling for mental health 📝 #fitness #mentalhealth #selfcare',
                 likes: 42345,
                 comments: 2890,
-                share_count: 1567
+                share_count: 1567,
+                category: 'fitness'
             },
 
             // Tech videos (5 videos)
@@ -933,568 +1123,350 @@
                 moment_id: 'tech1',
                 username: 'tech_review',
                 user_name: 'David Kim',
-                avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/6.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-playing-on-a-smartphone-32473-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-playing-on-a-smartphone-32473-large.mp4',
                 media_type: 'video',
-                caption: 'New gadget unboxing! #tech #gadgets #unboxing',
+                caption: 'New gadget unboxing! 📱 #tech #gadgets #unboxing',
                 likes: 23456,
                 comments: 1234,
-                share_count: 567
+                share_count: 567,
+                category: 'tech'
             },
             {
                 moment_id: 'tech2',
                 username: 'future_tech',
                 user_name: 'Lisa Wang',
-                avatar_url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/6.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-robot-talking-about-artificial-intelligence-34645-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-robot-talking-about-artificial-intelligence-34645-large.mp4',
                 media_type: 'video',
                 caption: 'AI is the future 🤖 #tech #ai #future',
                 likes: 34567,
                 comments: 2345,
-                share_count: 890
+                share_count: 890,
+                category: 'tech'
             },
             {
                 moment_id: 'tech3',
                 username: 'coding_life',
                 user_name: 'Alex Chen',
-                avatar_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/7.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-programmer-working-on-his-laptop-34644-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-programmer-working-on-his-laptop-34644-large.mp4',
                 media_type: 'video',
                 caption: 'Late night coding session 💻 #tech #coding #programming',
                 likes: 28765,
                 comments: 1543,
-                share_count: 678
+                share_count: 678,
+                category: 'tech'
             },
             {
                 moment_id: 'tech4',
                 username: 'drone_pilot',
                 user_name: 'Mike Ross',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/8.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-flying-a-drone-over-a-beautiful-beach-4303-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-flying-a-drone-over-a-beautiful-beach-4303-large.mp4',
                 media_type: 'video',
                 caption: 'Drone footage from above 🚁 #tech #drone #photography',
                 likes: 39876,
                 comments: 2567,
-                share_count: 1432
+                share_count: 1432,
+                category: 'tech'
             },
             {
                 moment_id: 'tech5',
                 username: 'vr_world',
                 user_name: 'Sarah Johnson',
-                avatar_url: 'https://images.unsplash.com/photo-1494790108777-296d5a7ed5d9?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/7.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-person-playing-with-virtual-reality-34646-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-person-playing-with-virtual-reality-34646-large.mp4',
                 media_type: 'video',
                 caption: 'Virtual reality gaming 🥽 #tech #vr #gaming',
                 likes: 31234,
                 comments: 1876,
-                share_count: 987
+                share_count: 987,
+                category: 'tech'
             },
 
-            // Lifestyle videos (3 videos)
-            {
-                moment_id: 'lifestyle1',
-                username: 'daily_vibes',
-                user_name: 'Sarah Chen',
-                avatar_url: 'https://images.unsplash.com/photo-1494790108777-296d5a7ed5d9?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-enjoying-the-sunset-at-the-beach-27774-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-enjoying-the-sunset-at-the-beach-27774-large.mp4',
-                media_type: 'video',
-                caption: 'Sunset vibes 🌅 #lifestyle #beach #sunset',
-                likes: 34567,
-                comments: 2345,
-                share_count: 789
-            },
-            {
-                moment_id: 'lifestyle2',
-                username: 'morning_routine',
-                user_name: 'Emma Watson',
-                avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-drinking-coffee-in-the-morning-4327-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-drinking-coffee-in-the-morning-4327-large.mp4',
-                media_type: 'video',
-                caption: 'Morning coffee ritual ☕ #lifestyle #morning #coffee',
-                likes: 12345,
-                comments: 678,
-                share_count: 234
-            },
-            {
-                moment_id: 'lifestyle3',
-                username: 'weekend_vibes',
-                user_name: 'Tom Wilson',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-friends-enjoying-a-picnic-in-the-park-32639-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-friends-enjoying-a-picnic-in-the-park-32639-large.mp4',
-                media_type: 'video',
-                caption: 'Perfect weekend with friends 🧺 #lifestyle #weekend #friends',
-                likes: 27890,
-                comments: 1456,
-                share_count: 678
-            },
-
-            // Music videos (4 videos)
+            // Music videos
             {
                 moment_id: 'music1',
                 username: 'dj_spin',
                 user_name: 'Marcus Williams',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/9.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-dj-playing-music-in-a-nightclub-4185-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-dj-playing-music-in-a-nightclub-4185-large.mp4',
                 media_type: 'video',
-                caption: 'Live set tonight! #music #dj #nightlife',
+                caption: 'Live set tonight! 🎧 #music #dj #nightlife',
                 likes: 45678,
                 comments: 3456,
-                share_count: 1234
+                share_count: 1234,
+                category: 'music'
             },
             {
                 moment_id: 'music2',
                 username: 'guitar_hero',
                 user_name: 'James Rodriguez',
-                avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/10.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-guitarist-playing-on-concert-22668-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-guitarist-playing-on-concert-22668-large.mp4',
                 media_type: 'video',
                 caption: 'Acoustic session 🎸 #music #guitar #acoustic',
                 likes: 23456,
                 comments: 1234,
-                share_count: 567
+                share_count: 567,
+                category: 'music'
             },
             {
                 moment_id: 'music3',
                 username: 'piano_man',
                 user_name: 'John Legend',
-                avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/11.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-pianist-playing-in-a-concert-22669-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-pianist-playing-in-a-concert-22669-large.mp4',
                 media_type: 'video',
                 caption: 'Classical piano 🎹 #music #piano #classical',
                 likes: 38765,
                 comments: 2345,
-                share_count: 876
-            },
-            {
-                moment_id: 'music4',
-                username: 'singer_songwriter',
-                user_name: 'Alicia Keys',
-                avatar_url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-singer-performing-on-stage-22670-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-singer-performing-on-stage-22670-large.mp4',
-                media_type: 'video',
-                caption: 'Live performance night 🎤 #music #singing #live',
-                likes: 56789,
-                comments: 4567,
-                share_count: 2345
+                share_count: 876,
+                category: 'music'
             },
 
-            // Fashion videos (3 videos)
-            {
-                moment_id: 'fashion1',
-                username: 'style_icon',
-                user_name: 'Isabella Martinez',
-                avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-model-walking-on-the-catwalk-4166-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-model-walking-on-the-catwalk-4166-large.mp4',
-                media_type: 'video',
-                caption: 'Fashion week vibes ✨ #fashion #style #runway',
-                likes: 56789,
-                comments: 4567,
-                share_count: 2345
-            },
-            {
-                moment_id: 'fashion2',
-                username: 'street_style',
-                user_name: 'Chris Lee',
-                avatar_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-in-fashionable-clothes-11691-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-in-fashionable-clothes-11691-large.mp4',
-                media_type: 'video',
-                caption: 'Street style inspo #fashion #streetstyle #ootd',
-                likes: 34567,
-                comments: 2345,
-                share_count: 1234
-            },
-            {
-                moment_id: 'fashion3',
-                username: 'vintage_lover',
-                user_name: 'Emma Stone',
-                avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-trying-on-vintage-clothes-32640-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-trying-on-vintage-clothes-32640-large.mp4',
-                media_type: 'video',
-                caption: 'Vintage shopping haul 🛍️ #fashion #vintage #shopping',
-                likes: 23456,
-                comments: 1234,
-                share_count: 567
-            },
-
-            // Food videos (4 videos)
+            // Food videos
             {
                 moment_id: 'food1',
                 username: 'foodie_adventures',
                 user_name: 'Priya Patel',
-                avatar_url: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/8.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-chef-making-a-delicious-pasta-22306-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-chef-making-a-delicious-pasta-22306-large.mp4',
                 media_type: 'video',
                 caption: 'Homemade pasta 🍝 #food #cooking #italian',
                 likes: 23456,
                 comments: 1234,
-                share_count: 678
+                share_count: 678,
+                category: 'food'
             },
             {
                 moment_id: 'food2',
                 username: 'sweet_tooth',
                 user_name: 'Amanda White',
-                avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/9.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-chocolate-sauce-on-ice-cream-22583-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-chocolate-sauce-on-ice-cream-22583-large.mp4',
                 media_type: 'video',
                 caption: 'Dessert time! 🍨 #food #dessert #chocolate',
                 likes: 34567,
                 comments: 2345,
-                share_count: 890
+                share_count: 890,
+                category: 'food'
             },
             {
                 moment_id: 'food3',
                 username: 'sushi_master',
                 user_name: 'Kenji Tanaka',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/12.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-chef-making-sushi-22307-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-chef-making-sushi-22307-large.mp4',
                 media_type: 'video',
                 caption: 'Sushi art 🍣 #food #sushi #japanese',
                 likes: 45678,
                 comments: 3456,
-                share_count: 1234
-            },
-            {
-                moment_id: 'food4',
-                username: 'coffee_lover',
-                user_name: 'James Brown',
-                avatar_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-barista-making-coffee-22308-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-barista-making-coffee-22308-large.mp4',
-                media_type: 'video',
-                caption: 'Latte art ☕ #food #coffee #barista',
-                likes: 28765,
-                comments: 1543,
-                share_count: 654
+                share_count: 1234,
+                category: 'food'
             },
 
-            // Travel videos (3 videos)
+            // Travel videos
             {
                 moment_id: 'travel1',
                 username: 'wanderlust',
                 user_name: 'Tom Wilson',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/13.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-the-amalfi-coast-4432-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-the-amalfi-coast-4432-large.mp4',
                 media_type: 'video',
                 caption: 'Paradise found 🌊 #travel #beach #vacation',
                 likes: 67890,
                 comments: 5678,
-                share_count: 3456
+                share_count: 3456,
+                category: 'travel'
             },
             {
                 moment_id: 'travel2',
                 username: 'mountain_explorer',
                 user_name: 'Sarah Johnson',
-                avatar_url: 'https://images.unsplash.com/photo-1494790108777-296d5a7ed5d9?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/10.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-mountain-peak-with-clouds-2515-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-mountain-peak-with-clouds-2515-large.mp4',
                 media_type: 'video',
                 caption: 'Top of the world! 🏔️ #travel #mountains #hiking',
                 likes: 45678,
                 comments: 3456,
-                share_count: 2345
-            },
-            {
-                moment_id: 'travel3',
-                username: 'city_hopper',
-                user_name: 'Mike Chen',
-                avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-new-york-city-4433-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-new-york-city-4433-large.mp4',
-                media_type: 'video',
-                caption: 'NYC vibes 🗽 #travel #newyork #city',
-                likes: 56789,
-                comments: 4567,
-                share_count: 2876
+                share_count: 2345,
+                category: 'travel'
             },
 
-            // Gaming videos (4 videos)
+            // Gaming videos
             {
                 moment_id: 'gaming1',
                 username: 'pro_gamer',
                 user_name: 'Kevin Zhang',
-                avatar_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/14.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-on-a-smartphone-40609-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-on-a-smartphone-40609-large.mp4',
                 media_type: 'video',
                 caption: 'Epic gaming session! 🎮 #gaming #esports #gamer',
                 likes: 56789,
                 comments: 4567,
-                share_count: 2345
+                share_count: 2345,
+                category: 'gaming'
             },
             {
                 moment_id: 'gaming2',
                 username: 'game_streamer',
                 user_name: 'Rachel Green',
-                avatar_url: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/women/11.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-a-first-person-shooter-40610-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-a-first-person-shooter-40610-large.mp4',
                 media_type: 'video',
                 caption: 'Live stream now! #gaming #streamer #twitch',
                 likes: 45678,
                 comments: 3456,
-                share_count: 1234
-            },
-            {
-                moment_id: 'gaming3',
-                username: 'rpg_legend',
-                user_name: 'Chris Evans',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-a-fantasy-game-40611-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-a-fantasy-game-40611-large.mp4',
-                media_type: 'video',
-                caption: 'New RPG release! ⚔️ #gaming #rpg #fantasy',
-                likes: 39876,
-                comments: 2765,
-                share_count: 987
-            },
-            {
-                moment_id: 'gaming4',
-                username: 'racing_pro',
-                user_name: 'Lewis Hamilton',
-                avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-a-racing-game-40612-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-a-racing-game-40612-large.mp4',
-                media_type: 'video',
-                caption: 'Racing simulator setup 🏎️ #gaming #racing #simulator',
-                likes: 48765,
-                comments: 3456,
-                share_count: 1654
+                share_count: 1234,
+                category: 'gaming'
             },
 
-            // Dance videos (4 videos)
+            // Dance videos
             {
                 moment_id: 'dance1',
                 username: 'dance_crew',
                 user_name: 'Michael Brown',
-                avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100&h=100',
+                avatar_url: 'https://randomuser.me/api/portraits/men/15.jpg',
                 video_url: 'https://assets.mixkit.co/videos/preview/mixkit-girls-dancing-in-a-warehouse-32823-large.mp4',
                 media_url: 'https://assets.mixkit.co/videos/preview/mixkit-girls-dancing-in-a-warehouse-32823-large.mp4',
                 media_type: 'video',
                 caption: 'Dance practice 🔥 #dance #choreography #hiphop',
                 likes: 67890,
                 comments: 5678,
-                share_count: 3456
+                share_count: 3456,
+                category: 'dance'
             },
+
+            // Lifestyle videos
             {
-                moment_id: 'dance2',
-                username: 'street_dancer',
-                user_name: 'Carlos Mendez',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-breakdancer-performing-on-the-street-4334-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-breakdancer-performing-on-the-street-4334-large.mp4',
+                moment_id: 'lifestyle1',
+                username: 'daily_vibes',
+                user_name: 'Sarah Chen',
+                avatar_url: 'https://randomuser.me/api/portraits/women/12.jpg',
+                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-enjoying-the-sunset-at-the-beach-27774-large.mp4',
+                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-enjoying-the-sunset-at-the-beach-27774-large.mp4',
                 media_type: 'video',
-                caption: 'Street performance #dance #streetdance #breakdance',
+                caption: 'Sunset vibes 🌅 #lifestyle #beach #sunset',
                 likes: 34567,
                 comments: 2345,
-                share_count: 1234
+                share_count: 789,
+                category: 'lifestyle'
             },
             {
-                moment_id: 'dance3',
-                username: 'ballet_dancer',
-                user_name: 'Natalia Petrova',
-                avatar_url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-ballerina-performing-on-stage-22671-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-ballerina-performing-on-stage-22671-large.mp4',
+                moment_id: 'lifestyle2',
+                username: 'morning_routine',
+                user_name: 'Emma Watson',
+                avatar_url: 'https://randomuser.me/api/portraits/women/13.jpg',
+                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-drinking-coffee-in-the-morning-4327-large.mp4',
+                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-drinking-coffee-in-the-morning-4327-large.mp4',
                 media_type: 'video',
-                caption: 'Graceful ballet performance 🩰 #dance #ballet #performance',
-                likes: 45678,
-                comments: 3456,
-                share_count: 1876
-            },
-            {
-                moment_id: 'dance4',
-                username: 'latin_dancer',
-                user_name: 'Diego Martinez',
-                avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-couple-dancing-salsa-in-a-club-32824-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-couple-dancing-salsa-in-a-club-32824-large.mp4',
-                media_type: 'video',
-                caption: 'Salsa night! 💃 #dance #salsa #latin',
-                likes: 34567,
-                comments: 2345,
-                share_count: 987
+                caption: 'Morning coffee ritual ☕ #lifestyle #morning #coffee',
+                likes: 12345,
+                comments: 678,
+                share_count: 234,
+                category: 'lifestyle'
             }
         ];
 
-        // Inject data directly while ensuring it's safe for JS
-        let moments = [];
-        let user = {};
-        let filteredMoments = [];
+        // DashboardAPI Mock
+        const DashboardAPI = {
+            sparkMoment: async (id) => {
+                return { status: 'success', likes: Math.floor(Math.random() * 50000) };
+            }
+        };
+
+        // ShareManager
+        const shareManager = {
+            openShareModal: (id) => {
+                document.getElementById('shareModal').style.display = 'flex';
+            }
+        };
+
+        // State Management
+        let moments = [...mockVideos];
+        let filteredMoments = [...moments];
         let currentCategory = 'all';
-        let searchQuery = '';
-
-        try {
-            // Using Base64 as the ultimate fallback
-            const rawMoments = "<%- Buffer.from(JSON.stringify(initialMoments || [])).toString('base64') %>";
-            const rawUser = "<%- Buffer.from(JSON.stringify(user || {})).toString('base64') %>";
-
-            const serverMoments = JSON.parse(atob(rawMoments || "W10="));
-            user = JSON.parse(atob(rawUser || "e30="));
-            
-            // Combine server moments with mock videos
-            moments = [...serverMoments, ...mockVideos];
-            filteredMoments = [...moments];
-
-            console.log("DEBUG FRONTEND: Successfully injected moments:", moments.length);
-        } catch (e) {
-            console.error("DEBUG FRONTEND: Fallback triggered. Using mock videos only:", e);
-            moments = [...mockVideos];
-            filteredMoments = [...moments];
-            user = {};
-        }
-
         let isMuted = true;
+        let currentVideoId = null;
+        let longPressTimer;
+        let searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
         let observer;
 
+        // Initialize
         function init() {
-            console.log("DEBUG FRONTEND: Initializing feed...");
-            
-            // Show skeleton first
-            showSkeleton(3);
-            
-            // Simulate loading delay then render feed
+            showSkeleton();
             setTimeout(() => {
-                renderFeed();
-                setupObserver();
-                setupSearchAndFilters();
-            }, 1500);
-
-            // Hide loading screen
-            setTimeout(() => {
-                const ls = document.getElementById('loadingScreen');
-                if (ls) ls.style.opacity = '0';
-                setTimeout(() => ls && ls.remove(), 500);
-            }, 1200);
+                renderFeed(filteredMoments);
+                initVideoObserver();
+                hideLoadingScreen();
+            }, 2000);
+            
+            renderSearchHistory();
+            setupSearchListener();
+            setupEventListeners();
         }
 
+        // Show Skeleton
         function showSkeleton(count = 3) {
-            const feed = document.getElementById('mainFeed');
-            
-            let skeletonHTML = '';
+            const container = document.getElementById('feedContainer');
+            let skeleton = '';
             for (let i = 0; i < count; i++) {
-                skeletonHTML += `
+                skeleton += `
                     <div class="skeleton-card">
-                        <div class="skeleton-content"></div>
+                        <div class="skeleton-media"></div>
                         <div class="skeleton-overlay">
                             <div class="skeleton-avatar"></div>
                             <div class="skeleton-line long"></div>
                             <div class="skeleton-line"></div>
                             <div class="skeleton-line short"></div>
                         </div>
-                        <div class="skeleton-side">
-                            <div class="skeleton-circle"></div>
-                            <div class="skeleton-circle"></div>
-                            <div class="skeleton-circle"></div>
-                            <div class="skeleton-circle"></div>
-                        </div>
                     </div>
                 `;
             }
-            
-            feed.innerHTML = skeletonHTML;
+            container.innerHTML = skeleton;
         }
 
-        function setupSearchAndFilters() {
-            const searchInput = document.getElementById('searchInput');
-            const clearBtn = document.getElementById('clearSearch');
-            
-            if (searchInput) {
-                searchInput.addEventListener('input', function(e) {
-                    searchQuery = e.target.value.toLowerCase().trim();
-                    clearBtn.style.display = searchQuery ? 'block' : 'none';
-                    filterMoments();
-                });
-            }
-
-            document.querySelectorAll('.category-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    document.querySelectorAll('.category-item').forEach(cat => cat.classList.remove('active'));
-                    this.classList.add('active');
-                    currentCategory = this.dataset.category;
-                    filterMoments();
-                });
-            });
-        }
-
-        function clearSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const clearBtn = document.getElementById('clearSearch');
-            if (searchInput) {
-                searchInput.value = '';
-                searchQuery = '';
-                clearBtn.style.display = 'none';
-                filterMoments();
-            }
-        }
-
-        function filterMoments() {
-            showSkeleton(2);
-            
+        // Hide Loading Screen
+        function hideLoadingScreen() {
             setTimeout(() => {
-                filteredMoments = moments.filter(moment => {
-                    if (currentCategory !== 'all') {
-                        const tags = moment.caption ? (moment.caption.match(/#[a-zA-Z0-9_]+/g) || []).map(t => t.toLowerCase()) : [];
-                        if (!tags.includes(`#${currentCategory}`) && !tags.includes(`#${currentCategory.replace('&', '').trim()}`)) {
-                            return false;
-                        }
-                    }
-
-                    if (searchQuery) {
-                        const caption = moment.caption ? moment.caption.toLowerCase() : '';
-                        const username = moment.username ? moment.username.toLowerCase() : '';
-                        const user_name = moment.user_name ? moment.user_name.toLowerCase() : '';
-                        const tags = moment.caption ? (moment.caption.match(/#[a-zA-Z0-9_]+/g) || []).join(' ').toLowerCase() : '';
-                        
-                        return caption.includes(searchQuery) || 
-                               username.includes(searchQuery) || 
-                               user_name.includes(searchQuery) ||
-                               tags.includes(searchQuery);
-                    }
-
-                    return true;
-                });
-
-                renderFeed();
-                
-                if (observer) {
-                    observer.disconnect();
-                    setupObserver();
-                }
-            }, 800);
+                document.getElementById('loadingScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                }, 500);
+            }, 1500);
         }
 
-        function renderFeed() {
-            const feed = document.getElementById('mainFeed');
-
-            if (!filteredMoments || filteredMoments.length === 0) {
-                feed.innerHTML = `
-                    <div class="moment-card" style="padding: 40px; text-align: center;">
-                        <div style="background: rgba(255,255,255,0.05); padding: 50px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);">
-                            <i class="fas fa-video-slash" style="font-size: 60px; color: #ff3d6d; margin-bottom: 25px;"></i>
-                            <h2 style="font-weight: 800; margin-bottom: 10px;">${searchQuery || currentCategory !== 'all' ? 'No Matching Moments' : 'No Moments Yet'}</h2>
-                            <p style="opacity: 0.6; margin-bottom: 30px;">${searchQuery || currentCategory !== 'all' ? 'Try adjusting your search or filter' : 'Be the first one to share a moment!'}</p>
+        // Render Feed
+        function renderFeed(videos) {
+            const container = document.getElementById('feedContainer');
+            
+            if (!videos || videos.length === 0) {
+                container.innerHTML = `
+                    <div class="video-card" style="display: flex; align-items: center; justify-content: center;">
+                        <div style="text-align: center; padding: 40px;">
+                            <i class="fas fa-video-slash" style="font-size: 60px; color: #FF3D6D; margin-bottom: 20px;"></i>
+                            <h3 style="margin-bottom: 10px;">No videos found</h3>
+                            <p style="color: rgba(255,255,255,0.5);">Try adjusting your search or filter</p>
                         </div>
                     </div>
-                    <div class="end-feed-message">
+                    <div class="end-message">
                         <i class="fas fa-check-circle"></i>
                         <span>That's all for now</span>
                     </div>
@@ -1502,171 +1474,157 @@
                 return;
             }
 
-            let feedHTML = filteredMoments.map((m, i) => createMomentHTML(m, i)).join('');
+            let html = videos.map(video => createVideoCard(video)).join('');
+            html += `<div class="end-message">
+                        <i class="fas fa-check-circle"></i>
+                        <span>That's all for now</span>
+                    </div>`;
             
-            // Add "That's all for now" message at the end
-            feedHTML += `
-                <div class="end-feed-message">
-                    <i class="fas fa-check-circle"></i>
-                    <span>That's all for now</span>
-                </div>
-            `;
-            
-            feed.innerHTML = feedHTML;
+            container.innerHTML = html;
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        function createMomentHTML(m, i) {
-            const mediaSrc = m.video_url || m.media_url;
-            const isVideo = m.media_type !== 'image';
-            const tags = m.caption ? (m.caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
-            const rawCaption = m.caption ? m.caption.replace(/#[a-zA-Z0-9_]+/g, '').trim() : '';
-            const cleanCaption = escapeHtml(rawCaption);
-            const avatar = m.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100&h=100';
-
-            let mediaHTML = '';
-            if (isVideo) {
-                mediaHTML = `
-                    <video class="sparkle-video" loop playsinline muted="${isMuted}" preload="auto" 
-                           onplaying="handleMediaLoad(this)" onwaiting="handleMediaWaiting(this)">
-                        <source src="${mediaSrc}" type="video/mp4" onerror="handleMediaError(this)">
-                        Your browser does not support the video tag.
-                    </video>
-                `;
-            } else {
-                mediaHTML = `
-                    <img src="${mediaSrc}" class="sparkle-video" style="object-fit: cover;" 
-                         onload="handleMediaLoad(this)" onerror="handleMediaError(this)">
-                `;
-            }
-
+        // Create Video Card
+        function createVideoCard(video) {
+            const tags = video.caption.match(/#[a-zA-Z0-9_]+/g) || [];
+            const cleanCaption = video.caption.replace(/#[a-zA-Z0-9_]+/g, '').trim();
+            
             return `
-                <div class="moment-card" data-id="${m.moment_id}">
-                    <div class="video-container" id="container-${m.moment_id}" ondblclick="handleDoubleTap(event, '${m.moment_id}')" onclick="togglePlay('${m.moment_id}')">
-                        <div class="media-loading-overlay" style="display: none;">
-                            <div class="mini-spinner"></div>
-                        </div>
-                        <div class="media-error-overlay">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <p style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Video unavailable</p>
-                            <span style="font-size: 12px; opacity: 0.5;">This video could not be loaded</span>
-                        </div>
-                        ${mediaHTML}
+                <div class="video-card" data-id="${video.moment_id}" data-category="${video.category}">
+                    <div class="video-wrapper" 
+                         ondblclick="handleDoubleTap(event, '${video.moment_id}')"
+                         oncontextmenu="handleLongPress(event, '${video.moment_id}')"
+                         ontouchstart="handleTouchStart(event, '${video.moment_id}')"
+                         ontouchend="handleTouchEnd()">
+                        <video class="video-element" loop playsinline muted="${isMuted}" preload="auto">
+                            <source src="${video.video_url}" type="video/mp4">
+                        </video>
                     </div>
 
-                    <div class="ui-overlay">
-                        <div class="user-info">
-                            <div class="name-box" onclick="location.href='/profile/${m.username}'" style="margin-bottom: 10px; cursor: pointer;">
-                                <h3 style="font-size: 17px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); margin-bottom: 2px;">@${m.username}</h3>
-                                <p style="font-size: 13px; opacity: 0.9; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${m.user_name || 'Sparkle User'}</p>
+                    <!-- Video Info Overlay -->
+                    <div class="video-info-overlay">
+                        <div class="user-info-row" onclick="goToProfile('${video.username}')">
+                            <div class="user-avatar">
+                                <img src="${video.avatar_url}" alt="${video.username}" onerror="this.src='https://randomuser.me/api/portraits/men/1.jpg'">
                             </div>
-                            <div class="caption" style="font-size: 15px; margin-bottom: 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${cleanCaption}</div>
-                            <div class="tags">
-                                ${tags.map(t => `<span class="tag" style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${t}</span>`).join('')}
+                            <div class="user-details">
+                                <span class="username">@${video.username}</span>
+                                <span class="follow-btn" onclick="toggleFollow(event, '${video.username}')" id="follow-${video.username}">Follow</span>
                             </div>
+                        </div>
+                        <div class="video-caption">${cleanCaption}</div>
+                        <div class="hashtags">
+                            ${tags.map(tag => `<span class="hashtag" onclick="searchHashtag('${tag}')">${tag}</span>`).join('')}
                         </div>
                     </div>
 
+                    <!-- Side Actions -->
                     <div class="side-actions">
-                        <div class="action-btn-circle profile-action" onclick="location.href='/profile/${m.username}'" style="margin-bottom: 12px; position: relative;">
-                            <div class="avatar-circle" style="width: 48px; height: 48px; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">
-                                <img src="${avatar}" alt="${m.user_name}" onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100&h=100';" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <div class="action-item">
+                            <div class="action-circle" onclick="toggleLike('${video.moment_id}')" id="like-${video.moment_id}">
+                                <i class="far fa-heart"></i>
                             </div>
-                            <div class="follow-plus" style="position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); background: #FF3D6D; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid white;">
-                                <i class="fas fa-plus"></i>
+                            <span class="action-count">${formatCount(video.likes)}</span>
+                        </div>
+                        <div class="action-item" onclick="openComments('${video.moment_id}')">
+                            <div class="action-circle">
+                                <i class="far fa-comment"></i>
                             </div>
+                            <span class="action-count">${formatCount(video.comments)}</span>
                         </div>
-
-                        <div class="action-btn-circle" onclick="toggleLike('${m.moment_id}')">
-                            <div class="icon-circle"><i class="fas fa-heart"></i></div>
-                            <span class="count-label">${formatCount(m.likes || 0)}</span>
+                        <div class="action-item" onclick="shareVideo('${video.moment_id}')">
+                            <div class="action-circle">
+                                <i class="far fa-paper-plane"></i>
+                            </div>
+                            <span class="action-count">${formatCount(video.share_count)}</span>
                         </div>
-                        <div class="action-btn-circle" onclick="openComments('${m.moment_id}')">
-                            <div class="icon-circle"><i class="fas fa-comment"></i></div>
-                            <span class="count-label">${formatCount(m.comments || 0)}</span>
-                        </div>
-                        <div class="action-btn-circle share-btn" data-type="moment" data-id="${m.moment_id}">
-                            <div class="icon-circle"><i class="fas fa-paper-plane"></i></div>
-                            <span class="count-label">${formatCount(m.share_count || 0)}</span>
-                        </div>
-                        <div class="action-btn-circle" onclick="saveMoment('${m.moment_id}')">
-                            <div class="icon-circle"><i class="fas fa-bookmark"></i></div>
+                        <div class="action-item" onclick="saveToCollection('${video.moment_id}')">
+                            <div class="action-circle">
+                                <i class="far fa-bookmark"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        async function safePlay(video) {
-            if (!video) return;
-            if (video.readyState < 2) {
-                video.addEventListener('canplay', () => safePlay(video), { once: true });
-                return;
-            }
-            try {
-                const playPromise = video.play();
-                if (playPromise !== undefined) {
-                    await playPromise;
-                }
-            } catch (e) {
-                if (e.name !== 'AbortError') {
-                    console.log("Playback error:", e);
-                }
-            }
-        }
-
-        function handleMediaLoad(el) {
-            const container = el.closest('.video-container');
-            if (!container) return;
-            const loader = container.querySelector('.media-loading-overlay');
-            const error = container.querySelector('.media-error-overlay');
-            if (loader) loader.style.display = 'none';
-            if (error) error.style.display = 'none';
-            el.style.opacity = '1';
-        }
-
-        function handleMediaWaiting(el) {
-            const container = el.closest('.video-container');
-            if (!container) return;
-            const loader = container.querySelector('.media-loading-overlay');
-            if (loader) loader.style.display = 'flex';
-        }
-
-        function handleMediaError(el) {
-            const container = el.closest('.video-container');
-            if (!container) return;
-
-            const errorOverlay = container.querySelector('.media-error-overlay');
-            const loader = container.querySelector('.media-loading-overlay');
+        // Setup Search Listener
+        function setupSearchListener() {
+            const searchInput = document.getElementById('searchInput');
+            const clearBtn = document.getElementById('clearSearch');
             
-            if (loader) loader.style.display = 'none';
-            if (errorOverlay) {
-                errorOverlay.style.display = 'flex';
-            }
-            
-            if (el.tagName === 'VIDEO' || el.tagName === 'IMG') {
-                el.style.opacity = '0';
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value.toLowerCase().trim();
+                    clearBtn.style.display = query ? 'block' : 'none';
+                    
+                    if (query.length > 0) {
+                        filterBySearch(query);
+                    } else {
+                        filteredMoments = [...moments];
+                        if (currentCategory !== 'all') {
+                            filteredMoments = filteredMoments.filter(v => v.category === currentCategory);
+                        }
+                        showSkeleton(2);
+                        setTimeout(() => {
+                            renderFeed(filteredMoments);
+                            if (observer) {
+                                observer.disconnect();
+                                initVideoObserver();
+                            }
+                        }, 500);
+                    }
+                });
+
+                searchInput.addEventListener('focus', function() {
+                    toggleSearchHistory();
+                });
+
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const query = e.target.value.trim();
+                        if (query) {
+                            addToHistory(query);
+                            filterBySearch(query);
+                            document.getElementById('searchHistory').classList.remove('show');
+                        }
+                    }
+                });
             }
         }
 
-        function setupObserver() {
-            const options = { threshold: 0.6 };
+        // Clear Search
+        function clearSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const clearBtn = document.getElementById('clearSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                clearBtn.style.display = 'none';
+                filteredMoments = [...moments];
+                if (currentCategory !== 'all') {
+                    filteredMoments = filteredMoments.filter(v => v.category === currentCategory);
+                }
+                showSkeleton(2);
+                setTimeout(() => {
+                    renderFeed(filteredMoments);
+                    if (observer) {
+                        observer.disconnect();
+                        initVideoObserver();
+                    }
+                }, 500);
+                searchInput.focus();
+            }
+        }
+
+        // Video Observer
+        function initVideoObserver() {
+            const options = { threshold: 0.7 };
             observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const video = entry.target.querySelector('video');
                     if (!video) return;
 
                     if (entry.isIntersecting) {
-                        safePlay(video);
+                        video.play().catch(() => {});
                     } else {
                         video.pause();
                         video.currentTime = 0;
@@ -1674,69 +1632,356 @@
                 });
             }, options);
 
-            document.querySelectorAll('.moment-card').forEach(card => observer.observe(card));
+            document.querySelectorAll('.video-card').forEach(card => observer.observe(card));
         }
 
-        function togglePlay(id) {
-            const video = document.querySelector(`[data-id="${id}"] video`);
-            if (!video) return;
-            if (video.paused) safePlay(video);
-            else video.pause();
-        }
-
-        function toggleGlobalSound() {
+        // Toggle Mute
+        function toggleMute() {
             isMuted = !isMuted;
-            const icon = document.querySelector('#soundToggle i');
+            const icon = document.querySelector('#muteBtn i');
             icon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
-            document.querySelectorAll('video').forEach(v => v.muted = isMuted);
+            
+            document.querySelectorAll('video').forEach(video => {
+                video.muted = isMuted;
+            });
         }
 
-        function handleDoubleTap(e, id) {
+        // Double Tap Like
+        function handleDoubleTap(event, videoId) {
             const heart = document.createElement('i');
-            heart.className = 'fas fa-heart tap-heart';
-            heart.style.left = `${e.clientX - 50}px`;
-            heart.style.top = `${e.clientY - 50}px`;
+            heart.className = 'fas fa-heart floating-heart';
+            heart.style.left = (event.clientX - 40) + 'px';
+            heart.style.top = (event.clientY - 40) + 'px';
             document.body.appendChild(heart);
+            
             setTimeout(() => heart.remove(), 800);
-            toggleLike(id, true);
+            toggleLike(videoId, true);
         }
 
-        async function toggleLike(id, forceLike = false) {
-            const card = document.querySelector(`[data-id="${id}"]`);
-            if (!card) return;
-            const btn = card.querySelector('.action-btn-circle:nth-child(2)');
-            const countLabel = btn.querySelector('.count-label');
-            const isLiked = btn.classList.contains('liked');
-
+        // Toggle Like
+        function toggleLike(videoId, forceLike = false) {
+            const likeBtn = document.getElementById(`like-${videoId}`);
+            if (!likeBtn) return;
+            
+            const icon = likeBtn.querySelector('i');
+            const isLiked = icon.classList.contains('fas');
+            
             if (forceLike && isLiked) return;
-
-            btn.classList.toggle('liked', forceLike || !isLiked);
-            let currentCount = parseInt(countLabel.innerText.replace(/[^0-9]/g, '')) || 0;
-            countLabel.innerText = formatCount(isLiked ? Math.max(0, currentCount - 1) : currentCount + 1);
+            
+            if (isLiked) {
+                icon.className = 'far fa-heart';
+                likeBtn.classList.remove('liked');
+                updateLikeCount(videoId, -1);
+            } else {
+                icon.className = 'fas fa-heart';
+                likeBtn.classList.add('liked');
+                updateLikeCount(videoId, 1);
+            }
         }
 
+        function updateLikeCount(videoId, change) {
+            const card = document.querySelector(`[data-id="${videoId}"]`);
+            if (!card) return;
+            
+            const countSpan = card.querySelector('.action-item:first-child .action-count');
+            let currentCount = parseInt(countSpan.textContent.replace(/[^0-9]/g, '')) || 0;
+            countSpan.textContent = formatCount(currentCount + change);
+        }
+
+        // Toggle Follow (Clickable)
+        function toggleFollow(event, username) {
+            event.stopPropagation();
+            const followBtn = document.getElementById(`follow-${username}`);
+            const isFollowing = followBtn.classList.contains('following');
+            
+            if (isFollowing) {
+                followBtn.textContent = 'Follow';
+                followBtn.classList.remove('following');
+                showToast(`Unfollowed @${username}`);
+            } else {
+                followBtn.textContent = 'Following';
+                followBtn.classList.add('following');
+                showToast(`Following @${username}`);
+            }
+        }
+
+        // Long Press Handlers
+        function handleLongPress(event, videoId) {
+            event.preventDefault();
+            currentVideoId = videoId;
+            document.getElementById('longPressMenu').classList.add('show');
+        }
+
+        function handleTouchStart(event, videoId) {
+            longPressTimer = setTimeout(() => {
+                currentVideoId = videoId;
+                document.getElementById('longPressMenu').classList.add('show');
+            }, 500);
+        }
+
+        function handleTouchEnd() {
+            clearTimeout(longPressTimer);
+        }
+
+        function hideLongPressMenu() {
+            document.getElementById('longPressMenu').classList.remove('show');
+        }
+
+        // Long Press Menu Actions
+        function reportVideo() {
+            showToast('Video reported');
+            hideLongPressMenu();
+        }
+
+        function saveToCollection(videoId) {
+            const id = videoId || currentVideoId;
+            const btn = document.querySelector(`[data-id="${id}"] .action-item:last-child .action-circle i`);
+            if (btn) {
+                btn.className = 'fas fa-bookmark';
+                btn.style.color = '#FF3D6D';
+            }
+            showToast('Saved to collection');
+            hideLongPressMenu();
+        }
+
+        function shareVideo(videoId) {
+            if (shareManager) {
+                shareManager.openShareModal(videoId || currentVideoId);
+            } else {
+                showToast('Share video');
+            }
+            hideLongPressMenu();
+        }
+
+        function downloadVideo() {
+            showToast('Download started');
+            hideLongPressMenu();
+        }
+
+        function hideVideo() {
+            const card = document.querySelector(`[data-id="${currentVideoId}"]`);
+            if (card) {
+                card.style.display = 'none';
+            }
+            showToast('Video hidden');
+            hideLongPressMenu();
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href);
+            showToast('Link copied to clipboard');
+            hideLongPressMenu();
+        }
+
+        // Search History
+        function toggleSearchHistory() {
+            const history = document.getElementById('searchHistory');
+            history.classList.toggle('show');
+        }
+
+        function renderSearchHistory() {
+            const list = document.getElementById('historyList');
+            if (searchHistory.length === 0) {
+                list.innerHTML = '<div style="color: rgba(255,255,255,0.5); text-align: center; padding: 20px;">No recent searches</div>';
+                return;
+            }
+
+            list.innerHTML = searchHistory.map(term => `
+                <div class="history-item" onclick="searchFromHistory('${term}')">
+                    <div class="history-left">
+                        <i class="fas fa-history"></i>
+                        <span>${term}</span>
+                    </div>
+                    <i class="fas fa-times delete-history-item" onclick="deleteHistoryItem('${term}', event)"></i>
+                </div>
+            `).join('');
+        }
+
+        function addToHistory(term) {
+            if (!term || term.trim() === '') return;
+            term = term.trim();
+            searchHistory = [term, ...searchHistory.filter(t => t !== term)].slice(0, 10);
+            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+            renderSearchHistory();
+        }
+
+        function deleteHistoryItem(term, event) {
+            event.stopPropagation();
+            searchHistory = searchHistory.filter(t => t !== term);
+            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+            renderSearchHistory();
+        }
+
+        function clearAllHistory(event) {
+            event.stopPropagation();
+            searchHistory = [];
+            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+            renderSearchHistory();
+            showToast('Search history cleared');
+        }
+
+        function searchFromHistory(term) {
+            document.getElementById('searchInput').value = term;
+            document.getElementById('clearSearch').style.display = 'block';
+            filterBySearch(term);
+            toggleSearchHistory();
+        }
+
+        // Search by hashtag
+        function searchHashtag(tag) {
+            const searchTerm = tag.replace('#', '');
+            document.getElementById('searchInput').value = searchTerm;
+            document.getElementById('clearSearch').style.display = 'block';
+            filterBySearch(searchTerm);
+        }
+
+        // Filter by search
+        function filterBySearch(term) {
+            addToHistory(term);
+            showSkeleton(2);
+            
+            setTimeout(() => {
+                let filtered = moments.filter(v => 
+                    v.caption.toLowerCase().includes(term.toLowerCase()) ||
+                    v.username.toLowerCase().includes(term.toLowerCase()) ||
+                    v.user_name.toLowerCase().includes(term.toLowerCase())
+                );
+                
+                if (currentCategory !== 'all') {
+                    filtered = filtered.filter(v => v.category === currentCategory);
+                }
+                
+                filteredMoments = filtered;
+                renderFeed(filteredMoments);
+                if (observer) {
+                    observer.disconnect();
+                    initVideoObserver();
+                }
+            }, 800);
+        }
+
+        // Category Filter
+        document.querySelectorAll('.category-pill').forEach(pill => {
+            pill.addEventListener('click', function() {
+                document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                
+                const category = this.dataset.cat;
+                filterByCategory(category);
+            });
+        });
+
+        function filterByCategory(category) {
+            currentCategory = category;
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            showSkeleton(2);
+            
+            setTimeout(() => {
+                let filtered = moments;
+                
+                if (category !== 'all') {
+                    filtered = filtered.filter(v => v.category === category);
+                }
+                
+                if (searchTerm) {
+                    filtered = filtered.filter(v => 
+                        v.caption.toLowerCase().includes(searchTerm) ||
+                        v.username.toLowerCase().includes(searchTerm) ||
+                        v.user_name.toLowerCase().includes(searchTerm)
+                    );
+                }
+                
+                filteredMoments = filtered;
+                renderFeed(filteredMoments);
+                if (observer) {
+                    observer.disconnect();
+                    initVideoObserver();
+                }
+            }, 800);
+        }
+
+        // Share Modal Functions
+        function closeShareModal() {
+            document.getElementById('shareModal').style.display = 'none';
+        }
+
+        function shareTo(platform) {
+            showToast(`Shared to ${platform}`);
+            closeShareModal();
+        }
+
+        // Utility Functions
         function formatCount(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            if (num >= 1000000) return (num/1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num/1000).toFixed(1) + 'K';
             return num;
         }
 
-        function openComments(id) { 
-            alert('Comments feature coming soon!'); 
-        }
-
-        function saveMoment(id) { 
-            const btn = document.querySelector(`[data-id="${id}"] .action-btn-circle:last-child .icon-circle i`);
-            btn.style.color = '#FF3D6D';
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
             setTimeout(() => {
-                btn.style.color = '#fff';
-            }, 500);
-            alert('Moment saved to collection!'); 
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
         }
 
+        function goToProfile(username) {
+            window.location.href = `/profile/${username}`;
+        }
+
+        function openComments(videoId) {
+            showToast('Comments coming soon!');
+        }
+
+        function goBack() {
+            window.location.href = '/dashboard';
+        }
+
+        // Close search history when clicking outside
+        document.addEventListener('click', function(event) {
+            const searchSection = document.querySelector('.search-section');
+            const searchHistory = document.getElementById('searchHistory');
+            const searchInput = document.getElementById('searchInput');
+            
+            if (!searchSection.contains(event.target) && searchHistory.classList.contains('show')) {
+                searchHistory.classList.remove('show');
+            }
+        });
+
+        // Video play/pause on click
+        function setupEventListeners() {
+            document.addEventListener('click', function(event) {
+                const videoCard = event.target.closest('.video-card');
+                if (!videoCard) return;
+                
+                const video = videoCard.querySelector('video');
+                const isActionBtn = event.target.closest('.action-circle');
+                const isUserRow = event.target.closest('.user-info-row');
+                const isHashtag = event.target.closest('.hashtag');
+                const isFollowBtn = event.target.closest('.follow-btn');
+                
+                if (video && !isActionBtn && !isUserRow && !isHashtag && !isFollowBtn) {
+                    if (video.paused) {
+                        video.play();
+                    } else {
+                        video.pause();
+                    }
+                }
+            });
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
     </script>
 
-    <%- include('partials/share-modal') %>
+    <!-- External Scripts -->
+   <%- include('partials/share-modal') %>
         <script src="/js/dashboardAPI.js"></script>
         <script src="/js/shareManager.js"></script>
         <script>

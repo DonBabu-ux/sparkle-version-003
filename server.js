@@ -12,6 +12,7 @@ const webRoutes = require('./routes/web');
 
 const { securityHeaders, apiRateLimiter, sanitizeInput } = require('./middleware/security.middleware');
 const logger = require('./utils/logger');
+const { startKeepAlive } = require('./utils/keep-alive');
 const firebaseConfig = require('./config/firebase.config');
 
 const app = express();
@@ -118,6 +119,9 @@ if (require.main === module) {
         logger.info(`📁 Public directory: ${path.join(__dirname, 'public')}`);
         logger.info(`🏥 Health checks: /health, /health/db`);
         logger.info(`------------------------------------------`);
+        
+        // Start keep-alive service to prevent Render from sleeping
+        startKeepAlive();
     });
 }
 

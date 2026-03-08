@@ -1925,7 +1925,7 @@
                             <button class="nav-action-btn" id="notificationBtn" data-bs-toggle="tooltip"
                                 title="Notifications">
                                 <i class="fas fa-bell"></i>
-                                <span class="notification-badge" id="notificationCount">0</span>
+                                <span class="notification-badge" id="notificationCountBottom">0</span>
                             </button>
 
                             <!-- Filter Toggle -->
@@ -2319,6 +2319,9 @@
                     // Setup event listeners
                     setupEventListeners();
 
+                    // fetch current notifications count so badge is updated
+                    loadNotifications().catch(e => console.error('initial notifications load failed', e));
+
                     // Load marketplace if not pre-rendered
                     const initialCount = document.querySelectorAll('.listing-card').length;
                     if (initialCount === 0) {
@@ -2454,7 +2457,13 @@
 
                         if (data.success) {
                             document.getElementById('favoritesCount').textContent = data.favoritesCount || 0;
-                            document.getElementById('notificationCount').textContent = data.notificationCount || 0;
+                            document.querySelectorAll('#notificationCount, #notificationCountBottom').forEach(el => {
+                                if (el) {
+                                    const cnt = data.notificationCount || 0;
+                                    el.textContent = cnt;
+                                    el.style.display = cnt > 0 ? 'flex' : 'none';
+                                }
+                            });
 
                             // Fetch unread messages count
                             const unreadResponse = await fetch('/api/marketplace/chats/unread');
@@ -3176,11 +3185,12 @@
                 }
 
                 function updateNotificationCount() {
-                    const badge = document.getElementById('notificationCount');
-                    if (badge) {
-                        const current = parseInt(badge.textContent) || 0;
-                        badge.textContent = current + 1;
-                    }
+                    document.querySelectorAll('#notificationCount, #notificationCountBottom').forEach(badge => {
+                        if (badge) {
+                            const current = parseInt(badge.textContent) || 0;
+                            badge.textContent = current + 1;
+                        }
+                    });
                 }
 
                 function toggleNotifications() {
@@ -3197,15 +3207,16 @@
 
                 async function markAllAsRead() {
                     try {
-                        const response = await fetch('/api/marketplace/notifications/mark-all-read', { method: 'POST' });
-                        const data = await response.json();
-                        if (data.success) {
-                            document.getElementById('notificationCount').textContent = '0';
-                            document.querySelectorAll('.notification-item.unread').forEach(item => {
-                                item.classList.remove('unread');
-                            });
-                            showToast('All notifications marked as read', 'success');
-                        }
+                        // use shared endpoint
+                        await DashboardAPI.markAllNotificationsRead();
+                        // update both header and bottom badges if present
+                        document.querySelectorAll('#notificationCount, #notificationCountBottom').forEach(el => {
+                            if (el) el.textContent = '0';
+                        });
+                        document.querySelectorAll('.notification-item.unread').forEach(item => {
+                            item.classList.remove('unread');
+                        });
+                        showToast('All notifications marked as read', 'success');
                     } catch (error) {
                         console.error('Error marking notifications as read:', error);
                     }
@@ -3213,14 +3224,24 @@
 
                 async function loadNotifications() {
                     try {
-                        const response = await fetch('/api/notifications');
-                        const data = await response.json();
+                        const data = await DashboardAPI.loadNotifications();
+                        const notifications = data || [];
 
                         const list = document.getElementById('notificationsList');
+                        if (!list) return;
                         list.innerHTML = '';
 
-                        if (data.notifications && data.notifications.length > 0) {
-                            data.notifications.forEach(notification => {
+                        // update badge counts (header + bottom nav)
+                        const unread = notifications.filter(n => !n.is_read).length;
+                        document.querySelectorAll('#notificationCount, #notificationCountBottom').forEach(el => {
+                            if (el) {
+                                el.textContent = unread;
+                                el.style.display = unread > 0 ? 'flex' : 'none';
+                            }
+                        });
+
+                        if (notifications.length > 0) {
+                            notifications.forEach(notification => {
                                 const item = document.createElement('div');
                                 item.className = `notification-item ${notification.is_read ? '' : 'unread'}`;
                                 item.innerHTML = `
@@ -3232,6 +3253,33 @@
                                 <small class="notification-time">${formatTime(notification.created_at)}</small>
                             </div>
                         `;
+                                // mark individual notification as read when clicked
+                                item.addEventListener('click', async () => {
+                                    if (!notification.is_read) {
+                                        try {
+                                            await DashboardAPI.markNotificationRead(notification.notification_id);
+                                            item.classList.remove('unread');
+                                            // decrement badge count on all badge elements
+                                            document.querySelectorAll('#notificationCount, #notificationCountBottom').forEach(el => {
+                                                if (el) {
+                                                    let current = parseInt(el.textContent) || 0;
+                                                    current = Math.max(current - 1, 0);
+                                                    el.textContent = current;
+                                                    el.style.display = current > 0 ? 'flex' : 'none';
+                                                }
+                                            });
+                                        } catch (e) {
+                                            console.error('Failed to mark notification read', e);
+                                        }
+                                    }
+                                    if (notification.action_url) {
+                                        const url = notification.action_url;
+                                        // simple sanity: string only
+                                        if (typeof url === 'string' && url.length) {
+                                            window.location.href = url;
+                                        }
+                                    }
+                                });
                                 list.appendChild(item);
                             });
                         } else {
@@ -3245,12 +3293,6 @@
                     } catch (error) {
                         console.error('Error loading notifications:', error);
                     }
-                }
-
-                function markAllAsRead() {
-                    // Implement mark all as read functionality
-                    showToast('All notifications marked as read', 'success');
-                    document.getElementById('notificationCount').textContent = '0';
                 }
 
                 // ============================================
@@ -3394,6 +3436,9 @@
                         document.body.style.overflow = '';
                     }
                 }
+
+                // allow header bell to open dropdown as well
+                document.getElementById('notificationIcon')?.addEventListener('click', toggleNotifications);
 
                 // Close dropdowns when clicking outside
                 document.addEventListener('click', function (event) {

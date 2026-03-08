@@ -2,7 +2,17 @@ const pool = require('../config/database');
 
 // Helper to sanitize avatars - prioritizes internal uploads
 const getSafeAvatarUrl = (url) => {
-    if (url && url.startsWith('/uploads/')) return url;
+    if (url) {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+        if (url.startsWith('uploads/')) {
+            return '/' + url;
+        }
+        if (url.startsWith('/uploads/')) {
+            return url;
+        }
+    }
     return '/uploads/avatars/default.png';
 };
 

@@ -19,8 +19,10 @@ const validateJWTSecret = () => {
     if (!JWT_SECRET) {
         throw new Error('JWT_SECRET is not configured');
     }
-    if (JWT_SECRET === 'your_jwt_secret_here' || JWT_SECRET.length < 32) {
-        throw new Error('JWT_SECRET is not secure. Use a strong random string.');
+    if (JWT_SECRET === 'your_jwt_secret_here') {
+        logger.warn('WARNING: Using default/unsafe JWT_SECRET. This is NOT recommended for production.');
+    } else if (JWT_SECRET.length < 32) {
+        logger.warn('WARNING: JWT_SECRET is short. Consider using a 32+ character random string.');
     }
     return true;
 };
@@ -29,10 +31,10 @@ const signup = async (req, res) => {
     try {
         const { name, username, email, password, campus, major, year } = req.body;
         // Validation
-        if (!name || !username || !email || !password || !campus) {
+        if (!name || !username || !email || !password) {
             return res.status(400).json({
-                status: 'error',
-                message: 'All required fields must be provided'
+                error: 'Required fields missing',
+                message: 'Name, username, email, and password are required'
             });
         }
 
@@ -92,13 +94,12 @@ const signup = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username: loginId, password } = req.body;
 
-        // Basic validation
-        if (!username || !password) {
+        if (!loginId || !password) {
             return res.status(400).json({
-                status: 'error',
-                message: 'Username and password are required'
+                error: 'Missing credentials',
+                message: 'Username/Email and Password are required'
             });
         }
 
@@ -108,7 +109,7 @@ const login = async (req, res) => {
         // Query user from database - using retry wrapper
         const [users] = await query(
             'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1',
-            [username, username]
+            [loginId, loginId]
         );
 
         if (users.length === 0) {

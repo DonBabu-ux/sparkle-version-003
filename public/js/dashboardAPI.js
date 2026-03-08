@@ -238,15 +238,53 @@ const DashboardAPI = {
         }
     },
 
-    async loadNotifications() {
+    async loadNotifications(options = {}) {
         try {
-            const notifications = await this.request('/notifications');
-            return notifications;
+            let endpoint = '/notifications';
+            const params = new URLSearchParams();
+            if (options.unreadOnly) params.set('unreadOnly', 'true');
+            if ([...params].length) endpoint += `?${params.toString()}`;
+
+            const data = await this.request(endpoint);
+            // data may include pagination, make sure callers get array
+            const notifications = Array.isArray(data) ? data : (data.notifications || []);
+            // normalize fields for frontend convenience
+            return notifications.map(n => ({
+                ...n,
+                id: n.notification_id,          // shorthand for template use
+                read: n.is_read, // legacy alias
+                actor_name: n.actor_name || n.actor_username || '',
+            }));
         } catch (error) {
             console.error('Failed to load notifications:', error);
             return [];
         }
     },
+
+
+
+    async markNotificationRead(notificationId) {
+        try {
+            return await this.request(`/notifications/${notificationId}/read`, {
+                method: 'PUT'
+            });
+        } catch (error) {
+            console.error('Failed to mark notification as read:', error);
+            throw error;
+        }
+    },
+
+    async markAllNotificationsRead() {
+        try {
+            return await this.request('/notifications/read-all', {
+                method: 'PUT'
+            });
+        } catch (error) {
+            console.error('Failed to mark all notifications as read:', error);
+            throw error;
+        }
+    },
+
 
     // ============ COMMENTS ============
     async loadComments(postId) {
@@ -291,9 +329,15 @@ const DashboardAPI = {
     },
 
     // ============ FEED & POSTS ============
-    async loadFeed() {
+    async loadFeed(params = {}) {
         try {
-            const posts = await this.request('/posts/feed');
+            let endpoint = '/posts/feed';
+            const qs = new URLSearchParams();
+            if (params.page) qs.set('page', params.page);
+            if (params.limit) qs.set('limit', params.limit);
+            if ([...qs].length) endpoint += `?${qs.toString()}`;
+
+            const posts = await this.request(endpoint);
 
             if (!posts || !Array.isArray(posts)) {
                 console.warn('⚠️ DashboardAPI: Feed API did not return an array:', posts);
@@ -381,6 +425,35 @@ const DashboardAPI = {
             return await this.request('/posts', options);
         } catch (error) {
             console.error('Failed to create post:', error);
+            throw error;
+        }
+    },
+
+    async createMoment(momentData) {
+        try {
+            let options;
+            const hasFile = momentData.media instanceof File;
+
+            if (hasFile) {
+                const formData = new FormData();
+                // backend expects caption, media
+                formData.append('caption', momentData.caption || '');
+                formData.append('media', momentData.media);
+                formData.append('category', momentData.category || 'general');
+                options = { method: 'POST', body: formData };
+            } else {
+                options = {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        caption: momentData.caption || '',
+                        media_url: momentData.media || momentData.media_url,
+                        category: momentData.category || 'general'
+                    })
+                };
+            }
+            return await this.request('/moments', options);
+        } catch (error) {
+            console.error('❌ DashboardAPI: Failed to create moment:', error);
             throw error;
         }
     },
@@ -535,6 +608,37 @@ const DashboardAPI = {
         }
     },
 
+    async likeStory(storyId) {
+        try {
+            return await this.request(`/stories/${storyId}/like`, {
+                method: 'POST'
+            });
+        } catch (error) {
+            console.error('Failed to like story:', error);
+            throw error;
+        }
+    },
+
+    async getStoryLikes(storyId) {
+        try {
+            return await this.request(`/stories/${storyId}/likes`);
+        } catch (error) {
+            console.error('Failed to get story likes:', error);
+            throw error;
+        }
+    },
+
+    async shareStory(storyId) {
+        try {
+            return await this.request(`/stories/${storyId}/share`, {
+                method: 'POST'
+            });
+        } catch (error) {
+            console.error('Failed to share story:', error);
+            throw error;
+        }
+    },
+    
     // ============ MOMENTS ============
     async loadMoments() {
         try {
@@ -1097,6 +1201,43 @@ const DashboardAPI = {
             return result;
         } catch (error) {
             console.error('Failed to unfollow user:', error);
+            throw error;
+        }
+    },
+
+    async getSuggestions(limit = 5) {
+        try {
+            return await this.request(`/users/suggestions?limit=${limit}`);
+        } catch (error) {
+            console.error('Failed to fetch suggestions:', error);
+            throw error;
+        }
+    },
+
+    // ============ STORIES INTERACTIONS ============
+    async likeStory(storyId) {
+        try {
+            return await this.request(`/stories/${storyId}/like`, { method: 'POST' });
+        } catch (error) {
+            console.error(`Failed to like story ${storyId}:`, error);
+            throw error;
+        }
+    },
+
+    async shareStory(storyId) {
+        try {
+            return await this.request(`/stories/${storyId}/share`, { method: 'POST' });
+        } catch (error) {
+            console.error(`Failed to share story ${storyId}:`, error);
+            throw error;
+        }
+    },
+
+    async getStoryLikes(storyId) {
+        try {
+            return await this.request(`/stories/${storyId}/likes`);
+        } catch (error) {
+            console.error(`Failed to fetch likes for story ${storyId}:`, error);
             throw error;
         }
     },

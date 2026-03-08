@@ -42,17 +42,33 @@ class Post {
     /**
      * Get feed posts
      */
-    static async getFeed(campus, limit = 20) {
+    /**
+     * Get feed posts with algorithm:
+     * - Include posts from users you follow, users who follow you, or new users (account <24h)
+     * - Respect campus/public visibility
+     * - Supports pagination via limit/offset
+     * @param {string} campus
+     * @param {string} currentUserId
+     * @param {number} limit
+     * @param {number} offset
+     */
+    static async getFeed(campus, currentUserId, limit = 20, offset = 0) {
         const [posts] = await pool.query(
             `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
-             WHERE p.campus = ? OR p.post_type = 'public'
+             WHERE (p.campus = ? OR p.post_type = 'public')
+               AND (
+                     p.user_id = ?
+                   OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
+                   OR p.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
+                   OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
+               )
              ORDER BY p.created_at DESC 
-             LIMIT ?`,
-            [campus, limit]
+             LIMIT ? OFFSET ?`,
+            [campus, currentUserId, currentUserId, currentUserId, limit, offset]
         );
         return posts;
     }
@@ -119,6 +135,14 @@ class Post {
                 'UPDATE posts SET spark_count = spark_count + 1 WHERE post_id = ?',
                 [postId]
             );
+            
+            // Create notification
+            await pool.query(`
+                INSERT INTO notifications (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url)
+                SELECT UUID(), user_id, 'spark', 'New Spark!', 'Someone sparked your post.', post_id, 'post', ?, CONCAT('/post/', post_id)
+                FROM posts WHERE post_id = ? AND user_id != ?
+            `, [userId, postId, userId]);
+
             return { success: true, action: 'sparked' };
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') {
@@ -165,6 +189,14 @@ class Post {
             'UPDATE posts SET comment_count = comment_count + 1 WHERE post_id = ?',
             [postId]
         );
+        
+        // Create notification
+        await pool.query(`
+            INSERT INTO notifications (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url)
+            SELECT UUID(), user_id, 'comment', 'New Comment', 'Someone commented on your post.', post_id, 'post', ?, CONCAT('/post/', post_id)
+            FROM posts WHERE post_id = ? AND user_id != ?
+        `, [userId, postId, userId]);
+
         return commentId;
     }
 
@@ -213,11 +245,21 @@ class Post {
     /**
      * Increment share count for post
      */
-    static async incrementShare(postId) {
+    static async incrementShare(postId, actorId = null) {
         await pool.query(
             'UPDATE posts SET share_count = share_count + 1 WHERE post_id = ?',
             [postId]
         );
+        
+        if (actorId) {
+            // Create notification
+            await pool.query(`
+                INSERT INTO notifications (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url)
+                SELECT UUID(), user_id, 'share', 'Post Shared', 'Someone shared your post.', post_id, 'post', ?, CONCAT('/post/', post_id)
+                FROM posts WHERE post_id = ? AND user_id != ?
+            `, [actorId, postId, actorId]);
+        }
+        
         return true;
     }
 }

@@ -8,6 +8,17 @@
     <title>Sparkle - Moments</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    <script>
+        window.__INITIAL_DATA__ = {
+            moments: <%- JSON.stringify(initialMoments || []) %>,
+            trendingHashtags: <%- JSON.stringify(trendingHashtags || []) %>,
+            suggestedUsers: <%- JSON.stringify(suggestedUsers || []) %>,
+            userInterests: <%- JSON.stringify(userInterests || []) %>,
+            user: <%- JSON.stringify(user || {}) %>,
+            env: <%- JSON.stringify(env || {}) %>
+        };
+    </script>
     <style>
         * {
             margin: 0;
@@ -21,6 +32,7 @@
             --accent-pink: #FF3D6D;
             --glass-bg: rgba(255, 255, 255, 0.1);
             --glass-border: rgba(255, 255, 255, 0.15);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         body {
@@ -29,6 +41,8 @@
             font-family: 'Inter', sans-serif;
             height: 100vh;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .app-container {
@@ -47,6 +61,7 @@
             scroll-snap-type: y mandatory;
             scrollbar-width: none;
             -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
         }
 
         .feed-scroller::-webkit-scrollbar {
@@ -78,10 +93,9 @@
             object-fit: cover;
         }
 
-        /* Video Info Overlay - Bottom Section */
         .video-info-overlay {
             position: absolute;
-            bottom: 80px;
+            bottom: calc(80px + var(--safe-area-inset-bottom));
             left: 16px;
             right: 80px;
             z-index: 10;
@@ -103,6 +117,7 @@
             border-radius: 50%;
             border: 2px solid var(--accent-pink);
             overflow: hidden;
+            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
         }
 
         .user-avatar img {
@@ -130,15 +145,18 @@
             cursor: pointer;
             transition: all 0.2s;
             display: inline-block;
-            padding: 2px 0;
+            padding: 4px 0;
+            border: none;
+            background: transparent;
         }
 
         .follow-btn.following {
             color: rgba(255, 255, 255, 0.7);
         }
 
-        .follow-btn:hover {
-            transform: scale(1.05);
+        .follow-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .video-caption {
@@ -147,6 +165,10 @@
             color: #fff;
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
             margin-top: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .hashtags {
@@ -164,15 +186,10 @@
             cursor: pointer;
         }
 
-        .hashtag:hover {
-            text-decoration: underline;
-        }
-
-        /* Side Actions - Right Side */
         .side-actions {
             position: absolute;
             right: 12px;
-            bottom: 100px;
+            bottom: calc(100px + var(--safe-area-inset-bottom));
             z-index: 15;
             display: flex;
             flex-direction: column;
@@ -201,16 +218,24 @@
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s, background-color 0.2s;
         }
 
         .action-circle:active {
             transform: scale(0.9);
         }
 
+        .action-circle.liked {
+            background: rgba(255, 61, 109, 0.2);
+        }
+
         .action-circle.liked i {
             color: var(--accent-pink);
             animation: heartBeat 0.3s ease-out;
+        }
+
+        .action-circle.saved i {
+            color: var(--accent-pink);
         }
 
         @keyframes heartBeat {
@@ -226,7 +251,6 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
 
-        /* Header Section */
         .app-header {
             position: absolute;
             top: 0;
@@ -234,6 +258,7 @@
             right: 0;
             z-index: 30;
             padding: 12px 16px;
+            padding-top: max(12px, env(safe-area-inset-top));
             background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
             pointer-events: none;
         }
@@ -272,9 +297,13 @@
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.15);
             cursor: pointer;
+            transition: all 0.2s;
         }
 
-        /* Search Section */
+        .header-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
         .search-section {
             position: relative;
             pointer-events: auto;
@@ -325,11 +354,6 @@
             display: none;
         }
 
-        .clear-search:hover {
-            color: var(--accent-pink);
-        }
-
-        /* Search History Dropdown */
         .search-history {
             position: absolute;
             top: 100%;
@@ -351,66 +375,13 @@
             display: block;
         }
 
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .clear-history {
-            color: var(--accent-pink);
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .history-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-        }
-
-        .history-item:last-child {
-            border-bottom: none;
-        }
-
-        .history-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: #fff;
-        }
-
-        .history-left i {
-            color: var(--accent-pink);
-            font-size: 14px;
-        }
-
-        .delete-history-item {
-            color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        .delete-history-item:hover {
-            color: var(--accent-pink);
-        }
-
-        /* Category Filters */
         .categories-wrapper {
             overflow-x: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
             pointer-events: auto;
             margin-top: 8px;
+            padding-bottom: 8px;
         }
 
         .categories-wrapper::-webkit-scrollbar {
@@ -437,23 +408,18 @@
             transition: all 0.2s;
         }
 
-        .category-pill:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
         .category-pill.active {
             background: var(--accent-pink);
             border-color: var(--accent-pink);
         }
 
-        /* Bottom Navigation */
         .bottom-nav {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 70px;
+            height: calc(70px + var(--safe-area-inset-bottom));
+            padding-bottom: var(--safe-area-inset-bottom);
             background: linear-gradient(to top, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.8) 70%, transparent 100%);
             backdrop-filter: blur(5px);
             display: flex;
@@ -472,10 +438,7 @@
             text-decoration: none;
             transition: color 0.2s;
             cursor: pointer;
-        }
-
-        .nav-item:hover {
-            color: #fff;
+            padding: 8px;
         }
 
         .nav-item.active {
@@ -499,11 +462,6 @@
             transition: transform 0.2s;
         }
 
-        .add-button:hover {
-            transform: scale(1.05);
-        }
-
-        /* Long Press Menu */
         .long-press-menu {
             position: fixed;
             bottom: 0;
@@ -514,6 +472,7 @@
             border-top-left-radius: 20px;
             border-top-right-radius: 20px;
             padding: 20px;
+            padding-bottom: max(20px, var(--safe-area-inset-bottom));
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 50;
@@ -525,171 +484,6 @@
             transform: translateY(0);
         }
 
-        .menu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .menu-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .close-menu {
-            font-size: 24px;
-            cursor: pointer;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .menu-items {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .menu-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 12px;
-            transition: background 0.2s;
-        }
-
-        .menu-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .menu-icon {
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 61, 109, 0.15);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: var(--accent-pink);
-        }
-
-        .menu-label {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        /* Skeleton Loading */
-        .skeleton-card {
-            position: relative;
-            height: 100%;
-            width: 100%;
-            scroll-snap-align: start;
-            background: #000;
-        }
-
-        .skeleton-media {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-
-        .skeleton-overlay {
-            position: absolute;
-            bottom: 80px;
-            left: 16px;
-            right: 80px;
-            z-index: 2;
-        }
-
-        .skeleton-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            margin-bottom: 12px;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .skeleton-line {
-            height: 16px;
-            width: 60%;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .skeleton-line.short {
-            width: 40%;
-        }
-
-        .skeleton-line.long {
-            width: 80%;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.6; }
-        }
-
-        /* End Message */
-        .end-message {
-            height: 100px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255, 255, 255, 0.5);
-            gap: 10px;
-            scroll-snap-align: none;
-        }
-
-        .end-message i {
-            font-size: 30px;
-            color: var(--accent-pink);
-        }
-
-        /* Loading Screen */
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #000;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.5s;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 61, 109, 0.3);
-            border-top-color: var(--accent-pink);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Double Tap Heart */
         .floating-heart {
             position: fixed;
             font-size: 80px;
@@ -715,10 +509,9 @@
             }
         }
 
-        /* Toast Notification */
         .toast-notification {
             position: fixed;
-            bottom: 100px;
+            bottom: calc(100px + var(--safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
@@ -731,6 +524,10 @@
             border: 1px solid var(--accent-pink);
             box-shadow: 0 4px 15px rgba(255, 61, 109, 0.3);
             animation: slideUp 0.3s ease-out;
+            white-space: nowrap;
+            max-width: 90%;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         @keyframes slideUp {
@@ -742,6 +539,61 @@
                 opacity: 1;
                 transform: translate(-50%, 0);
             }
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 61, 109, 0.3);
+            border-top-color: var(--accent-pink);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .skeleton-card {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            scroll-snap-align: start;
+            background: #000;
+        }
+
+        .skeleton-media {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .end-message {
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            gap: 10px;
+            scroll-snap-align: none;
+        }
+
+        .error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 100;
         }
     </style>
 </head>
@@ -756,30 +608,21 @@
             <div class="header-top">
                 <div class="logo">SPARKLE</div>
                 <div class="header-icons">
-                    <div class="header-icon" onclick="toggleMute()" id="muteBtn">
+                    <div class="header-icon" id="muteBtn">
                         <i class="fas fa-volume-mute"></i>
                     </div>
-                    <div class="header-icon" onclick="goBack()">
+                    <div class="header-icon" id="backBtn">
                         <i class="fas fa-times"></i>
                     </div>
                 </div>
             </div>
 
-            <!-- Search Section with Input -->
+            <!-- Search Section -->
             <div class="search-section">
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Search videos..." autocomplete="off">
-                    <i class="fas fa-times-circle clear-search" id="clearSearch" onclick="clearSearch()"></i>
-                </div>
-
-                <!-- Search History Dropdown -->
-                <div class="search-history" id="searchHistory">
-                    <div class="history-header">
-                        <span>Recent searches</span>
-                        <span class="clear-history" onclick="clearAllHistory(event)">Clear all</span>
-                    </div>
-                    <div id="historyList"></div>
+                    <input type="text" id="searchInput" placeholder="Search moments..." autocomplete="off">
+                    <i class="fas fa-times-circle clear-search" id="clearSearch"></i>
                 </div>
             </div>
 
@@ -807,1186 +650,674 @@
                 <i class="fas fa-home"></i>
                 <span>Home</span>
             </a>
-            <a href="/connect" class="nav-item">
+            <a href="/explore" class="nav-item">
                 <i class="fas fa-search"></i>
                 <span>Discover</span>
             </a>
-            <div class="nav-item active" onclick="location.href='/moments'">
+            <a href="/moments/create" class="nav-item active" id="createMomentBtn" style="text-decoration:none;">
                 <div class="add-button"><i class="fas fa-plus"></i></div>
-            </div>
-            <a href="/messages" class="nav-item">
-                <i class="fas fa-comment"></i>
-                <span>Chats</span>
+            </a>
+            <a href="/notifications" class="nav-item">
+                <i class="fas fa-heart"></i>
+                <span>Activity</span>
             </a>
             <a href="/profile" class="nav-item">
                 <i class="fas fa-user"></i>
-                <span>Me</span>
+                <span>Profile</span>
             </a>
         </div>
 
         <!-- Long Press Menu -->
         <div class="long-press-menu" id="longPressMenu">
             <div class="menu-header">
-                <h3>Video options</h3>
-                <span class="close-menu" onclick="hideLongPressMenu()">&times;</span>
+                <h3>Options</h3>
+                <span class="close-menu" id="closeMenu" style="cursor: pointer;">&times;</span>
             </div>
-            <div class="menu-items">
-                <div class="menu-item" onclick="reportVideo()">
-                    <div class="menu-icon"><i class="fas fa-flag"></i></div>
-                    <span class="menu-label">Report</span>
-                </div>
-                <div class="menu-item" onclick="saveToCollection()">
-                    <div class="menu-icon"><i class="fas fa-bookmark"></i></div>
-                    <span class="menu-label">Save</span>
-                </div>
-                <div class="menu-item" onclick="shareVideo()">
-                    <div class="menu-icon"><i class="fas fa-share"></i></div>
-                    <span class="menu-label">Share</span>
-                </div>
-                <div class="menu-item" onclick="downloadVideo()">
-                    <div class="menu-icon"><i class="fas fa-download"></i></div>
-                    <span class="menu-label">Download</span>
-                </div>
-                <div class="menu-item" onclick="hideVideo()">
-                    <div class="menu-icon"><i class="fas fa-eye-slash"></i></div>
-                    <span class="menu-label">Not interested</span>
-                </div>
-                <div class="menu-item" onclick="copyLink()">
-                    <div class="menu-icon"><i class="fas fa-link"></i></div>
-                    <span class="menu-label">Copy link</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Loading Screen -->
-        <div class="loading-screen" id="loadingScreen">
-            <div class="spinner"></div>
-        </div>
-    </div>
-
-    <!-- Share Modal Partial -->
-    <div id="shareModal" class="share-modal" style="display: none;">
-        <div class="share-modal-content">
-            <div class="share-modal-header">
-                <h3>Share to...</h3>
-                <i class="fas fa-times" onclick="closeShareModal()"></i>
-            </div>
-            <div class="share-options">
-                <div class="share-option" onclick="shareTo('facebook')">
-                    <i class="fab fa-facebook"></i>
-                    <span>Facebook</span>
-                </div>
-                <div class="share-option" onclick="shareTo('twitter')">
-                    <i class="fab fa-twitter"></i>
-                    <span>Twitter</span>
-                </div>
-                <div class="share-option" onclick="shareTo('whatsapp')">
-                    <i class="fab fa-whatsapp"></i>
-                    <span>WhatsApp</span>
-                </div>
-                <div class="share-option" onclick="shareTo('telegram')">
-                    <i class="fab fa-telegram"></i>
-                    <span>Telegram</span>
-                </div>
-                <div class="share-option" onclick="shareTo('copy')">
-                    <i class="fas fa-link"></i>
-                    <span>Copy Link</span>
-                </div>
+            <div class="menu-items" id="menuItems">
+                <!-- Menu items will be dynamically inserted -->
             </div>
         </div>
     </div>
-
-    <style>
-        .share-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .share-modal-content {
-            background: #1a1a1a;
-            border-radius: 20px;
-            padding: 20px;
-            width: 90%;
-            max-width: 400px;
-            border: 1px solid var(--accent-pink);
-        }
-
-        .share-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .share-modal-header h3 {
-            color: #fff;
-            font-size: 18px;
-        }
-
-        .share-modal-header i {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 20px;
-            cursor: pointer;
-        }
-
-        .share-options {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .share-option {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 10px;
-            transition: background 0.2s;
-        }
-
-        .share-option:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .share-option i {
-            font-size: 24px;
-            color: var(--accent-pink);
-        }
-
-        .share-option span {
-            font-size: 12px;
-            color: #fff;
-        }
-    </style>
 
     <script>
-        // Mock Videos Data
-        const mockVideos = [
-            // Sports videos
-            {
-                moment_id: 'sports1',
-                username: 'alex_fitness',
-                user_name: 'Alex Thompson',
-                avatar_url: 'https://randomuser.me/api/portraits/men/1.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-man-kicking-a-soccer-ball-on-the-field-32448-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-man-kicking-a-soccer-ball-on-the-field-32448-large.mp4',
-                media_type: 'video',
-                caption: 'Game day intensity! 🔥 #sports #soccer #training',
-                likes: 15234,
-                comments: 892,
-                share_count: 345,
-                category: 'sports'
-            },
-            {
-                moment_id: 'sports2',
-                username: 'hoops_master',
-                user_name: 'Mike Johnson',
-                avatar_url: 'https://randomuser.me/api/portraits/men/2.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-basketball-player-making-a-shot-40607-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-basketball-player-making-a-shot-40607-large.mp4',
-                media_type: 'video',
-                caption: 'Nothing but net! 🏀 #sports #basketball #hoops',
-                likes: 23456,
-                comments: 1234,
-                share_count: 567,
-                category: 'sports'
-            },
-            {
-                moment_id: 'sports3',
-                username: 'tennis_ace',
-                user_name: 'Sarah Williams',
-                avatar_url: 'https://randomuser.me/api/portraits/women/1.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-playing-tennis-4035-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-playing-tennis-4035-large.mp4',
-                media_type: 'video',
-                caption: 'Perfect serve! 🎾 #sports #tennis #champion',
-                likes: 18765,
-                comments: 945,
-                share_count: 432,
-                category: 'sports'
-            },
-            {
-                moment_id: 'sports4',
-                username: 'swim_champ',
-                user_name: 'Michael Phelps',
-                avatar_url: 'https://randomuser.me/api/portraits/men/3.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-swimmer-doing-butterfly-stroke-40598-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-swimmer-doing-butterfly-stroke-40598-large.mp4',
-                media_type: 'video',
-                caption: 'Morning swim practice 🏊 #sports #swimming #fitness',
-                likes: 32145,
-                comments: 1876,
-                share_count: 654,
-                category: 'sports'
-            },
+        (function() {
+            // Get initial data from server
+            const INITIAL_DATA = window.__INITIAL_DATA__ || {
+                moments: [],
+                trendingHashtags: [],
+                suggestedUsers: [],
+                userInterests: [],
+                user: {},
+                env: {}
+            };
 
-            // Fitness videos (6 videos)
-            {
-                moment_id: 'fitness1',
-                username: 'yoga_master',
-                user_name: 'Priya Sharma',
-                avatar_url: 'https://randomuser.me/api/portraits/women/2.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-on-the-beach-4693-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-on-the-beach-4693-large.mp4',
-                media_type: 'video',
-                caption: 'Morning yoga flow 🧘 #fitness #yoga #wellness',
-                likes: 28456,
-                comments: 1456,
-                share_count: 789,
-                category: 'fitness'
-            },
-            {
-                moment_id: 'fitness2',
-                username: 'healthy_eats',
-                user_name: 'Lisa Chen',
-                avatar_url: 'https://randomuser.me/api/portraits/women/3.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-cutting-vegetables-on-a-chopping-board-32635-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-cutting-vegetables-on-a-chopping-board-32635-large.mp4',
-                media_type: 'video',
-                caption: 'Healthy meal prep for the week 🥗 #fitness #nutrition #healthyfood',
-                likes: 19876,
-                comments: 1087,
-                share_count: 543,
-                category: 'fitness'
-            },
-            {
-                moment_id: 'fitness3',
-                username: 'meditation_guru',
-                user_name: 'David Kim',
-                avatar_url: 'https://randomuser.me/api/portraits/men/4.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-meditating-on-a-rock-in-the-middle-of-the-sea-32825-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-meditating-on-a-rock-in-the-middle-of-the-sea-32825-large.mp4',
-                media_type: 'video',
-                caption: 'Find your inner peace 🕊️ #fitness #meditation #mindfulness',
-                likes: 34567,
-                comments: 2345,
-                share_count: 1234,
-                category: 'fitness'
-            },
-            {
-                moment_id: 'fitness4',
-                username: 'fitness_tips',
-                user_name: 'James Wilson',
-                avatar_url: 'https://randomuser.me/api/portraits/men/5.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-man-training-at-home-with-dumbbells-32636-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-man-training-at-home-with-dumbbells-32636-large.mp4',
-                media_type: 'video',
-                caption: 'Home workout routine 💪 #fitness #workout #gym',
-                likes: 26789,
-                comments: 1567,
-                share_count: 876,
-                category: 'fitness'
-            },
-            {
-                moment_id: 'fitness5',
-                username: 'wellness_coach',
-                user_name: 'Emma Thompson',
-                avatar_url: 'https://randomuser.me/api/portraits/women/4.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-drinking-water-after-exercising-32637-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-drinking-water-after-exercising-32637-large.mp4',
-                media_type: 'video',
-                caption: 'Stay hydrated! 💧 #fitness #wellness #hydration',
-                likes: 15678,
-                comments: 876,
-                share_count: 432,
-                category: 'fitness'
-            },
-            {
-                moment_id: 'fitness6',
-                username: 'mental_health',
-                user_name: 'Dr. Sarah',
-                avatar_url: 'https://randomuser.me/api/portraits/women/5.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-writing-in-a-notebook-32638-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-writing-in-a-notebook-32638-large.mp4',
-                media_type: 'video',
-                caption: 'Journaling for mental health 📝 #fitness #mentalhealth #selfcare',
-                likes: 42345,
-                comments: 2890,
-                share_count: 1567,
-                category: 'fitness'
-            },
-
-            // Tech videos (5 videos)
-            {
-                moment_id: 'tech1',
-                username: 'tech_review',
-                user_name: 'David Kim',
-                avatar_url: 'https://randomuser.me/api/portraits/men/6.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-playing-on-a-smartphone-32473-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-man-playing-on-a-smartphone-32473-large.mp4',
-                media_type: 'video',
-                caption: 'New gadget unboxing! 📱 #tech #gadgets #unboxing',
-                likes: 23456,
-                comments: 1234,
-                share_count: 567,
-                category: 'tech'
-            },
-            {
-                moment_id: 'tech2',
-                username: 'future_tech',
-                user_name: 'Lisa Wang',
-                avatar_url: 'https://randomuser.me/api/portraits/women/6.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-robot-talking-about-artificial-intelligence-34645-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-robot-talking-about-artificial-intelligence-34645-large.mp4',
-                media_type: 'video',
-                caption: 'AI is the future 🤖 #tech #ai #future',
-                likes: 34567,
-                comments: 2345,
-                share_count: 890,
-                category: 'tech'
-            },
-            {
-                moment_id: 'tech3',
-                username: 'coding_life',
-                user_name: 'Alex Chen',
-                avatar_url: 'https://randomuser.me/api/portraits/men/7.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-programmer-working-on-his-laptop-34644-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-programmer-working-on-his-laptop-34644-large.mp4',
-                media_type: 'video',
-                caption: 'Late night coding session 💻 #tech #coding #programming',
-                likes: 28765,
-                comments: 1543,
-                share_count: 678,
-                category: 'tech'
-            },
-            {
-                moment_id: 'tech4',
-                username: 'drone_pilot',
-                user_name: 'Mike Ross',
-                avatar_url: 'https://randomuser.me/api/portraits/men/8.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-flying-a-drone-over-a-beautiful-beach-4303-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-flying-a-drone-over-a-beautiful-beach-4303-large.mp4',
-                media_type: 'video',
-                caption: 'Drone footage from above 🚁 #tech #drone #photography',
-                likes: 39876,
-                comments: 2567,
-                share_count: 1432,
-                category: 'tech'
-            },
-            {
-                moment_id: 'tech5',
-                username: 'vr_world',
-                user_name: 'Sarah Johnson',
-                avatar_url: 'https://randomuser.me/api/portraits/women/7.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-person-playing-with-virtual-reality-34646-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-person-playing-with-virtual-reality-34646-large.mp4',
-                media_type: 'video',
-                caption: 'Virtual reality gaming 🥽 #tech #vr #gaming',
-                likes: 31234,
-                comments: 1876,
-                share_count: 987,
-                category: 'tech'
-            },
-
-            // Music videos
-            {
-                moment_id: 'music1',
-                username: 'dj_spin',
-                user_name: 'Marcus Williams',
-                avatar_url: 'https://randomuser.me/api/portraits/men/9.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-dj-playing-music-in-a-nightclub-4185-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-dj-playing-music-in-a-nightclub-4185-large.mp4',
-                media_type: 'video',
-                caption: 'Live set tonight! 🎧 #music #dj #nightlife',
-                likes: 45678,
-                comments: 3456,
-                share_count: 1234,
-                category: 'music'
-            },
-            {
-                moment_id: 'music2',
-                username: 'guitar_hero',
-                user_name: 'James Rodriguez',
-                avatar_url: 'https://randomuser.me/api/portraits/men/10.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-guitarist-playing-on-concert-22668-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-guitarist-playing-on-concert-22668-large.mp4',
-                media_type: 'video',
-                caption: 'Acoustic session 🎸 #music #guitar #acoustic',
-                likes: 23456,
-                comments: 1234,
-                share_count: 567,
-                category: 'music'
-            },
-            {
-                moment_id: 'music3',
-                username: 'piano_man',
-                user_name: 'John Legend',
-                avatar_url: 'https://randomuser.me/api/portraits/men/11.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-pianist-playing-in-a-concert-22669-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-pianist-playing-in-a-concert-22669-large.mp4',
-                media_type: 'video',
-                caption: 'Classical piano 🎹 #music #piano #classical',
-                likes: 38765,
-                comments: 2345,
-                share_count: 876,
-                category: 'music'
-            },
-
-            // Food videos
-            {
-                moment_id: 'food1',
-                username: 'foodie_adventures',
-                user_name: 'Priya Patel',
-                avatar_url: 'https://randomuser.me/api/portraits/women/8.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-chef-making-a-delicious-pasta-22306-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-chef-making-a-delicious-pasta-22306-large.mp4',
-                media_type: 'video',
-                caption: 'Homemade pasta 🍝 #food #cooking #italian',
-                likes: 23456,
-                comments: 1234,
-                share_count: 678,
-                category: 'food'
-            },
-            {
-                moment_id: 'food2',
-                username: 'sweet_tooth',
-                user_name: 'Amanda White',
-                avatar_url: 'https://randomuser.me/api/portraits/women/9.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-chocolate-sauce-on-ice-cream-22583-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-chocolate-sauce-on-ice-cream-22583-large.mp4',
-                media_type: 'video',
-                caption: 'Dessert time! 🍨 #food #dessert #chocolate',
-                likes: 34567,
-                comments: 2345,
-                share_count: 890,
-                category: 'food'
-            },
-            {
-                moment_id: 'food3',
-                username: 'sushi_master',
-                user_name: 'Kenji Tanaka',
-                avatar_url: 'https://randomuser.me/api/portraits/men/12.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-chef-making-sushi-22307-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-chef-making-sushi-22307-large.mp4',
-                media_type: 'video',
-                caption: 'Sushi art 🍣 #food #sushi #japanese',
-                likes: 45678,
-                comments: 3456,
-                share_count: 1234,
-                category: 'food'
-            },
-
-            // Travel videos
-            {
-                moment_id: 'travel1',
-                username: 'wanderlust',
-                user_name: 'Tom Wilson',
-                avatar_url: 'https://randomuser.me/api/portraits/men/13.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-the-amalfi-coast-4432-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-the-amalfi-coast-4432-large.mp4',
-                media_type: 'video',
-                caption: 'Paradise found 🌊 #travel #beach #vacation',
-                likes: 67890,
-                comments: 5678,
-                share_count: 3456,
-                category: 'travel'
-            },
-            {
-                moment_id: 'travel2',
-                username: 'mountain_explorer',
-                user_name: 'Sarah Johnson',
-                avatar_url: 'https://randomuser.me/api/portraits/women/10.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-mountain-peak-with-clouds-2515-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-mountain-peak-with-clouds-2515-large.mp4',
-                media_type: 'video',
-                caption: 'Top of the world! 🏔️ #travel #mountains #hiking',
-                likes: 45678,
-                comments: 3456,
-                share_count: 2345,
-                category: 'travel'
-            },
-
-            // Gaming videos
-            {
-                moment_id: 'gaming1',
-                username: 'pro_gamer',
-                user_name: 'Kevin Zhang',
-                avatar_url: 'https://randomuser.me/api/portraits/men/14.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-on-a-smartphone-40609-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-on-a-smartphone-40609-large.mp4',
-                media_type: 'video',
-                caption: 'Epic gaming session! 🎮 #gaming #esports #gamer',
-                likes: 56789,
-                comments: 4567,
-                share_count: 2345,
-                category: 'gaming'
-            },
-            {
-                moment_id: 'gaming2',
-                username: 'game_streamer',
-                user_name: 'Rachel Green',
-                avatar_url: 'https://randomuser.me/api/portraits/women/11.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-a-first-person-shooter-40610-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-gamer-playing-a-first-person-shooter-40610-large.mp4',
-                media_type: 'video',
-                caption: 'Live stream now! #gaming #streamer #twitch',
-                likes: 45678,
-                comments: 3456,
-                share_count: 1234,
-                category: 'gaming'
-            },
-
-            // Dance videos
-            {
-                moment_id: 'dance1',
-                username: 'dance_crew',
-                user_name: 'Michael Brown',
-                avatar_url: 'https://randomuser.me/api/portraits/men/15.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-girls-dancing-in-a-warehouse-32823-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-girls-dancing-in-a-warehouse-32823-large.mp4',
-                media_type: 'video',
-                caption: 'Dance practice 🔥 #dance #choreography #hiphop',
-                likes: 67890,
-                comments: 5678,
-                share_count: 3456,
-                category: 'dance'
-            },
-
-            // Lifestyle videos
-            {
-                moment_id: 'lifestyle1',
-                username: 'daily_vibes',
-                user_name: 'Sarah Chen',
-                avatar_url: 'https://randomuser.me/api/portraits/women/12.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-enjoying-the-sunset-at-the-beach-27774-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-enjoying-the-sunset-at-the-beach-27774-large.mp4',
-                media_type: 'video',
-                caption: 'Sunset vibes 🌅 #lifestyle #beach #sunset',
-                likes: 34567,
-                comments: 2345,
-                share_count: 789,
-                category: 'lifestyle'
-            },
-            {
-                moment_id: 'lifestyle2',
-                username: 'morning_routine',
-                user_name: 'Emma Watson',
-                avatar_url: 'https://randomuser.me/api/portraits/women/13.jpg',
-                video_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-drinking-coffee-in-the-morning-4327-large.mp4',
-                media_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-drinking-coffee-in-the-morning-4327-large.mp4',
-                media_type: 'video',
-                caption: 'Morning coffee ritual ☕ #lifestyle #morning #coffee',
-                likes: 12345,
-                comments: 678,
-                share_count: 234,
-                category: 'lifestyle'
-            }
-        ];
-
-        // DashboardAPI Mock
-        const DashboardAPI = {
-            sparkMoment: async (id) => {
-                return { status: 'success', likes: Math.floor(Math.random() * 50000) };
-            }
-        };
-
-        // ShareManager
-        const shareManager = {
-            openShareModal: (id) => {
-                document.getElementById('shareModal').style.display = 'flex';
-            }
-        };
-
-        // State Management
-        let moments = [...mockVideos];
-        let filteredMoments = [...moments];
-        let currentCategory = 'all';
-        let isMuted = true;
-        let currentVideoId = null;
-        let longPressTimer;
-        let searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
-        let observer;
-
-        // Initialize
-        function init() {
-            showSkeleton();
-            setTimeout(() => {
-                renderFeed(filteredMoments);
-                initVideoObserver();
-                hideLoadingScreen();
-            }, 2000);
-            
-            renderSearchHistory();
-            setupSearchListener();
-            setupEventListeners();
-        }
-
-        // Show Skeleton
-        function showSkeleton(count = 3) {
-            const container = document.getElementById('feedContainer');
-            let skeleton = '';
-            for (let i = 0; i < count; i++) {
-                skeleton += `
-                    <div class="skeleton-card">
-                        <div class="skeleton-media"></div>
-                        <div class="skeleton-overlay">
-                            <div class="skeleton-avatar"></div>
-                            <div class="skeleton-line long"></div>
-                            <div class="skeleton-line"></div>
-                            <div class="skeleton-line short"></div>
-                        </div>
-                    </div>
-                `;
-            }
-            container.innerHTML = skeleton;
-        }
-
-        // Hide Loading Screen
-        function hideLoadingScreen() {
-            setTimeout(() => {
-                document.getElementById('loadingScreen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('loadingScreen').style.display = 'none';
-                }, 500);
-            }, 1500);
-        }
-
-        // Render Feed
-        function renderFeed(videos) {
-            const container = document.getElementById('feedContainer');
-            
-            if (!videos || videos.length === 0) {
-                container.innerHTML = `
-                    <div class="video-card" style="display: flex; align-items: center; justify-content: center;">
-                        <div style="text-align: center; padding: 40px;">
-                            <i class="fas fa-video-slash" style="font-size: 60px; color: #FF3D6D; margin-bottom: 20px;"></i>
-                            <h3 style="margin-bottom: 10px;">No videos found</h3>
-                            <p style="color: rgba(255,255,255,0.5);">Try adjusting your search or filter</p>
-                        </div>
-                    </div>
-                    <div class="end-message">
-                        <i class="fas fa-check-circle"></i>
-                        <span>That's all for now</span>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = videos.map(video => createVideoCard(video)).join('');
-            html += `<div class="end-message">
-                        <i class="fas fa-check-circle"></i>
-                        <span>That's all for now</span>
-                    </div>`;
-            
-            container.innerHTML = html;
-        }
-
-        // Create Video Card
-        function createVideoCard(video) {
-            const tags = video.caption.match(/#[a-zA-Z0-9_]+/g) || [];
-            const cleanCaption = video.caption.replace(/#[a-zA-Z0-9_]+/g, '').trim();
-            
-            return `
-                <div class="video-card" data-id="${video.moment_id}" data-category="${video.category}">
-                    <div class="video-wrapper" 
-                         ondblclick="handleDoubleTap(event, '${video.moment_id}')"
-                         oncontextmenu="handleLongPress(event, '${video.moment_id}')"
-                         ontouchstart="handleTouchStart(event, '${video.moment_id}')"
-                         ontouchend="handleTouchEnd()">
-                        <video class="video-element" loop playsinline muted="${isMuted}" preload="auto">
-                            <source src="${video.video_url}" type="video/mp4">
-                        </video>
-                    </div>
-
-                    <!-- Video Info Overlay -->
-                    <div class="video-info-overlay">
-                        <div class="user-info-row" onclick="goToProfile('${video.username}')">
-                            <div class="user-avatar">
-                                <img src="${video.avatar_url}" alt="${video.username}" onerror="this.src='https://randomuser.me/api/portraits/men/1.jpg'">
-                            </div>
-                            <div class="user-details">
-                                <span class="username">@${video.username}</span>
-                                <span class="follow-btn" onclick="toggleFollow(event, '${video.username}')" id="follow-${video.username}">Follow</span>
-                            </div>
-                        </div>
-                        <div class="video-caption">${cleanCaption}</div>
-                        <div class="hashtags">
-                            ${tags.map(tag => `<span class="hashtag" onclick="searchHashtag('${tag}')">${tag}</span>`).join('')}
-                        </div>
-                    </div>
-
-                    <!-- Side Actions -->
-                    <div class="side-actions">
-                        <div class="action-item">
-                            <div class="action-circle" onclick="toggleLike('${video.moment_id}')" id="like-${video.moment_id}">
-                                <i class="far fa-heart"></i>
-                            </div>
-                            <span class="action-count">${formatCount(video.likes)}</span>
-                        </div>
-                        <div class="action-item" onclick="openComments('${video.moment_id}')">
-                            <div class="action-circle">
-                                <i class="far fa-comment"></i>
-                            </div>
-                            <span class="action-count">${formatCount(video.comments)}</span>
-                        </div>
-                        <div class="action-item" onclick="shareVideo('${video.moment_id}')">
-                            <div class="action-circle">
-                                <i class="far fa-paper-plane"></i>
-                            </div>
-                            <span class="action-count">${formatCount(video.share_count)}</span>
-                        </div>
-                        <div class="action-item" onclick="saveToCollection('${video.moment_id}')">
-                            <div class="action-circle">
-                                <i class="far fa-bookmark"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Setup Search Listener
-        function setupSearchListener() {
-            const searchInput = document.getElementById('searchInput');
-            const clearBtn = document.getElementById('clearSearch');
-            
-            if (searchInput) {
-                searchInput.addEventListener('input', function(e) {
-                    const query = e.target.value.toLowerCase().trim();
-                    clearBtn.style.display = query ? 'block' : 'none';
+            // State management
+            class MomentsApp {
+                constructor() {
+                    this.moments = INITIAL_DATA.moments;
+                    this.filteredMoments = [...this.moments];
+                    this.currentCategory = 'all';
+                    this.currentPage = 1;
+                    this.hasMore = true;
+                    this.isLoading = false;
+                    this.isMuted = true;
+                    this.currentVideoId = null;
+                    this.longPressTimer = null;
+                    this.observer = null;
+                    this.searchHistory = this.loadSearchHistory();
+                    this.api = new MomentsAPI(INITIAL_DATA.user?.user_id);
                     
-                    if (query.length > 0) {
-                        filterBySearch(query);
-                    } else {
-                        filteredMoments = [...moments];
-                        if (currentCategory !== 'all') {
-                            filteredMoments = filteredMoments.filter(v => v.category === currentCategory);
-                        }
-                        showSkeleton(2);
-                        setTimeout(() => {
-                            renderFeed(filteredMoments);
-                            if (observer) {
-                                observer.disconnect();
-                                initVideoObserver();
+                    this.init();
+                }
+
+                init() {
+                    this.renderFeed(this.filteredMoments);
+                    this.initVideoObserver();
+                    this.setupEventListeners();
+                    this.setupCategories();
+                    this.hideLoadingScreen();
+                }
+
+                loadSearchHistory() {
+                    try {
+                        return JSON.parse(localStorage.getItem('searchHistory')) || [];
+                    } catch {
+                        return [];
+                    }
+                }
+
+                saveSearchHistory() {
+                    localStorage.setItem('searchHistory', JSON.stringify(this.searchHistory.slice(0, 10)));
+                }
+
+                showSkeleton(count = 3) {
+                    const container = document.getElementById('feedContainer');
+                    let skeleton = '';
+                    for (let i = 0; i < count; i++) {
+                        skeleton += `
+                            <div class="skeleton-card">
+                                <div class="skeleton-media"></div>
+                            </div>
+                        `;
+                    }
+                    container.innerHTML = skeleton;
+                }
+
+                hideLoadingScreen() {
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen) {
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => loadingScreen.remove(), 500);
+                    }
+                }
+
+                renderFeed(videos) {
+                    const container = document.getElementById('feedContainer');
+                    
+                    if (!videos || videos.length === 0) {
+                        container.innerHTML = `
+                            <div class="video-card" style="display: flex; align-items: center; justify-content: center;">
+                                <div style="text-align: center; padding: 40px;">
+                                    <i class="fas fa-video-slash" style="font-size: 60px; color: #FF3D6D; margin-bottom: 20px;"></i>
+                                    <h3 style="margin-bottom: 10px;">No moments found</h3>
+                                    <p style="color: rgba(255,255,255,0.5);">Be the first to create one!</p>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    container.innerHTML = videos.map(video => this.createVideoCard(video)).join('');
+                }
+
+                createVideoCard(video) {
+                    const isLiked = video.is_liked ? 'liked' : '';
+                    const isSaved = video.is_saved ? 'saved' : '';
+                    const tags = video.caption?.match(/#[a-zA-Z0-9_]+/g) || [];
+                    const cleanCaption = video.caption?.replace(/#[a-zA-Z0-9_]+/g, '').trim() || '';
+                    
+                    return `
+                        <div class="video-card" data-id="${video.moment_id}" data-category="${video.category || 'general'}">
+                            <div class="video-wrapper" 
+                                 ondblclick="app.handleDoubleTap(event, '${video.moment_id}')"
+                                 oncontextmenu="app.handleLongPress(event, '${video.moment_id}')"
+                                 ontouchstart="app.handleTouchStart(event, '${video.moment_id}')"
+                                 ontouchend="app.handleTouchEnd()">
+                                <video class="video-element" loop playsinline muted="${this.isMuted}" preload="auto" poster="/images/video-placeholder.jpg">
+                                    <source src="${video.media_url}" type="video/mp4">
+                                </video>
+                            </div>
+
+                            <div class="video-info-overlay">
+                                <div class="user-info-row" onclick="app.goToProfile('${video.username}')">
+                                    <div class="user-avatar">
+                                        <img src="${video.avatar_url || '/images/default-avatar.jpg'}" alt="${video.username}" loading="lazy">
+                                    </div>
+                                    <div class="user-details">
+                                        <span class="username">@${video.username}</span>
+                                        <button class="follow-btn ${video.is_following ? 'following' : ''}" 
+                                                onclick="app.toggleFollow(event, '${video.user_id}', this)"
+                                                ${video.user_id === INITIAL_DATA.user?.user_id ? 'disabled' : ''}>
+                                            ${video.is_following ? 'Following' : 'Follow'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="video-caption">${this.escapeHtml(cleanCaption)}</div>
+                                <div class="hashtags">
+                                    ${tags.map(tag => `<span class="hashtag" onclick="app.searchHashtag('${tag}')">${tag}</span>`).join('')}
+                                </div>
+                            </div>
+
+                            <div class="side-actions">
+                                <div class="action-item">
+                                    <div class="action-circle ${isLiked}" onclick="app.toggleLike('${video.moment_id}', this)">
+                                        <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+                                    </div>
+                                    <span class="action-count">${this.formatCount(video.like_count || 0)}</span>
+                                </div>
+                                <div class="action-item" onclick="app.openComments('${video.moment_id}')">
+                                    <div class="action-circle">
+                                        <i class="far fa-comment"></i>
+                                    </div>
+                                    <span class="action-count">${this.formatCount(video.comment_count || 0)}</span>
+                                </div>
+                                <div class="action-item" onclick="app.shareVideo('${video.moment_id}')">
+                                    <div class="action-circle">
+                                        <i class="far fa-paper-plane"></i>
+                                    </div>
+                                    <span class="action-count">${this.formatCount(video.share_count || 0)}</span>
+                                </div>
+                                <div class="action-item">
+                                    <div class="action-circle ${isSaved}" onclick="app.toggleSave('${video.moment_id}', this)">
+                                        <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+
+                formatCount(num) {
+                    if (num >= 1000000) return (num/1000000).toFixed(1) + 'M';
+                    if (num >= 1000) return (num/1000).toFixed(1) + 'K';
+                    return num;
+                }
+
+                showToast(message, duration = 2000) {
+                    const toast = document.createElement('div');
+                    toast.className = 'toast-notification';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 300);
+                    }, duration);
+                }
+
+                initVideoObserver() {
+                    const options = { 
+                        threshold: 0.7,
+                        rootMargin: '0px'
+                    };
+                    
+                    this.observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            const video = entry.target.querySelector('video');
+                            if (!video) return;
+
+                            if (entry.isIntersecting) {
+                                video.play().catch(() => {});
+                            } else {
+                                video.pause();
+                                video.currentTime = 0;
                             }
-                        }, 500);
-                    }
-                });
+                        });
+                    }, options);
 
-                searchInput.addEventListener('focus', function() {
-                    toggleSearchHistory();
-                });
+                    document.querySelectorAll('.video-card').forEach(card => {
+                        this.observer.observe(card);
+                    });
+                }
 
-                searchInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
+                setupEventListeners() {
+                    // Mute toggle
+                    document.getElementById('muteBtn').addEventListener('click', () => this.toggleMute());
+                    
+                    // Back button
+                    document.getElementById('backBtn').addEventListener('click', () => window.history.back());
+                    
+                    // Search
+                    const searchInput = document.getElementById('searchInput');
+                    const clearBtn = document.getElementById('clearSearch');
+                    
+                    searchInput.addEventListener('input', (e) => {
                         const query = e.target.value.trim();
-                        if (query) {
-                            addToHistory(query);
-                            filterBySearch(query);
-                            document.getElementById('searchHistory').classList.remove('show');
+                        clearBtn.style.display = query ? 'block' : 'none';
+                        this.debounce(() => this.filterBySearch(query), 300)();
+                    });
+
+                    searchInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            const query = e.target.value.trim();
+                            if (query) {
+                                this.addToHistory(query);
+                                this.filterBySearch(query);
+                            }
+                        }
+                    });
+
+                    clearBtn.addEventListener('click', () => this.clearSearch());
+
+                    // Close menu
+                    document.getElementById('closeMenu').addEventListener('click', () => this.hideLongPressMenu());
+
+                    // Video click handling
+                    document.addEventListener('click', (event) => {
+                        const videoCard = event.target.closest('.video-card');
+                        if (!videoCard) return;
+                        
+                        const video = videoCard.querySelector('video');
+                        const isActionBtn = event.target.closest('.action-circle');
+                        const isUserRow = event.target.closest('.user-info-row');
+                        const isHashtag = event.target.closest('.hashtag');
+                        
+                        if (video && !isActionBtn && !isUserRow && !isHashtag) {
+                            video.paused ? video.play() : video.pause();
+                        }
+                    });
+                }
+
+                debounce(func, wait) {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                }
+
+                setupCategories() {
+                    document.querySelectorAll('.category-pill').forEach(pill => {
+                        pill.addEventListener('click', async () => {
+                            document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+                            pill.classList.add('active');
+                            
+                            const category = pill.dataset.cat;
+                            this.currentCategory = category;
+                            this.currentPage = 1;
+                            
+                            this.showSkeleton(2);
+                            
+                            try {
+                                const response = await this.api.getStream({ 
+                                    category, 
+                                    page: 1,
+                                    limit: 10
+                                });
+                                
+                                if (response.moments) {
+                                    this.filteredMoments = response.moments;
+                                    this.renderFeed(this.filteredMoments);
+                                    this.initVideoObserver();
+                                }
+                            } catch (error) {
+                                this.showToast('Failed to load moments');
+                            }
+                        });
+                    });
+                }
+
+                async toggleLike(videoId, element) {
+                    try {
+                        const response = await this.api.sparkMoment(videoId);
+                        const icon = element.querySelector('i');
+                        const countSpan = element.closest('.action-item').querySelector('.action-count');
+                        
+                        if (response.action === 'liked') {
+                            icon.className = 'fas fa-heart';
+                            element.classList.add('liked');
+                        } else {
+                            icon.className = 'far fa-heart';
+                            element.classList.remove('liked');
+                        }
+                        
+                        countSpan.textContent = this.formatCount(response.likes);
+                    } catch (error) {
+                        this.showToast('Failed to like moment');
+                    }
+                }
+
+                async toggleSave(videoId, element) {
+                    try {
+                        const response = await this.api.saveMoment(videoId);
+                        const icon = element.querySelector('i');
+                        
+                        if (response.action === 'saved') {
+                            icon.className = 'fas fa-bookmark';
+                            element.classList.add('saved');
+                            this.showToast('Saved to collection');
+                        } else {
+                            icon.className = 'far fa-bookmark';
+                            element.classList.remove('saved');
+                            this.showToast('Removed from collection');
+                        }
+                    } catch (error) {
+                        this.showToast('Failed to save moment');
+                    }
+                }
+
+                async toggleFollow(event, userId, button) {
+                    event.stopPropagation();
+                    
+                    if (button.disabled) return;
+                    
+                    const originalText = button.textContent;
+                    button.disabled = true;
+                    
+                    try {
+                        const response = await this.api.followUser(userId);
+                        
+                        if (response.action === 'followed') {
+                            button.textContent = 'Following';
+                            button.classList.add('following');
+                            this.showToast('Followed user');
+                        } else {
+                            button.textContent = 'Follow';
+                            button.classList.remove('following');
+                            this.showToast('Unfollowed user');
+                        }
+                    } catch (error) {
+                        button.textContent = originalText;
+                        this.showToast('Failed to follow user');
+                    } finally {
+                        button.disabled = false;
+                    }
+                }
+
+                handleDoubleTap(event, videoId) {
+                    const heart = document.createElement('i');
+                    heart.className = 'fas fa-heart floating-heart';
+                    heart.style.left = (event.clientX - 40) + 'px';
+                    heart.style.top = (event.clientY - 40) + 'px';
+                    document.body.appendChild(heart);
+                    
+                    setTimeout(() => heart.remove(), 800);
+                    
+                    const likeBtn = document.querySelector(`[data-id="${videoId}"] .action-circle:first-child`);
+                    if (likeBtn && !likeBtn.classList.contains('liked')) {
+                        this.toggleLike(videoId, likeBtn);
+                    }
+                }
+
+                handleLongPress(event, videoId) {
+                    event.preventDefault();
+                    this.currentVideoId = videoId;
+                    this.showLongPressMenu(videoId);
+                }
+
+                handleTouchStart(event, videoId) {
+                    this.longPressTimer = setTimeout(() => {
+                        this.currentVideoId = videoId;
+                        this.showLongPressMenu(videoId);
+                    }, 500);
+                }
+
+                handleTouchEnd() {
+                    clearTimeout(this.longPressTimer);
+                }
+
+                showLongPressMenu(videoId) {
+                    const menu = document.getElementById('longPressMenu');
+                    const menuItems = document.getElementById('menuItems');
+                    
+                    const items = [
+                        { icon: 'flag', label: 'Report', action: () => this.reportVideo(videoId) },
+                        { icon: 'share', label: 'Share', action: () => this.shareVideo(videoId) },
+                        { icon: 'download', label: 'Download', action: () => this.downloadVideo(videoId) },
+                        { icon: 'eye-slash', label: 'Not interested', action: () => this.hideVideo(videoId) },
+                        { icon: 'link', label: 'Copy link', action: () => this.copyLink(videoId) }
+                    ];
+                    
+                    menuItems.innerHTML = items.map(item => `
+                        <div class="menu-item" onclick="app.${item.action.name}('${videoId}')" style="display:flex; align-items:center; gap: 15px; padding: 15px 0; cursor: pointer; color: white;">
+                            <div class="menu-icon" style="width: 24px; text-align: center;"><i class="fas fa-${item.icon}"></i></div>
+                            <span class="menu-label" style="font-size: 16px;">${item.label}</span>
+                        </div>
+                    `).join('');
+                    
+                    menu.classList.add('show');
+                }
+
+                hideLongPressMenu() {
+                    document.getElementById('longPressMenu').classList.remove('show');
+                }
+
+                reportVideo(videoId) {
+                    this.showToast('Video reported');
+                    this.hideLongPressMenu();
+                }
+
+                async shareVideo(videoId) {
+                    try {
+                        const shareData = await this.api.getShareData(videoId);
+                        
+                        if (navigator.share) {
+                            await navigator.share({
+                                title: shareData.title,
+                                text: shareData.description,
+                                url: shareData.url
+                            });
+                            this.api.trackShare(videoId);
+                        } else {
+                            navigator.clipboard.writeText(shareData.url);
+                            this.showToast('Link copied to clipboard');
+                        }
+                    } catch (error) {
+                        this.showToast('Failed to share');
+                    }
+                    this.hideLongPressMenu();
+                }
+
+                downloadVideo(videoId) {
+                    const video = document.querySelector(`[data-id="${videoId}"] video source`).src;
+                    const a = document.createElement('a');
+                    a.href = video;
+                    a.download = `moment-${videoId}.mp4`;
+                    a.click();
+                    this.showToast('Download started');
+                    this.hideLongPressMenu();
+                }
+
+                hideVideo(videoId) {
+                    const card = document.querySelector(`[data-id="${videoId}"]`);
+                    if (card) {
+                        card.style.display = 'none';
+                        this.showToast('Video hidden');
+                    }
+                    this.hideLongPressMenu();
+                }
+
+                copyLink(videoId) {
+                    const url = `${window.location.origin}/moments/${videoId}`;
+                    navigator.clipboard.writeText(url);
+                    this.showToast('Link copied to clipboard');
+                    this.hideLongPressMenu();
+                }
+
+                toggleMute() {
+                    this.isMuted = !this.isMuted;
+                    const icon = document.querySelector('#muteBtn i');
+                    icon.className = this.isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+                    
+                    document.querySelectorAll('video').forEach(video => {
+                        video.muted = this.isMuted;
+                    });
+                }
+
+                addToHistory(term) {
+                    if (!term) return;
+                    this.searchHistory = [term, ...this.searchHistory.filter(t => t !== term)].slice(0, 10);
+                    this.saveSearchHistory();
+                }
+
+                filterBySearch(term) {
+                    if (!term) {
+                        this.filteredMoments = this.currentCategory === 'all' 
+                            ? [...this.moments]
+                            : this.moments.filter(m => m.category === this.currentCategory);
+                    } else {
+                        this.filteredMoments = this.moments.filter(m => 
+                            m.caption?.toLowerCase().includes(term.toLowerCase()) ||
+                            m.username?.toLowerCase().includes(term.toLowerCase()) ||
+                            m.user_name?.toLowerCase().includes(term.toLowerCase())
+                        );
+                        
+                        if (this.currentCategory !== 'all') {
+                            this.filteredMoments = this.filteredMoments.filter(m => 
+                                m.category === this.currentCategory
+                            );
                         }
                     }
-                });
-            }
-        }
-
-        // Clear Search
-        function clearSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const clearBtn = document.getElementById('clearSearch');
-            if (searchInput) {
-                searchInput.value = '';
-                clearBtn.style.display = 'none';
-                filteredMoments = [...moments];
-                if (currentCategory !== 'all') {
-                    filteredMoments = filteredMoments.filter(v => v.category === currentCategory);
+                    
+                    this.renderFeed(this.filteredMoments);
+                    this.initVideoObserver();
                 }
-                showSkeleton(2);
-                setTimeout(() => {
-                    renderFeed(filteredMoments);
-                    if (observer) {
-                        observer.disconnect();
-                        initVideoObserver();
-                    }
-                }, 500);
-                searchInput.focus();
-            }
-        }
 
-        // Video Observer
-        function initVideoObserver() {
-            const options = { threshold: 0.7 };
-            observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
-                    if (!video) return;
-
-                    if (entry.isIntersecting) {
-                        video.play().catch(() => {});
-                    } else {
-                        video.pause();
-                        video.currentTime = 0;
-                    }
-                });
-            }, options);
-
-            document.querySelectorAll('.video-card').forEach(card => observer.observe(card));
-        }
-
-        // Toggle Mute
-        function toggleMute() {
-            isMuted = !isMuted;
-            const icon = document.querySelector('#muteBtn i');
-            icon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
-            
-            document.querySelectorAll('video').forEach(video => {
-                video.muted = isMuted;
-            });
-        }
-
-        // Double Tap Like
-        function handleDoubleTap(event, videoId) {
-            const heart = document.createElement('i');
-            heart.className = 'fas fa-heart floating-heart';
-            heart.style.left = (event.clientX - 40) + 'px';
-            heart.style.top = (event.clientY - 40) + 'px';
-            document.body.appendChild(heart);
-            
-            setTimeout(() => heart.remove(), 800);
-            toggleLike(videoId, true);
-        }
-
-        // Toggle Like
-        function toggleLike(videoId, forceLike = false) {
-            const likeBtn = document.getElementById(`like-${videoId}`);
-            if (!likeBtn) return;
-            
-            const icon = likeBtn.querySelector('i');
-            const isLiked = icon.classList.contains('fas');
-            
-            if (forceLike && isLiked) return;
-            
-            if (isLiked) {
-                icon.className = 'far fa-heart';
-                likeBtn.classList.remove('liked');
-                updateLikeCount(videoId, -1);
-            } else {
-                icon.className = 'fas fa-heart';
-                likeBtn.classList.add('liked');
-                updateLikeCount(videoId, 1);
-            }
-        }
-
-        function updateLikeCount(videoId, change) {
-            const card = document.querySelector(`[data-id="${videoId}"]`);
-            if (!card) return;
-            
-            const countSpan = card.querySelector('.action-item:first-child .action-count');
-            let currentCount = parseInt(countSpan.textContent.replace(/[^0-9]/g, '')) || 0;
-            countSpan.textContent = formatCount(currentCount + change);
-        }
-
-        // Toggle Follow (Clickable)
-        function toggleFollow(event, username) {
-            event.stopPropagation();
-            const followBtn = document.getElementById(`follow-${username}`);
-            const isFollowing = followBtn.classList.contains('following');
-            
-            if (isFollowing) {
-                followBtn.textContent = 'Follow';
-                followBtn.classList.remove('following');
-                showToast(`Unfollowed @${username}`);
-            } else {
-                followBtn.textContent = 'Following';
-                followBtn.classList.add('following');
-                showToast(`Following @${username}`);
-            }
-        }
-
-        // Long Press Handlers
-        function handleLongPress(event, videoId) {
-            event.preventDefault();
-            currentVideoId = videoId;
-            document.getElementById('longPressMenu').classList.add('show');
-        }
-
-        function handleTouchStart(event, videoId) {
-            longPressTimer = setTimeout(() => {
-                currentVideoId = videoId;
-                document.getElementById('longPressMenu').classList.add('show');
-            }, 500);
-        }
-
-        function handleTouchEnd() {
-            clearTimeout(longPressTimer);
-        }
-
-        function hideLongPressMenu() {
-            document.getElementById('longPressMenu').classList.remove('show');
-        }
-
-        // Long Press Menu Actions
-        function reportVideo() {
-            showToast('Video reported');
-            hideLongPressMenu();
-        }
-
-        function saveToCollection(videoId) {
-            const id = videoId || currentVideoId;
-            const btn = document.querySelector(`[data-id="${id}"] .action-item:last-child .action-circle i`);
-            if (btn) {
-                btn.className = 'fas fa-bookmark';
-                btn.style.color = '#FF3D6D';
-            }
-            showToast('Saved to collection');
-            hideLongPressMenu();
-        }
-
-        function shareVideo(videoId) {
-            if (shareManager) {
-                shareManager.openShareModal(videoId || currentVideoId);
-            } else {
-                showToast('Share video');
-            }
-            hideLongPressMenu();
-        }
-
-        function downloadVideo() {
-            showToast('Download started');
-            hideLongPressMenu();
-        }
-
-        function hideVideo() {
-            const card = document.querySelector(`[data-id="${currentVideoId}"]`);
-            if (card) {
-                card.style.display = 'none';
-            }
-            showToast('Video hidden');
-            hideLongPressMenu();
-        }
-
-        function copyLink() {
-            navigator.clipboard.writeText(window.location.href);
-            showToast('Link copied to clipboard');
-            hideLongPressMenu();
-        }
-
-        // Search History
-        function toggleSearchHistory() {
-            const history = document.getElementById('searchHistory');
-            history.classList.toggle('show');
-        }
-
-        function renderSearchHistory() {
-            const list = document.getElementById('historyList');
-            if (searchHistory.length === 0) {
-                list.innerHTML = '<div style="color: rgba(255,255,255,0.5); text-align: center; padding: 20px;">No recent searches</div>';
-                return;
-            }
-
-            list.innerHTML = searchHistory.map(term => `
-                <div class="history-item" onclick="searchFromHistory('${term}')">
-                    <div class="history-left">
-                        <i class="fas fa-history"></i>
-                        <span>${term}</span>
-                    </div>
-                    <i class="fas fa-times delete-history-item" onclick="deleteHistoryItem('${term}', event)"></i>
-                </div>
-            `).join('');
-        }
-
-        function addToHistory(term) {
-            if (!term || term.trim() === '') return;
-            term = term.trim();
-            searchHistory = [term, ...searchHistory.filter(t => t !== term)].slice(0, 10);
-            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
-            renderSearchHistory();
-        }
-
-        function deleteHistoryItem(term, event) {
-            event.stopPropagation();
-            searchHistory = searchHistory.filter(t => t !== term);
-            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
-            renderSearchHistory();
-        }
-
-        function clearAllHistory(event) {
-            event.stopPropagation();
-            searchHistory = [];
-            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
-            renderSearchHistory();
-            showToast('Search history cleared');
-        }
-
-        function searchFromHistory(term) {
-            document.getElementById('searchInput').value = term;
-            document.getElementById('clearSearch').style.display = 'block';
-            filterBySearch(term);
-            toggleSearchHistory();
-        }
-
-        // Search by hashtag
-        function searchHashtag(tag) {
-            const searchTerm = tag.replace('#', '');
-            document.getElementById('searchInput').value = searchTerm;
-            document.getElementById('clearSearch').style.display = 'block';
-            filterBySearch(searchTerm);
-        }
-
-        // Filter by search
-        function filterBySearch(term) {
-            addToHistory(term);
-            showSkeleton(2);
-            
-            setTimeout(() => {
-                let filtered = moments.filter(v => 
-                    v.caption.toLowerCase().includes(term.toLowerCase()) ||
-                    v.username.toLowerCase().includes(term.toLowerCase()) ||
-                    v.user_name.toLowerCase().includes(term.toLowerCase())
-                );
-                
-                if (currentCategory !== 'all') {
-                    filtered = filtered.filter(v => v.category === currentCategory);
+                clearSearch() {
+                    const searchInput = document.getElementById('searchInput');
+                    const clearBtn = document.getElementById('clearSearch');
+                    searchInput.value = '';
+                    clearBtn.style.display = 'none';
+                    this.filterBySearch('');
                 }
-                
-                filteredMoments = filtered;
-                renderFeed(filteredMoments);
-                if (observer) {
-                    observer.disconnect();
-                    initVideoObserver();
+
+                searchHashtag(tag) {
+                    const searchTerm = tag.replace('#', '');
+                    document.getElementById('searchInput').value = searchTerm;
+                    document.getElementById('clearSearch').style.display = 'block';
+                    this.filterBySearch(searchTerm);
                 }
-            }, 800);
-        }
 
-        // Category Filter
-        document.querySelectorAll('.category-pill').forEach(pill => {
-            pill.addEventListener('click', function() {
-                document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-                this.classList.add('active');
-                
-                const category = this.dataset.cat;
-                filterByCategory(category);
-            });
-        });
-
-        function filterByCategory(category) {
-            currentCategory = category;
-            const searchInput = document.getElementById('searchInput');
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            
-            showSkeleton(2);
-            
-            setTimeout(() => {
-                let filtered = moments;
-                
-                if (category !== 'all') {
-                    filtered = filtered.filter(v => v.category === category);
+                goToProfile(username) {
+                    window.location.href = `/profile/${username}`;
                 }
-                
-                if (searchTerm) {
-                    filtered = filtered.filter(v => 
-                        v.caption.toLowerCase().includes(searchTerm) ||
-                        v.username.toLowerCase().includes(searchTerm) ||
-                        v.user_name.toLowerCase().includes(searchTerm)
-                    );
-                }
-                
-                filteredMoments = filtered;
-                renderFeed(filteredMoments);
-                if (observer) {
-                    observer.disconnect();
-                    initVideoObserver();
-                }
-            }, 800);
-        }
 
-        // Share Modal Functions
-        function closeShareModal() {
-            document.getElementById('shareModal').style.display = 'none';
-        }
-
-        function shareTo(platform) {
-            showToast(`Shared to ${platform}`);
-            closeShareModal();
-        }
-
-        // Utility Functions
-        function formatCount(num) {
-            if (num >= 1000000) return (num/1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num/1000).toFixed(1) + 'K';
-            return num;
-        }
-
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'toast-notification';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 2000);
-        }
-
-        function goToProfile(username) {
-            window.location.href = `/profile/${username}`;
-        }
-
-        function openComments(videoId) {
-            showToast('Comments coming soon!');
-        }
-
-        function goBack() {
-            window.location.href = '/dashboard';
-        }
-
-        // Close search history when clicking outside
-        document.addEventListener('click', function(event) {
-            const searchSection = document.querySelector('.search-section');
-            const searchHistory = document.getElementById('searchHistory');
-            const searchInput = document.getElementById('searchInput');
-            
-            if (!searchSection.contains(event.target) && searchHistory.classList.contains('show')) {
-                searchHistory.classList.remove('show');
-            }
-        });
-
-        // Video play/pause on click
-        function setupEventListeners() {
-            document.addEventListener('click', function(event) {
-                const videoCard = event.target.closest('.video-card');
-                if (!videoCard) return;
-                
-                const video = videoCard.querySelector('video');
-                const isActionBtn = event.target.closest('.action-circle');
-                const isUserRow = event.target.closest('.user-info-row');
-                const isHashtag = event.target.closest('.hashtag');
-                const isFollowBtn = event.target.closest('.follow-btn');
-                
-                if (video && !isActionBtn && !isUserRow && !isHashtag && !isFollowBtn) {
-                    if (video.paused) {
-                        video.play();
-                    } else {
-                        video.pause();
+                async openComments(videoId) {
+                    try {
+                        const comments = await this.api.getComments(videoId);
+                        // Implement comments modal
+                        this.showToast('Comments feature coming soon!');
+                    } catch (error) {
+                        this.showToast('Failed to load comments');
                     }
                 }
-            });
-        }
 
-        // Initialize on load
-        window.addEventListener('load', init);
+                async loadMore() {
+                    if (this.isLoading || !this.hasMore) return;
+                    
+                    this.isLoading = true;
+                    this.currentPage++;
+                    
+                    try {
+                        const response = await this.api.getStream({ 
+                            category: this.currentCategory,
+                            page: this.currentPage,
+                            limit: 10
+                        });
+                        
+                        if (response.moments?.length) {
+                            this.filteredMoments = [...this.filteredMoments, ...response.moments];
+                            this.renderFeed(this.filteredMoments);
+                            this.initVideoObserver();
+                        }
+                        
+                        this.hasMore = this.currentPage < response.pagination?.pages;
+                    } catch (error) {
+                        this.showToast('Failed to load more moments');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+            }
+
+            // API Client
+            class MomentsAPI {
+                constructor(userId) {
+                    this.userId = userId;
+                    this.baseUrl = '/api/moments';
+                }
+
+                async request(endpoint, options = {}) {
+                    const response = await fetch(this.baseUrl + endpoint, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content,
+                            ...options.headers
+                        },
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`API request failed: ${response.status}`);
+                    }
+                    
+                    return response.json();
+                }
+
+                getStream(params = {}) {
+                    const query = new URLSearchParams(params).toString();
+                    return this.request(`/stream?${query}`);
+                }
+
+                sparkMoment(id) {
+                    return this.request(`/${id}/spark`, { method: 'POST' });
+                }
+
+                saveMoment(id) {
+                    return this.request(`/${id}/save`, { method: 'POST' });
+                }
+
+                followUser(userId) {
+                    return this.request(`/user/${userId}/follow`, { method: 'POST' });
+                }
+
+                getShareData(id) {
+                    return this.request(`/${id}/share-data`);
+                }
+
+                trackShare(id) {
+                    return this.request(`/${id}/share`, { method: 'POST' });
+                }
+
+                getComments(id, page = 1) {
+                    return this.request(`/${id}/comments?page=${page}`);
+                }
+            }
+
+            // Initialize app
+            window.app = new MomentsApp();
+
+            // Handle infinite scroll
+            const feedContainer = document.getElementById('feedContainer');
+            feedContainer.addEventListener('scroll', () => {
+                const { scrollTop, scrollHeight, clientHeight } = feedContainer;
+                if (scrollTop + clientHeight >= scrollHeight - 100) {
+                    app.loadMore();
+                }
+            });
+        })();
     </script>
-
-    <!-- External Scripts -->
-   <%- include('partials/share-modal') %>
-        <script src="/js/dashboardAPI.js"></script>
-        <script src="/js/shareManager.js"></script>
-        <script>
-            window.addEventListener('load', init);
-        </script>
 </body>
 
 </html>

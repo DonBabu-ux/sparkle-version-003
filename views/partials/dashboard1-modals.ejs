@@ -44,7 +44,7 @@
                 <label class="form-label">Post Type</label>
                 <div class="post-type-selector">
                     <button class="post-type-btn active" data-post-type="public">Public</button>
-                    <button class="post-type-btn" data-post-type="campus">Campus Only</button>
+                    <button class="post-type-btn" data-post-type="campus_only">Campus Only</button>
                     <button class="post-type-btn" data-post-type="anonymous">Anonymous</button>
                 </div>
                 <div style="font-size: 12px; color: #666; margin-top: 5px;">
@@ -159,8 +159,8 @@
                                 style="display: inline-block; width: 10px; height: 10px; background: #28a745; border-radius: 50%;"></span>
                             <span style="color: #666;">Active</span>
                         </div>
-                        <small style="color: #666;">Member since <%= typeof user !=='undefined' && user.created_at ? new
-                                Date(user.created_at).toLocaleDateString() : 'N/A' %></small>
+                        <small style="color: #666;">Member since <%= typeof user !=='undefined' && user.joined_at ? new
+                                Date(user.joined_at).toLocaleDateString() : 'N/A' %></small>
                     </div>
 
                     <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>

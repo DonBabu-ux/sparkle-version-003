@@ -18,6 +18,7 @@ const skillMarketRoutes = require('./skill-market.routes');
 const uploadRoutes = require('./upload.routes');
 const shareRoutes = require('./share.routes');
 const groupChatRoutes = require('./groupChat.routes');
+const notificationsRoutes = require('./notifications.routes');
 
 const pool = require('../../config/database');
 
@@ -40,6 +41,7 @@ router.use('/stories', storiesRoutes);
 router.use('/moments', momentsRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/share', shareRoutes);
+router.use('/notifications', notificationsRoutes);
 
 // Mount feature routes directly at the root of /api to match dashboardAPI.js hardcoded paths
 router.use('/', campusRoutes);

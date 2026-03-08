@@ -6,5 +6,9 @@ const { upload } = require('../../middleware/upload.middleware');
 
 router.get('/active', authMiddleware, feedController.getStories);
 router.post('/', authMiddleware, upload.single('media'), feedController.createStory);
+// interactions
+router.get('/:id/likes', authMiddleware, feedController.getStoryLikes);
+router.post('/:id/like', authMiddleware, feedController.likeStory);
+router.post('/:id/share', authMiddleware, feedController.shareStory);
 
 module.exports = router;

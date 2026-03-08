@@ -104,8 +104,9 @@ const savePost = async (req, res) => {
 
 const sharePost = async (req, res) => {
     try {
+        const userId = req.user.userId || req.user.user_id;
         const postId = req.params.id;
-        await Post.incrementShare(postId);
+        await Post.incrementShare(postId, userId);
         res.json({ message: 'Post share count updated' });
     } catch (error) {
         logger.error('Share post error:', error);

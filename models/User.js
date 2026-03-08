@@ -147,6 +147,32 @@ class User {
     }
 
     /**
+     * Fetch a small set of users that the current user isn't already following.
+     * Used for profile suggestions on the feed or moments pages.
+     */
+    static async getSuggestions(currentUserId, limit = 5) {
+        const [users] = await pool.query(
+            `
+            SELECT 
+                u.user_id,
+                u.username,
+                u.name,
+                u.avatar_url,
+                (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count
+            FROM users u
+            WHERE u.user_id != ? 
+            AND u.user_id NOT IN (
+                SELECT following_id FROM follows WHERE follower_id = ?
+            )
+            ORDER BY RAND()
+            LIMIT ?
+        `,
+            [currentUserId, currentUserId, limit]
+        );
+        return users;
+    }
+
+    /**
      * Get user with profile stats
      */
     static async getProfileWithStats(username, currentUserId) {
@@ -203,6 +229,13 @@ class User {
                 'INSERT INTO follows (follower_id, following_id) VALUES (?, ?)',
                 [followerId, followingId]
             );
+            
+            // Create notification for follow
+            await pool.query(`
+                INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
+                VALUES (UUID(), ?, 'follow', 'New Follower', 'Someone started following you.', ?, '/connect')
+            `, [followingId, followerId]);
+            
             return true;
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') return true; // Already following

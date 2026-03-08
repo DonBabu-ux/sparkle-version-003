@@ -671,6 +671,7 @@ CREATE TABLE `moments` (
   `like_count` INT DEFAULT 0,
   `comment_count` INT DEFAULT 0,
   `share_count` INT DEFAULT 0,
+  `category` VARCHAR(50) DEFAULT 'general',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`moment_id`),
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
@@ -939,3 +940,102 @@ INSERT INTO safe_meetup_locations (location_id, campus, name, building, descript
 (UUID(), 'main_campus', 'Bookstore Entrance', 'Campus Bookstore', 'Public area with regular foot traffic', 1, 0, 1);
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================
+-- MOMENTS RELATED NEW TABLES
+-- ============================================
+
+-- Moment likes table
+CREATE TABLE IF NOT EXISTS `moment_likes` (
+  `moment_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`moment_id`, `user_id`),
+  FOREIGN KEY (`moment_id`) REFERENCES `moments`(`moment_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Saved moments table
+CREATE TABLE IF NOT EXISTS `saved_moments` (
+  `moment_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`moment_id`, `user_id`),
+  FOREIGN KEY (`moment_id`) REFERENCES `moments`(`moment_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Moment hashtags table
+CREATE TABLE IF NOT EXISTS `moment_hashtags` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `moment_id` CHAR(36) NOT NULL,
+  `hashtag` VARCHAR(100) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_hashtag` (`hashtag`),
+  FOREIGN KEY (`moment_id`) REFERENCES `moments`(`moment_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================
+-- MOMENTS RELATED NEW TABLES
+-- ============================================
+
+-- Moment likes table
+CREATE TABLE IF NOT EXISTS `moment_likes` (
+  `moment_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`moment_id`, `user_id`),
+  FOREIGN KEY (`moment_id`) REFERENCES `moments`(`moment_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Saved moments table
+CREATE TABLE IF NOT EXISTS `saved_moments` (
+  `moment_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`moment_id`, `user_id`),
+  FOREIGN KEY (`moment_id`) REFERENCES `moments`(`moment_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Moment hashtags table
+CREATE TABLE IF NOT EXISTS `moment_hashtags` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `moment_id` CHAR(36) NOT NULL,
+  `hashtag` VARCHAR(100) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_hashtag` (`hashtag`),
+  FOREIGN KEY (`moment_id`) REFERENCES `moments`(`moment_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Stories table
+DROP TABLE IF EXISTS `stories`;
+CREATE TABLE `stories` (
+  `story_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `media_url` VARCHAR(500) NOT NULL,
+  `media_type` ENUM('image', 'video') DEFAULT 'image',
+  `caption` VARCHAR(255) DEFAULT NULL,
+  `view_count` INT DEFAULT 0,
+  `like_count` INT DEFAULT 0,
+  `share_count` INT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`story_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX `idx_stories_user` (`user_id`, `created_at`),
+  INDEX `idx_stories_expiry` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Story likes table
+DROP TABLE IF EXISTS `story_likes`;
+CREATE TABLE `story_likes` (
+  `like_id` CHAR(36) NOT NULL,
+  `story_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`like_id`),
+  UNIQUE KEY `unique_story_like` (`story_id`, `user_id`),
+  FOREIGN KEY (`story_id`) REFERENCES `stories`(`story_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

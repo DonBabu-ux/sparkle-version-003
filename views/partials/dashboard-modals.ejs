@@ -62,7 +62,7 @@
                         <div class="type-chip active" data-post-type="public">
                             <i class="fas fa-globe"></i> Public
                         </div>
-                        <div class="type-chip" data-post-type="campus">
+                        <div class="type-chip" data-post-type="campus_only">
                             <i class="fas fa-university"></i> Campus
                         </div>
                         <div class="type-chip" data-post-type="anonymous">
@@ -1261,4 +1261,47 @@
             event.target.style.display = 'none';
         }
     });
+
+    window.markNotificationRead = async function(id) {
+        try {
+            await DashboardAPI.markNotificationRead(id);
+            if (window.loadNotifications) window.loadNotifications();
+        } catch(e) {
+            console.error('Failed to mark read', e);
+        }
+    };
+    
+    window.markAllNotificationsRead = async function() {
+        try {
+            await DashboardAPI.markAllNotificationsRead();
+            if (window.loadNotifications) window.loadNotifications();
+        } catch(e) {
+            console.error('Failed to mark all read', e);
+        }
+    };
 </script>
+
+<!-- Notifications Modal -->
+<div class="modal premium-modal" id="notificationsModal">
+    <div class="modal-content premium-modal-content" style="max-width: 500px; height: 80vh; display: flex; flex-direction: column; background: var(--card-bg);">
+        <div class="modal-header premium-modal-header" style="border-bottom: 1px solid var(--border);">
+            <div class="modal-title premium-modal-title" style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-bell text-primary"></i> Notifications
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="btn btn-outline-primary btn-sm" onclick="markAllNotificationsRead()" style="font-size: 12px; padding: 5px 10px;">Mark All Read</button>
+                <button class="close-modal premium-close-btn" id="closeNotificationsModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="modal-body premium-modal-body" style="flex: 1; overflow-y: auto; padding: 0;">
+            <div id="notificationList" style="display: flex; flex-direction: column;">
+                <div style="padding: 40px; text-align: center; color: #999;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <div style="margin-top: 10px;">Loading notifications...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -125,7 +125,7 @@
                                     <% } %>
 
                                         <div class="discover-avatar-container">
-                                            <img src="<%= u.avatar_url || '/uploads/avatars/default.png' %>"
+                                            <img src="<%= u.avatar_url || u.avatar || '/uploads/avatars/default.png' %>"
                                                 alt="<%= u.username %>" class="discover-avatar">
                                             <% if (u.is_online) { %>
                                                 <div class="discover-status"></div>
@@ -286,8 +286,8 @@
                     </button>` : ''}
 
                     <div class="discover-avatar-container">
-                        <img src="${u.avatar}" alt="${u.username}" class="discover-avatar">
-                        ${u.isOnline ? '<div class="discover-status"></div>' : ''}
+                        <img src="${u.avatar || u.avatar_url || '/uploads/avatars/default.png'}" alt="${u.username}" class="discover-avatar">
+                        ${u.isOnline || u.is_online ? '<div class="discover-status"></div>' : ''}
                     </div>
 
                     <div class="discover-name">

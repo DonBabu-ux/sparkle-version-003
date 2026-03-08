@@ -1765,6 +1765,25 @@ function showAfterglowViewer(story) {
         currentStoryIndex = activeStories.findIndex(s => (s.story_id || s.user_id) === (story.story_id || story.user_id));
     }
 
+    // when opening a new story, fetch like state so UI matches
+    (async () => {
+        try {
+            const storyId = story.story_id || story.id;
+            const info = await DashboardAPI.getStoryLikes(storyId);
+            const sparkCount = document.getElementById('sparkCount');
+            if (sparkCount && info.like_count !== undefined) {
+                sparkCount.textContent = info.like_count;
+            }
+            const sparkIcon = document.querySelector('.spark-action .action-icon-circle i');
+            if (sparkIcon) {
+                sparkIcon.classList.toggle('fas', info.liked);
+                sparkIcon.classList.toggle('far', !info.liked);
+            }
+        } catch (e) {
+            console.warn('Could not load story like state', e);
+        }
+    })();
+
     // Reset previous state
     isStoryPaused = false;
     storyRemainingTime = 0;
@@ -2480,29 +2499,59 @@ window.submitPost = async function () {
 };
 
 // AFTERGLOW INTERACTIONS
-function sparkAfterglow() {
-    const btn = document.querySelector('.spark-action .action-icon-circle');
-    if (btn) {
-        btn.style.transform = 'scale(1.3)';
-        setTimeout(() => btn.style.transform = 'scale(1)', 200);
+async function sparkAfterglow() {
+    if (currentStoryIndex === -1 || !activeStories[currentStoryIndex]) {
+        console.warn('sparkAfterglow called without active story');
+        return;
     }
+    const story = activeStories[currentStoryIndex];
+    const storyId = story.story_id || story.id;
 
-    const sparkCount = document.getElementById('sparkCount');
-    if (sparkCount) {
-        let count = parseInt(sparkCount.textContent) || 0;
-        sparkCount.textContent = count + 1;
+    try {
+        const result = await DashboardAPI.likeStory(storyId);
+
+        // update UI count
+        const sparkCount = document.getElementById('sparkCount');
+        if (sparkCount && result.like_count !== undefined) {
+            sparkCount.textContent = result.like_count;
+        }
+
+        // toggle icon style
+        const icon = document.querySelector('.spark-action .action-icon-circle i');
+        if (icon) {
+            icon.classList.toggle('fas', result.liked);
+            icon.classList.toggle('far', !result.liked);
+        }
+
+        // simple pulse animation
+        const btn = document.querySelector('.spark-action .action-icon-circle');
+        if (btn) {
+            btn.style.transform = 'scale(1.3)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 200);
+        }
+
+        showToast(result.liked ? '✨ AfterGlow Sparked!' : '✨ Spark removed');
+    } catch (e) {
+        console.error('Error liking story', e);
+        showToast('⚠️ Unable to spark right now');
     }
-
-    showToast('✨ AfterGlow Sparked!');
 }
 
-function shareAfterglow() {
+async function shareAfterglow() {
     if (currentStoryIndex === -1 || !activeStories[currentStoryIndex]) {
         console.error('No active story to share');
         return;
     }
     const story = activeStories[currentStoryIndex];
     const storyId = story.id || story.story_id;
+
+    // record share on server (for counts and notifications)
+    try {
+        await DashboardAPI.shareStory(storyId);
+    } catch (e) {
+        console.warn('Could not record story share', e);
+        // continue anyway
+    }
 
     if (window.shareManager) {
         window.shareManager.openShareSheet('story', storyId);

@@ -198,6 +198,28 @@ body.sidebar-collapsed {
     top: 0;
     left: 0;
     width: 100%;
+}
+
+/* Feed profile suggestion styling */
+.profile-suggestions {
+    width: 100%;
+    box-sizing: border-box;
+}
+.profile-suggestions .suggestion-user {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.profile-suggestions .suggestion-user img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+.profile-suggestions .suggestion-user button {
+    flex-shrink: 0;
+}
+
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
     z-index: 999;
@@ -5069,6 +5091,14 @@ input:checked+.toggle-slider:before {
     color: #fff;
     border-color: transparent;
     box-shadow: 0 0 20px rgba(255, 61, 109, 0.4);
+}
+
+/* filled spark (liked) should stand out */
+.viewer-action-btn.spark-action .action-icon-circle i.fas {
+    color: #ff3d6d;
+}
+.viewer-action-btn.spark-action .action-icon-circle i.far {
+    color: #fff;
 }
 
 .viewer-action-btn.share-action:hover .action-icon-circle {

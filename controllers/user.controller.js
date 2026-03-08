@@ -33,7 +33,13 @@ const searchUsers = async (req, res) => {
             users = await User.search(query, currentUserId);
         }
 
-        res.json(users);
+        const sanitizedUsers = users.map(u => ({
+            ...u,
+            id: u.user_id,
+            avatar: u.avatar_url || '/uploads/avatars/default.png'
+        }));
+
+        res.json(sanitizedUsers);
     } catch (error) {
         logger.error('Search users error:', error);
         res.status(500).json({ error: 'Failed to search users' });
@@ -253,6 +259,19 @@ const getUserPosts = async (req, res) => {
     }
 };
 
+// return a small batch of users that the current user might want to follow
+const getSuggestions = async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 5;
+        const currentUserId = req.user.userId || req.user.user_id;
+        const suggestions = await User.getSuggestions(currentUserId, limit);
+        res.json(suggestions);
+    } catch (error) {
+        logger.error('Get suggestions error:', error);
+        res.status(500).json({ error: 'Failed to get suggestions' });
+    }
+};
+
 module.exports = {
     getCurrentUser,
     searchUsers,
@@ -268,5 +287,6 @@ module.exports = {
     getUserProfile,
     getUserProfile,
     getUserPosts,
+    getSuggestions,
     updateSettings
 };

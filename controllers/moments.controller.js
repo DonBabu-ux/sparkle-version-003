@@ -1,8 +1,76 @@
 const pool = require('../config/database');
 const logger = require('../utils/logger');
 
+let tablesEnsured = false;
+
+const ensureMomentTables = async () => {
+    if (tablesEnsured) return;
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS moment_likes (
+                moment_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (moment_id, user_id),
+                INDEX idx_ml_user (user_id),
+                INDEX idx_ml_moment (moment_id)
+            )
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS saved_moments (
+                moment_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (moment_id, user_id),
+                INDEX idx_sm_user (user_id)
+            )
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS moment_hashtags (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                moment_id CHAR(36) NOT NULL,
+                hashtag VARCHAR(100) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_mh_moment (moment_id),
+                INDEX idx_mh_hashtag (hashtag)
+            )
+        `);
+        tablesEnsured = true;
+        logger.info('Moment tables verified/created');
+    } catch (e) {
+        logger.warn('Could not ensure moment tables: ' + e.message);
+    }
+};
+
+let columnsEnsured = false;
+
+const ensureMomentColumns = async () => {
+    if (columnsEnsured) return;
+    const columnsToAdd = [
+        { name: 'like_count', def: 'INT DEFAULT 0' },
+        { name: 'comment_count', def: 'INT DEFAULT 0' },
+        { name: 'share_count', def: 'INT DEFAULT 0' },
+        { name: 'category', def: 'VARCHAR(50) DEFAULT NULL' }
+    ];
+    for (const col of columnsToAdd) {
+        try {
+            await pool.query(`ALTER TABLE moments ADD COLUMN ${col.name} ${col.def}`);
+            logger.info(`Added column moments.${col.name}`);
+        } catch (e) {
+            // Column already exists — that's fine
+        }
+    }
+    columnsEnsured = true;
+};
+
 const renderMoments = async (req, res) => {
     try {
+        // Ensure moment_likes and saved_moments tables exist
+        await ensureMomentTables();
+
+        // Also ensure moments table has expected columns (add if missing)
+        await ensureMomentColumns();
+
         // Fetch moments with user details
         const [moments] = await pool.query(`
             SELECT 
@@ -11,39 +79,46 @@ const renderMoments = async (req, res) => {
                 m.caption,
                 m.media_url,
                 m.media_type,
-                m.like_count,
-                m.comment_count,
-                m.share_count,
+                IFNULL(m.like_count, 0) as like_count,
+                IFNULL(m.comment_count, 0) as comment_count,
+                IFNULL(m.share_count, 0) as share_count,
                 m.created_at,
                 m.category,
                 u.username,
                 u.name as user_name,
                 u.avatar_url,
                 (SELECT COUNT(*) FROM follows WHERE following_id = m.user_id) as follower_count,
-                (SELECT COUNT(*) FROM moment_likes WHERE moment_id = m.moment_id AND user_id = ?) as is_liked,
-                (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved,
+                IFNULL(ml.liked, 0) as is_liked,
+                IFNULL(sm.saved, 0) as is_saved,
                 (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following
             FROM moments m 
-            JOIN users u ON m.user_id = u.user_id 
+            JOIN users u ON m.user_id = u.user_id
+            LEFT JOIN (SELECT moment_id, 1 as liked FROM moment_likes WHERE user_id = ?) ml ON ml.moment_id = m.moment_id
+            LEFT JOIN (SELECT moment_id, 1 as saved FROM saved_moments WHERE user_id = ?) sm ON sm.moment_id = m.moment_id
             ORDER BY 
                 CASE WHEN m.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 2 END,
-                m.like_count DESC,
                 m.created_at DESC
             LIMIT 50
         `, [req.user.user_id, req.user.user_id, req.user.user_id]);
 
         // Get trending hashtags
-        const [trendingHashtags] = await pool.query(`
-            SELECT 
-                hashtag,
-                COUNT(*) as usage_count,
-                MAX(created_at) as last_used
-            FROM moment_hashtags 
-            WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
-            GROUP BY hashtag
-            ORDER BY usage_count DESC, last_used DESC
-            LIMIT 10
-        `);
+        let trendingHashtags = [];
+        try {
+            const [tags] = await pool.query(`
+                SELECT 
+                    hashtag,
+                    COUNT(*) as usage_count,
+                    MAX(created_at) as last_used
+                FROM moment_hashtags 
+                WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
+                GROUP BY hashtag
+                ORDER BY usage_count DESC, last_used DESC
+                LIMIT 10
+            `);
+            trendingHashtags = tags;
+        } catch (e) {
+            logger.warn('Could not fetch trending hashtags: ' + e.message);
+        }
 
         // Get suggested users
         const [suggestedUsers] = await pool.query(`
@@ -63,7 +138,6 @@ const renderMoments = async (req, res) => {
         `, [req.user.user_id, req.user.user_id]);
 
         // Get user's interests/categories
-        // Note: Assuming user_interests table exists, wrap in try/catch in case it doesn't
         let interests = [];
         try {
             const [userInterests] = await pool.query(`
@@ -98,6 +172,7 @@ const renderMoments = async (req, res) => {
             trendingHashtags: [],
             suggestedUsers: [],
             userInterests: [],
+            csrfToken: req.csrfToken ? req.csrfToken() : null,
             env: {
                 API_URL: process.env.API_URL || '',
                 WS_URL: process.env.WS_URL || ''
@@ -209,7 +284,7 @@ const sparkMoment = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.user_id;
 
-        // Check if already sparked
+        // Check if already sparks
         const [existing] = await pool.query(
             'SELECT * FROM moment_likes WHERE moment_id = ? AND user_id = ?',
             [id, userId]
@@ -240,17 +315,22 @@ const sparkMoment = async (req, res) => {
             action = 'liked';
 
             // Create notification for moment owner
-            const [moment] = await pool.query(
-                'SELECT user_id FROM moments WHERE moment_id = ?',
-                [id]
-            );
-            if (moment[0] && moment[0].user_id !== userId) {
-                await pool.query(
-                    `INSERT INTO notifications 
-                    (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url) 
-                    VALUES (UUID(), ?, 'spark', 'Moment Sparked!', 'Someone sparked your moment.', ?, 'moment', ?, CONCAT('/moments/', ?))`,
-                    [moment[0].user_id, id, userId, id]
+            try {
+                const [moment] = await pool.query(
+                    'SELECT user_id FROM moments WHERE moment_id = ?',
+                    [id]
                 );
+                if (moment[0] && moment[0].user_id !== userId) {
+                    const notificationId = require('crypto').randomUUID();
+                    await pool.query(
+                        `INSERT INTO notifications 
+                        (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url) 
+                        VALUES (?, ?, 'spark', 'Moment Sparked!', 'Someone sparked your moment.', ?, 'moment', ?, CONCAT('/moments/', ?))`,
+                        [notificationId, moment[0].user_id, id, userId, id]
+                    );
+                }
+            } catch (notiError) {
+                console.error('Notification Error:', notiError.message);
             }
         }
 
@@ -285,7 +365,7 @@ const createMoment = async (req, res) => {
 
         // Extract hashtags from caption
         const hashtags = caption ? (caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
-        
+
         // Start transaction
         const connection = await pool.getConnection();
         await connection.beginTransaction();

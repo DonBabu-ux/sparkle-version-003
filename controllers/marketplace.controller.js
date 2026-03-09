@@ -1,8 +1,11 @@
-const Marketplace = require('../models/Marketplace');
+﻿const Marketplace = require('../models/Marketplace');
+const LostFound = require('../models/LostFound');
+const SkillMarket = require('../models/SkillMarket');
 const marketplaceSchemas = require('../schemas/marketplace.schemas');
 const { validate } = require('../middleware/validation.middleware');
 const logger = require('../utils/logger');
 const upload = require('../utils/fileUpload');
+const crypto = require('crypto');
 
 // Helper for media URLs
 const getSafeMediaUrl = (url) => {
@@ -52,7 +55,7 @@ const normalizeUser = (user) => {
 const renderMarketplace = async (req, res) => {
     try {
         // Get user with safe defaults
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
 
         const filters = {
             category: req.query.category || 'all',
@@ -92,7 +95,7 @@ const renderMarketplace = async (req, res) => {
         logger.error('Render marketplace error:', error);
 
         // Get user with safe defaults
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
 
         res.render('marketplace', {
             title: 'Marketplace',
@@ -106,7 +109,7 @@ const renderMarketplace = async (req, res) => {
 const renderListingDetail = async (req, res) => {
     try {
         // Get user with safe defaults
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
 
         const listing = await Marketplace.getListingWithMedia(req.params.id);
 
@@ -135,7 +138,7 @@ const renderListingDetail = async (req, res) => {
         logger.error('Render listing detail error:', error);
 
         // Get user with safe defaults
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
 
         res.status(500).render('error', {
             title: 'Error',
@@ -147,7 +150,7 @@ const renderListingDetail = async (req, res) => {
 
 const renderUserListings = async (req, res) => {
     try {
-        const user = normalizeUser(req.session?.user);
+        const user = normalizeUser(req.user);
 
         if (!user || !user.user_id) {
             return res.redirect('/login');
@@ -171,7 +174,7 @@ const renderUserListings = async (req, res) => {
         res.status(500).render('error', {
             title: 'Error',
             message: 'Failed to load your listings',
-            user: normalizeUser(req.session?.user)
+            user: normalizeUser(req.user)
         });
     }
 };
@@ -182,7 +185,7 @@ const getListings = [
     validate(marketplaceSchemas.searchListings, 'query'),
     async (req, res) => {
         try {
-            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            const user = normalizeUser(req.user);
             const filters = {
                 ...req.query,
                 campus: user?.campus || req.query.campus || 'main_campus'
@@ -257,7 +260,7 @@ const createListing = [
     validate(marketplaceSchemas.createListing),
     async (req, res) => {
         try {
-            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            const user = normalizeUser(req.user);
             if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
@@ -296,7 +299,7 @@ const updateListing = [
     validate(marketplaceSchemas.updateListing),
     async (req, res) => {
         try {
-            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            const user = normalizeUser(req.user);
             if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
@@ -329,7 +332,7 @@ const updateListing = [
 
 const deleteListing = async (req, res) => {
     try {
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -357,7 +360,7 @@ const contactSeller = [
     validate(marketplaceSchemas.contactSeller),
     async (req, res) => {
         try {
-            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            const user = normalizeUser(req.user);
             if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
@@ -398,7 +401,7 @@ const contactSeller = [
 
 const getUserChats = async (req, res) => {
     try {
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -423,7 +426,7 @@ const getUserChats = async (req, res) => {
 
 const getChatMessages = async (req, res) => {
     try {
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -453,7 +456,7 @@ const sendMessage = [
     validate(marketplaceSchemas.sendMessage),
     async (req, res) => {
         try {
-            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            const user = normalizeUser(req.user);
             if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
@@ -484,7 +487,7 @@ const toggleFavorite = [
     validate(marketplaceSchemas.toggleFavorite, 'body'),
     async (req, res) => {
         try {
-            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            const user = normalizeUser(req.user);
             if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
@@ -511,7 +514,7 @@ const toggleFavorite = [
 
 const getFavorites = async (req, res) => {
     try {
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -536,7 +539,7 @@ const getFavorites = async (req, res) => {
 
 const getCounts = async (req, res) => {
     try {
-        const user = req.session?.user ? normalizeUser(req.session.user) : null;
+        const user = normalizeUser(req.user);
         if (!user || !user.user_id) {
             return res.json({
                 favoritesCount: 0,
@@ -588,7 +591,7 @@ const createLostFoundItem = [
     validate(marketplaceSchemas.createLostFoundItem),
     async (req, res) => {
         try {
-            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            const user = normalizeUser(req.user);
             if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
@@ -596,10 +599,39 @@ const createLostFoundItem = [
                 });
             }
 
-            // TODO: Implement createLostFoundItem in model
+            const { type, title, description, category, location, date_lost_found, contact_info } = req.body;
+
+            if (!type || !['lost', 'found'].includes(type)) {
+                return res.status(400).json({ success: false, message: 'Type must be "lost" or "found"' });
+            }
+            if (!title || !title.trim()) {
+                return res.status(400).json({ success: false, message: 'Title is required' });
+            }
+
+            // Handle optional uploaded image
+            const imageUrl = req.file ? (req.file.path || `/uploads/${req.file.filename}`) : null;
+
+            const itemData = {
+                item_id: crypto.randomUUID(),
+                reporter_id: user.user_id,
+                type,
+                title: title.trim(),
+                description: description ? description.trim() : null,
+                category: category || 'other',
+                campus: user.campus || 'main_campus',
+                location: location ? location.trim() : null,
+                date_lost_found: date_lost_found || new Date().toISOString().split('T')[0],
+                contact_info: contact_info ? contact_info.trim() : null,
+                image_url: imageUrl,
+                media: imageUrl ? [imageUrl] : []
+            };
+
+            await LostFound.create(itemData);
+
             res.status(201).json({
                 success: true,
-                message: 'Item reported successfully'
+                message: 'Item reported successfully',
+                item_id: itemData.item_id
             });
         } catch (error) {
             logger.error('Create lost & found item error:', error);
@@ -632,7 +664,7 @@ const createSkillOffer = [
     validate(marketplaceSchemas.createSkillOffer),
     async (req, res) => {
         try {
-            const user = req.session?.user ? normalizeUser(req.session.user) : null;
+            const user = normalizeUser(req.user);
             if (!user || !user.user_id) {
                 return res.status(401).json({
                     success: false,
@@ -640,10 +672,33 @@ const createSkillOffer = [
                 });
             }
 
-            // TODO: Implement createSkillOffer in model
+            const { title, description, category, skill_type, price, is_free } = req.body;
+
+            if (!title || !title.trim()) {
+                return res.status(400).json({ success: false, message: 'Title is required' });
+            }
+            if (!category) {
+                return res.status(400).json({ success: false, message: 'Category is required' });
+            }
+
+            const offerData = {
+                offer_id: crypto.randomUUID(),
+                user_id: user.user_id,
+                title: title.trim(),
+                description: description ? description.trim() : null,
+                category,
+                skill_type: skill_type || 'teaching',
+                price: is_free ? 0 : (parseFloat(price) || 0),
+                is_free: is_free ? 1 : 0,
+                campus: user.campus || 'main_campus'
+            };
+
+            await SkillMarket.createOffer(offerData);
+
             res.status(201).json({
                 success: true,
-                message: 'Skill offer created successfully'
+                message: 'Skill offer created successfully',
+                offer_id: offerData.offer_id
             });
         } catch (error) {
             logger.error('Create skill offer error:', error);
@@ -682,7 +737,7 @@ const getSafeMeetupLocations = async (req, res) => {
 
 const reportListing = async (req, res) => {
     try {
-        const user = req.user || req.session?.user;
+        const user = req.user;
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -715,7 +770,7 @@ const reportListing = async (req, res) => {
 
 const blockUser = async (req, res) => {
     try {
-        const user = req.user || req.session?.user;
+        const user = req.user;
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -748,7 +803,7 @@ const blockUser = async (req, res) => {
 
 const createReview = async (req, res) => {
     try {
-        const user = req.user || req.session?.user;
+        const user = req.user;
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -820,7 +875,7 @@ const getUserReviews = async (req, res) => {
 
 const boostListing = async (req, res) => {
     try {
-        const user = req.user || req.session?.user;
+        const user = req.user;
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -864,7 +919,7 @@ const boostListing = async (req, res) => {
 
 const markAsSold = async (req, res) => {
     try {
-        const user = req.user || req.session?.user;
+        const user = req.user;
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,
@@ -908,7 +963,7 @@ const markAsSold = async (req, res) => {
 
 const relistItem = async (req, res) => {
     try {
-        const user = req.user || req.session?.user;
+        const user = req.user;
         if (!user || !user.user_id) {
             return res.status(401).json({
                 success: false,

@@ -372,7 +372,7 @@
         try {
             await DashboardAPI.createEvent({
                 title, description, start_time, location,
-                campus: '<%= typeof user !== "undefined" ? user.campus : "main" %>',
+                campus: typeof window.currentUser !== "undefined" && window.currentUser.campus ? window.currentUser.campus : "main",
                 is_public: true
             });
             alert('Event created!');
@@ -471,7 +471,7 @@
         try {
             await DashboardAPI.createPoll({
                 question, options,
-                campus: '<%= typeof user !== "undefined" ? user.campus : "main" %>',
+                campus: typeof window.currentUser !== "undefined" && window.currentUser.campus ? window.currentUser.campus : "main",
                 is_anonymous
             });
             alert('Poll created!');
@@ -1262,20 +1262,20 @@
         }
     });
 
-    window.markNotificationRead = async function(id) {
+    window.markNotificationRead = async function (id) {
         try {
             await DashboardAPI.markNotificationRead(id);
             if (window.loadNotifications) window.loadNotifications();
-        } catch(e) {
+        } catch (e) {
             console.error('Failed to mark read', e);
         }
     };
-    
-    window.markAllNotificationsRead = async function() {
+
+    window.markAllNotificationsRead = async function () {
         try {
             await DashboardAPI.markAllNotificationsRead();
             if (window.loadNotifications) window.loadNotifications();
-        } catch(e) {
+        } catch (e) {
             console.error('Failed to mark all read', e);
         }
     };
@@ -1283,13 +1283,15 @@
 
 <!-- Notifications Modal -->
 <div class="modal premium-modal" id="notificationsModal">
-    <div class="modal-content premium-modal-content" style="max-width: 500px; height: 80vh; display: flex; flex-direction: column; background: var(--card-bg);">
+    <div class="modal-content premium-modal-content"
+        style="max-width: 500px; height: 80vh; display: flex; flex-direction: column; background: var(--card-bg);">
         <div class="modal-header premium-modal-header" style="border-bottom: 1px solid var(--border);">
             <div class="modal-title premium-modal-title" style="display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-bell text-primary"></i> Notifications
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <button class="btn btn-outline-primary btn-sm" onclick="markAllNotificationsRead()" style="font-size: 12px; padding: 5px 10px;">Mark All Read</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="markAllNotificationsRead()"
+                    style="font-size: 12px; padding: 5px 10px;">Mark All Read</button>
                 <button class="close-modal premium-close-btn" id="closeNotificationsModal">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1304,4 +1306,4 @@
             </div>
         </div>
     </div>
-</div>
+</div>

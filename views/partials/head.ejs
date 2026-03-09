@@ -10,7 +10,13 @@
     <title>
         <%= title %> | Sparkle
     </title>
+    <!-- Server-rendered Data -->
+    <meta name="firebase-config" content="<%= JSON.stringify(locals.firebaseConfig || {}) %>">
+    <meta name="current-user" content="<%= JSON.stringify(locals.user || {}) %>">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS (Removed because project uses custom CSS and Bootstrap classes, causing production warning) -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
     <link rel="stylesheet" href="/css/components.css">
     <script>
@@ -22,14 +28,14 @@
             console.log('🧹 Session cache cleared');
         }
 
-        // Firebase Config Deployment
-        <% 
-            const firebaseConfigStr = JSON.stringify(locals.firebaseConfig || {});
-        const currentUserStr = JSON.stringify(locals.user || {});
-        %>
-            window.firebaseConfig = <%- firebaseConfigStr %>;
-        window.currentUser = <%- currentUserStr %>;
-        window.currentUserId = '<%= (locals.user && locals.user.user_id) ? locals.user.user_id : "" %>';
+        // Firebase Config and Current User Data
+        const fbMeta = document.querySelector('meta[name="firebase-config"]');
+        window.firebaseConfig = fbMeta && fbMeta.content ? JSON.parse(fbMeta.content) : {};
+
+        const userMeta = document.querySelector('meta[name="current-user"]');
+        window.currentUser = userMeta && userMeta.content ? JSON.parse(userMeta.content) : {};
+
+        window.currentUserId = window.currentUser.user_id || "";
     </script>
 
     <!-- Firebase SDK (Modular CDN) -->

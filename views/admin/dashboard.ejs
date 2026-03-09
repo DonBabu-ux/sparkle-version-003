@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> | Sparkle Admin
+    </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a1a;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .admin-main {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .admin-content {
+            padding: 30px;
+            max-width: 1400px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 12px 18px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #888;
+            background: #fafafa;
+        }
+
+        td {
+            padding: 14px 18px;
+            border-top: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+
+        .avatar-sm {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-post {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-user {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .activity-item {
+            padding: 12px 22px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-top: 1px solid #f5f5f5;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+            min-width: 140px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-layout">
+        <%- include('../partials/admin-sidebar') %>
+
+            <div class="admin-main">
+                <div class="admin-content">
+                    <h1>📊 Dashboard</h1>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">👥 Total Users</div>
+                            <div class="stat-value">
+                                <%= stats.users.toLocaleString() %>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📝 Total Posts</div>
+                            <div class="stat-value">
+                                <%= stats.posts.toLocaleString() %>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">🎬 Moments</div>
+                            <div class="stat-value">
+                                <%= stats.moments.toLocaleString() %>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">🏷️ Listings</div>
+                            <div class="stat-value">
+                                <%= stats.listings.toLocaleString() %>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">👥 Groups</div>
+                            <div class="stat-value">
+                                <%= stats.groups.toLocaleString() %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Users -->
+                    <div class="card">
+                        <div class="card-header">Recent Users</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Campus</th>
+                                    <th>Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% recentUsers.forEach(u=> { %>
+                                    <tr>
+                                        <td>
+                                            <img src="<%= u.avatar_url || '/uploads/avatars/default.png' %>"
+                                                class="avatar-sm">
+                                            <strong>
+                                                <%= u.name %>
+                                            </strong>
+                                            <span style="color:#888;font-size:12px;"> @<%= u.username %></span>
+                                        </td>
+                                        <td>
+                                            <%= u.email %>
+                                        </td>
+                                        <td>
+                                            <%= u.campus || '—' %>
+                                        </td>
+                                        <td>
+                                            <%= new Date(u.joined_at).toLocaleDateString() %>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header">Recent Activity (24h)</div>
+                        <% if (recentActivity.length===0) { %>
+                            <div style="padding:30px;text-align:center;color:#999;">No recent activity</div>
+                            <% } else { %>
+                                <% recentActivity.forEach(a=> { %>
+                                    <div class="activity-item">
+                                        <span class="activity-time">
+                                            <%= new Date(a.created_at).toLocaleString() %>
+                                        </span>
+                                        <span class="badge <%= a.type === 'user' ? 'badge-user' : 'badge-post' %>">
+                                            <%= a.type %>
+                                        </span>
+                                        <span>
+                                            <%= a.description %>
+                                        </span>
+                                    </div>
+                                    <% }) %>
+                                        <% } %>
+                    </div>
+                </div>
+            </div>
+    </div>
+</body>
+
+</html>

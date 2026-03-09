@@ -27,11 +27,24 @@ class MessageController {
         try {
             const { content } = req.body;
             const partnerId = req.params.partnerId || req.body.partnerId || req.body.conversationId;
-            const userId = req.user.user_id || req.user.userId;
-            const messageId = await Message.sendMessage(partnerId, userId, content);
+            const userId = (req.user && (req.user.user_id || req.user.userId)) || null;
+
+            if (!userId) {
+                return res.status(401).json({ status: 'error', error: 'Authentication required' });
+            }
+
+            console.log(`[DEBUG] Sending message from ${userId} to ${partnerId}`);
+
+            const messageId = await Message.sendMessage({
+                recipientId: partnerId,
+                senderId: userId,
+                content
+            });
+
             res.json({ status: 'success', data: { messageId, recipientId: partnerId } });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: 'Failed to send message' });
+            console.error('[ERROR] sendMessage:', error);
+            res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });
         }
     }
 

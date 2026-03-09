@@ -557,10 +557,31 @@ const DashboardAPI = {
     // ============ STORIES (AFTERGLOW) ============
     async loadStories() {
         try {
-            const stories = await this.request('/stories/active');
-            return stories.map(story => ({
-                id: story.story_id,
-                story_id: story.story_id,
+            const data = await this.request('/stories/active');
+
+            // If the server returns groups (array of objects with 'stories' property)
+            if (data.length > 0 && data[0].stories) {
+                return data.map(group => ({
+                    ...group,
+                    avatar_url: this.ensureUrl(group.avatar_url) || '/uploads/avatars/default.png',
+                    stories: group.stories.map(story => ({
+                        ...story,
+                        id: story.story_id || story.id,
+                        story_id: story.story_id || story.id,
+                        media: this.ensureUrl(story.media_url),
+                        media_url: this.ensureUrl(story.media_url),
+                        avatar: this.ensureUrl(group.avatar_url) || '/uploads/avatars/default.png',
+                        avatar_url: this.ensureUrl(group.avatar_url) || '/uploads/avatars/default.png',
+                        timestamp: this.formatTimestamp(story.created_at || story.sent_at),
+                        secondsLeft: story.seconds_left || story.secondsLeft
+                    }))
+                }));
+            }
+
+            // Fallback for flat list
+            return data.map(story => ({
+                id: story.story_id || story.id,
+                story_id: story.story_id || story.id,
                 userId: story.user_id,
                 user_id: story.user_id,
                 username: story.username,
@@ -571,7 +592,7 @@ const DashboardAPI = {
                 media: this.ensureUrl(story.media_url),
                 media_url: this.ensureUrl(story.media_url),
                 caption: story.caption || '',
-                secondsLeft: story.seconds_left,
+                secondsLeft: story.seconds_left || story.secondsLeft,
                 timestamp: this.formatTimestamp(story.created_at || story.sent_at),
                 created_at: story.created_at || story.sent_at,
                 isViewed: false
@@ -638,7 +659,7 @@ const DashboardAPI = {
             throw error;
         }
     },
-    
+
     // ============ MOMENTS ============
     async loadMoments() {
         try {

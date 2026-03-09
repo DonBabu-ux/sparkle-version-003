@@ -1,0 +1,323 @@
+<%- include('partials/head', { title: title }) %>
+    <%- include('partials/navbar') %>
+
+        <div class="app-layout">
+            <%- include('partials/sidebar') %>
+
+                <main class="main-content">
+                    <div class="moment-detail-page" style="max-width:800px;margin:0 auto;padding:24px 16px;">
+
+                        <!-- Back button -->
+                        <a href="/moments" class="back-link"
+                            style="display:inline-flex;align-items:center;gap:8px;color:var(--text-secondary);text-decoration:none;margin-bottom:20px;font-size:14px;">
+                            <i class="fas fa-arrow-left"></i> Back to Moments
+                        </a>
+
+                        <% if (moment) { %>
+                            <!-- Moment card -->
+                            <div class="moment-detail-card"
+                                style="background:var(--card-bg);border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.12);">
+
+                                <!-- Author header -->
+                                <div class="moment-detail-header"
+                                    style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;">
+                                    <div style="display:flex;align-items:center;gap:12px;">
+                                        <a href="/profile/<%= moment.username %>">
+                                            <img src="<%= moment.avatar_url || '/uploads/avatars/default.png' %>"
+                                                alt="<%= moment.username %>"
+                                                style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-color);">
+                                        </a>
+                                        <div>
+                                            <a href="/profile/<%= moment.username %>"
+                                                style="font-weight:600;color:var(--text-primary);text-decoration:none;display:block;">
+                                                <%= moment.user_name || moment.username %>
+                                            </a>
+                                            <span style="font-size:12px;color:var(--text-secondary);">
+                                                @<%= moment.username %>
+                                                    &bull;
+                                                    <% const mDate=new Date(moment.created_at); const now=new Date();
+                                                        const diffMs=now - mDate; const diffMins=Math.floor(diffMs /
+                                                        60000); const diffHrs=Math.floor(diffMins / 60); const
+                                                        diffDays=Math.floor(diffHrs / 24); let timeAgo; if (diffMins <
+                                                        1) timeAgo='just now' ; else if (diffMins < 60) timeAgo=diffMins
+                                                        + 'm ago' ; else if (diffHrs < 24) timeAgo=diffHrs + 'h ago' ;
+                                                        else timeAgo=diffDays + 'd ago' ; %>
+                                                        <%= timeAgo %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <% if (moment.category) { %>
+                                        <span class="moment-category-badge"
+                                            style="background:var(--accent-gradient);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;">
+                                            <%= moment.category.charAt(0).toUpperCase() + moment.category.slice(1) %>
+                                        </span>
+                                        <% } %>
+                                </div>
+
+                                <!-- Media -->
+                                <div class="moment-media-container"
+                                    style="position:relative;background:#000;max-height:70vh;display:flex;align-items:center;justify-content:center;">
+                                    <% if (moment.media_type==='video' ) { %>
+                                        <video id="momentVideo" src="<%= moment.media_url %>" controls autoplay loop
+                                            playsinline style="max-width:100%;max-height:70vh;display:block;">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                        <% } else { %>
+                                            <img src="<%= moment.media_url %>" alt="<%= moment.caption || 'Moment' %>"
+                                                style="max-width:100%;max-height:70vh;object-fit:contain;">
+                                            <% } %>
+                                </div>
+
+                                <!-- Caption -->
+                                <% if (moment.caption) { %>
+                                    <div class="moment-caption"
+                                        style="padding:14px 20px;font-size:15px;line-height:1.6;color:var(--text-primary);">
+                                        <%= moment.caption %>
+                                    </div>
+                                    <% } %>
+
+                                        <!-- Stats bar -->
+                                        <div class="moment-stats"
+                                            style="display:flex;gap:24px;padding:10px 20px;border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color);">
+                                            <span style="color:var(--text-secondary);font-size:13px;">
+                                                <i class="fas fa-fire" style="color:#f97316;"></i>
+                                                <strong id="likeCount">
+                                                    <%= moment.like_count || 0 %>
+                                                </strong> sparks
+                                            </span>
+                                            <span style="color:var(--text-secondary);font-size:13px;">
+                                                <i class="fas fa-comment-dots" style="color:var(--accent-color);"></i>
+                                                <strong id="commentCountStat">
+                                                    <%= moment.comment_count || 0 %>
+                                                </strong> comments
+                                            </span>
+                                            <span style="color:var(--text-secondary);font-size:13px;">
+                                                <i class="fas fa-share-nodes" style="color:#8b5cf6;"></i>
+                                                <strong>
+                                                    <%= moment.share_count || 0 %>
+                                                </strong> shares
+                                            </span>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="moment-actions" style="display:flex;gap:8px;padding:12px 20px;">
+                                            <button id="sparkBtn" onclick="toggleSpark('<%= moment.moment_id %>')"
+                                                style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid var(--border-color);border-radius:10px;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:14px;font-weight:500;transition:all .2s;">
+                                                <i class="fas fa-fire"></i> Spark
+                                            </button>
+                                            <button onclick="document.getElementById('commentInput').focus()"
+                                                style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid var(--border-color);border-radius:10px;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:14px;font-weight:500;transition:all .2s;">
+                                                <i class="fas fa-comment-dots"></i> Comment
+                                            </button>
+                                            <button onclick="shareMoment('<%= moment.moment_id %>')"
+                                                style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid var(--border-color);border-radius:10px;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:14px;font-weight:500;transition:all .2s;">
+                                                <i class="fas fa-share-nodes"></i> Share
+                                            </button>
+                                        </div>
+
+                                        <!-- Comments section -->
+                                        <div class="moment-comments-section" style="padding:16px 20px;">
+                                            <h3
+                                                style="font-size:16px;font-weight:600;margin-bottom:16px;color:var(--text-primary);">
+                                                Comments</h3>
+
+                                            <!-- Add comment -->
+                                            <div style="display:flex;gap:10px;margin-bottom:20px;">
+                                                <img src="<%= user && user.avatar_url ? user.avatar_url : '/uploads/avatars/default.png' %>"
+                                                    alt="You"
+                                                    style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                                                <div style="flex:1;display:flex;gap:8px;">
+                                                    <input type="text" id="commentInput" placeholder="Add a comment..."
+                                                        style="flex:1;background:var(--input-bg,var(--bg-secondary));border:1px solid var(--border-color);border-radius:24px;padding:8px 16px;color:var(--text-primary);font-size:14px;outline:none;">
+                                                    <button onclick="postComment('<%= moment.moment_id %>')"
+                                                        style="background:var(--accent-gradient);color:#fff;border:none;padding:8px 18px;border-radius:24px;cursor:pointer;font-weight:600;font-size:14px;">
+                                                        Post
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Comments list -->
+                                            <div id="commentsList" style="display:flex;flex-direction:column;gap:14px;">
+                                                <div style="text-align:center;color:var(--text-secondary);padding:20px;font-size:14px;"
+                                                    id="commentsLoading">
+                                                    <i class="fas fa-spinner fa-spin"></i> Loading comments...
+                                                </div>
+                                            </div>
+
+                                            <div id="loadMoreComments"
+                                                style="display:none;text-align:center;padding:12px;">
+                                                <button onclick="loadMoreComments()"
+                                                    style="background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);padding:8px 20px;border-radius:20px;cursor:pointer;font-size:13px;">
+                                                    Load more comments
+                                                </button>
+                                            </div>
+                                        </div>
+                            </div><!-- end moment-detail-card -->
+                            <% } else { %>
+                                <div style="text-align:center;padding:60px 20px;color:var(--text-secondary);">
+                                    <i class="fas fa-film"
+                                        style="font-size:48px;margin-bottom:16px;opacity:.4;display:block;"></i>
+                                    <h2>Moment not found</h2>
+                                    <p>This moment may have been removed.</p>
+                                    <a href="/moments"
+                                        style="display:inline-block;margin-top:16px;background:var(--accent-gradient);color:#fff;padding:10px 24px;border-radius:24px;text-decoration:none;font-weight:600;">Browse
+                                        Moments</a>
+                                </div>
+                                <% } %>
+                    </div>
+                </main>
+        </div>
+
+        <%- include('partials/bottom-nav') %>
+
+            <script>
+                const MOMENT_ID = '<%= moment ? moment.moment_id : "" %>';
+                let commentsPage = 1;
+                let commentsLoading = false;
+
+                // ── Spark toggle ─────────────────────────────────────────────────────────────
+                async function toggleSpark(momentId) {
+                    try {
+                        const res = await fetch(`/api/moments/${momentId}/spark`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            document.getElementById('likeCount').textContent = data.likes;
+                            const btn = document.getElementById('sparkBtn');
+                            const sparked = data.action === 'liked';
+                            btn.style.color = sparked ? '#f97316' : 'var(--text-secondary)';
+                            btn.style.borderColor = sparked ? '#f97316' : 'var(--border-color)';
+                        }
+                    } catch (e) {
+                        console.error('Spark error:', e);
+                    }
+                }
+
+                // ── Share ─────────────────────────────────────────────────────────────────────
+                async function shareMoment(momentId) {
+                    try {
+                        if (navigator.share) {
+                            await navigator.share({
+                                title: 'Check out this moment on Sparkle!',
+                                url: window.location.href
+                            });
+                        } else {
+                            await navigator.clipboard.writeText(window.location.href);
+                            showToast('Link copied to clipboard!');
+                        }
+                        // Track share
+                        fetch(`/api/moments/${momentId}/share`, { method: 'POST' });
+                    } catch (e) {
+                        if (e.name !== 'AbortError') console.error('Share error:', e);
+                    }
+                }
+
+                // ── Post comment ──────────────────────────────────────────────────────────────
+                async function postComment(momentId) {
+                    const input = document.getElementById('commentInput');
+                    const comment = input.value.trim();
+                    if (!comment) return;
+
+                    try {
+                        const res = await fetch(`/api/moments/${momentId}/comment`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ comment })
+                        });
+                        const data = await res.json();
+                        if (data.status === 'success' && data.comment) {
+                            input.value = '';
+                            prependComment(data.comment);
+                            const stat = document.getElementById('commentCountStat');
+                            stat.textContent = parseInt(stat.textContent || 0) + 1;
+                        }
+                    } catch (e) {
+                        console.error('Comment error:', e);
+                    }
+                }
+
+                // ── Load comments ─────────────────────────────────────────────────────────────
+                async function loadComments(page = 1, append = false) {
+                    if (commentsLoading) return;
+                    commentsLoading = true;
+
+                    try {
+                        const res = await fetch(`/api/moments/${MOMENT_ID}/comments?page=${page}&limit=20`);
+                        const data = await res.json();
+
+                        const list = document.getElementById('commentsList');
+                        const loading = document.getElementById('commentsLoading');
+
+                        if (loading) loading.style.display = 'none';
+
+                        if (!data.comments || data.comments.length === 0) {
+                            if (!append) {
+                                list.innerHTML = '<p style="text-align:center;color:var(--text-secondary);font-size:14px;padding:20px;">No comments yet. Be the first!</p>';
+                            }
+                            document.getElementById('loadMoreComments').style.display = 'none';
+                            return;
+                        }
+
+                        if (!append) list.innerHTML = '';
+
+                        data.comments.forEach(c => appendComment(c));
+
+                        const hasMore = page < data.pagination.pages;
+                        document.getElementById('loadMoreComments').style.display = hasMore ? 'block' : 'none';
+                        commentsPage = page;
+                    } catch (e) {
+                        console.error('Load comments error:', e);
+                        document.getElementById('commentsLoading').innerHTML =
+                            '<p style="text-align:center;color:var(--text-secondary);font-size:14px;">Failed to load comments.</p>';
+                    } finally {
+                        commentsLoading = false;
+                    }
+                }
+
+                function loadMoreComments() {
+                    loadComments(commentsPage + 1, true);
+                }
+
+                function appendComment(c) {
+                    document.getElementById('commentsList').insertAdjacentHTML('beforeend', buildCommentHTML(c));
+                }
+                function prependComment(c) {
+                    document.getElementById('commentsList').insertAdjacentHTML('afterbegin', buildCommentHTML(c));
+                }
+
+                function buildCommentHTML(c) {
+                    const avatar = c.avatar_url || '/uploads/avatars/default.png';
+                    const name = c.username || 'User';
+                    const text = c.comment || c.content || '';
+                    const time = c.created_at ? new Date(c.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+                    return `
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+            <img src="${avatar}" alt="${name}"
+                 style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+            <div style="flex:1;background:var(--bg-secondary);border-radius:12px;padding:10px 14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <strong style="font-size:13px;color:var(--text-primary);">@${name}</strong>
+                    <span style="font-size:11px;color:var(--text-secondary);">${time}</span>
+                </div>
+                <p style="margin:0;font-size:14px;color:var(--text-primary);line-height:1.5;">${text}</p>
+            </div>
+        </div>`;
+                }
+
+                function showToast(msg) {
+                    const t = document.createElement('div');
+                    t.textContent = msg;
+                    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:24px;font-size:14px;z-index:9999;animation:fadeIn .3s ease;';
+                    document.body.appendChild(t);
+                    setTimeout(() => t.remove(), 2500);
+                }
+
+                // Init
+                if (MOMENT_ID) loadComments(1);
+            </script>
+
+            </body>
+
+            </html>

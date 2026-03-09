@@ -20,16 +20,28 @@ class Message {
     static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null }) {
         const messageId = crypto.randomUUID();
 
+        console.log(`[DEBUG] Message.sendMessage: model preparing query for ${messageId}`);
+        console.log(`[DEBUG] Params:`, { recipientId, chatId, senderId, type });
+
         // Validation
-        if (!chatId && !recipientId) throw new Error('Recipient or Chat ID required');
+        if (!chatId && !recipientId) {
+            console.error('[ERROR] Message.sendMessage: validation failed');
+            throw new Error('Recipient or Chat ID required');
+        }
 
-        await db.query(`
-            INSERT INTO messages (
-                message_id, chat_id, recipient_id, sender_id, content, type, media_url, sent_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-        `, [messageId, chatId || null, recipientId || null, senderId, content, type, mediaUrl]);
+        try {
+            await db.query(`
+                INSERT INTO messages (
+                    message_id, chat_id, recipient_id, sender_id, content, type, media_url, sent_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+            `, [messageId, chatId || null, recipientId || null, senderId, content, type, mediaUrl]);
 
-        return messageId;
+            console.log(`[DEBUG] Message.sendMessage: query executed successfully`);
+            return messageId;
+        } catch (dbError) {
+            console.error('[ERROR] Message.sendMessage DB Error:', dbError);
+            throw dbError;
+        }
     }
 
     // Get messages for conversation (Personal)

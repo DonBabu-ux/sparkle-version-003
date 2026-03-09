@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %> | Sparkle Admin
+    </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a1a;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .admin-main {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .admin-content {
+            padding: 30px;
+            max-width: 1400px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #888;
+            background: #fafafa;
+        }
+
+        td {
+            padding: 10px 16px;
+            border-top: 1px solid #f5f5f5;
+            font-size: 13px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-warning {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .badge-danger {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            justify-content: center;
+        }
+
+        .pagination a {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #333;
+            font-size: 13px;
+        }
+
+        .pagination a.active {
+            background: linear-gradient(135deg, #FF3D6D, #833AB4);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .empty {
+            padding: 40px;
+            text-align: center;
+            color: #999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-layout">
+        <%- include('../partials/admin-sidebar') %>
+            <div class="admin-main">
+                <div class="admin-content">
+                    <h1>📋 System Logs</h1>
+                    <div class="card">
+                        <% if (logs.length===0) { %>
+                            <div class="empty">No logs recorded yet</div>
+                            <% } else { %>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Admin</th>
+                                            <th>Action</th>
+                                            <th>Target</th>
+                                            <th>Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% logs.forEach(l=> { %>
+                                            <tr>
+                                                <td style="white-space:nowrap;">
+                                                    <%= new Date(l.created_at).toLocaleString() %>
+                                                </td>
+                                                <td>
+                                                    <%= l.admin_name || l.admin_username || l.admin_id %>
+                                                </td>
+                                                <td><span class="badge badge-info">
+                                                        <%= l.action %>
+                                                    </span></td>
+                                                <td>
+                                                    <%= l.target_type ? l.target_type + ':' + (l.target_id || ''
+                                                        ).substring(0,8) : '—' %>
+                                                </td>
+                                                <td
+                                                    style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                                    <%= typeof l.details==='string' ? l.details :
+                                                        JSON.stringify(l.details) %>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                                    </tbody>
+                                </table>
+                                <% if (pagination.pages> 1) { %>
+                                    <div class="pagination">
+                                        <% for (let i=1; i <=Math.min(pagination.pages, 10); i++) { %>
+                                            <a href="/admin/logs?page=<%= i %>"
+                                                class="<%= i === pagination.page ? 'active' : '' %>">
+                                                <%= i %>
+                                            </a>
+                                            <% } %>
+                                    </div>
+                                    <% } %>
+                                        <% } %>
+                    </div>
+                </div>
+            </div>
+    </div>
+</body>
+
+</html>

@@ -205,24 +205,27 @@ body.sidebar-collapsed {
     width: 100%;
     box-sizing: border-box;
 }
+
 .profile-suggestions .suggestion-user {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
 }
+
 .profile-suggestions .suggestion-user img {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     margin-right: 10px;
 }
+
 .profile-suggestions .suggestion-user button {
     flex-shrink: 0;
 }
 
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+height: 100%;
+background: rgba(0, 0, 0, 0.5);
+z-index: 999;
 }
 
 .hamburger-overlay.active {
@@ -4469,6 +4472,20 @@ input:checked+.toggle-slider:before {
 .post-media {
     width: 100%;
     position: relative;
+    padding: 0 16px 16px 16px;
+    /* Padding to prevent sharp corners on edges */
+}
+
+.post-media img,
+.post-media video {
+    width: 100%;
+    border-radius: 16px;
+    /* Smooth rounded corners */
+    display: block;
+    object-fit: cover;
+    max-height: 500px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    /* Soft shadow since it's floating inside padding */
 }
 
 .post-image,
@@ -4502,6 +4519,9 @@ input:checked+.toggle-slider:before {
     border-top: 1px solid rgba(0, 0, 0, 0.03);
     gap: 15px;
     align-items: center;
+    position: relative;
+    z-index: 10;
+    /* Prevent overlap from preceding media */
 }
 
 .action-btn {
@@ -5097,6 +5117,7 @@ input:checked+.toggle-slider:before {
 .viewer-action-btn.spark-action .action-icon-circle i.fas {
     color: #ff3d6d;
 }
+
 .viewer-action-btn.spark-action .action-icon-circle i.far {
     color: #fff;
 }

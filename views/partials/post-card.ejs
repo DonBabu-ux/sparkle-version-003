@@ -1,0 +1,84 @@
+<div class="post-card" data-post-id="<%= post.post_id %>">
+    <!-- Header -->
+    <div class="post-header">
+        <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>" alt="<%= post.username %>"
+            class="post-avatar" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+        <div class="post-author-info">
+            <div class="post-username">@<%= post.username %>
+            </div>
+            <div class="post-meta">
+                <span>
+                    <%= post.campus %>
+                </span> •
+                <span class="post-time">
+                    <%= new Date(post.created_at).toLocaleDateString() %>
+                </span>
+            </div>
+        </div>
+        <div class="post-more-btn">
+            <i class="fas fa-ellipsis-h"></i>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <% if (post.content && post.content !=='undefined' && post.content.trim() !=='' ) { %>
+        <div class="post-content">
+            <p>
+                <%= post.content %>
+            </p>
+        </div>
+        <% } %>
+
+            <!-- Media -->
+            <% if (post.media_url) { %>
+                <div class="post-media">
+                    <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
+                        <video src="<%= post.media_url %>" controls preload="metadata"></video>
+                        <% } else { %>
+                            <img src="<%= post.media_url %>" alt="Post media" loading="lazy">
+                            <% } %>
+                </div>
+                <% } %>
+
+                    <!-- Actions -->
+                    <div class="post-actions">
+                        <button class="action-btn spark <%= post.is_sparked ? 'active' : '' %>"
+                            onclick="sparkPost('<%= post.post_id %>', this)">
+                            <i class="<%= post.is_sparked ? 'fas' : 'far' %> fa-bolt"></i>
+                            <span class="spark-count">
+                                <%= post.spark_count || 0 %>
+                            </span>
+                        </button>
+
+                        <button class="action-btn comment" onclick="toggleComments('<%= post.post_id %>')">
+                            <i class="far fa-comment"></i>
+                            <span>
+                                <%= post.comment_count || 0 %>
+                            </span>
+                        </button>
+
+                        <button class="action-btn share" onclick="sharePost('<%= post.post_id %>')">
+                            <i class="far fa-share-square"></i>
+                        </button>
+
+                        <button class="action-btn save <%= post.is_saved ? 'active' : '' %>"
+                            onclick="savePost('<%= post.post_id %>', this)">
+                            <i class="<%= post.is_saved ? 'fas' : 'far' %> fa-bookmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Quick Comment -->
+                    <div class="quick-comment">
+                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                            class="comment-avatar-small">
+                        <input type="text" id="comment-input-<%= post.post_id %>" placeholder="Add a comment..."
+                            onkeypress="if(event.key === 'Enter') addComment('<%= post.post_id %>', this)">
+                    </div>
+
+                    <!-- Comments Section (initially hidden) -->
+                    <div class="comments-section" id="comments-<%= post.post_id %>" style="display: none;">
+                        <div class="comments-loading">
+                            <i class="fas fa-spinner fa-spin"></i> Loading comments...
+                        </div>
+                    </div>
+</div>

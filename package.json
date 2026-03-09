@@ -9,6 +9,8 @@
   "scripts": {
     "start": "node --watch server.js",
     "dev": "node --watch server.js",
+    "build:css": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css",
+    "build:css:watch": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -34,8 +36,15 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.9.7",
     "node-fetch": "^2.7.0",
+    "nodemailer": "^8.0.1",
     "path": "^0.12.7",
+    "socket.io": "^4.8.3",
     "uuid": "^8.3.2",
     "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.1"
   }
 }

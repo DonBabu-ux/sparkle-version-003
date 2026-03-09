@@ -371,7 +371,9 @@ window.createPostElement = function (post) {
     const campus = escapeHtml(post.campus || 'Main Campus');
     const major = escapeHtml(post.major || 'Student');
     const title = escapeHtml(post.title || '');
-    const content = escapeHtml(post.content || post.caption || '');
+    let rawContent = post.content || post.caption || '';
+    if (rawContent === 'undefined') rawContent = '';
+    const content = escapeHtml(rawContent);
     const icon = escapeHtml(post.icon || 'file-alt');
     const type = escapeHtml(post.type || 'public');
     const isPinned = post.is_pinned || false;
@@ -410,9 +412,13 @@ window.createPostElement = function (post) {
     let mediaHtml = '';
     if (hasMedia && !isMagazineLayout) {
         if (mediaList.length === 1) {
+            const mediaUrl = escapeHtml(mediaList[0]);
             mediaHtml = `
-                <div class="post-media-container">
-                    <img src="${escapeHtml(mediaList[0])}" alt="Post image" class="post-image" loading="lazy">
+                <div class="post-media">
+                    ${mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) ?
+                    `<video src="${mediaUrl}" controls preload="metadata"></video>` :
+                    `<img src="${mediaUrl}" alt="Post media" loading="lazy">`
+                }
                 </div>
             `;
         } else {
@@ -469,47 +475,48 @@ window.createPostElement = function (post) {
         }
     }
 
-    // 4. METRICS BAR
-    const metricsHtml = `
-        <div class="post-metrics-bar">
-            <div class="metric-item"><i class="fas fa-bolt"></i> <span class="spark-count">${post.sparks || 0}</span></div>
-            <div class="metric-item"><i class="far fa-comment"></i> <span class="comment-count">${post.comments || 0}</span></div>
-            <div class="metric-item"><i class="far fa-eye"></i> <span class="view-count">${post.views || 0}</span></div>
-            <div class="metric-item"><i class="fas fa-share"></i> <span class="share-count">${post.shares || 0}</span></div>
-        </div>
-    `;
-
-    // 5. ACTION BAR
+    // 4. ACTION BAR (Unified with post-card.ejs)
     const actionsHtml = `
-        <div class="post-action-bar">
-            <button class="action-btn-custom spark ${isLiked ? 'active' : ''}" onclick="window.toggleSpark('${postId}', this)">
-                <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
-                <span>Spark</span>
-            </button>
-            <button class="action-btn-custom comment" onclick="window.showComments('${postId}')">
-                <i class="far fa-comment"></i>
-                <span>Comment</span>
-            </button>
-            <button class="action-btn-custom share" onclick="window.shareManager.openShareSheet('post', '${postId}')">
-                <i class="far fa-share-square"></i>
-                <span>Share</span>
-            </button>
-            <button class="action-btn-custom save ${isSaved ? 'active' : ''}" onclick="window.toggleSavePost('${postId}', this)">
-                <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
-                <span>Save</span>
-            </button>
-        </div>
+                    <div class="post-actions">
+                        <button class="action-btn spark ${isLiked ? 'active' : ''}"
+                            onclick="sparkPost('${postId}', this)">
+                            <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
+                            <span class="spark-count">
+                                ${post.sparks || post.spark_count || 0}
+                            </span>
+                        </button>
+
+                        <button class="action-btn comment" onclick="toggleComments('${postId}')">
+                            <i class="far fa-comment"></i>
+                            <span>
+                                ${post.comments || post.comment_count || 0}
+                            </span>
+                        </button>
+
+                        <button class="action-btn share" onclick="sharePost('${postId}')">
+                            <i class="far fa-share-square"></i>
+                        </button>
+
+                        <button class="action-btn save ${isSaved ? 'active' : ''}"
+                            onclick="savePost('${postId}', this)">
+                            <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+                        </button>
+                    </div>
     `;
 
-    // 6. QUICK COMMENT INPUT
+    // 5. QUICK COMMENT INPUT & COMMENTS SECTION
     const commentInputHtml = `
-        <div class="post-comment-quick">
-            <input type="text" class="comment-input-min" placeholder="Add a comment..." onkeypress="if(event.key === 'Enter') window.quickComment('${postId}', this.value)">
-        </div>
+                    <div class="quick-comment">
+                        <img src="${appState.currentUser?.avatar || appState.currentUser?.avatar_url || '/uploads/avatars/default.png'}"
+                            class="comment-avatar-small" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                        <input type="text" id="comment-input-${postId}" placeholder="Add a comment..."
+                            onkeypress="if(event.key === 'Enter') addComment('${postId}', this)">
+                    </div>
+                    <div class="comments-section" id="comments-${postId}" style="display: none;"></div>
     `;
 
-    // ASSEMBLE (Media handling: "Media First" - Media above Header)
-    postEl.innerHTML = mediaHtml + headerHtml + textContentHtml + metricsHtml + actionsHtml + commentInputHtml;
+    // ASSEMBLE (Matching post-card.ejs order: Header -> Content -> Media -> Actions)
+    postEl.innerHTML = headerHtml + textContentHtml + mediaHtml + actionsHtml + commentInputHtml;
 
     return postEl;
 };

@@ -135,7 +135,7 @@
             font-size: 16px;
             font-weight: 700;
             color: #fff;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         .follow-btn {
@@ -163,7 +163,7 @@
             font-size: 14px;
             line-height: 1.4;
             color: #fff;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
             margin-top: 4px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -182,7 +182,7 @@
             font-size: 13px;
             color: var(--accent-pink);
             font-weight: 500;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
             cursor: pointer;
         }
 
@@ -239,16 +239,24 @@
         }
 
         @keyframes heartBeat {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.3);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .action-count {
             font-size: 12px;
             font-weight: 600;
             color: #fff;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         .app-header {
@@ -259,7 +267,7 @@
             z-index: 30;
             padding: 12px 16px;
             padding-top: max(12px, env(safe-area-inset-top));
-            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 70%, transparent 100%);
             pointer-events: none;
         }
 
@@ -420,7 +428,7 @@
             right: 0;
             height: calc(70px + var(--safe-area-inset-bottom));
             padding-bottom: var(--safe-area-inset-bottom);
-            background: linear-gradient(to top, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.8) 70%, transparent 100%);
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.8) 70%, transparent 100%);
             backdrop-filter: blur(5px);
             display: flex;
             justify-content: space-around;
@@ -498,10 +506,12 @@
                 transform: scale(0) rotate(-10deg);
                 opacity: 0;
             }
+
             50% {
                 transform: scale(1.2) rotate(5deg);
                 opacity: 1;
             }
+
             100% {
                 transform: scale(1) rotate(0);
                 opacity: 0;
@@ -535,6 +545,7 @@
                 opacity: 0;
                 transform: translate(-50%, 20px);
             }
+
             to {
                 opacity: 1;
                 transform: translate(-50%, 0);
@@ -551,7 +562,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .skeleton-card {
@@ -571,8 +584,13 @@
         }
 
         @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
         }
 
         .end-message {
@@ -680,7 +698,7 @@
     </div>
 
     <script>
-        (function() {
+        (function () {
             // Get initial data from server
             const INITIAL_DATA = window.__INITIAL_DATA__ || {
                 moments: [],
@@ -706,7 +724,7 @@
                     this.observer = null;
                     this.searchHistory = this.loadSearchHistory();
                     this.api = new MomentsAPI(INITIAL_DATA.user?.user_id);
-                    
+
                     this.init();
                 }
 
@@ -753,7 +771,7 @@
 
                 renderFeed(videos) {
                     const container = document.getElementById('feedContainer');
-                    
+
                     if (!videos || videos.length === 0) {
                         container.innerHTML = `
                             <div class="video-card" style="display: flex; align-items: center; justify-content: center;">
@@ -775,7 +793,7 @@
                     const isSaved = video.is_saved ? 'saved' : '';
                     const tags = video.caption?.match(/#[a-zA-Z0-9_]+/g) || [];
                     const cleanCaption = video.caption?.replace(/#[a-zA-Z0-9_]+/g, '').trim() || '';
-                    
+
                     return `
                         <div class="video-card" data-id="${video.moment_id}" data-category="${video.category || 'general'}">
                             <div class="video-wrapper" 
@@ -783,7 +801,7 @@
                                  oncontextmenu="app.handleLongPress(event, '${video.moment_id}')"
                                  ontouchstart="app.handleTouchStart(event, '${video.moment_id}')"
                                  ontouchend="app.handleTouchEnd()">
-                                <video class="video-element" loop playsinline muted="${this.isMuted}" preload="auto" poster="/images/video-placeholder.jpg">
+                                <video class="video-element" loop playsinline ${this.isMuted ? 'muted' : ''} autoplay preload="auto" poster="/images/video-placeholder.jpg">
                                     <source src="${video.media_url}" type="video/mp4">
                                 </video>
                             </div>
@@ -844,8 +862,8 @@
                 }
 
                 formatCount(num) {
-                    if (num >= 1000000) return (num/1000000).toFixed(1) + 'M';
-                    if (num >= 1000) return (num/1000).toFixed(1) + 'K';
+                    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
                     return num;
                 }
 
@@ -854,7 +872,7 @@
                     toast.className = 'toast-notification';
                     toast.textContent = message;
                     document.body.appendChild(toast);
-                    
+
                     setTimeout(() => {
                         toast.style.opacity = '0';
                         setTimeout(() => toast.remove(), 300);
@@ -862,18 +880,18 @@
                 }
 
                 initVideoObserver() {
-                    const options = { 
-                        threshold: 0.7,
+                    const options = {
+                        threshold: 0.5,
                         rootMargin: '0px'
                     };
-                    
+
                     this.observer = new IntersectionObserver((entries) => {
                         entries.forEach(entry => {
                             const video = entry.target.querySelector('video');
                             if (!video) return;
 
                             if (entry.isIntersecting) {
-                                video.play().catch(() => {});
+                                video.play().catch(() => { });
                             } else {
                                 video.pause();
                                 video.currentTime = 0;
@@ -889,14 +907,14 @@
                 setupEventListeners() {
                     // Mute toggle
                     document.getElementById('muteBtn').addEventListener('click', () => this.toggleMute());
-                    
+
                     // Back button
                     document.getElementById('backBtn').addEventListener('click', () => window.history.back());
-                    
+
                     // Search
                     const searchInput = document.getElementById('searchInput');
                     const clearBtn = document.getElementById('clearSearch');
-                    
+
                     searchInput.addEventListener('input', (e) => {
                         const query = e.target.value.trim();
                         clearBtn.style.display = query ? 'block' : 'none';
@@ -922,12 +940,12 @@
                     document.addEventListener('click', (event) => {
                         const videoCard = event.target.closest('.video-card');
                         if (!videoCard) return;
-                        
+
                         const video = videoCard.querySelector('video');
                         const isActionBtn = event.target.closest('.action-circle');
                         const isUserRow = event.target.closest('.user-info-row');
                         const isHashtag = event.target.closest('.hashtag');
-                        
+
                         if (video && !isActionBtn && !isUserRow && !isHashtag) {
                             video.paused ? video.play() : video.pause();
                         }
@@ -951,20 +969,20 @@
                         pill.addEventListener('click', async () => {
                             document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
                             pill.classList.add('active');
-                            
+
                             const category = pill.dataset.cat;
                             this.currentCategory = category;
                             this.currentPage = 1;
-                            
+
                             this.showSkeleton(2);
-                            
+
                             try {
-                                const response = await this.api.getStream({ 
-                                    category, 
+                                const response = await this.api.getStream({
+                                    category,
                                     page: 1,
                                     limit: 10
                                 });
-                                
+
                                 if (response.moments) {
                                     this.filteredMoments = response.moments;
                                     this.renderFeed(this.filteredMoments);
@@ -982,7 +1000,7 @@
                         const response = await this.api.sparkMoment(videoId);
                         const icon = element.querySelector('i');
                         const countSpan = element.closest('.action-item').querySelector('.action-count');
-                        
+
                         if (response.action === 'liked') {
                             icon.className = 'fas fa-heart';
                             element.classList.add('liked');
@@ -990,7 +1008,7 @@
                             icon.className = 'far fa-heart';
                             element.classList.remove('liked');
                         }
-                        
+
                         countSpan.textContent = this.formatCount(response.likes);
                     } catch (error) {
                         this.showToast('Failed to like moment');
@@ -1001,7 +1019,7 @@
                     try {
                         const response = await this.api.saveMoment(videoId);
                         const icon = element.querySelector('i');
-                        
+
                         if (response.action === 'saved') {
                             icon.className = 'fas fa-bookmark';
                             element.classList.add('saved');
@@ -1018,15 +1036,15 @@
 
                 async toggleFollow(event, userId, button) {
                     event.stopPropagation();
-                    
+
                     if (button.disabled) return;
-                    
+
                     const originalText = button.textContent;
                     button.disabled = true;
-                    
+
                     try {
                         const response = await this.api.followUser(userId);
-                        
+
                         if (response.action === 'followed') {
                             button.textContent = 'Following';
                             button.classList.add('following');
@@ -1050,9 +1068,9 @@
                     heart.style.left = (event.clientX - 40) + 'px';
                     heart.style.top = (event.clientY - 40) + 'px';
                     document.body.appendChild(heart);
-                    
+
                     setTimeout(() => heart.remove(), 800);
-                    
+
                     const likeBtn = document.querySelector(`[data-id="${videoId}"] .action-circle:first-child`);
                     if (likeBtn && !likeBtn.classList.contains('liked')) {
                         this.toggleLike(videoId, likeBtn);
@@ -1079,7 +1097,7 @@
                 showLongPressMenu(videoId) {
                     const menu = document.getElementById('longPressMenu');
                     const menuItems = document.getElementById('menuItems');
-                    
+
                     const items = [
                         { icon: 'flag', label: 'Report', action: () => this.reportVideo(videoId) },
                         { icon: 'share', label: 'Share', action: () => this.shareVideo(videoId) },
@@ -1087,14 +1105,14 @@
                         { icon: 'eye-slash', label: 'Not interested', action: () => this.hideVideo(videoId) },
                         { icon: 'link', label: 'Copy link', action: () => this.copyLink(videoId) }
                     ];
-                    
+
                     menuItems.innerHTML = items.map(item => `
                         <div class="menu-item" onclick="app.${item.action.name}('${videoId}')" style="display:flex; align-items:center; gap: 15px; padding: 15px 0; cursor: pointer; color: white;">
                             <div class="menu-icon" style="width: 24px; text-align: center;"><i class="fas fa-${item.icon}"></i></div>
                             <span class="menu-label" style="font-size: 16px;">${item.label}</span>
                         </div>
                     `).join('');
-                    
+
                     menu.classList.add('show');
                 }
 
@@ -1110,7 +1128,7 @@
                 async shareVideo(videoId) {
                     try {
                         const shareData = await this.api.getShareData(videoId);
-                        
+
                         if (navigator.share) {
                             await navigator.share({
                                 title: shareData.title,
@@ -1158,7 +1176,7 @@
                     this.isMuted = !this.isMuted;
                     const icon = document.querySelector('#muteBtn i');
                     icon.className = this.isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
-                    
+
                     document.querySelectorAll('video').forEach(video => {
                         video.muted = this.isMuted;
                     });
@@ -1172,23 +1190,23 @@
 
                 filterBySearch(term) {
                     if (!term) {
-                        this.filteredMoments = this.currentCategory === 'all' 
+                        this.filteredMoments = this.currentCategory === 'all'
                             ? [...this.moments]
                             : this.moments.filter(m => m.category === this.currentCategory);
                     } else {
-                        this.filteredMoments = this.moments.filter(m => 
+                        this.filteredMoments = this.moments.filter(m =>
                             m.caption?.toLowerCase().includes(term.toLowerCase()) ||
                             m.username?.toLowerCase().includes(term.toLowerCase()) ||
                             m.user_name?.toLowerCase().includes(term.toLowerCase())
                         );
-                        
+
                         if (this.currentCategory !== 'all') {
-                            this.filteredMoments = this.filteredMoments.filter(m => 
+                            this.filteredMoments = this.filteredMoments.filter(m =>
                                 m.category === this.currentCategory
                             );
                         }
                     }
-                    
+
                     this.renderFeed(this.filteredMoments);
                     this.initVideoObserver();
                 }
@@ -1224,23 +1242,23 @@
 
                 async loadMore() {
                     if (this.isLoading || !this.hasMore) return;
-                    
+
                     this.isLoading = true;
                     this.currentPage++;
-                    
+
                     try {
-                        const response = await this.api.getStream({ 
+                        const response = await this.api.getStream({
                             category: this.currentCategory,
                             page: this.currentPage,
                             limit: 10
                         });
-                        
+
                         if (response.moments?.length) {
                             this.filteredMoments = [...this.filteredMoments, ...response.moments];
                             this.renderFeed(this.filteredMoments);
                             this.initVideoObserver();
                         }
-                        
+
                         this.hasMore = this.currentPage < response.pagination?.pages;
                     } catch (error) {
                         this.showToast('Failed to load more moments');
@@ -1267,11 +1285,11 @@
                         },
                         credentials: 'same-origin'
                     });
-                    
+
                     if (!response.ok) {
                         throw new Error(`API request failed: ${response.status}`);
                     }
-                    
+
                     return response.json();
                 }
 

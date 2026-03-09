@@ -1,4 +1,5 @@
 const express = require('express');
+const { createServer } = require('http');
 const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -14,6 +15,8 @@ const { securityHeaders, apiRateLimiter, sanitizeInput } = require('./middleware
 const logger = require('./utils/logger');
 const { startKeepAlive } = require('./utils/keep-alive');
 const firebaseConfig = require('./config/firebase.config');
+const { initializeSocket } = require('./socket');
+const { initializeEmail } = require('./config/email');
 
 const app = express();
 
@@ -44,6 +47,11 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
 // Static Files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'))); // UNCOMMENT THIS
+
+// Ensure missing static files in /uploads don't hit the auth middleware or EJS engine
+app.use('/uploads', (req, res) => {
+    res.status(404).send('Image not found');
+});
 
 // View Engine
 app.set('view engine', 'ejs');
@@ -110,21 +118,29 @@ app.use((err, req, res, next) => {
 // SERVER STARTUP / EXPORTS
 // =============================================
 
+// Create HTTP server and attach Socket.IO
+const server = createServer(app);
+initializeSocket(server);
+
+// Initialize email service
+initializeEmail();
+
 if (require.main === module) {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
         logger.info(`------------------------------------------`);
         logger.info(`🔥 Sparkle Server running on port ${PORT}`);
+        logger.info(`🔌 WebSocket server initialized`);
         logger.info(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
         logger.info(`📁 Views directory: ${path.join(__dirname, 'views')}`);
         logger.info(`📁 Public directory: ${path.join(__dirname, 'public')}`);
         logger.info(`🏥 Health checks: /health, /health/db`);
         logger.info(`------------------------------------------`);
-        
+
         // Start keep-alive service to prevent Render from sleeping
         startKeepAlive();
     });
 }
 
-// Export app for Vercel
-module.exports = app;
+// Export app and server for Vercel / testing
+module.exports = { app, server };
 

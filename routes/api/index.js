@@ -51,5 +51,7 @@ router.use('/confessions', confessionRoutes);
 router.use('/clubs', clubsRoutes);
 router.use('/lost-found', lostFoundRoutes);
 router.use('/skill-market', skillMarketRoutes);
+router.use('/search', require('./search.routes'));
+router.use('/realtime', require('./realtime.routes'));
 
 module.exports = router;

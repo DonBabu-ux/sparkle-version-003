@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
 const { downloadExternalImage } = require('../utils/media.utils');
+const logger = require('../utils/logger');
 
 // Helper to sanitize avatars
 const getSafeAvatarUrl = (url) => {

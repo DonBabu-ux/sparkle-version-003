@@ -3,19 +3,19 @@ const pool = require('../config/database');
 const { JWT_SECRET } = require('../config/constants');
 
 const authMiddleware = async (req, res, next) => {
-    let token = null;
-    const authHeader = req.headers['authorization'];
-    if (authHeader) {
-        token = authHeader.split(' ')[1];
-    } else if (req.cookies && req.cookies.sparkleToken) {
-        token = req.cookies.sparkleToken;
-    }
-
-    if (!token) {
-        return res.status(401).json({ error: 'Unauthorized: No token provided' });
-    }
-
     try {
+        let token = null;
+        const authHeader = req.headers['authorization'];
+        if (authHeader) {
+            token = authHeader.split(' ')[1];
+        } else if (req.cookies && req.cookies.sparkleToken) {
+            token = req.cookies.sparkleToken;
+        }
+
+        if (!token) {
+            return res.status(401).json({ error: 'Unauthorized: No token provided' });
+        }
+
         const decoded = jwt.verify(token, JWT_SECRET);
         const [users] = await pool.query('SELECT user_id, name, username, campus, avatar_url FROM users WHERE user_id = ?', [decoded.userId]);
 

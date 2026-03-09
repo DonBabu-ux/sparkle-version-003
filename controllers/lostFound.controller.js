@@ -42,8 +42,8 @@ const reportItem = async (req, res) => {
         const mediaUrls = [];
         if (req.files && req.files.length > 0) {
             req.files.forEach(file => {
-                // Ensure URL starts with /uploads/
-                mediaUrls.push('/uploads/' + file.filename);
+                // For Cloudinary, file.path is the full URL
+                mediaUrls.push(file.path || file.url || ('/uploads/' + file.filename));
             });
         } else if (req.body.media_url) {
             mediaUrls.push(req.body.media_url);

@@ -9,8 +9,8 @@ const { upload } = require('../../middleware/upload.middleware');
 router.get('/stream', authMiddleware, momentsController.getMomentsStream);
 
 // CRUD operations
-router.post('/', 
-    authMiddleware, 
+router.post('/',
+    authMiddleware,
     upload.single('media'),
     momentsController.createMoment
 );

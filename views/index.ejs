@@ -454,6 +454,13 @@
         window.addEventListener('popstate', () => {
             history.pushState(null, null, location.href);
         });
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/pwabuilder-sw.js')
+      .then(() => console.log('Service Worker registered'))
+      .catch(err => console.log('SW registration failed', err));
+  }
+</script>
     </script>
 </body>
 

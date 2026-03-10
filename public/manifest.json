@@ -1,8 +1,8 @@
 {
   "name": "Sparkle Campus App",
   "short_name": "SparkleApp",
-  "start_url": "/index.html",
-  "display": "browser",
+  "start_url": "/settings",
+  "display": "standalone",
   "background_color": "#8c258e",
   "theme_color": "#0d6efd",
   "orientation": "portrait",
@@ -16,6 +16,12 @@
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "id": "com.sparkle.campus",
@@ -36,9 +42,6 @@
     "social",
     "sports",
     "travel"
-  ],
-  "display_override": [
-    "window-controls-overlay"
   ],
   "share_target": {
     "method": "GET",

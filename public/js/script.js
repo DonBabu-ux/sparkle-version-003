@@ -328,11 +328,14 @@ async function loadFeedPosts() {
 
         if (!posts || posts.length === 0) {
             container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #999;">
-                    <i class="fas fa-newspaper" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
-                    <p>No posts yet. Be the first to spark something!</p>
-                    <button onclick="window.showCreateOptions()" style="margin-top: 20px; background: linear-gradient(135deg, #9c27b0, #e91e63); color: white; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);">
-                        <i class="fas fa-bolt"></i> Create AfterGlow
+                <div class="premium-empty-state">
+                    <div class="empty-icon-container">
+                        <i class="fas fa-newspaper"></i>
+                    </div>
+                    <h3>No posts yet</h3>
+                    <p>Be the first to share something!</p>
+                    <button onclick="window.showCreateOptions()" class="empty-cta-btn">
+                        <i class="fas fa-plus"></i> Spark One!
                     </button>
                 </div>
             `;
@@ -352,172 +355,140 @@ async function loadFeedPosts() {
 // Global function to create a post element (used by dynamicPatch.js)
 // Global function to create a post element (used by dynamicPatch.js) house 5.0
 window.createPostElement = function (post) {
-    // Helper to prevent XSS
-    const escapeHtml = (text) => {
-        if (!text) return '';
-        return String(text)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+    const timeAgo = (dateStr) => {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return 'Recently';
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+        if (seconds < 60) return 'Just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days}d ago`;
+        return date.toLocaleDateString();
     };
 
-    const isLiked = post.is_liked || post.isLiked || false;
-    const isSaved = post.is_saved || post.isSaved || false;
-    const postId = escapeHtml(post.post_id || post.id);
-    const avatarUrl = escapeHtml(post.avatar || post.avatar_url || '/uploads/avatars/default.png');
-    const username = escapeHtml(post.username || 'sparkler');
-    const campus = escapeHtml(post.campus || 'Main Campus');
-    const major = escapeHtml(post.major || 'Student');
-    const title = escapeHtml(post.title || '');
-    let rawContent = post.content || post.caption || '';
-    if (rawContent === 'undefined') rawContent = '';
-    const content = escapeHtml(rawContent);
-    const icon = escapeHtml(post.icon || 'file-alt');
-    const type = escapeHtml(post.type || 'public');
-    const isPinned = post.is_pinned || false;
-
-    // Media Logic
-    const media = post.media_url || post.media || post.media_urls || [];
-    const mediaList = Array.isArray(media) ? media : (media ? [media] : []);
-    const hasMedia = mediaList.length > 0;
-    const isMagazineLayout = post.layout === 'magazine' || (hasMedia && content.length > 200 && mediaList.length === 1);
-
-    // Robust timestamp
-    let displayTime = 'Just now';
-    if (post.timestamp_raw) displayTime = DashboardAPI.formatTimestamp(post.timestamp_raw);
-    else if (post.timestamp) displayTime = DashboardAPI.formatTimestamp(post.timestamp);
-
     const postEl = document.createElement('div');
-    postEl.className = `post-card ${isPinned ? 'pinned' : ''} ${!hasMedia ? 'text-only' : ''}`;
-    postEl.setAttribute('data-post-id', postId);
+    postEl.className = 'post-card';
+    postEl.dataset.postId = post.post_id || post.id;
 
-    // 1. HEADER SECTION
-    let headerHtml = `
+    const displayTime = (post.created_at || post.timestamp) ? timeAgo(post.created_at || post.timestamp) : 'Just now';
+    let bufCaption = post.content || post.caption || '';
+    if (bufCaption === 'undefined' || bufCaption === 'null') bufCaption = '';
+    const fullCaption = bufCaption;
+
+    const isLiked = post.isLiked || post.user_has_liked || post.is_sparked || false;
+    const isSaved = post.isSaved || post.user_has_saved || post.is_saved || false;
+
+    const sparks = parseInt(post.sparks || post.spark_count || 0);
+    const comments = parseInt(post.comments || post.comment_count || 0);
+
+    const username = post.isAnonymous ? 'Anonymous Student' : (post.name || post.username || post.user_name || 'Sparkler');
+    const avatarUrl = post.avatar || post.avatar_url || '/uploads/avatars/default.png';
+    const mediaUrl = post.media || post.media_url || null;
+
+    // 1. HEADER
+    const headerHtml = `
         <div class="post-header">
-            <img src="${avatarUrl}" alt="${username}" class="post-avatar">
+            <img src="${avatarUrl}" alt="${username}"
+                class="post-avatar" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
             <div class="post-author-info">
                 <div class="post-username-row">
-                    <span class="post-username">@${username}</span>
-                    <span class="post-time-simple">• ${displayTime}</span>
+                    <div class="post-username">@${username}</div>
+                    ${post.is_verified ? '<span style="color: #3b82f6; font-size: 12px; margin-left: 4px;"><i class="fas fa-check-circle"></i></span>' : ''}
                 </div>
-                <div class="post-meta-row">${campus} • ${major}</div>
+                <div class="post-meta-row">
+                    <span>${post.campus || 'Main Campus'}</span> •
+                    <span class="post-time-simple">${displayTime}</span>
+                </div>
             </div>
-            <button class="post-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+            <button class="post-options-btn" onclick="event.stopPropagation(); window.showPostMenu('${post.post_id || post.id}', this)">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
         </div>
     `;
 
-    // 2. MEDIA SECTION (If not magazine)
+    // 2. TEXT
+    const isLongText = fullCaption.length > 280;
+    const textHtml = fullCaption ? `
+        <div class="post-text-body">
+            <div class="post-caption-container">
+                <div class="post-caption-preview ${isLongText ? 'has-fade' : ''}" id="caption-${post.post_id || post.id}">
+                    ${fullCaption}
+                </div>
+                ${isLongText ? `<div class="see-more-link" onclick="window.togglePostExpansion('${post.post_id || post.id}', this)">See More</div>` : ''}
+            </div>
+        </div>
+    ` : '';
+
+    // 3. MEDIA (Full Bleed)
     let mediaHtml = '';
-    if (hasMedia && !isMagazineLayout) {
-        if (mediaList.length === 1) {
-            const mediaUrl = escapeHtml(mediaList[0]);
-            mediaHtml = `
-                <div class="post-media">
-                    ${mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) ?
-                    `<video src="${mediaUrl}" controls preload="metadata"></video>` :
-                    `<img src="${mediaUrl}" alt="Post media" loading="lazy">`
-                }
-                </div>
-            `;
-        } else {
-            const gridClass = mediaList.length >= 4 ? 'grid-4' : `grid-${mediaList.length}`;
-            const visibleMedia = mediaList.slice(0, 4);
-            mediaHtml = `
-                <div class="post-media-container">
-                    <div class="post-media-grid ${gridClass}">
-                        ${visibleMedia.map((src, idx) => `
-                            <div class="grid-item">
-                                <img src="${escapeHtml(src)}" alt="Grid image" loading="lazy">
-                                ${idx === 3 && mediaList.length > 4 ? `<div class="grid-more-overlay">+${mediaList.length - 4}</div>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    // 3. TEXT CONTENT SECTION
-    let textContentHtml = '';
-    const isLongText = content.length > 250;
-
-    if (title || content) {
-        if (isMagazineLayout) {
-            textContentHtml = `
-            <div class="post-text-body magazine-layout">
-                <img src="${escapeHtml(mediaList[0])}" class="magazine-img" alt="Magazine media">
-                <div class="post-title-row">
-                    <div class="post-type-icon ${type}"><i class="fas fa-${icon}"></i></div>
-                    <span class="post-title-text">${title || 'Sparkle Update'}</span>
-                </div>
-                <div class="post-caption-full">${content}</div>
+    if (mediaUrl) {
+        const isVideo = mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i);
+        mediaHtml = `
+            <div class="post-media-proper">
+                ${isVideo ?
+                `<video class="media-obj-proper" src="${mediaUrl}" controls preload="metadata"></video>` :
+                `<img class="media-obj-proper" src="${mediaUrl}" alt="Post media" loading="lazy">`
+            }
             </div>
         `;
-        } else {
-            textContentHtml = `
-            <div class="post-text-body">
-                ${title ? `
-                    <div class="post-title-row">
-                        <div class="post-type-icon ${type}"><i class="fas fa-${icon}"></i></div>
-                        <span class="post-title-text">${title}</span>
-                    </div>
-                ` : ''}
-                <div class="post-caption-container">
-                    <div class="post-caption-preview ${isLongText ? 'has-fade' : ''}" id="caption-${postId}">
-                        ${content}
-                    </div>
-                    ${isLongText ? `<div class="see-more-link" onclick="window.togglePostExpansion('${postId}', this)">See More</div>` : ''}
-                </div>
-            </div>
-        `;
-        }
     }
 
-    // 4. ACTION BAR (Unified with post-card.ejs)
-    const actionsHtml = `
-                    <div class="post-actions">
-                        <button class="action-btn spark ${isLiked ? 'active' : ''}"
-                            onclick="sparkPost('${postId}', this)">
-                            <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
-                            <span class="spark-count">
-                                ${post.sparks || post.spark_count || 0}
-                            </span>
-                        </button>
+    // 4. INTERACTION AREA
+    const footerAreaHtml = `
+        <div class="post-interaction-metrics">
+            <div class="metric-stat spark-stat">
+                <i class="fas fa-bolt"></i>
+                <span class="spark-count-val">${isNaN(sparks) ? 0 : sparks}</span> Sparks
+            </div>
+            <div class="metric-stat comment-stat">
+                <i class="far fa-comment"></i>
+                <span class="comment-count-val">${isNaN(comments) ? 0 : comments}</span> Comments
+            </div>
+        </div>
 
-                        <button class="action-btn comment" onclick="toggleComments('${postId}')">
-                            <i class="far fa-comment"></i>
-                            <span>
-                                ${post.comments || post.comment_count || 0}
-                            </span>
-                        </button>
+        <div class="post-interaction-actions">
+            <button class="action-btn-custom spark ${isLiked ? 'active' : ''}"
+                onclick="event.stopPropagation(); window.toggleSpark('${post.post_id || post.id}', this)">
+                <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
+                <span>Spark</span>
+            </button>
 
-                        <button class="action-btn share" onclick="sharePost('${postId}')">
-                            <i class="far fa-share-square"></i>
-                        </button>
+            <button class="action-btn-custom comment" onclick="event.stopPropagation(); window.location.href='/post/${post.post_id || post.id}'">
+                <i class="far fa-comment"></i>
+                <span>Comment</span>
+            </button>
 
-                        <button class="action-btn save ${isSaved ? 'active' : ''}"
-                            onclick="savePost('${postId}', this)">
-                            <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
-                        </button>
-                    </div>
+            <button class="action-btn-custom share" onclick="event.stopPropagation(); window.shareManager?.openShareSheet('post', '${post.post_id || post.id}') || showNotification('Share coming soon!', 'info')">
+                <i class="far fa-share-square"></i>
+                <span>Share</span>
+            </button>
+
+            <button class="action-btn-custom save ${isSaved ? 'active' : ''}"
+                onclick="event.stopPropagation(); window.toggleSavePost('${post.post_id || post.id}', this)">
+                <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+                <span>Save</span>
+            </button>
+        </div>
     `;
 
-    // 5. QUICK COMMENT INPUT & COMMENTS SECTION
-    const commentInputHtml = `
-                    <div class="quick-comment">
-                        <img src="${appState.currentUser?.avatar || appState.currentUser?.avatar_url || '/uploads/avatars/default.png'}"
-                            class="comment-avatar-small" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
-                        <input type="text" id="comment-input-${postId}" placeholder="Add a comment..."
-                            onkeypress="if(event.key === 'Enter') addComment('${postId}', this)">
-                    </div>
-                    <div class="comments-section" id="comments-${postId}" style="display: none;"></div>
+    // 5. FOOTNOTE (Quick Comment)
+    const footnoteHtml = `
+        <div class="post-footer-minimal">
+            <div class="post-comment-quick">
+                <img src="${window.appState?.currentUser?.avatar || '/uploads/avatars/default.png'}" 
+                    class="post-avatar" style="width: 32px !important; height: 32px !important;" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                <input type="text" id="comment-input-${post.post_id || post.id}" class="comment-input-min" placeholder="Add a comment..."
+                    onkeypress="if(event.key === 'Enter') addComment('${post.post_id || post.id}', this)">
+            </div>
+            <div class="comments-section" id="comments-${post.post_id || post.id}" style="display: none;"></div>
+        </div>
     `;
 
-    // ASSEMBLE (Matching post-card.ejs order: Header -> Content -> Media -> Actions)
-    postEl.innerHTML = headerHtml + textContentHtml + mediaHtml + actionsHtml + commentInputHtml;
-
+    postEl.innerHTML = headerHtml + textHtml + mediaHtml + footerAreaHtml + footnoteHtml;
     return postEl;
 };
 
@@ -1106,13 +1077,13 @@ async function showComments(postId) {
                     ${comments.length === 0 ? '<p style="text-align: center; color: #999;">No comments yet.</p>' :
                 comments.map(comment => `
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border);">
-                            <img src="${comment.avatar_url || '/uploads/avatars/default.png'}" style="width: 40px; height: 40px; border-radius: 50%;">
+                            <img src="${comment.avatar || '/uploads/avatars/default.png'}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" onerror="this.src='/uploads/avatars/default.png'">
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
-                                    <span style="font-weight: 600;">${comment.user_name || comment.username}</span>
-                                    <span style="font-size: 11px; color: #999;">${DashboardAPI.formatTimestamp(comment.created_at)}</span>
+                                    <span style="font-weight: 600; color: #333;">${comment.username || 'Sparkler'}</span>
+                                    <span style="font-size: 11px; color: #999;">${comment.timestamp}</span>
                                 </div>
-                                <div style="margin-bottom: 5px;">${comment.content}</div>
+                                <div style="margin-bottom: 5px; color: #444; font-size: 14px; line-height: 1.4;">${comment.content}</div>
                                 <div style="display: flex; align-items: center; gap: 15px; font-size: 12px;">
                                     <button class="btn" style="padding: 0; background: none; color: #666; font-size: 11px;">
                                         <i class="far fa-heart"></i> ${comment.spark_count || 0}
@@ -1307,57 +1278,102 @@ function createSparkAnimation(x, y) {
 // ================================
 // NOTIFICATIONS SYSTEM
 // ================================
-function loadNotifications() {
-    const container = document.getElementById('notificationsList');
+// ================================
+// NOTIFICATIONS SYSTEM (REAL API)
+// ================================
+window.loadNotifications = async function () {
+    const container = document.getElementById('notificationList');
     if (!container) return;
 
-    const unreadCount = mockData.notifications.filter(n => !n.read).length;
-    const badge = document.getElementById('notificationCount');
-    if (badge) {
-        badge.textContent = unreadCount;
-        badge.style.display = unreadCount > 0 ? 'flex' : 'none';
-    }
-
-    container.innerHTML = '';
-
-    if (mockData.notifications.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #999;">
-                <i class="far fa-bell" style="font-size: 50px; margin-bottom: 15px;"></i>
-                <h3>No notifications</h3>
-                <p>You're all caught up!</p>
-            </div>
-        `;
-        return;
-    }
-
-    mockData.notifications.forEach(notification => {
-        const notifEl = document.createElement('div');
-        notifEl.className = 'notification-item';
-        if (!notification.read) {
-            notifEl.classList.add('unread');
+    try {
+        // Show loading state if container is empty
+        if (!container.innerHTML || container.innerHTML.includes('fa-spinner') === false) {
+            container.innerHTML = `
+                <div style="padding: 40px; text-align: center; color: #999;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <div style="margin-top: 10px;">Checking updates...</div>
+                </div>
+            `;
         }
 
-        notifEl.innerHTML = `
-            <div class="notification-icon" style="background: ${notification.color};">
-                <i class="${notification.icon}"></i>
-            </div>
-            <div style="flex: 1;">
-                <div style="font-weight: 600; margin-bottom: 5px;">${notification.message}</div>
-                <div style="font-size: 12px; color: #999;">${notification.timestamp}</div>
-            </div>
-            ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--primary); border-radius: 50%;"></div>' : ''}
-        `;
+        const notifications = await DashboardAPI.loadNotifications();
 
-        notifEl.addEventListener('click', () => {
-            notification.read = true;
-            loadNotifications();
-            showNotification('Notification marked as read');
+        // update notification badges
+        const badgeElems = [];
+        ['notificationCount', 'notificationCountBottom'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) badgeElems.push(el);
         });
 
-        container.appendChild(notifEl);
-    });
-}
+        const unreadCount = notifications.filter(n => !n.is_read).length;
+        badgeElems.forEach(badge => {
+            badge.textContent = unreadCount;
+            badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+        });
+
+        if (notifications.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px 40px; color: #94a3b8;">
+                    <div style="width: 80px; height: 80px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fas fa-bell-slash" style="font-size: 32px; color: #cbd5e1;"></i>
+                    </div>
+                    <h3 style="color: #1e293b; margin-bottom: 8px; font-weight: 700;">No notifications yet</h3>
+                    <p style="font-size: 14px;">When people spark your posts or follow you, you'll see them here.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = notifications.map(n => {
+            let icon = 'fa-bell';
+            let color = 'linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%)';
+
+            if (n.type === 'spark') {
+                icon = 'fa-fire';
+            } else if (n.type === 'follow') {
+                icon = 'fa-user-plus';
+            } else if (n.type === 'comment') {
+                icon = 'fa-comment';
+            } else if (n.type === 'share') {
+                icon = 'fa-share';
+            }
+
+            return `
+                <div class="notification-item ${n.is_read ? '' : 'unread'}" 
+                     onclick="handleNotificationClick('${n.notification_id || n.id}', '${n.action_url || ''}')">
+                    <div class="notification-icon-wrapper">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-message">
+                            <strong>${n.actor_name || 'Someone'}</strong> ${n.content || 'performed an action'}
+                        </div>
+                        <div class="notification-time">${DashboardAPI.formatTimestamp(n.created_at)}</div>
+                    </div>
+                    ${!n.is_read ? '<div class="unread-dot-premium"></div>' : ''}
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error('Failed to load notifications:', err);
+        container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--error);">Failed to load notifications. Please try again.</div>`;
+    }
+};
+
+window.handleNotificationClick = async function (id, url) {
+    try {
+        await DashboardAPI.markNotificationRead(id);
+        if (url && url !== '#') {
+            window.location.href = url;
+        } else {
+            loadNotifications();
+        }
+    } catch (e) {
+        console.error('Notification click error:', e);
+        if (url) window.location.href = url;
+    }
+};
 
 function showNotificationsModal() {
     loadNotifications();
@@ -1828,7 +1844,7 @@ function showAfterglowViewer(story) {
 
     // Set user info
     if (avatar) avatar.src = story.avatar_url || story.avatar || '/uploads/avatars/default.png';
-    if (username) username.textContent = story.username || story.name;
+    if (username) username.textContent = story.username || story.user_name || story.name || 'Sparkler';
     if (time) time.textContent = story.timestamp || 'Just now';
     if (campus) campus.textContent = story.campus || 'Campus';
     if (caption) caption.textContent = story.caption || '';
@@ -2038,29 +2054,80 @@ function updateBadgeCounts() {
 // ================================
 // HELPER FUNCTIONS
 // ================================
-function showNotification(message) {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.style.position = 'fixed';
-    notification.style.top = '20px';
-    notification.style.right = '20px';
-    notification.style.background = 'var(--primary)';
-    notification.style.color = 'white';
-    notification.style.padding = '12px 20px';
-    notification.style.borderRadius = '8px';
-    notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    notification.style.zIndex = '10001';
-    notification.style.fontSize = '14px';
-    notification.textContent = message;
+function showNotification(message, options = {}) {
+    // Default options
+    const config = {
+        type: 'info', // spark, comment, follow, share, info
+        title: '',
+        duration: 5000,
+        avatar: '/uploads/avatars/default.png',
+        icon: 'fa-bell',
+        url: '#',
+        id: Date.now(),
+        ...options
+    };
 
-    document.body.appendChild(notification);
+    // Ensure container exists
+    let container = document.getElementById('notification-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-toast-container';
+        document.body.appendChild(container);
+    }
 
-    // Remove after 3 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            document.body.removeChild(notification);
+    // Map types to icons if not provided
+    if (!options.icon) {
+        if (config.type === 'spark') config.icon = 'fa-fire';
+        else if (config.type === 'comment') config.icon = 'fa-comment';
+        else if (config.type === 'follow') config.icon = 'fa-user-plus';
+        else if (config.type === 'share') config.icon = 'fa-share';
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `notification-toast-premium toast-type-${config.type}`;
+    toast.setAttribute('data-id', config.id);
+
+    toast.innerHTML = `
+        <div class="toast-avatar-wrapper">
+            <img src="${config.avatar}" class="toast-avatar" onerror="this.src='/uploads/avatars/default.png'">
+            <div class="toast-icon-badge">
+                <i class="fas ${config.icon}"></i>
+            </div>
+        </div>
+        <div class="toast-content">
+            <div class="toast-message">${config.title ? `<strong>${config.title}</strong> ` : ''}${message}</div>
+            <div class="toast-time">Just now</div>
+        </div>
+        <div class="toast-progress" style="animation-duration: ${config.duration}ms"></div>
+    `;
+
+    // Click behavior
+    toast.onclick = (e) => {
+        if (config.url && config.url !== '#') {
+            window.location.href = config.url;
         }
-    }, 3000);
+        removeToast(toast);
+    };
+
+    // Add to container
+    container.appendChild(toast);
+
+    // Auto-remove
+    setTimeout(() => {
+        removeToast(toast);
+    }, config.duration);
+
+    function removeToast(el) {
+        if (!el.parentNode) return;
+        el.classList.add('toast-pop-out');
+        setTimeout(() => {
+            if (el.parentNode) container.removeChild(el);
+            if (container.children.length === 0) {
+                // optional: remove container? usually better to keep for performance
+            }
+        }, 400);
+    }
 }
 
 function toggleAnonymousMode() {

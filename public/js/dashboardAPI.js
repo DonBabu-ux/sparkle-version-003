@@ -290,13 +290,19 @@ const DashboardAPI = {
     async loadComments(postId) {
         try {
             const comments = await this.request(`/posts/${postId}/comments`);
-            return comments.map(comment => ({
-                id: comment.comment_id,
-                user: comment.username,
-                avatar: comment.avatar_url || '/uploads/avatars/default.png',
-                text: comment.content,
-                timestamp: this.formatTimestamp(comment.created_at)
-            }));
+            return comments.map(comment => {
+                const username = comment.username || comment.user_name || 'Sparkler';
+                const content = comment.content || comment.text || '';
+                return {
+                    id: comment.comment_id || comment.id,
+                    user: username,
+                    username: username,
+                    avatar: comment.avatar_url || comment.avatar || '/uploads/avatars/default.png',
+                    text: content,
+                    content: content,
+                    timestamp: this.formatTimestamp(comment.created_at || comment.timestamp)
+                };
+            });
         } catch (error) {
             console.error('Failed to load comments:', error);
             return [];
@@ -573,7 +579,7 @@ const DashboardAPI = {
                         avatar: this.ensureUrl(group.avatar_url) || '/uploads/avatars/default.png',
                         avatar_url: this.ensureUrl(group.avatar_url) || '/uploads/avatars/default.png',
                         timestamp: this.formatTimestamp(story.created_at || story.sent_at),
-                        secondsLeft: story.seconds_left || story.secondsLeft
+                        secondsLeft: Math.max(0, parseInt(story.seconds_left || story.secondsLeft) || 0)
                     }))
                 }));
             }
@@ -592,7 +598,7 @@ const DashboardAPI = {
                 media: this.ensureUrl(story.media_url),
                 media_url: this.ensureUrl(story.media_url),
                 caption: story.caption || '',
-                secondsLeft: story.seconds_left || story.secondsLeft,
+                secondsLeft: Math.max(0, parseInt(story.seconds_left || story.secondsLeft) || 0),
                 timestamp: this.formatTimestamp(story.created_at || story.sent_at),
                 created_at: story.created_at || story.sent_at,
                 isViewed: false

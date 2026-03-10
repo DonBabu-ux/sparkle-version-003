@@ -83,6 +83,7 @@ const getStories = async (req, res) => {
                 u.name as user_name,
                 u.avatar_url,
                 u.campus,
+                TIMESTAMPDIFF(SECOND, NOW(), s.created_at + INTERVAL 24 HOUR) as seconds_left,
                 (SELECT COUNT(*) FROM stories WHERE user_id = s.user_id AND created_at > NOW() - INTERVAL 24 HOUR) as user_story_count
             FROM stories s
             JOIN users u ON s.user_id = u.user_id

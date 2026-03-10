@@ -30,44 +30,6 @@ window.addEventListener('error', (event) => {
 (function fixMobileVisibility() {
     const style = document.createElement('style');
     style.textContent = `
-        /* Ensure all text is visible */
-        .modal-content, .post-card, .connect-card, .group-card, .market-card, 
-        .event-card, .skill-card, .lost-card, .confession-card, .poll-card,
-        .notification-item, .conversation-item-premium, .profile-header,
-        .sidebar, .main-content, .page, .create-option-card,
-        .modal-content *, .post-card *, .connect-card *, .group-card *,
-        .market-card *, .event-card *, .skill-card *, .lost-card *,
-        .confession-card *, .poll-card *, .notification-item *,
-        .conversation-item-premium *, .profile-header *, .sidebar *,
-        .main-content *, .page *, .create-option-card * {
-            color: #333333 !important;
-        }
-        
-        /* Headings should be darker */
-        h1, h2, h3, h4, h5, h6, .modal-title, .post-username, 
-        .connect-name, .group-name, .event-title, .profile-name {
-            color: #000000 !important;
-            font-weight: 600 !important;
-        }
-        
-        /* Fix placeholder text */
-        ::placeholder, input::placeholder, textarea::placeholder {
-            color: #999999 !important;
-            opacity: 1 !important;
-        }
-        
-        /* Links should be visible */
-        a, a:visited, a:hover {
-            color: var(--primary, #FF3D6D) !important;
-        }
-        
-        /* Fix white backgrounds */
-        .modal-content, .post-card, .connect-card, .group-card, 
-        .market-card, .event-card, .skill-card, .lost-card {
-            background: #ffffff !important;
-            border: 1px solid #e0e0e0 !important;
-        }
-        
         /* Mobile responsive adjustments */
         @media (max-width: 768px) {
             /* FAB button */
@@ -1339,10 +1301,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     if (posts.length === 0) {
                         container.innerHTML = `
-                            <div style="grid-column: span 3; text-align: center; padding: 40px 20px; color: #999;">
-                                <i class="fas fa-camera" style="font-size: 50px; margin-bottom: 15px;"></i>
-                                <h3 style="color: #333;">No posts yet</h3>
-                                <p style="color: #666;">Share your first post with your campus!</p>
+                            <div class="premium-empty-state" style="grid-column: span 3; width: 100%;">
+                                <div class="empty-icon-container">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                                <h3>No posts yet</h3>
+                                <p>Share your first post with your campus!</p>
                             </div>
                         `;
                         return;
@@ -1441,21 +1405,20 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // ============ NOTIFICATIONS INTEGRATION ============
         window.loadNotifications = async function () {
-            console.log('🔔 Loading real notifications...');
+            console.log('🔔 Loading premium notifications...');
             const container = document.getElementById('notificationList');
             if (!container) return;
 
             try {
-                const data = await DashboardAPI.loadNotifications();
-                // API returns { notifications, pagination } so unwrap
-                const notifications = Array.isArray(data) ? data : (data.notifications || []);
+                const notifications = await DashboardAPI.loadNotifications();
 
-                // update only the notification badges (header + bottom nav)
+                // update notification badges
                 const badgeElems = [];
                 ['notificationCount', 'notificationCountBottom'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) badgeElems.push(el);
                 });
+
                 const unreadCount = notifications.filter(n => !n.is_read).length;
                 badgeElems.forEach(badge => {
                     badge.textContent = unreadCount;
@@ -1463,27 +1426,44 @@ document.addEventListener('DOMContentLoaded', async function () {
                 });
 
                 if (notifications.length === 0) {
-                    container.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No notifications yet.</div>';
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 60px 40px; color: #94a3b8;">
+                            <div style="width: 80px; height: 80px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                                <i class="fas fa-bell-slash" style="font-size: 32px; color: #cbd5e1;"></i>
+                            </div>
+                            <h3 style="color: #1e293b; margin-bottom: 8px; font-weight: 700;">No notifications yet</h3>
+                            <p style="font-size: 14px;">You're all caught up!</p>
+                        </div>
+                    `;
                     return;
                 }
 
-                container.innerHTML = notifications.map(n => `
-                    <div class="notification-item ${n.is_read ? '' : 'unread'}" 
-                         onclick="(async ()=>{await markNotificationRead('${n.notification_id || n.id}'); const url=${JSON.stringify(n.action_url)}; if(url) window.location.href=url;})()"
-                         style="padding: 12px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; background: ${n.is_read ? 'transparent' : 'rgba(255, 61, 109, 0.05)'}; cursor: pointer; transition: background 0.3s;">
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 14px;">
-                            <i class="fas ${n.type === 'spark' ? 'fa-fire' : n.type === 'follow' ? 'fa-user-plus' : 'fa-comment'}"></i>
+                container.innerHTML = notifications.map(n => {
+                    let icon = 'fa-bell';
+                    if (n.type === 'spark') icon = 'fa-fire';
+                    else if (n.type === 'follow') icon = 'fa-user-plus';
+                    else if (n.type === 'comment') icon = 'fa-comment';
+                    else if (n.type === 'share') icon = 'fa-share';
+
+                    return `
+                        <div class="notification-item ${n.is_read ? '' : 'unread'}" 
+                             onclick="window.handleNotificationClick('${n.notification_id || n.id}', '${n.action_url || ''}')">
+                            <div class="notification-icon-wrapper">
+                                <i class="fas ${icon}"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-message">
+                                    <strong>${n.actor_name || 'Someone'}</strong> ${n.content || 'performed an action'}
+                                </div>
+                                <div class="notification-time">${DashboardAPI.formatTimestamp(n.created_at)}</div>
+                            </div>
+                            ${!n.is_read ? '<div class="unread-dot-premium"></div>' : ''}
                         </div>
-                        <div style="flex: 1;">
-                            <div style="font-size: 13px; color: var(--text-color);"><strong>${n.actor_name || n.user}</strong> ${n.content || n.message}</div>
-                            <div style="font-size: 11px; color: var(--text-secondary);">${n.created_at ? new Date(n.created_at).toLocaleString() : n.time}</div>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
             } catch (err) {
                 console.error('Failed to load notifications:', err);
-                showNotification('Failed to load notifications', 'error');
             }
         };
 
@@ -1656,72 +1636,74 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 const fragment = document.createDocumentFragment();
 
+                // Always add the Create Story card first
                 const currentUserData = window.currentUserData || { avatar: '' };
                 const createCard = document.createElement('div');
                 createCard.className = 'story-create-card';
                 createCard.onclick = () => window.showCreateOptions();
                 createCard.innerHTML = `
-                    <div class="story-create-inner">
-                        <div class="story-create-avatar-container">
+                    <div class="story-create-content">
+                        <div class="story-create-top">
                             <img src="${currentUserData.avatar || '/uploads/avatars/default.png'}"
-                                 alt="Your Story" class="story-create-avatar">
-                            <div class="story-create-ring"></div>
-                            <div class="story-create-plus">
-                                <i class="fas fa-plus"></i>
-                            </div>
+                                 style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                         </div>
-                        <div class="story-create-label" style="color: #333;">Create AfterGlow</div>
+                        <div class="story-plus-btn">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="story-create-bottom">
+                            Post Glow
+                        </div>
                     </div>
                 `;
                 fragment.appendChild(createCard);
 
                 if (!groups || groups.length === 0) {
-                    const hint = document.createElement('div');
-                    hint.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 0 10px;';
-                    hint.innerHTML = `
-                        <div style="color: #999; font-size: 12px; white-space: nowrap;">No active glows yet.</div>
-                        <button onclick="window.showCreateOptions()" style="background: rgba(156, 39, 176, 0.1); color: #9c27b0; border: 1px dashed #9c27b0; padding: 4px 12px; border-radius: 12px; cursor: pointer; font-size: 11px; white-space: nowrap;">Spark One!</button>
-                    `;
-                    fragment.appendChild(hint);
+                    // Only show hint if the container is currently empty of stories
+                    if (!container.querySelector('.story-view-card')) {
+                        const hint = document.createElement('div');
+                        hint.style.cssText = 'display: flex; align-items: center; padding: 0 10px;';
+                        hint.innerHTML = `
+                            <div class="vanish-timer" style="background: transparent; padding: 0; color: #94a3b8; font-size: 13px;">
+                                No active glows yet. <span onclick="window.showCreateOptions()" style="color: var(--accent); cursor: pointer; font-weight: 700; margin-left: 5px;">Spark One!</span>
+                            </div>
+                        `;
+                        fragment.appendChild(hint);
+                    } else {
+                        // Already have stories (from EJS), and fetch returned nothing? 
+                        // Likely a transient error or just no NEW stories. Keep what we have.
+                        return;
+                    }
                 } else {
-                    const formatTime = (seconds) => {
-                        if (seconds <= 0) return 'Expired';
-                        const h = Math.floor(seconds / 3600);
-                        const m = Math.floor((seconds % 3600) / 60);
-                        if (h > 0) return `${h}h ${m}m`;
-                        return `${m}m`;
-                    };
-
-                    groups.forEach((group, idx) => {
+                    groups.forEach((group) => {
                         const storyEl = document.createElement('div');
                         storyEl.className = 'story-view-card';
                         storyEl.dataset.userId = group.user_id;
-                        // compute seconds left based on first story
                         storyEl.dataset.secondsLeft = group.stories[0]?.secondsLeft || 0;
 
-                        // create ring with segments indicating number of stories
-                        let ringInner = '';
-                        if (group.stories.length > 1) {
-                            // simple segmentation: draw small dots around ring using CSS later
-                            ringInner = `<div class="story-multi-indicator">${group.stories.length}</div>`;
-                        }
-
                         storyEl.innerHTML = `
-                            <div class="story-view-inner">
-                                <div class="story-avatar-container">
-                                    <div class="story-avatar-ring" style="opacity: ${Math.max(0.1, group.stories[0]?.secondsLeft / 7200)};"></div>
-                                    <img src="${group.avatar_url || '/uploads/avatars/default.png'}" alt="${group.username}" class="story-avatar">
-                                    ${ringInner}
+                            <div class="story-media-container" style="position:relative; width:100%; height:100%;">
+                                <img src="${group.stories[0]?.media_url || group.avatar_url || '/uploads/avatars/default.png'}" 
+                                     class="story-media-bg"
+                                     onerror="this.src='/uploads/avatars/default.png'"
+                                     style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:brightness(0.85);">
+                                
+                                <div class="story-overlay-gradient" style="position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 40%);"></div>
+                                
+                                ${group.stories.length > 1 ? `<div class="story-multi-badge" style="position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.2); backdrop-filter:blur(4px); color:white; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:800; border:1px solid rgba(255,255,255,0.3); z-index:3;">${group.stories.length}</div>` : ''}
+
+                                <div class="story-avatar-badge" style="position:absolute; top:10px; left:10px; width:34px; height:34px; border-radius:50%; border:2px solid var(--accent); padding:2px; background:white; z-index:3; box-shadow:0 4px 8px rgba(0,0,0,0.2);">
+                                    <img src="${group.avatar_url || '/uploads/avatars/default.png'}"
+                                         style="width:100%; height:100%; border-radius:50%; object-fit:cover;"
+                                         onerror="this.src='/uploads/avatars/default.png'">
                                 </div>
-                                <div class="story-info">
-                                    <div class="story-username" style="color: #333;">${group.username}</div>
-                                    <div class="story-time" style="color: #666;">${formatTime(group.stories[0]?.secondsLeft)}</div>
+
+                                <div class="story-username-label" style="position:absolute; bottom:12px; left:10px; right:10px; color:white; font-size:11px; font-weight:700; text-shadow:0 1px 3px rgba(0,0,0,0.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; z-index:3;">
+                                    ${group.username || 'Sparkler'}
                                 </div>
                             </div>
                         `;
 
                         storyEl.addEventListener('click', () => {
-                            // open viewer with this user's stories
                             window.activeStories = group.stories;
                             window.currentStoryIndex = 0;
                             showAfterglowViewer(window.activeStories[0]);
@@ -1747,7 +1729,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const items = container.querySelectorAll('.story-view-card');
             items.forEach(item => {
                 let seconds = parseInt(item.dataset.secondsLeft);
-                if (seconds > 0) {
+                if (!isNaN(seconds) && seconds > 0) {
                     seconds -= 60;
                     item.dataset.secondsLeft = seconds;
                     const timeEl = item.querySelector('.story-time');
@@ -1851,8 +1833,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                                         <img src="${c.avatar}" style="width: 32px; height: 32px; border-radius: 50%;">
                                         <div>
-                                            <div style="font-weight: 600; font-size: 13px; color: #333;">${c.user}</div>
-                                            <div style="font-size: 14px; color: #555;">${c.text}</div>
+                                            <div style="font-weight: 700; font-size: 13px; color: #1e293b;">@${c.username}</div>
+                                            <div style="font-size: 14px; color: #334155; line-height: 1.4;">${c.content}</div>
                                             <div style="font-size: 11px; color: #999;">${c.timestamp}</div>
                                         </div>
                                     </div>
@@ -2048,8 +2030,18 @@ document.addEventListener('DOMContentLoaded', async function () {
             input.accept = 'image/*,video/*';
             input.style.display = 'none';
 
+            // Clean up after the user picks a file or cancels
+            let cleaned = false;
+            const cleanup = () => {
+                if (!cleaned && input.parentNode) {
+                    cleaned = true;
+                    input.parentNode.removeChild(input);
+                }
+            };
+
             input.addEventListener('change', async function (e) {
                 const file = e.target.files[0];
+                cleanup();
                 if (!file) return;
 
                 showNotification('Uploading story...', 'info');
@@ -2072,9 +2064,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             });
 
+            // Detect cancel: window refocuses after file picker closes without selection
+            window.addEventListener('focus', function onFocus() {
+                setTimeout(() => {
+                    cleanup();
+                    window.removeEventListener('focus', onFocus);
+                }, 500);
+            }, { once: true });
+
             document.body.appendChild(input);
             input.click();
-            document.body.removeChild(input);
         };
 
         // ============ CREATE LISTING ============
@@ -2491,6 +2490,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         window.createPostElement = function (post) {
             const timeAgo = (dateStr) => {
                 const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return 'Recently';
                 const now = new Date();
                 const seconds = Math.floor((now - date) / 1000);
                 if (seconds < 60) return 'Just now';
@@ -2504,127 +2504,123 @@ document.addEventListener('DOMContentLoaded', async function () {
             };
 
             const postEl = document.createElement('div');
-            postEl.className = 'post-card-wrapper mb-6'; // Container for the Tailwind card
-            postEl.dataset.id = post.post_id || post.id;
+            postEl.className = 'post-card';
+            postEl.dataset.postId = post.post_id || post.id;
 
             const displayTime = (post.created_at || post.timestamp) ? timeAgo(post.created_at || post.timestamp) : 'Just now';
-            const fullCaption = post.content || post.caption || '';
+            let bufCaption = post.content || post.caption || '';
+            if (bufCaption === 'undefined' || bufCaption === 'null') bufCaption = '';
+            const fullCaption = bufCaption;
             const isLongCaption = fullCaption.length > 300;
             const displayCaption = isLongCaption ? fullCaption.substring(0, 300) + '...' : fullCaption;
-            const isLiked = post.isLiked || post.user_has_liked || false;
-            const likesCount = post.sparks || post.likes_count || 0;
-            const commentsCount = post.comments || post.comments_count || 0;
-            const userId = post.user_id || post.userId;
+            const isLiked = post.isLiked || post.user_has_liked || post.is_sparked || false;
+            const isSaved = post.isSaved || post.user_has_saved || post.is_saved || false;
+            const sparks = parseInt(post.sparks || post.spark_count || 0);
+            const comments = parseInt(post.comments || post.comment_count || 0);
             const username = post.isAnonymous ? 'Anonymous Student' : (post.name || post.username || post.user_name || 'Sparkler');
             const avatarUrl = post.avatar || post.avatar_url || '/uploads/avatars/default.png';
+            const mediaUrl = post.media || post.media_url || null;
 
-            postEl.innerHTML = `
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4 transition-all duration-300">
-                    <!-- Post Header -->
-                    <div class="px-4 pt-3 pb-2 flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="relative flex-shrink-0">
-                                <a href="/profile/${userId}" class="block w-10 h-10 rounded-full overflow-hidden">
-                                    <img src="${avatarUrl}" 
-                                         alt="${username}" 
-                                         class="w-full h-full object-cover"
-                                         onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
-                                </a>
-                            </div>
-                            
-                            <div class="flex flex-col">
-                                <div class="flex items-center space-x-1 flex-wrap">
-                                    <a href="/profile/${userId}" class="font-bold text-gray-900 hover:underline text-[15px]">
-                                        ${username}
-                                    </a>
-                                    ${post.is_verified ? '<span class="text-blue-500 text-xs"><i class="fas fa-check-circle"></i></span>' : ''}
-                                    ${post.role ? `<span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded">@${post.role}</span>` : ''}
-                                </div>
-                                <div class="flex items-center space-x-1.5 text-[12px] text-gray-500">
-                                    <span>${displayTime}</span>
-                                    <span>•</span>
-                                    <span class="flex items-center space-x-1">
-                                        <i class="fas fa-globe-africa text-[10px]"></i>
-                                        <span>${post.campus || 'Main Campus'}</span>
-                                    </span>
-                                </div>
-                            </div>
+            // 1. HEADER
+            const headerHtml = `
+                <div class="post-header">
+                    <img src="${avatarUrl}" alt="${username}"
+                        class="post-avatar" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                    <div class="post-author-info">
+                        <div class="post-username-row">
+                            <div class="post-username">@${username}</div>
+                            ${post.is_verified ? '<span style="color: #3b82f6; font-size: 12px; margin-left: 4px;"><i class="fas fa-check-circle"></i></span>' : ''}
                         </div>
-                        
-                        <button class="text-gray-500 hover:bg-gray-100 p-2 rounded-full transition-colors" onclick="event.stopPropagation(); window.showPostMenu('${post.post_id || post.id}', this)">
-                            <i class="fas fa-ellipsis-v text-sm"></i>
-                        </button>
-                    </div>
-
-                    <!-- Post Content (Caption) -->
-                    <div class="px-4 pb-3 cursor-pointer" onclick="window.location.href='/post/${post.post_id || post.id}'">
-                        <div class="text-gray-800 leading-normal text-[15px]">
-                            ${displayCaption}
-                            ${isLongCaption ? '<span class="text-blue-600 hover:underline font-medium ml-1">See more</span>' : ''}
+                        <div class="post-meta-row">
+                            <span>${post.campus || 'Main Campus'}</span> •
+                            <span class="post-time-simple">${displayTime}</span>
                         </div>
                     </div>
-
-                    <!-- Post Media (Edge-to-Edge) -->
-                    ${post.media ? `
-                    <div class="relative w-full bg-gray-50 border-y border-gray-100 cursor-pointer overflow-hidden" onclick="window.location.href='/post/${post.post_id || post.id}'">
-                        ${(post.media.match(/\.(mp4|webm|ogg)$/i) || post.media.includes('video'))
-                        ? `<video src="${post.media}" controls class="w-full h-auto max-h-[600px] object-contain mx-auto" onclick="event.stopPropagation();"></video>`
-                        : `<img src="${post.media}" alt="Post media" class="w-full h-auto max-h-[600px] object-contain mx-auto transition-opacity duration-300" loading="lazy">`
-                    }
-                    </div>` : ''}
-
-                    <!-- Engagement Stats -->
-                    <div class="px-4 py-2.5 flex items-center justify-between text-sm text-gray-500 border-b border-gray-100">
-                        <div class="flex items-center space-x-1">
-                            <div class="flex -space-x-1">
-                                <div class="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center border border-white">
-                                    <i class="fas fa-thumbs-up text-[8px] text-white"></i>
-                                </div>
-                                <div class="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center border border-white">
-                                    <i class="fas fa-heart text-[8px] text-white"></i>
-                                </div>
-                            </div>
-                            <span>${likesCount}</span>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <span>${commentsCount} comments</span>
-                            <span>${post.shares || 0} shares</span>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="px-1 py-1 flex items-center justify-between">
-                        <button class="spark-btn flex-1 flex items-center justify-center space-x-2 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 transition-all font-semibold text-[14px] ${isLiked ? 'text-blue-600' : ''}" 
-                                onclick="event.stopPropagation(); window.toggleSpark('${post.post_id || post.id}', this)">
-                            <i class="${isLiked ? 'fas fa-thumbs-up' : 'far fa-thumbs-up'}"></i>
-                            <span>Spark</span>
-                        </button>
-                        
-                        <button class="flex-1 flex items-center justify-center space-x-2 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 transition-all font-semibold text-[14px]" 
-                                onclick="event.stopPropagation(); window.location.href='/post/${post.post_id || post.id}'">
-                            <i class="far fa-comment"></i>
-                            <span>Comment</span>
-                        </button>
-                        
-                        <button class="flex-1 flex items-center justify-center space-x-2 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 transition-all font-semibold text-[14px]" 
-                                onclick="event.stopPropagation(); window.shareManager?.openShareSheet('post', '${post.post_id || post.id}') || showNotification('Share coming soon!', 'info')">
-                            <i class="far fa-share-square"></i>
-                            <span>Share</span>
-                        </button>
-                    </div>
-
-                    <!-- Quick Comment (Optional, hide if not needed for extreme Facebook look) -->
-                    <div class="px-4 py-2 bg-white border-t border-gray-100 flex items-center space-x-2">
-                        <img src="${window.currentUser?.avatar_url || '/uploads/avatars/default.png'}" class="w-8 h-8 rounded-full border border-gray-100 object-cover">
-                        <div class="flex-1 relative">
-                            <input type="text" 
-                                   placeholder="Write a comment..." 
-                                   class="w-full px-3 py-2 rounded-2xl bg-gray-100 border-none focus:ring-0 outline-none text-[13px] placeholder-gray-500"
-                                   onkeypress="if(event.key === 'Enter') window.quickComment(this, '${post.post_id || post.id}')">
-                        </div>
-                    </div>
+                    <button class="post-options-btn" onclick="event.stopPropagation(); window.showPostMenu('${post.post_id || post.id}', this)">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
                 </div>
             `;
+
+            // 2. TEXT
+            const isLongText = fullCaption.length > 280;
+            const textHtml = fullCaption ? `
+                <div class="post-text-body">
+                    <div class="post-caption-container">
+                        <div class="post-caption-preview ${isLongText ? 'has-fade' : ''}" id="caption-${post.post_id || post.id}">
+                            ${fullCaption}
+                        </div>
+                        ${isLongText ? `<div class="see-more-link" onclick="window.togglePostExpansion('${post.post_id || post.id}', this)">See More</div>` : ''}
+                    </div>
+                </div>
+            ` : '';
+
+            // 3. MEDIA (Full Bleed)
+            let mediaHtml = '';
+            if (mediaUrl) {
+                const isVideo = mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i);
+                mediaHtml = `
+                    <div class="post-media-proper">
+                        ${isVideo ?
+                        `<video class="media-obj-proper" src="${mediaUrl}" controls preload="metadata"></video>` :
+                        `<img class="media-obj-proper" src="${mediaUrl}" alt="Post media" loading="lazy">`
+                    }
+                    </div>
+                `;
+            }
+
+            // 4. INTERACTION AREA
+            const footerAreaHtml = `
+                <div class="post-interaction-metrics">
+                    <div class="metric-stat spark-stat">
+                        <i class="fas fa-bolt"></i>
+                        <span class="spark-count-val">${isNaN(sparks) ? 0 : sparks}</span> Sparks
+                    </div>
+                    <div class="metric-stat comment-stat">
+                        <i class="far fa-comment"></i>
+                        <span class="comment-count-val">${isNaN(comments) ? 0 : comments}</span> Comments
+                    </div>
+                </div>
+
+                <div class="post-interaction-actions">
+                    <button class="action-btn-custom spark ${isLiked ? 'active' : ''}"
+                        onclick="event.stopPropagation(); window.toggleSpark('${post.post_id || post.id}', this)">
+                        <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
+                        <span>Spark</span>
+                    </button>
+
+                    <button class="action-btn-custom comment" onclick="event.stopPropagation(); window.location.href='/post/${post.post_id || post.id}'">
+                        <i class="far fa-comment"></i>
+                        <span>Comment</span>
+                    </button>
+
+                    <button class="action-btn-custom share" onclick="event.stopPropagation(); window.shareManager?.openShareSheet('post', '${post.post_id || post.id}') || showNotification('Share coming soon!', 'info')">
+                        <i class="far fa-share-square"></i>
+                        <span>Share</span>
+                    </button>
+
+                    <button class="action-btn-custom save ${isSaved ? 'active' : ''}"
+                        onclick="event.stopPropagation(); window.toggleSavePost('${post.post_id || post.id}', this)">
+                        <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+                        <span>Save</span>
+                    </button>
+                </div>
+            `;
+
+            // 5. FOOTNOTE (Quick Comment)
+            const footnoteHtml = `
+                <div class="post-footer-minimal">
+                    <div class="post-comment-quick">
+                        <img src="${window.appState?.currentUser?.avatar || '/uploads/avatars/default.png'}" 
+                            class="post-avatar" style="width: 32px !important; height: 32px !important;" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                        <input type="text" id="comment-input-${post.post_id || post.id}" class="comment-input-min" placeholder="Add a comment..."
+                            onkeypress="if(event.key === 'Enter') addComment('${post.post_id || post.id}', this)">
+                    </div>
+                    <div class="comments-section" id="comments-${post.post_id || post.id}" style="display: none;"></div>
+                </div>
+            `;
+
+            postEl.innerHTML = headerHtml + textHtml + mediaHtml + footerAreaHtml + footnoteHtml;
 
             if (!window.deletePostConfirm) {
                 window.deletePostConfirm = async (postId, btn) => {
@@ -3156,213 +3152,220 @@ document.addEventListener('DOMContentLoaded', async function () {
                         });
                     }
                 }
+            } catch (error) {
+                console.error('Failed to update profile page:', error);
+                showNotification('Failed to update profile', 'error');
             }
-        } catch (error) {
-            console.error('Failed to update profile page:', error);
-            showNotification('Failed to update profile', 'error');
-        }
-    };
+        };
 
-    window.switchProfileTab = async function (tab) {
-        console.log('📱 Switching profile tab:', tab);
-        const tabs = document.querySelectorAll('.profile-tab');
-        tabs.forEach(t => {
-            t.classList.remove('active');
-            if (t.dataset.tab === tab) t.classList.add('active');
-        });
-    };
+        window.switchProfileTab = async function (tab) {
+            console.log('📱 Switching profile tab:', tab);
+            const tabs = document.querySelectorAll('.profile-tab');
+            tabs.forEach(t => {
+                t.classList.remove('active');
+                if (t.dataset.tab === tab) t.classList.add('active');
+            });
+        };
 
-    // ============ OVERRIDE FEED POSTS LOADING ============
-    // keeps exactly FEED_LIMIT posts and refreshes when scrolled past bottom
-    const FEED_LIMIT = 12;
-    let lastSeenPostId = null;
-    let feedLoading = false;
-    let suggestionsDisplayed = false; // only fetch once per page load
+        // ============ OVERRIDE FEED POSTS LOADING ============
+        // keeps exactly FEED_LIMIT posts and refreshes when scrolled past bottom
+        const FEED_LIMIT = 12;
+        let lastSeenPostId = null;
+        let feedLoading = false;
+        let suggestionsDisplayed = false; // only fetch once per page load
 
-    // helper to render a list of suggested user cards
-    async function fetchAndRenderSuggestions(container) {
-        if (suggestionsDisplayed) return;
-        try {
-            const users = await DashboardAPI.getSuggestions(5);
-            if (!users || users.length === 0) return;
+        // helper to render a list of suggested user cards
+        async function fetchAndRenderSuggestions(container) {
+            if (suggestionsDisplayed) return;
+            try {
+                const users = await DashboardAPI.getSuggestions(5);
+                if (!users || users.length === 0) return;
 
-            const sugWrapper = document.createElement('div');
-            sugWrapper.className = 'profile-suggestions';
-            sugWrapper.style.cssText = 'padding:20px; background:#fafafa; border:1px solid #eee; margin:20px 0; border-radius:8px;';
-            sugWrapper.innerHTML = `< h4 style = "margin-bottom:10px;" > People you may know</h4 > `;
+                const sugWrapper = document.createElement('div');
+                sugWrapper.className = 'premium-empty-state'; // Reuse premium card logic
+                sugWrapper.style.cssText = 'padding:25px; margin:24px 0; max-width: 100%; border-radius: 24px; text-align: left; align-items: flex-start;';
+                sugWrapper.innerHTML = `<h4 style="margin-bottom:18px; font-weight: 800; color: #1e293b; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-users" style="color: var(--primary); font-size: 20px;"></i> 
+                    People you may know
+                </h4>`;
 
-            users.forEach(u => {
-                const uel = document.createElement('div');
-                uel.className = 'suggestion-user';
-                uel.style.cssText = 'display:flex; align-items:center; margin-bottom:10px;';
-                uel.innerHTML = `
-    < img src = "${u.avatar_url || '/uploads/avatars/default.png'}" style = "width:40px;height:40px;border-radius:50%;margin-right:10px;" />
+                users.forEach(u => {
+                    const uel = document.createElement('div');
+                    uel.className = 'suggestion-user';
+                    uel.style.cssText = 'display:flex; align-items:center; margin-bottom:15px; width: 100%; padding: 8px; border-radius: 12px; transition: background 0.2s;';
+                    uel.innerHTML = `
+                        <img src="${u.avatar_url || '/uploads/avatars/default.png'}" style="width:44px; height:44px; border-radius:12px; margin-right:12px; object-fit: cover; border: 1px solid #eee;" />
                         <div style="flex:1;">
                             <strong>${u.name || ''}</strong><br>
                             <small>@${u.username || ''}</small>
                         </div>
-                        <button class="btn btn-sm btn-primary" onclick="followUserFromAPI('${u.user_id}', this)">Follow</button>
+                        <button class="btn btn-sm btn-primary" style="border-radius:10px; font-weight:700; padding:6px 16px; background:var(--primary-gradient); border:none;" onclick="followUserFromAPI('${u.user_id}', this)">Follow</button>
 `;
-                sugWrapper.appendChild(uel);
-            });
-
-            // insert suggestions after a few posts to avoid disturbing the flow
-            const insertIndex = Math.min(FEED_LIMIT, container.children.length);
-            if (insertIndex >= 0 && container.children.length > 0) {
-                container.insertBefore(sugWrapper, container.children[insertIndex]);
-            } else {
-                container.appendChild(sugWrapper);
-            }
-
-            suggestionsDisplayed = true;
-        } catch (err) {
-            console.error('Error loading suggestions', err);
-        }
-    }
-
-    window.loadFeedPosts = async function (options = {}) {
-        const isSilent = options.silent || false;
-        const isRefresh = options.refresh || false;
-        const container = document.getElementById('feed');
-        if (!container) return;
-
-        // prevent concurrent loads
-        if (feedLoading) return;
-        feedLoading = true;
-
-        try {
-            if (!isSilent) {
-                container.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
-            }
-
-            const posts = await DashboardAPI.loadFeed({ limit: FEED_LIMIT, page: 1 });
-            if (!posts) return;
-
-            // update lastSeenPostId for polling
-            if (posts.length > 0) {
-                lastSeenPostId = posts[0].post_id || posts[0].id;
-            }
-
-            const fragment = document.createDocumentFragment();
-            if (posts.length === 0) {
-                const empty = document.createElement('div');
-                empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #999;';
-                empty.innerHTML = `
-    < i class="fas fa-newspaper" style = "font-size: 50px; margin-bottom: 20px; color: #ccc;" ></i >
-                        <h3 style="color: #333;">No posts yet</h3>
-                        <p style="color: #666;">Be the first to share something!</p>
-`;
-                fragment.appendChild(empty);
-            } else {
-                posts.forEach(post => {
-                    try {
-                        const postEl = window.createPostElement(post);
-                        fragment.appendChild(postEl);
-                    } catch (e) {
-                        console.error('Render error:', e);
-                    }
+                    sugWrapper.appendChild(uel);
                 });
-            }
 
-            // preserve existing suggestions element across refreshes
-            let suggestionsNode = container.querySelector('.profile-suggestions');
-            if (suggestionsNode) {
-                suggestionsNode.remove();
-            }
-
-            container.innerHTML = '';
-            container.appendChild(fragment);
-
-            if (suggestionsNode) {
-                // re-insert at roughly same index
+                // insert suggestions after a few posts to avoid disturbing the flow
                 const insertIndex = Math.min(FEED_LIMIT, container.children.length);
-                if (insertIndex < container.children.length) {
-                    container.insertBefore(suggestionsNode, container.children[insertIndex]);
+                if (insertIndex >= 0 && container.children.length > 0) {
+                    container.insertBefore(sugWrapper, container.children[insertIndex]);
                 } else {
-                    container.appendChild(suggestionsNode);
+                    container.appendChild(sugWrapper);
                 }
-            }
 
-            // if the user has already scrolled past half a viewport height, insert suggestions immediately
-            if (!suggestionsDisplayed && window.scrollY > window.innerHeight * 0.5) {
-                fetchAndRenderSuggestions(container);
+                suggestionsDisplayed = true;
+            } catch (err) {
+                console.error('Error loading suggestions', err);
             }
-
-        } catch (error) {
-            console.error('❌ Failed to load feed:', error);
-            if (!isSilent) {
-                container.innerHTML = `< div style = "text-align:center; padding:40px; color:var(--danger);" > Failed to load feed. < br > <button onclick="window.loadFeedPosts()" class="btn btn-sm" style="margin-top:10px;">Retry</button></div > `;
-                showNotification('Failed to load feed', 'error');
-            }
-        } finally {
-            feedLoading = false;
-        }
-    };
-
-    // refresh when user scrolls to bottom and also trigger profile suggestions (silent)
-    window.addEventListener('scroll', async () => {
-        const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 150;
-        if (nearBottom) {
-            await window.loadFeedPosts({ refresh: true, silent: true });
         }
 
-        // trigger suggestions after the user has scrolled more than one viewport
-        if (!suggestionsDisplayed && window.scrollY > window.innerHeight * 0.7) {
+        window.loadFeedPosts = async function (options = {}) {
+            const isSilent = options.silent || false;
+            const isRefresh = options.refresh || false;
             const container = document.getElementById('feed');
-            if (container) {
-                fetchAndRenderSuggestions(container);
-            }
-        }
-    });
+            if (!container) return;
 
-    // poll for new posts every 30s; if new found reload feed silently
-    setInterval(async () => {
-        try {
-            const newest = await DashboardAPI.loadFeed({ limit: 1, page: 1 });
-            if (newest.length && newest[0].post_id && newest[0].post_id !== lastSeenPostId) {
+            // prevent concurrent loads
+            if (feedLoading) return;
+            feedLoading = true;
+
+            try {
+                if (!isSilent) {
+                    container.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+                }
+
+                const posts = await DashboardAPI.loadFeed({ limit: FEED_LIMIT, page: 1 });
+                if (!posts) return;
+
+                // update lastSeenPostId for polling
+                if (posts.length > 0) {
+                    lastSeenPostId = posts[0].post_id || posts[0].id;
+                }
+
+                const fragment = document.createDocumentFragment();
+                if (posts.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'premium-empty-state';
+                    empty.innerHTML = `
+                        <div class="empty-icon-container">
+                            <i class="fas fa-newspaper"></i>
+                        </div>
+                        <h3>No posts yet</h3>
+                        <p>Be the first to share something!</p>
+                        <button onclick="window.showCreateOptions()" class="empty-cta-btn">
+                            <i class="fas fa-plus"></i> Spark One!
+                        </button>
+                    `;
+                    fragment.appendChild(empty);
+                } else {
+                    posts.forEach(post => {
+                        try {
+                            const postEl = window.createPostElement(post);
+                            fragment.appendChild(postEl);
+                        } catch (e) {
+                            console.error('Render error:', e);
+                        }
+                    });
+                }
+
+                // preserve existing suggestions element across refreshes
+                let suggestionsNode = container.querySelector('.profile-suggestions');
+                if (suggestionsNode) {
+                    suggestionsNode.remove();
+                }
+
+                container.innerHTML = '';
+                container.appendChild(fragment);
+
+                if (suggestionsNode) {
+                    // re-insert at roughly same index
+                    const insertIndex = Math.min(FEED_LIMIT, container.children.length);
+                    if (insertIndex < container.children.length) {
+                        container.insertBefore(suggestionsNode, container.children[insertIndex]);
+                    } else {
+                        container.appendChild(suggestionsNode);
+                    }
+                }
+
+                // if the user has already scrolled past half a viewport height, insert suggestions immediately
+                if (!suggestionsDisplayed && window.scrollY > window.innerHeight * 0.5) {
+                    fetchAndRenderSuggestions(container);
+                }
+
+            } catch (error) {
+                console.error('❌ Failed to load feed:', error);
+                if (!isSilent) {
+                    container.innerHTML = `< div style = "text-align:center; padding:40px; color:var(--danger);" > Failed to load feed. < br > <button onclick="window.loadFeedPosts()" class="btn btn-sm" style="margin-top:10px;">Retry</button></div > `;
+                    showNotification('Failed to load feed', 'error');
+                }
+            } finally {
+                feedLoading = false;
+            }
+        };
+
+        // refresh when user scrolls to bottom and also trigger profile suggestions (silent)
+        window.addEventListener('scroll', async () => {
+            const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 150;
+            if (nearBottom) {
                 await window.loadFeedPosts({ refresh: true, silent: true });
             }
-        } catch (e) {
-            console.error('Feed poll error', e);
-        }
-    }, 30000);
 
-    // ============ OVERRIDE MESSAGING LOADING ============
-    window.loadMessages = async function (type = 'direct') {
-        console.log(`📱 Loading ${type} messages...`);
-        if (type === 'direct' || type === 'anonymous') {
-            await loadChatsFromAPI();
-        } else {
-            const container = document.getElementById('messagesList');
-            if (container) {
-                container.innerHTML = `< div style = "text-align:center; padding:40px; color:#999;" >
+            // trigger suggestions after the user has scrolled more than one viewport
+            if (!suggestionsDisplayed && window.scrollY > window.innerHeight * 0.7) {
+                const container = document.getElementById('feed');
+                if (container) {
+                    fetchAndRenderSuggestions(container);
+                }
+            }
+        });
+
+        // poll for new posts every 30s; if new found reload feed silently
+        setInterval(async () => {
+            try {
+                const newest = await DashboardAPI.loadFeed({ limit: 1, page: 1 });
+                if (newest.length && newest[0].post_id && newest[0].post_id !== lastSeenPostId) {
+                    await window.loadFeedPosts({ refresh: true, silent: true });
+                }
+            } catch (e) {
+                console.error('Feed poll error', e);
+            }
+        }, 30000);
+
+        // ============ OVERRIDE MESSAGING LOADING ============
+        window.loadMessages = async function (type = 'direct') {
+            console.log(`📱 Loading ${type} messages...`);
+            if (type === 'direct' || type === 'anonymous') {
+                await loadChatsFromAPI();
+            } else {
+                const container = document.getElementById('messagesList');
+                if (container) {
+                    container.innerHTML = `< div style = "text-align:center; padding:40px; color:#999;" >
                         <i class="fas fa-lock" style="font-size:30px; margin-bottom:10px; color: #ccc;"></i>
                         <br><span style="color: #666;">${type.charAt(0).toUpperCase() + type.slice(1)} messaging coming soon!</span>
                     </div>`;
+                }
             }
-        }
-    };
+        };
 
-    // ============ OVERRIDE CONFESSIONS LOADING ============
-    window.loadEnhancedConfessions = async function () {
-        const container = document.getElementById('confessionsListModal');
-        if (!container) return;
+        // ============ OVERRIDE CONFESSIONS LOADING ============
+        window.loadEnhancedConfessions = async function () {
+            const container = document.getElementById('confessionsListModal');
+            if (!container) return;
 
-        try {
-            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
-            const userCampus = localStorage.getItem('sparkleUserCampus') || JSON.parse(localStorage.getItem('sparkleUser') || '{}').campus;
-            const confessions = await DashboardAPI.loadConfessions(userCampus);
-            container.innerHTML = '';
+            try {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+                const userCampus = localStorage.getItem('sparkleUserCampus') || JSON.parse(localStorage.getItem('sparkleUser') || '{}').campus;
+                const confessions = await DashboardAPI.loadConfessions(userCampus);
+                container.innerHTML = '';
 
-            if (confessions.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No confessions yet. Be the first to share!</div>';
-                return;
-            }
+                if (confessions.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No confessions yet. Be the first to share!</div>';
+                    return;
+                }
 
-            confessions.forEach(conf => {
-                const card = document.createElement('div');
-                card.className = 'confession-card';
-                card.innerHTML = `
+                confessions.forEach(conf => {
+                    const card = document.createElement('div');
+                    card.className = 'confession-card';
+                    card.innerHTML = `
     < div class="confession-text" style = "color: #333;" > "${conf.text}"</div >
                         <div class="confession-meta" style="color: #666;">
                             <span><i class="fas fa-university"></i> ${conf.campus || 'Campus'}</span>
@@ -3380,36 +3383,36 @@ document.addEventListener('DOMContentLoaded', async function () {
                             </button>
                         </div>
 `;
-                container.appendChild(card);
-            });
-        } catch (error) {
-            console.error('Failed to load confessions:', error);
-            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger);">Failed to load confessions.</div>';
-            showNotification('Failed to load confessions', 'error');
-        }
-    };
-
-    // ============ OVERRIDE POLLS LOADING ============
-    window.loadPolls = async function () {
-        const container = document.getElementById('activePolls');
-        if (!container) return;
-        const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-        const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
-
-        try {
-            container.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i></div>';
-            const polls = await DashboardAPI.loadPolls(userCampus);
-            container.innerHTML = '';
-
-            if (polls.length === 0) {
-                container.innerHTML = `< div style = "text-align: center; color: #666;" > No active polls in ${userCampus !== 'all' ? userCampus : 'any campus'}.</div > `;
-                return;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Failed to load confessions:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger);">Failed to load confessions.</div>';
+                showNotification('Failed to load confessions', 'error');
             }
+        };
 
-            polls.forEach(poll => {
-                const card = document.createElement('div');
-                card.className = 'poll-card';
-                const optionsHtml = poll.options.map((opt) => `
+        // ============ OVERRIDE POLLS LOADING ============
+        window.loadPolls = async function () {
+            const container = document.getElementById('activePolls');
+            if (!container) return;
+            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+            const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
+
+            try {
+                container.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i></div>';
+                const polls = await DashboardAPI.loadPolls(userCampus);
+                container.innerHTML = '';
+
+                if (polls.length === 0) {
+                    container.innerHTML = `< div style = "text-align: center; color: #666;" > No active polls in ${userCampus !== 'all' ? userCampus : 'any campus'}.</div > `;
+                    return;
+                }
+
+                polls.forEach(poll => {
+                    const card = document.createElement('div');
+                    card.className = 'poll-card';
+                    const optionsHtml = poll.options.map((opt) => `
     < div class="poll-option" onclick = "window.votePoll('${poll.id || poll.poll_id}', '${opt.option_id}')" >
                             <div class="poll-option-text" style="color: #333;">${opt.option_text || opt.text}</div>
                             <div class="poll-option-bar" style="width: ${opt.vote_count > 0 ? (Math.round((opt.vote_count / (poll.total_votes || 1)) * 100)) : 0}%"></div>
@@ -3417,7 +3420,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         </div >
     `).join('');
 
-                card.innerHTML = `
+                    card.innerHTML = `
     < div class="poll-question" style = "color: #333;" > ${poll.question}</div >
                         <div class="poll-options">${optionsHtml}</div>
                         <div class="poll-footer" style="color: #666;">
@@ -3425,52 +3428,52 @@ document.addEventListener('DOMContentLoaded', async function () {
                             <span>• Ends in ${poll.time_left || '24h'}</span>
                         </div>
 `;
-                container.appendChild(card);
-            });
-        } catch (error) {
-            console.error('Failed to load polls:', error);
-            container.innerHTML = '<div style="text-align: center; color: var(--danger);">Failed to load polls.</div>';
-            showNotification('Failed to load polls', 'error');
-        }
-    };
-
-    window.votePoll = async (pollId, optionId) => {
-        try {
-            await DashboardAPI.votePoll(pollId, optionId);
-            showNotification('Vote recorded!', 'success');
-            loadPolls();
-        } catch (error) {
-            console.error('Failed to vote:', error);
-            if (error.message.includes('Already voted')) {
-                showNotification('You have already voted on this poll', 'info');
-            } else {
-                showNotification('Failed to record vote', 'error');
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Failed to load polls:', error);
+                container.innerHTML = '<div style="text-align: center; color: var(--danger);">Failed to load polls.</div>';
+                showNotification('Failed to load polls', 'error');
             }
-        }
-    };
+        };
 
-    // ============ OVERRIDE LOST & FOUND LOADING ============
-    window.loadLostFoundContent = async function (type = 'all') {
-        const container = document.getElementById('lostFoundItems');
-        if (!container) return;
-        const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-        const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
-
-        try {
-            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
-            const items = await DashboardAPI.loadLostFoundItems(type, userCampus);
-            container.innerHTML = '';
-
-            if (items.length === 0) {
-                container.innerHTML = `< div style = "text-align: center; padding: 40px; color: #666;" > No items reported in ${userCampus !== 'all' ? userCampus : 'any campus'}.</div > `;
-                return;
+        window.votePoll = async (pollId, optionId) => {
+            try {
+                await DashboardAPI.votePoll(pollId, optionId);
+                showNotification('Vote recorded!', 'success');
+                loadPolls();
+            } catch (error) {
+                console.error('Failed to vote:', error);
+                if (error.message.includes('Already voted')) {
+                    showNotification('You have already voted on this poll', 'info');
+                } else {
+                    showNotification('Failed to record vote', 'error');
+                }
             }
+        };
 
-            items.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'lost-card';
-                card.style = 'background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px; overflow: hidden;';
-                card.innerHTML = `
+        // ============ OVERRIDE LOST & FOUND LOADING ============
+        window.loadLostFoundContent = async function (type = 'all') {
+            const container = document.getElementById('lostFoundItems');
+            if (!container) return;
+            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+            const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
+
+            try {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+                const items = await DashboardAPI.loadLostFoundItems(type, userCampus);
+                container.innerHTML = '';
+
+                if (items.length === 0) {
+                    container.innerHTML = `< div style = "text-align: center; padding: 40px; color: #666;" > No items reported in ${userCampus !== 'all' ? userCampus : 'any campus'}.</div > `;
+                    return;
+                }
+
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'lost-card';
+                    card.style = 'background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px; overflow: hidden;';
+                    card.innerHTML = `
     < div style = "padding: 15px;" >
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                                 <div class="badge ${item.type === 'lost' ? 'badge-danger' : 'badge-success'}" 
@@ -3489,43 +3492,43 @@ document.addEventListener('DOMContentLoaded', async function () {
                             </button>
                         </div >
     `;
-                container.appendChild(card);
-            });
-        } catch (error) {
-            console.error('Failed to load lost & found:', error);
-            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger);">Failed to load items.</div>';
-            showNotification('Failed to load lost & found', 'error');
-        }
-    };
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Failed to load lost & found:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger);">Failed to load items.</div>';
+                showNotification('Failed to load lost & found', 'error');
+            }
+        };
 
-    // ============ OVERRIDE SKILL MARKET LOADING ============
-    window.loadSkillMarketContent = async function (type = 'all') {
-        const container = document.getElementById('availableSkills');
-        if (!container) return;
-        const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-        const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
+        // ============ OVERRIDE SKILL MARKET LOADING ============
+        window.loadSkillMarketContent = async function (type = 'all') {
+            const container = document.getElementById('availableSkills');
+            if (!container) return;
+            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+            const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
 
-        try {
-            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+            try {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
 
-            const offers = await DashboardAPI.loadSkillOffers(type === 'all' ? null : type, userCampus);
-            container.innerHTML = '';
+                const offers = await DashboardAPI.loadSkillOffers(type === 'all' ? null : type, userCampus);
+                container.innerHTML = '';
 
-            if (!offers || offers.length === 0) {
-                container.innerHTML = `
+                if (!offers || offers.length === 0) {
+                    container.innerHTML = `
     < div style = "text-align: center; padding: 40px; color: #666;" >
                             <i class="fas fa-graduation-cap fa-3x" style="display: block; margin-bottom: 20px; opacity: 0.2; color: #ccc;"></i>
                             <span style="color: #666;">No skill offers found ${userCampus !== 'all' ? 'in ' + userCampus : ''}.</span>
                             <br><small style="color: #999;">Be the first to offer a skill!</small>
                         </div>`;
-                return;
-            }
+                    return;
+                }
 
-            offers.forEach(offer => {
-                const card = document.createElement('div');
-                card.className = 'skill-card';
-                card.style = 'background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px; overflow: hidden;';
-                card.innerHTML = `
+                offers.forEach(offer => {
+                    const card = document.createElement('div');
+                    card.className = 'skill-card';
+                    card.style = 'background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px; overflow: hidden;';
+                    card.innerHTML = `
     < div style = "padding: 15px;" >
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
                                 <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary, #3498db); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px;">
@@ -3543,40 +3546,40 @@ document.addEventListener('DOMContentLoaded', async function () {
                             </div>
                         </div >
     `;
-                container.appendChild(card);
-            });
-        } catch (error) {
-            console.error('Failed to load skill market:', error);
-            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger);">Failed to load offers.</div>';
-            showNotification('Failed to load skill offers', 'error');
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Failed to load skill market:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger);">Failed to load offers.</div>';
+                showNotification('Failed to load skill offers', 'error');
+            }
+        };
+
+        window.loadMarketplace = window.loadMarketplaceContent;
+        window.loadLostFound = window.loadLostFoundContent;
+        window.loadSkillMarket = window.loadSkillMarketContent;
+
+        const userSearchInput = document.getElementById('userSearchInput');
+        if (userSearchInput) {
+            userSearchInput.addEventListener('input', debounce(() => {
+                window.loadConnectUsers();
+            }, 500));
         }
-    };
 
-    window.loadMarketplace = window.loadMarketplaceContent;
-    window.loadLostFound = window.loadLostFoundContent;
-    window.loadSkillMarket = window.loadSkillMarketContent;
+        // ============ OVERRIDE MOMENTS LOADING ============
+        window.loadMoments = async function () {
+            const container = document.getElementById('momentsList') || document.getElementById('momentVideoContainer');
+            if (!container) return;
 
-    const userSearchInput = document.getElementById('userSearchInput');
-    if (userSearchInput) {
-        userSearchInput.addEventListener('input', debounce(() => {
-            window.loadConnectUsers();
-        }, 500));
-    }
+            try {
+                console.log('📱 Creating Moments UI...');
+                container.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%; color:white;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
 
-    // ============ OVERRIDE MOMENTS LOADING ============
-    window.loadMoments = async function () {
-        const container = document.getElementById('momentsList') || document.getElementById('momentVideoContainer');
-        if (!container) return;
+                const moments = await DashboardAPI.loadMoments();
+                container.innerHTML = '';
 
-        try {
-            console.log('📱 Creating Moments UI...');
-            container.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%; color:white;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
-
-            const moments = await DashboardAPI.loadMoments();
-            container.innerHTML = '';
-
-            if (moments.length === 0) {
-                container.innerHTML = `
+                if (moments.length === 0) {
+                    container.innerHTML = `
     < div style = "display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: white; text-align: center;" >
                             <i class="fas fa-film" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5; color: #999;"></i>
                             <h3 style="color: #333;">No Moments Yet</h3>
@@ -3586,18 +3589,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                             </button>
                         </div >
     `;
-                return;
-            }
+                    return;
+                }
 
-            moments.forEach(moment => {
-                const momentEl = document.createElement('div');
-                momentEl.className = 'moment-video';
-                momentEl.style.height = '100%';
-                momentEl.setAttribute('data-moment-id', moment.id);
+                moments.forEach(moment => {
+                    const momentEl = document.createElement('div');
+                    momentEl.className = 'moment-video';
+                    momentEl.style.height = '100%';
+                    momentEl.setAttribute('data-moment-id', moment.id);
 
-                const videoSrc = moment.video || 'assets/videos/sample1.mp4';
+                    const videoSrc = moment.video || 'assets/videos/sample1.mp4';
 
-                momentEl.innerHTML = `
+                    momentEl.innerHTML = `
     < video class="moment-video-player" loop playsinline style = "width:100%; height:100%; object-fit:cover;" >
                             <source src="${videoSrc}" type="video/mp4">
                         </video>
@@ -3618,51 +3621,51 @@ document.addEventListener('DOMContentLoaded', async function () {
                         </div>
 `;
 
-                const video = momentEl.querySelector('video');
-                momentEl.addEventListener('click', () => {
-                    if (video.paused) video.play();
-                    else video.pause();
+                    const video = momentEl.querySelector('video');
+                    momentEl.addEventListener('click', () => {
+                        if (video.paused) video.play();
+                        else video.pause();
+                    });
+
+                    container.appendChild(momentEl);
                 });
 
-                container.appendChild(momentEl);
-            });
-
-        } catch (error) {
-            console.error('Failed to load moments:', error);
-            container.innerHTML = '<div style="color:white; text-align:center; padding-top:50%;">Failed to load moments</div>';
-            showNotification('Failed to load moments', 'error');
-        }
-    };
-
-    // ============ OVERRIDE CONNECT USERS LOADING ============
-    window.loadConnectUsers = async function (q = '', filterCampus = null, options = {}) {
-        const isSilent = options.silent || false;
-        const container = document.getElementById('connectContainer');
-        if (!container) return;
-
-        try {
-            if (!isSilent && !q) {
-                container.innerHTML = '<div style="padding:20px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></div>';
+            } catch (error) {
+                console.error('Failed to load moments:', error);
+                container.innerHTML = '<div style="color:white; text-align:center; padding-top:50%;">Failed to load moments</div>';
+                showNotification('Failed to load moments', 'error');
             }
+        };
 
-            const currentUserId = (JSON.parse(localStorage.getItem('sparkleUser') || '{}')).id || '';
-            const users = await DashboardAPI.searchUsers(q, filterCampus);
-            const availableUsers = users.filter(u => u.id !== currentUserId);
+        // ============ OVERRIDE CONNECT USERS LOADING ============
+        window.loadConnectUsers = async function (q = '', filterCampus = null, options = {}) {
+            const isSilent = options.silent || false;
+            const container = document.getElementById('connectContainer');
+            if (!container) return;
 
-            const fragment = document.createDocumentFragment();
-            if (availableUsers.length === 0) {
-                const empty = document.createElement('div');
-                empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #999; width: 100%;';
-                empty.innerHTML = `
+            try {
+                if (!isSilent && !q) {
+                    container.innerHTML = '<div style="padding:20px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></div>';
+                }
+
+                const currentUserId = (JSON.parse(localStorage.getItem('sparkleUser') || '{}')).id || '';
+                const users = await DashboardAPI.searchUsers(q, filterCampus);
+                const availableUsers = users.filter(u => u.id !== currentUserId);
+
+                const fragment = document.createDocumentFragment();
+                if (availableUsers.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #999; width: 100%;';
+                    empty.innerHTML = `
     < i class="fas fa-users-slash" style = "font-size: 40px; margin-bottom: 15px; color: #ccc;" ></i >
         <p style="color: #666;">No students found matching your search</p>
 `;
-                fragment.appendChild(empty);
-            } else {
-                availableUsers.forEach(user => {
-                    const userEl = document.createElement('div');
-                    userEl.className = 'connect-card';
-                    userEl.innerHTML = `
+                    fragment.appendChild(empty);
+                } else {
+                    availableUsers.forEach(user => {
+                        const userEl = document.createElement('div');
+                        userEl.className = 'connect-card';
+                        userEl.innerHTML = `
     < div class="connect-card-inner" >
                                 <div class="connect-avatar-container">
                                     <img src="${user.avatar || '/uploads/avatars/default.png'}" alt="${user.name}" class="connect-avatar">
@@ -3683,80 +3686,80 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 </div>
                             </div >
     `;
-                    fragment.appendChild(userEl);
-                });
-            }
-
-            container.innerHTML = '';
-            container.appendChild(fragment);
-
-        } catch (error) {
-            console.error('Failed to load users:', error);
-            container.innerHTML = '<div style="color: red; text-align:center;">Failed to load users</div>';
-            showNotification('Failed to load users', 'error');
-        }
-    };
-
-    // ============ CUSTOM CHAT LOADING ============
-    window.loadChatsFromAPI = async function (filterQuery = '') {
-        console.log('📱 Loading chats from API...');
-
-        const listContainer = document.querySelector('.messages-list');
-        if (!listContainer) return;
-
-        try {
-            if (!filterQuery) listContainer.innerHTML = '<div style="padding:20px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></div>';
-            const chats = await DashboardAPI.loadChats();
-            console.log(`📱 Loaded ${chats.length} chat sessions`);
-
-            const filteredChats = chats.filter(c => {
-                const queryMatch = !filterQuery ||
-                    (c.other_name && c.other_name.toLowerCase().includes(filterQuery.toLowerCase())) ||
-                    (c.other_user && c.other_user.toLowerCase().includes(filterQuery.toLowerCase()));
-
-                if (!queryMatch) return false;
-
-                const activeTab = document.querySelector('[data-message-type].active')?.getAttribute('data-message-type') || 'all';
-
-                if (activeTab === 'anonymous') return c.last_message_anonymous === 1;
-                if (activeTab === 'unread') return c.is_read === 0 || c.unread > 0;
-                if (activeTab === 'groups') return c.chat_session_id && (c.chat_session_id.toString().includes('group') || c.is_group);
-                if (activeTab === 'direct') return !c.last_message_anonymous && !(c.chat_session_id && c.chat_session_id.toString().includes('group'));
-
-                return true;
-            });
-
-            if (filteredChats.length === 0) {
-                listContainer.innerHTML = '<div style="padding:40px 20px; text-align:center; color:#999;"><i class="fas fa-comment-slash" style="font-size:32px; display:block; margin-bottom:10px; opacity:0.3; color: #ccc;"></i><span style="color: #666;">No messages found in this category.</span></div>';
-                return;
-            }
-
-            listContainer.innerHTML = '';
-            filteredChats.forEach(chat => {
-                const el = document.createElement('div');
-                el.className = 'conversation-item-premium';
-
-                const isAnonymous = chat.last_message_anonymous === 1;
-                const displayName = isAnonymous ? 'Anonymous Student' : (chat.other_name || chat.other_username || chat.other_user || 'Sparkler');
-                const chatAvatar = isAnonymous ? '/uploads/avatars/default.png' : (chat.other_avatar || '/uploads/avatars/default.png');
-
-                el.onclick = () => {
-                    document.querySelectorAll('.conversation-item-premium').forEach(p => p.classList.remove('active'));
-                    el.classList.add('active');
-                    startChat({
-                        chat_session_id: chat.chat_session_id,
-                        id: chat.other_user_id || chat.other_user,
-                        name: displayName,
-                        username: isAnonymous ? 'anonymous' : (chat.other_username || chat.other_user || 'unknown'),
-                        avatar: chatAvatar,
-                        isAnonymous: isAnonymous
+                        fragment.appendChild(userEl);
                     });
-                };
+                }
 
-                const lastMsgTime = chat.last_message_time ? new Date(chat.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
-                const lastMsgText = isAnonymous ? '<i>[Anonymous Message]</i>' : (chat.last_message_text || chat.last_message || 'Click to view conversation');
+                container.innerHTML = '';
+                container.appendChild(fragment);
 
-                el.innerHTML = `
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                container.innerHTML = '<div style="color: red; text-align:center;">Failed to load users</div>';
+                showNotification('Failed to load users', 'error');
+            }
+        };
+
+        // ============ CUSTOM CHAT LOADING ============
+        window.loadChatsFromAPI = async function (filterQuery = '') {
+            console.log('📱 Loading chats from API...');
+
+            const listContainer = document.querySelector('.messages-list');
+            if (!listContainer) return;
+
+            try {
+                if (!filterQuery) listContainer.innerHTML = '<div style="padding:20px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></div>';
+                const chats = await DashboardAPI.loadChats();
+                console.log(`📱 Loaded ${chats.length} chat sessions`);
+
+                const filteredChats = chats.filter(c => {
+                    const queryMatch = !filterQuery ||
+                        (c.other_name && c.other_name.toLowerCase().includes(filterQuery.toLowerCase())) ||
+                        (c.other_user && c.other_user.toLowerCase().includes(filterQuery.toLowerCase()));
+
+                    if (!queryMatch) return false;
+
+                    const activeTab = document.querySelector('[data-message-type].active')?.getAttribute('data-message-type') || 'all';
+
+                    if (activeTab === 'anonymous') return c.last_message_anonymous === 1;
+                    if (activeTab === 'unread') return c.is_read === 0 || c.unread > 0;
+                    if (activeTab === 'groups') return c.chat_session_id && (c.chat_session_id.toString().includes('group') || c.is_group);
+                    if (activeTab === 'direct') return !c.last_message_anonymous && !(c.chat_session_id && c.chat_session_id.toString().includes('group'));
+
+                    return true;
+                });
+
+                if (filteredChats.length === 0) {
+                    listContainer.innerHTML = '<div style="padding:40px 20px; text-align:center; color:#999;"><i class="fas fa-comment-slash" style="font-size:32px; display:block; margin-bottom:10px; opacity:0.3; color: #ccc;"></i><span style="color: #666;">No messages found in this category.</span></div>';
+                    return;
+                }
+
+                listContainer.innerHTML = '';
+                filteredChats.forEach(chat => {
+                    const el = document.createElement('div');
+                    el.className = 'conversation-item-premium';
+
+                    const isAnonymous = chat.last_message_anonymous === 1;
+                    const displayName = isAnonymous ? 'Anonymous Student' : (chat.other_name || chat.other_username || chat.other_user || 'Sparkler');
+                    const chatAvatar = isAnonymous ? '/uploads/avatars/default.png' : (chat.other_avatar || '/uploads/avatars/default.png');
+
+                    el.onclick = () => {
+                        document.querySelectorAll('.conversation-item-premium').forEach(p => p.classList.remove('active'));
+                        el.classList.add('active');
+                        startChat({
+                            chat_session_id: chat.chat_session_id,
+                            id: chat.other_user_id || chat.other_user,
+                            name: displayName,
+                            username: isAnonymous ? 'anonymous' : (chat.other_username || chat.other_user || 'unknown'),
+                            avatar: chatAvatar,
+                            isAnonymous: isAnonymous
+                        });
+                    };
+
+                    const lastMsgTime = chat.last_message_time ? new Date(chat.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+                    const lastMsgText = isAnonymous ? '<i>[Anonymous Message]</i>' : (chat.last_message_text || chat.last_message || 'Click to view conversation');
+
+                    el.innerHTML = `
     < div class="avatar-container-premium" style = "position: relative;" >
                             <img src="${chatAvatar}" alt="User" class="avatar-premium" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; ${isAnonymous ? 'filter: grayscale(1);' : ''}">
                             ${isAnonymous ? '<div style="position:absolute; bottom:0; right:0; background:#333; color:white; font-size:10px; padding:2px 4px; border-radius:4px;"><i class="fas fa-mask"></i></div>' : ''}
@@ -3771,113 +3774,113 @@ document.addEventListener('DOMContentLoaded', async function () {
                             </div>
                         </div>
 `;
-                listContainer.appendChild(el);
-            });
-        } catch (e) {
-            console.error('Failed to load chats:', e);
-            showNotification('Failed to load chats', 'error');
-        }
-    };
+                    listContainer.appendChild(el);
+                });
+            } catch (e) {
+                console.error('Failed to load chats:', e);
+                showNotification('Failed to load chats', 'error');
+            }
+        };
 
-    window.showMarketplace = function (category) {
-        window.switchPage('marketplace');
-        if (window.loadMarketplace) window.loadMarketplace(category);
-    };
+        window.showMarketplace = function (category) {
+            window.switchPage('marketplace');
+            if (window.loadMarketplace) window.loadMarketplace(category);
+        };
 
-    window.showLostFound = async function (type) {
-        window.switchPage('lostFound');
-        if (window.loadLostFoundContent) await window.loadLostFoundContent(type || 'all');
-    };
+        window.showLostFound = async function (type) {
+            window.switchPage('lostFound');
+            if (window.loadLostFoundContent) await window.loadLostFoundContent(type || 'all');
+        };
 
-    window.claimItem = async function (itemId) {
-        try {
-            await DashboardAPI.claimLostFoundItem(itemId);
-            showNotification('Item claimed!', 'success');
-            loadLostFoundItems('all');
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to claim item', 'error');
-        }
-    };
+        window.claimItem = async function (itemId) {
+            try {
+                await DashboardAPI.claimLostFoundItem(itemId);
+                showNotification('Item claimed!', 'success');
+                loadLostFoundItems('all');
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to claim item', 'error');
+            }
+        };
 
-    window.showSkillMarket = async function (type) {
-        window.switchPage('skillMarket');
-        if (window.loadSkillMarketContent) await window.loadSkillMarketContent(type || 'all');
-    };
+        window.showSkillMarket = async function (type) {
+            window.switchPage('skillMarket');
+            if (window.loadSkillMarketContent) await window.loadSkillMarketContent(type || 'all');
+        };
 
-    window.requestSkillHelp = async function (offerId, tutorName) {
-        const message = prompt(`Send a message to ${tutorName}: `);
-        if (!message) return;
+        window.requestSkillHelp = async function (offerId, tutorName) {
+            const message = prompt(`Send a message to ${tutorName}: `);
+            if (!message) return;
 
-        try {
-            await DashboardAPI.requestSkill(offerId, message);
-            showNotification('Request sent!', 'success');
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to send request', 'error');
-        }
-    };
+            try {
+                await DashboardAPI.requestSkill(offerId, message);
+                showNotification('Request sent!', 'success');
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to send request', 'error');
+            }
+        };
 
-    window.showEnhancedSettings = () => {
-        const modal = document.getElementById('enhancedSettingsModal');
-        if (modal) modal.style.display = 'flex';
-    };
+        window.showEnhancedSettings = () => {
+            const modal = document.getElementById('enhancedSettingsModal');
+            if (modal) modal.style.display = 'flex';
+        };
 
-    window.switchEnhancedSetting = (tabId, btn) => {
-        document.querySelectorAll('.enhanced-settings-content').forEach(el => el.style.display = 'none');
-        const target = document.getElementById(tabId);
-        if (target) target.style.display = 'block';
+        window.switchEnhancedSetting = (tabId, btn) => {
+            document.querySelectorAll('.enhanced-settings-content').forEach(el => el.style.display = 'none');
+            const target = document.getElementById(tabId);
+            if (target) target.style.display = 'block';
 
-        document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
-        if (btn) btn.classList.add('active');
-    };
+            document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+        };
 
-    window.saveDetailedProfile = async () => {
-        const nameInput = document.getElementById('enhanced-edit-name') || document.getElementById('editName');
-        const bioInput = document.getElementById('enhanced-edit-bio') || document.getElementById('editBio');
-        const campusInput = document.getElementById('enhanced-edit-campus') || document.getElementById('editCampus');
+        window.saveDetailedProfile = async () => {
+            const nameInput = document.getElementById('enhanced-edit-name') || document.getElementById('editName');
+            const bioInput = document.getElementById('enhanced-edit-bio') || document.getElementById('editBio');
+            const campusInput = document.getElementById('enhanced-edit-campus') || document.getElementById('editCampus');
 
-        const name = nameInput?.value;
-        const bio = bioInput?.value || '';
-        const campus = campusInput?.value;
+            const name = nameInput?.value;
+            const bio = bioInput?.value || '';
+            const campus = campusInput?.value;
 
-        if (!name || !campus) {
-            showNotification('Name and Campus are required', 'warning');
-            return;
-        }
+            if (!name || !campus) {
+                showNotification('Name and Campus are required', 'warning');
+                return;
+            }
 
-        try {
-            await DashboardAPI.updateProfile({ name, bio, campus });
-            showNotification('Profile updated! Refresh to see changes.', 'success');
+            try {
+                await DashboardAPI.updateProfile({ name, bio, campus });
+                showNotification('Profile updated! Refresh to see changes.', 'success');
 
-            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-            user.name = name;
-            user.bio = bio;
-            user.campus = campus;
-            localStorage.setItem('sparkleUser', JSON.stringify(user));
-            localStorage.setItem('sparkleUserCampus', campus);
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                user.name = name;
+                user.bio = bio;
+                user.campus = campus;
+                localStorage.setItem('sparkleUser', JSON.stringify(user));
+                localStorage.setItem('sparkleUserCampus', campus);
 
-            if (window.loadFeedPosts) window.loadFeedPosts();
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to update profile', 'error');
-        }
-    };
+                if (window.loadFeedPosts) window.loadFeedPosts();
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to update profile', 'error');
+            }
+        };
 
-    window.showConfessionsGallery = async function () {
-        try {
-            showNotification('Loading confessions...', 'info');
+        window.showConfessionsGallery = async function () {
+            try {
+                showNotification('Loading confessions...', 'info');
 
-            const confessions = await DashboardAPI.loadConfessions();
+                const confessions = await DashboardAPI.loadConfessions();
 
-            const existing = document.getElementById('confessionsModal');
-            if (existing) existing.remove();
+                const existing = document.getElementById('confessionsModal');
+                if (existing) existing.remove();
 
-            const modal = document.createElement('div');
-            modal.id = 'confessionsModal';
-            modal.className = 'modal';
-            modal.style.display = 'flex';
-            modal.innerHTML = `
+                const modal = document.createElement('div');
+                modal.id = 'confessionsModal';
+                modal.className = 'modal';
+                modal.style.display = 'flex';
+                modal.innerHTML = `
                 <div class="modal-content" style="max-height:80vh; overflow-y:auto; max-width:500px;">
                         <div class="modal-header">
                             <div class="modal-title" style="color: #333;"><i class="fas fa-user-secret"></i> Anonymous Confessions</div>
@@ -3909,32 +3912,32 @@ document.addEventListener('DOMContentLoaded', async function () {
                     </div>
     `;
 
-            document.body.appendChild(modal);
-            modal.querySelector('.close-modal').onclick = () => modal.remove();
+                document.body.appendChild(modal);
+                modal.querySelector('.close-modal').onclick = () => modal.remove();
 
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to load confessions', 'error');
-        }
-    };
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to load confessions', 'error');
+            }
+        };
 
-    window.submitConfession = async function () {
-        const input = document.getElementById('confessionInput');
-        if (!input || !input.value.trim()) return;
+        window.submitConfession = async function () {
+            const input = document.getElementById('confessionInput');
+            if (!input || !input.value.trim()) return;
 
-        try {
-            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-            await DashboardAPI.postConfession(input.value.trim(), user.campus || 'General');
+            try {
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                await DashboardAPI.postConfession(input.value.trim(), user.campus || 'General');
 
-            showNotification('Confession whispered...', 'success');
-            input.value = '';
+                showNotification('Confession whispered...', 'success');
+                input.value = '';
 
-            const listContainer = document.getElementById('confessionsList');
-            if (listContainer) {
-                listContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#999;"><i class="fas fa-spinner fa-spin"></i> Refreshing...</div>';
-                const confessions = await DashboardAPI.loadConfessions();
+                const listContainer = document.getElementById('confessionsList');
+                if (listContainer) {
+                    listContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#999;"><i class="fas fa-spinner fa-spin"></i> Refreshing...</div>';
+                    const confessions = await DashboardAPI.loadConfessions();
 
-                listContainer.innerHTML = confessions.map(c => `
+                    listContainer.innerHTML = confessions.map(c => `
                         <div style="background:white; border:1px solid #ddd; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
                             <div style="font-size:15px; line-height:1.5; color: #333;">"${c.content || c.text}"</div>
                             <div style="display:flex; justify-content:space-between; margin-top:10px;font-size:12px;color:#999;">
@@ -3943,106 +3946,106 @@ document.addEventListener('DOMContentLoaded', async function () {
                             </div>
                         </div>
     `).join('') || '<div style="text-align:center; color:#999;">No confessions yet. Be the first to whisper.</div>';
+                }
+
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to post confession', 'error');
             }
+        };
 
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to post confession', 'error');
-        }
-    };
-
-    // ============ POLLS - FULL IMPLEMENTATION ============
-    window.createPoll = () => {
-        const modal = document.getElementById('createPollModal');
-        if (modal) {
-            modal.style.display = 'flex';
-            document.getElementById('pollQuestion').value = '';
-            const container = document.getElementById('pollOptionsContainer');
-            if (container) {
-                container.innerHTML = `
+        // ============ POLLS - FULL IMPLEMENTATION ============
+        window.createPoll = () => {
+            const modal = document.getElementById('createPollModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.getElementById('pollQuestion').value = '';
+                const container = document.getElementById('pollOptionsContainer');
+                if (container) {
+                    container.innerHTML = `
                         <label class="form-label" style="color: #333;">Options</label>
                         <input type="text" class="form-control poll-option" style="margin-bottom: 5px; color: #333;" placeholder="Option 1">
                         <input type="text" class="form-control poll-option" style="margin-bottom: 5px; color: #333;" placeholder="Option 2">
                 `;
+                }
+            } else {
+                console.warn('createPollModal not found in DOM');
             }
-        } else {
-            console.warn('createPollModal not found in DOM');
-        }
-    };
+        };
 
-    window.addPollOption = () => {
-        const container = document.getElementById('pollOptionsContainer') || document.getElementById('pollOptionsList');
-        if (!container) return;
+        window.addPollOption = () => {
+            const container = document.getElementById('pollOptionsContainer') || document.getElementById('pollOptionsList');
+            if (!container) return;
 
-        if (container.querySelectorAll('input').length >= 6) {
-            showNotification('Maximum 6 options allowed', 'warning');
-            return;
-        }
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'form-control poll-option';
-        input.style.marginBottom = '5px';
-        input.style.color = '#333';
-        input.placeholder = `Option ${container.querySelectorAll('input').length + 1}`;
-        container.appendChild(input);
-    };
-
-    window.submitPoll = async () => {
-        const questionInput = document.getElementById('pollQuestion');
-        const question = questionInput?.value;
-        const optionInputs = document.querySelectorAll('.poll-option, .poll-option-val');
-        const options = Array.from(optionInputs).map(i => i.value).filter(v => v && v.trim());
-
-        console.log('📱 Sending Poll:', { question, optionsCount: options.length });
-
-        if (!question || options.length < 2) {
-            showNotification('Please fill in all fields (Question and at least 2 options)', 'warning');
-            return;
-        }
-
-        try {
-            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-            await DashboardAPI.createPoll({
-                question,
-                options,
-                campus: user.campus || 'General',
-                is_anonymous: document.getElementById('pollAnonymous')?.checked || false
-            });
-
-            showNotification('Poll created!', 'success');
-
-            const modal = document.getElementById('createPollModal');
-            if (modal) modal.style.display = 'none';
-            const dynamicModals = document.querySelectorAll('.modal');
-            dynamicModals.forEach(m => {
-                if (m.innerHTML.includes('Create Poll')) m.remove();
-            });
-
-            if (window.loadPolls) window.loadPolls();
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to create poll', 'error');
-        }
-    };
-
-    // ============ EVENTS - FULL IMPLEMENTATION ============
-    window.viewEvents = async () => {
-        try {
-            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-            const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
-
-            let events = await DashboardAPI.loadEvents(userCampus);
-
-            if (events.length === 0 && userCampus !== 'all') {
-                console.log('📱 No events for ' + userCampus + ', loading all...');
-                events = await DashboardAPI.loadEvents('all');
+            if (container.querySelectorAll('input').length >= 6) {
+                showNotification('Maximum 6 options allowed', 'warning');
+                return;
             }
 
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'flex';
-            modal.innerHTML = `
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-control poll-option';
+            input.style.marginBottom = '5px';
+            input.style.color = '#333';
+            input.placeholder = `Option ${container.querySelectorAll('input').length + 1}`;
+            container.appendChild(input);
+        };
+
+        window.submitPoll = async () => {
+            const questionInput = document.getElementById('pollQuestion');
+            const question = questionInput?.value;
+            const optionInputs = document.querySelectorAll('.poll-option, .poll-option-val');
+            const options = Array.from(optionInputs).map(i => i.value).filter(v => v && v.trim());
+
+            console.log('📱 Sending Poll:', { question, optionsCount: options.length });
+
+            if (!question || options.length < 2) {
+                showNotification('Please fill in all fields (Question and at least 2 options)', 'warning');
+                return;
+            }
+
+            try {
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                await DashboardAPI.createPoll({
+                    question,
+                    options,
+                    campus: user.campus || 'General',
+                    is_anonymous: document.getElementById('pollAnonymous')?.checked || false
+                });
+
+                showNotification('Poll created!', 'success');
+
+                const modal = document.getElementById('createPollModal');
+                if (modal) modal.style.display = 'none';
+                const dynamicModals = document.querySelectorAll('.modal');
+                dynamicModals.forEach(m => {
+                    if (m.innerHTML.includes('Create Poll')) m.remove();
+                });
+
+                if (window.loadPolls) window.loadPolls();
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to create poll', 'error');
+            }
+        };
+
+        // ============ EVENTS - FULL IMPLEMENTATION ============
+        window.viewEvents = async () => {
+            try {
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                const userCampus = localStorage.getItem('sparkleUserCampus') || user.campus || 'all';
+
+                let events = await DashboardAPI.loadEvents(userCampus);
+
+                if (events.length === 0 && userCampus !== 'all') {
+                    console.log('📱 No events for ' + userCampus + ', loading all...');
+                    events = await DashboardAPI.loadEvents('all');
+                }
+
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.display = 'flex';
+                modal.innerHTML = `
                 <div class="modal-content" style="max-width:600px; max-height:80vh; overflow-y:auto;">
                     <div class="modal-header">
                         <div class="modal-title" style="color: #333;"><i class="fas fa-calendar-alt"></i> Campus Events</div>
@@ -4071,83 +4074,83 @@ document.addEventListener('DOMContentLoaded', async function () {
                     </div>
                 </div>
                 `;
-            document.body.appendChild(modal);
-            modal.querySelector('.close-modal').onclick = () => modal.remove();
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to load events', 'error');
-        }
-    };
+                document.body.appendChild(modal);
+                modal.querySelector('.close-modal').onclick = () => modal.remove();
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to load events', 'error');
+            }
+        };
 
-    window.createEvent = () => {
-        const modal = document.getElementById('createEventModal');
-        if (modal) {
-            modal.style.display = 'flex';
-            ['eventTitle', 'eventDescription', 'eventStartTime', 'eventLocation'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
-        } else {
-            console.warn('createEventModal not found');
-        }
-    };
-
-    window.submitEvent = async () => {
-        const title = document.getElementById('eventTitle')?.value;
-        const description = document.getElementById('eventDescription')?.value;
-        const location = document.getElementById('eventLocation')?.value;
-        const start_time = document.getElementById('eventStartTime')?.value;
-
-        if (!title || !description || !location || !start_time) {
-            showNotification('Please fill in all fields', 'warning');
-            return;
-        }
-
-        try {
-            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-            await DashboardAPI.createEvent({
-                title,
-                description,
-                location,
-                campus: user.campus || 'General',
-                start_time,
-                is_public: true
-            });
-
-            showNotification('Event created!', 'success');
-
+        window.createEvent = () => {
             const modal = document.getElementById('createEventModal');
-            if (modal) modal.style.display = 'none';
-            const dynamicModals = document.querySelectorAll('.modal');
-            dynamicModals.forEach(m => {
-                if (m.innerHTML.includes('Create Campus Event') || m.innerHTML.includes('Create Event')) m.remove();
-            });
+            if (modal) {
+                modal.style.display = 'flex';
+                ['eventTitle', 'eventDescription', 'eventStartTime', 'eventLocation'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+            } else {
+                console.warn('createEventModal not found');
+            }
+        };
 
-            if (window.viewEvents) viewEvents();
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to create event', 'error');
-        }
-    };
+        window.submitEvent = async () => {
+            const title = document.getElementById('eventTitle')?.value;
+            const description = document.getElementById('eventDescription')?.value;
+            const location = document.getElementById('eventLocation')?.value;
+            const start_time = document.getElementById('eventStartTime')?.value;
 
-    window.rsvpToEvent = async (eventId, status) => {
-        try {
-            await DashboardAPI.rsvpEvent(eventId, status);
-            showNotification('RSVP updated!', 'success');
-            document.querySelectorAll('.modal').forEach(m => m.remove());
-            viewEvents();
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to RSVP', 'error');
-        }
-    };
+            if (!title || !description || !location || !start_time) {
+                showNotification('Please fill in all fields', 'warning');
+                return;
+            }
 
-    // ============ LIVE STREAMING - FULL IMPLEMENTATION ============
-    window.startLiveStream = () => {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.display = 'flex';
-        modal.innerHTML = `
+            try {
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                await DashboardAPI.createEvent({
+                    title,
+                    description,
+                    location,
+                    campus: user.campus || 'General',
+                    start_time,
+                    is_public: true
+                });
+
+                showNotification('Event created!', 'success');
+
+                const modal = document.getElementById('createEventModal');
+                if (modal) modal.style.display = 'none';
+                const dynamicModals = document.querySelectorAll('.modal');
+                dynamicModals.forEach(m => {
+                    if (m.innerHTML.includes('Create Campus Event') || m.innerHTML.includes('Create Event')) m.remove();
+                });
+
+                if (window.viewEvents) viewEvents();
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to create event', 'error');
+            }
+        };
+
+        window.rsvpToEvent = async (eventId, status) => {
+            try {
+                await DashboardAPI.rsvpEvent(eventId, status);
+                showNotification('RSVP updated!', 'success');
+                document.querySelectorAll('.modal').forEach(m => m.remove());
+                viewEvents();
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to RSVP', 'error');
+            }
+        };
+
+        // ============ LIVE STREAMING - FULL IMPLEMENTATION ============
+        window.startLiveStream = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
                 <div class="modal-content" style="max-width:500px;">
                     <div class="modal-header">
                         <div class="modal-title" style="color: #333;"><i class="fas fa-video"></i> Start Live Stream</div>
@@ -4176,44 +4179,44 @@ document.addEventListener('DOMContentLoaded', async function () {
                     </div>
                 </div>
                 `;
-        document.body.appendChild(modal);
-        modal.querySelector('.close-modal').onclick = () => modal.remove();
-    };
+            document.body.appendChild(modal);
+            modal.querySelector('.close-modal').onclick = () => modal.remove();
+        };
 
-    window.submitStream = async () => {
-        const title = document.getElementById('streamTitle').value;
-        const description = document.getElementById('streamDescription').value;
-        const category = document.getElementById('streamCategory').value;
+        window.submitStream = async () => {
+            const title = document.getElementById('streamTitle').value;
+            const description = document.getElementById('streamDescription').value;
+            const category = document.getElementById('streamCategory').value;
 
-        if (!title) {
-            showNotification('Please provide a stream title', 'warning');
-            return;
-        }
+            if (!title) {
+                showNotification('Please provide a stream title', 'warning');
+                return;
+            }
 
-        try {
-            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-            const result = await DashboardAPI.startStream({
-                title,
-                description,
-                category,
-                campus: user.campus || 'General',
-                stream_url: 'https://stream.sparkle.app/' + Date.now()
-            });
+            try {
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                const result = await DashboardAPI.startStream({
+                    title,
+                    description,
+                    category,
+                    campus: user.campus || 'General',
+                    stream_url: 'https://stream.sparkle.app/' + Date.now()
+                });
 
-            showNotification('Stream started!', 'success');
-            document.querySelector('.modal').remove();
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to start stream', 'error');
-        }
-    };
+                showNotification('Stream started!', 'success');
+                document.querySelector('.modal').remove();
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to start stream', 'error');
+            }
+        };
 
-    // ============ SKILLS - FULL IMPLEMENTATION ============
-    window.offerSkill = () => {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.display = 'flex';
-        modal.innerHTML = `
+        // ============ SKILLS - FULL IMPLEMENTATION ============
+        window.offerSkill = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
                 <div class="modal-content" style="max-width:500px;">
                     <div class="modal-header">
                         <div class="modal-title" style="color: #333;"><i class="fas fa-graduation-cap"></i> Offer Your Skills</div>
@@ -4251,290 +4254,290 @@ document.addEventListener('DOMContentLoaded', async function () {
                     </div>
                 </div>
                 `;
-        document.body.appendChild(modal);
-        modal.querySelector('.close-modal').onclick = () => modal.remove();
-    };
+            document.body.appendChild(modal);
+            modal.querySelector('.close-modal').onclick = () => modal.remove();
+        };
 
-    window.submitSkillOffer = async () => {
-        const skill_type = document.getElementById('skillType')?.value;
-        const title = document.getElementById('skillTitle')?.value;
-        const description = document.getElementById('skillDescription')?.value;
-        const price_type = document.getElementById('skillPriceType')?.value;
+        window.submitSkillOffer = async () => {
+            const skill_type = document.getElementById('skillType')?.value;
+            const title = document.getElementById('skillTitle')?.value;
+            const description = document.getElementById('skillDescription')?.value;
+            const price_type = document.getElementById('skillPriceType')?.value;
 
-        if (!skill_type || !title || !description || !price_type) {
-            showNotification('Please fill in all fields', 'warning');
-            return;
-        }
-
-        try {
-            const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
-            await DashboardAPI.createSkillOffer({
-                skill_type,
-                title,
-                description,
-                price_type,
-                campus: user.campus || 'General',
-                subjects: [title]
-            });
-
-            showNotification('Skill offer created!', 'success');
-
-            const dynamicModals = document.querySelectorAll('.modal');
-            dynamicModals.forEach(m => {
-                if (m.innerHTML.includes('Offer Your Skills')) m.remove();
-            });
-
-            if (window.loadSkillMarketContent) window.loadSkillMarketContent();
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to create offer', 'error');
-        }
-    };
-
-    // ============ LOST & FOUND - FULL IMPLEMENTATION ============
-    window.reportLostItem = () => {
-        if (typeof showModal === 'function') {
-            showModal('lostFound');
-        } else {
-            const modal = document.getElementById('lostFoundModal');
-            if (modal) modal.style.display = 'flex';
-        }
-
-        const reportBtn = document.getElementById('reportItemBtn');
-        if (reportBtn) {
-            reportBtn.onclick = window.submitLostFoundItem;
-        }
-    };
-
-    window.submitLostFoundItem = async () => {
-        const type = document.getElementById('lfType')?.value || document.getElementById('itemType')?.value;
-        const title = document.getElementById('lfItemName')?.value || document.getElementById('itemName')?.value;
-        const description = document.getElementById('lfDescription')?.value || document.getElementById('itemDetails')?.value;
-        const location = document.getElementById('lfLocation')?.value || 'See details';
-
-        if (!type || !title || !description) {
-            showNotification('Please fill in all fields', 'warning');
-            return;
-        }
-
-        try {
-            const user = JSON.parse(localStorage.getItem('sparkleUser') || localStorage.getItem('currentUser') || '{ }');
-            await DashboardAPI.reportLostFoundItem({
-                type,
-                item_name: title,
-                description,
-                location_found: location,
-                date_occurred: new Date().toISOString().split('T')[0],
-                contact_email: user.email || 'Contact via message',
-                campus: user.campus || 'General'
-            });
-
-            showNotification('Item reported!', 'success');
-
-            ['lfItemName', 'itemName', 'lfDescription', 'itemDetails', 'lfLocation'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
-
-            const modal = document.getElementById('lostFoundModal');
-            if (modal) modal.style.display = 'none';
-
-            if (window.loadLostFoundContent) window.loadLostFoundContent(type);
-        } catch (e) {
-            console.error('Failed to report item:', e);
-            showNotification('Failed to report item: ' + e.message, 'error');
-        }
-    };
-
-    // ============ SIDEBAR BADGE SYNCHRONIZATION ============
-    window.updateSidebarBadges = async function () {
-        console.log('📱 Updating sidebar badges...');
-        try {
-            const groups = await DashboardAPI.loadGroups();
-            const groupsBadge = document.getElementById('groupsCountBadge');
-            if (groupsBadge) groupsBadge.textContent = groups.length || '';
-
-            const lostItems = await DashboardAPI.loadLostFoundItems('lost');
-            const lostBadge = document.getElementById('lostItemsBadge');
-            if (lostBadge) lostBadge.textContent = lostItems.length || '';
-
-            const foundItems = await DashboardAPI.loadLostFoundItems('found');
-            const foundBadge = document.getElementById('foundItemsBadge');
-            if (foundBadge) foundBadge.textContent = foundItems.length || '';
-
-            const skills = await DashboardAPI.loadSkillOffers('tutoring');
-            const tutorsBadge = document.getElementById('tutorsBadge');
-            if (tutorsBadge) tutorsBadge.textContent = skills.length || '';
-
-            const events = await DashboardAPI.loadEvents();
-            const eventsBadge = document.getElementById('eventsBadge');
-            if (eventsBadge) eventsBadge.textContent = events.length || '';
-
-            const messagesBadge = document.getElementById('messagesBadge');
-            if (messagesBadge) messagesBadge.textContent = '3+';
-
-        } catch (error) {
-            console.error('Failed to update sidebar badges:', error);
-        }
-    };
-
-    // ============ AUTO-RELOAD DATA ============
-    console.log('📱 Dashboard is live! Initializing data...');
-    await loadFeedPosts();
-    await loadAfterglowStories();
-    await loadGroups();
-    await loadConnectUsers();
-    if (window.loadMoments) await loadMoments();
-    if (window.loadMarketplace) await loadMarketplace();
-
-    await updateSidebarBadges();
-
-    setInterval(async () => {
-        console.log('🔄 Silent Background Refresh...');
-        if (document.querySelector('.modal[style*="display: flex"]') || document.querySelector('.afterglow-viewer-modal[style*="display: flex"]')) {
-            console.log('⏸️ Refresh paused - Modal active');
-            return;
-        }
-
-        await Promise.allSettled([
-            loadFeedPosts({ silent: true }),
-            loadAfterglowStories({ silent: true }),
-            loadConnectUsers({ silent: true }),
-            updateSidebarBadges()
-        ]);
-    }, 15000);
-
-    console.log('📱 Dashboard is now fully dynamic!');
-
-    document.getElementById('userSearchInput')?.addEventListener('input', debounce(async (e) => {
-        console.log('📱 Searching users:', e.target.value);
-        await loadConnectUsers(e.target.value);
-    }, 500));
-
-    document.getElementById('messageSearchInput')?.addEventListener('input', debounce(async (e) => {
-        console.log('📱 Filtering messages:', e.target.value);
-        await loadChatsFromAPI(e.target.value);
-    }, 300));
-
-    document.getElementById('postConfessionBtn')?.addEventListener('click', async () => {
-        const text = document.getElementById('confessionText')?.value;
-        if (!text) {
-            showNotification('Please enter a confession', 'warning');
-            return;
-        }
-
-        try {
-            await DashboardAPI.postConfession(text);
-            showNotification('Confession posted anonymously!', 'success');
-            document.getElementById('confessionText').value = '';
-            await loadEnhancedConfessions();
-        } catch (error) {
-            console.error('Failed to post confession:', error);
-            showNotification('Failed to post confession', 'error');
-        }
-    });
-
-    document.getElementById('createListingBtn')?.addEventListener('click', () => {
-        showNotification('Marketplace listing creation is being integrated. Please use "Create Post" for now.', 'info');
-    });
-
-    document.getElementById('reportItemBtn')?.addEventListener('click', async () => {
-        const type = document.getElementById('itemType')?.value;
-        const title = document.getElementById('itemName')?.value;
-        const description = document.getElementById('itemDetails')?.value;
-
-        if (!title || !description) {
-            showNotification('Please fill in all fields', 'warning');
-            return;
-        }
-
-        try {
-            await DashboardAPI.reportLostFoundItem({ type, title, description });
-            showNotification('Item reported!', 'success');
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemDetails').value = '';
-            await loadLostFoundContent();
-        } catch (error) {
-            console.error('Failed to report item:', error);
-            showNotification('Failed to report item', 'error');
-        }
-    });
-
-    document.getElementById('offerSkillBtn')?.addEventListener('click', async () => {
-        const title = document.getElementById('skillTitle')?.value;
-        const description = document.getElementById('skillDescription')?.value;
-
-        if (!title || !description) {
-            showNotification('Please fill in all fields', 'warning');
-            return;
-        }
-
-        try {
-            await DashboardAPI.createSkillOffer({ title, description });
-            showNotification('Skill offered!', 'success');
-            document.getElementById('skillTitle').value = '';
-            document.getElementById('skillDescription').value = '';
-            await loadSkillMarketContent();
-        } catch (error) {
-            console.error('Failed to offer skill:', error);
-            showNotification('Failed to offer skill', 'error');
-        }
-    });
-
-    document.getElementById('createPollBtn')?.addEventListener('click', async () => {
-        const question = document.getElementById('pollQuestion')?.value;
-        const optionsInputs = document.querySelectorAll('#pollOptions input');
-        const options = Array.from(optionsInputs).map(i => i.value).filter(v => v.trim() !== '');
-
-        if (!question || options.length < 2) {
-            showNotification('Please enter a question and at least 2 options', 'warning');
-            return;
-        }
-
-        try {
-            await DashboardAPI.createPoll(question, options);
-            showNotification('Poll created!', 'success');
-            document.getElementById('pollQuestion').value = '';
-            await loadPolls();
-        } catch (error) {
-            console.error('Failed to create poll:', error);
-            showNotification('Failed to create poll', 'error');
-        }
-    });
-
-    // Interaction Helpers for New Post Cards
-    window.quickComment = async (input, postId) => {
-        const content = input.value.trim();
-        if (!content) return;
-
-        try {
-            await DashboardAPI.postComment(postId, content);
-            showNotification('Comment posted!', 'success');
-            input.value = '';
-            // Optional: refresh comments count in UI
-            const card = input.closest('.post-card-wrapper');
-            if (card) {
-                const countSpan = card.querySelector('.fa-comment').nextElementSibling;
-                if (countSpan) {
-                    const current = parseInt(countSpan.textContent) || 0;
-                    countSpan.textContent = `${current + 1} comments`;
-                }
+            if (!skill_type || !title || !description || !price_type) {
+                showNotification('Please fill in all fields', 'warning');
+                return;
             }
-        } catch (e) {
-            console.error(e);
-            showNotification('Failed to post comment', 'error');
-        }
-    };
 
-    window.showPostMenu = (postId, button) => {
-        // Simplified menu for now
-        const menu = document.createElement('div');
-        menu.className = 'fixed bg-white shadow-2xl rounded-xl py-2 z-[1000] border border-gray-100 min-w-[160px] animate-in fade-in zoom-in duration-200';
-        const rect = button.getBoundingClientRect();
-        menu.style.top = `${rect.bottom + 8}px`;
-        menu.style.right = `${window.innerWidth - rect.right}px`;
+            try {
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || '{}');
+                await DashboardAPI.createSkillOffer({
+                    skill_type,
+                    title,
+                    description,
+                    price_type,
+                    campus: user.campus || 'General',
+                    subjects: [title]
+                });
 
-        menu.innerHTML = `
+                showNotification('Skill offer created!', 'success');
+
+                const dynamicModals = document.querySelectorAll('.modal');
+                dynamicModals.forEach(m => {
+                    if (m.innerHTML.includes('Offer Your Skills')) m.remove();
+                });
+
+                if (window.loadSkillMarketContent) window.loadSkillMarketContent();
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to create offer', 'error');
+            }
+        };
+
+        // ============ LOST & FOUND - FULL IMPLEMENTATION ============
+        window.reportLostItem = () => {
+            if (typeof showModal === 'function') {
+                showModal('lostFound');
+            } else {
+                const modal = document.getElementById('lostFoundModal');
+                if (modal) modal.style.display = 'flex';
+            }
+
+            const reportBtn = document.getElementById('reportItemBtn');
+            if (reportBtn) {
+                reportBtn.onclick = window.submitLostFoundItem;
+            }
+        };
+
+        window.submitLostFoundItem = async () => {
+            const type = document.getElementById('lfType')?.value || document.getElementById('itemType')?.value;
+            const title = document.getElementById('lfItemName')?.value || document.getElementById('itemName')?.value;
+            const description = document.getElementById('lfDescription')?.value || document.getElementById('itemDetails')?.value;
+            const location = document.getElementById('lfLocation')?.value || 'See details';
+
+            if (!type || !title || !description) {
+                showNotification('Please fill in all fields', 'warning');
+                return;
+            }
+
+            try {
+                const user = JSON.parse(localStorage.getItem('sparkleUser') || localStorage.getItem('currentUser') || '{ }');
+                await DashboardAPI.reportLostFoundItem({
+                    type,
+                    item_name: title,
+                    description,
+                    location_found: location,
+                    date_occurred: new Date().toISOString().split('T')[0],
+                    contact_email: user.email || 'Contact via message',
+                    campus: user.campus || 'General'
+                });
+
+                showNotification('Item reported!', 'success');
+
+                ['lfItemName', 'itemName', 'lfDescription', 'itemDetails', 'lfLocation'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+
+                const modal = document.getElementById('lostFoundModal');
+                if (modal) modal.style.display = 'none';
+
+                if (window.loadLostFoundContent) window.loadLostFoundContent(type);
+            } catch (e) {
+                console.error('Failed to report item:', e);
+                showNotification('Failed to report item: ' + e.message, 'error');
+            }
+        };
+
+        // ============ SIDEBAR BADGE SYNCHRONIZATION ============
+        window.updateSidebarBadges = async function () {
+            console.log('📱 Updating sidebar badges...');
+            try {
+                const groups = await DashboardAPI.loadGroups();
+                const groupsBadge = document.getElementById('groupsCountBadge');
+                if (groupsBadge) groupsBadge.textContent = groups.length || '';
+
+                const lostItems = await DashboardAPI.loadLostFoundItems('lost');
+                const lostBadge = document.getElementById('lostItemsBadge');
+                if (lostBadge) lostBadge.textContent = lostItems.length || '';
+
+                const foundItems = await DashboardAPI.loadLostFoundItems('found');
+                const foundBadge = document.getElementById('foundItemsBadge');
+                if (foundBadge) foundBadge.textContent = foundItems.length || '';
+
+                const skills = await DashboardAPI.loadSkillOffers('tutoring');
+                const tutorsBadge = document.getElementById('tutorsBadge');
+                if (tutorsBadge) tutorsBadge.textContent = skills.length || '';
+
+                const events = await DashboardAPI.loadEvents();
+                const eventsBadge = document.getElementById('eventsBadge');
+                if (eventsBadge) eventsBadge.textContent = events.length || '';
+
+                const messagesBadge = document.getElementById('messagesBadge');
+                if (messagesBadge) messagesBadge.textContent = '3+';
+
+            } catch (error) {
+                console.error('Failed to update sidebar badges:', error);
+            }
+        };
+
+        // ============ AUTO-RELOAD DATA ============
+        console.log('📱 Dashboard is live! Initializing data...');
+        await loadFeedPosts();
+        await loadAfterglowStories();
+        await loadGroups();
+        await loadConnectUsers();
+        if (window.loadMoments) await loadMoments();
+        if (window.loadMarketplace) await loadMarketplace();
+
+        await updateSidebarBadges();
+
+        setInterval(async () => {
+            console.log('🔄 Silent Background Refresh...');
+            if (document.querySelector('.modal[style*="display: flex"]') || document.querySelector('.afterglow-viewer-modal[style*="display: flex"]')) {
+                console.log('⏸️ Refresh paused - Modal active');
+                return;
+            }
+
+            await Promise.allSettled([
+                loadFeedPosts({ silent: true }),
+                loadAfterglowStories({ silent: true }),
+                loadConnectUsers({ silent: true }),
+                updateSidebarBadges()
+            ]);
+        }, 15000);
+
+        console.log('📱 Dashboard is now fully dynamic!');
+
+        document.getElementById('userSearchInput')?.addEventListener('input', debounce(async (e) => {
+            console.log('📱 Searching users:', e.target.value);
+            await loadConnectUsers(e.target.value);
+        }, 500));
+
+        document.getElementById('messageSearchInput')?.addEventListener('input', debounce(async (e) => {
+            console.log('📱 Filtering messages:', e.target.value);
+            await loadChatsFromAPI(e.target.value);
+        }, 300));
+
+        document.getElementById('postConfessionBtn')?.addEventListener('click', async () => {
+            const text = document.getElementById('confessionText')?.value;
+            if (!text) {
+                showNotification('Please enter a confession', 'warning');
+                return;
+            }
+
+            try {
+                await DashboardAPI.postConfession(text);
+                showNotification('Confession posted anonymously!', 'success');
+                document.getElementById('confessionText').value = '';
+                await loadEnhancedConfessions();
+            } catch (error) {
+                console.error('Failed to post confession:', error);
+                showNotification('Failed to post confession', 'error');
+            }
+        });
+
+        document.getElementById('createListingBtn')?.addEventListener('click', () => {
+            showNotification('Marketplace listing creation is being integrated. Please use "Create Post" for now.', 'info');
+        });
+
+        document.getElementById('reportItemBtn')?.addEventListener('click', async () => {
+            const type = document.getElementById('itemType')?.value;
+            const title = document.getElementById('itemName')?.value;
+            const description = document.getElementById('itemDetails')?.value;
+
+            if (!title || !description) {
+                showNotification('Please fill in all fields', 'warning');
+                return;
+            }
+
+            try {
+                await DashboardAPI.reportLostFoundItem({ type, title, description });
+                showNotification('Item reported!', 'success');
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemDetails').value = '';
+                await loadLostFoundContent();
+            } catch (error) {
+                console.error('Failed to report item:', error);
+                showNotification('Failed to report item', 'error');
+            }
+        });
+
+        document.getElementById('offerSkillBtn')?.addEventListener('click', async () => {
+            const title = document.getElementById('skillTitle')?.value;
+            const description = document.getElementById('skillDescription')?.value;
+
+            if (!title || !description) {
+                showNotification('Please fill in all fields', 'warning');
+                return;
+            }
+
+            try {
+                await DashboardAPI.createSkillOffer({ title, description });
+                showNotification('Skill offered!', 'success');
+                document.getElementById('skillTitle').value = '';
+                document.getElementById('skillDescription').value = '';
+                await loadSkillMarketContent();
+            } catch (error) {
+                console.error('Failed to offer skill:', error);
+                showNotification('Failed to offer skill', 'error');
+            }
+        });
+
+        document.getElementById('createPollBtn')?.addEventListener('click', async () => {
+            const question = document.getElementById('pollQuestion')?.value;
+            const optionsInputs = document.querySelectorAll('#pollOptions input');
+            const options = Array.from(optionsInputs).map(i => i.value).filter(v => v.trim() !== '');
+
+            if (!question || options.length < 2) {
+                showNotification('Please enter a question and at least 2 options', 'warning');
+                return;
+            }
+
+            try {
+                await DashboardAPI.createPoll(question, options);
+                showNotification('Poll created!', 'success');
+                document.getElementById('pollQuestion').value = '';
+                await loadPolls();
+            } catch (error) {
+                console.error('Failed to create poll:', error);
+                showNotification('Failed to create poll', 'error');
+            }
+        });
+
+        // Interaction Helpers for New Post Cards
+        window.quickComment = async (input, postId) => {
+            const content = input.value.trim();
+            if (!content) return;
+
+            try {
+                await DashboardAPI.postComment(postId, content);
+                showNotification('Comment posted!', 'success');
+                input.value = '';
+                // Optional: refresh comments count in UI
+                const card = input.closest('.post-card-wrapper');
+                if (card) {
+                    const countSpan = card.querySelector('.fa-comment').nextElementSibling;
+                    if (countSpan) {
+                        const current = parseInt(countSpan.textContent) || 0;
+                        countSpan.textContent = `${current + 1} comments`;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                showNotification('Failed to post comment', 'error');
+            }
+        };
+
+        window.showPostMenu = (postId, button) => {
+            // Simplified menu for now
+            const menu = document.createElement('div');
+            menu.className = 'fixed bg-white shadow-2xl rounded-xl py-2 z-[1000] border border-gray-100 min-w-[160px] animate-in fade-in zoom-in duration-200';
+            const rect = button.getBoundingClientRect();
+            menu.style.top = `${rect.bottom + 8}px`;
+            menu.style.right = `${window.innerWidth - rect.right}px`;
+
+            menu.innerHTML = `
                 <button class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center space-x-2" onclick="window.location.href='/post/${postId}'">
                     <i class="fas fa-external-link-alt text-gray-400"></i>
                     <span>View Post</span>
@@ -4549,75 +4552,125 @@ document.addEventListener('DOMContentLoaded', async function () {
                 </button>
                 `;
 
-        document.body.appendChild(menu);
+            document.body.appendChild(menu);
 
-        const closeMenu = (e) => {
-            if (!menu.contains(e.target) && e.target !== button) {
-                document.body.removeChild(menu);
-                document.removeEventListener('mousedown', closeMenu);
-            }
-        };
-        document.addEventListener('mousedown', closeMenu);
-    };
-
-    const path = window.location.pathname;
-    if (path.includes('/lost-found')) {
-        console.log('📱 Direct load: Lost & Found');
-        if (typeof window.loadLostFoundContent === 'function') window.loadLostFoundContent('all');
-    } else if (path.includes('/marketplace')) {
-        console.log('📱 Direct load: Marketplace');
-        if (typeof window.loadMarketplace === 'function') window.loadMarketplace('all');
-    } else if (path.includes('/skill-market')) {
-        console.log('📱 Direct load: Skill Market');
-        if (typeof window.loadSkillMarketContent === 'function') window.loadSkillMarketContent('all');
-        else if (typeof window.loadSkillOffers === 'function') window.loadSkillOffers('all');
-    } else if (path.includes('/groups')) {
-        console.log('📱 Direct load: Groups');
-        if (typeof window.loadGroups === 'function') window.loadGroups();
-    } else if (path.includes('/moments')) {
-        console.log('📱 Direct load: Moments');
-        if (typeof window.loadMoments === 'function') window.loadMoments();
-    } else if (path.includes('/messages')) {
-        console.log('📱 Direct load: Messages');
-        if (typeof window.loadChatsFromAPI === 'function') window.loadChatsFromAPI();
-    } else if (path.includes('/connect')) {
-        console.log('📱 Direct load: Connect');
-        if (typeof window.loadConnectUsers === 'function') window.loadConnectUsers();
-    } else if (path === '/dashboard' || path === '/' || path.includes('index')) {
-        console.log('📱 Direct load: Dashboard');
-        if (window.loadFeedPosts) window.loadFeedPosts();
-        if (window.loadAfterglowStories) window.loadAfterglowStories();
-    }
-
-    // Poll for new notifications every 30 seconds
-    setInterval(async () => {
-        try {
-            const notifications = await DashboardAPI.loadNotifications({ unreadOnly: true });
-            // refresh only notification badges
-            const unreadCount = notifications.filter(n => !n.is_read).length;
-            ['notificationCount', 'notificationCountBottom'].forEach(id => {
-                const b = document.getElementById(id);
-                if (b) {
-                    b.textContent = unreadCount;
-                    b.style.display = unreadCount > 0 ? 'flex' : 'none';
+            const closeMenu = (e) => {
+                if (!menu.contains(e.target) && e.target !== button) {
+                    document.body.removeChild(menu);
+                    document.removeEventListener('mousedown', closeMenu);
                 }
-            });
-            if (notifications.length > 0) {
-                notifications.forEach(notification => {
-                    const shownIds = JSON.parse(localStorage.getItem('shownNotifications') || '[]');
-                    if (!shownIds.includes(notification.id)) {
-                        const text = notification.content || notification.message || '';
-                        showNotification(text, notification.type || 'info');
-                        shownIds.push(notification.id);
-                        if (shownIds.length > 50) shownIds.shift();
-                        localStorage.setItem('shownNotifications', JSON.stringify(shownIds));
+            };
+            document.addEventListener('mousedown', closeMenu);
+        };
+
+        const path = window.location.pathname;
+        if (path.includes('/lost-found')) {
+            console.log('📱 Direct load: Lost & Found');
+            if (typeof window.loadLostFoundContent === 'function') window.loadLostFoundContent('all');
+        } else if (path.includes('/marketplace')) {
+            console.log('📱 Direct load: Marketplace');
+            if (typeof window.loadMarketplace === 'function') window.loadMarketplace('all');
+        } else if (path.includes('/skill-market')) {
+            console.log('📱 Direct load: Skill Market');
+            if (typeof window.loadSkillMarketContent === 'function') window.loadSkillMarketContent('all');
+            else if (typeof window.loadSkillOffers === 'function') window.loadSkillOffers('all');
+        } else if (path.includes('/groups')) {
+            console.log('📱 Direct load: Groups');
+            if (typeof window.loadGroups === 'function') window.loadGroups();
+        } else if (path.includes('/moments')) {
+            console.log('📱 Direct load: Moments');
+            if (typeof window.loadMoments === 'function') window.loadMoments();
+        } else if (path.includes('/messages')) {
+            console.log('📱 Direct load: Messages');
+            if (typeof window.loadChatsFromAPI === 'function') window.loadChatsFromAPI();
+        } else if (path.includes('/connect')) {
+            console.log('📱 Direct load: Connect');
+            if (typeof window.loadConnectUsers === 'function') window.loadConnectUsers();
+        } else if (path === '/dashboard' || path === '/' || path.includes('index')) {
+            console.log('📱 Direct load: Dashboard');
+            if (window.loadFeedPosts) window.loadFeedPosts();
+            if (window.loadAfterglowStories) window.loadAfterglowStories();
+        }
+
+        // Poll for new notifications every 30 seconds
+        setInterval(async () => {
+            try {
+                const notifications = await DashboardAPI.loadNotifications({ unreadOnly: true });
+                // refresh only notification badges
+                const unreadCount = notifications.filter(n => !n.is_read).length;
+                ['notificationCount', 'notificationCountBottom'].forEach(id => {
+                    const b = document.getElementById(id);
+                    if (b) {
+                        b.textContent = unreadCount;
+                        b.style.display = unreadCount > 0 ? 'flex' : 'none';
                     }
                 });
-            }
-        } catch (e) {
-            console.error('Failed to poll notifications:', e);
-        }
-    }, 30000);
+                if (notifications.length > 0) {
+                    notifications.forEach(notification => {
+                        const shownIds = JSON.parse(localStorage.getItem('shownNotifications') || '[]');
+                        if (!shownIds.includes(notification.id)) {
+                            const text = notification.content || notification.message || '';
+                            // NEW PREMIUM TOAST CALL
+                            showNotification(text, {
+                                type: notification.type || 'info',
+                                title: notification.actor_name || notification.user || 'New Notification',
+                                avatar: notification.actor_avatar || '/uploads/avatars/default.png',
+                                url: notification.action_url || '#'
+                            });
 
-}, 100);
+                            shownIds.push(notification.id);
+                            if (shownIds.length > 50) shownIds.shift();
+                            localStorage.setItem('shownNotifications', JSON.stringify(shownIds));
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to poll notifications:', e);
+            }
+        }, 30000);
+
+        // Real-time listener for instant notifications via Firebase
+        if (window.sparkleRealtime && typeof window.sparkleRealtime.watchNotifications === 'function') {
+            window.sparkleRealtime.watchNotifications((notifications) => {
+                if (!notifications || !notifications.length) return;
+
+                const unreadCount = notifications.filter(n => !n.read && !n.is_read).length;
+                ['notificationCount', 'notificationCountBottom'].forEach(id => {
+                    const b = document.getElementById(id);
+                    if (b) {
+                        b.textContent = unreadCount;
+                        b.style.display = unreadCount > 0 ? 'flex' : 'none';
+                    }
+                });
+
+                // Only show toasts for recent notifications (last 2 mins)
+                const now = Date.now();
+                notifications.forEach(notification => {
+                    if (notification.read || notification.is_read) return;
+
+                    const timestamp = notification.timestamp?.seconds ? notification.timestamp.seconds * 1000 :
+                        (notification.created_at ? new Date(notification.created_at).getTime() : now);
+
+                    if (now - timestamp < 120000) { // last 2 minutes
+                        const shownIds = JSON.parse(localStorage.getItem('shownNotifications') || '[]');
+                        if (!shownIds.includes(notification.id)) {
+                            const text = notification.content || notification.message || notification.body || '';
+
+                            showNotification(text, {
+                                type: notification.type || 'info',
+                                title: notification.actor_name || notification.user || notification.title || 'New Notification',
+                                avatar: notification.actor_avatar || '/uploads/avatars/default.png',
+                                url: notification.action_url || notification.url || '#'
+                            });
+
+                            shownIds.push(notification.id);
+                            if (shownIds.length > 50) shownIds.shift();
+                            localStorage.setItem('shownNotifications', JSON.stringify(shownIds));
+                        }
+                    }
+                });
+            });
+        }
+
+    }, 100);
 });

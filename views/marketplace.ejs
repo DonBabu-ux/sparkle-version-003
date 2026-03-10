@@ -2198,7 +2198,7 @@
                         Mark all read
                     </button>
                 </div>
-                <div class="notifications-list" id="notificationsList">
+                <div class="notifications-list" id="notificationList">
                     <!-- Notifications loaded dynamically -->
                 </div>
                 <div class="notifications-footer">
@@ -3227,7 +3227,7 @@
                         const data = await DashboardAPI.loadNotifications();
                         const notifications = data || [];
 
-                        const list = document.getElementById('notificationsList');
+                        const list = document.getElementById('notificationList');
                         if (!list) return;
                         list.innerHTML = '';
 

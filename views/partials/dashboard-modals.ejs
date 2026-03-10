@@ -1262,6 +1262,15 @@
         }
     });
 
+    // Close-button delegation: works for all .close-modal buttons everywhere
+    document.addEventListener('click', function (event) {
+        const closeBtn = event.target.closest('.close-modal');
+        if (closeBtn) {
+            const modal = closeBtn.closest('.modal, [id$="Modal"]');
+            if (modal) modal.style.display = 'none';
+        }
+    });
+
     window.markNotificationRead = async function (id) {
         try {
             await DashboardAPI.markNotificationRead(id);

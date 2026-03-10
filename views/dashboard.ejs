@@ -54,63 +54,198 @@
 
         /* AfterGlow Stories Overhaul */
         .afterglow-section {
-            background: transparent;
-            margin-bottom: 30px;
-            padding: 0 5px;
+            padding: 24px 0 10px;
+            margin-bottom: 5px;
         }
 
         .afterglow-title {
-            font-size: 1.25rem;
-            font-weight: 800;
-            margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: var(--text-main);
+            padding: 0 24px;
+            margin-bottom: 16px;
+            font-size: 19px;
+            font-weight: 800;
+            color: #1e293b;
         }
 
         .stories-container {
             display: flex;
             gap: 12px;
-            padding: 5px 5px 15px 5px;
-            justify-content: space-between;
+            padding: 4px 24px 20px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            justify-content: flex-start;
+            -ms-overflow-style: none;
         }
 
         .stories-container::-webkit-scrollbar {
             display: none;
         }
 
-        .story-create-card {
-            flex: 1;
-            min-width: 0;
-            max-width: 140px;
-            height: 165px;
-            border-radius: 20px;
-            overflow: hidden;
-            position: relative;
-            cursor: pointer;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            background: white;
-            box-shadow: var(--glass-shadow);
-        }
-
+        .story-create-card,
         .story-view-card {
-            flex: 1;
-            min-width: 0;
-            max-width: 140px;
-            height: 165px;
-            border-radius: 20px;
+            flex-shrink: 0;
+            width: 105px;
+            height: 160px;
+            border-radius: 22px;
             overflow: hidden;
             position: relative;
             cursor: pointer;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: var(--glass-shadow);
-            background: white;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .story-view-card:hover,
-        .story-create-card:hover {
-            transform: scale(1.05);
+        .story-create-card:hover,
+        .story-view-card:hover {
+            transform: scale(1.04) translateY(-4px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .story-media-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.85);
+            z-index: 1;
+        }
+
+        .story-overlay-gradient {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 40%, rgba(0, 0, 0, 0.2) 100%);
+            z-index: 2;
+        }
+
+        .story-avatar-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            padding: 2px;
+            background: white;
+            z-index: 3;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .story-avatar-badge img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .story-username-label {
+            position: absolute;
+            bottom: 12px;
+            left: 10px;
+            right: 10px;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 3;
+        }
+
+        .story-multi-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            z-index: 3;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .story-create-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            z-index: 3;
+            position: relative;
+        }
+
+        .story-create-top {
+            height: 65%;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .story-create-bottom {
+            height: 35%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-top: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .story-plus-btn {
+            position: absolute;
+            top: 65%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            box-shadow: 0 4px 10px rgba(255, 61, 109, 0.3);
+        }
+
+        .vanish-timer {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: rgba(0, 0, 0, 0.04);
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .afterglow-title {
+                padding: 0 24px;
+            }
+
+            .stories-container {
+                padding: 4px 24px 20px;
+            }
+
+            .story-create-card,
+            .story-view-card {
+                width: 95px;
+                height: 145px;
+            }
+
+            .container {
+                padding: 75px 15px 100px 15px;
+            }
         }
 
         .story-view-card img {
@@ -132,37 +267,10 @@
             text-align: center;
         }
 
-        /* Improved Post Card Wrapper */
         .posts-feed {
             display: flex;
             flex-direction: column;
             gap: 20px;
-        }
-
-        .post-card {
-            background: white !important;
-            border-radius: 24px !important;
-            border: 1px solid rgba(0, 0, 0, 0.05) !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
-            transition: all 0.3s ease;
-            padding: 20px !important;
-        }
-
-        .post-card:hover {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
-        }
-
-        /* Mobile Adaptivity */
-        @media (max-width: 768px) {
-            .container {
-                padding: 75px 15px 100px 15px;
-            }
-
-            .story-create-card,
-            .story-view-card {
-                min-width: 95px;
-                height: 145px;
-            }
         }
     </style>
 
@@ -176,9 +284,8 @@
                     <div class="afterglow-section">
                         <div class="afterglow-title">
                             <span
-                                style="background: var(--pink-gradient); WebkitBackgroundClip: text; WebkitTextFillColor: transparent;">AfterGlow</span>
-                            <span class="vanish-timer" id="vanishTimer"
-                                style="font-size: 11px; font-weight: 500; color: var(--text-muted); background: rgba(0,0,0,0.03); padding: 4px 10px; border-radius: 20px; margin-left: auto;">
+                                style="background: var(--pink-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">AfterGlow</span>
+                            <span class="vanish-timer" id="vanishTimer" style="margin-left: auto;">
                                 <i class="fas fa-bolt" style="color: #f59e0b"></i> 24h vanish
                             </span>
                         </div>
@@ -186,39 +293,49 @@
                         <div class="stories-container" id="afterglowStories">
                             <!-- Create Story Card -->
                             <div class="story-create-card" onclick="window.showCreateOptions()">
-                                <div
-                                    style="height: 65%; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
-                                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
-                                        style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                                </div>
-                                <div style="height: 35%; background: white; position: relative;">
-                                    <div
-                                        style="position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 28px; height: 28px; background: var(--accent); border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">
+                                <div class="story-create-content">
+                                    <div class="story-create-top">
+                                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                                            style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                    </div>
+                                    <div class="story-plus-btn">
                                         <i class="fas fa-plus"></i>
                                     </div>
-                                    <div
-                                        style="padding-top: 18px; text-align: center; font-size: 11px; font-weight: 700;">
-                                        Post Story</div>
+                                    <div class="story-create-bottom">
+                                        Post Glow
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Server Stories -->
                             <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
                                 <% stories.forEach(storyGroup=> { %>
-                                    <div class="story-view-card" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
-                                        <img src="<%= storyGroup.media_url || storyGroup.avatar_url || '/uploads/avatars/default.png' %>"
-                                            onerror="this.src='/uploads/avatars/default.png'">
-                                        <div
-                                            style="position: absolute; top: 10px; left: 10px; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent); padding: 2px;">
-                                            <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>"
-                                                style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                    <% const firstStory=storyGroup.stories[0]; %>
+                                        <div class="story-view-card"
+                                            onclick="openStoryViewer('<%= storyGroup.user_id %>')">
+                                            <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
+                                                class="story-media-bg"
+                                                onerror="this.src='/uploads/avatars/default.png'">
+
+                                            <div class="story-overlay-gradient"></div>
+
+                                            <% if (storyGroup.stories.length> 1) { %>
+                                                <div class="story-multi-badge">
+                                                    <%= storyGroup.stories.length %>
+                                                </div>
+                                                <% } %>
+
+                                                    <div class="story-avatar-badge">
+                                                        <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>"
+                                                            onerror="this.src='/uploads/avatars/default.png'">
+                                                    </div>
+
+                                                    <div class="story-username-label">
+                                                        <%= storyGroup.username || 'Sparkler' %>
+                                                    </div>
                                         </div>
-                                        <div class="story-overlay">
-                                            <%= storyGroup.username %>
-                                        </div>
-                                    </div>
-                                    <% }); %>
-                                        <% } %>
+                                        <% }); %>
+                                            <% } %>
                         </div>
                     </div>
 
@@ -249,6 +366,83 @@
                     </div>
             </div>
         </div>
+
+        <!-- ===== Create Picker Modal ===== -->
+        <div id="createPickerModal"
+            style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); backdrop-filter:blur(8px); z-index:5000; align-items:flex-end; justify-content:center;">
+            <div
+                style="width:100%; max-width:520px; background:#fff; border-radius:28px 28px 0 0; padding:24px 20px 36px; box-shadow:0 -10px 40px rgba(0,0,0,0.15); animation:slideUpPicker .35s cubic-bezier(.175,.885,.32,1.275);">
+                <div style="width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 20px;"></div>
+                <div style="font-size:17px;font-weight:800;color:#1e293b;text-align:center;margin-bottom:22px;">Create
+                    Something Amazing ✨</div>
+
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+                    <!-- Post -->
+                    <div onclick="document.getElementById('createPickerModal').style.display='none'; document.getElementById('createModal').style.display='flex';"
+                        style="background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:20px;padding:20px 10px;text-align:center;cursor:pointer;transition:transform .25s,box-shadow .25s;"
+                        onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(33,150,243,.2)'"
+                        onmouseout="this.style.transform='';this.style.boxShadow=''">
+                        <div
+                            style="width:52px;height:52px;background:#2196f3;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 12px rgba(33,150,243,.35);">
+                            <i class="fas fa-pen" style="color:#fff;font-size:20px;"></i>
+                        </div>
+                        <div style="font-weight:700;font-size:14px;color:#1565c0;">Post</div>
+                        <div style="font-size:10px;color:#555;margin-top:3px;">Text or image</div>
+                    </div>
+
+                    <!-- Moment -->
+                    <div onclick="document.getElementById('createPickerModal').style.display='none'; document.getElementById('momentModal').style.display='flex';"
+                        style="background:linear-gradient(135deg,#fce4ec,#f8bbd0);border-radius:20px;padding:20px 10px;text-align:center;cursor:pointer;transition:transform .25s,box-shadow .25s;"
+                        onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(233,30,99,.2)'"
+                        onmouseout="this.style.transform='';this.style.boxShadow=''">
+                        <div
+                            style="width:52px;height:52px;background:#e91e63;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 12px rgba(233,30,99,.35);">
+                            <i class="fas fa-video" style="color:#fff;font-size:18px;"></i>
+                        </div>
+                        <div style="font-weight:700;font-size:14px;color:#c2185b;">Moment</div>
+                        <div style="font-size:10px;color:#555;margin-top:3px;">Short video</div>
+                    </div>
+
+                    <!-- AfterGlow -->
+                    <div onclick="document.getElementById('createPickerModal').style.display='none'; window.openAfterglowModal ? openAfterglowModal() : (document.getElementById('afterglowModal') ? document.getElementById('afterglowModal').style.display='flex' : uploadAfterglowMedia && uploadAfterglowMedia());"
+                        style="background:linear-gradient(135deg,#f3e5f5,#e1bee7);border-radius:20px;padding:20px 10px;text-align:center;cursor:pointer;transition:transform .25s,box-shadow .25s;"
+                        onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(156,39,176,.2)'"
+                        onmouseout="this.style.transform='';this.style.boxShadow=''">
+                        <div
+                            style="width:52px;height:52px;background:linear-gradient(135deg,#9c27b0,#e91e63);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 12px rgba(156,39,176,.35);">
+                            <i class="fas fa-bolt" style="color:#fff;font-size:20px;"></i>
+                        </div>
+                        <div style="font-weight:700;font-size:14px;color:#7b1fa2;">AfterGlow</div>
+                        <div style="font-size:10px;color:#555;margin-top:3px;">24h story</div>
+                    </div>
+                </div>
+
+                <button onclick="document.getElementById('createPickerModal').style.display='none';"
+                    style="width:100%;padding:14px;background:none;border:1px solid #e2e8f0;border-radius:14px;font-size:15px;color:#64748b;cursor:pointer;font-weight:600;transition:background .2s;"
+                    onmouseover="this.style.background='#f8fafc'"
+                    onmouseout="this.style.background='none'">Cancel</button>
+            </div>
+        </div>
+        <style>
+            @keyframes slideUpPicker {
+                from {
+                    transform: translateY(100%);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        </style>
+
+        <!-- Dismiss picker modal on backdrop click -->
+        <script>
+            document.getElementById('createPickerModal').addEventListener('click', function (e) {
+                if (e.target === this) this.style.display = 'none';
+            });
+        </script>
 
         <!-- Premium Story Viewer Modal -->
         <div id="afterglowViewer" class="modal"
@@ -330,18 +524,31 @@
                     },
 
                     async spark(postId, button) {
+                        // Premium feedback
+                        button.style.transform = 'scale(0.95)';
+                        setTimeout(() => button.style.transform = '', 100);
+
                         try {
                             const res = await fetch(`/api/posts/${postId}/spark`, { method: 'POST' });
                             const data = await res.json();
                             if (data.status === 'success' || data.success) {
                                 const isSparked = data.action === 'sparked';
                                 button.classList.toggle('active', isSparked);
+
                                 const icon = button.querySelector('i');
-                                icon.className = isSparked ? 'fas fa-bolt' : 'far fa-bolt';
-                                const countSpan = button.querySelector('.spark-count');
-                                if (countSpan) {
-                                    let count = parseInt(countSpan.textContent) || 0;
-                                    countSpan.textContent = isSparked ? count + 1 : count - 1;
+                                if (icon) icon.className = isSparked ? 'fas fa-bolt' : 'far fa-bolt';
+
+                                // Update count in metrics bar
+                                const card = button.closest('.post-card');
+                                const countVal = card?.querySelector('.spark-count-val');
+                                if (countVal) {
+                                    let current = parseInt(countVal.textContent) || 0;
+                                    countVal.textContent = isSparked ? current + 1 : Math.max(0, current - 1);
+                                }
+
+                                if (isSparked) {
+                                    button.style.transform = 'scale(1.05)';
+                                    setTimeout(() => button.style.transform = '', 150);
                                 }
                             }
                         } catch (e) {
@@ -350,13 +557,17 @@
                     },
 
                     async save(postId, button) {
+                        button.style.transform = 'scale(0.95)';
+                        setTimeout(() => button.style.transform = '', 100);
+
                         try {
                             const res = await fetch(`/api/posts/${postId}/save`, { method: 'POST' });
                             const data = await res.json();
                             const isSaved = data.action === 'saved';
                             button.classList.toggle('active', isSaved);
+
                             const icon = button.querySelector('i');
-                            icon.className = isSaved ? 'fas fa-bookmark' : 'far fa-bookmark';
+                            if (icon) icon.className = isSaved ? 'fas fa-bookmark' : 'far fa-bookmark';
                         } catch (e) {
                             console.error('Save failed', e);
                         }
@@ -403,12 +614,33 @@
                     },
 
                     showCreateOptions() {
-                        if (window.openCreateModal) window.openCreateModal();
-                        else if (document.getElementById('postCreationModal')) {
-                            document.getElementById('postCreationModal').style.display = 'flex';
+                        // Open the "choose what to create" picker
+                        const picker = document.getElementById('createPickerModal');
+                        if (picker) {
+                            picker.style.display = 'flex';
+                        } else if (window._dynamicShowCreateOptions) {
+                            window._dynamicShowCreateOptions();
                         } else {
-                            alert('Create options modal not found.');
+                            // Fallback: open post modal directly
+                            const cm = document.getElementById('createModal');
+                            if (cm) cm.style.display = 'flex';
                         }
+                    },
+
+                    openPostModal() {
+                        const cm = document.getElementById('createModal');
+                        if (cm) cm.style.display = 'flex';
+                    },
+
+                    openMomentModal() {
+                        const mm = document.getElementById('momentModal');
+                        if (mm) mm.style.display = 'flex';
+                    },
+
+                    openAfterglowModal() {
+                        const am = document.getElementById('afterglowModal');
+                        if (am) am.style.display = 'flex';
+                        else if (window.uploadAfterglowMedia) uploadAfterglowMedia();
                     }
                 };
 
@@ -422,6 +654,9 @@
                 window.openStoryViewer = (id) => Dashboard.openStoryViewer(id);
                 window.closeAfterglowViewer = () => Dashboard.closeViewer();
                 window.showCreateOptions = () => Dashboard.showCreateOptions();
+                window.openCreateModal = () => Dashboard.openPostModal();
+                window.openMomentModal = () => Dashboard.openMomentModal();
+                window.openAfterglowModal = () => Dashboard.openAfterglowModal();
             })();
         </script>
 
@@ -430,6 +665,7 @@
         <%- include('partials/dashboard-modals') %>
             <%- include('partials/share-modal') %>
                 <%- include('partials/bottom-nav') %>
+                    <script src="/js/dynamicPatch.js"></script>
                     </body>
 
                     </html>

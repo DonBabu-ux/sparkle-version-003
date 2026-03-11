@@ -741,6 +741,37 @@
                             onchange="saveAppSetting('profile_visibility', this.checked ? 'campus' : 'public')"><span
                                 class="slider round"></span></label>
                     </div>
+                    
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+                        <div>
+                            <div style="font-weight: 600;">Dark Mode</div>
+                            <div style="font-size: 13px; color: #8e8e8e;">Enable dark appearance.</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="enhanced-darkmode-toggle" <%=typeof user
+                                !=='undefined' && user.dark_mode_enabled ? 'checked' : '' %>
+                            onchange="saveAppSetting('dark_mode_enabled', this.checked)"><span
+                                class="slider round"></span></label>
+                    </div>
+                    
+                    <div style="margin-bottom:25px;">
+                        <div style="font-weight:600;">Font size</div>
+                        <select style="margin-top:5px; width:100%;" onchange="saveAppSetting('font_size', this.value)">
+                            <option value="small" <%=user.font_size==='small' ? 'selected':''%>>Small</option>
+                            <option value="medium" <%=user.font_size==='medium' ? 'selected':''%>>Medium</option>
+                            <option value="large" <%=user.font_size==='large' ? 'selected':''%>>Large</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom:25px;">
+                        <div style="font-weight:600;">Language</div>
+                        <select style="margin-top:5px; width:100%;" onchange="saveAppSetting('language', this.value)">
+                            <option value="en" <%=user.language==='en' ? 'selected':''%>>English</option>
+                            <option value="es" <%=user.language==='es' ? 'selected':''%>>Español</option>
+                            <option value="fr" <%=user.language==='fr' ? 'selected':''%>>Français</option>
+                        </select>
+                    </div>
+                    
                     <div
                         style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
                         <div>

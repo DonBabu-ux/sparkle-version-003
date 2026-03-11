@@ -6,12 +6,15 @@ class User {
      * Find user by ID
      */
     static async findById(userId) {
+        // use wildcard select so migration is optional; extra columns will be
+        // ignored if they don’t exist yet
         const [users] = await pool.query(
-            `SELECT user_id, name, username, email, avatar_url, campus, major, year_of_study, bio, joined_at, is_online,
-                    (SELECT COUNT(*) FROM follows WHERE following_id = users.user_id) as followers_count,
-                    (SELECT COUNT(*) FROM follows WHERE follower_id = users.user_id) as following_count,
-                    (SELECT COUNT(*) FROM posts WHERE user_id = users.user_id) as posts_count
-             FROM users WHERE user_id = ?`,
+            `SELECT u.*,
+                    (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
+                    (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count
+             FROM users u
+             WHERE u.user_id = ?`,
             [userId]
         );
         return users[0] || null;
@@ -87,6 +90,30 @@ class User {
         if (updates.avatar_url !== undefined) {
             fields.push('avatar_url = ?');
             values.push(updates.avatar_url);
+        }
+
+        if (fields.length === 0) return false;
+
+        values.push(userId);
+        await pool.query(
+            `UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`,
+            values
+        );
+        return true;
+    }
+
+    /**
+     * Update arbitrary settings columns on the users table.
+     * The caller must validate/whitelist the keys before calling this.
+     */
+    static async updateSettings(userId, settings) {
+        const fields = [];
+        const values = [];
+
+        for (const [key, val] of Object.entries(settings)) {
+            // only allow simple scalar values; caller is responsible for whitelisting
+            fields.push(`${key} = ?`);
+            values.push(val);
         }
 
         if (fields.length === 0) return false;

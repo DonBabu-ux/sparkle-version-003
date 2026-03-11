@@ -24,6 +24,15 @@ CREATE TABLE `users` (
   `email_notifications` TINYINT(1) DEFAULT 1,
   `push_notifications` TINYINT(1) DEFAULT 1,
   `profile_visibility` ENUM('public', 'campus', 'private') DEFAULT 'public',
+
+  -- additional appearance / privacy settings
+  `theme` ENUM('light','dark','system') DEFAULT 'system',
+  `font_size` ENUM('small','medium','large') DEFAULT 'medium',
+  `language` VARCHAR(10) DEFAULT 'en',
+  `last_seen_privacy` ENUM('everyone','followers','no_one') DEFAULT 'everyone',
+  `message_privacy` ENUM('everyone','followers','no_one') DEFAULT 'followers',
+  `dnd_start` TIME DEFAULT NULL,
+  `dnd_end` TIME DEFAULT NULL,
   PRIMARY KEY (`user_id`),
   INDEX `idx_users_campus` (`campus`),
   INDEX `idx_users_username` (`username`),

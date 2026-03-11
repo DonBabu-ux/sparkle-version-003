@@ -83,13 +83,29 @@ const updateSettings = async (req, res) => {
         const userId = req.user.userId || req.user.user_id;
         const updates = {};
 
-        // whitelist allowed settings
+        // whitelist allowed settings (this list drives what may be written to DB)
         const allowedSettings = [
+            // privacy / visibility
             'anonymous_enabled',
             'profile_visibility',
+            'is_online',            
+            'last_seen_privacy',
+            'message_privacy',
+
+            // notifications
             'push_notifications',
             'email_notifications',
-            'is_online' // activity status
+            'dnd_start',
+            'dnd_end',
+
+            // appearance / localization
+            'dark_mode_enabled',
+            'theme',
+            'font_size',
+            'language',
+
+            // account
+            // note: account_status is intentionally not exposed here; admin-only
         ];
 
         for (const key of Object.keys(req.body)) {
@@ -99,7 +115,7 @@ const updateSettings = async (req, res) => {
         }
 
         if (Object.keys(updates).length > 0) {
-            await User.update(userId, updates);
+            await User.updateSettings(userId, updates);
         }
 
         res.json({ message: 'Settings updated successfully', updates });

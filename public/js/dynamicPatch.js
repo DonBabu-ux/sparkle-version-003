@@ -1723,6 +1723,205 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         };
 
+        // ============ AFTERGLOW STORY VIEWER ============
+        window.showAfterglowViewer = function(story) {
+            console.log('📖 Opening story viewer for:', story);
+            
+            // If we have multiple stories in activeStories, use that
+            const stories = window.activeStories || [story];
+            const startIndex = window.currentStoryIndex || 0;
+            
+            const modal = document.createElement('div');
+            modal.className = 'afterglow-viewer-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.95);
+                z-index: 100000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+
+            let currentIndex = startIndex;
+            let progressInterval;
+            let timeLeft = 5; // seconds per story
+
+            function renderStory(index) {
+                const currentStory = stories[index];
+                if (!currentStory) return;
+
+                const isVideo = currentStory.media_url?.match(/\.(mp4|webm|mov)$/i) || 
+                               currentStory.media?.match(/\.(mp4|webm|mov)$/i) ||
+                               currentStory.type === 'video';
+
+                const mediaUrl = currentStory.media_url || currentStory.media || '';
+                const username = currentStory.username || currentStory.user_name || 'Sparkler';
+                const avatar = currentStory.avatar_url || currentStory.avatar || '/uploads/avatars/default.png';
+                const caption = currentStory.caption || '';
+                const timestamp = currentStory.created_at ? new Date(currentStory.created_at).toLocaleTimeString() : 'Just now';
+
+                modal.innerHTML = `
+                    <div style="width: 100%; max-width: 400px; height: 100%; max-height: 700px; position: relative; background: #000; border-radius: 20px; overflow: hidden;">
+                        <!-- Progress bars -->
+                        <div style="position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 5px; z-index: 10;">
+                            ${stories.map((_, i) => `
+                                <div style="flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;">
+                                    <div class="progress-bar-${i}" style="width: ${i < index ? '100%' : i === index ? '0%' : '0%'}; height: 100%; background: white; transition: width 5s linear;"></div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <!-- Close button -->
+                        <button class="close-story" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 20; display: flex; align-items: center; justify-content: center;">&times;</button>
+
+                        <!-- Media -->
+                        ${isVideo ? `
+                            <video id="storyVideo" src="${mediaUrl}" style="width: 100%; height: 100%; object-fit: contain;" autoplay playsinline></video>
+                        ` : `
+                            <img src="${mediaUrl}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='/uploads/avatars/default.png'">
+                        `}
+
+                        <!-- User info overlay -->
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 60px 20px 30px; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <img src="${avatar}" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; object-fit: cover;">
+                                <div>
+                                    <div style="color: white; font-weight: 600;">${username}</div>
+                                    <div style="color: rgba(255,255,255,0.7); font-size: 11px;">${timestamp}</div>
+                                </div>
+                            </div>
+                            ${caption ? `<div style="color: white; font-size: 14px; line-height: 1.4;">${caption}</div>` : ''}
+                        </div>
+
+                        <!-- Navigation areas (left/right click) -->
+                        <div style="position: absolute; top: 0; bottom: 0; left: 0; width: 30%; cursor: pointer; z-index: 15;" class="prev-story"></div>
+                        <div style="position: absolute; top: 0; bottom: 0; right: 0; width: 30%; cursor: pointer; z-index: 15;" class="next-story"></div>
+                    </div>
+                `;
+
+                // Start progress animation for current story
+                if (index < stories.length) {
+                    const progressBar = modal.querySelector(`.progress-bar-${index}`);
+                    if (progressBar) {
+                        // Force reflow
+                        progressBar.style.transition = 'none';
+                        progressBar.style.width = '0%';
+                        setTimeout(() => {
+                            progressBar.style.transition = 'width 5s linear';
+                            progressBar.style.width = '100%';
+                        }, 50);
+                    }
+                }
+
+                // Handle video playback
+                if (isVideo) {
+                    const video = modal.querySelector('#storyVideo');
+                    if (video) {
+                        video.onloadedmetadata = () => {
+                            timeLeft = video.duration;
+                        };
+                        video.onended = () => goToNext();
+                    }
+                } else {
+                    // Auto advance for images
+                    clearInterval(progressInterval);
+                    progressInterval = setInterval(() => {
+                        goToNext();
+                    }, 5000);
+                }
+            }
+
+            function goToNext() {
+                if (currentIndex < stories.length - 1) {
+                    currentIndex++;
+                    renderStory(currentIndex);
+                } else {
+                    closeViewer();
+                }
+            }
+
+            function goToPrev() {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    renderStory(currentIndex);
+                } else {
+                    closeViewer();
+                }
+            }
+
+            function closeViewer() {
+                clearInterval(progressInterval);
+                modal.classList.add('fade-out');
+                setTimeout(() => {
+                    if (modal.parentNode) modal.remove();
+                }, 300);
+            }
+
+            // Render first story
+            renderStory(currentIndex);
+
+            // Add event listeners after render
+            setTimeout(() => {
+                const closeBtn = modal.querySelector('.close-story');
+                const prevArea = modal.querySelector('.prev-story');
+                const nextArea = modal.querySelector('.next-story');
+
+                closeBtn?.addEventListener('click', closeViewer);
+                prevArea?.addEventListener('click', goToPrev);
+                nextArea?.addEventListener('click', goToNext);
+
+                // Keyboard navigation
+                const keyHandler = (e) => {
+                    if (e.key === 'ArrowLeft') {
+                        goToPrev();
+                    } else if (e.key === 'ArrowRight') {
+                        goToNext();
+                    } else if (e.key === 'Escape') {
+                        closeViewer();
+                    }
+                };
+                document.addEventListener('keydown', keyHandler);
+
+                // Clean up keyboard listener when modal closes
+                modal.cleanup = () => {
+                    document.removeEventListener('keydown', keyHandler);
+                    clearInterval(progressInterval);
+                };
+            }, 100);
+
+            document.body.appendChild(modal);
+
+            // Add animation styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .afterglow-viewer-modal {
+                    animation: fadeIn 0.3s ease;
+                }
+                .afterglow-viewer-modal.fade-out {
+                    animation: fadeOut 0.3s ease forwards;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes fadeOut {
+                    from { opacity: 1; }
+                    to { opacity: 0; }
+                }
+                .close-story:hover {
+                    background: rgba(255,255,255,0.2) !important;
+                }
+                .prev-story:hover, .next-story:hover {
+                    background: rgba(255,255,255,0.05);
+                }
+            `;
+            document.head.appendChild(style);
+        };
+
         window.afterglowTimerInterval = setInterval(() => {
             const container = document.getElementById('afterglowStories');
             if (!container) return;

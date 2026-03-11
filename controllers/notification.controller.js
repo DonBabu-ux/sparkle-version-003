@@ -1,5 +1,12 @@
 const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+let _emitNotification = null;
+const getEmitter = () => {
+    if (!_emitNotification) {
+        try { _emitNotification = require('../socket').emitNotification; } catch (e) { /* not yet init */ }
+    }
+    return _emitNotification;
+};
 
 const notificationController = {
     // Get user's notifications
@@ -127,6 +134,35 @@ const notificationController = {
                 data.actor_id || null,
                 data.action_url || null
             ]);
+
+            // Fetch actor info for the socket payload
+            let actorInfo = { actor_name: data.actor_name || '', actor_avatar: '/uploads/avatars/default.png', actor_username: '' };
+            if (data.actor_id) {
+                try {
+                    const [[actor]] = await pool.query(
+                        'SELECT name as actor_name, username as actor_username, avatar_url as actor_avatar FROM users WHERE user_id = ?',
+                        [data.actor_id]
+                    );
+                    if (actor) actorInfo = actor;
+                } catch (_) { /* non-blocking */ }
+            }
+
+            // Emit real-time socket notification
+            const emitter = getEmitter();
+            if (emitter) {
+                emitter(data.user_id, {
+                    notification_id: notificationId,
+                    id: notificationId,
+                    type: data.type,
+                    title: data.title,
+                    content: data.content,
+                    action_url: data.action_url || null,
+                    actor_id: data.actor_id || null,
+                    ...actorInfo,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                });
+            }
             
             return notificationId;
         } catch (error) {

@@ -3,6 +3,7 @@ const Post = require('../models/Post');
 const logger = require('../utils/logger');
 const bcrypt = require('bcryptjs');
 const { downloadExternalImage } = require('../utils/media.utils');
+const notificationController = require('./notification.controller');
 
 const getCurrentUser = async (req, res) => {
     try {
@@ -184,6 +185,17 @@ const followUser = async (req, res) => {
         const followerId = req.user.userId || req.user.user_id;
         const followingId = req.params.id;
         await User.follow(followerId, followingId);
+
+        // Create follow notification (non-blocking)
+        notificationController.createNotification({
+            user_id: followingId,
+            actor_id: followerId,
+            type: 'follow',
+            title: 'New Follower',
+            content: 'followed you',
+            action_url: `/profile/${followerId}`
+        }).catch(() => {});
+
         res.json({ success: true, message: 'User followed' });
     } catch (error) {
         logger.error('Follow user error:', error);

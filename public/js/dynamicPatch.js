@@ -4873,3 +4873,531 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     }, 100);
 });
+
+// ============================================================
+// ============ SPARKLE NOTIFICATION SYSTEM ===================
+// ============================================================
+(function initSparkleNotifications() {
+    // ---- Styles ----
+    const styleEl = document.createElement('style');
+    styleEl.id = 'sparkle-notif-styles';
+    styleEl.textContent = `
+        /* === Notification Panel === */
+        #sparkle-notif-overlay {
+            position: fixed; inset: 0; z-index: 99990;
+            background: transparent; display: none;
+        }
+        #sparkle-notif-overlay.open { display: block; }
+
+        #sparkle-notif-panel {
+            position: fixed;
+            top: 60px; right: 10px;
+            width: 380px; max-width: calc(100vw - 20px);
+            max-height: 85vh;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(233,30,99,0.18), 0 2px 12px rgba(0,0,0,0.12);
+            z-index: 99999;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            transform: translateY(-10px) scale(0.97);
+            opacity: 0;
+            transition: transform 0.25s cubic-bezier(.4,0,.2,1), opacity 0.25s ease;
+            pointer-events: none;
+        }
+        #sparkle-notif-panel.open {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            pointer-events: all;
+        }
+        .sn-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 18px 12px;
+            border-bottom: 1px solid #fce4ec;
+            background: linear-gradient(135deg, #fff 60%, #fce4ec);
+        }
+        .sn-header h3 {
+            font-size: 18px; font-weight: 700; color: #1e1e2e; margin: 0;
+        }
+        .sn-header-actions { display: flex; align-items: center; gap: 10px; }
+        .sn-mark-all {
+            font-size: 12px; font-weight: 600; color: #e91e63;
+            background: none; border: none; cursor: pointer; padding: 4px 8px;
+            border-radius: 8px; transition: background 0.2s;
+        }
+        .sn-mark-all:hover { background: #fce4ec; }
+        .sn-close-btn {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #f5f5f5; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; color: #666; transition: background 0.2s;
+        }
+        .sn-close-btn:hover { background: #fce4ec; color: #e91e63; }
+        .sn-list {
+            flex: 1; overflow-y: auto; padding: 6px 0;
+            scrollbar-width: thin; scrollbar-color: #fce4ec transparent;
+        }
+        .sn-list::-webkit-scrollbar { width: 4px; }
+        .sn-list::-webkit-scrollbar-thumb { background: #f48fb1; border-radius: 4px; }
+        .sn-item {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 12px 16px; cursor: pointer;
+            transition: background 0.2s;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+        .sn-item:hover { background: #fff5f8; }
+        .sn-item.sn-unread {
+            background: #fff0f5;
+            border-left-color: #e91e63;
+        }
+        .sn-avatar-wrap {
+            position: relative; flex-shrink: 0;
+            width: 46px; height: 46px;
+        }
+        .sn-avatar {
+            width: 46px; height: 46px; border-radius: 50%; object-fit: cover;
+            border: 2px solid #fce4ec;
+        }
+        .sn-type-badge {
+            position: absolute; bottom: -2px; right: -2px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #e91e63;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 9px; color: white;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(233,30,99,0.4);
+        }
+        .sn-body { flex: 1; min-width: 0; }
+        .sn-text { font-size: 13px; color: #333; line-height: 1.45; }
+        .sn-text strong { color: #1e1e2e; }
+        .sn-time { font-size: 11px; color: #e91e63; margin-top: 3px; font-weight: 600; }
+        .sn-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #e91e63; flex-shrink: 0; margin-top: 6px;
+        }
+        .sn-empty {
+            text-align: center; padding: 40px 20px; color: #aaa;
+        }
+        .sn-empty i { font-size: 40px; color: #f48fb1; margin-bottom: 10px; display: block; }
+        .sn-footer {
+            padding: 10px 16px;
+            border-top: 1px solid #fce4ec;
+            text-align: center;
+        }
+        .sn-footer a {
+            font-size: 13px; color: #e91e63; font-weight: 600;
+            text-decoration: none;
+        }
+
+        /* === Toast Notifications === */
+        #sparkle-toast-container {
+            position: fixed; bottom: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 999999; pointer-events: none;
+            max-width: calc(100vw - 40px);
+        }
+        .sn-toast {
+            display: flex; align-items: center; gap: 12px;
+            background: #fff; border-radius: 14px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 24px rgba(233,30,99,0.18), 0 1px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #e91e63;
+            min-width: 280px; max-width: 360px;
+            pointer-events: all;
+            transform: translateX(110%);
+            opacity: 0;
+            transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s ease;
+            cursor: pointer;
+        }
+        .sn-toast.visible {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .sn-toast.hiding {
+            transform: translateX(110%);
+            opacity: 0;
+        }
+        .sn-toast-avatar-wrap {
+            position: relative; flex-shrink: 0;
+            width: 40px; height: 40px;
+        }
+        .sn-toast-avatar {
+            width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+            border: 2px solid #fce4ec;
+        }
+        .sn-toast-badge {
+            position: absolute; bottom: -2px; right: -2px;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #e91e63; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 7px; border: 2px solid white;
+        }
+        .sn-toast-body { flex: 1; min-width: 0; }
+        .sn-toast-title { font-size: 13px; font-weight: 700; color: #1e1e2e; }
+        .sn-toast-text { font-size: 12px; color: #666; margin-top: 2px; }
+        .sn-toast-close {
+            background: none; border: none; color: #ccc; font-size: 16px;
+            cursor: pointer; padding: 0 2px; line-height: 1;
+            transition: color 0.2s; flex-shrink: 0;
+        }
+        .sn-toast-close:hover { color: #e91e63; }
+        .sn-sparkle-logo {
+            font-size: 9px; color: #e91e63; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        /* === Bell animation when notification arrives === */
+        @keyframes bellRing {
+            0%,100% { transform: rotate(0); }
+            10% { transform: rotate(15deg); }
+            20% { transform: rotate(-15deg); }
+            30% { transform: rotate(12deg); }
+            40% { transform: rotate(-10deg); }
+            50% { transform: rotate(8deg); }
+            60% { transform: rotate(0); }
+        }
+        #navBellIcon.ringing { animation: bellRing 0.7s ease; color: #e91e63; }
+
+        /* === Mobile Responsive === */
+        @media (max-width: 480px) {
+            #sparkle-notif-panel {
+                top: 0; right: 0; left: 0;
+                width: 100vw; max-width: 100vw;
+                height: 100vh; max-height: 100vh;
+                border-radius: 0;
+            }
+            #sparkle-toast-container {
+                bottom: 10px; right: 10px; left: 10px;
+            }
+            .sn-toast { min-width: unset; max-width: 100%; }
+        }
+    `;
+    document.head.appendChild(styleEl);
+
+    // ---- Type config (icon + colour per notification type) ----
+    const TYPE_CONFIG = {
+        follow:      { icon: 'fa-user-plus',  bg: '#e91e63', label: 'followed you' },
+        spark:       { icon: 'fa-fire',        bg: '#ff5722', label: 'sparked your post' },
+        like:        { icon: 'fa-heart',       bg: '#e91e63', label: 'liked your post' },
+        comment:     { icon: 'fa-comment',     bg: '#9c27b0', label: 'commented on your post' },
+        reply:       { icon: 'fa-reply',       bg: '#673ab7', label: 'replied to your comment' },
+        share:       { icon: 'fa-share-alt',   bg: '#2196f3', label: 'shared your post' },
+        story_like:  { icon: 'fa-bolt',        bg: '#e91e63', label: 'liked your story' },
+        story_share: { icon: 'fa-share-alt',   bg: '#00bcd4', label: 'shared your story' },
+        message:     { icon: 'fa-envelope',    bg: '#4caf50', label: 'sent you a message' },
+        default:     { icon: 'fa-bell',        bg: '#e91e63', label: '' },
+    };
+
+    function getTypeConf(type) {
+        return TYPE_CONFIG[type] || TYPE_CONFIG.default;
+    }
+
+    function timeAgo(dateStr) {
+        const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    }
+
+    // ---- Build Panel DOM ----
+    function buildPanel() {
+        if (document.getElementById('sparkle-notif-panel')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'sparkle-notif-overlay';
+        overlay.addEventListener('click', closePanel);
+        document.body.appendChild(overlay);
+
+        const panel = document.createElement('div');
+        panel.id = 'sparkle-notif-panel';
+        panel.innerHTML = `
+            <div class="sn-header">
+                <h3>🔔 Notifications</h3>
+                <div class="sn-header-actions">
+                    <button class="sn-mark-all" id="sn-mark-all-btn">Mark all read</button>
+                    <button class="sn-close-btn" id="sn-close-btn">&times;</button>
+                </div>
+            </div>
+            <div class="sn-list" id="sn-list">
+                <div class="sn-empty"><i class="fas fa-bell-slash"></i><div>No notifications yet</div></div>
+            </div>
+            <div class="sn-footer">
+                <a href="#" onclick="window.closeNotificationPanel()">Close</a>
+            </div>
+        `;
+        document.body.appendChild(panel);
+
+        panel.querySelector('#sn-close-btn').addEventListener('click', closePanel);
+        panel.querySelector('#sn-mark-all-btn').addEventListener('click', markAllRead);
+        // Prevent clicks inside panel from closing it via overlay
+        panel.addEventListener('click', e => e.stopPropagation());
+    }
+
+    // ---- Build Toast container ----
+    function buildToastContainer() {
+        if (document.getElementById('sparkle-toast-container')) return;
+        const el = document.createElement('div');
+        el.id = 'sparkle-toast-container';
+        document.body.appendChild(el);
+    }
+
+    // ---- Open / Close Panel ----
+    window.toggleNotificationPanel = function () {
+        const panel = document.getElementById('sparkle-notif-panel');
+        if (!panel) { buildPanel(); setTimeout(openPanel, 50); return; }
+        panel.classList.contains('open') ? closePanel() : openPanel();
+    };
+
+    window.closeNotificationPanel = closePanel;
+
+    function openPanel() {
+        const panel = document.getElementById('sparkle-notif-panel');
+        const overlay = document.getElementById('sparkle-notif-overlay');
+        if (!panel) return;
+        overlay?.classList.add('open');
+        panel.classList.add('open');
+        fetchAndRenderNotifications();
+    }
+
+    function closePanel() {
+        document.getElementById('sparkle-notif-panel')?.classList.remove('open');
+        document.getElementById('sparkle-notif-overlay')?.classList.remove('open');
+    }
+
+    // ---- Render notification item ----
+    function renderItem(n) {
+        const conf = getTypeConf(n.type);
+        const avatar = n.actor_avatar || n.avatar_url || '/uploads/avatars/default.png';
+        const actorName = n.actor_name || n.actor_username || 'Someone';
+        const content = n.content || conf.label || 'sent you a notification';
+        const time = timeAgo(n.created_at || new Date().toISOString());
+        const isUnread = !n.is_read && !n.read;
+
+        const el = document.createElement('div');
+        el.className = `sn-item${isUnread ? ' sn-unread' : ''}`;
+        el.dataset.id = n.notification_id || n.id;
+        el.innerHTML = `
+            <div class="sn-avatar-wrap">
+                <img class="sn-avatar" src="${avatar}" onerror="this.src='/uploads/avatars/default.png'">
+                <div class="sn-type-badge" style="background:${conf.bg}">
+                    <i class="fas ${conf.icon}"></i>
+                </div>
+            </div>
+            <div class="sn-body">
+                <div class="sn-text"><strong>${actorName}</strong> ${content}</div>
+                <div class="sn-time">${time}</div>
+            </div>
+            ${isUnread ? '<div class="sn-dot"></div>' : ''}
+        `;
+
+        el.addEventListener('click', () => {
+            markRead(n.notification_id || n.id);
+            el.classList.remove('sn-unread');
+            el.querySelector('.sn-dot')?.remove();
+            if (n.action_url) window.location.href = n.action_url;
+        });
+
+        return el;
+    }
+
+    // ---- Fetch & render panel list ----
+    async function fetchAndRenderNotifications() {
+        const list = document.getElementById('sn-list');
+        if (!list) return;
+
+        list.innerHTML = '<div class="sn-empty"><i class="fas fa-spinner fa-spin"></i><div>Loading…</div></div>';
+
+        try {
+            const notifications = await DashboardAPI.loadNotifications();
+            renderList(notifications);
+            updateBadge(notifications.filter(n => !n.is_read && !n.read).length);
+        } catch (e) {
+            list.innerHTML = '<div class="sn-empty"><i class="fas fa-exclamation-circle"></i><div>Failed to load</div></div>';
+        }
+    }
+
+    function renderList(notifications) {
+        const list = document.getElementById('sn-list');
+        if (!list) return;
+        list.innerHTML = '';
+        if (!notifications || notifications.length === 0) {
+            list.innerHTML = '<div class="sn-empty"><i class="fas fa-bell-slash"></i><div>You\'re all caught up!</div></div>';
+            return;
+        }
+        notifications.forEach(n => list.appendChild(renderItem(n)));
+    }
+
+    // ---- Badge update ----
+    function updateBadge(count) {
+        ['notificationCount', 'notificationCountBottom'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = count > 99 ? '99+' : count;
+            el.style.display = count > 0 ? 'flex' : 'none';
+        });
+    }
+
+    // ---- Mark read ----
+    async function markRead(id) {
+        try { await DashboardAPI.markNotificationRead(id); } catch (_) {}
+    }
+
+    async function markAllRead() {
+        try {
+            await DashboardAPI.markAllNotificationsRead();
+            document.querySelectorAll('.sn-item.sn-unread').forEach(el => {
+                el.classList.remove('sn-unread');
+                el.querySelector('.sn-dot')?.remove();
+            });
+            updateBadge(0);
+        } catch (e) {}
+    }
+
+    // ---- Toast ----
+    function showNotifToast(notification) {
+        buildToastContainer();
+        const container = document.getElementById('sparkle-toast-container');
+        if (!container) return;
+
+        const conf = getTypeConf(notification.type);
+        const avatar = notification.actor_avatar || notification.avatar_url || '/uploads/avatars/default.png';
+        const actorName = notification.actor_name || notification.actor_username || 'Someone';
+        const content = notification.content || conf.label || 'sent you a notification';
+
+        const toast = document.createElement('div');
+        toast.className = 'sn-toast';
+        toast.innerHTML = `
+            <div class="sn-toast-avatar-wrap">
+                <img class="sn-toast-avatar" src="${avatar}" onerror="this.src='/uploads/avatars/default.png'">
+                <div class="sn-toast-badge" style="background:${conf.bg}"><i class="fas ${conf.icon}"></i></div>
+            </div>
+            <div class="sn-toast-body">
+                <div class="sn-toast-title">${actorName}</div>
+                <div class="sn-toast-text">${content}</div>
+                <div class="sn-sparkle-logo">✦ Sparkle</div>
+            </div>
+            <button class="sn-toast-close">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Slide in
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => toast.classList.add('visible'));
+        });
+
+        const dismiss = () => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 400);
+        };
+
+        toast.addEventListener('click', () => {
+            dismiss();
+            if (notification.action_url) window.location.href = notification.action_url;
+        });
+        toast.querySelector('.sn-toast-close').addEventListener('click', (e) => {
+            e.stopPropagation(); dismiss();
+        });
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(dismiss, 5000);
+
+        // Ring the bell
+        const bell = document.getElementById('navBellIcon');
+        if (bell) {
+            bell.classList.remove('ringing');
+            void bell.offsetWidth; // reflow
+            bell.classList.add('ringing');
+            setTimeout(() => bell.classList.remove('ringing'), 800);
+        }
+    }
+
+    window.showNotificationToast = showNotifToast;
+
+    // ---- Socket listener ----
+    function setupSocketListener() {
+        // Try to find the app socket (various possible names)
+        const sock = window.socket || window.appSocket || window.io?.();
+        if (sock && sock.on) {
+            sock.on('new-notification', (notification) => {
+                showNotifToast(notification);
+                updateBadge((parseInt(document.getElementById('notificationCount')?.textContent) || 0) + 1);
+                // If panel is open, prepend the new item
+                const list = document.getElementById('sn-list');
+                if (list && document.getElementById('sparkle-notif-panel')?.classList.contains('open')) {
+                    const emptyEl = list.querySelector('.sn-empty');
+                    if (emptyEl) list.innerHTML = '';
+                    list.insertBefore(renderItem(notification), list.firstChild);
+                }
+            });
+            return true;
+        }
+        return false;
+    }
+
+    // ---- Polling fallback (every 30s if socket not available) ----
+    let _lastUnreadCount = 0;
+    let _pollingStarted = false;
+
+    function startPolling() {
+        if (_pollingStarted) return;
+        _pollingStarted = true;
+        setInterval(async () => {
+            try {
+                const data = await DashboardAPI.loadNotifications({ unreadOnly: true });
+                const count = data.length;
+                updateBadge(count);
+                // Show toast for brand-new ones (last 90 seconds)
+                const now = Date.now();
+                const shownIds = JSON.parse(localStorage.getItem('sparkle_shown_notifs') || '[]');
+                data.forEach(n => {
+                    const ts = n.created_at ? new Date(n.created_at).getTime() : 0;
+                    if (now - ts < 90000 && !shownIds.includes(n.id || n.notification_id)) {
+                        showNotifToast(n);
+                        shownIds.push(n.id || n.notification_id);
+                    }
+                });
+                if (shownIds.length > 100) shownIds.splice(0, shownIds.length - 100);
+                localStorage.setItem('sparkle_shown_notifs', JSON.stringify(shownIds));
+            } catch (_) {}
+        }, 30000);
+    }
+
+    // ---- Init ----
+    function init() {
+        buildPanel();
+        buildToastContainer();
+
+        // Try socket first; fall back to polling
+        const socketConnected = setupSocketListener();
+        if (!socketConnected) {
+            // Retry socket for up to 10s (it might not be connected yet)
+            let attempts = 0;
+            const retry = setInterval(() => {
+                attempts++;
+                if (setupSocketListener() || attempts > 10) {
+                    clearInterval(retry);
+                    if (attempts > 10) startPolling();
+                }
+            }, 1000);
+        }
+
+        // Load unread count on startup
+        DashboardAPI.loadNotifications({ unreadOnly: true }).then(data => {
+            updateBadge(data.length);
+        }).catch(() => {});
+
+        // Start polling as a safety net regardless (it won't double-toast, 
+        // because shown IDs are tracked in localStorage)
+        setTimeout(startPolling, 10000);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        setTimeout(init, 200);
+    }
+})();

@@ -135,13 +135,6 @@ class Post {
                 'UPDATE posts SET spark_count = spark_count + 1 WHERE post_id = ?',
                 [postId]
             );
-            
-            // Create notification
-            await pool.query(`
-                INSERT INTO notifications (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url)
-                SELECT UUID(), user_id, 'spark', 'New Spark!', 'Someone sparked your post.', post_id, 'post', ?, CONCAT('/post/', post_id)
-                FROM posts WHERE post_id = ? AND user_id != ?
-            `, [userId, postId, userId]);
 
             return { success: true, action: 'sparked' };
         } catch (error) {
@@ -189,13 +182,6 @@ class Post {
             'UPDATE posts SET comment_count = comment_count + 1 WHERE post_id = ?',
             [postId]
         );
-        
-        // Create notification
-        await pool.query(`
-            INSERT INTO notifications (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url)
-            SELECT UUID(), user_id, 'comment', 'New Comment', 'Someone commented on your post.', post_id, 'post', ?, CONCAT('/post/', post_id)
-            FROM posts WHERE post_id = ? AND user_id != ?
-        `, [userId, postId, userId]);
 
         return commentId;
     }
@@ -250,16 +236,7 @@ class Post {
             'UPDATE posts SET share_count = share_count + 1 WHERE post_id = ?',
             [postId]
         );
-        
-        if (actorId) {
-            // Create notification
-            await pool.query(`
-                INSERT INTO notifications (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url)
-                SELECT UUID(), user_id, 'share', 'Post Shared', 'Someone shared your post.', post_id, 'post', ?, CONCAT('/post/', post_id)
-                FROM posts WHERE post_id = ? AND user_id != ?
-            `, [actorId, postId, actorId]);
-        }
-        
+
         return true;
     }
 }

@@ -272,4 +272,16 @@ const getIO = () => {
     return io;
 };
 
-module.exports = { initializeSocket, getIO };
+// Helper to emit a notification to a specific user's socket room
+const emitNotification = (userId, notificationData) => {
+    try {
+        if (io) {
+            io.to(`user:${userId}`).emit('new-notification', notificationData);
+        }
+    } catch (error) {
+        // Non-blocking - don't crash if socket fails
+        logger.error('emitNotification error:', error);
+    }
+};
+
+module.exports = { initializeSocket, getIO, emitNotification };

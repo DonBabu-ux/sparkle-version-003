@@ -1,6 +1,7 @@
 const Post = require('../models/Post');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
+const notificationController = require('./notification.controller');
 
 const createPost = async (req, res) => {
     try {
@@ -48,6 +49,26 @@ const sparkPost = async (req, res) => {
         const postId = req.params.id;
 
         const result = await Post.addSpark(postId, userId);
+
+        // Notify post owner on spark (not un-spark)
+        if (result.action === 'sparked') {
+            try {
+                const post = await Post.findById(postId);
+                if (post && post.user_id) {
+                    notificationController.createNotification({
+                        user_id: post.user_id,
+                        actor_id: userId,
+                        type: 'spark',
+                        title: 'New Spark',
+                        content: 'sparked your post',
+                        related_id: postId,
+                        related_type: 'post',
+                        action_url: `/posts/${postId}`
+                    }).catch(() => {});
+                }
+            } catch (_) { /* non-blocking */ }
+        }
+
         res.json({
             message: result.action === 'sparked' ? 'Post sparked!' : 'Spark removed',
             action: result.action
@@ -76,6 +97,24 @@ const addComment = async (req, res) => {
         const content = req.body.content;
 
         const commentId = await Post.addComment(postId, userId, content);
+
+        // Notify post owner of comment
+        try {
+            const post = await Post.findById(postId);
+            if (post && post.user_id) {
+                notificationController.createNotification({
+                    user_id: post.user_id,
+                    actor_id: userId,
+                    type: 'comment',
+                    title: 'New Comment',
+                    content: 'commented on your post',
+                    related_id: postId,
+                    related_type: 'post',
+                    action_url: `/posts/${postId}`
+                }).catch(() => {});
+            }
+        } catch (_) { /* non-blocking */ }
+
         res.status(201).json({
             message: 'Comment added successfully',
             comment_id: commentId
@@ -107,6 +146,24 @@ const sharePost = async (req, res) => {
         const userId = req.user.userId || req.user.user_id;
         const postId = req.params.id;
         await Post.incrementShare(postId, userId);
+
+        // Notify post owner of share
+        try {
+            const post = await Post.findById(postId);
+            if (post && post.user_id) {
+                notificationController.createNotification({
+                    user_id: post.user_id,
+                    actor_id: userId,
+                    type: 'share',
+                    title: 'Post Shared',
+                    content: 'shared your post',
+                    related_id: postId,
+                    related_type: 'post',
+                    action_url: `/posts/${postId}`
+                }).catch(() => {});
+            }
+        } catch (_) { /* non-blocking */ }
+
         res.json({ message: 'Post share count updated' });
     } catch (error) {
         logger.error('Share post error:', error);

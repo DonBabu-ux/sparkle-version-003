@@ -350,6 +350,14 @@
                                         onclick="document.getElementById('avatarInput').click()">Change Photo</button>
                                     <input type="file" id="avatarInput" hidden accept="image/*"
                                         onchange="handleAvatarUpload(event)">
+
+                                    <div style="margin-top: 15px; display: flex; gap: 8px;">
+                                        <input type="url" id="avatarUrlInput" class="form-input"
+                                            placeholder="https://example.com/image.jpg"
+                                            style="padding: 8px; font-size: 13px;">
+                                        <button class="upload-btn" onclick="handleAvatarUrlUpload()">Fetch URL</button>
+                                    </div>
+
                                     <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Recommended: Square
                                         JPG, PNG</p>
                                 </div>
@@ -437,9 +445,12 @@
                             <div class="form-group">
                                 <label class="form-label">Font Size</label>
                                 <select class="form-input" onchange="saveSetting('font_size', this.value)">
-                                    <option value="small" <%=user.font_size==='small' ? 'selected' : '' %>>Small</option>
-                                    <option value="medium" <%=user.font_size==='medium' ? 'selected' : '' %>>Medium</option>
-                                    <option value="large" <%=user.font_size==='large' ? 'selected' : '' %>>Large</option>
+                                    <option value="small" <%=user.font_size==='small' ? 'selected' : '' %>>Small
+                                    </option>
+                                    <option value="medium" <%=user.font_size==='medium' ? 'selected' : '' %>>Medium
+                                    </option>
+                                    <option value="large" <%=user.font_size==='large' ? 'selected' : '' %>>Large
+                                    </option>
                                 </select>
                             </div>
 
@@ -504,9 +515,12 @@
                                     <p>Control who can see when you were last active.</p>
                                 </div>
                                 <select class="form-input" onchange="saveSetting('last_seen_privacy', this.value)">
-                                    <option value="everyone" <%=user.last_seen_privacy==='everyone' ? 'selected' : ''%>>Everyone</option>
-                                    <option value="followers" <%=user.last_seen_privacy==='followers' ? 'selected' : ''%>>Followers</option>
-                                    <option value="no_one" <%=user.last_seen_privacy==='no_one' ? 'selected' : ''%>>No one</option>
+                                    <option value="everyone" <%=user.last_seen_privacy==='everyone' ? 'selected' : '' %>
+                                        >Everyone</option>
+                                    <option value="followers" <%=user.last_seen_privacy==='followers' ? 'selected' : ''
+                                        %>>Followers</option>
+                                    <option value="no_one" <%=user.last_seen_privacy==='no_one' ? 'selected' : '' %>>No
+                                        one</option>
                                 </select>
                             </div>
 
@@ -516,9 +530,12 @@
                                     <p>Choose who can send you direct messages.</p>
                                 </div>
                                 <select class="form-input" onchange="saveSetting('message_privacy', this.value)">
-                                    <option value="everyone" <%=user.message_privacy==='everyone' ? 'selected' : ''%>>Everyone</option>
-                                    <option value="followers" <%=user.message_privacy==='followers' ? 'selected' : ''%>>Followers</option>
-                                    <option value="no_one" <%=user.message_privacy==='no_one' ? 'selected' : ''%>>No one</option>
+                                    <option value="everyone" <%=user.message_privacy==='everyone' ? 'selected' : '' %>
+                                        >Everyone</option>
+                                    <option value="followers" <%=user.message_privacy==='followers' ? 'selected' : '' %>
+                                        >Followers</option>
+                                    <option value="no_one" <%=user.message_privacy==='no_one' ? 'selected' : '' %>>No
+                                        one</option>
                                 </select>
                             </div>
 
@@ -528,9 +545,11 @@
                                     <p>Silence notifications during these hours.</p>
                                 </div>
                                 <div style="display:flex; gap:10px; align-items:center;">
-                                    <input type="time" class="form-input" onchange="saveSetting('dnd_start', this.value)" value="<%=user.dnd_start||''%>">
+                                    <input type="time" class="form-input"
+                                        onchange="saveSetting('dnd_start', this.value)" value="<%=user.dnd_start||''%>">
                                     <span>to</span>
-                                    <input type="time" class="form-input" onchange="saveSetting('dnd_end', this.value)" value="<%=user.dnd_end||''%>">
+                                    <input type="time" class="form-input" onchange="saveSetting('dnd_end', this.value)"
+                                        value="<%=user.dnd_end||''%>">
                                 </div>
                             </div>
                         </div>
@@ -611,6 +630,42 @@
                     } catch (err) {
                         console.error(err);
                         alert('Error uploading avatar');
+                    }
+                }
+
+                // Avatar by URL
+                async function handleAvatarUrlUpload() {
+                    const avatarUrl = document.getElementById('avatarUrlInput').value;
+                    if (!avatarUrl) return alert('Please enter a URL');
+
+                    const btn = event.target;
+                    const originalText = btn.innerText;
+                    btn.innerText = 'Fetching...';
+                    btn.disabled = true;
+
+                    try {
+                        const res = await fetch('/api/users/avatar', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${getCookie('sparkleToken')}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ avatar_url: avatarUrl })
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            document.getElementById('avatarPreview').src = data.avatar_url;
+                            alert('Avatar updated!');
+                        } else {
+                            alert('Failed to update avatar from URL');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Error fetching avatar');
+                    } finally {
+                        btn.innerText = originalText;
+                        btn.disabled = false;
                     }
                 }
 

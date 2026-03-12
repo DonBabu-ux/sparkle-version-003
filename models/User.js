@@ -256,13 +256,13 @@ class User {
                 'INSERT INTO follows (follower_id, following_id) VALUES (?, ?)',
                 [followerId, followingId]
             );
-            
+
             // Create notification for follow
             await pool.query(`
                 INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
                 VALUES (UUID(), ?, 'follow', 'New Follower', 'Someone started following you.', ?, '/connect')
             `, [followingId, followerId]);
-            
+
             return true;
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') return true; // Already following
@@ -282,31 +282,48 @@ class User {
     }
 
     /**
-     * Get followers of a user
+     * Get detailed follower list
      */
-    static async getFollowers(userId) {
+    static async getFollowersDetailed(userId, currentUserId) {
         const [followers] = await pool.query(
-            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me
              FROM follows f
              JOIN users u ON f.follower_id = u.user_id
              WHERE f.following_id = ?`,
-            [userId]
+            [currentUserId, userId]
         );
         return followers;
     }
 
     /**
-     * Get users followed by a user
+     * Get detailed following list
      */
-    static async getFollowing(userId) {
+    static async getFollowingDetailed(userId, currentUserId) {
         const [following] = await pool.query(
-            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me
              FROM follows f
              JOIN users u ON f.following_id = u.user_id
              WHERE f.follower_id = ?`,
-            [userId]
+            [currentUserId, userId]
         );
         return following;
+    }
+
+    /**
+     * Get mutual connections between two users
+     */
+    static async getMutualConnections(userAId, userBId) {
+        const [mutual] = await pool.query(
+            `SELECT u.user_id, u.name, u.username, u.avatar_url
+             FROM follows f1
+             JOIN follows f2 ON f1.following_id = f2.following_id
+             JOIN users u ON f1.following_id = u.user_id
+             WHERE f1.follower_id = ? AND f2.follower_id = ?`,
+            [userAId, userBId]
+        );
+        return mutual;
     }
 }
 

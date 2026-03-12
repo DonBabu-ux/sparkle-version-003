@@ -53,11 +53,17 @@ const renderProfile = async (req, res) => {
         const posts = await Post.getUserPosts(userProfile.user_id);
         const sanitizedPosts = posts.map(p => ({ ...p, media_url: getSafeMediaUrl(p.media_url) }));
 
+        // Fetch mutual connections if viewing someone else
+        let mutualConnections = [];
+        if (!isOwnProfile) {
+            mutualConnections = await User.getMutualConnections(currentUserId, userProfile.user_id);
+        }
+
         res.render('profile', {
             title: isOwnProfile ? 'My Profile' : `${userProfile.name}'s Profile`,
             profile: userProfile,
             posts: sanitizedPosts || [],
-            mutualConnections: [],
+            mutualConnections,
             isOwnProfile
         });
     } catch (error) {
@@ -65,6 +71,7 @@ const renderProfile = async (req, res) => {
         res.status(500).render('error', { error: 'Failed to load profile' });
     }
 };
+
 
 const renderSettings = async (req, res) => {
     try {

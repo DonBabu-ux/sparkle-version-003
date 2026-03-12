@@ -88,7 +88,7 @@ const updateSettings = async (req, res) => {
             // privacy / visibility
             'anonymous_enabled',
             'profile_visibility',
-            'is_online',            
+            'is_online',
             'last_seen_privacy',
             'message_privacy',
 
@@ -210,7 +210,7 @@ const followUser = async (req, res) => {
             title: 'New Follower',
             content: 'followed you',
             action_url: `/profile/${followerId}`
-        }).catch(() => {});
+        }).catch(() => { });
 
         res.json({ success: true, message: 'User followed' });
     } catch (error) {
@@ -234,7 +234,8 @@ const unfollowUser = async (req, res) => {
 const getFollowers = async (req, res) => {
     try {
         const userId = req.params.id;
-        const followers = await User.getFollowers(userId);
+        const currentUserId = req.user.userId || req.user.user_id;
+        const followers = await User.getFollowersDetailed(userId, currentUserId);
         res.json(followers);
     } catch (error) {
         logger.error('Get followers error:', error);
@@ -245,7 +246,8 @@ const getFollowers = async (req, res) => {
 const getFollowing = async (req, res) => {
     try {
         const userId = req.params.id;
-        const following = await User.getFollowing(userId);
+        const currentUserId = req.user.userId || req.user.user_id;
+        const following = await User.getFollowingDetailed(userId, currentUserId);
         res.json(following);
     } catch (error) {
         logger.error('Get following error:', error);

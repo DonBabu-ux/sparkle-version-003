@@ -388,12 +388,84 @@
         </div>
     </div>
 
-    <!-- API Script -->
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/authAPI.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Check for saved email
+            // Initialize Supabase
+            const supabaseUrl = '<%= supabaseConfig.url || "" %>';
+            const supabaseAnonKey = '<%= supabaseConfig.key || "" %>';
+            let supabase = null;
+
+            if (supabaseUrl && supabaseAnonKey) {
+                supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+            }
+
+            // Google Login Handler
+            document.querySelector('.social-btn.google').addEventListener('click', async () => {
+                if (!supabase) {
+                    alert('Supabase is not configured. Please add SUPABASE_URL and SUPABASE_ANON_KEY to your .env file.');
+                    return;
+                }
+
+                try {
+                    const { data, error } = await supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: {
+                            redirectTo: window.location.origin + '/auth/google/callback'
+                        }
+                    });
+                    if (error) throw error;
+                } catch (err) {
+                    console.error('Google Auth Error:', err);
+                    alert('Failed to start Google login: ' + err.message);
+                }
+            });
+
+            // Handle callback if URL has it
+            const handleAuthCallback = async () => {
+                if (!supabase) return;
+
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) {
+                    console.error('Error getting session:', error);
+                    return;
+                }
+
+                if (session) {
+                    const { user } = session;
+                    try {
+                        const response = await fetch('/api/auth/google/sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                supabaseToken: session.access_token,
+                                profile: {
+                                    email: user.email,
+                                    full_name: user.user_metadata.full_name,
+                                    avatar_url: user.user_metadata.avatar_url
+                                }
+                            })
+                        });
+
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            window.location.href = '/dashboard';
+                        } else {
+                            throw new Error(result.message);
+                        }
+                    } catch (err) {
+                        console.error('User Sync Error:', err);
+                        alert('Your Google login worked, but we couldn\'t sync it with our database: ' + err.message);
+                    }
+                }
+            };
+
+            handleAuthCallback();
+
+            // ... (rest of the login script)
             const savedEmail = localStorage.getItem('sparkleUserEmail');
             if (savedEmail) {
                 document.getElementById('login-email').value = savedEmail;

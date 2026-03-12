@@ -31,9 +31,13 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(sanitizeInput);
 
-// Make Firebase config and user available to all views
+// Make Firebase/Supabase config and user available to all views
 app.use((req, res, next) => {
     res.locals.firebaseConfig = firebaseConfig;
+    res.locals.supabaseConfig = {
+        url: process.env.SUPABASE_URL || '',
+        key: process.env.SUPABASE_ANON_KEY || ''
+    };
     res.locals.user = req.user || null;
     next();
 });

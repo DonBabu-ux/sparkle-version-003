@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/auth.controller');
+const supabaseController = require('../../controllers/supabase.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 
 // Check if validation middleware exists
@@ -25,11 +26,23 @@ try {
     loginSchema = {};
 }
 
+// Standard Auth Routes
 router.post('/signup', validate(signupSchema), authController.signup);
 router.post('/login', validate(loginSchema), authController.login);
 router.post('/logout', authMiddleware, authController.logout);
+
+// Verification & Password Flow
 router.post('/verify-email', authController.verifyEmail);
+router.post('/verify-sms', authController.verifySMS);
 router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+router.post('/resend-verification', authController.resendVerification);
+
+// Unified Supabase Auth Routes
+router.post('/google/sync', supabaseController.syncSocialUser);
+router.post('/otp/verify/sync', supabaseController.syncVerifiedOTP);
+
+// Token Validation
 router.get('/validate', authMiddleware, authController.validateToken);
 
 module.exports = router;

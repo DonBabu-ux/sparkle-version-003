@@ -6,6 +6,8 @@ const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
 const { downloadExternalImage } = require('../utils/media.utils');
 const logger = require('../utils/logger');
+const { sendEmail } = require('../config/email');
+const { sendSMS } = require('../utils/sms');
 
 // Helper to sanitize avatars
 const getSafeAvatarUrl = (url) => {
@@ -20,17 +22,12 @@ const validateJWTSecret = () => {
     if (!JWT_SECRET) {
         throw new Error('JWT_SECRET is not configured');
     }
-    if (JWT_SECRET === 'your_jwt_secret_here') {
-        logger.warn('WARNING: Using default/unsafe JWT_SECRET. This is NOT recommended for production.');
-    } else if (JWT_SECRET.length < 32) {
-        logger.warn('WARNING: JWT_SECRET is short. Consider using a 32+ character random string.');
-    }
     return true;
 };
 
 const signup = async (req, res) => {
     try {
-        const { name, username, email, password, campus, major, year } = req.body;
+        const { name, username, email, password, campus, major, year, phone_number } = req.body;
         // Validation
         if (!name || !username || !email || !password) {
             return res.status(400).json({
@@ -48,21 +45,42 @@ const signup = async (req, res) => {
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 12); // Increased cost factor for production
+        const hashedPassword = await bcrypt.hash(password, 12);
         const userId = crypto.randomUUID();
 
         await query(
-            'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, name, username, email, hashedPassword, campus, major, year]
+            'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, name, username, email, hashedPassword, campus, major, year, phone_number]
         );
 
-        // Generate token for immediate login
+        // --- NEW: Generate email verification code ---
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        await query(
+            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE code = ?, expires_at = ?',
+            [crypto.randomUUID(), userId, email, verificationCode, expiresAt, verificationCode, expiresAt]
+        );
+
+        // Send verification email
+        sendEmail({
+            to: email,
+            subject: 'Verify Your Email - Sparkle ✨',
+            templateName: 'verify-email',
+            templateData: {
+                name,
+                code: verificationCode,
+                verifyUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/verify-email?code=${verificationCode}`
+            }
+        }).catch(err => logger.error('Failed to send signup verification email:', err));
+
+        // Generate token for immediate login (but flag as unverified)
         validateJWTSecret();
-        const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '7d' });
 
         res.status(201).json({
             status: 'success',
-            message: 'User created successfully',
+            message: 'Account created! Please verify your email.',
             token,
             user: {
                 id: userId,
@@ -70,22 +88,18 @@ const signup = async (req, res) => {
                 username,
                 email,
                 campus,
-                major,
-                year,
+                email_verified: false,
                 loggedIn: true
             }
         });
     } catch (error) {
         console.error('Signup Error:', error.message);
-
-        // Handle specific errors
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({
                 status: 'error',
                 message: 'User with this email or username already exists'
             });
         }
-
         res.status(500).json({
             status: 'error',
             message: 'Failed to create account'
@@ -104,45 +118,25 @@ const login = async (req, res) => {
             });
         }
 
-        // Validate JWT configuration
         validateJWTSecret();
 
-        // Query user from database - using retry wrapper
         const [users] = await query(
             'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1',
             [loginId, loginId]
         );
 
         if (users.length === 0) {
-            return res.status(401).json({
-                status: 'error',
-                message: 'Invalid credentials'
-            });
+            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
 
         const user = users[0];
-
-        // Verify password
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
         if (!passwordMatch) {
-            return res.status(401).json({
-                status: 'error',
-                message: 'Invalid credentials'
-            });
+            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
 
-        // Generate JWT token
-        const tokenPayload = {
-            userId: user.user_id,
-            email: user.email,
-            username: user.username
-        };
+        const token = jwt.sign({ userId: user.user_id, email: user.email, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 
-        const token = jwt.sign(tokenPayload, JWT_SECRET, {
-            expiresIn: '7d'
-        });
-
-        // Set secure cookie
         res.cookie('sparkleToken', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -151,62 +145,179 @@ const login = async (req, res) => {
             path: '/'
         });
 
-        // Lazy migration: If avatar is a CDN link, download it locally
-        let safeAvatarUrl = user.avatar_url;
-        if (safeAvatarUrl && (safeAvatarUrl.includes('fbcdn.net') || safeAvatarUrl.includes('fbsbx.com'))) {
-            try {
-                const localAvatar = await downloadExternalImage(safeAvatarUrl, 'avatars');
-                if (localAvatar && localAvatar.startsWith('/uploads/')) {
-                    safeAvatarUrl = localAvatar;
-                    // Update the user's avatar_url in the database for future requests
-                    const User = require('../models/User'); // Import here to avoid circular dependency if any
-                    await User.update(user.user_id, { avatar_url: safeAvatarUrl });
-                    console.log(`✅ Successfully migrated avatar for user ${user.username} to local storage: ${safeAvatarUrl}`);
-                }
-            } catch (dlError) {
-                console.error(`❌ Failed to lazily migrate avatar for user ${user.username}:`, dlError.message);
-            }
-        }
-
-        // Prepare user response
-        const userResponse = {
-            id: user.user_id,
-            name: user.name,
-            username: user.username,
-            email: user.email,
-            campus: user.campus,
-            major: user.major,
-            year: user.year_of_study,
-            avatar_url: getSafeAvatarUrl(safeAvatarUrl),
-            created_at: user.created_at,
-            loggedIn: true
-        };
-
-        // Successful response
         res.json({
             status: 'success',
             token,
-            user: userResponse
+            user: {
+                id: user.user_id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                email_verified: user.email_verified === 1,
+                phone_verified: user.phone_verified === 1,
+                avatar_url: getSafeAvatarUrl(user.avatar_url),
+                loggedIn: true
+            }
         });
-
     } catch (error) {
         console.error('Login Error:', error.message);
+        res.status(500).json({ status: 'error', message: 'Login failed' });
+    }
+};
 
-        // Handle specific errors
-        let userMessage = 'Login failed. Please try again.';
-        if (error.code === 'ETIMEDOUT' || error.code === 'ECONNRESET' || error.code === 'PROTOCOL_CONNECTION_LOST') {
-            userMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
-        } else if (error.message.includes('JWT_SECRET')) {
-            userMessage = 'Server configuration error';
-        } else if (error.code === 'ECONNREFUSED' || error.code === 'ER_ACCESS_DENIED_ERROR') {
-            userMessage = 'Database connection failed';
+const verifyEmail = async (req, res) => {
+    try {
+        const { code, email } = req.body;
+        if (!code || !email) {
+            return res.status(400).json({ status: 'error', message: 'Email and code are required' });
         }
 
-        res.status(500).json({
-            status: 'error',
-            message: userMessage,
-            error: error.message
+        const [verifications] = await query(
+            'SELECT * FROM email_verifications WHERE email = ? AND code = ? AND expires_at > NOW() AND verified_at IS NULL LIMIT 1',
+            [email, code]
+        );
+
+        if (verifications.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid or expired verification code' });
+        }
+
+        const verification = verifications[0];
+
+        // Mark as verified
+        await query('UPDATE email_verifications SET verified_at = NOW() WHERE verification_id = ?', [verification.verification_id]);
+        await query('UPDATE users SET email_verified = 1 WHERE user_id = ?', [verification.user_id]);
+
+        // Send welcome email
+        const [users] = await query('SELECT name FROM users WHERE user_id = ?', [verification.user_id]);
+        if (users[0]) {
+            sendEmail({
+                to: email,
+                subject: 'Welcome to Sparkle! 🎉',
+                templateName: 'welcome',
+                templateData: {
+                    name: users[0].name,
+                    dashboardUrl: `${process.env.APP_URL || 'http://localhost:3000'}/dashboard`
+                }
+            }).catch(e => logger.error('Welcome email failed:', e));
+        }
+
+        res.json({ status: 'success', message: 'Email verified successfully!' });
+    } catch (error) {
+        logger.error('Verify Email Error:', error);
+        res.status(500).json({ status: 'error', message: 'Verification failed' });
+    }
+};
+
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ status: 'error', message: 'Email is required' });
+
+        const [users] = await query('SELECT user_id, name FROM users WHERE email = ? LIMIT 1', [email]);
+        if (users.length === 0) {
+            // Security: don't reveal if user exists
+            return res.json({ status: 'success', message: 'If an account exists, you will receive reset instructions.' });
+        }
+
+        const user = users[0];
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await query(
+            'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?',
+            [crypto.randomUUID(), user.user_id, email, token, expiresAt, token, expiresAt]
+        );
+
+        sendEmail({
+            to: email,
+            subject: 'Reset Your Password - Sparkle',
+            templateName: 'reset-password',
+            templateData: {
+                name: user.name,
+                resetUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${token}`
+            }
+        }).catch(e => logger.error('Reset email failed:', e));
+
+        res.json({ status: 'success', message: 'Password reset instructions sent!' });
+    } catch (error) {
+        logger.error('Forgot Password Error:', error);
+        res.status(500).json({ status: 'error', message: 'Request failed' });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) return res.status(400).json({ status: 'error', message: 'Token and new password are required' });
+
+        const [resets] = await query(
+            'SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW() AND used_at IS NULL LIMIT 1',
+            [token]
+        );
+
+        if (resets.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid or expired reset token' });
+        }
+
+        const reset = resets[0];
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        await query('UPDATE users SET password_hash = ? WHERE user_id = ?', [hashedPassword, reset.user_id]);
+        await query('UPDATE password_resets SET used_at = NOW() WHERE reset_id = ?', [reset.reset_id]);
+
+        res.json({ status: 'success', message: 'Password reset successfully! You can now login.' });
+    } catch (error) {
+        logger.error('Reset Password Error:', error);
+        res.status(500).json({ status: 'error', message: 'Reset failed' });
+    }
+};
+
+const verifySMS = async (req, res) => {
+    // Placeholder for now
+    res.status(501).json({ status: 'error', message: 'SMS verification is currently a placeholder' });
+};
+
+const resendVerification = async (req, res) => {
+    try {
+        const { email, type } = req.body; // type: 'email' or 'sms'
+        if (!email) return res.status(400).json({ status: 'error', message: 'Email is required' });
+
+        const [users] = await query('SELECT user_id, name, email_verified, phone_number FROM users WHERE email = ? LIMIT 1', [email]);
+        if (users.length === 0) return res.status(404).json({ status: 'error', message: 'User not found' });
+
+        const user = users[0];
+
+        if (type === 'sms') {
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            await sendSMS(user.phone_number, code);
+            return res.json({ status: 'success', message: 'SMS verification code resent!' });
+        }
+
+        if (user.email_verified) return res.status(400).json({ status: 'error', message: 'Email already verified' });
+
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        await query(
+            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE code = ?, expires_at = ?',
+            [crypto.randomUUID(), user.user_id, email, code, expiresAt, code, expiresAt]
+        );
+
+        await sendEmail({
+            to: email,
+            subject: 'Verify Your Email - Sparkle ✨',
+            templateName: 'verify-email',
+            templateData: {
+                name: user.name,
+                code,
+                verifyUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/verify-email?code=${code}`
+            }
         });
+
+        res.json({ status: 'success', message: 'Verification email resent!' });
+    } catch (error) {
+        logger.error('Resend Verification Error:', error);
+        res.status(500).json({ status: 'error', message: 'Resend failed' });
     }
 };
 
@@ -217,34 +328,11 @@ const logout = (req, res) => {
         sameSite: 'strict',
         path: '/'
     });
-
-    res.json({
-        status: 'success',
-        message: 'Logged out successfully'
-    });
-};
-
-const verifyEmail = (req, res) => {
-    res.status(501).json({
-        status: 'error',
-        message: 'Email verification not implemented'
-    });
-};
-
-const forgotPassword = (req, res) => {
-    res.status(501).json({
-        status: 'error',
-        message: 'Password reset not implemented'
-    });
+    res.json({ status: 'success', message: 'Logged out successfully' });
 };
 
 const validateToken = (req, res) => {
-    // authMiddleware already validates the token and attaches user to req
-    res.json({
-        status: 'success',
-        valid: true,
-        user: req.user
-    });
+    res.json({ status: 'success', valid: true, user: req.user });
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword, validateToken };
+module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken };

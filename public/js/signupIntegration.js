@@ -1,188 +1,194 @@
-// signupIntegration.js - Connect Signup Page to Sparkle Backend
-// Import this script in signup.html BEFORE the existing signup script
-
-class SignupBackend {
-    constructor() {
-        this.apiUrl = '/api';
-    }
-
-    async signup(userData) {
-        try {
-            const response = await fetch(`${this.apiUrl}/auth/signup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: userData.fullName,
-                    username: userData.username,
-                    email: userData.email,
-                    password: userData.password,
-                    campus: userData.campus || 'University',
-                    major: userData.major || 'Sparkler',
-                    year: userData.year || 'Freshman'
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Signup failed');
-            }
-
-            return { success: true, message: data.message, userId: data.userId };
-        } catch (error) {
-            console.error('Signup error:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    async login(username, password) {
-        try {
-            const response = await fetch(`${this.apiUrl}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Login failed');
-            }
-
-            // Store token and user data
-            localStorage.setItem('sparkleToken', data.token);
-            localStorage.setItem('currentUser', JSON.stringify(data.user));
-
-            return { success: true, user: data.user };
-        } catch (error) {
-            console.error('Login error:', error);
-            return { success: false, error: error.message };
-        }
-    }
-}
-
-// Create global instance
-window.signupBackend = new SignupBackend();
-
-// Override the createAccount function
+// signupIntegration.js - Unified Supabase Auth Integration
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🔌 Signup Backend Integration Loaded');
+    console.log('🔌 Unified Auth Integration Loaded');
 
-    // Store reference to original createAccount if it exists
-    const originalCreateAccount = window.createAccount;
+    // 1. Initialize Supabase
+    let supabase = null;
+    const config = window.SUPABASE_CONFIG;
 
-    // Override with backend-connected version
-    window.createAccount = async function () {
-        const createBtn = document.getElementById('create-account');
-        const messageEl = document.getElementById('panel4-message');
+    console.log('🚀 Initializing Supabase Integration...');
 
-        if (!createBtn) {
-            console.error('Create account button not found');
-            return;
-        }
-
-        const originalText = createBtn.innerHTML;
-
-        // Gather user data from the form
-        const userData = {
-            fullName: document.getElementById('full-name')?.value?.trim() || '',
-            username: document.getElementById('username')?.value?.trim() || '',
-            email: document.getElementById('email')?.value?.trim() || '',
-            password: document.getElementById('password')?.value || '',
-            bio: document.getElementById('bio')?.value?.trim() || '',
-            campus: document.getElementById('campus')?.value || 'University',
-            major: document.getElementById('major')?.value || 'Sparkler',
-            year: document.getElementById('year')?.value || 'Freshman',
-            gender: document.getElementById('gender')?.value || '',
-            birthdate: document.getElementById('birthdate')?.value || '',
-            phone: document.getElementById('phone')?.value?.trim() || ''
-        };
-
-        // Validate required fields
-        if (!userData.fullName || !userData.username || !userData.email || !userData.password) {
-            if (messageEl) {
-                messageEl.textContent = 'Please fill in all required fields';
-                messageEl.className = 'message error show';
-            }
-            return;
-        }
-
-        // Show loading state
-        createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
-        createBtn.disabled = true;
-
+    if (window.supabase && config && config.url && config.key) {
         try {
-            // Call backend signup
-            const signupResult = await window.signupBackend.signup(userData);
+            supabase = window.supabase.createClient(config.url, config.key);
+            console.log('✅ Supabase Client Initialized');
+        } catch (err) {
+            console.error('❌ Failed to create Supabase client:', err);
+        }
+    } else {
+        console.warn('⚠️ Supabase config incomplete or library missing:', {
+            library: !!window.supabase,
+            url: !!config?.url,
+            key: !!config?.key
+        });
+    }
 
-            if (!signupResult.success) {
-                throw new Error(signupResult.error);
+    // App State for Signup
+    const state = {
+        userData: {},
+        otpType: 'email', // 'email' or 'phone'
+        identifier: ''
+    };
+
+    // --- Google Auth ---
+    const googleBtn = document.getElementById('google-login');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', async () => {
+            if (!supabase) {
+                console.error('Signup flow blocked: Supabase not initialized.');
+                return alert('Supabase not configured locally. Check your .env file and ensure the server restarted.');
+            }
+            try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: window.location.origin + '/auth/google/callback' }
+                });
+                if (error) throw error;
+            } catch (err) {
+                alert('Google Sign-in failed: ' + err.message);
+            }
+        });
+    }
+
+    // --- Phone/Email OTP Flow ---
+
+    // Step 4 "Create Account" really means "Send OTP"
+    const createAccountBtn = document.getElementById('create-account');
+    if (createAccountBtn) {
+        createAccountBtn.onclick = async function () {
+            if (!document.getElementById('terms').checked) {
+                return alert('Please agree to terms.');
             }
 
-            if (messageEl) {
-                messageEl.textContent = '✨ Account created successfully! Logging you in...';
-                messageEl.className = 'message success show';
+            const btn = document.getElementById('create-account');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending code...';
+            btn.disabled = true;
+
+            const u = window.appState.userData;
+            state.userData = u;
+
+            // Prefer phone for OTP if provided, otherwise email
+            state.otpType = u.phone ? 'phone' : 'email';
+            state.identifier = u.phone || u.email;
+
+            try {
+                if (!supabase) throw new Error('Supabase client not initialized. Check your project configuration.');
+
+                const { error } = await supabase.auth.signInWithOtp({
+                    [state.otpType]: state.identifier,
+                    options: {
+                        shouldCreateUser: true,
+                        captchaToken: null
+                    }
+                });
+
+                if (error) throw error;
+
+                // Move to Panel 5
+                window.goToStep(5);
+                document.getElementById('panel5-message').textContent = `Code sent to ${state.identifier}`;
+                document.getElementById('panel5-message').className = 'auth-message success show';
+
+            } catch (err) {
+                console.error('OTP Send Error:', err);
+                alert('Failed to send code: ' + err.message);
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+                btn.disabled = false;
             }
+        };
+    }
 
-            // Auto-login after successful signup
-            const loginResult = await window.signupBackend.login(userData.username, userData.password);
+    // Step 5 Verify OTP
+    const verifyBtn = document.getElementById('verify-otp-btn');
+    if (verifyBtn) {
+        verifyBtn.addEventListener('click', async () => {
+            const code = document.getElementById('otp-code').value.trim();
+            if (!code || code.length < 6) return alert('Enter a valid 6-digit code');
 
-            if (loginResult.success) {
-                // Store additional user data in localStorage
-                localStorage.setItem('sparkleUser', JSON.stringify({
-                    ...loginResult.user,
-                    fullName: userData.fullName,
-                    bio: userData.bio,
-                    campus: userData.campus,
-                    major: userData.major,
-                    year: userData.year
-                }));
+            verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            verifyBtn.disabled = true;
 
-                if (messageEl) {
-                    messageEl.textContent = '🎉 Welcome to Sparkle! Redirecting to dashboard...';
-                    messageEl.className = 'message success show';
-                }
+            try {
+                const { data: { session }, error } = await supabase.auth.verifyOtp({
+                    [state.otpType]: state.identifier,
+                    token: code,
+                    type: state.otpType === 'phone' ? 'sms' : 'signup'
+                });
 
-                // Redirect to dashboard after short delay
-                setTimeout(() => {
+                if (error) throw error;
+
+                // OTP Verified! Now sync with MySQL
+                const syncResponse = await fetch('/api/auth/otp/verify/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: state.otpType,
+                        value: state.identifier,
+                        metadata: state.userData
+                    })
+                });
+
+                const syncResult = await syncResponse.json();
+                if (syncResult.status === 'success') {
                     window.location.href = '/dashboard';
-                }, 2000);
-            } else {
-                // Account created but login failed - redirect to login page
-                if (messageEl) {
-                    messageEl.textContent = 'Account created! Please login manually.';
-                    messageEl.className = 'message success show';
+                } else {
+                    throw new Error(syncResult.message || 'Sync failed');
                 }
 
-                setTimeout(() => {
-                    window.location.href = '/login';
-                }, 2000);
+            } catch (err) {
+                alert('Verification failed: ' + err.message);
+                verifyBtn.innerHTML = 'Verify & Complete';
+                verifyBtn.disabled = false;
             }
+        });
+    }
 
-        } catch (error) {
-            console.error('Account creation error:', error);
+    // Back from OTP
+    const backToSummary = document.getElementById('back-to-summary');
+    if (backToSummary) {
+        backToSummary.addEventListener('click', () => window.goToStep(4));
+    }
 
-            let errorMessage = 'Account creation failed. Please try again.';
-
-            // Handle specific error messages
-            if (error.message.includes('duplicate') || error.message.includes('already exists')) {
-                errorMessage = 'Username or email already exists. Please choose another.';
-            } else if (error.message.includes('password')) {
-                errorMessage = 'Password is too weak. Use at least 6 characters.';
-            } else if (error.message) {
-                errorMessage = error.message;
+    // Resend OTP
+    const resendBtn = document.getElementById('resend-otp');
+    if (resendBtn) {
+        resendBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const { error } = await supabase.auth.signInWithOtp({
+                    [state.otpType]: state.identifier
+                });
+                if (error) throw error;
+                alert('Code resent!');
+            } catch (err) {
+                alert('Resend failed: ' + err.message);
             }
+        });
+    }
 
-            if (messageEl) {
-                messageEl.textContent = errorMessage;
-                messageEl.className = 'message error show';
+    // Final Sync for Google (if coming back from callback)
+    const checkSocialCallback = async () => {
+        if (!supabase) return;
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (session && !localStorage.getItem('sparkleToken')) {
+            const profile = {
+                email: session.user.email,
+                full_name: session.user.user_metadata.full_name,
+                avatar_url: session.user.user_metadata.avatar_url
+            };
+
+            const response = await fetch('/api/auth/google/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profile })
+            });
+
+            const result = await response.json();
+            if (result.status === 'success') {
+                window.location.href = '/dashboard';
             }
-
-            // Reset button
-            createBtn.innerHTML = originalText;
-            createBtn.disabled = false;
         }
     };
 
-    console.log('✅ Signup function overridden with backend integration');
+    checkSocialCallback();
 });

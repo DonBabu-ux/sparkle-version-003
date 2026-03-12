@@ -7,7 +7,8 @@ const signupSchema = Joi.object({
     password: Joi.string().min(6).required(),
     campus: Joi.string().optional(),
     major: Joi.string().optional(),
-    year: Joi.string().optional()
+    year: Joi.string().optional(),
+    phone_number: Joi.string().pattern(/^\+[1-9]\d{1,14}$/).optional() // E.164 format
 });
 
 const loginSchema = Joi.object({

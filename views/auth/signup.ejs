@@ -429,6 +429,8 @@
                 <div class="step" id="step-3">3</div>
                 <div class="step-line" id="line-3"></div>
                 <div class="step" id="step-4">4</div>
+                <div class="step-line" id="line-4"></div>
+                <div class="step" id="step-5">5</div>
             </div>
 
             <!-- Form Panels Container -->
@@ -503,6 +505,14 @@
                                 <i class="fas fa-lock input-icon"></i>
                                 <input type="password" id="password" class="auth-input" placeholder="Create a password"
                                     required>
+                            </div>
+                        </div>
+
+                        <div class="auth-form-group">
+                            <label class="auth-label" for="phone">Phone Number (Required for OTP)</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-phone input-icon"></i>
+                                <input type="tel" id="phone" class="auth-input" placeholder="+254700000000">
                             </div>
                         </div>
 
@@ -603,19 +613,57 @@
                     </button>
                     <button type="button" class="btn-auth-secondary" id="back-to-profile">Back</button>
                 </div>
+
+                <!-- Panel 5: OTP Verification (NEW) -->
+                <div class="form-panel" id="panel-5">
+                    <div class="panel-header">
+                        <h1 class="panel-title">Verification</h1>
+                        <p class="panel-subtitle">Enter the 6-digit code sent to your phone/email.</p>
+                    </div>
+
+                    <div id="panel5-message" class="auth-message"></div>
+
+                    <div class="auth-form-group">
+                        <label class="auth-label" for="otp-code">Verification Code</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-key input-icon"></i>
+                            <input type="text" id="otp-code" class="auth-input" placeholder="123456" maxlength="6">
+                        </div>
+                    </div>
+
+                    <p style="font-size: 13px; text-align: center; margin-bottom: 20px; color: #8E8E8E;">
+                        Didn't receive a code? <a href="#" id="resend-otp"
+                            style="color: #FF3D6D; font-weight: 600;">Resend</a>
+                    </p>
+
+                    <button type="button" class="btn-auth-primary" id="verify-otp-btn">Verify & Complete</button>
+                    <button type="button" class="btn-auth-secondary" id="back-to-summary">Back</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- API Script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/authAPI.js"></script>
-    <script src="/js/signupIntegration.js"></script>
 
     <script>
+        // Supabase Config for public JS
+        window.SUPABASE_CONFIG = {
+            url: '<%= supabaseConfig.url || "" %>',
+            key: '<%= supabaseConfig.key || "" %>'
+        };
+
+        // Debug Log
+        console.log('🛡️ Supabase Config Loaded:', {
+            url: window.SUPABASE_CONFIG.url ? 'Present' : 'MISSING',
+            key: window.SUPABASE_CONFIG.key ? 'Present' : 'MISSING'
+        });
+
         // App State
-        const appState = {
+        window.appState = {
             currentStep: 1,
-            totalSteps: 4,
+            totalSteps: 5,
             userData: {},
             isTransitioning: false
         };
@@ -624,20 +672,23 @@
             1: document.getElementById('panel-1'),
             2: document.getElementById('panel-2'),
             3: document.getElementById('panel-3'),
-            4: document.getElementById('panel-4')
+            4: document.getElementById('panel-4'),
+            5: document.getElementById('panel-5')
         };
 
         const steps = {
             1: document.getElementById('step-1'),
             2: document.getElementById('step-2'),
             3: document.getElementById('step-3'),
-            4: document.getElementById('step-4')
+            4: document.getElementById('step-4'),
+            5: document.getElementById('step-5')
         };
 
         const stepLines = {
             1: document.getElementById('line-1'),
             2: document.getElementById('line-2'),
-            3: document.getElementById('line-3')
+            3: document.getElementById('line-3'),
+            4: document.getElementById('line-4')
         };
 
         // Navigation
@@ -665,8 +716,10 @@
             }, 50);
         }
 
+        window.goToStep = goToStep; // Expose globally for integration script
+
         function updateProgressBar(step) {
-            for (let i = 1; i <= 4; i++) {
+            for (let i = 1; i <= 5; i++) {
                 steps[i].classList.remove('active', 'completed');
                 if (stepLines[i]) stepLines[i].classList.remove('completed');
             }
@@ -700,13 +753,14 @@
                 const user = document.getElementById('username').value;
                 const email = document.getElementById('email').value;
                 const pass = document.getElementById('password').value;
+                const phone = document.getElementById('phone').value;
 
                 if (!name || !user || !email || !pass) {
                     showMessage('panel2', 'Please fill in all fields.', 'error');
                     return;
                 }
 
-                appState.userData = { ...appState.userData, name, username: user, email, password: pass };
+                appState.userData = { ...appState.userData, name, username: user, email, password: pass, phone };
                 goToStep(3);
             });
             document.getElementById('back-to-welcome').addEventListener('click', () => goToStep(1));
@@ -728,28 +782,7 @@
             });
             document.getElementById('back-to-basic').addEventListener('click', () => goToStep(2));
 
-            // Step 4
-            document.getElementById('create-account').addEventListener('click', async () => {
-                if (!document.getElementById('terms').checked) {
-                    showMessage('panel4', 'Please agree to terms.', 'error');
-                    return;
-                }
-
-                const btn = document.getElementById('create-account');
-                const origText = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-                btn.disabled = true;
-
-                try {
-                    await AuthAPI.signup(appState.userData);
-                    showMessage('panel4', 'Account created! Redirecting...', 'success');
-                    setTimeout(() => window.location.href = '/dashboard', 1500);
-                } catch (err) {
-                    showMessage('panel4', err.message, 'error');
-                    btn.innerHTML = origText;
-                    btn.disabled = false;
-                }
-            });
+            // Step 4 is handled by signupIntegration.js
             document.getElementById('back-to-profile').addEventListener('click', () => goToStep(3));
         });
 
@@ -760,10 +793,12 @@
                 <div style="color: #8E8E8E;">Name:</div><div>${u.name}</div>
                 <div style="color: #8E8E8E;">Username:</div><div>@${u.username}</div>
                 <div style="color: #8E8E8E;">Email:</div><div>${u.email}</div>
+                <div style="color: #8E8E8E;">Phone:</div><div>${u.phone || 'Not provided'}</div>
                 <div style="color: #8E8E8E;">Campus:</div><div>${u.campus}</div>
             `;
         }
     </script>
+    <script src="/js/signupIntegration.js"></script>
 </body>
 
 </html>

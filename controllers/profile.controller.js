@@ -45,6 +45,17 @@ const renderProfile = async (req, res) => {
         } else {
             userProfile = await User.getProfileWithStats(username, currentUserId);
             if (!userProfile) return res.status(404).render('error', { error: 'User not found' });
+
+            // Hard check for blocks (web view)
+            const [blockCheck] = await pool.query(
+                'SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)',
+                [currentUserId, userProfile.user_id, userProfile.user_id, currentUserId]
+            );
+
+            if (blockCheck.length > 0) {
+                return res.status(404).render('error', { error: 'User not found' });
+            }
+
             isOwnProfile = (currentUserId === userProfile.user_id);
         }
 

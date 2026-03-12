@@ -110,6 +110,7 @@ CREATE TABLE `posts` (
   `post_type` ENUM('public', 'campus_only', 'anonymous', 'private') DEFAULT 'public',
   `campus` VARCHAR(100) DEFAULT NULL,
   `group_id` CHAR(36) DEFAULT NULL,
+  `location` VARCHAR(255) DEFAULT NULL,
   `spark_count` INT DEFAULT 0,
   `comment_count` INT DEFAULT 0,
   `share_count` INT DEFAULT 0,
@@ -123,8 +124,33 @@ CREATE TABLE `posts` (
   INDEX `idx_posts_user` (`user_id`, `created_at`),
   INDEX `idx_posts_campus_type` (`campus`, `post_type`, `created_at`),
   INDEX `idx_posts_group` (`group_id`),
+  INDEX `idx_posts_location` (`location`),
   INDEX `idx_posts_popularity` (`spark_count`, `created_at`),
   INDEX `idx_posts_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- NEW TABLE: Multiple media files per post (for carousels)
+DROP TABLE IF EXISTS `post_media`;
+CREATE TABLE `post_media` (
+  `media_id` CHAR(36) NOT NULL,
+  `post_id` CHAR(36) NOT NULL,
+  `media_url` VARCHAR(500) NOT NULL,
+  `media_type` ENUM('image', 'video') NOT NULL,
+  `upload_order` INT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`media_id`),
+  FOREIGN KEY (`post_id`) REFERENCES `posts`(`post_id`) ON DELETE CASCADE,
+  INDEX `idx_post_media_post` (`post_id`, `upload_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- NEW TABLE: Hashtags for discovery
+DROP TABLE IF EXISTS `post_hashtags`;
+CREATE TABLE `post_hashtags` (
+  `post_id` CHAR(36) NOT NULL,
+  `tag` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`post_id`, `tag`),
+  FOREIGN KEY (`post_id`) REFERENCES `posts`(`post_id`) ON DELETE CASCADE,
+  INDEX `idx_hashtags_tag` (`tag`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `comments`;

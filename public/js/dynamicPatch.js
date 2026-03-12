@@ -1724,13 +1724,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
         // ============ AFTERGLOW STORY VIEWER ============
-        window.showAfterglowViewer = function(story) {
+        window.showAfterglowViewer = function (story) {
             console.log('📖 Opening story viewer for:', story);
-            
+
             // If we have multiple stories in activeStories, use that
             const stories = window.activeStories || [story];
             const startIndex = window.currentStoryIndex || 0;
-            
+
             const modal = document.createElement('div');
             modal.className = 'afterglow-viewer-modal';
             modal.style.cssText = `
@@ -1754,9 +1754,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const currentStory = stories[index];
                 if (!currentStory) return;
 
-                const isVideo = currentStory.media_url?.match(/\.(mp4|webm|mov)$/i) || 
-                               currentStory.media?.match(/\.(mp4|webm|mov)$/i) ||
-                               currentStory.type === 'video';
+                const isVideo = currentStory.media_url?.match(/\.(mp4|webm|mov)$/i) ||
+                    currentStory.media?.match(/\.(mp4|webm|mov)$/i) ||
+                    currentStory.type === 'video';
 
                 const mediaUrl = currentStory.media_url || currentStory.media || '';
                 const username = currentStory.username || currentStory.user_name || 'Sparkler';
@@ -2328,22 +2328,39 @@ document.addEventListener('DOMContentLoaded', async function () {
             mediaUploadArea.addEventListener('click', () => mediaUploadInput.click());
 
             mediaUploadInput.addEventListener('change', function (e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const isVideo = file.type.startsWith('video');
-                    mediaPreview.innerHTML = `
-                        <div style="position: relative; display: inline-block;">
+                const files = e.target.files;
+                if (files && files.length > 0) {
+                    mediaPreview.innerHTML = '';
+                    mediaPreview.style.display = 'grid';
+                    mediaPreview.style.gridTemplateColumns = 'repeat(auto-fill, minmax(100px, 1fr))';
+                    mediaPreview.style.gap = '10px';
+                    mediaPreview.style.marginTop = '15px';
+
+                    Array.from(files).forEach((file, index) => {
+                        const isVideo = file.type.startsWith('video');
+                        const url = URL.createObjectURL(file);
+
+                        const item = document.createElement('div');
+                        item.style.position = 'relative';
+                        item.innerHTML = `
                             ${isVideo ?
-                            `<video src="${URL.createObjectURL(file)}" style="max-width: 100%; max-height: 200px; border-radius: 10px;" controls></video>` :
-                            `<img src="${URL.createObjectURL(file)}" style="max-width: 100%; max-height: 200px; border-radius: 10px; object-fit: cover;">`
-                        }
-                            <button id="removeMediaBtn" style="position: absolute; top: -10px; right: -10px; background: #ff4757; color: white; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer;">&times;</button>
-                        </div>
-                    `;
-                    document.getElementById('removeMediaBtn').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        mediaUploadInput.value = '';
-                        mediaPreview.innerHTML = '';
+                                `<video src="${url}" style="width: 100%; height: 100px; border-radius: 10px; object-fit: cover;"></video>` :
+                                `<img src="${url}" style="width: 100%; height: 100px; border-radius: 10px; object-fit: cover;">`
+                            }
+                            <div class="remove-media" data-index="${index}" style="position: absolute; top: -5px; right: -5px; background: #ff4757; color: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">&times;</div>
+                        `;
+                        mediaPreview.appendChild(item);
+                    });
+
+                    mediaPreview.querySelectorAll('.remove-media').forEach(btn => {
+                        btn.onclick = (e) => {
+                            e.stopPropagation();
+                            // In a real app we'd filter the FileList, but for now we'll just clear or hide
+                            // This is a bit simplified for the patch
+                            showNotification('Removing items currently clears all in this demo patch', 'info');
+                            mediaUploadInput.value = '';
+                            mediaPreview.innerHTML = '';
+                        };
                     });
                 }
             });
@@ -2373,13 +2390,15 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 try {
                     const tags = tagsRaw ? tagsRaw.split(' ').map(t => t.replace('#', '')) : [];
+                    const location = document.getElementById('postLocation')?.value.trim();
 
                     await DashboardAPI.createPost({
                         caption,
-                        media: file,
+                        mediaFiles: Array.from(mediaUploadInput.files || []),
                         tags: JSON.stringify(tags),
                         isAnonymous: postType === 'anonymous',
-                        postType: postType
+                        postType: postType,
+                        location: location
                     });
 
                     showNotification('Post shared successfully!', 'success');
@@ -2731,7 +2750,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                             ${post.is_verified ? '<span style="color: #3b82f6; font-size: 12px; margin-left: 4px;"><i class="fas fa-check-circle"></i></span>' : ''}
                         </div>
                         <div class="post-meta-row">
-                            <span>${post.campus || 'Main Campus'}</span> •
+                            <span>${post.campus || 'Main Campus'}</span>
+                            ${post.location ? ` • <i class="fas fa-map-marker-alt" style="font-size: 10px; color: var(--primary);"></i> ${post.location}` : ''} •
                             <span class="post-time-simple">${displayTime}</span>
                         </div>
                     </div>
@@ -2741,22 +2761,64 @@ document.addEventListener('DOMContentLoaded', async function () {
                 </div>
             `;
 
-            // 2. TEXT
+            // 2. TEXT (with hashtag/mention linkification)
+            let processedCaption = fullCaption
+                .replace(/#(\w+)/g, '<a href="#" class="hashtag" style="color: var(--primary); text-decoration: none; font-weight: 600;">#$1</a>')
+                .replace(/@(\w+)/g, '<a href="#" class="mention" style="color: #3b82f6; text-decoration: none; font-weight: 600;">@$1</a>');
+
             const isLongText = fullCaption.length > 280;
             const textHtml = fullCaption ? `
                 <div class="post-text-body">
                     <div class="post-caption-container">
                         <div class="post-caption-preview ${isLongText ? 'has-fade' : ''}" id="caption-${post.post_id || post.id}">
-                            ${fullCaption}
+                            ${processedCaption}
                         </div>
                         ${isLongText ? `<div class="see-more-link" onclick="window.togglePostExpansion('${post.post_id || post.id}', this)">See More</div>` : ''}
                     </div>
                 </div>
             ` : '';
 
-            // 3. MEDIA (Full Bleed)
+            // 3. MEDIA (Full Bleed & Carousel Support)
             let mediaHtml = '';
-            if (mediaUrl) {
+            const media_files = post.media_files || [];
+
+            if (media_files.length > 0) {
+                if (media_files.length === 1) {
+                    const m = media_files[0];
+                    const isVideo = m.type === 'video' || m.url.match(/\.(mp4|webm|ogg|mov)$/i);
+                    mediaHtml = `
+                        <div class="post-media-proper">
+                            ${isVideo ?
+                            `<video class="media-obj-proper" src="${m.url}" controls preload="metadata"></video>` :
+                            `<img class="media-obj-proper" src="${m.url}" alt="Post media" loading="lazy">`
+                        }
+                        </div>
+                    `;
+                } else {
+                    // Simple Scrollable Carousel for Multi-media
+                    mediaHtml = `
+                        <div class="post-media-proper carousel-container" style="position: relative;">
+                            <div class="media-carousel-scroll" style="display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;">
+                                ${media_files.map((m, idx) => {
+                        const isVideo = m.type === 'video' || m.url.match(/\.(mp4|webm|ogg|mov)$/i);
+                        return `
+                                        <div class="carousel-item" style="flex: 0 0 100%; scroll-snap-align: start; position: relative;">
+                                            ${isVideo ?
+                                `<video class="media-obj-proper" src="${m.url}" controls preload="metadata" style="width: 100%; display: block;"></video>` :
+                                `<img class="media-obj-proper" src="${m.url}" alt="Media ${idx + 1}" loading="lazy" style="width: 100%; display: block;">`
+                            }
+                                            <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px;">
+                                                ${idx + 1}/${media_files.length}
+                                            </div>
+                                        </div>
+                                    `;
+                    }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            } else if (mediaUrl) {
+                // Fallback for legacy posts or single mediaUrl field
                 const isVideo = mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i);
                 mediaHtml = `
                     <div class="post-media-proper">
@@ -2772,7 +2834,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const footerAreaHtml = `
                 <div class="post-interaction-metrics">
                     <div class="metric-stat spark-stat">
-                        <i class="fas fa-bolt"></i>
+                        <i class="fas fa-fire" style="color: #ff5722;"></i>
                         <span class="spark-count-val">${isNaN(sparks) ? 0 : sparks}</span> Sparks
                     </div>
                     <div class="metric-stat comment-stat">
@@ -2784,7 +2846,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 <div class="post-interaction-actions">
                     <button class="action-btn-custom spark ${isLiked ? 'active' : ''}"
                         onclick="event.stopPropagation(); window.toggleSpark('${post.post_id || post.id}', this)">
-                        <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
+                        <i class="${isLiked ? 'fas' : 'far'} fa-fire" style="${isLiked ? 'color: #ff5722;' : ''}"></i>
                         <span>Spark</span>
                     </button>
 
@@ -2813,7 +2875,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         <img src="${window.appState?.currentUser?.avatar || '/uploads/avatars/default.png'}" 
                             class="post-avatar" style="width: 32px !important; height: 32px !important;" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
                         <input type="text" id="comment-input-${post.post_id || post.id}" class="comment-input-min" placeholder="Add a comment..."
-                            onkeypress="if(event.key === 'Enter') addComment('${post.post_id || post.id}', this)">
+                            onkeypress="if(event.key === 'Enter') window.addComment('${post.post_id || post.id}', this)">
                     </div>
                     <div class="comments-section" id="comments-${post.post_id || post.id}" style="display: none;"></div>
                 </div>
@@ -2841,6 +2903,363 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             return postEl;
+        };
+
+        // ============ PREMIUM POST STYLING ============
+        (function injectPremiumPostStyles() {
+            const style = document.createElement('style');
+            style.textContent = `
+                :root {
+                    --spark-orange: #ff5722;
+                    --spark-glow: rgba(255, 87, 34, 0.3);
+                    --premium-shadow: 0 10px 40px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.02);
+                    --premium-hover-shadow: 0 20px 50px rgba(233,30,99,0.08);
+                }
+
+                /* Premium Card Base */
+                .post-card {
+                    background: #fff;
+                    border-radius: 24px;
+                    margin: 16px 0;
+                    width: 100%;
+                    max-width: 100%;
+                    box-shadow: var(--premium-shadow);
+                    border: 1px solid rgba(0,0,0,0.05);
+                    overflow: hidden;
+                    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+                    position: relative;
+                }
+
+                .post-card:hover {
+                    box-shadow: var(--premium-hover-shadow);
+                    border-color: rgba(233,30,99,0.1);
+                }
+
+                /* Header with Glassmorphism */
+                .post-header {
+                    padding: 14px 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    background: rgba(255, 255, 255, 0.85);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    border-bottom: 1px solid rgba(0,0,0,0.03);
+                    position: relative;
+                }
+
+                .post-avatar {
+                    width: 46px;
+                    height: 46px;
+                    border-radius: 14px !important;
+                    object-fit: cover;
+                    border: 2px solid #fff;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+                }
+
+                .post-author-info {
+                    flex: 1;
+                    min-width: 0;
+                }
+
+                .post-username {
+                    font-weight: 800;
+                    color: #1e293b;
+                    font-size: 15px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .post-meta-row {
+                    font-size: 11px;
+                    color: #94a3b8;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    font-weight: 600;
+                }
+
+                /* Positioning for Options Button */
+                .post-options-btn {
+                    background: none;
+                    border: none;
+                    color: #94a3b8;
+                    padding: 8px;
+                    cursor: pointer;
+                    border-radius: 50%;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .post-options-btn:hover {
+                    background: #f1f5f9;
+                    color: #1e293b;
+                }
+
+                /* Content & Body */
+                .post-text-body {
+                    padding: 12px 20px;
+                    font-size: 15px;
+                    line-height: 1.6;
+                    color: #334155;
+                }
+
+                .hashtag {
+                    color: #6366f1;
+                    font-weight: 700;
+                    text-decoration: none;
+                }
+
+                .mention {
+                    color: #a855f7;
+                    font-weight: 700;
+                    text-decoration: none;
+                }
+
+                .post-caption-preview {
+                    position: relative;
+                }
+
+                .post-caption-preview.has-fade {
+                    max-height: 120px;
+                    overflow: hidden;
+                    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+                    -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+                }
+
+                .see-more-link {
+                    display: inline-block;
+                    margin-top: 4px;
+                    color: var(--accent);
+                    font-weight: 700;
+                    font-size: 13px;
+                    cursor: pointer;
+                }
+
+                /* Media & Carousel Improvements */
+                .post-media-proper {
+                    margin: 4px 0;
+                    background: #f1f5f9;
+                    position: relative;
+                    width: 100%;
+                    overflow: hidden;
+                }
+
+                .media-obj-proper {
+                    width: 100%;
+                    display: block;
+                    object-fit: contain;
+                    max-height: 600px;
+                    background: #000;
+                }
+
+                .media-carousel-scroll {
+                    display: flex;
+                    overflow-x: auto;
+                    scroll-snap-type: x mandatory;
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+
+                .media-carousel-scroll::-webkit-scrollbar {
+                    display: none;
+                }
+
+                .carousel-item {
+                    flex: 0 0 100%;
+                    scroll-snap-align: start;
+                    position: relative;
+                }
+
+                /* Interaction Area */
+                .post-interaction-metrics {
+                    padding: 12px 20px;
+                    display: flex;
+                    gap: 16px;
+                    border-top: 1px solid #f8fafc;
+                    font-size: 13px;
+                    color: #64748b;
+                    font-weight: 600;
+                }
+
+                .post-interaction-actions {
+                    padding: 8px 16px;
+                    display: flex;
+                    gap: 12px;
+                    border-top: 1px solid #f1f5f9;
+                }
+
+                .action-btn-custom {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 16px;
+                    border: none;
+                    background: transparent;
+                    cursor: pointer;
+                    border-radius: 12px;
+                    font-weight: 700;
+                    font-size: 14px;
+                    color: #64748b;
+                    transition: all 0.2s;
+                }
+
+                .action-btn-custom:hover {
+                    background: #f1f5f9;
+                    color: #1e293b;
+                }
+
+                .action-btn-custom.spark.active {
+                    color: var(--spark-orange);
+                    background: rgba(255, 87, 34, 0.05);
+                }
+
+                .action-btn-custom.save.active {
+                    color: #3b82f6;
+                    background: rgba(59, 130, 246, 0.05);
+                }
+
+                /* Footer */
+                .post-footer-minimal {
+                    padding: 16px 20px;
+                    background: #f8fafc;
+                    border-top: 1px solid #f1f5f9;
+                }
+
+                .comment-input-min {
+                    flex: 1;
+                    padding: 10px 16px;
+                    border: 1.5px solid #e2e8f0;
+                    border-radius: 14px;
+                    background: #fff;
+                    font-size: 14px;
+                    outline: none;
+                    transition: all 0.2s;
+                }
+
+                .comment-input-min:focus {
+                    border-color: var(--accent);
+                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+                }
+
+                /* Mobile Optimization */
+                @media (max-width: 768px) {
+                    .post-card {
+                        margin: 8px 0;
+                        border-radius: 0;
+                        border-left: none;
+                        border-right: none;
+                    }
+                    .action-btn-custom span {
+                        display: none; /* Icon only on mobile for space */
+                    }
+                    .action-btn-custom {
+                        padding: 10px;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        })();
+
+        // ============ PREMIUM INTERACTION HANDLERS ============
+        window.toggleSpark = window.sparkPost = async function (postId, button) {
+            console.log(`🔥 Sparking post ${postId}...`);
+            try {
+                // Optimistic UI
+                const card = button.closest('.post-card');
+                const sparkCount = card ? card.querySelector('.spark-count-val') : null;
+                const icon = button.querySelector('i');
+                const isSparking = !button.classList.contains('active');
+                let count = sparkCount ? parseInt(sparkCount.textContent) || 0 : 0;
+
+                // Update UI immediately (optimistic)
+                if (isSparking) {
+                    button.classList.add('active');
+                    if (icon) {
+                        icon.className = 'fas fa-fire';
+                        icon.style.color = '#ff5722';
+                    }
+                    if (sparkCount) sparkCount.textContent = count + 1;
+
+                    // Animation
+                    if (window.createSparkAnimation) {
+                        const rect = button.getBoundingClientRect();
+                        window.createSparkAnimation(rect.left + rect.width / 2, rect.top);
+                    }
+                } else {
+                    button.classList.remove('active');
+                    if (icon) {
+                        icon.className = 'far fa-fire';
+                        icon.style.color = '';
+                    }
+                    if (sparkCount) sparkCount.textContent = Math.max(0, count - 1);
+                }
+
+                const result = await DashboardAPI.sparkPost(postId);
+                console.log('✅ Spark result:', result);
+
+                if (result.action === 'sparked') {
+                    showNotification('Post sparked! 🔥', 'success');
+                }
+            } catch (error) {
+                console.error('❌ Spark error:', error);
+                showNotification('Failed to spark post.', 'error');
+                // Revert UI on error
+                location.reload(); // Hard revert for safety
+            }
+        };
+
+        window.toggleSavePost = window.savePost = async function (postId, button) {
+            console.log(`🔖 Saving post ${postId}...`);
+            try {
+                const result = await DashboardAPI.savePost(postId);
+                const icon = button.querySelector('i');
+                const text = button.querySelector('span');
+
+                if (result.action === 'saved') {
+                    button.classList.add('active');
+                    if (icon) icon.className = 'fas fa-bookmark';
+                    if (text) text.textContent = 'Saved';
+                    showNotification('Post saved! 🔖', 'success');
+                } else {
+                    button.classList.remove('active');
+                    if (icon) icon.className = 'far fa-bookmark';
+                    if (text) text.textContent = 'Save';
+                }
+            } catch (error) {
+                console.error('❌ Save error:', error);
+                showNotification('Failed to save post.', 'error');
+            }
+        };
+
+        window.addComment = async function (postId, input) {
+            const content = input?.value.trim() || document.getElementById(`comment-input-${postId}`)?.value.trim();
+            if (!content) return;
+
+            console.log(`💬 Adding comment to post ${postId}...`);
+            try {
+                const result = await DashboardAPI.postComment(postId, content);
+
+                // Update count in UI
+                const card = (input || document.getElementById(`comment-input-${postId}`)).closest('.post-card');
+                const commentCount = card ? card.querySelector('.comment-count-val') : null;
+                if (commentCount) {
+                    commentCount.textContent = (parseInt(commentCount.textContent) || 0) + 1;
+                }
+
+                // Clear input
+                if (input) input.value = '';
+                const mainInput = document.getElementById(`comment-input-${postId}`);
+                if (mainInput) mainInput.value = '';
+
+                showNotification('Comment posted!', 'success');
+            } catch (err) {
+                console.error('❌ Comment error:', err);
+                showNotification('Failed to post comment', 'error');
+            }
         };
 
         // ============ CHAT HISTORY INTEGRATION ============
@@ -3417,31 +3836,44 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         }
 
+        let feedPage = 1;
+        let allPostsLoaded = false;
+
         window.loadFeedPosts = async function (options = {}) {
             const isSilent = options.silent || false;
             const isRefresh = options.refresh || false;
             const container = document.getElementById('feed');
             if (!container) return;
 
-            // prevent concurrent loads
-            if (feedLoading) return;
+            if (isRefresh) {
+                feedPage = 1;
+                allPostsLoaded = false;
+            }
+
+            if (feedLoading || allPostsLoaded) return;
             feedLoading = true;
 
             try {
-                if (!isSilent) {
+                if (!isSilent && isRefresh) {
                     container.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
                 }
 
-                const posts = await DashboardAPI.loadFeed({ limit: FEED_LIMIT, page: 1 });
+                const posts = await DashboardAPI.loadFeed({ limit: FEED_LIMIT, page: feedPage });
                 if (!posts) return;
 
-                // update lastSeenPostId for polling
-                if (posts.length > 0) {
-                    lastSeenPostId = posts[0].post_id || posts[0].id;
+                if (posts.length < FEED_LIMIT) {
+                    allPostsLoaded = true;
+                }
+
+                if (isRefresh) {
+                    // update lastSeenPostId only on refresh (top of feed)
+                    if (posts.length > 0) {
+                        lastSeenPostId = posts[0].post_id || posts[0].id;
+                    }
                 }
 
                 const fragment = document.createDocumentFragment();
-                if (posts.length === 0) {
+                if (posts.length === 0 && feedPage === 1) {
                     const empty = document.createElement('div');
                     empty.className = 'premium-empty-state';
                     empty.innerHTML = `
@@ -3466,24 +3898,30 @@ document.addEventListener('DOMContentLoaded', async function () {
                     });
                 }
 
-                // preserve existing suggestions element across refreshes
-                let suggestionsNode = container.querySelector('.profile-suggestions');
-                if (suggestionsNode) {
-                    suggestionsNode.remove();
-                }
-
-                container.innerHTML = '';
-                container.appendChild(fragment);
-
-                if (suggestionsNode) {
-                    // re-insert at roughly same index
-                    const insertIndex = Math.min(FEED_LIMIT, container.children.length);
-                    if (insertIndex < container.children.length) {
-                        container.insertBefore(suggestionsNode, container.children[insertIndex]);
-                    } else {
-                        container.appendChild(suggestionsNode);
+                if (isRefresh) {
+                    // preserve existing suggestions element across refreshes
+                    let suggestionsNode = container.querySelector('.profile-suggestions');
+                    if (suggestionsNode) {
+                        suggestionsNode.remove();
                     }
+
+                    container.innerHTML = '';
+                    container.appendChild(fragment);
+
+                    if (suggestionsNode) {
+                        // re-insert at roughly same index
+                        const insertIndex = Math.min(FEED_LIMIT, container.children.length);
+                        if (insertIndex < container.children.length) {
+                            container.insertBefore(suggestionsNode, container.children[insertIndex]);
+                        } else {
+                            container.appendChild(suggestionsNode);
+                        }
+                    }
+                } else {
+                    container.appendChild(fragment);
                 }
+
+                feedPage++;
 
                 // if the user has already scrolled past half a viewport height, insert suggestions immediately
                 if (!suggestionsDisplayed && window.scrollY > window.innerHeight * 0.5) {
@@ -3503,9 +3941,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // refresh when user scrolls to bottom and also trigger profile suggestions (silent)
         window.addEventListener('scroll', async () => {
-            const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 150;
-            if (nearBottom) {
-                await window.loadFeedPosts({ refresh: true, silent: true });
+            const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300;
+            if (nearBottom && !feedLoading && !allPostsLoaded) {
+                await window.loadFeedPosts({ refresh: false, silent: true });
             }
 
             // trigger suggestions after the user has scrolled more than one viewport
@@ -5078,16 +5516,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // ---- Type config (icon + colour per notification type) ----
     const TYPE_CONFIG = {
-        follow:      { icon: 'fa-user-plus',  bg: '#e91e63', label: 'followed you' },
-        spark:       { icon: 'fa-fire',        bg: '#ff5722', label: 'sparked your post' },
-        like:        { icon: 'fa-heart',       bg: '#e91e63', label: 'liked your post' },
-        comment:     { icon: 'fa-comment',     bg: '#9c27b0', label: 'commented on your post' },
-        reply:       { icon: 'fa-reply',       bg: '#673ab7', label: 'replied to your comment' },
-        share:       { icon: 'fa-share-alt',   bg: '#2196f3', label: 'shared your post' },
-        story_like:  { icon: 'fa-bolt',        bg: '#e91e63', label: 'liked your story' },
-        story_share: { icon: 'fa-share-alt',   bg: '#00bcd4', label: 'shared your story' },
-        message:     { icon: 'fa-envelope',    bg: '#4caf50', label: 'sent you a message' },
-        default:     { icon: 'fa-bell',        bg: '#e91e63', label: '' },
+        follow: { icon: 'fa-user-plus', bg: '#e91e63', label: 'followed you' },
+        spark: { icon: 'fa-fire', bg: '#ff5722', label: 'sparked your post' },
+        like: { icon: 'fa-heart', bg: '#e91e63', label: 'liked your post' },
+        comment: { icon: 'fa-comment', bg: '#9c27b0', label: 'commented on your post' },
+        reply: { icon: 'fa-reply', bg: '#673ab7', label: 'replied to your comment' },
+        share: { icon: 'fa-share-alt', bg: '#2196f3', label: 'shared your post' },
+        story_like: { icon: 'fa-bolt', bg: '#e91e63', label: 'liked your story' },
+        story_share: { icon: 'fa-share-alt', bg: '#00bcd4', label: 'shared your story' },
+        message: { icon: 'fa-envelope', bg: '#4caf50', label: 'sent you a message' },
+        default: { icon: 'fa-bell', bg: '#e91e63', label: '' },
     };
 
     function getTypeConf(type) {
@@ -5242,7 +5680,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // ---- Mark read ----
     async function markRead(id) {
-        try { await DashboardAPI.markNotificationRead(id); } catch (_) {}
+        try { await DashboardAPI.markNotificationRead(id); } catch (_) { }
     }
 
     async function markAllRead() {
@@ -5253,7 +5691,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 el.querySelector('.sn-dot')?.remove();
             });
             updateBadge(0);
-        } catch (e) {}
+        } catch (e) { }
     }
 
     // ---- Toast ----
@@ -5362,7 +5800,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 });
                 if (shownIds.length > 100) shownIds.splice(0, shownIds.length - 100);
                 localStorage.setItem('sparkle_shown_notifs', JSON.stringify(shownIds));
-            } catch (_) {}
+            } catch (_) { }
         }, 30000);
     }
 
@@ -5388,7 +5826,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         // Load unread count on startup
         DashboardAPI.loadNotifications({ unreadOnly: true }).then(data => {
             updateBadge(data.length);
-        }).catch(() => {});
+        }).catch(() => { });
 
         // Start polling as a safety net regardless (it won't double-toast, 
         // because shown IDs are tracked in localStorage)
@@ -5400,4 +5838,4 @@ document.addEventListener('DOMContentLoaded', async function () {
     } else {
         setTimeout(init, 200);
     }
-})();
+})();

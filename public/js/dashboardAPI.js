@@ -408,14 +408,20 @@ const DashboardAPI = {
     async createPost(postData) {
         try {
             let options;
-            const hasFile = postData.media instanceof File;
+            // Check if we have multiple media files
+            const hasFiles = postData.mediaFiles && postData.mediaFiles.length > 0;
 
-            if (hasFile) {
+            if (hasFiles) {
                 const formData = new FormData();
                 formData.append('content', postData.caption || postData.content);
-                formData.append('media', postData.media);
                 formData.append('post_type', postData.postType || postData.post_type || (postData.isAnonymous ? 'anonymous' : 'public'));
                 formData.append('campus', postData.campus || localStorage.getItem('sparkleUserCampus') || 'Sparkle Central');
+                formData.append('location', postData.location || '');
+
+                postData.mediaFiles.forEach(file => {
+                    formData.append('media', file);
+                });
+
                 options = { method: 'POST', body: formData };
             } else {
                 options = {
@@ -424,7 +430,8 @@ const DashboardAPI = {
                         content: postData.caption || postData.content,
                         media_url: postData.media || postData.media_url || null,
                         post_type: postData.postType || postData.post_type || (postData.isAnonymous ? 'anonymous' : 'public'),
-                        campus: postData.campus || localStorage.getItem('sparkleUserCampus') || 'Sparkle Central'
+                        campus: postData.campus || localStorage.getItem('sparkleUserCampus') || 'Sparkle Central',
+                        location: postData.location || null
                     })
                 };
             }

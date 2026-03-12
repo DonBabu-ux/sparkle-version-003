@@ -1,3 +1,4 @@
+const User = require('../models/User');
 const pool = require('../config/database');
 
 // Helper to sanitize avatars - prioritizes internal uploads
@@ -43,4 +44,77 @@ const renderConnect = async (req, res) => {
     }
 };
 
-module.exports = { renderConnect };
+const blockUser = async (req, res) => {
+    try {
+        const blockerId = req.user.userId || req.user.user_id;
+        const blockedId = req.params.id;
+
+        await User.blockUser(blockerId, blockedId);
+        res.json({ message: 'User blocked successfully' });
+    } catch (error) {
+        console.error('Block user error:', error);
+        res.status(500).json({ error: 'Failed to block user' });
+    }
+};
+
+const unblockUser = async (req, res) => {
+    try {
+        const blockerId = req.user.userId || req.user.user_id;
+        const blockedId = req.params.id;
+
+        await User.unblockUser(blockerId, blockedId);
+        res.json({ message: 'User unblocked successfully' });
+    } catch (error) {
+        console.error('Unblock user error:', error);
+        res.status(500).json({ error: 'Failed to unblock user' });
+    }
+};
+
+const getBlockedUsers = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const blocks = await User.getBlockedUsers(userId);
+        res.json(blocks);
+    } catch (error) {
+        console.error('Get blocked users error:', error);
+        res.status(500).json({ error: 'Failed to get blocked users' });
+    }
+};
+
+const getFollowRequests = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const requests = await User.getPendingFollowRequests(userId);
+        res.json(requests);
+    } catch (error) {
+        console.error('Get follow requests error:', error);
+        res.status(500).json({ error: 'Failed to get follow requests' });
+    }
+};
+
+const respondToFollowRequest = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { requestId, action } = req.body; // action: 'accept' or 'decline'
+
+        if (action === 'accept') {
+            await User.acceptFollowRequest(requestId, userId);
+            res.json({ message: 'Follow request accepted' });
+        } else {
+            await User.declineFollowRequest(requestId, userId);
+            res.json({ message: 'Follow request declined' });
+        }
+    } catch (error) {
+        console.error('Respond to follow request error:', error);
+        res.status(500).json({ error: 'Failed to process follow request' });
+    }
+};
+
+module.exports = {
+    renderConnect,
+    blockUser,
+    unblockUser,
+    getBlockedUsers,
+    getFollowRequests,
+    respondToFollowRequest
+};

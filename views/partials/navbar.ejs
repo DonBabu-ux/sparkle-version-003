@@ -3,12 +3,18 @@
         <div class="hamburger-btn" onclick="toggleHamburger()" style="font-size: 20px; cursor: pointer;">
             <i class="fas fa-bars"></i>
         </div>
+        <style>
+            @media (min-width: 1025px) {
+                .hamburger-btn {
+                    display: none !important;
+                }
+            }
+        </style>
         <div class="logo-text"
             style="font-size: 26px; font-weight: 700; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif;">
             Sparkle</div>
     </div>
-    <div id="notificationIcon"
-        onclick="window.toggleNotificationPanel()"
+    <div id="notificationIcon" onclick="window.toggleNotificationPanel()"
         style="font-size: 22px; position: relative; cursor: pointer; display: flex; align-items: center; gap: 15px;">
         <i class="far fa-bell" id="navBellIcon"></i>
         <span class="badge" id="notificationCount"

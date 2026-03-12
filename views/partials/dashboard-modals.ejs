@@ -48,7 +48,7 @@
                             <span class="sub-text">or drag and drop here</span>
                         </div>
                     </div>
-                    <input type="file" id="mediaUpload" accept="image/*,video/*" class="hidden">
+                    <input type="file" id="mediaUpload" accept="image/*,video/*" class="hidden" multiple>
                     <div id="mediaPreview" class="media-preview-grid"></div>
                 </div>
             </div>
@@ -76,6 +76,15 @@
                     <label class="option-label"><i class="fas fa-hashtag"></i> Tag your vibe</label>
                     <div class="tag-input-wrapper">
                         <input type="text" class="tag-input" id="postTags" placeholder="#sparkle #campuslife">
+                    </div>
+                </div>
+
+                <!-- Location Input -->
+                <div class="option-group">
+                    <label class="option-label"><i class="fas fa-map-marker-alt"></i> Where are you?</label>
+                    <div class="tag-input-wrapper">
+                        <input type="text" class="tag-input" id="postLocation"
+                            placeholder="Library, Student Center, etc.">
                     </div>
                 </div>
             </div>
@@ -741,7 +750,7 @@
                             onchange="saveAppSetting('profile_visibility', this.checked ? 'campus' : 'public')"><span
                                 class="slider round"></span></label>
                     </div>
-                    
+
                     <div
                         style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
                         <div>
@@ -753,25 +762,25 @@
                             onchange="saveAppSetting('dark_mode_enabled', this.checked)"><span
                                 class="slider round"></span></label>
                     </div>
-                    
+
                     <div style="margin-bottom:25px;">
                         <div style="font-weight:600;">Font size</div>
                         <select style="margin-top:5px; width:100%;" onchange="saveAppSetting('font_size', this.value)">
-                            <option value="small" <%=user.font_size==='small' ? 'selected':''%>>Small</option>
-                            <option value="medium" <%=user.font_size==='medium' ? 'selected':''%>>Medium</option>
-                            <option value="large" <%=user.font_size==='large' ? 'selected':''%>>Large</option>
+                            <option value="small" <%=user.font_size==='small' ? 'selected' :''%>>Small</option>
+                            <option value="medium" <%=user.font_size==='medium' ? 'selected' :''%>>Medium</option>
+                            <option value="large" <%=user.font_size==='large' ? 'selected' :''%>>Large</option>
                         </select>
                     </div>
-                    
+
                     <div style="margin-bottom:25px;">
                         <div style="font-weight:600;">Language</div>
                         <select style="margin-top:5px; width:100%;" onchange="saveAppSetting('language', this.value)">
-                            <option value="en" <%=user.language==='en' ? 'selected':''%>>English</option>
-                            <option value="es" <%=user.language==='es' ? 'selected':''%>>Español</option>
-                            <option value="fr" <%=user.language==='fr' ? 'selected':''%>>Français</option>
+                            <option value="en" <%=user.language==='en' ? 'selected' :''%>>English</option>
+                            <option value="es" <%=user.language==='es' ? 'selected' :''%>>Español</option>
+                            <option value="fr" <%=user.language==='fr' ? 'selected' :''%>>Français</option>
                         </select>
                     </div>
-                    
+
                     <div
                         style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
                         <div>

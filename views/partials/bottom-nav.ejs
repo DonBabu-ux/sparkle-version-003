@@ -1,4 +1,11 @@
-<div class="bottom-nav">
+<div class="bottom-nav" style="display: flex;">
+    <style>
+        @media (min-width: 1025px) {
+            .bottom-nav {
+                display: none !important;
+            }
+        }
+    </style>
     <a href="/dashboard" class="b-nav-item <%= title === 'Dashboard' ? 'active' : '' %>">
         <i class="fas fa-home"></i>
         <span>Home</span>

@@ -1,0 +1,150 @@
+<%- include('partials/head', { title: title }) %>
+    <%- include('partials/sidebar') %>
+
+        <div class="container" id="mainContent">
+            <%- include('partials/navbar') %>
+
+                <main class="requests-container" style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div class="header-section"
+                        style="margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between;">
+                        <h1>Follow Requests</h1>
+                        <div class="badge-pill" id="requestCount">0</div>
+                    </div>
+
+                    <div id="requestsList" class="requests-list">
+                        <div class="loading-state" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--primary);"></i>
+                        </div>
+                    </div>
+                </main>
+        </div>
+
+        <style>
+            .request-card {
+                background: white;
+                border-radius: 16px;
+                padding: 16px;
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+                border: 1px solid #f1f5f9;
+            }
+
+            .user-info {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                cursor: pointer;
+            }
+
+            .user-avatar {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+            .user-details h3 {
+                font-size: 15px;
+                margin: 0;
+                color: #1e293b;
+            }
+
+            .user-details p {
+                font-size: 13px;
+                margin: 0;
+                color: #64748b;
+            }
+
+            .actions {
+                display: flex;
+                gap: 8px;
+            }
+
+            .btn-sm {
+                padding: 8px 16px;
+                font-size: 13px;
+                border-radius: 8px;
+            }
+        </style>
+
+        <script>
+            async function loadRequests() {
+                const list = document.getElementById('requestsList');
+                const countBadge = document.getElementById('requestCount');
+
+                try {
+                    const response = await fetch('/api/users/follow-requests', {
+                        headers: { 'Authorization': `Bearer ${getToken()}` }
+                    });
+                    const requests = await response.json();
+
+                    countBadge.textContent = requests.length;
+
+                    if (requests.length === 0) {
+                        list.innerHTML = `
+                        <div style="text-align: center; padding: 60px 20px; color: #94a3b8;">
+                            <i class="fas fa-user-plus" style="font-size: 48px; margin-bottom: 20px;"></i>
+                            <h3>No pending requests</h3>
+                            <p>When people request to follow you, they'll show up here.</p>
+                        </div>
+                    `;
+                        return;
+                    }
+
+                    list.innerHTML = requests.map(req => `
+                    <div class="request-card" id="req-${req.request_id}">
+                        <div class="user-info" onclick="window.location.href='/profile/${req.username}'">
+                            <img src="${req.avatar_url || '/uploads/avatars/default.png'}" class="user-avatar">
+                            <div class="user-details">
+                                <h3>${req.name}</h3>
+                                <p>@${req.username}</p>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-primary btn-sm" onclick="respond('${req.request_id}', 'accept')">Accept</button>
+                            <button class="btn btn-secondary btn-sm" onclick="respond('${req.request_id}', 'decline')">Decline</button>
+                        </div>
+                    </div>
+                `).join('');
+                } catch (err) {
+                    list.innerHTML = '<p>Error loading requests</p>';
+                }
+            }
+
+            async function respond(requestId, action) {
+                try {
+                    const response = await fetch('/api/users/follow-requests/respond', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${getToken()}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ requestId, action })
+                    });
+
+                    if (response.ok) {
+                        const card = document.getElementById(`req-${requestId}`);
+                        card.style.opacity = '0.5';
+                        card.style.pointerEvents = 'none';
+                        setTimeout(() => card.remove(), 300);
+
+                        const countBadge = document.getElementById('requestCount');
+                        countBadge.textContent = Math.max(0, parseInt(countBadge.textContent) - 1);
+                    }
+                } catch (err) {
+                    console.error('Action failed:', err);
+                }
+            }
+
+            function getToken() {
+                return localStorage.getItem('sparkleToken') || document.cookie.match(/sparkleToken=([^;]+)/)?.[1];
+            }
+
+            document.addEventListener('DOMContentLoaded', loadRequests);
+        </script>
+        </body>
+
+        </html>

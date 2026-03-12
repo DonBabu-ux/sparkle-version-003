@@ -258,6 +258,18 @@ const getFollowing = async (req, res) => {
 const getUserProfile = async (req, res) => {
     try {
         const userId = req.params.id;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        // Check if blocked
+        const [blockCheck] = await User.pool.query(
+            'SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)',
+            [currentUserId, userId, userId, currentUserId]
+        );
+
+        if (blockCheck.length > 0) {
+            return res.status(404).json({ error: 'User not found' }); // Stealth 404
+        }
+
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 

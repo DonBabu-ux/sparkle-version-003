@@ -8,8 +8,8 @@ class Post {
     static async create(userId, postData) {
         const postId = crypto.randomUUID();
         await pool.query(
-            `INSERT INTO posts (post_id, user_id, content, media_url, media_type, post_type, campus, group_id) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO posts (post_id, user_id, content, media_url, media_type, post_type, campus, group_id, location) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 postId,
                 userId,
@@ -18,10 +18,73 @@ class Post {
                 postData.media_type || null,
                 postData.post_type || 'public',
                 postData.campus || null,
-                postData.group_id || null
+                postData.group_id || null,
+                postData.location || null
             ]
         );
+
+        // Handle multi-media (carousels)
+        if (postData.media && Array.isArray(postData.media)) {
+            for (let i = 0; i < postData.media.length; i++) {
+                const m = postData.media[i];
+                await pool.query(
+                    'INSERT INTO post_media (media_id, post_id, media_url, media_type, upload_order) VALUES (?, ?, ?, ?, ?)',
+                    [crypto.randomUUID(), postId, m.url, m.type || 'image', i]
+                );
+            }
+        }
+
+        // Tags and Mentions
+        try {
+            await this.extractAndSaveTags(postId, postData.content, userId);
+        } catch (e) {
+            console.error('Extraction error:', e);
+        }
+
         return postId;
+    }
+
+    static async extractAndSaveTags(postId, content, actorId) {
+        if (!content) return;
+
+        // Hashtags
+        const hashtags = content.match(/#(\w+)/g);
+        if (hashtags) {
+            for (let tag of hashtags) {
+                const cleanTag = tag.substring(1).toLowerCase();
+                await pool.query(
+                    'INSERT IGNORE INTO post_hashtags (post_id, tag) VALUES (?, ?)',
+                    [postId, cleanTag]
+                );
+            }
+        }
+
+        // Mentions (@username)
+        const mentions = content.match(/@(\w+)/g);
+        if (mentions) {
+            const notificationController = require('../controllers/notification.controller');
+            for (let mention of mentions) {
+                const username = mention.substring(1).toLowerCase();
+                const [users] = await pool.query('SELECT user_id FROM users WHERE username = ?', [username]);
+                if (users.length > 0) {
+                    const mentionedUserId = users[0].user_id;
+                    if (mentionedUserId !== actorId) {
+                        try {
+                            await notificationController.createNotification({
+                                user_id: mentionedUserId,
+                                actor_id: actorId,
+                                type: 'mention',
+                                title: 'New Mention',
+                                content: `mentioned you in a post`,
+                                related_id: postId,
+                                related_type: 'post',
+                                action_url: `/posts/${postId}`
+                            });
+                        } catch (_) { }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -30,7 +93,9 @@ class Post {
     static async findById(postId) {
         const [posts] = await pool.query(
             `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
-                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks
+                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
              WHERE p.post_id = ?`,
@@ -56,7 +121,9 @@ class Post {
         const [posts] = await pool.query(
             `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
+                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
              WHERE (p.campus = ? OR p.post_type = 'public')
@@ -66,9 +133,14 @@ class Post {
                    OR p.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
                    OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
                )
+               AND NOT EXISTS (
+                   SELECT 1 FROM user_blocks 
+                   WHERE (blocker_id = ? AND blocked_id = p.user_id)
+                      OR (blocker_id = p.user_id AND blocked_id = ?)
+               )
              ORDER BY p.created_at DESC 
              LIMIT ? OFFSET ?`,
-            [campus, currentUserId, currentUserId, currentUserId, limit, offset]
+            [campus, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, limit, offset]
         );
         return posts;
     }
@@ -100,7 +172,9 @@ class Post {
         const [posts] = await pool.query(
             `SELECT p.*, 
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
+                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
              FROM posts p 
              WHERE p.user_id = ? 
              ORDER BY p.created_at DESC 

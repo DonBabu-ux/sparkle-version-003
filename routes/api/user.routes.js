@@ -7,11 +7,23 @@ const { validate } = require('../../middleware/validation.middleware');
 const { upload } = require('../../middleware/upload.middleware');
 const { searchSchema, updateProfileSchema, updatePasswordSchema, userIdSchema } = require('../../validators/user.validator');
 
+const socialController = require('../../controllers/social.controller');
+
 router.get('/me', authMiddleware, userController.getCurrentUser);
 router.get('/search', authMiddleware, validate(searchSchema, 'query'), userController.searchUsers);
 router.get('/suggestions', authMiddleware, userController.getSuggestions);
 router.get('/following', authMiddleware, userController.searchFollowingUsers);
-router.put('/settings', authMiddleware, userController.updateSettings); // For messaging restricted to following
+
+// Social & Blocking Routes
+router.get('/blocks', authMiddleware, socialController.getBlockedUsers);
+router.post('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.blockUser);
+router.delete('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.unblockUser);
+
+// Follow Requests
+router.get('/follow-requests', authMiddleware, socialController.getFollowRequests);
+router.post('/follow-requests/respond', authMiddleware, socialController.respondToFollowRequest);
+
+router.put('/settings', authMiddleware, userController.updateSettings);
 router.put('/profile', authMiddleware, validate(updateProfileSchema), userController.updateProfile);
 router.post('/avatar', authMiddleware, upload.single('avatar'), userController.uploadAvatar);
 router.put('/password', authMiddleware, validate(updatePasswordSchema), userController.updatePassword);

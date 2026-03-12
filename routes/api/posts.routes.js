@@ -10,7 +10,7 @@ const { createPostSchema, addCommentSchema, postIdSchema } = require('../../vali
 
 router.get('/feed', authMiddleware, feedController.getFeedPosts);
 router.get('/liked', authMiddleware, postController.getLikedPosts);
-router.post('/', authMiddleware, upload.single('media'), validate(createPostSchema), postController.createPost);
+router.post('/', authMiddleware, upload.array('media', 10), validate(createPostSchema), postController.createPost);
 router.post('/:id/spark', authMiddleware, validate(postIdSchema, 'params'), postController.sparkPost);
 router.post('/:id/save', authMiddleware, validate(postIdSchema, 'params'), postController.savePost);
 router.get('/:id/comments', authMiddleware, validate(postIdSchema, 'params'), postController.getComments);

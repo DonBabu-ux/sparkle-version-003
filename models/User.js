@@ -207,10 +207,11 @@ class User {
             `SELECT u.*, 
                     (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
-                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+                    (SELECT COUNT(*) FROM follow_requests WHERE follower_id = ? AND following_id = u.user_id AND status = 'pending') as is_requested_by_me
              FROM users u 
              WHERE u.username = ?`,
-            [currentUserId, username]
+            [currentUserId, currentUserId, username]
         );
         return users[0] || null;
     }
@@ -246,10 +247,39 @@ class User {
     }
 
     /**
-     * Follow a user
+     * Follow a user or send a follow request if the profile is private
      */
     static async follow(followerId, followingId) {
         if (followerId === followingId) throw new Error('You cannot follow yourself');
+
+        // Check if the target user is private
+        const [targetUser] = await pool.query(
+            'SELECT profile_visibility FROM users WHERE user_id = ?',
+            [followingId]
+        );
+
+        if (!targetUser[0]) throw new Error('User not found');
+
+        if (targetUser[0].profile_visibility === 'private') {
+            // Send follow request
+            try {
+                await pool.query(
+                    'INSERT INTO follow_requests (request_id, follower_id, following_id, status) VALUES (UUID(), ?, ?, "pending")',
+                    [followerId, followingId]
+                );
+
+                // Create notification for follow request
+                await pool.query(`
+                    INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
+                    VALUES (UUID(), ?, 'follow', 'Follow Request', 'sent you a follow request.', ?, '/connect/requests')
+                `, [followingId, followerId]);
+
+                return { status: 'requested' };
+            } catch (error) {
+                if (error.code === 'ER_DUP_ENTRY') return { status: 'requested' };
+                throw error;
+            }
+        }
 
         try {
             await pool.query(
@@ -260,12 +290,12 @@ class User {
             // Create notification for follow
             await pool.query(`
                 INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
-                VALUES (UUID(), ?, 'follow', 'New Follower', 'Someone started following you.', ?, '/connect')
+                VALUES (UUID(), ?, 'follow', 'New Follower', 'started following you.', ?, '/connect')
             `, [followingId, followerId]);
 
-            return true;
+            return { status: 'following' };
         } catch (error) {
-            if (error.code === 'ER_DUP_ENTRY') return true; // Already following
+            if (error.code === 'ER_DUP_ENTRY') return { status: 'following' };
             throw error;
         }
     }
@@ -324,6 +354,114 @@ class User {
             [userAId, userBId]
         );
         return mutual;
+    }
+
+    /**
+     * Block a user
+     */
+    static async blockUser(blockerId, blockedId) {
+        if (blockerId === blockedId) throw new Error('You cannot block yourself');
+
+        // Remove any existing follow relationship
+        await pool.query(
+            'DELETE FROM follows WHERE (follower_id = ? AND following_id = ?) OR (follower_id = ? AND following_id = ?)',
+            [blockerId, blockedId, blockedId, blockerId]
+        );
+
+        try {
+            await pool.query(
+                'INSERT INTO user_blocks (block_id, blocker_id, blocked_id) VALUES (UUID(), ?, ?)',
+                [blockerId, blockedId]
+            );
+            return true;
+        } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') return true;
+            throw error;
+        }
+    }
+
+    /**
+     * Unblock a user
+     */
+    static async unblockUser(blockerId, blockedId) {
+        await pool.query(
+            'DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?',
+            [blockerId, blockedId]
+        );
+        return true;
+    }
+
+    /**
+     * Get list of users blocked by current user
+     */
+    static async getBlockedUsers(userId) {
+        const [blocks] = await pool.query(
+            `SELECT u.user_id, u.username, u.name, u.avatar_url
+             FROM user_blocks b
+             JOIN users u ON b.blocked_id = u.user_id
+             WHERE b.blocker_id = ?`,
+            [userId]
+        );
+        return blocks;
+    }
+
+    /**
+     * Get pending follow requests
+     */
+    static async getPendingFollowRequests(userId) {
+        const [requests] = await pool.query(
+            `SELECT fr.*, u.username, u.name, u.avatar_url, u.campus
+             FROM follow_requests fr
+             JOIN users u ON fr.follower_id = u.user_id
+             WHERE fr.following_id = ? AND fr.status = 'pending'
+             ORDER BY fr.created_at DESC`,
+            [userId]
+        );
+        return requests;
+    }
+
+    /**
+     * Accept follow request
+     */
+    static async acceptFollowRequest(requestId, userId) {
+        const [request] = await pool.query(
+            'SELECT * FROM follow_requests WHERE request_id = ? AND following_id = ?',
+            [requestId, userId]
+        );
+
+        if (!request[0]) throw new Error('Request not found or unauthorized');
+
+        // Delete request and add follow
+        await pool.query('DELETE FROM follow_requests WHERE request_id = ?', [requestId]);
+
+        try {
+            await pool.query(
+                'INSERT INTO follows (follower_id, following_id) VALUES (?, ?)',
+                [request[0].follower_id, request[0].following_id]
+            );
+
+            // Notify follower that they were accepted
+            await pool.query(`
+                INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
+                VALUES (UUID(), ?, 'follow', 'Request Accepted', 'accepted your follow request.', ?, '/profile/' + (SELECT username FROM users WHERE user_id = ?))
+            `, [request[0].follower_id, userId, userId]);
+
+            return true;
+        } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') return true;
+            throw error;
+        }
+    }
+
+    /**
+     * Decline follow request
+     */
+    static async declineFollowRequest(requestId, userId) {
+        await pool.query(
+            'DELETE FROM follow_requests WHERE request_id = ? AND following_id = ?',
+            [requestId, userId]
+        );
+        return true;
     }
 }
 

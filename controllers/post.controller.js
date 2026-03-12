@@ -6,13 +6,36 @@ const notificationController = require('./notification.controller');
 const createPost = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
+
+        // Handle media files
+        let media = [];
+        let mainMediaUrl = null;
+        let mainMediaType = null;
+
+        if (req.files && req.files.length > 0) {
+            media = req.files.map((file, index) => {
+                const type = file.mimetype.startsWith('video') ? 'video' : 'image';
+                if (index === 0) {
+                    mainMediaUrl = file.path;
+                    mainMediaType = type;
+                }
+                return { url: file.path, type };
+            });
+        } else if (req.body.media_url) {
+            mainMediaUrl = req.body.media_url;
+            mainMediaType = req.body.media_type || 'image';
+            media = [{ url: mainMediaUrl, type: mainMediaType }];
+        }
+
         const postData = {
             content: req.body.content,
-            media_url: req.file ? req.file.path : req.body.media_url,
-            media_type: req.body.media_type || (req.file ? (req.file.mimetype.startsWith('video') ? 'video' : 'image') : null),
+            media_url: mainMediaUrl,
+            media_type: mainMediaType,
+            media: media, // Full array for model
             post_type: req.body.post_type || 'public',
             campus: req.body.campus,
-            group_id: req.body.group_id
+            group_id: req.body.group_id,
+            location: req.body.location
         };
 
         const postId = await Post.create(userId, postData);

@@ -194,15 +194,30 @@
                                             <i class="fas fa-cog"></i>
                                         </button>
                                         <% } else { %>
-                                            <button
-                                                class="btn <%= profile.is_followed_by_me ? 'btn-secondary' : 'btn-primary' %> follow-btn"
-                                                data-user-id="<%= profile.user_id %>" id="followButton">
-                                                <%= profile.is_followed_by_me ? 'Following' : 'Follow' %>
-                                            </button>
-                                            <button class="btn btn-secondary"
-                                                onclick="window.location.href='/messages?user=<%= profile.user_id %>'">
-                                                Message
-                                            </button>
+                                            <div class="profile-actions" style="display: flex; gap: 10px;">
+                                                <% if (profile.is_followed_by_me) { %>
+                                                    <button class="btn btn-secondary follow-btn"
+                                                        data-user-id="<%= profile.user_id %>"
+                                                        id="followButton">Following</button>
+                                                    <% } else if (profile.is_requested_by_me) { %>
+                                                        <button class="btn btn-secondary" disabled>Requested</button>
+                                                        <% } else { %>
+                                                            <button class="btn btn-primary follow-btn"
+                                                                data-user-id="<%= profile.user_id %>"
+                                                                id="followButton">Follow</button>
+                                                            <% } %>
+
+                                                                <button class="btn btn-secondary"
+                                                                    onclick="window.location.href='/messages?user=<%= profile.user_id %>'">
+                                                                    Message
+                                                                </button>
+
+                                                                <button class="btn btn-secondary"
+                                                                    onclick="toggleBlockUser('<%= profile.user_id %>')"
+                                                                    title="Block User">
+                                                                    <i class="fas fa-user-slash"></i>
+                                                                </button>
+                                            </div>
                                             <% } %>
                                 </div>
 
@@ -293,40 +308,49 @@
 
                     <!-- Posts Grid -->
                     <div class="profile-posts-grid" id="postsGrid">
-                        <% if (posts && posts.length> 0) { %>
-                            <% posts.forEach(post=> { %>
-                                <div class="post-card" onclick="viewPost('<%= post.post_id %>')">
-                                    <% if (post.media_url) { %>
-                                        <img src="<%= post.media_url %>" alt="Post"
-                                            onerror="this.onerror=null;this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:#fafafa;&quot;><i class=&quot;fas fa-image&quot; style=&quot;font-size:48px;color:#dbdbdb;&quot;></i></div>';">
+                        <% if (!isOwnProfile && profile.profile_visibility==='private' && !profile.is_followed_by_me) {
+                            %>
+                            <div class="private-account-message"
+                                style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: #f8fafc; border-radius: 20px;">
+                                <i class="fas fa-lock"
+                                    style="font-size: 48px; color: #94a3b8; margin-bottom: 20px;"></i>
+                                <h2 style="color: #1e293b; margin-bottom: 10px;">This Account is Private</h2>
+                                <p style="color: #64748b;">Follow this account to see their photos and videos.</p>
+                            </div>
+                            <% } else if (posts && posts.length> 0) { %>
+                                <% posts.forEach(post=> { %>
+                                    <div class="post-card" onclick="viewPost('<%= post.post_id %>')">
+                                        <% if (post.media_url) { %>
+                                            <img src="<%= post.media_url %>" alt="Post"
+                                                onerror="this.onerror=null;this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:#fafafa;&quot;><i class=&quot;fas fa-image&quot; style=&quot;font-size:48px;color:#dbdbdb;&quot;></i></div>';">
+                                            <% } else { %>
+                                                <div class="text-post-placeholder">
+                                                    <p>
+                                                        <%= post.content.substring(0, 100) %>
+                                                            <%= post.content.length> 100 ? '...' : '' %>
+                                                    </p>
+                                                </div>
+                                                <% } %>
+                                                    <div class="post-overlay">
+                                                        <div><i class="fas fa-bolt"></i>
+                                                            <%= post.sparks || 0 %>
+                                                        </div>
+                                                        <div><i class="fas fa-comment"></i>
+                                                            <%= post.comments || 0 %>
+                                                        </div>
+                                                    </div>
+                                    </div>
+                                    <% }) %>
                                         <% } else { %>
-                                            <div class="text-post-placeholder">
-                                                <p>
-                                                    <%= post.content.substring(0, 100) %>
-                                                        <%= post.content.length> 100 ? '...' : '' %>
-                                                </p>
+                                            <div class="empty-state">
+                                                <div class="empty-state-icon">
+                                                    <i class="fas fa-camera"></i>
+                                                </div>
+                                                <h3>No Posts Yet</h3>
+                                                <p>When <%= isOwnProfile ? 'you' : profile.username %> share<%=
+                                                            isOwnProfile ? '' : 's' %> posts, they'll appear here.</p>
                                             </div>
                                             <% } %>
-                                                <div class="post-overlay">
-                                                    <div><i class="fas fa-bolt"></i>
-                                                        <%= post.sparks || 0 %>
-                                                    </div>
-                                                    <div><i class="fas fa-comment"></i>
-                                                        <%= post.comments || 0 %>
-                                                    </div>
-                                                </div>
-                                </div>
-                                <% }) %>
-                                    <% } else { %>
-                                        <div class="empty-state">
-                                            <div class="empty-state-icon">
-                                                <i class="fas fa-camera"></i>
-                                            </div>
-                                            <h3>No Posts Yet</h3>
-                                            <p>When <%= isOwnProfile ? 'you' : profile.username %> share<%= isOwnProfile
-                                                        ? '' : 's' %> posts, they'll appear here.</p>
-                                        </div>
-                                        <% } %>
                     </div>
                 </main>
         </div>
@@ -344,21 +368,18 @@
                 const isFollowing = this.innerText.trim() === 'Following';
 
                 try {
-                    const action = this.innerText.trim() === 'Follow' ? 'follow' : 'unfollow';
-                    const data = action === 'follow'
-                        ? await DashboardAPI.followUser(userId)
-                        : await DashboardAPI.unfollowUser(userId);
+                    const response = await fetch(`/api/users/follow/${userId}`, {
+                        method: isFollowing ? 'DELETE' : 'POST',
+                        headers: { 'Authorization': `Bearer ${getToken()}` }
+                    });
+                    const data = await response.json();
 
-                    if (action === 'follow') {
-                        this.innerText = 'Following';
-                        this.classList.remove('btn-primary');
-                        this.classList.add('btn-secondary');
-                        updateFollowerCount(1);
-                    } else {
-                        this.innerText = 'Follow';
-                        this.classList.remove('btn-secondary');
-                        this.classList.add('btn-primary');
-                        updateFollowerCount(-1);
+                    if (data.status === 'requested') {
+                        this.innerText = 'Requested';
+                        this.classList.replace('btn-primary', 'btn-secondary');
+                        this.disabled = true;
+                    } else if (data.success || data.status === 'following' || response.ok) {
+                        location.reload();
                     }
                 } catch (error) {
                     console.error('Follow error:', error);
@@ -369,6 +390,25 @@
             function getToken() {
                 const match = document.cookie.match(new RegExp('(^| )sparkleToken=([^;]+)'));
                 return match ? match[2] : localStorage.getItem('sparkleToken');
+            }
+
+            async function toggleBlockUser(userId) {
+                if (!confirm('Are you sure you want to block this user? They will not be able to see your profile or posts.')) return;
+                try {
+                    const response = await fetch(`/api/users/block/${userId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${getToken()}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (response.ok) {
+                        alert('User blocked');
+                        window.location.href = '/dashboard';
+                    }
+                } catch (error) {
+                    console.error('Block error:', error);
+                }
             }
 
             function updateFollowerCount(change) {

@@ -9,7 +9,8 @@ const createPostSchema = Joi.object({
     media_type: Joi.string().valid('image', 'video', 'audio', 'file').optional(),
     post_type: Joi.string().valid('public', 'campus_only', 'anonymous', 'private').default('public'),
     campus: Joi.string().max(100).optional(),
-    group_id: Joi.string().uuid().optional()
+    group_id: Joi.string().uuid().optional(),
+    location: Joi.string().max(255).allow('').optional()
 });
 
 /**

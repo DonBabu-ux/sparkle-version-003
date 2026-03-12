@@ -9,6 +9,7 @@ const { upload } = require('../../middleware/upload.middleware');
 const { createPostSchema, addCommentSchema, postIdSchema } = require('../../validators/post.validator');
 
 router.get('/feed', authMiddleware, feedController.getFeedPosts);
+router.get('/liked', authMiddleware, postController.getLikedPosts);
 router.post('/', authMiddleware, upload.single('media'), validate(createPostSchema), postController.createPost);
 router.post('/:id/spark', authMiddleware, validate(postIdSchema, 'params'), postController.sparkPost);
 router.post('/:id/save', authMiddleware, validate(postIdSchema, 'params'), postController.savePost);

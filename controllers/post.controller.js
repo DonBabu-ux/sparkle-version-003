@@ -64,7 +64,7 @@ const sparkPost = async (req, res) => {
                         related_id: postId,
                         related_type: 'post',
                         action_url: `/posts/${postId}`
-                    }).catch(() => {});
+                    }).catch(() => { });
                 }
             } catch (_) { /* non-blocking */ }
         }
@@ -111,7 +111,7 @@ const addComment = async (req, res) => {
                     related_id: postId,
                     related_type: 'post',
                     action_url: `/posts/${postId}`
-                }).catch(() => {});
+                }).catch(() => { });
             }
         } catch (_) { /* non-blocking */ }
 
@@ -141,6 +141,18 @@ const savePost = async (req, res) => {
     }
 };
 
+const getLikedPosts = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const limit = parseInt(req.query.limit) || 20;
+        const posts = await Post.getLikedPosts(userId, limit);
+        res.json(posts);
+    } catch (error) {
+        logger.error('Get liked posts error:', error);
+        res.status(500).json({ error: 'Failed to get liked posts' });
+    }
+};
+
 const sharePost = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
@@ -160,7 +172,7 @@ const sharePost = async (req, res) => {
                     related_id: postId,
                     related_type: 'post',
                     action_url: `/posts/${postId}`
-                }).catch(() => {});
+                }).catch(() => { });
             }
         } catch (_) { /* non-blocking */ }
 
@@ -178,5 +190,6 @@ module.exports = {
     getComments,
     addComment,
     savePost,
+    getLikedPosts,
     sharePost
 };

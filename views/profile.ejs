@@ -280,13 +280,13 @@
 
                     <!-- Content Tabs -->
                     <div class="profile-tabs">
-                        <div class="tab active" onclick="switchTab('posts')">
+                        <div class="tab active" onclick="switchTab(event, 'posts')">
                             <i class="fas fa-th"></i> POSTS
                         </div>
-                        <div class="tab" onclick="switchTab('sparks')">
+                        <div class="tab" onclick="switchTab(event, 'sparks')">
                             <i class="fas fa-heart"></i> LIKED
                         </div>
-                        <div class="tab" onclick="switchTab('saved')">
+                        <div class="tab" onclick="switchTab(event, 'saved')">
                             <i class="fas fa-bookmark"></i> SAVED
                         </div>
                     </div>
@@ -331,6 +331,9 @@
                 </main>
         </div>
 
+        <script id="mutualConnectionsData" type="application/json">
+            <%- JSON.stringify(mutualConnections || []) %>
+        </script>
         <script src="/js/dashboardAPI.js"></script>
         <script src="/js/script.js"></script>
         <script src="/js/dynamicPatch.js"></script>
@@ -393,8 +396,7 @@
                 try {
                     let users = [];
                     if (type === 'mutual') {
-                        // For simplicity, we use the already passed mutualConnections or fetch if needed
-                        users = <% - JSON.stringify(mutualConnections || []) %>;
+                        users = JSON.parse(document.getElementById('mutualConnectionsData').textContent);
                     } else {
                         const res = await fetch(`/api/users/${userId}/${type}`, {
                             headers: { 'Authorization': `Bearer ${getToken()}` }
@@ -463,7 +465,7 @@
                 window.location.href = `/post/${postId}`;
             }
 
-            async function switchTab(tabName) {
+            async function switchTab(event, tabName) {
                 // Update active state
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 event.currentTarget.classList.add('active');
@@ -483,42 +485,61 @@
                 }
 
                 // Show loading
-                postsGrid.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
+                postsGrid.innerHTML = `<div class="empty-state"><i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading...</p>
+                </div>`;
 
                 try {
                     const endpoint = tabName === 'saved' ? '/api/profile/saved' : `/api/posts/liked`;
                     const response = await fetch(endpoint, {
                         headers: { 'Authorization': `Bearer ${getToken()}` }
                     });
+
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+
                     const posts = await response.json();
+
+                    if (!Array.isArray(posts)) {
+                        throw new Error('API did not return a list of posts');
+                    }
 
                     if (posts.length === 0) {
                         postsGrid.innerHTML = `
-                            <div class="empty-state">
-                                <div class="empty-state-icon">
-                                    <i class="fas fa-${tabName === 'sparks' ? 'heart' : 'bookmark'}"></i>
-                                </div>
-                                <h3>No ${tabName.charAt(0).toUpperCase() + tabName.slice(1)} Yet</h3>
-                                <p>When you ${tabName === 'sparks' ? 'like' : 'save'} posts, they'll appear here.</p>
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-${tabName === 'sparks' ? 'heart' : 'bookmark'}"></i>
                             </div>
+                            <h3>No ${tabName.charAt(0).toUpperCase() + tabName.slice(1)} Yet</h3>
+                            <p>When you ${tabName === 'sparks' ? 'like' : 'save'} posts, they'll appear here.</p>
+                        </div>
                         `;
                     } else {
                         postsGrid.innerHTML = posts.map(post => `
-                            <div class="post-card" onclick="viewPost('${post.post_id}')">
-                                ${post.media_url ?
-                                `<img src="${post.media_url}" alt="Post" onerror="this.onerror=null;this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:#fafafa;&quot;><i class=&quot;fas fa-image&quot; style=&quot;font-size:48px;color:#dbdbdb;&quot;></i></div>';">` :
-                                `<div class="text-post-placeholder"><p>${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</p></div>`
+                        <div class="post-card" onclick="viewPost('${post.post_id}')">
+                            ${post.media_url ?
+                                `<img src="${post.media_url}" alt="Post"
+                                onerror="this.onerror=null;this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:#fafafa;&quot;><i class=&quot;fas fa-image&quot; style=&quot;font-size:48px;color:#dbdbdb;&quot;></i></div>';">`
+                                :
+                                `<div class="text-post-placeholder">
+                                <p>${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</p>
+                            </div>`
                             }
-                                <div class="post-overlay">
-                                    <div><i class="fas fa-bolt"></i> ${post.sparks || 0}</div>
-                                    <div><i class="fas fa-comment"></i> ${post.comments || 0}</div>
-                                </div>
+                            <div class="post-overlay">
+                                <div><i class="fas fa-bolt"></i> ${post.sparks || 0}</div>
+                                <div><i class="fas fa-comment"></i> ${post.comments || 0}</div>
                             </div>
+                        </div>
                         `).join('');
                     }
                 } catch (error) {
                     console.error('Error fetching tab data:', error);
-                    postsGrid.innerHTML = '<div class="empty-state"><p>Error loading content</p></div>';
+                    postsGrid.innerHTML = `<div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <p>Error loading ${tabName}. Please try again later.</p>
+                        <p style="font-size: 12px; opacity: 0.7;">${error.message}</p>
+                    </div>`;
                 }
             }
         </script>

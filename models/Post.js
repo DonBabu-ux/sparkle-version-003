@@ -229,6 +229,25 @@ class Post {
     }
 
     /**
+     * Get posts liked (sparked) by user
+     */
+    static async getLikedPosts(userId, limit = 20) {
+        const [posts] = await pool.query(
+            `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
+             FROM sparks s
+             JOIN posts p ON s.post_id = p.post_id
+             JOIN users u ON p.user_id = u.user_id
+             WHERE s.user_id = ?
+             ORDER BY s.created_at DESC
+             LIMIT ?`,
+            [userId, limit]
+        );
+        return posts;
+    }
+
+    /**
      * Increment share count for post
      */
     static async incrementShare(postId, actorId = null) {

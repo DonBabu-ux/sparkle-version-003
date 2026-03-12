@@ -394,7 +394,7 @@
                     let users = [];
                     if (type === 'mutual') {
                         // For simplicity, we use the already passed mutualConnections or fetch if needed
-                        users = <% - JSON.stringify(mutualConnections) %>;
+                        users = <% - JSON.stringify(mutualConnections || []) %>;
                     } else {
                         const res = await fetch(`/api/users/${userId}/${type}`, {
                             headers: { 'Authorization': `Bearer ${getToken()}` }

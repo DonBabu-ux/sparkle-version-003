@@ -5,23 +5,45 @@ console.log('🚀 Loading Dynamic API Patch...');
 
 // Global listener for image load errors to handle 403 Forbidden or broken links
 window.addEventListener('error', (event) => {
-    if (event.target.tagName === 'IMG') {
-        const img = event.target;
-        const src = img.src;
+    if (event.target.tagName === 'IMG' || event.target.tagName === 'VIDEO') {
+        const el = event.target;
+        const src = el.src || (el.querySelector('source') ? el.querySelector('source').src : '');
 
-        // If it's an avatar or a known problematic CDN link
-        if (img.classList.contains('avatar') || img.classList.contains('user-avatar') ||
-            src.includes('fbcdn.net') || src.includes('fbsbx.com') || src.includes('avatar')) {
+        // Handle specific CDN failures or 403/404 scenarios
+        const isProblematic = src.includes('fbcdn.net') ||
+            src.includes('fbsbx.com') ||
+            src.includes('cloudinary.com') ||
+            src.includes('avatar') ||
+            el.classList.contains('avatar') ||
+            el.classList.contains('user-avatar') ||
+            el.classList.contains('story-media-bg');
 
-            // Don't loop infinitely if fallback also fails
-            if (img.dataset.fallbackApplied) return;
+        if (isProblematic) {
+            if (el.dataset.fallbackApplied) return;
+            el.dataset.fallbackApplied = 'true';
 
-            console.warn('⚠️ Image failed to load, applying fallback:', src);
-            img.dataset.fallbackApplied = 'true';
-            img.src = '/uploads/avatars/default.png';
+            console.warn('⚠️ Media failed to load, applying fallback:', src);
 
-            // Add a class for styling if needed
-            img.classList.add('fallback-avatar');
+            if (el.tagName === 'IMG') {
+                el.src = '/uploads/avatars/default.png';
+                el.classList.add('fallback-media');
+            } else if (el.tagName === 'VIDEO') {
+                // For videos in stories/feed, show an overlay if possible
+                const wrapper = el.closest('.video-wrapper') || el.closest('.story-media-container') || el.closest('.story-view-card');
+                if (wrapper) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'media-error-overlay';
+                    overlay.style.cssText = `
+                        position: absolute; inset: 0; background: rgba(0,0,0,0.8);
+                        display: flex; flex-direction: column; align-items: center;
+                        justify-content: center; color: white; z-index: 10; font-size: 12px;
+                        padding: 10px; text-align: center;
+                    `;
+                    overlay.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #FF3D6D; margin-bottom: 5px;"></i> media error`;
+                    wrapper.appendChild(overlay);
+                }
+                el.style.display = 'none';
+            }
         }
     }
 }, true);
@@ -1780,9 +1802,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         <!-- Media -->
                         ${isVideo ? `
-                            <video id="storyVideo" src="${mediaUrl}" style="width: 100%; height: 100%; object-fit: contain;" autoplay playsinline></video>
+                            <video id="storyVideo" src="${mediaUrl}" 
+                                   style="width: 100%; height: 100%; object-fit: contain;" 
+                                   autoplay playsinline
+                                   onerror="this.style.display='none'; this.parentElement.innerHTML += '<div style=\'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#999;\'><i class=\'fas fa-video-slash\' style=\'font-size:40px;margin-bottom:10px;\'></i><span>Video Unavailable</span></div>'"></video>
                         ` : `
-                            <img src="${mediaUrl}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='/uploads/avatars/default.png'">
+                            <img src="${mediaUrl}" 
+                                 style="width: 100%; height: 100%; object-fit: contain;" 
+                                 onerror="this.src='/uploads/avatars/default.png'; this.style.filter='blur(10px) brightness(0.5)';">
                         `}
 
                         <!-- User info overlay -->
@@ -3795,6 +3822,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         // helper to render a list of suggested user cards
         async function fetchAndRenderSuggestions(container) {
             if (suggestionsDisplayed) return;
+            suggestionsDisplayed = true; // Set immediately to prevent race conditions
+
+            // Auto-detect container if not provided
+            const targetContainer = container || document.getElementById('dashboard-suggestions-sidebar') || document.getElementById('feed');
+            if (!targetContainer) return;
+
             try {
                 const users = await DashboardAPI.getSuggestions(5);
                 if (!users || users.length === 0) return;
@@ -3822,15 +3855,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                     sugWrapper.appendChild(uel);
                 });
 
-                // insert suggestions after a few posts to avoid disturbing the flow
-                const insertIndex = Math.min(FEED_LIMIT, container.children.length);
-                if (insertIndex >= 0 && container.children.length > 0) {
-                    container.insertBefore(sugWrapper, container.children[insertIndex]);
+                // insert suggestions
+                if (targetContainer.id === 'dashboard-suggestions-sidebar') {
+                    targetContainer.innerHTML = '';
+                    targetContainer.appendChild(sugWrapper);
                 } else {
-                    container.appendChild(sugWrapper);
+                    const insertIndex = Math.min(FEED_LIMIT, targetContainer.children.length);
+                    if (insertIndex >= 0 && targetContainer.children.length > 0) {
+                        targetContainer.insertBefore(sugWrapper, targetContainer.children[insertIndex]);
+                    } else {
+                        targetContainer.appendChild(sugWrapper);
+                    }
                 }
-
-                suggestionsDisplayed = true;
             } catch (err) {
                 console.error('Error loading suggestions', err);
             }
@@ -5021,6 +5057,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         // ============ AUTO-RELOAD DATA ============
         console.log('📱 Dashboard is live! Initializing data...');
         await loadFeedPosts();
+        await fetchAndRenderSuggestions(); // Load suggestions into sidebar or feed
         await loadAfterglowStories();
         await loadGroups();
         await loadConnectUsers();

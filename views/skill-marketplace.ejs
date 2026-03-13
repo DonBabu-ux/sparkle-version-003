@@ -1,278 +1,410 @@
 <%- include('partials/head', { title: 'Skill Marketplace | Sparkle' }) %>
-        <style>
-            :root {
-                --purple-light: #f3e8ff;
-                --purple-primary: #a855f7;
-                --purple-dark: #7e22ce;
+    <style>
+        :root {
+            --sm-accent: #a855f7;
+            --sm-accent-light: rgba(168, 85, 247, 0.1);
+            --sm-accent-glow: rgba(168, 85, 247, 0.3);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --card-radius: 24px;
+        }
+
+        .sm-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Hero Section - Premium Overhaul */
+        .sm-hero {
+            background: linear-gradient(135deg, #6366F1 0%, #A855F7 50%, #EC4899 100%);
+            border-radius: 32px;
+            padding: 60px 40px;
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 50px rgba(168, 85, 247, 0.2);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sm-hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.2), transparent);
+            pointer-events: none;
+        }
+
+        .sm-hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .sm-hero h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            margin-bottom: 15px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .sm-hero p {
+            font-size: 18px;
+            opacity: 0.95;
+            max-width: 650px;
+            margin: 0 auto 30px;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .sm-btn-create {
+            background: white;
+            color: var(--sm-accent);
+            border: none;
+            padding: 16px 32px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sm-btn-create:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Filter Bar - Modern Tabs */
+        .sm-filters {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 5px 5px 15px;
+            margin-bottom: 30px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .sm-filters::-webkit-scrollbar {
+            display: none;
+        }
+
+        .sm-filter-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .sm-filter-btn.active {
+            background: var(--sm-accent);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 8px 20px var(--sm-accent-glow);
+            transform: translateY(-2px);
+        }
+
+        .sm-filter-btn:hover:not(.active) {
+            background: white;
+            color: var(--sm-accent);
+            transform: translateY(-1px);
+        }
+
+        /* ============ GRID LAYOUT OVERHAUL ============ */
+        .sm-main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            align-items: flex-start;
+        }
+
+        .sm-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .sm-content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 1024px) {
+            .sm-main-grid {
+                grid-template-columns: 280px 1fr;
             }
 
-            .sm-container {
-                max-width: 1000px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-
-            /* Hero Section */
-            .sm-hero {
-                background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
-                border-radius: 20px;
-                padding: 40px;
-                color: white;
-                text-align: center;
-                margin-bottom: 30px;
-                box-shadow: var(--shadow-lg);
-                position: relative;
-                overflow: hidden;
-            }
-
-            .sm-hero::before {
-                content: '';
-                position: absolute;
-                top: -50%;
-                left: -50%;
-                width: 200%;
-                height: 200%;
-                background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
-                animation: rotate 20s linear infinite;
-            }
-
-            @keyframes rotate {
-                from {
-                    transform: rotate(0deg);
-                }
-
-                to {
-                    transform: rotate(360deg);
-                }
-            }
-
-            .sm-hero-content {
-                position: relative;
-                z-index: 1;
-            }
-
-            .sm-hero h1 {
-                font-size: 32px;
-                margin-bottom: 10px;
-                font-weight: 800;
-            }
-
-            .sm-hero p {
-                font-size: 16px;
-                opacity: 0.9;
-                max-width: 600px;
-                margin: 0 auto 20px;
-            }
-
-            .sm-btn-create {
-                background: white;
-                color: var(--pink-dark);
-                border: none;
-                padding: 12px 24px;
-                border-radius: 30px;
-                font-weight: 700;
-                font-size: 16px;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                transition: transform 0.2s;
-            }
-
-            .sm-btn-create:hover {
-                transform: scale(1.05);
-            }
-
-            /* Filter Bar */
             .sm-filters {
-                display: flex;
-                gap: 15px;
-                overflow-x: auto;
-                padding-bottom: 10px;
-                margin-bottom: 20px;
-                scrollbar-width: none;
+                flex-direction: column;
+                overflow-x: visible;
+                padding: 0;
             }
 
             .sm-filter-btn {
-                padding: 10px 20px;
-                background: white;
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                font-weight: 600;
-                color: #64748b;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .sm-filter-btn.active {
-                background: var(--pink-light);
-                color: var(--pink-dark);
-                border-color: var(--pink-dark);
-            }
-
-            /* Grid */
-            .sm-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                gap: 20px;
-            }
-
-            .sm-card {
-                background: white;
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: var(--shadow);
-                border: 1px solid var(--border);
-                transition: transform 0.2s;
-                display: flex;
-                flex-direction: column;
-            }
-
-            .sm-card:hover {
-                transform: translateY(-5px);
-            }
-
-            .sm-card-header {
-                padding: 15px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                border-bottom: 1px solid #f1f5f9;
-            }
-
-            .sm-avatar {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                object-fit: cover;
-            }
-
-            .sm-user-info h4 {
-                font-size: 14px;
-                font-weight: 600;
-                margin: 0;
-            }
-
-            .sm-user-info span {
-                font-size: 12px;
-                color: #64748b;
-            }
-
-            .sm-card-body {
-                padding: 15px;
-                flex: 1;
-            }
-
-            .sm-category-tag {
-                display: inline-block;
-                padding: 4px 8px;
-                background: var(--purple-light);
-                color: var(--purple-dark);
-                border-radius: 6px;
-                font-size: 11px;
-                font-weight: 600;
-                margin-bottom: 10px;
-                text-transform: uppercase;
-            }
-
-            .tag-tech {
-                background: #e0f2fe;
-                color: #0284c7;
-            }
-
-            .tag-tutor {
-                background: #dcfce7;
-                color: #16a34a;
-            }
-
-            .tag-creative {
-                background: #fae8ff;
-                color: #d946ef;
-            }
-
-            .sm-title {
-                font-size: 16px;
-                font-weight: 700;
-                margin-bottom: 8px;
-                color: #1e293b;
-            }
-
-            .sm-price {
-                font-size: 18px;
-                font-weight: 700;
-                color: var(--pink-dark);
-                margin-top: 10px;
-            }
-
-            .sm-rating {
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                color: #f59e0b;
-                font-size: 13px;
-                margin-top: 5px;
-            }
-
-            .sm-card-footer {
-                padding: 15px;
-                border-top: 1px solid #f1f5f9;
-            }
-
-            .sm-btn-book {
                 width: 100%;
-                background: #1e293b;
-                color: white;
-                border: none;
-                padding: 10px;
-                border-radius: 10px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: background 0.2s;
+                justify-content: flex-start;
+            }
+        }
+
+        /* Premium Grid */
+        .sm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .sm-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--glass-border);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .sm-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .sm-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        .sm-card-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid rgba(241, 245, 249, 0.5);
+        }
+
+        .sm-avatar-wrapper {
+            position: relative;
+            padding: 3px;
+            background: linear-gradient(45deg, var(--sm-accent), #EC4899);
+            border-radius: 50%;
+        }
+
+        .sm-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+        }
+
+        .sm-user-info h4 {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .sm-user-info span {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .sm-card-body {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sm-category-tag {
+            display: inline-flex;
+            width: fit-content;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-tech {
+            background: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .tag-tutor {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .tag-creative {
+            background: #fae8ff;
+            color: #d946ef;
+        }
+
+        .tag-other {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .sm-title {
+            font-size: 19px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #0f172a;
+            line-height: 1.4;
+        }
+
+        .sm-desc {
+            font-size: 14px;
+            color: #475569;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .sm-price-row {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sm-price {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--sm-accent);
+        }
+
+        .sm-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #f59e0b;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .sm-card-footer {
+            padding: 20px 24px 24px;
+        }
+
+        .sm-btn-book {
+            width: 100%;
+            background: #0f172a;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .sm-btn-book:hover {
+            background: var(--sm-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px var(--sm-accent-glow);
+        }
+
+        /* Glass Modals */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: white;
+            padding: 35px;
+            border-radius: 32px;
+            width: 100%;
+            max-width: 550px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+            animation: smFadeUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+        }
+
+        @keyframes smFadeUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
             }
 
-            .sm-btn-book:hover {
-                background: #334155;
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .form-control {
+            border-radius: 14px;
+            padding: 12px 16px;
+            border: 1.5px solid #e2e8f0;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--sm-accent);
+            box-shadow: 0 0 0 4px var(--sm-accent-light);
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
             }
 
-            /* Modal */
-            .modal-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.5);
-                display: none;
-                justify-content: center;
-                align-items: center;
-                z-index: 2000;
-                backdrop-filter: blur(5px);
+            100% {
+                background-position: -200% 0;
             }
-
-            .modal-card {
-                background: white;
-                padding: 30px;
-                border-radius: 20px;
-                width: 90%;
-                max-width: 500px;
-                box-shadow: var(--shadow-lg);
-                animation: slideUp 0.3s ease;
-            }
-
-            @keyframes slideUp {
-                from {
-                    transform: translateY(50px);
-                    opacity: 0;
-                }
-
-                to {
-                    transform: translateY(0);
-                    opacity: 1;
-                }
-            }
-        </style>
+        }
+    </style>
+    </style>
 
     <%- include('partials/sidebar') %>
         <%- include('partials/bottom-nav') %>
@@ -293,20 +425,46 @@
                     </div>
                 </div>
 
-                <div class="sm-filters">
-                    <div class="sm-filter-btn active" onclick="filterOffers('all', this)">All Skills</div>
-                    <div class="sm-filter-btn" onclick="filterOffers('tutoring', this)"><i
-                            class="fas fa-graduation-cap"></i> Tutoring</div>
-                    <div class="sm-filter-btn" onclick="filterOffers('tech_support', this)"><i
-                            class="fas fa-laptop-code"></i> Tech Support</div>
-                    <div class="sm-filter-btn" onclick="filterOffers('creative', this)"><i
-                            class="fas fa-paint-brush"></i> Creative</div>
-                    <div class="sm-filter-btn" onclick="filterOffers('other', this)"><i class="fas fa-ellipsis-h"></i>
-                        Other</div>
-                </div>
+                <div class="sm-main-grid">
+                    <div class="sm-sidebar">
+                        <div class="sm-filters">
+                            <button class="sm-filter-btn active" data-category="all">
+                                <i class="fas fa-th-large"></i> All Skills
+                            </button>
+                            <button class="sm-filter-btn" data-category="Academic">
+                                <i class="fas fa-book"></i> Academic
+                            </button>
+                            <button class="sm-filter-btn" data-category="Tech & Coding">
+                                <i class="fas fa-code"></i> Tech & Coding
+                            </button>
+                            <button class="sm-filter-btn" data-category="Creative">
+                                <i class="fas fa-paint-brush"></i> Creative
+                            </button>
+                            <button class="sm-filter-btn" data-category="Other">
+                                <i class="fas fa-ellipsis-h"></i> Others
+                            </button>
+                        </div>
 
-                <div id="offersLoader" class="loading-shimmer" style="height: 200px; border-radius: 20px;"></div>
-                <div id="offersGrid" class="sm-grid"></div>
+                        <button class="sm-btn-create" onclick="window.showCreateSkillOffer()">
+                            <i class="fas fa-plus-circle"></i> Offer a Skill
+                        </button>
+                    </div>
+
+                    <div class="sm-content-area">
+                        <!-- Premium Grid -->
+                        <div class="sm-grid" id="skillsGrid">
+                            <!-- Shimmer Loading state -->
+                            <% for(let i=0; i < 6; i++) { %>
+                                <div class="shimmer-card">
+                                    <div class="shimmer shimmer-avatar"></div>
+                                    <div class="shimmer shimmer-title"></div>
+                                    <div class="shimmer shimmer-text"></div>
+                                    <div class="shimmer shimmer-btn"></div>
+                                </div>
+                                <% } %>
+                        </div>
+                    </div>
+                </div>
 
             </div>
 
@@ -387,18 +545,18 @@
                 }
 
                 async function loadOffers(category) {
-                    const grid = document.getElementById('offersGrid');
-                    const loader = document.getElementById('offersLoader');
+                    const grid = document.getElementById('skillsGrid');
+                    if (!grid) return;
 
+                    // Show shimmers if needed (already in HTML on load)
+                    // If manually refreshing, we could re-add them
                     grid.innerHTML = '';
-                    loader.style.display = 'block';
 
                     try {
                         const offers = await DashboardAPI.loadSkillOffers(category);
-                        loader.style.display = 'none';
 
                         if (!offers || offers.length === 0) {
-                            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 40px;">No skill offers found. be the first!</div>';
+                            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 40px;">No skill offers found in this category. Be the first!</div>';
                             return;
                         }
 
@@ -407,7 +565,7 @@
                         });
                     } catch (error) {
                         console.error(error);
-                        loader.style.display = 'none';
+                        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--lf-primary); padding: 40px;">Failed to load offers. Please try again.</div>';
                     }
                 }
 
@@ -424,7 +582,9 @@
 
                     div.innerHTML = `
                 <div class="sm-card-header">
-                    <img src="${offer.avatar_url || '/uploads/avatars/default.png'}" class="sm-avatar">
+                    <div class="sm-avatar-wrapper">
+                        <img src="${offer.avatar_url || '/uploads/avatars/default.png'}" class="sm-avatar">
+                    </div>
                     <div class="sm-user-info">
                         <h4>${offer.username || offer.name}</h4>
                         <span>${offer.campus || 'Main Campus'}</span>
@@ -433,31 +593,39 @@
                 <div class="sm-card-body">
                     <span class="sm-category-tag ${tagClass}">${offer.category.replace('_', ' ')}</span>
                     <h3 class="sm-title">${offer.title}</h3>
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                    <p class="sm-desc">
                         ${offer.description}
                     </p>
-                    <div class="sm-price">${priceDisplay}</div>
-                    ${offer.average_rating ? `
-                    <div class="sm-rating">
-                        <i class="fas fa-star"></i> ${parseFloat(offer.average_rating).toFixed(1)} (${offer.review_count} reviews)
-                    </div>` : ''}
+                    <div class="sm-price-row">
+                        <div class="sm-price">${priceDisplay}</div>
+                        ${offer.average_rating ? `
+                        <div class="sm-rating">
+                            <i class="fas fa-star"></i> ${parseFloat(offer.average_rating).toFixed(1)}
+                            <span style="color:#94a3b8; font-weight:500; margin-left:2px;">(${offer.review_count})</span>
+                        </div>` : ''}
+                    </div>
                 </div>
                 <div class="sm-card-footer">
-                    <button class="sm-btn-book" onclick="openBookModal('${offer.offer_id}')">Book Session</button>
+                    <button class="sm-btn-book" onclick="openBookModal('${offer.offer_id}')">
+                        Book Session <i class="fas fa-arrow-right" style="font-size:12px;"></i>
+                    </button>
                 </div>
             `;
                     return div;
                 }
 
-                // Filters
-                function filterOffers(category, btn) {
-                    document.querySelectorAll('.sm-filter-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    loadOffers(category);
-                }
+                // Filters logic
+                document.querySelectorAll('.sm-filter-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const category = this.dataset.category;
+                        document.querySelectorAll('.sm-filter-btn').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        loadOffers(category === 'all' ? null : category);
+                    });
+                });
 
                 // Create Modal
-                function openCreateModal() { document.getElementById('createModal').style.display = 'flex'; }
+                window.showCreateSkillOffer = function () { document.getElementById('createModal').style.display = 'flex'; }
                 function closeCreateModal() { document.getElementById('createModal').style.display = 'none'; }
 
                 document.getElementById('createOfferForm').addEventListener('submit', async (e) => {
@@ -509,6 +677,6 @@
 
                 document.addEventListener('DOMContentLoaded', init);
             </script>
-</body>
+            </body>
 
-</html>
+            </html>

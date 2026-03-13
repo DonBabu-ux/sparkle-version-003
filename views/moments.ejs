@@ -608,6 +608,35 @@
             color: rgba(255, 255, 255, 0.7);
             z-index: 100;
         }
+
+        .media-error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(20, 20, 20, 0.9);
+            color: rgba(255, 255, 255, 0.5);
+            z-index: 5;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .media-error-overlay i {
+            font-size: 40px;
+            color: var(--accent-pink);
+            margin-bottom: 12px;
+            opacity: 0.7;
+        }
+
+        .media-error-overlay span {
+            font-size: 14px;
+            font-weight: 500;
+        }
     </style>
 
     <div class="app-container">
@@ -794,7 +823,7 @@
                                  oncontextmenu="app.handleLongPress(event, '${video.moment_id}')"
                                  ontouchstart="app.handleTouchStart(event, '${video.moment_id}')"
                                  ontouchend="app.handleTouchEnd()">
-                                <video class="video-element" loop playsinline ${this.isMuted ? 'muted' : ''} autoplay preload="auto" poster="/images/video-placeholder.jpg">
+                                <video class="video-element" loop playsinline ${this.isMuted ? 'muted' : ''} autoplay preload="auto" poster="/images/video-placeholder.jpg" onerror="app.handleMediaError(this)">
                                     <source src="${video.media_url}" type="video/mp4">
                                 </video>
                             </div>
@@ -802,7 +831,7 @@
                             <div class="video-info-overlay">
                                 <div class="user-info-row" onclick="app.goToProfile('${video.username}')">
                                     <div class="user-avatar">
-                                        <img src="${video.avatar_url || '/images/default-avatar.jpg'}" alt="${video.username}" loading="lazy">
+                                        <img src="${video.avatar_url || '/images/default-avatar.jpg'}" alt="${video.username}" loading="lazy" onerror="this.src='/uploads/avatars/default.png'">
                                     </div>
                                     <div class="user-details">
                                         <span class="username">@${video.username}</span>
@@ -1085,6 +1114,20 @@
 
                 handleTouchEnd() {
                     clearTimeout(this.longPressTimer);
+                }
+
+                handleMediaError(videoElement) {
+                    const wrapper = videoElement.closest('.video-wrapper');
+                    if (wrapper && !wrapper.querySelector('.media-error-overlay')) {
+                        const overlay = document.createElement('div');
+                        overlay.className = 'media-error-overlay';
+                        overlay.innerHTML = `
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Unable to load media<br><small style="opacity: 0.6; font-size: 11px;">External link expired or protected</small></span>
+                        `;
+                        wrapper.appendChild(overlay);
+                        videoElement.style.display = 'none';
+                    }
                 }
 
                 showLongPressMenu(videoId) {

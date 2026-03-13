@@ -276,6 +276,83 @@
             flex-direction: column;
             gap: 20px;
         }
+
+        .media-error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(20, 20, 20, 0.9);
+            color: rgba(255, 255, 255, 0.5);
+            z-index: 5;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .media-error-overlay i {
+            font-size: 30px;
+            color: var(--accent-pink, #FF3D6D);
+            margin-bottom: 8px;
+            opacity: 0.7;
+        }
+
+        /* ============ DASHBOARD GRID LAYOUT ============ */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 80px 20px 100px;
+        }
+
+        .main-feed-column {
+            max-width: 680px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .suggestions-column {
+            display: none;
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+
+        @media (min-width: 1100px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr 340px;
+                padding-left: 80px;
+                /* Space for sidebar if needed */
+            }
+
+            .suggestions-column {
+                display: block;
+            }
+
+            .main-feed-column {
+                margin: 0;
+            }
+        }
+
+        .suggestions-sidebar-card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Adjustments for existing elements */
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
     </style>
 
     <%- include('partials/sidebar') %>
@@ -283,91 +360,106 @@
         <div class="container" id="mainContent">
             <div id="homePage" class="page active"
                 style="animation: pageFadeIn 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);">
+
                 <%- include('partials/navbar') %>
 
-                    <!-- Premium AfterGlow Stories Section -->
-                    <div class="afterglow-section">
-                        <div class="afterglow-title">
-                            <span
-                                style="background: var(--pink-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">AfterGlow</span>
-                            <span class="vanish-timer" id="vanishTimer" style="margin-left: auto;">
-                                <i class="fas fa-bolt" style="color: #f59e0b"></i> 24h vanish
-                            </span>
-                        </div>
+                    <div class="dashboard-layout">
+                        <div class="main-feed-column">
+                            <!-- Premium AfterGlow Stories Section -->
+                            <div class="afterglow-section">
+                                <div class="afterglow-title">
+                                    <span
+                                        style="background: var(--pink-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">AfterGlow</span>
+                                    <span class="vanish-timer" id="vanishTimer" style="margin-left: auto;">
+                                        <i class="fas fa-bolt" style="color: #f59e0b"></i> 24h vanish
+                                    </span>
+                                </div>
 
-                        <div class="stories-container" id="afterglowStories">
-                            <!-- Create Story Card -->
-                            <div class="story-create-card" onclick="window.showCreateOptions()">
-                                <div class="story-create-content">
-                                    <div class="story-create-top">
-                                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
-                                            style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                <div class="stories-container" id="afterglowStories">
+                                    <!-- Create Story Card -->
+                                    <div class="story-create-card" onclick="window.showCreateOptions()">
+                                        <div class="story-create-content">
+                                            <div class="story-create-top">
+                                                <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                                                    style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                            </div>
+                                            <div class="story-plus-btn">
+                                                <i class="fas fa-plus"></i>
+                                            </div>
+                                            <div class="story-create-bottom">
+                                                Post Glow
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="story-plus-btn">
-                                        <i class="fas fa-plus"></i>
-                                    </div>
-                                    <div class="story-create-bottom">
-                                        Post Glow
-                                    </div>
+
+                                    <!-- Server Stories -->
+                                    <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
+                                        <% stories.forEach(storyGroup=> { %>
+                                            <% const firstStory=storyGroup.stories[0]; %>
+                                                <div class="story-view-card"
+                                                    onclick="openStoryViewer('<%= storyGroup.user_id %>')">
+                                                    <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
+                                                        class="story-media-bg"
+                                                        onerror="this.src='/uploads/avatars/default.png'; this.style.filter='blur(15px) brightness(0.6)';"
+                                                        loading="lazy">
+
+                                                    <div class="story-overlay-gradient"></div>
+
+                                                    <% if (storyGroup.stories.length> 1) { %>
+                                                        <div class="story-multi-badge">
+                                                            <%= storyGroup.stories.length %>
+                                                        </div>
+                                                        <% } %>
+
+                                                            <div class="story-avatar-badge">
+                                                                <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>"
+                                                                    onerror="this.src='/uploads/avatars/default.png'"
+                                                                    loading="lazy">
+                                                            </div>
+
+                                                            <div class="story-username-label">
+                                                                <%= storyGroup.username || 'Sparkler' %>
+                                                            </div>
+                                                </div>
+                                                <% }); %>
+                                                    <% } %>
                                 </div>
                             </div>
 
-                            <!-- Server Stories -->
-                            <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
-                                <% stories.forEach(storyGroup=> { %>
-                                    <% const firstStory=storyGroup.stories[0]; %>
-                                        <div class="story-view-card"
-                                            onclick="openStoryViewer('<%= storyGroup.user_id %>')">
-                                            <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
-                                                class="story-media-bg"
-                                                onerror="this.src='/uploads/avatars/default.png'">
-
-                                            <div class="story-overlay-gradient"></div>
-
-                                            <% if (storyGroup.stories.length> 1) { %>
-                                                <div class="story-multi-badge">
-                                                    <%= storyGroup.stories.length %>
-                                                </div>
-                                                <% } %>
-
-                                                    <div class="story-avatar-badge">
-                                                        <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>"
-                                                            onerror="this.src='/uploads/avatars/default.png'">
+                            <!-- Premium Feed -->
+                            <div class="posts-feed" id="feed">
+                                <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
+                                    <% feed.forEach(post=> { %>
+                                        <%- include('partials/post-card', { post, user }) %>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <div class="glass"
+                                                        style="text-align:center; padding: 60px 40px; border-radius: 30px;">
+                                                        <div
+                                                            style="width: 80px; height: 80px; background: var(--pink-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+                                                            <i class="fas fa-wind"
+                                                                style="font-size: 30px; color: var(--pink-primary);"></i>
+                                                        </div>
+                                                        <h3 style="font-weight: 800; margin-bottom: 10px;">Your feed is
+                                                            quiet
+                                                        </h3>
+                                                        <p style="color: var(--text-muted); font-size: 14px;">Follow
+                                                            more
+                                                            students or share your own thoughts to start the spark!</p>
+                                                        <button onclick="window.showCreateOptions()" class="btn"
+                                                            style="margin-top: 25px; background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
+                                                            <i class="fas fa-plus"></i> Create Post
+                                                        </button>
                                                     </div>
-
-                                                    <div class="story-username-label">
-                                                        <%= storyGroup.username || 'Sparkler' %>
-                                                    </div>
-                                        </div>
-                                        <% }); %>
-                                            <% } %>
+                                                    <% } %>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Premium Feed -->
-                    <div class="posts-feed" id="feed">
-                        <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
-                            <% feed.forEach(post=> { %>
-                                <%- include('partials/post-card', { post, user }) %>
-                                    <% }); %>
-                                        <% } else { %>
-                                            <div class="glass"
-                                                style="text-align:center; padding: 60px 40px; border-radius: 30px;">
-                                                <div
-                                                    style="width: 80px; height: 80px; background: var(--pink-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
-                                                    <i class="fas fa-wind"
-                                                        style="font-size: 30px; color: var(--pink-primary);"></i>
-                                                </div>
-                                                <h3 style="font-weight: 800; margin-bottom: 10px;">Your feed is quiet
-                                                </h3>
-                                                <p style="color: var(--text-muted); font-size: 14px;">Follow more
-                                                    students or share your own thoughts to start the spark!</p>
-                                                <button onclick="window.showCreateOptions()" class="btn"
-                                                    style="margin-top: 25px; background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
-                                                    <i class="fas fa-plus"></i> Create Post
-                                                </button>
-                                            </div>
-                                            <% } %>
+                        <div class="suggestions-column">
+                            <div id="dashboard-suggestions-sidebar">
+                                <!-- Suggestions will be injected here -->
+                            </div>
+                        </div>
                     </div>
             </div>
         </div>

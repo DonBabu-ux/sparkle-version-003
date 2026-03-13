@@ -103,10 +103,32 @@ const deleteItem = async (req, res) => {
     }
 };
 
+const markReturned = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const item = await LostFound.findById(id);
+
+        if (!item) return res.status(404).json({ error: 'Item not found' });
+
+        // Only reporter can mark as returned
+        const userId = req.user.user_id || req.user.userId;
+        if (item.reporter_id !== userId) {
+            return res.status(403).json({ error: 'Only the reporter can mark this as returned' });
+        }
+
+        await LostFound.updateStatus(id, 'returned', userId);
+        res.json({ success: true, message: 'Item marked as returned/resolved' });
+    } catch (error) {
+        logger.error('Mark Returned error:', error);
+        res.status(500).json({ error: 'Failed to update status' });
+    }
+};
+
 module.exports = {
     getFeed,
     getItem,
     reportItem,
     claimItem,
-    deleteItem
+    deleteItem,
+    markReturned
 };

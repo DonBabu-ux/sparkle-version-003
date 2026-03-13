@@ -814,7 +814,7 @@ const DashboardAPI = {
         const params = new URLSearchParams();
         if (type && type !== 'all') params.append('type', type);
         if (campus) params.append('campus', campus);
-        const data = await this.request(`/lost-found/items?${params.toString()}`);
+        const data = await this.request(`/lost-found?${params.toString()}`);
         const items = data.items || [];
         return items.map(item => ({
             ...item,
@@ -1063,7 +1063,7 @@ const DashboardAPI = {
     async loadConfessions(campus) {
         try {
             const params = campus ? `?campus=${campus}` : '';
-            const confessions = await this.request(`/confessions/best${params}`);
+            const confessions = await this.request(`/confessions${params}`);
             return confessions.map(conf => ({
                 ...conf,
                 id: conf.confession_id,
@@ -1284,7 +1284,7 @@ const DashboardAPI = {
             if (campus && campus !== 'all') params.append('campus', campus);
 
             const queryString = params.toString() ? `?${params.toString()}` : '';
-            const endpoint = `/listings${queryString}`;
+            const endpoint = `/marketplace/listings${queryString}`;
             const data = await this.request(endpoint);
             const listings = data.listings || [];
             return listings.map(listing => ({
@@ -1308,7 +1308,7 @@ const DashboardAPI = {
 
     async createListing(listingData) {
         try {
-            const result = await this.request('/listings', {
+            const result = await this.request('/marketplace/listings', {
                 method: 'POST',
                 body: JSON.stringify({
                     title: listingData.title,
@@ -1328,7 +1328,7 @@ const DashboardAPI = {
 
     async markListingAsSold(listingId) {
         try {
-            const result = await this.request(`/listings/${listingId}`, {
+            const result = await this.request(`/marketplace/listings/${listingId}/sold`, {
                 method: 'PUT',
                 body: JSON.stringify({ status: 'sold' })
             });

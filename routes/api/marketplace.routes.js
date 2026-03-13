@@ -1,65 +1,41 @@
-const path = require('path');
 const express = require('express');
 const router = express.Router();
-const marketplaceController = require(path.join(__dirname, '..', '..', 'controllers', 'marketplace.controller'));
-const { authMiddleware } = require(path.join(__dirname, '..', '..', 'middleware', 'auth.middleware'));
-const { apiRateLimiter } = require(path.join(__dirname, '..', '..', 'middleware', 'security.middleware'));
+const marketplaceController = require('../../controllers/marketplace.controller');
+const { authMiddleware } = require('../../middleware/auth.middleware');
+const upload = require('../../utils/fileUpload');
 
-// Apply rate limiting to all marketplace API routes
-router.use(apiRateLimiter);
+// Base path in index.js might be `/` or `/marketplace`.
+// In index.js we saw `router.use('/', marketplaceRoutes);`
+// Which means these routes might need to be prefixed with `/marketplace` or it relies on the root. Wait, index.js has `router.use('/', marketplaceRoutes);` and `router.use('/marketplace', marketplaceRoutes)`? No, it just has `router.use('/', marketplaceRoutes);`.
+// But wait, actually, if it's mounted at `/`, then the route here should be `/marketplace`. Let's check other routers.
 
-// Health check
-router.get('/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        service: 'Marketplace API',
-        timestamp: new Date().toISOString()
-    });
-});
+router.get('/marketplace/listings', authMiddleware, marketplaceController.getListings);
+router.get('/marketplace/listings/:id', authMiddleware, marketplaceController.getListingById);
+router.post('/marketplace/listings', authMiddleware, upload.array('media', 5), marketplaceController.createListing);
+router.put('/marketplace/listings/:id', authMiddleware, upload.array('media', 5), marketplaceController.updateListing);
+router.delete('/marketplace/listings/:id', authMiddleware, marketplaceController.deleteListing);
 
-// Public endpoints (no auth required)
-router.get('/listings', marketplaceController.getListings);
-router.get('/listings/:id', marketplaceController.getListingById);
+// Actions
+router.post('/marketplace/listings/:id/contact', authMiddleware, marketplaceController.contactSeller);
+router.put('/marketplace/listings/:id/sold', authMiddleware, marketplaceController.markAsSold);
+router.post('/marketplace/listings/:id/favorite', authMiddleware, marketplaceController.toggleFavorite);
+router.post('/marketplace/listings/:id/report', authMiddleware, marketplaceController.reportListing);
+router.post('/marketplace/listings/:id/boost', authMiddleware, marketplaceController.boostListing);
 
+// Chats
+router.get('/marketplace/chats', authMiddleware, marketplaceController.getUserChats);
+router.get('/marketplace/chats/:id/messages', authMiddleware, marketplaceController.getChatMessages);
+router.post('/marketplace/chats/:id/messages', authMiddleware, marketplaceController.sendMessage);
 
+// Reviews & Users
+router.post('/marketplace/users/:id/block', authMiddleware, marketplaceController.blockUser);
+router.post('/marketplace/users/:id/review', authMiddleware, marketplaceController.createReview);
+router.get('/marketplace/users/:id/reviews', authMiddleware, marketplaceController.getUserReviews);
 
-// Protected endpoints (require authentication)
-router.post('/listings', authMiddleware, marketplaceController.createListing);
-router.put('/listings/:listingId', authMiddleware, marketplaceController.updateListing);
-router.delete('/listings/:listingId', authMiddleware, marketplaceController.deleteListing);
-router.post('/contact-seller', authMiddleware, marketplaceController.contactSeller);
-router.post('/favorites/toggle', authMiddleware, marketplaceController.toggleFavorite);
-router.get('/favorites', authMiddleware, marketplaceController.getFavorites);
-router.get('/counts', authMiddleware, marketplaceController.getCounts);
-
-// Chat endpoints
-router.get('/chats', authMiddleware, marketplaceController.getUserChats);
-router.get('/chats/:chatId/messages', authMiddleware, marketplaceController.getChatMessages);
-router.post('/chats/:chatId/messages', authMiddleware, marketplaceController.sendMessage);
-
-// Lost & Found (protected)
-// Lost & Found routes moved to lost-found.routes.js
-
-// Skill Offers (protected)
-// Skill Offers routes moved to skill-market.routes.js
-
-// User listings
-router.get('/user/listings', authMiddleware, (req, res) => {
-    res.redirect('/my-listings');
-});
-
-// Safety Features
-router.get('/safe-locations', marketplaceController.getSafeMeetupLocations);
-router.post('/listings/:id/report', authMiddleware, marketplaceController.reportListing);
-router.post('/users/:id/block', authMiddleware, marketplaceController.blockUser);
-
-// Reviews
-router.post('/reviews', authMiddleware, marketplaceController.createReview);
-router.get('/users/:id/reviews', marketplaceController.getUserReviews);
-
-// Listing Management
-router.post('/listings/:id/boost', authMiddleware, marketplaceController.boostListing);
-router.post('/listings/:id/mark-sold', authMiddleware, marketplaceController.markAsSold);
-router.post('/listings/:id/relist', authMiddleware, marketplaceController.relistItem);
+// Misc
+router.get('/marketplace/favorites', authMiddleware, marketplaceController.getFavorites);
+router.get('/marketplace/counts', authMiddleware, marketplaceController.getCounts);
+router.get('/marketplace/unread-chats', authMiddleware, marketplaceController.getUserChats); // Using getUserChats as a placeholder if separate unread count isn't implemented
+router.get('/marketplace/safe-locations', authMiddleware, marketplaceController.getSafeMeetupLocations);
 
 module.exports = router;

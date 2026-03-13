@@ -179,7 +179,7 @@ const MarketplaceEnhancements = {
 
     async loadListings(queryString = '') {
         try {
-            const response = await DashboardAPI.request(`/listings?${queryString}`);
+            const response = await DashboardAPI.request(`/marketplace/listings?${queryString}`);
             if (response.success) {
                 this.renderListings(response.listings);
             }
@@ -455,7 +455,7 @@ const MarketplaceEnhancements = {
                 formData.append('media', photo);
             });
 
-            const response = await DashboardAPI.request('/listings', {
+            const response = await DashboardAPI.request('/marketplace/listings', {
                 method: 'POST',
                 body: formData
             });
@@ -534,7 +534,7 @@ const MarketplaceEnhancements = {
 
     async toggleFavorite(listingId) {
         try {
-            const response = await DashboardAPI.request('/favorites/toggle', {
+            const response = await DashboardAPI.request('/marketplace/favorites/toggle', {
                 method: 'POST',
                 body: JSON.stringify({ listing_id: listingId })
             });
@@ -571,7 +571,7 @@ const MarketplaceEnhancements = {
         if (!reason) return;
 
         try {
-            const response = await DashboardAPI.request(`/listings/${listingId}/report`, {
+            const response = await DashboardAPI.request(`/marketplace/listings/${listingId}/report`, {
                 method: 'POST',
                 body: JSON.stringify({ reason, details: '' })
             });
@@ -588,7 +588,7 @@ const MarketplaceEnhancements = {
         if (!confirm('Boost this listing to the top of the feed?')) return;
 
         try {
-            const response = await DashboardAPI.request(`/listings/${listingId}/boost`, {
+            const response = await DashboardAPI.request(`/marketplace/listings/${listingId}/boost`, {
                 method: 'POST'
             });
 
@@ -605,7 +605,7 @@ const MarketplaceEnhancements = {
         if (!confirm('Mark this listing as sold?')) return;
 
         try {
-            const response = await DashboardAPI.request(`/listings/${listingId}/mark-sold`, {
+            const response = await DashboardAPI.request(`/marketplace/listings/${listingId}/sold`, {
                 method: 'POST'
             });
 
@@ -621,7 +621,7 @@ const MarketplaceEnhancements = {
     // ========== SAFE MEETUP LOCATIONS ==========
     async loadSafeMeetupLocations() {
         try {
-            const response = await DashboardAPI.request('/safe-locations');
+            const response = await DashboardAPI.request('/marketplace/safe-locations');
             if (response.success) {
                 this.renderSafeMeetupLocations(response.locations);
             }

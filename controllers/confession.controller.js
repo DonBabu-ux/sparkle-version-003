@@ -55,8 +55,70 @@ const reactToConfession = async (req, res) => {
     }
 };
 
+// Report a confession (moderation)
+const reportConfession = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        const userId = req.user.user_id || req.user.userId;
+
+        if (!reason) return res.status(400).json({ error: 'Reason is required' });
+
+        await Confession.addReport(id, userId, reason);
+        res.json({ message: 'Confession reported. Our team will review it.' });
+    } catch (error) {
+        logger.error('Report Confession Error:', error);
+        res.status(500).json({ error: 'Failed to report confession' });
+    }
+};
+
+// Post an anonymous comment on a confession
+const commentAnonymously = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { content } = req.body;
+        const userId = req.user.user_id || req.user.userId;
+
+        if (!content || !content.trim()) return res.status(400).json({ error: 'Comment cannot be empty' });
+
+        const commentId = await Confession.addComment(id, userId, content.trim());
+        res.status(201).json({ message: 'Comment posted anonymously', comment_id: commentId });
+    } catch (error) {
+        logger.error('Anonymous Comment Error:', error);
+        res.status(500).json({ error: 'Failed to post comment' });
+    }
+};
+
+// Get comments for a confession
+const getComments = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const comments = await Confession.getComments(id);
+        res.json({ status: 'success', data: comments });
+    } catch (error) {
+        logger.error('Get Comments Error:', error);
+        res.status(500).json({ error: 'Failed to fetch comments' });
+    }
+};
+
+// Get confessions filtered by campus
+const getConfessionsByCampus = async (req, res) => {
+    try {
+        const campus = req.params.campus || req.query.campus || 'all';
+        const confessions = await Confession.getRecent(campus);
+        res.json({ status: 'success', data: confessions });
+    } catch (error) {
+        logger.error('Get Confessions By Campus Error:', error);
+        res.status(500).json({ error: 'Failed to filter confessions' });
+    }
+};
+
 module.exports = {
     renderConfessions,
     createConfession,
-    reactToConfession
+    reactToConfession,
+    reportConfession,
+    commentAnonymously,
+    getComments,
+    getConfessionsByCampus
 };

@@ -237,4 +237,51 @@ const getSuggestions = async (req, res) => {
     }
 };
 
-module.exports = { search, getSuggestions };
+// Save a search query to history
+const saveSearch = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        const { q } = req.body;
+        if (!q || !q.trim()) return res.status(400).json({ error: 'Query is required' });
+        const id = require('crypto').randomUUID();
+        await pool.query(
+            `INSERT INTO search_history (id, user_id, query, searched_at)
+             VALUES (?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE searched_at = NOW()`,
+            [id, userId, q.trim()]
+        );
+        res.json({ status: 'success', message: 'Search saved' });
+    } catch (error) {
+        logger.error('Save search error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get recent search history for a user
+const getRecentSearches = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        const [rows] = await pool.query(
+            'SELECT query, searched_at FROM search_history WHERE user_id = ? ORDER BY searched_at DESC LIMIT 10',
+            [userId]
+        );
+        res.json({ status: 'success', data: rows });
+    } catch (error) {
+        logger.error('Get recent searches error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Clear search history
+const clearSearchHistory = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        await pool.query('DELETE FROM search_history WHERE user_id = ?', [userId]);
+        res.json({ status: 'success', message: 'Search history cleared' });
+    } catch (error) {
+        logger.error('Clear search history error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = { search, getSuggestions, saveSearch, getRecentSearches, clearSearchHistory };

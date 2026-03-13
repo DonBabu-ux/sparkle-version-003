@@ -24,6 +24,9 @@ router.get('/follow-requests', authMiddleware, socialController.getFollowRequest
 router.post('/follow-requests/respond', authMiddleware, socialController.respondToFollowRequest);
 
 router.put('/settings', authMiddleware, userController.updateSettings);
+router.get('/export-data', authMiddleware, userController.exportUserData);
+router.post('/2fa/toggle', authMiddleware, userController.toggleTwoFactor);
+
 router.put('/profile', authMiddleware, validate(updateProfileSchema), userController.updateProfile);
 router.post('/avatar', authMiddleware, upload.single('avatar'), userController.uploadAvatar);
 router.put('/password', authMiddleware, validate(updatePasswordSchema), userController.updatePassword);

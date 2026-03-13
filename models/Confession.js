@@ -69,6 +69,37 @@ class Confession {
         );
         return confessions[0] || null;
     }
+    static async addReport(confessionId, userId, reason) {
+        const reportId = crypto.randomUUID();
+        await pool.query(
+            `INSERT INTO confession_reports (report_id, confession_id, reporter_id, reason, created_at)
+             VALUES (?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE reason = VALUES(reason)`,
+            [reportId, confessionId, userId, reason]
+        );
+    }
+
+    static async addComment(confessionId, userId, content) {
+        const commentId = crypto.randomUUID();
+        await pool.query(
+            `INSERT INTO confession_comments (comment_id, confession_id, user_id, content, created_at)
+             VALUES (?, ?, ?, ?, NOW())`,
+            [commentId, confessionId, userId, content]
+        );
+        return commentId;
+    }
+
+    static async getComments(confessionId) {
+        const [comments] = await pool.query(
+            `SELECT comment_id, content, created_at,
+                    'Anonymous' as author
+             FROM confession_comments
+             WHERE confession_id = ?
+             ORDER BY created_at ASC`,
+            [confessionId]
+        );
+        return comments;
+    }
 }
 
 module.exports = Confession;

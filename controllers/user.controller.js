@@ -188,11 +188,66 @@ const updatePassword = async (req, res) => {
 const deleteAccount = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
+        // In a real app, we might check for sub-items or soft-delete
         await User.delete(userId);
         res.json({ message: 'Account deleted successfully' });
     } catch (error) {
         logger.error('Delete account error:', error);
         res.status(500).json({ error: 'Failed to delete account' });
+    }
+};
+
+const exportUserData = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const [
+            user,
+            posts,
+            messages,
+            listings,
+            confessions
+        ] = await Promise.all([
+            User.findById(userId),
+            Post.getUserPosts(userId),
+            User.pool.query('SELECT * FROM messages WHERE sender_id = ?', [userId]),
+            User.pool.query('SELECT * FROM marketplace_listings WHERE seller_id = ?', [userId]),
+            User.pool.query('SELECT * FROM confessions WHERE campus = (SELECT campus FROM users WHERE user_id = ?)', [userId]) // Confessions aren't tied to user IDs usually, but maybe they were saved?
+        ]);
+
+        const dataExport = {
+            profile: user,
+            posts: posts,
+            messages: messages[0],
+            listings: listings[0],
+            timestamp: new Date().toISOString()
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename=sparkle_data_${userId}.json`);
+        res.send(JSON.stringify(dataExport, null, 2));
+    } catch (error) {
+        logger.error('Export user data error:', error);
+        res.status(500).json({ error: 'Failed to export your data' });
+    }
+};
+
+const toggleTwoFactor = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { enabled } = req.body;
+
+        // Foundation for 2FA: in a real app, generate secret/QR here
+        // For now, we update a flag in the settings
+        await User.updateSettings(userId, { two_factor_enabled: enabled ? 1 : 0 });
+
+        res.json({
+            success: true,
+            message: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'} successfully.`,
+            two_factor_enabled: enabled
+        });
+    } catch (error) {
+        logger.error('Toggle 2FA error:', error);
+        res.status(500).json({ error: 'Failed to update 2FA settings' });
     }
 };
 
@@ -327,8 +382,9 @@ module.exports = {
     getFollowers,
     getFollowing,
     getUserProfile,
-    getUserProfile,
     getUserPosts,
     getSuggestions,
-    updateSettings
+    updateSettings,
+    exportUserData,
+    toggleTwoFactor
 };

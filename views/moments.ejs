@@ -1,12 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
+<%- include('partials/head', { title: 'Sparkle - Moments' }) %>
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Sparkle - Moments</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <meta name="csrf-token" content="<%= csrfToken %>">
     <script>
@@ -48,6 +42,7 @@
         .app-container {
             position: relative;
             height: 100vh;
+            width: 100%;
             max-width: 480px;
             margin: 0 auto;
             background: var(--bg-primary);
@@ -614,9 +609,7 @@
             z-index: 100;
         }
     </style>
-</head>
 
-<body>
     <div class="app-container">
         <!-- Main Feed -->
         <div class="feed-scroller" id="feedContainer"></div>
@@ -1336,6 +1329,6 @@
             });
         })();
     </script>
-</body>
+    </body>
 
-</html>
+    </html>

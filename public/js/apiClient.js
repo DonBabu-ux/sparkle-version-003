@@ -194,22 +194,19 @@ class SparkleAPI {
 
     // ============ MARKETPLACE ============
     async createListing(listingData) {
-        return await this.request('/market/listings', {
+        return this.request('/marketplace/listings', {
             method: 'POST',
-            body: JSON.stringify(listingData)
+            body: listingData
         });
     }
 
-    async getListings(category = null, campus = null) {
-        const params = new URLSearchParams();
-        if (category) params.append('category', category);
-        if (campus) params.append('campus', campus);
-        const query = params.toString();
-        return await this.request(`/market/listings${query ? '?' + query : ''}`);
+    async getListings(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        return this.request(`/marketplace/listings?${query}`);
     }
 
     async markAsSold(listingId) {
-        return await this.request(`/market/${listingId}/sold`, {
+        return this.request(`/marketplace/listings/${listingId}/sold`, {
             method: 'PUT'
         });
     }

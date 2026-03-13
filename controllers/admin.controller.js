@@ -125,26 +125,41 @@ const updateUser = async (req, res) => {
     }
 };
 
-// Content moderation — reported content
+// Content moderation — reported content (Marketplace, Confessions, Posts)
 const getReportedContent = async (req, res) => {
     try {
         let reports = [];
-        try {
-            const [rows] = await pool.query(
-                `SELECT r.*, 
-                        reporter.name as reporter_name, reporter.username as reporter_username,
-                        l.title as listing_title
-                 FROM listing_reports r
-                 LEFT JOIN users reporter ON r.reporter_id = reporter.user_id
-                 LEFT JOIN marketplace_listings l ON r.listing_id = l.listing_id
-                 WHERE r.status = 'pending'
-                 ORDER BY r.created_at DESC`
-            );
-            reports = rows;
-        } catch (e) {
-            // listing_reports table may not exist yet
-            logger.warn('listing_reports table may not exist:', e.message);
+        const queries = [
+            `SELECT 'marketplace' as type, r.report_id, r.listing_id as target_id, r.reason, r.details as content, 
+                    r.status, r.created_at, u.username as reporter_name
+             FROM listing_reports r
+             LEFT JOIN users u ON r.reporter_id = u.user_id
+             WHERE r.status = 'pending'`,
+
+            `SELECT 'confession' as type, r.report_id, r.confession_id as target_id, r.reason, c.content, 
+                    'pending' as status, r.created_at, u.username as reporter_name
+             FROM confession_reports r
+             JOIN confessions c ON r.confession_id = c.confession_id
+             LEFT JOIN users u ON r.reporter_id = u.user_id`,
+
+            `SELECT 'post' as type, r.report_id, r.post_id as target_id, r.reason, p.content, 
+                    r.status, r.created_at, u.username as reporter_name
+             FROM post_reports r
+             JOIN posts p ON r.post_id = p.post_id
+             LEFT JOIN users u ON r.reporter_id = u.user_id
+             WHERE r.status = 'pending'`
+        ];
+
+        for (const sql of queries) {
+            try {
+                const [rows] = await pool.query(sql);
+                reports = reports.concat(rows);
+            } catch (e) {
+                logger.warn(`Report query failed (table might be missing): ${e.message}`);
+            }
         }
+
+        reports.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         res.render('admin/reports', {
             title: 'Content Moderation',
@@ -203,8 +218,8 @@ const getLogs = async (req, res) => {
                 [parseInt(limit), parseInt(offset)]
             );
             logs = rows;
-            const [countResult] = await pool.query('SELECT COUNT(*) as total FROM admin_logs');
-            total = countResult[0].total;
+            const [[{ count }]] = await pool.query('SELECT COUNT(*) as count FROM admin_logs');
+            total = count;
         } catch (e) {
             logger.warn('admin_logs table may not exist:', e.message);
         }
@@ -224,11 +239,57 @@ const getLogs = async (req, res) => {
     }
 };
 
+// Export logs as JSON
+const exportLogs = async (req, res) => {
+    try {
+        const [logs] = await pool.query(
+            `SELECT al.*, u.username as admin_username FROM admin_logs al
+             LEFT JOIN users u ON al.admin_id = u.user_id
+             ORDER BY al.created_at DESC`
+        );
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=admin_logs.json');
+        res.send(JSON.stringify(logs, null, 2));
+    } catch (error) {
+        logger.error('Export logs error:', error);
+        res.status(500).json({ error: 'Failed to export logs' });
+    }
+};
+
+// Suspend user
+const suspendUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { status, reason } = req.body; // status: 'active' or 'suspended'
+        const adminId = req.user.userId || req.user.user_id;
+
+        await pool.query(
+            'UPDATE users SET account_status = ? WHERE user_id = ?',
+            [status, userId]
+        );
+
+        await pool.query(
+            `INSERT INTO admin_logs (log_id, admin_id, action, target_type, target_id, details, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+            [crypto.randomUUID(), adminId, status === 'suspended' ? 'suspend_user' : 'reactivate_user', 'user', userId,
+            JSON.stringify({ reason })]
+        );
+
+        res.json({ status: 'success', message: `User ${status} successfully` });
+    } catch (error) {
+        logger.error('Suspend user error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getUsers,
     updateUser,
     getReportedContent,
     resolveReport,
-    getLogs
+    getLogs,
+    exportLogs,
+    suspendUser
 };

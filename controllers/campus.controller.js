@@ -294,6 +294,109 @@ const getPollResults = async (req, res) => {
     }
 };
 
+// Create a live (text) stream
+const createStream = async (req, res) => {
+    try {
+        const { title, description, campus, category } = req.body;
+        const streamerId = req.user.user_id || req.user.userId;
+        const stream_id = require('crypto').randomUUID();
+
+        await pool.query(
+            'INSERT INTO live_streams (stream_id, streamer_id, title, description, campus, category, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [stream_id, streamerId, title, description || null, campus || req.user.campus, category || null, 'live']
+        );
+
+        res.status(201).json({ message: 'Stream created', stream_id });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Post an update to a live stream
+const postStreamUpdate = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { content } = req.body;
+        const streamerId = req.user.user_id || req.user.userId;
+        const update_id = require('crypto').randomUUID();
+
+        if (!content || !content.trim()) {
+            return res.status(400).json({ error: 'Content is required' });
+        }
+
+        // Verify ownership
+        const [streams] = await pool.query('SELECT * FROM live_streams WHERE stream_id = ? AND streamer_id = ?', [id, streamerId]);
+        if (streams.length === 0) return res.status(403).json({ error: 'Not your stream' });
+
+        await pool.query(
+            'INSERT INTO stream_updates (update_id, stream_id, content, created_at) VALUES (?, ?, ?, NOW())',
+            [update_id, id, content.trim()]
+        );
+
+        res.status(201).json({ message: 'Update posted', update_id });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Follow a stream (get updates)
+const followStream = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+        const follow_id = require('crypto').randomUUID();
+
+        await pool.query(
+            'INSERT INTO stream_followers (follow_id, stream_id, user_id, followed_at) VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE followed_at = NOW()',
+            [follow_id, id, userId]
+        );
+
+        res.json({ message: 'Stream followed. You will receive updates.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get event attendees
+const getEventAttendees = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [attendees] = await pool.query(
+            `SELECT r.user_id, r.status, u.name, u.username, u.avatar_url
+             FROM event_rsvps r
+             JOIN users u ON r.user_id = u.user_id
+             WHERE r.event_id = ? AND r.status = 'going'
+             ORDER BY r.created_at ASC`,
+            [id]
+        );
+        res.json({ status: 'success', data: attendees });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Share a poll — returns a shareable link
+const sharePoll = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        res.json({ status: 'success', data: { share_url: `${baseUrl}/polls/${id}` } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Share an event — returns a shareable link
+const shareEvent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        res.json({ status: 'success', data: { share_url: `${baseUrl}/events/${id}` } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     renderPolls,
     renderPollDetail,
@@ -306,5 +409,11 @@ module.exports = {
     rsvpEvent,
     createPoll,
     votePoll,
-    getPollResults
+    getPollResults,
+    createStream,
+    postStreamUpdate,
+    followStream,
+    getEventAttendees,
+    sharePoll,
+    shareEvent
 };

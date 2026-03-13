@@ -1,12 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sparkle</title>
-   <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0d6efd">
+<%- include('partials/head', { title: 'Sparkle' }) %>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
 
     <style>
         /* ------------------ Performance Optimizations ------------------ */
@@ -358,9 +352,7 @@
             }
         }
     </style>
-</head>
 
-<body>
 
     <div class="splash-container" id="splash">
         <div class="logo-wrapper">
@@ -456,13 +448,13 @@
         });
 
 
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/pwabuilder-sw.js')
-      .then(() => console.log('Service Worker registered'))
-      .catch(err => console.log('SW registration failed', err));
-  }
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/pwabuilder-sw.js')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.log('SW registration failed', err));
+        }
 
     </script>
-</body>
+    </body>
 
-</html>
+    </html>

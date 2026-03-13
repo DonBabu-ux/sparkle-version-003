@@ -16,14 +16,14 @@
         }
 
         body {
-            background-color: var(--body-bg);
+            background-color: var(--bg-light);
             background-image:
                 radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0, transparent 50%),
-                radial-gradient(at 50% 0%, rgba(168, 85, 247, 0.05) 0, transparent 50%);
-            color: var(--text-main);
+                radial-gradient(at 100% 0%, rgba(255, 61, 109, 0.05) 0, transparent 50%);
+            color: var(--text-light);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             opacity: 0;
-            animation: pageFadeIn 0.6s ease-out forwards;
+            animation: pageFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         @keyframes pageFadeIn {
@@ -56,6 +56,10 @@
         .afterglow-section {
             padding: 24px 0 10px;
             margin-bottom: 5px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 32px;
+            margin: 0 10px 20px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .afterglow-title {
@@ -277,7 +281,8 @@
     <%- include('partials/sidebar') %>
 
         <div class="container" id="mainContent">
-            <div id="homePage" class="page active">
+            <div id="homePage" class="page active"
+                style="animation: pageFadeIn 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);">
                 <%- include('partials/navbar') %>
 
                     <!-- Premium AfterGlow Stories Section -->

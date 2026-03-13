@@ -2,10 +2,10 @@
 
 :root {
     --primary: #FF3D6D;
-    --primary-gradient: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
+    --primary-gradient: linear-gradient(135deg, #FF3D6D 0%, #E91E63 100%);
     --secondary: #833AB4;
-    --accent: #FFD700;
-    --bg-light: #F8F9FA;
+    --accent: #6366F1;
+    --bg-light: #F8FAFC;
     --bg-dark: #0F172A;
     --text-light: #1E293B;
     --text-dark: #F1F5F9;
@@ -17,13 +17,12 @@
     --warning: #F59E0B;
     --danger: #EF4444;
     --anonymous: #EC4899;
-    --campus-blue: #FF3D6D;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.3);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.4);
 
     /* Instagram / Sparkle Auth Styles */
     --instagram-gradient: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D);
@@ -162,25 +161,34 @@ body.sidebar-collapsed {
 }
 
 .hamburger-item {
-    padding: 12px 15px;
+    padding: 12px 18px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     cursor: pointer;
-    border-radius: 8px;
-    margin: 5px 0;
-    transition: background 0.2s;
+    border-radius: 14px;
+    margin: 4px 10px;
+    transition: all 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
     text-decoration: none;
-    color: inherit;
+    color: var(--text-light);
+    font-weight: 500;
 }
 
 .hamburger-item:hover {
-    background: #f5f5f5;
+    background: rgba(99, 102, 241, 0.08);
+    transform: translateX(5px);
+    color: var(--primary);
 }
 
 .hamburger-item i {
-    width: 20px;
+    width: 24px;
+    font-size: 18px;
     color: var(--primary);
+    transition: transform 0.3s ease;
+}
+
+.hamburger-item:hover i {
+    transform: scale(1.1);
 }
 
 .hamburger-badge {
@@ -317,9 +325,10 @@ body.sidebar-collapsed {
 /* Glassmorphism Utility */
 .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
     border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
 .dark-mode .glass {
@@ -333,14 +342,16 @@ body.sidebar-collapsed {
     bottom: 0;
     left: 0;
     width: 100%;
-    background: var(--card-bg);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 12px 0;
-    border-top: 1px solid var(--border);
+    padding: 14px 0 env(safe-area-inset-bottom);
+    border-top: 1px solid var(--glass-border);
     z-index: 1000;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.03);
 }
 
 .nav-item {
@@ -552,14 +563,14 @@ body.sidebar-collapsed {
 .post-card,
 [data-id].post-card,
 [data-post-id].post-card {
-    background: var(--glass-bg, rgba(255, 255, 255, 0.7)) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-radius: 28px !important;
-    margin-bottom: 24px !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05) !important;
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.3)) !important;
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border-radius: 32px !important;
+    margin-bottom: 28px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid var(--glass-border) !important;
+    transition: var(--transition);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -567,24 +578,24 @@ body.sidebar-collapsed {
 }
 
 .post-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.08);
+    transform: translateY(-5px) scale(1.005);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.06);
 }
 
 .post-header {
     display: flex;
     align-items: center;
-    padding: 16px 20px;
-    gap: 12px;
+    padding: 20px 24px;
+    gap: 14px;
 }
 
 .post-avatar {
-    width: 44px !important;
-    height: 44px !important;
+    width: 48px !important;
+    height: 48px !important;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid white;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .post-author-info {
@@ -632,13 +643,13 @@ body.sidebar-collapsed {
 }
 
 .post-text-body {
-    padding: 16px 20px 20px;
+    padding: 0 24px 20px;
 }
 
 .post-caption-full {
-    font-size: 15px;
-    line-height: 1.7;
-    color: #334155;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-light);
     font-weight: 500;
 }
 
@@ -684,26 +695,26 @@ body.sidebar-collapsed {
 
 .action-btn-custom {
     flex: 1;
-    height: 44px;
-    border-radius: 14px;
+    height: 46px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     font-size: 13px;
     font-weight: 700;
-    border: 1px solid #f1f5f9;
-    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    background: rgba(255, 255, 255, 0.5);
     color: #64748b;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: var(--transition);
 }
 
 .action-btn-custom:hover {
     transform: translateY(-2px);
-    border-color: #e2e8f0;
-    background: #f8fafc;
-    color: #1e293b;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    color: var(--primary);
 }
 
 .action-btn-custom[onclick*="sparkPost"].active {

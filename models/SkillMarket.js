@@ -102,6 +102,34 @@ class SkillMarket {
             throw error;
         }
     }
+    static async updateOffer(offerId, updates) {
+        const allowed = ['title', 'description', 'category', 'skill_type', 'price', 'is_free', 'availability'];
+        const fields = [], values = [];
+        for (const [k, v] of Object.entries(updates)) {
+            if (allowed.includes(k)) { fields.push(`${k} = ?`); values.push(v); }
+        }
+        if (fields.length === 0) return;
+        values.push(offerId);
+        await pool.query(`UPDATE skill_offers SET ${fields.join(', ')} WHERE offer_id = ?`, values);
+    }
+
+    static async deleteOffer(offerId) {
+        await pool.query('UPDATE skill_offers SET is_active = 0 WHERE offer_id = ?', [offerId]);
+    }
+
+    static async rateExchange(bookingId, userId, rating, review) {
+        const reviewId = require('crypto').randomUUID();
+        // Look up the offer_id from the booking
+        const [rows] = await pool.query('SELECT offer_id FROM skill_bookings WHERE booking_id = ?', [bookingId]);
+        if (!rows.length) throw new Error('Booking not found');
+        const { offer_id } = rows[0];
+        await pool.query(
+            `INSERT INTO skill_reviews (review_id, offer_id, booking_id, reviewer_id, rating, review, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE rating = VALUES(rating), review = VALUES(review)`,
+            [reviewId, offer_id, bookingId, userId, rating, review || null]
+        );
+    }
 }
 
 module.exports = SkillMarket;

@@ -1,171 +1,173 @@
-<!DOCTYPE html>
-<html lang="en">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+    <%= title %> | Sparkle Admin
+</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>
-        <%= title %> | Sparkle Admin
-    </title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: #f0f2f5;
+        color: #1a1a1a;
+    }
 
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #f0f2f5;
-            color: #1a1a1a;
-        }
+    .admin-layout {
+        display: flex;
+        min-height: 100vh;
+    }
 
-        .admin-layout {
-            display: flex;
-            min-height: 100vh;
-        }
+    .admin-main {
+        flex: 1;
+        overflow-y: auto;
+    }
 
-        .admin-main {
-            flex: 1;
-            overflow-y: auto;
-        }
+    .admin-content {
+        padding: 30px;
+        max-width: 1400px;
+    }
 
-        .admin-content {
-            padding: 30px;
-            max-width: 1400px;
-        }
+    h1 {
+        font-size: 28px;
+        font-weight: 800;
+        margin-bottom: 24px;
+    }
 
-        h1 {
-            font-size: 28px;
-            font-weight: 800;
-            margin-bottom: 24px;
-        }
+    .card {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+        overflow: hidden;
+    }
 
-        .card {
-            background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
-            overflow: hidden;
-        }
+    .report-item {
+        padding: 18px 22px;
+        border-bottom: 1px solid #f5f5f5;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
 
-        .report-item {
-            padding: 18px 22px;
-            border-bottom: 1px solid #f5f5f5;
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-        }
+    .report-content {
+        flex: 1;
+    }
 
-        .report-content {
-            flex: 1;
-        }
+    .report-reason {
+        font-weight: 600;
+        font-size: 15px;
+        margin-bottom: 4px;
+    }
 
-        .report-reason {
-            font-weight: 600;
-            font-size: 15px;
-            margin-bottom: 4px;
-        }
+    .report-meta {
+        font-size: 12px;
+        color: #888;
+    }
 
-        .report-meta {
-            font-size: 12px;
-            color: #888;
-        }
+    .report-preview {
+        font-size: 13px;
+        color: #555;
+        margin-top: 6px;
+        padding: 8px 12px;
+        background: #f8f8f8;
+        border-radius: 8px;
+    }
 
-        .report-preview {
-            font-size: 13px;
-            color: #555;
-            margin-top: 6px;
-            padding: 8px 12px;
-            background: #f8f8f8;
-            border-radius: 8px;
-        }
+    .btn {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+    }
 
-        .btn {
-            padding: 6px 14px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-        }
+    .btn-dismiss {
+        background: #f5f5f5;
+        color: #666;
+    }
 
-        .btn-dismiss {
-            background: #f5f5f5;
-            color: #666;
-        }
+    .btn-delete {
+        background: #ffebee;
+        color: #c62828;
+    }
 
-        .btn-delete {
-            background: #ffebee;
-            color: #c62828;
-        }
+    .empty {
+        padding: 40px;
+        text-align: center;
+        color: #999;
+        font-size: 15px;
+    }
+</style>
 
-        .empty {
-            padding: 40px;
-            text-align: center;
-            color: #999;
-            font-size: 15px;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="admin-layout">
-        <%- include('../partials/admin-sidebar') %>
-            <div class="admin-main">
-                <div class="admin-content">
-                    <h1>🚩 Content Moderation</h1>
-                    <div class="card">
-                        <% if (reports.length===0) { %>
-                            <div class="empty"><i class="fas fa-check-circle"
-                                    style="font-size:32px;margin-bottom:10px;display:block;color:#4caf50;"></i> No
-                                pending reports</div>
-                            <% } else { %>
-                                <% reports.forEach(r=> { %>
-                                    <div class="report-item" id="report-<%= r.report_id %>">
-                                        <div style="color:#ff5252;font-size:20px;padding-top:2px;"><i
-                                                class="fas fa-flag"></i></div>
-                                        <div class="report-content">
-                                            <div class="report-reason">
-                                                <%= r.reason || 'Reported Content' %>
-                                            </div>
-                                            <div class="report-meta">
-                                                Reported by @<%= r.reporter_username || 'unknown' %> ·
-                                                    <%= new Date(r.created_at).toLocaleString() %>
-                                            </div>
-                                            <% if (r.listing_title || r.details) { %>
-                                                <div class="report-preview">
-                                                    <%= r.listing_title || r.details %>
-                                                </div>
-                                                <% } %>
-                                        </div>
-                                        <div style="display:flex;gap:8px;">
-                                            <button class="btn btn-dismiss"
-                                                onclick="resolveReport('<%= r.report_id %>','dismiss')">Dismiss</button>
-                                            <button class="btn btn-delete"
-                                                onclick="resolveReport('<%= r.report_id %>','delete')">Remove
-                                                Content</button>
-                                        </div>
+<div class="admin-layout">
+    <%- include('../partials/admin-sidebar') %>
+        <div class="admin-main">
+            <div class="admin-content">
+                <h1>🚩 Content Moderation</h1>
+                <div class="card">
+                    <% if (reports.length===0) { %>
+                        <div class="empty"><i class="fas fa-check-circle"
+                                style="font-size:32px;margin-bottom:10px;display:block;color:#4caf50;"></i> No
+                            pending reports</div>
+                        <% } else { %>
+                            <% reports.forEach(r=> { %>
+                                <div class="report-item" id="report-<%= r.report_id %>">
+                                    <div style="color:#ff5252;font-size:20px;padding-top:2px;">
+                                        <i
+                                            class="fas <%= r.type === 'confession' ? 'fa-user-secret' : r.type === 'marketplace' ? 'fa-store' : 'fa-flag' %>"></i>
                                     </div>
-                                    <% }) %>
-                                        <% } %>
-                    </div>
+                                    <div class="report-content">
+                                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                            <span class="report-reason">
+                                                <%= r.reason || 'Reported Content' %>
+                                            </span>
+                                            <span class="badge"
+                                                style="background:#f1f5f9; color:#475569; font-size:10px; padding:2px 6px;">
+                                                <%= r.type.toUpperCase() %>
+                                            </span>
+                                        </div>
+                                        <div class="report-meta">
+                                            Reported by @<%= r.reporter_name || 'unknown' %> ·
+                                                <%= new Date(r.created_at).toLocaleString() %>
+                                        </div>
+                                        <% if (r.content) { %>
+                                            <div class="report-preview">
+                                                <%= r.content %>
+                                            </div>
+                                            <% } %>
+                                    </div>
+                                    <div style="display:flex;gap:8px;">
+                                        <button class="btn btn-dismiss"
+                                            onclick="resolveReport('<%= r.report_id %>','<%= r.type %>','dismiss')">Dismiss</button>
+                                        <button class="btn btn-delete"
+                                            onclick="resolveReport('<%= r.report_id %>','<%= r.type %>','delete')">Remove
+                                            Content</button>
+                                    </div>
+                                </div>
+                                <% }) %>
+                                    <% } %>
                 </div>
             </div>
-    </div>
-    <script>
-        function resolveReport(id, action) {
-            if (!confirm('Are you sure?')) return;
-            fetch(`/admin/reports/${id}/resolve`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, notes: action })
-            })
-                .then(r => r.json())
-                .then(() => { document.getElementById('report-' + id).remove(); })
-                .catch(e => alert('Error: ' + e.message));
-        }
-    </script>
+        </div>
+</div>
+<script>
+    function resolveReport(id, type, action) {
+        if (!confirm('Are you sure?')) return;
+        fetch(`/admin/reports/${id}/resolve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, notes: action, type })
+        })
+            .then(r => r.json())
+            .then(() => { document.getElementById('report-' + id).remove(); })
+            .catch(e => alert('Error: ' + e.message));
+    }
+</script>
 </body>
 
 </html>

@@ -97,7 +97,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Routes
-app.use('/api', apiRoutes);
+app.use('/api', apiRateLimiter, apiRoutes);
 app.use('/', webRoutes);
 
 // 404 Handler

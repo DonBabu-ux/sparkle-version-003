@@ -1,12 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>
-        <%= typeof title !=='undefined' ? title : 'Sparkle API Tester' %>
-    </title>
+<%- include('partials/head', { title: typeof title !=='undefined' ? title : 'API Tester' }) %>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -297,9 +289,7 @@
             background: rgba(255, 255, 255, 0.2);
         }
     </style>
-</head>
 
-<body>
     <aside>
         <div class="sidebar-header">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
@@ -695,6 +685,6 @@
 
         init();
     </script>
-</body>
+    </body>
 
-</html>
+    </html>

@@ -74,9 +74,65 @@ const bookSession = async (req, res) => {
     }
 };
 
+const updateOffer = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+        const offer = await SkillMarket.findById(id);
+        if (!offer) return res.status(404).json({ error: 'Offer not found' });
+        if (offer.user_id !== userId) return res.status(403).json({ error: 'Unauthorized' });
+
+        const allowed = ['title', 'description', 'category', 'skill_type', 'price', 'is_free', 'availability'];
+        const updates = {};
+        allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+
+        await SkillMarket.updateOffer(id, updates);
+        res.json({ success: true, message: 'Offer updated' });
+    } catch (error) {
+        logger.error('Update Offer error:', error);
+        res.status(500).json({ error: 'Failed to update offer' });
+    }
+};
+
+const deleteOffer = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+        const offer = await SkillMarket.findById(id);
+        if (!offer) return res.status(404).json({ error: 'Offer not found' });
+        if (offer.user_id !== userId) return res.status(403).json({ error: 'Unauthorized' });
+        await SkillMarket.deleteOffer(id);
+        res.json({ success: true, message: 'Offer deleted' });
+    } catch (error) {
+        logger.error('Delete Offer error:', error);
+        res.status(500).json({ error: 'Failed to delete offer' });
+    }
+};
+
+const rateExchange = async (req, res) => {
+    try {
+        const { id } = req.params; // booking_id
+        const userId = req.user.user_id || req.user.userId;
+        const { rating, review } = req.body;
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+        }
+
+        await SkillMarket.rateExchange(id, userId, rating, review);
+        res.json({ success: true, message: 'Rating submitted' });
+    } catch (error) {
+        logger.error('Rate Exchange error:', error);
+        res.status(500).json({ error: 'Failed to submit rating' });
+    }
+};
+
 module.exports = {
     getOffers,
     createOffer,
     getOfferById,
-    bookSession
+    bookSession,
+    updateOffer,
+    deleteOffer,
+    rateExchange
 };

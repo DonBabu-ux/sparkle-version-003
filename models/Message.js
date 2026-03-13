@@ -130,6 +130,102 @@ class Message {
             is_followed_by: results[0].is_followed_by > 0
         };
     }
+
+    // Soft-delete a message (only by sender)
+    static async deleteMessage(messageId, userId) {
+        const [result] = await db.query(
+            'UPDATE messages SET deleted_at = NOW(), content = "[Message deleted]" WHERE message_id = ? AND sender_id = ?',
+            [messageId, userId]
+        );
+        return result.affectedRows > 0;
+    }
+
+    // Edit a message (only by sender, within 15 minutes)
+    static async editMessage(messageId, userId, newContent) {
+        const [result] = await db.query(
+            `UPDATE messages 
+             SET content = ?, edited_at = NOW() 
+             WHERE message_id = ? AND sender_id = ? 
+               AND deleted_at IS NULL
+               AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 15`,
+            [newContent, messageId, userId]
+        );
+        return result.affectedRows > 0;
+    }
+
+    // Add or update a reaction to a message
+    static async addReaction(messageId, userId, emoji) {
+        await db.query(
+            `INSERT INTO message_reactions (message_id, user_id, emoji, reacted_at)
+             VALUES (?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE emoji = VALUES(emoji), reacted_at = NOW()`,
+            [messageId, userId, emoji]
+        );
+        return true;
+    }
+
+    // Remove a reaction
+    static async removeReaction(messageId, userId) {
+        const [result] = await db.query(
+            'DELETE FROM message_reactions WHERE message_id = ? AND user_id = ?',
+            [messageId, userId]
+        );
+        return result.affectedRows > 0;
+    }
+
+    // Mark all messages from a partner as read
+    static async markMessagesRead(partnerId, currentUserId) {
+        const [result] = await db.query(
+            `UPDATE messages 
+             SET read_at = NOW() 
+             WHERE sender_id = ? AND recipient_id = ? AND read_at IS NULL AND deleted_at IS NULL`,
+            [partnerId, currentUserId]
+        );
+        return result.affectedRows;
+    }
+
+    // Search messages within a 1-on-1 conversation
+    static async searchMessages(userId, partnerId, query) {
+        const [messages] = await db.query(
+            `SELECT m.*, u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
+             FROM messages m
+             JOIN users u ON m.sender_id = u.user_id
+             WHERE ((m.sender_id = ? AND m.recipient_id = ?) OR (m.sender_id = ? AND m.recipient_id = ?))
+               AND m.content LIKE ?
+               AND m.deleted_at IS NULL
+             ORDER BY m.sent_at DESC
+             LIMIT 50`,
+            [userId, partnerId, partnerId, userId, `%${query}%`]
+        );
+        return messages;
+    }
+
+    // Mute or unmute a conversation
+    static async muteConversation(userId, partnerId, muted = true) {
+        if (muted) {
+            await db.query(
+                `INSERT INTO muted_conversations (user_id, partner_id, muted_at)
+                 VALUES (?, ?, NOW())
+                 ON DUPLICATE KEY UPDATE muted_at = NOW()`,
+                [userId, partnerId]
+            );
+        } else {
+            await db.query(
+                'DELETE FROM muted_conversations WHERE user_id = ? AND partner_id = ?',
+                [userId, partnerId]
+            );
+        }
+        return true;
+    }
+
+    // Get a single message by ID
+    static async getById(messageId) {
+        const [rows] = await db.query(
+            'SELECT * FROM messages WHERE message_id = ?',
+            [messageId]
+        );
+        return rows[0] || null;
+    }
 }
 
 module.exports = Message;

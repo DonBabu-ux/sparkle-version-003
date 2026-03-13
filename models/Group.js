@@ -85,24 +85,23 @@ class Group {
     /**
      * Add member to group
      */
-    static async addMember(groupId, userId, role = 'member') {
+    static async addMember(groupId, userId, role = 'member', status = 'active') {
         // Check if already exists
         const existing = await this.getMember(groupId, userId);
         if (existing) {
-            if (existing.status !== 'active') {
+            if (existing.status !== status) {
                 await pool.query(
-                    'UPDATE group_members SET status = "active" WHERE membership_id = ?',
-                    [existing.membership_id]
+                    'UPDATE group_members SET status = ? WHERE membership_id = ?',
+                    [status, existing.membership_id]
                 );
-                return existing.membership_id;
             }
-            return existing.membership_id; // Already active
+            return existing.membership_id;
         }
 
         const membershipId = crypto.randomUUID();
         await pool.query(
             'INSERT INTO group_members (membership_id, group_id, user_id, role, status) VALUES (?, ?, ?, ?, ?)',
-            [membershipId, groupId, userId, role, 'active']
+            [membershipId, groupId, userId, role, status]
         );
         return membershipId;
     }
@@ -202,6 +201,58 @@ class Group {
         values.push(groupId);
         await pool.query(`UPDATE groups SET ${fields.join(', ')} WHERE group_id = ?`, values);
         return true;
+    }
+
+    /**
+     * Approve a pending join request
+     */
+    static async approveRequest(groupId, userId) {
+        const [result] = await pool.query(
+            'UPDATE group_members SET status = "active" WHERE group_id = ? AND user_id = ? AND status = "pending"',
+            [groupId, userId]
+        );
+        return result.affectedRows > 0;
+    }
+
+    /**
+     * Get all active members of a group with user info
+     */
+    static async getMembers(groupId) {
+        const [members] = await pool.query(
+            `SELECT gm.*, u.user_id, u.name, u.username, u.avatar_url, u.campus
+             FROM group_members gm
+             JOIN users u ON gm.user_id = u.user_id
+             WHERE gm.group_id = ? AND gm.status = 'active'
+             ORDER BY FIELD(gm.role, 'admin', 'creator', 'moderator', 'member'), gm.created_at`,
+            [groupId]
+        );
+        return members;
+    }
+
+    /**
+     * Get pending join requests for a group
+     */
+    static async getPendingRequests(groupId) {
+        const [members] = await pool.query(
+            `SELECT gm.*, u.user_id, u.name, u.username, u.avatar_url
+             FROM group_members gm
+             JOIN users u ON gm.user_id = u.user_id
+             WHERE gm.group_id = ? AND gm.status = 'pending'
+             ORDER BY gm.created_at DESC`,
+            [groupId]
+        );
+        return members;
+    }
+
+    /**
+     * Update member role (promote/demote)
+     */
+    static async updateMemberRole(groupId, userId, role) {
+        const [result] = await pool.query(
+            'UPDATE group_members SET role = ? WHERE group_id = ? AND user_id = ? AND status = "active"',
+            [role, groupId, userId]
+        );
+        return result.affectedRows > 0;
     }
 }
 

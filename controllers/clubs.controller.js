@@ -179,6 +179,75 @@ const updateClub = async (req, res) => {
     }
 };
 
+const rsvpEvent = async (req, res) => {
+    try {
+        const { id: clubId, eventId } = req.params;
+        const { status } = req.body; // 'going', 'not_going', 'maybe'
+        const userId = req.user.user_id || req.user.userId;
+        await Club.rsvpEvent(clubId, eventId, userId, status || 'going');
+        res.json({ message: 'RSVP recorded', status: status || 'going' });
+    } catch (error) {
+        logger.error('RSVP Event Error:', error);
+        res.status(500).json({ error: 'Failed to RSVP' });
+    }
+};
+
+const getLeadership = async (req, res) => {
+    try {
+        const leadership = await Club.getLeadership(req.params.id);
+        res.json({ status: 'success', data: leadership });
+    } catch (error) {
+        logger.error('Get Leadership Error:', error);
+        res.status(500).json({ error: 'Failed to get leadership' });
+    }
+};
+
+const getClubsByCategory = async (req, res) => {
+    try {
+        const { category } = req.params;
+        const clubs = await Club.getByCategory(category);
+        res.json({ status: 'success', data: clubs });
+    } catch (error) {
+        logger.error('Get Clubs By Category Error:', error);
+        res.status(500).json({ error: 'Failed to filter clubs by category' });
+    }
+};
+
+const createAnnouncement = async (req, res) => {
+    try {
+        const clubId = req.params.id;
+        const userId = req.user.user_id || req.user.userId;
+        const { content } = req.body;
+
+        if (!content || !content.trim()) {
+            return res.status(400).json({ error: 'Content is required' });
+        }
+
+        // Verify admin/moderator role
+        const club = await Club.findById(clubId, userId);
+        if (!club) return res.status(404).json({ error: 'Club not found' });
+        if (!['admin', 'moderator'].includes(club.user_role)) {
+            return res.status(403).json({ error: 'Only admins/moderators can post announcements' });
+        }
+
+        const announcementId = await Club.createAnnouncement(clubId, userId, content.trim());
+        res.status(201).json({ message: 'Announcement created', announcement_id: announcementId });
+    } catch (error) {
+        logger.error('Create Announcement Error:', error);
+        res.status(500).json({ error: 'Failed to create announcement' });
+    }
+};
+
+const getAnnouncements = async (req, res) => {
+    try {
+        const announcements = await Club.getAnnouncements(req.params.id);
+        res.json({ status: 'success', data: announcements });
+    } catch (error) {
+        logger.error('Get Announcements Error:', error);
+        res.status(500).json({ error: 'Failed to fetch announcements' });
+    }
+};
+
 module.exports = {
     renderClubs,
     renderClubDetail,
@@ -188,5 +257,10 @@ module.exports = {
     joinClub,
     leaveClub,
     getMembers,
-    updateClub
+    updateClub,
+    rsvpEvent,
+    getLeadership,
+    getClubsByCategory,
+    createAnnouncement,
+    getAnnouncements
 };

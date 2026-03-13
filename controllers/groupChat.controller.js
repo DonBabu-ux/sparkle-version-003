@@ -121,6 +121,56 @@ class GroupChatController {
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
+    async leaveGroupChat(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+
+            // Update membership status to 'left'
+            await GroupMember.updateStatus(chatId, userId, 'left');
+
+            // Send system message
+            await Message.sendMessage({
+                chatId,
+                senderId: userId,
+                content: 'left the group',
+                type: 'system'
+            });
+
+            res.json({ status: 'success', message: 'Left group chat' });
+        } catch (error) {
+            console.error('Leave Group Chat Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async sendGroupMessage(req, res) {
+        try {
+            const { chatId } = req.params;
+            const { content, media_url, type } = req.body;
+            const userId = req.user.user_id || req.user.userId;
+
+            if (!content && !media_url) {
+                return res.status(400).json({ status: 'error', error: 'Content or media is required' });
+            }
+
+            const messageId = await Message.sendMessage({
+                chatId,
+                senderId: userId,
+                content: content || '',
+                type: type || 'text',
+                mediaUrl: media_url || null
+            });
+
+            // Update last_message_at on the group chat
+            await GroupChat.updateLastMessage(chatId);
+
+            res.status(201).json({ status: 'success', data: { messageId, chatId } });
+        } catch (error) {
+            console.error('Send Group Message Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
 }
 
 module.exports = new GroupChatController();

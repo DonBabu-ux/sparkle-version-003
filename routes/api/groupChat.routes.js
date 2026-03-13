@@ -8,16 +8,14 @@ const { upload } = require('../../middleware/upload.middleware');
 router.post('/', authMiddleware, upload.single('pfp'), groupChatController.createGroupChat);
 router.get('/', authMiddleware, groupChatController.getUserChats);
 router.get('/:chatId', authMiddleware, groupChatController.getChatDetails);
+router.put('/:chatId', authMiddleware, upload.single('pfp'), groupChatController.updateGroup);   // group name & icon
 
 // Messages
 router.get('/:chatId/messages', authMiddleware, groupChatController.getMessages);
+router.post('/:chatId/messages', authMiddleware, groupChatController.sendGroupMessage);           // NEW — send to group chat
 
 // Membership
 router.post('/:chatId/members', authMiddleware, groupChatController.addMembers);
-
-// Group Update
-router.put('/:chatId', authMiddleware, upload.single('pfp'), groupChatController.updateGroup);
-
-// TODO: Add other routes as needed (leave, settings, etc.) based on future requirements
+router.delete('/:chatId/members/me', authMiddleware, groupChatController.leaveGroupChat);         // NEW — leave group chat
 
 module.exports = router;

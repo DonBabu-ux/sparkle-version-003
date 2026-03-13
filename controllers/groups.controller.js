@@ -118,8 +118,28 @@ const joinGroup = async (req, res) => {
     try {
         const userId = req.user.user_id || req.user.userId;
         const groupId = req.params.id;
-        await Group.addMember(groupId, userId);
-        res.json({ message: 'Joined group successfully' });
+
+        // Look up the group to check visibility
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ error: 'Group not found' });
+
+        // If private group, create a pending request instead of active membership
+        const status = group.is_public ? 'active' : 'pending';
+        const alreadyMember = await Group.getMember(groupId, userId);
+        if (alreadyMember && alreadyMember.status === 'active') {
+            return res.status(409).json({ message: 'Already a member of this group' });
+        }
+        if (alreadyMember && alreadyMember.status === 'pending') {
+            return res.json({ message: 'Join request already pending', status: 'pending' });
+        }
+
+        await Group.addMember(groupId, userId, 'member', status);
+
+        if (status === 'pending') {
+            res.json({ message: 'Join request sent. Waiting for admin approval.', status: 'pending' });
+        } else {
+            res.json({ message: 'Joined group successfully', status: 'active' });
+        }
     } catch (error) {
         logger.error('Join Group Error:', error);
         res.status(500).json({ error: 'Failed to join group' });
@@ -130,6 +150,13 @@ const leaveGroup = async (req, res) => {
     try {
         const userId = req.user.user_id || req.user.userId;
         const groupId = req.params.id;
+
+        // Prevent creator from leaving without transferring ownership
+        const group = await Group.findById(groupId);
+        if (group && group.creator_id === userId) {
+            return res.status(400).json({ error: 'Group creator cannot leave. Transfer ownership or delete the group first.' });
+        }
+
         const success = await Group.removeMember(groupId, userId);
         if (!success) return res.status(404).json({ error: 'Membership not found' });
         res.json({ message: 'Left group successfully' });
@@ -198,15 +225,117 @@ const createGroupPost = async (req, res) => {
     }
 };
 
+// NEW: Get members list
+const getGroupMembers = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const members = await Group.getMembers(groupId);
+        res.json({ status: 'success', data: members });
+    } catch (error) {
+        logger.error('Get Group Members Error:', error);
+        res.status(500).json({ error: 'Failed to fetch members' });
+    }
+};
+
+// NEW: Get pending join requests (admin only)
+const getPendingRequests = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const userId = req.user.user_id || req.user.userId;
+
+        const member = await Group.getMember(groupId, userId);
+        if (!member || !['admin', 'creator'].includes(member.role)) {
+            return res.status(403).json({ error: 'Only admins can view pending requests' });
+        }
+
+        const requests = await Group.getPendingRequests(groupId);
+        res.json({ status: 'success', data: requests });
+    } catch (error) {
+        logger.error('Get Pending Requests Error:', error);
+        res.status(500).json({ error: 'Failed to fetch pending requests' });
+    }
+};
+
+// NEW: Approve a pending join request (admin only)
+const approveRequest = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const targetUserId = req.params.userId;
+        const adminId = req.user.user_id || req.user.userId;
+
+        const adminMember = await Group.getMember(groupId, adminId);
+        if (!adminMember || !['admin', 'creator'].includes(adminMember.role)) {
+            return res.status(403).json({ error: 'Only admins can approve requests' });
+        }
+
+        const approved = await Group.approveRequest(groupId, targetUserId);
+        if (!approved) return res.status(404).json({ error: 'No pending request found for this user' });
+        res.json({ message: 'Request approved' });
+    } catch (error) {
+        logger.error('Approve Request Error:', error);
+        res.status(500).json({ error: 'Failed to approve request' });
+    }
+};
+
+// NEW: Promote a member to admin
+const promoteAdmin = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const targetUserId = req.params.userId;
+        const adminId = req.user.user_id || req.user.userId;
+
+        const adminMember = await Group.getMember(groupId, adminId);
+        if (!adminMember || !['admin', 'creator'].includes(adminMember.role)) {
+            return res.status(403).json({ error: 'Only admins can promote members' });
+        }
+
+        const promoted = await Group.updateMemberRole(groupId, targetUserId, 'admin');
+        if (!promoted) return res.status(404).json({ error: 'Member not found' });
+        res.json({ message: 'Member promoted to admin' });
+    } catch (error) {
+        logger.error('Promote Admin Error:', error);
+        res.status(500).json({ error: 'Failed to promote member' });
+    }
+};
+
+// NEW: Remove a member from group (admin only)
+const removeMemberByAdmin = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const targetUserId = req.params.userId;
+        const adminId = req.user.user_id || req.user.userId;
+
+        const adminMember = await Group.getMember(groupId, adminId);
+        if (!adminMember || !['admin', 'creator'].includes(adminMember.role)) {
+            return res.status(403).json({ error: 'Only admins can remove members' });
+        }
+
+        if (targetUserId === adminId) {
+            return res.status(400).json({ error: 'Use leave group to remove yourself' });
+        }
+
+        const removed = await Group.removeMember(groupId, targetUserId);
+        if (!removed) return res.status(404).json({ error: 'Member not found' });
+        res.json({ message: 'Member removed from group' });
+    } catch (error) {
+        logger.error('Remove Member Error:', error);
+        res.status(500).json({ error: 'Failed to remove member' });
+    }
+};
+
 module.exports = {
     renderGroups,
     renderGroupDetail,
+    renderGroupFeed,
     getCampusGroups,
     createGroup,
     joinGroup,
     leaveGroup,
-    leaveGroup,
     updateGroup,
     createGroupPost,
-    renderGroupFeed
+    getGroupMembers,
+    getPendingRequests,
+    approveRequest,
+    promoteAdmin,
+    removeMemberByAdmin
 };

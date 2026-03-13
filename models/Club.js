@@ -165,6 +165,84 @@ class Club {
         );
         return true;
     }
+
+    /**
+     * RSVP to a club event
+     * @param {string} clubId
+     * @param {string} eventId
+     * @param {string} userId
+     * @param {string} status - 'going' | 'not_going' | 'maybe'
+     */
+    static async rsvpEvent(clubId, eventId, userId, status = 'going') {
+        const rsvpId = crypto.randomUUID();
+        await pool.query(
+            `INSERT INTO club_event_rsvps (rsvp_id, club_id, event_id, user_id, status, created_at)
+             VALUES (?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE status = VALUES(status)`,
+            [rsvpId, clubId, eventId, userId, status]
+        );
+        return true;
+    }
+
+    /**
+     * Get leadership (admins/moderators) of a club
+     */
+    static async getLeadership(clubId) {
+        const [members] = await pool.query(
+            `SELECT cm.*, u.user_id, u.name, u.username, u.avatar_url
+             FROM club_members cm
+             JOIN users u ON cm.user_id = u.user_id
+             WHERE cm.club_id = ? AND cm.role IN ('admin', 'moderator') AND cm.status = 'active'
+             ORDER BY FIELD(cm.role, 'admin', 'moderator'), cm.joined_at`,
+            [clubId]
+        );
+        return members;
+    }
+
+    /**
+     * Get clubs filtered by category
+     */
+    static async getByCategory(category) {
+        const [clubs] = await pool.query(
+            `SELECT c.*, u.name as admin_name, u.avatar_url as admin_avatar,
+                    (SELECT COUNT(*) FROM club_members WHERE club_id = c.club_id AND status = 'active') as member_count
+             FROM clubs c
+             LEFT JOIN users u ON c.admin_id = u.user_id
+             WHERE c.category = ?
+             ORDER BY c.created_at DESC`,
+            [category]
+        );
+        return clubs;
+    }
+
+    /**
+     * Create an announcement (pinned post) for a club
+     */
+    static async createAnnouncement(clubId, userId, content) {
+        const announcementId = crypto.randomUUID();
+        await pool.query(
+            `INSERT INTO club_announcements (announcement_id, club_id, user_id, content, created_at)
+             VALUES (?, ?, ?, ?, NOW())`,
+            [announcementId, clubId, userId, content]
+        );
+        return announcementId;
+    }
+
+    /**
+     * Get pinned announcements for a club
+     */
+    static async getAnnouncements(clubId) {
+        const [announcements] = await pool.query(
+            `SELECT ca.*, u.name, u.username, u.avatar_url
+             FROM club_announcements ca
+             JOIN users u ON ca.user_id = u.user_id
+             WHERE ca.club_id = ?
+             ORDER BY ca.created_at DESC
+             LIMIT 20`,
+            [clubId]
+        );
+        return announcements;
+    }
 }
 
 module.exports = Club;

@@ -25,25 +25,56 @@ class MessageController {
 
     async sendMessage(req, res) {
         try {
-            const { content, media_url, type } = req.body;
-            const partnerId = req.params.partnerId || req.body.partnerId || req.body.conversationId;
+            const { content, media_url, type, story_reply, partnerId, conversationId } = req.body;
+            const recipientId = req.params.partnerId || partnerId || conversationId;
             const userId = (req.user && (req.user.user_id || req.user.userId)) || null;
 
             if (!userId) {
                 return res.status(401).json({ status: 'error', error: 'Authentication required' });
             }
 
-            console.log(`[DEBUG] Sending message from ${userId} to ${partnerId}`);
+            if (!content && !media_url) {
+                return res.status(400).json({ status: 'error', error: 'Content or media is required' });
+            }
+
+            console.log(`[DEBUG] Sending message from ${userId} to ${recipientId}, type: ${type}`);
+
+            // Handle story reply type
+            let storyId = null;
+            let messageContent = content;
+
+            if (type === 'story_reply' && story_reply) {
+                // Verify story exists
+                const pool = require('../config/database');
+                const [story] = await pool.query(
+                    'SELECT story_id, caption FROM stories WHERE story_id = ?', 
+                    [story_reply.storyId]
+                );
+                
+                if (!story || story.length === 0) {
+                    return res.status(404).json({ status: 'error', error: 'Story not found' });
+                }
+
+                storyId = story_reply.storyId;
+                
+                // Include story metadata in content
+                messageContent = JSON.stringify({
+                    text: content,
+                    storyId: story_reply.storyId,
+                    storyCaption: story[0].caption
+                });
+            }
 
             const messageId = await Message.sendMessage({
-                recipientId: partnerId,
+                recipientId,
                 senderId: userId,
-                content,
+                content: messageContent,
                 type: type || 'text',
-                mediaUrl: media_url || null
+                mediaUrl: media_url || null,
+                storyId
             });
 
-            res.json({ status: 'success', data: { messageId, recipientId: partnerId } });
+            res.json({ status: 'success', data: { messageId, recipientId } });
         } catch (error) {
             console.error('[ERROR] sendMessage:', error);
             res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });

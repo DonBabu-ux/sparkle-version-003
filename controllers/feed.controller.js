@@ -87,7 +87,11 @@ const getStories = async (req, res) => {
                 TIMESTAMPDIFF(SECOND, NOW(), s.created_at + INTERVAL 24 HOUR) as seconds_left,
                 (SELECT COUNT(*) FROM stories WHERE user_id = s.user_id AND created_at > NOW() - INTERVAL 24 HOUR) as user_story_count,
                 COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id), 0) as like_count,
-                COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0) as is_liked
+                -- Only show is_liked to the story owner
+                CASE 
+                    WHEN s.user_id = ? THEN COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0)
+                    ELSE 0 
+                END as is_liked
             FROM stories s
             JOIN users u ON s.user_id = u.user_id
             WHERE s.created_at > NOW() - INTERVAL 24 HOUR
@@ -99,7 +103,7 @@ const getStories = async (req, res) => {
             )
             ORDER BY s.created_at DESC
             LIMIT 200
-        `, [currentUserId, currentUserId, currentUserId, currentUserId]);
+        `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);
 
         // group by user
         const groups = [];
@@ -123,7 +127,7 @@ const getStories = async (req, res) => {
                 caption: s.caption,
                 created_at: s.created_at,
                 like_count: parseInt(s.like_count) || 0,
-                is_liked: parseInt(s.is_liked) === 1
+                is_liked: parseInt(s.is_liked) === 1 // Only true for story owner
             });
         });
 

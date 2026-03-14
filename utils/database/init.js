@@ -172,27 +172,6 @@ const initGroupsTable = async () => {
     }
 };
 
-const initMessagesTable = async () => {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS messages (
-                message_id CHAR(36) PRIMARY KEY,
-                sender_id CHAR(36) NOT NULL,
-                recipient_id CHAR(36) NOT NULL,
-                content TEXT NOT NULL,
-                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                FOREIGN KEY (recipient_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                INDEX idx_sent_at (sent_at)
-            )
-        `);
-        logger.debug('✅ Messages table verified');
-    } catch (err) {
-        logger.error('❌ Failed to init messages table:', err.message);
-        throw err;
-    }
-};
-
 const initStoriesTable = async () => {
     try {
         await pool.query(`
@@ -258,6 +237,62 @@ const initStorySharesTable = async () => {
         logger.debug('✅ Story shares table verified');
     } catch (err) {
         logger.error('❌ Failed to init story shares table:', err.message);
+        throw err;
+    }
+};
+
+const initPersonalChatsTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS personal_chats (
+                chat_id CHAR(36) NOT NULL PRIMARY KEY,
+                participant1_id CHAR(36) NOT NULL,
+                participant2_id CHAR(36) NOT NULL,
+                last_message_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (participant1_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (participant2_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                UNIQUE KEY unique_participants (participant1_id, participant2_id),
+                INDEX idx_personal_chats_participant1 (participant1_id, last_message_time),
+                INDEX idx_personal_chats_participant2 (participant2_id, last_message_time)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        logger.debug('✅ Personal chats table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init personal chats table:', err.message);
+        throw err;
+    }
+};
+
+const initMessagesTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS messages (
+                message_id CHAR(36) NOT NULL PRIMARY KEY,
+                chat_id CHAR(36) DEFAULT NULL,
+                personal_chat_id CHAR(36) DEFAULT NULL,
+                sender_id CHAR(36) NOT NULL,
+                type ENUM('text', 'image', 'video', 'voice_note', 'post_share', 'system', 'call', 'marketplace_listing', 'story_reply') DEFAULT 'text',
+                content TEXT DEFAULT NULL,
+                media_url VARCHAR(500) DEFAULT NULL,
+                story_id CHAR(36) DEFAULT NULL,
+                is_read TINYINT(1) DEFAULT 0,
+                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                read_at TIMESTAMP NULL DEFAULT NULL,
+                FOREIGN KEY (chat_id) REFERENCES group_chats(chat_id) ON DELETE CASCADE,
+                FOREIGN KEY (personal_chat_id) REFERENCES personal_chats(chat_id) ON DELETE CASCADE,
+                FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE SET NULL,
+                INDEX idx_messages_group_chat (chat_id, sent_at),
+                INDEX idx_messages_personal_chat (personal_chat_id, sent_at),
+                INDEX idx_messages_sender (sender_id, sent_at),
+                INDEX idx_messages_unread (sender_id, is_read, sent_at),
+                INDEX idx_messages_story (story_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        logger.debug('✅ Messages table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init messages table:', err.message);
         throw err;
     }
 };
@@ -396,6 +431,7 @@ const initDB = async () => {
             await initStoriesTable();
             await initStoryLikesTable();
             await initStorySharesTable();
+            await initPersonalChatsTable();
             await initLostFoundTable();
             await initSkillMarketTable();
         });

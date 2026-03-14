@@ -3,38 +3,64 @@ const crypto = require('crypto');
 
 class Message {
     // Start or get conversation
-    // In this schema, a conversation is just a virtual link between two users.
-    // So "conversationId" is conceptually the partner's userId for direct messaging.
     static async getOrCreateConversation(currentUserId, partnerId) {
-        // Just verify the partner exists
-        const [users] = await db.query('SELECT user_id FROM users WHERE user_id = ?', [partnerId]);
-        if (users.length === 0) {
-            return null;
+        // Check if personal chat already exists
+        const [existing] = await db.query(`
+            SELECT chat_id FROM personal_chats 
+            WHERE (participant1_id = ? AND participant2_id = ?)
+               OR (participant1_id = ? AND participant2_id = ?)
+        `, [currentUserId, partnerId, partnerId, currentUserId]);
+
+        if (existing && existing.length > 0) {
+            return existing[0].chat_id;
         }
-        // In the absence of a conversations table, the 'ID' of the conversation 
-        // from the perspective of the frontend is the partner's ID.
-        return partnerId;
+
+        // Create new personal chat
+        const chatId = crypto.randomUUID();
+        await db.query(`
+            INSERT INTO personal_chats (chat_id, participant1_id, participant2_id)
+            VALUES (?, ?, ?)
+        `, [chatId, currentUserId, partnerId]);
+
+        return chatId;
     }
 
     // Send message (support for Direct and Group)
-    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null }) {
+    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null }) {
         const messageId = crypto.randomUUID();
 
         console.log(`[DEBUG] Message.sendMessage: model preparing query for ${messageId}`);
-        console.log(`[DEBUG] Params:`, { recipientId, chatId, senderId, type });
+        console.log(`[DEBUG] Params:`, { recipientId, chatId, senderId, type, storyId });
 
-        // Validation
-        if (!chatId && !recipientId) {
-            console.error('[ERROR] Message.sendMessage: validation failed');
+        let personalChatId = null;
+        let groupChatId = null;
+
+        // Determine chat type
+        if (recipientId) {
+            // Personal message - find or create personal chat
+            personalChatId = await this.getOrCreateConversation(senderId, recipientId);
+        } else if (chatId) {
+            // Group message
+            groupChatId = chatId;
+        } else {
             throw new Error('Recipient or Chat ID required');
         }
 
         try {
             await db.query(`
                 INSERT INTO messages (
-                    message_id, chat_id, recipient_id, sender_id, content, type, media_url, sent_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-            `, [messageId, chatId || null, recipientId || null, senderId, content, type, mediaUrl]);
+                    message_id, chat_id, personal_chat_id, sender_id, content, type, media_url, story_id, sent_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, storyId]);
+
+            // Update last_message_time for personal chats
+            if (personalChatId) {
+                await db.query(`
+                    UPDATE personal_chats 
+                    SET last_message_time = NOW() 
+                    WHERE chat_id = ?
+                `, [personalChatId]);
+            }
 
             console.log(`[DEBUG] Message.sendMessage: query executed successfully`);
             return messageId;
@@ -46,6 +72,9 @@ class Message {
 
     // Get messages for conversation (Personal)
     static async getMessages(partnerId, currentUserId) {
+        // First get the personal chat ID
+        const chatId = await this.getOrCreateConversation(currentUserId, partnerId);
+        
         const [messages] = await db.query(`
             SELECT 
                 m.*,
@@ -54,10 +83,9 @@ class Message {
                 u.avatar_url as sender_avatar
             FROM messages m
             JOIN users u ON m.sender_id = u.user_id
-            WHERE (m.sender_id = ? AND m.recipient_id = ?)
-               OR (m.sender_id = ? AND m.recipient_id = ?)
+            WHERE m.personal_chat_id = ?
             ORDER BY m.sent_at ASC
-        `, [currentUserId, partnerId, partnerId, currentUserId]);
+        `, [chatId]);
 
         return messages;
     }

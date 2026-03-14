@@ -1746,7 +1746,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
         
-        // ============ AFTERGLOW STORY VIEWER WITH FULL INTERACTIONS ============
+       
+      // ============ AFTERGLOW STORY VIEWER WITH INLINE REPLY ============
 window.showAfterglowViewer = function (story) {
     console.log('📖 Opening story viewer for:', story);
 
@@ -1771,58 +1772,67 @@ window.showAfterglowViewer = function (story) {
 
     let currentIndex = startIndex;
     let progressInterval;
-    let timeLeft = 5; // seconds per story for images
     let isPaused = false;
     let currentVideo = null;
-    let touchStartY = 0;
-    let touchEndY = 0;
     let longPressTimer;
     let isLongPress = false;
-    let pressTimer;
+    let currentStoryId = null;
+    let currentStoryUserId = null;
+    let currentStoryUsername = null;
+    let currentStoryCaption = null;
 
-    // Track if story is liked
-    let isLiked = false;
+    // Track if reply bar is open
+    let isReplyOpen = false;
 
     function renderStory(index) {
         const currentStory = stories[index];
         if (!currentStory) return;
 
+        currentStoryId = currentStory.story_id || currentStory.id;
+        currentStoryUserId = currentStory.user_id;
+        currentStoryUsername = currentStory.username || currentStory.user_name || 'Sparkler';
+        currentStoryCaption = currentStory.caption || '';
+
         const isVideo = currentStory.media_url?.match(/\.(mp4|webm|mov)$/i) ||
             currentStory.media?.match(/\.(mp4|webm|mov)$/i) ||
-            currentStory.type === 'video';
+            currentStory.media_type === 'video';
 
         const mediaUrl = currentStory.media_url || currentStory.media || '';
-        const username = currentStory.username || currentStory.user_name || 'Sparkler';
+        const username = currentStoryUsername;
         const avatar = currentStory.avatar_url || currentStory.avatar || '/uploads/avatars/default.png';
-        const caption = currentStory.caption || '';
+        const caption = currentStoryCaption;
         const timestamp = currentStory.created_at ? new Date(currentStory.created_at).toLocaleTimeString() : 'Just now';
-        const storyId = currentStory.story_id || currentStory.id;
         
-        // Check if already liked
-        isLiked = currentStory.is_liked || currentStory.user_has_liked || false;
+        // Check if already liked from the story data
+        const isLiked = currentStory.is_liked || false;
         const likeCount = currentStory.like_count || 0;
 
         modal.innerHTML = `
             <div style="width: 100%; max-width: 400px; height: 100%; max-height: 700px; position: relative; background: #000; border-radius: 20px; overflow: hidden;">
-                <!-- Close button -->
-                <button class="close-story" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 20; display: flex; align-items: center; justify-content: center;">&times;</button>
-                
                 <!-- Progress bars -->
-                <div style="position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 5px; z-index: 10;">
+                <div style="position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 3px; z-index: 10; padding: 0 5px;">
                     ${stories.map((_, i) => `
                         <div style="flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;">
-                            <div class="progress-bar-${i}" style="width: ${i < index ? '100%' : i === index ? '0%' : '0%'}; height: 100%; background: white; transition: width ${isVideo && i === index ? 'linear' : '5s linear'};"></div>
+                            <div class="progress-bar-${i}" id="progress-${i}" 
+                                 style="width: ${i < index ? '100%' : i === index ? '0%' : '0%'}; 
+                                        height: 100%; 
+                                        background: white; 
+                                        transition: ${i === index ? (isVideo ? 'width linear' : 'width 5s linear') : 'none'};">
+                            </div>
                         </div>
                     `).join('')}
                 </div>
 
-                <!-- Media Container with long-press to pause -->
+                <!-- Close button -->
+                <button class="close-story" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 30; display: flex; align-items: center; justify-content: center;">&times;</button>
+
+                <!-- Media Container -->
                 <div id="storyMediaContainer" style="width: 100%; height: 100%; position: relative; cursor: pointer;">
                     ${isVideo ? `
                         <video id="storyVideo" src="${mediaUrl}" 
                                style="width: 100%; height: 100%; object-fit: contain;" 
                                playsinline
-                               onerror="this.style.display='none'; this.parentElement.innerHTML += '<div style=\'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#999;\'><i class=\'fas fa-video-slash\' style=\'font-size:40px;margin-bottom:10px;\'></i><span>Video Unavailable</span></div>'"></video>
+                               preload="metadata"></video>
                     ` : `
                         <img src="${mediaUrl}" id="storyImage"
                              style="width: 100%; height: 100%; object-fit: contain;" 
@@ -1835,7 +1845,7 @@ window.showAfterglowViewer = function (story) {
                     </div>
                 </div>
 
-                <!-- User info overlay (top) -->
+                <!-- User info overlay -->
                 <div style="position: absolute; top: 60px; left: 20px; right: 20px; display: flex; align-items: center; gap: 10px; z-index: 15;">
                     <img src="${avatar}" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; object-fit: cover;">
                     <div>
@@ -1844,90 +1854,91 @@ window.showAfterglowViewer = function (story) {
                     </div>
                 </div>
 
-                <!-- Caption overlay (bottom) -->
+                <!-- Caption overlay -->
                 ${caption ? `
                     <div style="position: absolute; bottom: 100px; left: 20px; right: 20px; color: white; font-size: 14px; line-height: 1.4; text-shadow: 0 1px 3px rgba(0,0,0,0.5); z-index: 15; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; backdrop-filter: blur(5px);">
                         ${caption}
                     </div>
                 ` : ''}
 
-                <!-- Interaction buttons (right side) -->
+                <!-- Interaction buttons -->
                 <div style="position: absolute; bottom: 100px; right: 15px; display: flex; flex-direction: column; gap: 20px; z-index: 30;">
-                    <!-- Like button -->
                     <div class="story-interaction-btn" id="storyLikeBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
-                        <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2); transition: transform 0.2s;">
+                        <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
                             <i class="fas fa-heart" style="color: ${isLiked ? '#ff3b6d' : 'white'}; font-size: 20px;"></i>
                         </div>
-                        <span style="color: white; font-size: 12px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">${likeCount}</span>
+                        <span style="color: white; font-size: 12px;" id="likeCount">${likeCount}</span>
                     </div>
 
-                    <!-- Reply button -->
                     <div class="story-interaction-btn" id="storyReplyBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
                         <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
                             <i class="fas fa-reply" style="color: white; font-size: 20px;"></i>
                         </div>
-                        <span style="color: white; font-size: 12px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">Reply</span>
+                        <span style="color: white; font-size: 12px;">Reply</span>
                     </div>
 
-                    <!-- Share button -->
                     <div class="story-interaction-btn" id="storyShareBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
                         <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
                             <i class="fas fa-share-alt" style="color: white; font-size: 20px;"></i>
                         </div>
-                        <span style="color: white; font-size: 12px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">Share</span>
+                        <span style="color: white; font-size: 12px;">Share</span>
                     </div>
                 </div>
 
-                <!-- Navigation areas (left/right click for next/prev) -->
+                <!-- Reply Input Bar (hidden by default) -->
+                <div id="replyBar" style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); padding: 15px; transform: translateY(100%); transition: transform 0.3s ease; z-index: 40; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="replyInput" placeholder="Reply to ${username}..." style="flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 25px; padding: 12px 18px; color: white; font-size: 14px; outline: none;" autocomplete="off">
+                        <button id="sendReplyBtn" style="background: #ff3b6d; border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <i class="fas fa-paper-plane" style="color: white; font-size: 18px;"></i>
+                        </button>
+                        <button id="closeReplyBtn" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <i class="fas fa-times" style="color: white; font-size: 18px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Navigation areas -->
                 <div style="position: absolute; top: 0; bottom: 0; left: 0; width: 30%; cursor: pointer; z-index: 20;" class="prev-story" id="prevStoryArea"></div>
                 <div style="position: absolute; top: 0; bottom: 0; right: 0; width: 30%; cursor: pointer; z-index: 20;" class="next-story" id="nextStoryArea"></div>
             </div>
         `;
 
-        // Add styles for interaction buttons
-        const style = document.createElement('style');
-        style.textContent = `
-            .story-interaction-btn:hover > div:first-child {
-                transform: scale(1.1);
-                background: rgba(255, 59, 109, 0.3) !important;
-            }
-            .story-interaction-btn:active > div:first-child {
-                transform: scale(0.95);
-            }
-            #storyLikeBtn.liked > div:first-child i {
-                color: #ff3b6d;
-                animation: likePop 0.3s ease;
-            }
-            @keyframes likePop {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.3); }
-                100% { transform: scale(1); }
-            }
-        `;
-        modal.appendChild(style);
-
-        // Handle video playback with proper duration
+        // Handle video playback
         if (isVideo) {
             const video = modal.querySelector('#storyVideo');
             if (video) {
                 currentVideo = video;
                 
                 video.onloadedmetadata = () => {
-                    currentVideoDuration = video.duration;
-                    timeLeft = video.duration;
+                    const videoDuration = video.duration;
                     
-                    // Set progress bar transition based on video duration
-                    const progressBar = modal.querySelector(`.progress-bar-${index}`);
+                    // Cap at 30 seconds max
+                    if (videoDuration > 30) {
+                        console.log('Video longer than 30s, limiting to 30s');
+                    }
+                    
+                    // Set progress bar for this video
+                    const progressBar = modal.querySelector(`#progress-${index}`);
                     if (progressBar) {
-                        progressBar.style.transition = `width ${video.duration}s linear`;
+                        progressBar.style.transition = `width ${Math.min(videoDuration, 30)}s linear`;
+                        progressBar.style.width = '100%';
                     }
                 };
                 
                 video.ontimeupdate = () => {
-                    const progress = (video.currentTime / video.duration) * 100;
-                    const progressBar = modal.querySelector(`.progress-bar-${index}`);
-                    if (progressBar) {
-                        progressBar.style.width = `${progress}%`;
+                    if (!isPaused) {
+                        const progress = (video.currentTime / Math.min(video.duration, 30)) * 100;
+                        const progressBar = modal.querySelector(`#progress-${index}`);
+                        if (progressBar) {
+                            progressBar.style.width = `${progress}%`;
+                        }
+                    }
+                    
+                    // Stop at 30 seconds if video is longer
+                    if (video.currentTime >= 30) {
+                        video.pause();
+                        goToNext();
                     }
                 };
                 
@@ -1935,20 +1946,34 @@ window.showAfterglowViewer = function (story) {
                     goToNext();
                 };
                 
+                video.onpause = () => {
+                    if (!isPaused) {
+                        isPaused = true;
+                        showPauseIndicator();
+                    }
+                };
+                
+                video.onplay = () => {
+                    if (isPaused) {
+                        isPaused = false;
+                        hidePauseIndicator();
+                    }
+                };
+                
                 // Start playing
                 video.play().catch(e => console.log('Video play failed:', e));
             }
         } else {
             // For images, start progress animation
-            const progressBar = modal.querySelector(`.progress-bar-${index}`);
+            const progressBar = modal.querySelector(`#progress-${index}`);
             if (progressBar) {
                 progressBar.style.transition = 'width 5s linear';
                 progressBar.style.width = '100%';
             }
             
             // Set timer for image stories
-            if (progressInterval) clearInterval(progressInterval);
-            progressInterval = setInterval(() => {
+            if (progressInterval) clearTimeout(progressInterval);
+            progressInterval = setTimeout(() => {
                 if (!isPaused) {
                     goToNext();
                 }
@@ -1956,78 +1981,167 @@ window.showAfterglowViewer = function (story) {
         }
 
         // Setup interaction handlers
-        setupInteractionHandlers(storyId, username, avatar, mediaUrl);
+        setupInteractionHandlers(currentStoryId, username, avatar, mediaUrl, currentStoryUserId, caption);
     }
 
-    function setupInteractionHandlers(storyId, username, avatar, mediaUrl) {
-        // Like button
+    function setupInteractionHandlers(storyId, username, avatar, mediaUrl, storyUserId, caption) {
         const likeBtn = modal.querySelector('#storyLikeBtn');
+        const likeCountSpan = modal.querySelector('#likeCount');
+        const likeIcon = likeBtn?.querySelector('i');
+
         if (likeBtn) {
             likeBtn.onclick = async (e) => {
                 e.stopPropagation();
                 try {
-                    const result = await DashboardAPI.likeStory(storyId);
+                    const token = localStorage.getItem('sparkleToken');
+                    const response = await fetch(`/api/stories/${storyId}/like`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
                     
-                    // Update UI
-                    const icon = likeBtn.querySelector('i');
-                    const countSpan = likeBtn.querySelector('span');
+                    if (!response.ok) throw new Error('Failed to like');
                     
-                    if (result.action === 'liked') {
-                        icon.style.color = '#ff3b6d';
+                    const result = await response.json();
+                    
+                    if (result.liked) {
+                        likeIcon.style.color = '#ff3b6d';
                         likeBtn.classList.add('liked');
-                        countSpan.textContent = parseInt(countSpan.textContent) + 1;
-                        
-                        // Show heart animation
+                        likeCountSpan.textContent = result.like_count;
                         showHeartAnimation();
                         
-                        // Create notification
-                        showNotification('Story liked! 💖', 'success');
+                        // Show notification
+                        window.showNotification?.('Story liked! 💖', 'success');
                     } else {
-                        icon.style.color = 'white';
+                        likeIcon.style.color = 'white';
                         likeBtn.classList.remove('liked');
-                        countSpan.textContent = Math.max(0, parseInt(countSpan.textContent) - 1);
+                        likeCountSpan.textContent = result.like_count;
                     }
                     
-                    isLiked = result.action === 'liked';
                 } catch (error) {
                     console.error('Failed to like story:', error);
-                    showNotification('Failed to like story', 'error');
+                    window.showNotification?.('Failed to like story', 'error');
                 }
             };
         }
 
-        // Reply button - opens chat with story context
+        // Reply button - opens inline reply bar
         const replyBtn = modal.querySelector('#storyReplyBtn');
+        const replyBar = modal.querySelector('#replyBar');
+        const replyInput = modal.querySelector('#replyInput');
+        const sendReplyBtn = modal.querySelector('#sendReplyBtn');
+        const closeReplyBtn = modal.querySelector('#closeReplyBtn');
+
         if (replyBtn) {
             replyBtn.onclick = (e) => {
                 e.stopPropagation();
-                closeViewer();
-                
-                // Get story owner info
-                const storyOwner = {
-                    id: stories[currentIndex]?.user_id,
-                    name: stories[currentIndex]?.username || stories[currentIndex]?.user_name,
-                    avatar: stories[currentIndex]?.avatar_url || stories[currentIndex]?.avatar
-                };
-                
-                // Open chat with pre-filled message about the story
-                setTimeout(() => {
-                    if (window.startChat) {
-                        window.startChat(storyOwner);
-                        
-                        // After chat opens, we could set a pre-filled message
-                        setTimeout(() => {
-                            const chatInput = document.getElementById('chatMessageInput');
-                            if (chatInput) {
-                                chatInput.value = `Replied to your story: "${stories[currentIndex]?.caption || 'Check out this story!'}"`;
-                                chatInput.focus();
-                            }
-                        }, 500);
-                    }
-                }, 300);
-                
-                showNotification('Reply to story opened in chat', 'info');
+                toggleReplyBar(true);
             };
+        }
+
+        // Send reply function
+        async function sendReply() {
+            const message = replyInput.value.trim();
+            if (!message) return;
+
+            try {
+                const token = localStorage.getItem('sparkleToken');
+                
+                // First, get or create a conversation
+                const conversationResponse = await fetch('/api/messages/start', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ partnerId: storyUserId })
+                });
+
+                if (!conversationResponse.ok) throw new Error('Failed to start conversation');
+                
+                const conversationData = await conversationResponse.json();
+                const conversationId = conversationData.data?.conversationId || conversationData.conversationId;
+
+                // Send the message
+                const messageResponse = await fetch('/api/messages/send', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        partnerId: storyUserId,
+                        conversationId: conversationId,
+                        content: message,
+                        type: 'text',
+                        story_reply: {
+                            storyId: storyId,
+                            caption: caption
+                        }
+                    })
+                });
+
+                if (!messageResponse.ok) throw new Error('Failed to send message');
+
+                // Clear input and close reply bar
+                replyInput.value = '';
+                toggleReplyBar(false);
+                
+                // Show success message
+                window.showNotification?.('Reply sent! 💬', 'success');
+
+            } catch (error) {
+                console.error('Failed to send reply:', error);
+                window.showNotification?.('Failed to send reply', 'error');
+            }
+        }
+
+        // Send reply on button click
+        if (sendReplyBtn) {
+            sendReplyBtn.onclick = (e) => {
+                e.stopPropagation();
+                sendReply();
+            };
+        }
+
+        // Send reply on Enter key
+        if (replyInput) {
+            replyInput.onkeypress = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendReply();
+                }
+            };
+        }
+
+        // Close reply bar
+        if (closeReplyBtn) {
+            closeReplyBtn.onclick = (e) => {
+                e.stopPropagation();
+                toggleReplyBar(false);
+            };
+        }
+
+        function toggleReplyBar(show) {
+            if (!replyBar) return;
+            
+            isReplyOpen = show;
+            replyBar.style.transform = show ? 'translateY(0)' : 'translateY(100%)';
+            
+            if (show) {
+                replyInput?.focus();
+                // Pause the story when replying
+                if (!isPaused) {
+                    togglePause();
+                }
+            } else {
+                // Resume the story if it was paused by reply
+                if (isPaused && !isLongPress) {
+                    togglePause();
+                }
+            }
         }
 
         // Share button
@@ -2036,16 +2150,23 @@ window.showAfterglowViewer = function (story) {
             shareBtn.onclick = async (e) => {
                 e.stopPropagation();
                 try {
-                    await DashboardAPI.shareStory(storyId);
+                    const token = localStorage.getItem('sparkleToken');
+                    const response = await fetch(`/api/stories/${storyId}/share`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
                     
-                    // Show share options
-                    showShareOptions(storyId, username, mediaUrl);
+                    if (!response.ok) throw new Error('Failed to share');
                     
-                    // Create notification
-                    showNotification('Story shared!', 'success');
+                    showShareOptions(storyId, username, mediaUrl, storyUserId, caption);
+                    window.showNotification?.('Story shared!', 'success');
+                    
                 } catch (error) {
                     console.error('Failed to share story:', error);
-                    showNotification('Failed to share story', 'error');
+                    window.showNotification?.('Failed to share story', 'error');
                 }
             };
         }
@@ -2064,11 +2185,20 @@ window.showAfterglowViewer = function (story) {
             pointer-events: none;
         `;
         modal.appendChild(heart);
-        
         setTimeout(() => heart.remove(), 600);
     }
 
-    function showShareOptions(storyId, username, mediaUrl) {
+    function showPauseIndicator() {
+        const indicator = modal.querySelector('#pauseIndicator');
+        if (indicator) indicator.style.display = 'flex';
+    }
+
+    function hidePauseIndicator() {
+        const indicator = modal.querySelector('#pauseIndicator');
+        if (indicator) indicator.style.display = 'none';
+    }
+
+    function showShareOptions(storyId, username, mediaUrl, storyUserId, caption) {
         const shareModal = document.createElement('div');
         shareModal.className = 'modal';
         shareModal.style.cssText = `
@@ -2105,37 +2235,39 @@ window.showAfterglowViewer = function (story) {
         document.body.appendChild(shareModal);
         
         shareModal.querySelectorAll('.share-option').forEach(btn => {
-            btn.onclick = (e) => {
+            btn.onclick = () => {
                 const type = btn.dataset.share;
                 if (type === 'feed') {
-                    // Share to feed - open create post with story link
                     document.body.removeChild(shareModal);
                     closeViewer();
                     setTimeout(() => {
                         if (window.showCreateOptions) {
                             window.showCreateOptions();
                             setTimeout(() => {
-                                const caption = document.getElementById('postCaption');
-                                if (caption) {
-                                    caption.value = `Shared a story from @${username}`;
+                                const captionInput = document.getElementById('postCaption');
+                                if (captionInput) {
+                                    captionInput.value = `Shared a story from @${username}: "${caption || 'Check out this story!'}"`;
                                 }
                             }, 500);
                         }
                     }, 300);
                 } else if (type === 'message') {
-                    // Share via message - open chat selection
                     document.body.removeChild(shareModal);
                     closeViewer();
                     setTimeout(() => {
-                        if (window.switchPage) {
-                            window.switchPage('messages');
-                            showNotification('Select a chat to share the story', 'info');
+                        // Open chat with story owner
+                        if (window.startChat) {
+                            window.startChat({
+                                id: storyUserId,
+                                name: username,
+                                avatar: mediaUrl
+                            });
                         }
                     }, 300);
                 } else if (type === 'copy') {
-                    // Copy link
-                    navigator.clipboard.writeText(`https://sparkle.app/stories/${storyId}`);
-                    showNotification('Link copied!', 'success');
+                    const storyUrl = `${window.location.origin}/stories/${storyId}`;
+                    navigator.clipboard.writeText(storyUrl);
+                    window.showNotification?.('Link copied!', 'success');
                     document.body.removeChild(shareModal);
                 }
             };
@@ -2153,8 +2285,13 @@ window.showAfterglowViewer = function (story) {
     }
 
     function goToNext() {
-        if (!isPaused) {
+        if (!isPaused && !isReplyOpen) {
             if (currentIndex < stories.length - 1) {
+                // Clear current progress timeout
+                if (progressInterval) {
+                    clearTimeout(progressInterval);
+                    progressInterval = null;
+                }
                 currentIndex++;
                 renderStory(currentIndex);
             } else {
@@ -2164,24 +2301,30 @@ window.showAfterglowViewer = function (story) {
     }
 
     function goToPrev() {
-        if (currentIndex > 0) {
-            currentIndex--;
-            renderStory(currentIndex);
-        } else {
-            closeViewer();
+        if (!isPaused && !isReplyOpen) {
+            if (currentIndex > 0) {
+                // Clear current progress timeout
+                if (progressInterval) {
+                    clearTimeout(progressInterval);
+                    progressInterval = null;
+                }
+                currentIndex--;
+                renderStory(currentIndex);
+            } else {
+                closeViewer();
+            }
         }
     }
 
     function togglePause() {
         isPaused = !isPaused;
         
-        // Show/hide pause indicator
-        const indicator = modal.querySelector('#pauseIndicator');
-        if (indicator) {
-            indicator.style.display = isPaused ? 'flex' : 'none';
+        if (isPaused) {
+            showPauseIndicator();
+        } else {
+            hidePauseIndicator();
         }
         
-        // Pause/resume video
         if (currentVideo) {
             if (isPaused) {
                 currentVideo.pause();
@@ -2189,33 +2332,37 @@ window.showAfterglowViewer = function (story) {
                 currentVideo.play().catch(e => console.log('Play failed:', e));
             }
         } else {
-            // For images, pause the progress timer
             if (isPaused) {
-                clearInterval(progressInterval);
-                // Pause progress bar
-                const progressBar = modal.querySelector(`.progress-bar-${currentIndex}`);
+                // Pause progress
+                if (progressInterval) {
+                    clearTimeout(progressInterval);
+                    progressInterval = null;
+                }
+                
+                // Pause progress bar animation
+                const progressBar = modal.querySelector(`#progress-${currentIndex}`);
                 if (progressBar) {
                     const computedStyle = window.getComputedStyle(progressBar);
-                    const width = computedStyle.getPropertyValue('width');
+                    const width = computedStyle.width;
                     progressBar.style.transition = 'none';
+                    progressBar.style.width = width;
                 }
             } else {
                 // Resume progress
-                const progressBar = modal.querySelector(`.progress-bar-${currentIndex}`);
+                const progressBar = modal.querySelector(`#progress-${currentIndex}`);
                 if (progressBar) {
                     const computedStyle = window.getComputedStyle(progressBar);
                     const currentWidth = parseFloat(computedStyle.width);
-                    const parentWidth = parseFloat(computedStyle.width.replace(progressBar.parentElement.offsetWidth, ''));
-                    const remainingPercent = 100 - (currentWidth / progressBar.parentElement.offsetWidth * 100);
+                    const parentWidth = progressBar.parentElement.offsetWidth;
+                    const percentComplete = (currentWidth / parentWidth) * 100;
+                    const remainingPercent = 100 - percentComplete;
                     const remainingTime = (remainingPercent / 100) * 5;
                     
                     progressBar.style.transition = `width ${remainingTime}s linear`;
                     progressBar.style.width = '100%';
                     
-                    // Reset interval
-                    clearInterval(progressInterval);
-                    progressInterval = setInterval(() => {
-                        if (!isPaused) {
+                    progressInterval = setTimeout(() => {
+                        if (!isPaused && !isReplyOpen) {
                             goToNext();
                         }
                     }, remainingTime * 1000);
@@ -2225,7 +2372,10 @@ window.showAfterglowViewer = function (story) {
     }
 
     function closeViewer() {
-        clearInterval(progressInterval);
+        if (progressInterval) {
+            clearTimeout(progressInterval);
+        }
+        clearTimeout(longPressTimer);
         if (currentVideo) {
             currentVideo.pause();
             currentVideo = null;
@@ -2239,7 +2389,7 @@ window.showAfterglowViewer = function (story) {
     // Render first story
     renderStory(currentIndex);
 
-    // Add event listeners after render
+    // Add event listeners
     setTimeout(() => {
         const closeBtn = modal.querySelector('.close-story');
         const prevArea = modal.querySelector('#prevStoryArea');
@@ -2252,71 +2402,68 @@ window.showAfterglowViewer = function (story) {
             closeViewer();
         });
 
-        // Navigation
+        // Navigation - only works if reply bar is closed
         prevArea?.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!isPaused) goToPrev();
+            if (!isPaused && !isReplyOpen) goToPrev();
         });
         
         nextArea?.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!isPaused) goToNext();
+            if (!isPaused && !isReplyOpen) goToNext();
         });
 
-        // Long press to pause (hold anywhere on media)
+        // Long press to pause
         if (mediaContainer) {
-            // Mouse events for desktop
             mediaContainer.addEventListener('mousedown', (e) => {
                 e.preventDefault();
-                pressTimer = setTimeout(() => {
+                longPressTimer = setTimeout(() => {
                     isLongPress = true;
                     togglePause();
                 }, 300);
             });
 
             mediaContainer.addEventListener('mouseup', () => {
-                clearTimeout(pressTimer);
-                if (isLongPress) {
-                    isLongPress = false;
-                }
+                clearTimeout(longPressTimer);
+                if (isLongPress) isLongPress = false;
             });
 
             mediaContainer.addEventListener('mouseleave', () => {
-                clearTimeout(pressTimer);
+                clearTimeout(longPressTimer);
                 if (isLongPress) {
                     isLongPress = false;
                     if (isPaused) togglePause();
                 }
             });
 
-            // Touch events for mobile
             mediaContainer.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                touchStartY = e.touches[0].clientY;
-                pressTimer = setTimeout(() => {
+                longPressTimer = setTimeout(() => {
                     isLongPress = true;
                     togglePause();
                 }, 300);
             });
 
-            mediaContainer.addEventListener('touchend', (e) => {
-                clearTimeout(pressTimer);
-                if (isLongPress) {
-                    isLongPress = false;
-                } else {
-                    // Single tap - check if it's a vertical swipe or tap
-                    const touchEndY = e.changedTouches[0].clientY;
-                    const diffY = Math.abs(touchEndY - touchStartY);
-                    
-                    if (diffY < 20) {
-                        // It's a tap, not a swipe - do nothing (navigation handled by side areas)
-                    }
-                }
+            mediaContainer.addEventListener('touchend', () => {
+                clearTimeout(longPressTimer);
+                if (isLongPress) isLongPress = false;
             });
 
-            mediaContainer.addEventListener('touchmove', (e) => {
-                // If moving, cancel long press
-                clearTimeout(pressTimer);
+            mediaContainer.addEventListener('touchmove', () => {
+                clearTimeout(longPressTimer);
+            });
+
+            // Double tap to like
+            let lastTap = 0;
+            mediaContainer.addEventListener('touchend', (e) => {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 300 && tapLength > 0) {
+                    e.preventDefault();
+                    const likeBtn = modal.querySelector('#storyLikeBtn');
+                    if (likeBtn) likeBtn.click();
+                }
+                lastTap = currentTime;
             });
         }
 
@@ -2324,12 +2471,19 @@ window.showAfterglowViewer = function (story) {
         const keyHandler = (e) => {
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
-                if (!isPaused) goToPrev();
+                if (!isPaused && !isReplyOpen) goToPrev();
             } else if (e.key === 'ArrowRight') {
                 e.preventDefault();
-                if (!isPaused) goToNext();
+                if (!isPaused && !isReplyOpen) goToNext();
             } else if (e.key === 'Escape') {
-                closeViewer();
+                e.preventDefault();
+                if (isReplyOpen) {
+                    // Close reply bar if open
+                    const closeReplyBtn = modal.querySelector('#closeReplyBtn');
+                    if (closeReplyBtn) closeReplyBtn.click();
+                } else {
+                    closeViewer();
+                }
             } else if (e.key === ' ' || e.key === 'Space') {
                 e.preventDefault();
                 togglePause();
@@ -2338,14 +2492,11 @@ window.showAfterglowViewer = function (story) {
         
         document.addEventListener('keydown', keyHandler);
 
-        // Clean up keyboard listener when modal closes
         modal.cleanup = () => {
             document.removeEventListener('keydown', keyHandler);
-            clearInterval(progressInterval);
-            clearTimeout(pressTimer);
-            if (currentVideo) {
-                currentVideo.pause();
-            }
+            if (progressInterval) clearTimeout(progressInterval);
+            clearTimeout(longPressTimer);
+            if (currentVideo) currentVideo.pause();
         };
     }, 100);
 
@@ -2373,17 +2524,34 @@ window.showAfterglowViewer = function (story) {
             50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.8; }
             100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
         }
+        .story-interaction-btn:hover > div:first-child {
+            transform: scale(1.1);
+            background: rgba(255, 59, 109, 0.3) !important;
+        }
         .close-story:hover {
             background: rgba(255,255,255,0.2) !important;
+            transform: scale(1.1);
         }
         .prev-story:hover, .next-story:hover {
             background: rgba(255,255,255,0.05);
         }
+        #replyInput:focus {
+            border-color: #ff3b6d;
+            box-shadow: 0 0 0 2px rgba(255, 59, 109, 0.3);
+        }
+        #sendReplyBtn:hover {
+            background: #ff1f57 !important;
+            transform: scale(1.05);
+        }
+        #closeReplyBtn:hover {
+            background: rgba(255,255,255,0.2) !important;
+        }
     `;
     document.head.appendChild(style);
 };
-
-
+      
+      
+      
         window.afterglowTimerInterval = setInterval(() => {
             const container = document.getElementById('afterglowStories');
             if (!container) return;

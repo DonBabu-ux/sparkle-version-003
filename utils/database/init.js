@@ -197,22 +197,67 @@ const initStoriesTable = async () => {
     try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS stories (
-                story_id CHAR(36) PRIMARY KEY,
+                story_id CHAR(36) NOT NULL PRIMARY KEY,
                 user_id CHAR(36) NOT NULL,
                 media_url VARCHAR(500) NOT NULL,
-                media_type ENUM('image', 'video') NOT NULL,
-                caption TEXT,
+                media_type ENUM('image', 'video') DEFAULT 'image',
+                caption VARCHAR(255) DEFAULT NULL,
+                view_count INT DEFAULT 0,
+                like_count INT DEFAULT 0,
+                share_count INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                expires_at TIMESTAMP GENERATED ALWAYS AS (created_at + INTERVAL 24 HOUR) STORED,
-                views INT DEFAULT 0,
+                expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL 24 HOUR),
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                INDEX idx_expires_at (expires_at),
-                INDEX idx_user_created (user_id, created_at DESC)
-            )
+                INDEX idx_stories_user (user_id, created_at),
+                INDEX idx_stories_active (expires_at, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
         logger.debug('✅ Stories table verified');
     } catch (err) {
         logger.error('❌ Failed to init stories table:', err.message);
+        throw err;
+    }
+};
+
+const initStoryLikesTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS story_likes (
+                like_id CHAR(36) NOT NULL PRIMARY KEY,
+                story_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_story_like (story_id, user_id),
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_story_likes_story (story_id, created_at),
+                INDEX idx_story_likes_user (user_id, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        logger.debug('✅ Story likes table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init story likes table:', err.message);
+        throw err;
+    }
+};
+
+const initStorySharesTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS story_shares (
+                share_id CHAR(36) NOT NULL PRIMARY KEY,
+                story_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_story_shares_story (story_id, created_at),
+                INDEX idx_story_shares_user (user_id, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        logger.debug('✅ Story shares table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init story shares table:', err.message);
         throw err;
     }
 };
@@ -349,6 +394,8 @@ const initDB = async () => {
             await initGroupsTable();
             await initMessagesTable();
             await initStoriesTable();
+            await initStoryLikesTable();
+            await initStorySharesTable();
             await initLostFoundTable();
             await initSkillMarketTable();
         });

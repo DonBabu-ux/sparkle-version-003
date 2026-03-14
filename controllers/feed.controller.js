@@ -228,25 +228,6 @@ const createStory = async (req, res) => {
             caption: caption || 'no caption'
         });
 
-        // Ensure stories table exists
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS stories (
-                story_id CHAR(36) NOT NULL PRIMARY KEY,
-                user_id CHAR(36) NOT NULL,
-                media_url VARCHAR(500) NOT NULL,
-                media_type ENUM('image', 'video') DEFAULT 'image',
-                caption VARCHAR(255) DEFAULT NULL,
-                view_count INT DEFAULT 0,
-                like_count INT DEFAULT 0,
-                share_count INT DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL 24 HOUR),
-                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                INDEX idx_stories_user (user_id, created_at),
-                INDEX idx_stories_active (expires_at, created_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
         await pool.query(
             'INSERT INTO stories (story_id, user_id, media_url, media_type, caption, like_count, share_count) VALUES (?, ?, ?, ?, ?, 0, 0)',
             [storyId, userId, media_url, media_type, caption || null]

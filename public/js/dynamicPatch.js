@@ -1627,6 +1627,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
         // ============ CORE LOADING FUNCTIONS ============
+        // Track viewed stories for ring colors
+        let viewedStories = JSON.parse(localStorage.getItem('viewedStories') || '{}');
+
         window.loadAfterglowStories = async function (options = {}) {
             const isSilent = options.silent || false;
             const container = document.getElementById('afterglowStories');
@@ -1701,6 +1704,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                         storyEl.className = 'story-view-card';
                         storyEl.dataset.userId = group.user_id;
                         storyEl.dataset.secondsLeft = group.stories[0]?.secondsLeft || 0;
+                        
+                        // Check if any story in this group has been viewed
+                        const hasUnviewed = group.stories.some(s => {
+                            const storyId = s.story_id || s.id;
+                            return !viewedStories[storyId];
+                        });
+                        
+                        // Pink ring for unviewed stories, grey for viewed (like Instagram)
+                        const ringColor = hasUnviewed ? '#ff3b6d' : '#8e8e8e';
 
                         storyEl.innerHTML = `
                             <div class="story-media-container" style="position:relative; width:100%; height:100%;">
@@ -1713,7 +1725,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 
                                 ${group.stories.length > 1 ? `<div class="story-multi-badge" style="position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.2); backdrop-filter:blur(4px); color:white; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:800; border:1px solid rgba(255,255,255,0.3); z-index:3;">${group.stories.length}</div>` : ''}
 
-                                <div class="story-avatar-badge" style="position:absolute; top:10px; left:10px; width:34px; height:34px; border-radius:50%; border:2px solid var(--accent); padding:2px; background:white; z-index:3; box-shadow:0 4px 8px rgba(0,0,0,0.2);">
+                                <div class="story-avatar-badge" style="position:absolute; top:10px; left:10px; width:34px; height:34px; border-radius:50%; border:2px solid ${ringColor}; padding:2px; background:white; z-index:3; box-shadow:0 4px 8px rgba(0,0,0,0.2);">
                                     <img src="${group.avatar_url || '/uploads/avatars/default.png'}"
                                          style="width:100%; height:100%; border-radius:50%; object-fit:cover;"
                                          onerror="this.src='/uploads/avatars/default.png'">
@@ -1745,813 +1757,851 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         };
 
-        
-       
-      // ============ AFTERGLOW STORY VIEWER WITH INLINE REPLY ============
-window.showAfterglowViewer = function (story) {
-    console.log('📖 Opening story viewer for:', story);
+        // ============ AFTERGLOW STORY VIEWER WITH FIXED PROGRESS BARS & PINK RINGS ============
+        window.showAfterglowViewer = function (story) {
+            console.log('📖 Opening story viewer for:', story);
 
-    // If we have multiple stories in activeStories, use that
-    const stories = window.activeStories || [story];
-    const startIndex = window.currentStoryIndex || 0;
+            // If we have multiple stories in activeStories, use that
+            const stories = window.activeStories || [story];
+            const startIndex = window.currentStoryIndex || 0;
 
-    const modal = document.createElement('div');
-    modal.className = 'afterglow-viewer-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.95);
-        z-index: 100000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    `;
+            const modal = document.createElement('div');
+            modal.className = 'afterglow-viewer-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.95);
+                z-index: 100000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
 
-    let currentIndex = startIndex;
-    let progressInterval;
-    let isPaused = false;
-    let currentVideo = null;
-    let longPressTimer;
-    let isLongPress = false;
-    let currentStoryId = null;
-    let currentStoryUserId = null;
-    let currentStoryUsername = null;
-    let currentStoryCaption = null;
+            let currentIndex = startIndex;
+            let progressInterval;
+            let isPaused = false;
+            let currentVideo = null;
+            let longPressTimer;
+            let isLongPress = false;
+            let currentStoryId = null;
+            let currentStoryUserId = null;
+            let currentStoryUsername = null;
+            let currentStoryCaption = null;
+            let videoDuration = 0;
 
-    // Track if reply bar is open
-    let isReplyOpen = false;
+            // Track if reply bar is open
+            let isReplyOpen = false;
 
-    function renderStory(index) {
-        const currentStory = stories[index];
-        if (!currentStory) return;
+            function renderStory(index) {
+                const currentStory = stories[index];
+                if (!currentStory) return;
 
-        currentStoryId = currentStory.story_id || currentStory.id;
-        currentStoryUserId = currentStory.user_id;
-        currentStoryUsername = currentStory.username || currentStory.user_name || 'Sparkler';
-        currentStoryCaption = currentStory.caption || '';
+                currentStoryId = currentStory.story_id || currentStory.id;
+                currentStoryUserId = currentStory.user_id;
+                currentStoryUsername = currentStory.username || currentStory.user_name || 'Sparkler';
+                currentStoryCaption = currentStory.caption || '';
 
-        const isVideo = currentStory.media_url?.match(/\.(mp4|webm|mov)$/i) ||
-            currentStory.media?.match(/\.(mp4|webm|mov)$/i) ||
-            currentStory.media_type === 'video';
+                // Mark this story as viewed
+                viewedStories[currentStoryId] = true;
+                localStorage.setItem('viewedStories', JSON.stringify(viewedStories));
 
-        const mediaUrl = currentStory.media_url || currentStory.media || '';
-        const username = currentStoryUsername;
-        const avatar = currentStory.avatar_url || currentStory.avatar || '/uploads/avatars/default.png';
-        const caption = currentStoryCaption;
-        const timestamp = currentStory.created_at ? new Date(currentStory.created_at).toLocaleTimeString() : 'Just now';
-        
-        // Check if already liked from the story data
-        const isLiked = currentStory.is_liked || false;
-        const likeCount = currentStory.like_count || 0;
+                const isVideo = currentStory.media_url?.match(/\.(mp4|webm|mov)$/i) ||
+                    currentStory.media?.match(/\.(mp4|webm|mov)$/i) ||
+                    currentStory.media_type === 'video';
 
-        modal.innerHTML = `
-            <div style="width: 100%; max-width: 400px; height: 100%; max-height: 700px; position: relative; background: #000; border-radius: 20px; overflow: hidden;">
-                <!-- Progress bars -->
-                <div style="position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 3px; z-index: 10; padding: 0 5px;">
-                    ${stories.map((_, i) => `
-                        <div style="flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;">
-                            <div class="progress-bar-${i}" id="progress-${i}" 
-                                 style="width: ${i < index ? '100%' : i === index ? '0%' : '0%'}; 
-                                        height: 100%; 
-                                        background: white; 
-                                        transition: ${i === index ? (isVideo ? 'width linear' : 'width 5s linear') : 'none'};">
+                const mediaUrl = currentStory.media_url || currentStory.media || '';
+                const username = currentStoryUsername;
+                const avatar = currentStory.avatar_url || currentStory.avatar || '/uploads/avatars/default.png';
+                const caption = currentStoryCaption;
+                const timestamp = currentStory.created_at ? new Date(currentStory.created_at).toLocaleTimeString() : 'Just now';
+                
+                // Check if already liked from the story data
+                const isLiked = currentStory.is_liked || false;
+                const likeCount = currentStory.like_count || 0;
+
+                modal.innerHTML = `
+                    <div style="width: 100%; max-width: 400px; height: 100%; max-height: 700px; position: relative; background: #000; border-radius: 20px; overflow: hidden;">
+                        <!-- Progress bars - Each has its own progress bar with proper timing -->
+                        <div style="position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 3px; z-index: 10; padding: 0 5px;">
+                            ${stories.map((_, i) => `
+                                <div style="flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;">
+                                    <div class="progress-bar-${i}" id="progress-${i}" 
+                                         style="width: ${i < index ? '100%' : i === index ? '0%' : '0%'}; 
+                                                height: 100%; 
+                                                background: #ff3b6d; 
+                                                transition: ${i === index ? (isVideo ? 'width linear' : 'width 5s linear') : 'none'};">
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <!-- Close button -->
+                        <button class="close-story" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 30; display: flex; align-items: center; justify-content: center;">&times;</button>
+
+                        <!-- Media Container -->
+                        <div id="storyMediaContainer" style="width: 100%; height: 100%; position: relative; cursor: pointer;">
+                            ${isVideo ? `
+                                <video id="storyVideo" src="${mediaUrl}" 
+                                       style="width: 100%; height: 100%; object-fit: contain;" 
+                                       playsinline
+                                       preload="metadata"></video>
+                            ` : `
+                                <img src="${mediaUrl}" id="storyImage"
+                                     style="width: 100%; height: 100%; object-fit: contain;" 
+                                     onerror="this.src='/uploads/avatars/default.png'; this.style.filter='blur(10px) brightness(0.5)';">
+                            `}
+                            
+                            <!-- Pause indicator -->
+                            <div id="pauseIndicator" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; width: 60px; height: 60px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 24px; z-index: 25;">
+                                <i class="fas fa-pause"></i>
                             </div>
                         </div>
-                    `).join('')}
-                </div>
 
-                <!-- Close button -->
-                <button class="close-story" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 30; display: flex; align-items: center; justify-content: center;">&times;</button>
-
-                <!-- Media Container -->
-                <div id="storyMediaContainer" style="width: 100%; height: 100%; position: relative; cursor: pointer;">
-                    ${isVideo ? `
-                        <video id="storyVideo" src="${mediaUrl}" 
-                               style="width: 100%; height: 100%; object-fit: contain;" 
-                               playsinline
-                               preload="metadata"></video>
-                    ` : `
-                        <img src="${mediaUrl}" id="storyImage"
-                             style="width: 100%; height: 100%; object-fit: contain;" 
-                             onerror="this.src='/uploads/avatars/default.png'; this.style.filter='blur(10px) brightness(0.5)';">
-                    `}
-                    
-                    <!-- Pause indicator -->
-                    <div id="pauseIndicator" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; width: 60px; height: 60px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 24px; z-index: 25;">
-                        <i class="fas fa-pause"></i>
-                    </div>
-                </div>
-
-                <!-- User info overlay -->
-                <div style="position: absolute; top: 60px; left: 20px; right: 20px; display: flex; align-items: center; gap: 10px; z-index: 15;">
-                    <img src="${avatar}" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; object-fit: cover;">
-                    <div>
-                        <div style="color: white; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">${username}</div>
-                        <div style="color: rgba(255,255,255,0.8); font-size: 11px; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">${timestamp}</div>
-                    </div>
-                </div>
-
-                <!-- Caption overlay -->
-                ${caption ? `
-                    <div style="position: absolute; bottom: 100px; left: 20px; right: 20px; color: white; font-size: 14px; line-height: 1.4; text-shadow: 0 1px 3px rgba(0,0,0,0.5); z-index: 15; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; backdrop-filter: blur(5px);">
-                        ${caption}
-                    </div>
-                ` : ''}
-
-                <!-- Interaction buttons -->
-                <div style="position: absolute; bottom: 100px; right: 15px; display: flex; flex-direction: column; gap: 20px; z-index: 30;">
-                    <div class="story-interaction-btn" id="storyLikeBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
-                        <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
-                            <i class="fas fa-heart" style="color: ${isLiked ? '#ff3b6d' : 'white'}; font-size: 20px;"></i>
+                        <!-- User info overlay - Now visible -->
+                        <div style="position: absolute; top: 60px; left: 20px; right: 20px; display: flex; align-items: center; gap: 10px; z-index: 15;">
+                            <img src="${avatar}" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; object-fit: cover;">
+                            <div>
+                                <div style="color: white; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">${username}</div>
+                                <div style="color: rgba(255,255,255,0.8); font-size: 11px; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">${timestamp}</div>
+                            </div>
                         </div>
-                        <span style="color: white; font-size: 12px;" id="likeCount">${likeCount}</span>
-                    </div>
 
-                    <div class="story-interaction-btn" id="storyReplyBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
-                        <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
-                            <i class="fas fa-reply" style="color: white; font-size: 20px;"></i>
+                        <!-- Caption overlay - Now visible -->
+                        ${caption ? `
+                            <div style="position: absolute; bottom: 100px; left: 20px; right: 20px; color: white; font-size: 14px; line-height: 1.4; text-shadow: 0 1px 3px rgba(0,0,0,0.5); z-index: 15; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; backdrop-filter: blur(5px);">
+                                ${caption}
+                            </div>
+                        ` : ''}
+
+                        <!-- Interaction buttons - Now visible and working -->
+                        <div style="position: absolute; bottom: 100px; right: 15px; display: flex; flex-direction: column; gap: 20px; z-index: 30;">
+                            <!-- Like button -->
+                            <div class="story-interaction-btn" id="storyLikeBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                                <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
+                                    <i class="fas fa-heart" style="color: ${isLiked ? '#ff3b6d' : 'white'}; font-size: 20px;"></i>
+                                </div>
+                                <span style="color: white; font-size: 12px;" id="likeCount">${likeCount}</span>
+                            </div>
+
+                            <!-- Reply button -->
+                            <div class="story-interaction-btn" id="storyReplyBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                                <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
+                                    <i class="fas fa-reply" style="color: white; font-size: 20px;"></i>
+                                </div>
+                                <span style="color: white; font-size: 12px;">Reply</span>
+                            </div>
+
+                            <!-- Share button -->
+                            <div class="story-interaction-btn" id="storyShareBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                                <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
+                                    <i class="fas fa-share-alt" style="color: white; font-size: 20px;"></i>
+                                </div>
+                                <span style="color: white; font-size: 12px;">Share</span>
+                            </div>
                         </div>
-                        <span style="color: white; font-size: 12px;">Reply</span>
-                    </div>
 
-                    <div class="story-interaction-btn" id="storyShareBtn" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
-                        <div style="width: 45px; height: 45px; background: rgba(0,0,0,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);">
-                            <i class="fas fa-share-alt" style="color: white; font-size: 20px;"></i>
+                        <!-- Reply Input Bar (hidden by default) -->
+                        <div id="replyBar" style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); padding: 15px; transform: translateY(100%); transition: transform 0.3s ease; z-index: 40; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="text" id="replyInput" placeholder="Reply to ${username}..." style="flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 25px; padding: 12px 18px; color: white; font-size: 14px; outline: none;" autocomplete="off">
+                                <button id="sendReplyBtn" style="background: #ff3b6d; border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                    <i class="fas fa-paper-plane" style="color: white; font-size: 18px;"></i>
+                                </button>
+                                <button id="closeReplyBtn" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                    <i class="fas fa-times" style="color: white; font-size: 18px;"></i>
+                                </button>
+                            </div>
                         </div>
-                        <span style="color: white; font-size: 12px;">Share</span>
+
+                        <!-- Navigation areas -->
+                        <div style="position: absolute; top: 0; bottom: 0; left: 0; width: 30%; cursor: pointer; z-index: 20;" class="prev-story" id="prevStoryArea"></div>
+                        <div style="position: absolute; top: 0; bottom: 0; right: 0; width: 30%; cursor: pointer; z-index: 20;" class="next-story" id="nextStoryArea"></div>
                     </div>
-                </div>
+                `;
 
-                <!-- Reply Input Bar (hidden by default) -->
-                <div id="replyBar" style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); padding: 15px; transform: translateY(100%); transition: transform 0.3s ease; z-index: 40; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" id="replyInput" placeholder="Reply to ${username}..." style="flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 25px; padding: 12px 18px; color: white; font-size: 14px; outline: none;" autocomplete="off">
-                        <button id="sendReplyBtn" style="background: #ff3b6d; border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                            <i class="fas fa-paper-plane" style="color: white; font-size: 18px;"></i>
-                        </button>
-                        <button id="closeReplyBtn" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                            <i class="fas fa-times" style="color: white; font-size: 18px;"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Navigation areas -->
-                <div style="position: absolute; top: 0; bottom: 0; left: 0; width: 30%; cursor: pointer; z-index: 20;" class="prev-story" id="prevStoryArea"></div>
-                <div style="position: absolute; top: 0; bottom: 0; right: 0; width: 30%; cursor: pointer; z-index: 20;" class="next-story" id="nextStoryArea"></div>
-            </div>
-        `;
-
-        // Handle video playback
-        if (isVideo) {
-            const video = modal.querySelector('#storyVideo');
-            if (video) {
-                currentVideo = video;
-                
-                video.onloadedmetadata = () => {
-                    const videoDuration = video.duration;
-                    
-                    // Cap at 30 seconds max
-                    if (videoDuration > 30) {
-                        console.log('Video longer than 30s, limiting to 30s');
+                // Handle video playback - Proper progress bar timing
+                if (isVideo) {
+                    const video = modal.querySelector('#storyVideo');
+                    if (video) {
+                        currentVideo = video;
+                        
+                        video.onloadedmetadata = () => {
+                            videoDuration = video.duration;
+                            const displayDuration = Math.min(videoDuration, 20); // Max 20 seconds for videos
+                            
+                            console.log(`📹 Video duration: ${videoDuration}s, playing: ${displayDuration}s`);
+                            
+                            // Set progress bar for this video
+                            const progressBar = modal.querySelector(`#progress-${index}`);
+                            if (progressBar) {
+                                // Reset progress bar
+                                progressBar.style.transition = 'none';
+                                progressBar.style.width = '0%';
+                                
+                                // Force reflow
+                                progressBar.offsetHeight;
+                                
+                                // Start progress animation
+                                setTimeout(() => {
+                                    if (!isPaused) {
+                                        progressBar.style.transition = `width ${displayDuration}s linear`;
+                                        progressBar.style.width = '100%';
+                                    }
+                                }, 100);
+                            }
+                        };
+                        
+                        video.ontimeupdate = () => {
+                            if (!isPaused && video.duration) {
+                                const displayDuration = Math.min(video.duration, 20);
+                                const currentTime = Math.min(video.currentTime, displayDuration);
+                                const progress = (currentTime / displayDuration) * 100;
+                                
+                                const progressBar = modal.querySelector(`#progress-${index}`);
+                                if (progressBar) {
+                                    progressBar.style.width = `${progress}%`;
+                                }
+                            }
+                            
+                            // Stop at 20 seconds if video is longer
+                            if (video.currentTime >= 20) {
+                                video.pause();
+                                goToNext();
+                            }
+                        };
+                        
+                        video.onended = () => {
+                            console.log('📹 Video ended');
+                            goToNext();
+                        };
+                        
+                        video.onpause = () => {
+                            if (!isPaused) {
+                                isPaused = true;
+                                showPauseIndicator();
+                            }
+                        };
+                        
+                        video.onplay = () => {
+                            if (isPaused) {
+                                isPaused = false;
+                                hidePauseIndicator();
+                            }
+                        };
+                        
+                        video.onerror = (e) => {
+                            console.error('❌ Video error:', e);
+                            setTimeout(goToNext, 3000);
+                        };
+                        
+                        // Start playing
+                        video.play().catch(e => {
+                            console.log('Video play failed:', e);
+                            setTimeout(goToNext, 3000);
+                        });
                     }
-                    
-                    // Set progress bar for this video
+                } else {
+                    // For images - 5 second progress
                     const progressBar = modal.querySelector(`#progress-${index}`);
                     if (progressBar) {
-                        progressBar.style.transition = `width ${Math.min(videoDuration, 30)}s linear`;
-                        progressBar.style.width = '100%';
-                    }
-                };
-                
-                video.ontimeupdate = () => {
-                    if (!isPaused) {
-                        const progress = (video.currentTime / Math.min(video.duration, 30)) * 100;
-                        const progressBar = modal.querySelector(`#progress-${index}`);
-                        if (progressBar) {
-                            progressBar.style.width = `${progress}%`;
-                        }
-                    }
-                    
-                    // Stop at 30 seconds if video is longer
-                    if (video.currentTime >= 30) {
-                        video.pause();
-                        goToNext();
-                    }
-                };
-                
-                video.onended = () => {
-                    goToNext();
-                };
-                
-                video.onpause = () => {
-                    if (!isPaused) {
-                        isPaused = true;
-                        showPauseIndicator();
-                    }
-                };
-                
-                video.onplay = () => {
-                    if (isPaused) {
-                        isPaused = false;
-                        hidePauseIndicator();
-                    }
-                };
-                
-                // Start playing
-                video.play().catch(e => console.log('Video play failed:', e));
-            }
-        } else {
-            // For images, start progress animation
-            const progressBar = modal.querySelector(`#progress-${index}`);
-            if (progressBar) {
-                progressBar.style.transition = 'width 5s linear';
-                progressBar.style.width = '100%';
-            }
-            
-            // Set timer for image stories
-            if (progressInterval) clearTimeout(progressInterval);
-            progressInterval = setTimeout(() => {
-                if (!isPaused) {
-                    goToNext();
-                }
-            }, 5000);
-        }
-
-        // Setup interaction handlers
-        setupInteractionHandlers(currentStoryId, username, avatar, mediaUrl, currentStoryUserId, caption);
-    }
-
-    function setupInteractionHandlers(storyId, username, avatar, mediaUrl, storyUserId, caption) {
-        const likeBtn = modal.querySelector('#storyLikeBtn');
-        const likeCountSpan = modal.querySelector('#likeCount');
-        const likeIcon = likeBtn?.querySelector('i');
-
-        if (likeBtn) {
-            likeBtn.onclick = async (e) => {
-                e.stopPropagation();
-                try {
-                    const token = localStorage.getItem('sparkleToken');
-                    const response = await fetch(`/api/stories/${storyId}/like`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (!response.ok) throw new Error('Failed to like');
-                    
-                    const result = await response.json();
-                    
-                    if (result.liked) {
-                        likeIcon.style.color = '#ff3b6d';
-                        likeBtn.classList.add('liked');
-                        likeCountSpan.textContent = result.like_count;
-                        showHeartAnimation();
+                        // Reset
+                        progressBar.style.transition = 'none';
+                        progressBar.style.width = '0%';
                         
-                        // Show notification
-                        window.showNotification?.('Story liked! 💖', 'success');
-                    } else {
-                        likeIcon.style.color = 'white';
-                        likeBtn.classList.remove('liked');
-                        likeCountSpan.textContent = result.like_count;
+                        // Force reflow
+                        progressBar.offsetHeight;
+                        
+                        // Start progress after a tiny delay
+                        setTimeout(() => {
+                            if (!isPaused) {
+                                progressBar.style.transition = 'width 5s linear';
+                                progressBar.style.width = '100%';
+                            }
+                        }, 100);
                     }
                     
-                } catch (error) {
-                    console.error('Failed to like story:', error);
-                    window.showNotification?.('Failed to like story', 'error');
-                }
-            };
-        }
-
-        // Reply button - opens inline reply bar
-        const replyBtn = modal.querySelector('#storyReplyBtn');
-        const replyBar = modal.querySelector('#replyBar');
-        const replyInput = modal.querySelector('#replyInput');
-        const sendReplyBtn = modal.querySelector('#sendReplyBtn');
-        const closeReplyBtn = modal.querySelector('#closeReplyBtn');
-
-        if (replyBtn) {
-            replyBtn.onclick = (e) => {
-                e.stopPropagation();
-                toggleReplyBar(true);
-            };
-        }
-
-        // Send reply function
-        async function sendReply() {
-            const message = replyInput.value.trim();
-            if (!message) return;
-
-            try {
-                const token = localStorage.getItem('sparkleToken');
-                
-                // First, get or create a conversation
-                const conversationResponse = await fetch('/api/messages/start', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ partnerId: storyUserId })
-                });
-
-                if (!conversationResponse.ok) throw new Error('Failed to start conversation');
-                
-                const conversationData = await conversationResponse.json();
-                const conversationId = conversationData.data?.conversationId || conversationData.conversationId;
-
-                // Send the message
-                const messageResponse = await fetch('/api/messages/send', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        partnerId: storyUserId,
-                        conversationId: conversationId,
-                        content: message,
-                        type: 'text',
-                        story_reply: {
-                            storyId: storyId,
-                            caption: caption
-                        }
-                    })
-                });
-
-                if (!messageResponse.ok) throw new Error('Failed to send message');
-
-                // Clear input and close reply bar
-                replyInput.value = '';
-                toggleReplyBar(false);
-                
-                // Show success message
-                window.showNotification?.('Reply sent! 💬', 'success');
-
-            } catch (error) {
-                console.error('Failed to send reply:', error);
-                window.showNotification?.('Failed to send reply', 'error');
-            }
-        }
-
-        // Send reply on button click
-        if (sendReplyBtn) {
-            sendReplyBtn.onclick = (e) => {
-                e.stopPropagation();
-                sendReply();
-            };
-        }
-
-        // Send reply on Enter key
-        if (replyInput) {
-            replyInput.onkeypress = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendReply();
-                }
-            };
-        }
-
-        // Close reply bar
-        if (closeReplyBtn) {
-            closeReplyBtn.onclick = (e) => {
-                e.stopPropagation();
-                toggleReplyBar(false);
-            };
-        }
-
-        function toggleReplyBar(show) {
-            if (!replyBar) return;
-            
-            isReplyOpen = show;
-            replyBar.style.transform = show ? 'translateY(0)' : 'translateY(100%)';
-            
-            if (show) {
-                replyInput?.focus();
-                // Pause the story when replying
-                if (!isPaused) {
-                    togglePause();
-                }
-            } else {
-                // Resume the story if it was paused by reply
-                if (isPaused && !isLongPress) {
-                    togglePause();
-                }
-            }
-        }
-
-        // Share button
-        const shareBtn = modal.querySelector('#storyShareBtn');
-        if (shareBtn) {
-            shareBtn.onclick = async (e) => {
-                e.stopPropagation();
-                try {
-                    const token = localStorage.getItem('sparkleToken');
-                    const response = await fetch(`/api/stories/${storyId}/share`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (!response.ok) throw new Error('Failed to share');
-                    
-                    showShareOptions(storyId, username, mediaUrl, storyUserId, caption);
-                    window.showNotification?.('Story shared!', 'success');
-                    
-                } catch (error) {
-                    console.error('Failed to share story:', error);
-                    window.showNotification?.('Failed to share story', 'error');
-                }
-            };
-        }
-    }
-
-    function showHeartAnimation() {
-        const heart = document.createElement('div');
-        heart.innerHTML = '<i class="fas fa-heart" style="color: #ff3b6d; font-size: 80px;"></i>';
-        heart.style.cssText = `
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            z-index: 100;
-            animation: heartBurst 0.6s ease forwards;
-            pointer-events: none;
-        `;
-        modal.appendChild(heart);
-        setTimeout(() => heart.remove(), 600);
-    }
-
-    function showPauseIndicator() {
-        const indicator = modal.querySelector('#pauseIndicator');
-        if (indicator) indicator.style.display = 'flex';
-    }
-
-    function hidePauseIndicator() {
-        const indicator = modal.querySelector('#pauseIndicator');
-        if (indicator) indicator.style.display = 'none';
-    }
-
-    function showShareOptions(storyId, username, mediaUrl, storyUserId, caption) {
-        const shareModal = document.createElement('div');
-        shareModal.className = 'modal';
-        shareModal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 100001;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
-        
-        shareModal.innerHTML = `
-            <div style="background: white; border-radius: 20px; max-width: 400px; width: 90%; padding: 20px;">
-                <h3 style="margin-bottom: 20px; color: #333;">Share Story</h3>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button class="share-option" data-share="feed" style="padding: 15px; background: #f0f2f5; border: none; border-radius: 10px; cursor: pointer; text-align: left; font-size: 16px; color: #333;">
-                        <i class="fas fa-newspaper" style="margin-right: 10px; color: #4267B2;"></i> Share to Feed
-                    </button>
-                    <button class="share-option" data-share="message" style="padding: 15px; background: #f0f2f5; border: none; border-radius: 10px; cursor: pointer; text-align: left; font-size: 16px; color: #333;">
-                        <i class="fas fa-paper-plane" style="margin-right: 10px; color: #FF3D6D;"></i> Send in Message
-                    </button>
-                    <button class="share-option" data-share="copy" style="padding: 15px; background: #f0f2f5; border: none; border-radius: 10px; cursor: pointer; text-align: left; font-size: 16px; color: #333;">
-                        <i class="fas fa-link" style="margin-right: 10px; color: #34A853;"></i> Copy Link
-                    </button>
-                </div>
-                <button id="closeShareModal" style="margin-top: 20px; width: 100%; padding: 12px; background: #f0f2f5; border: none; border-radius: 10px; cursor: pointer; color: #666;">Cancel</button>
-            </div>
-        `;
-        
-        document.body.appendChild(shareModal);
-        
-        shareModal.querySelectorAll('.share-option').forEach(btn => {
-            btn.onclick = () => {
-                const type = btn.dataset.share;
-                if (type === 'feed') {
-                    document.body.removeChild(shareModal);
-                    closeViewer();
-                    setTimeout(() => {
-                        if (window.showCreateOptions) {
-                            window.showCreateOptions();
-                            setTimeout(() => {
-                                const captionInput = document.getElementById('postCaption');
-                                if (captionInput) {
-                                    captionInput.value = `Shared a story from @${username}: "${caption || 'Check out this story!'}"`;
-                                }
-                            }, 500);
-                        }
-                    }, 300);
-                } else if (type === 'message') {
-                    document.body.removeChild(shareModal);
-                    closeViewer();
-                    setTimeout(() => {
-                        // Open chat with story owner
-                        if (window.startChat) {
-                            window.startChat({
-                                id: storyUserId,
-                                name: username,
-                                avatar: mediaUrl
-                            });
-                        }
-                    }, 300);
-                } else if (type === 'copy') {
-                    const storyUrl = `${window.location.origin}/stories/${storyId}`;
-                    navigator.clipboard.writeText(storyUrl);
-                    window.showNotification?.('Link copied!', 'success');
-                    document.body.removeChild(shareModal);
-                }
-            };
-        });
-        
-        shareModal.querySelector('#closeShareModal').onclick = () => {
-            document.body.removeChild(shareModal);
-        };
-        
-        shareModal.onclick = (e) => {
-            if (e.target === shareModal) {
-                document.body.removeChild(shareModal);
-            }
-        };
-    }
-
-    function goToNext() {
-        if (!isPaused && !isReplyOpen) {
-            if (currentIndex < stories.length - 1) {
-                // Clear current progress timeout
-                if (progressInterval) {
-                    clearTimeout(progressInterval);
-                    progressInterval = null;
-                }
-                currentIndex++;
-                renderStory(currentIndex);
-            } else {
-                closeViewer();
-            }
-        }
-    }
-
-    function goToPrev() {
-        if (!isPaused && !isReplyOpen) {
-            if (currentIndex > 0) {
-                // Clear current progress timeout
-                if (progressInterval) {
-                    clearTimeout(progressInterval);
-                    progressInterval = null;
-                }
-                currentIndex--;
-                renderStory(currentIndex);
-            } else {
-                closeViewer();
-            }
-        }
-    }
-
-    function togglePause() {
-        isPaused = !isPaused;
-        
-        if (isPaused) {
-            showPauseIndicator();
-        } else {
-            hidePauseIndicator();
-        }
-        
-        if (currentVideo) {
-            if (isPaused) {
-                currentVideo.pause();
-            } else {
-                currentVideo.play().catch(e => console.log('Play failed:', e));
-            }
-        } else {
-            if (isPaused) {
-                // Pause progress
-                if (progressInterval) {
-                    clearTimeout(progressInterval);
-                    progressInterval = null;
-                }
-                
-                // Pause progress bar animation
-                const progressBar = modal.querySelector(`#progress-${currentIndex}`);
-                if (progressBar) {
-                    const computedStyle = window.getComputedStyle(progressBar);
-                    const width = computedStyle.width;
-                    progressBar.style.transition = 'none';
-                    progressBar.style.width = width;
-                }
-            } else {
-                // Resume progress
-                const progressBar = modal.querySelector(`#progress-${currentIndex}`);
-                if (progressBar) {
-                    const computedStyle = window.getComputedStyle(progressBar);
-                    const currentWidth = parseFloat(computedStyle.width);
-                    const parentWidth = progressBar.parentElement.offsetWidth;
-                    const percentComplete = (currentWidth / parentWidth) * 100;
-                    const remainingPercent = 100 - percentComplete;
-                    const remainingTime = (remainingPercent / 100) * 5;
-                    
-                    progressBar.style.transition = `width ${remainingTime}s linear`;
-                    progressBar.style.width = '100%';
-                    
+                    // Set timer for image stories
+                    if (progressInterval) clearTimeout(progressInterval);
                     progressInterval = setTimeout(() => {
-                        if (!isPaused && !isReplyOpen) {
+                        if (!isPaused) {
                             goToNext();
                         }
-                    }, remainingTime * 1000);
+                    }, 5000);
+                }
+
+                // Setup interaction handlers
+                setupInteractionHandlers(currentStoryId, username, avatar, mediaUrl, currentStoryUserId, caption);
+            }
+
+            function setupInteractionHandlers(storyId, username, avatar, mediaUrl, storyUserId, caption) {
+                const likeBtn = modal.querySelector('#storyLikeBtn');
+                const likeCountSpan = modal.querySelector('#likeCount');
+                const likeIcon = likeBtn?.querySelector('i');
+
+                if (likeBtn) {
+                    likeBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        try {
+                            const token = localStorage.getItem('sparkleToken');
+                            const response = await fetch(`/api/stories/${storyId}/like`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (!response.ok) throw new Error('Failed to like');
+                            
+                            const result = await response.json();
+                            
+                            if (result.liked) {
+                                likeIcon.style.color = '#ff3b6d';
+                                likeBtn.classList.add('liked');
+                                likeCountSpan.textContent = result.like_count;
+                                showHeartAnimation();
+                                
+                                // Show notification
+                                window.showNotification?.('Story liked! 💖', 'success');
+                            } else {
+                                likeIcon.style.color = 'white';
+                                likeBtn.classList.remove('liked');
+                                likeCountSpan.textContent = result.like_count;
+                            }
+                            
+                        } catch (error) {
+                            console.error('Failed to like story:', error);
+                            window.showNotification?.('Failed to like story', 'error');
+                        }
+                    };
+                }
+
+                // Reply button - opens inline reply bar
+                const replyBtn = modal.querySelector('#storyReplyBtn');
+                const replyBar = modal.querySelector('#replyBar');
+                const replyInput = modal.querySelector('#replyInput');
+                const sendReplyBtn = modal.querySelector('#sendReplyBtn');
+                const closeReplyBtn = modal.querySelector('#closeReplyBtn');
+
+                if (replyBtn) {
+                    replyBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        toggleReplyBar(true);
+                    };
+                }
+
+                // Send reply function
+                async function sendReply() {
+                    const message = replyInput.value.trim();
+                    if (!message) return;
+
+                    try {
+                        const token = localStorage.getItem('sparkleToken');
+                        
+                        // First, get or create a conversation
+                        const conversationResponse = await fetch('/api/messages/start', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ partnerId: storyUserId })
+                        });
+
+                        if (!conversationResponse.ok) throw new Error('Failed to start conversation');
+                        
+                        const conversationData = await conversationResponse.json();
+                        const conversationId = conversationData.data?.conversationId || conversationData.conversationId;
+
+                        // Send the message
+                        const messageResponse = await fetch('/api/messages/send', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                partnerId: storyUserId,
+                                conversationId: conversationId,
+                                content: message,
+                                type: 'text',
+                                story_reply: {
+                                    storyId: storyId,
+                                    caption: caption
+                                }
+                            })
+                        });
+
+                        if (!messageResponse.ok) throw new Error('Failed to send message');
+
+                        // Clear input and close reply bar
+                        replyInput.value = '';
+                        toggleReplyBar(false);
+                        
+                        // Show success message
+                        window.showNotification?.('Reply sent! 💬', 'success');
+
+                    } catch (error) {
+                        console.error('Failed to send reply:', error);
+                        window.showNotification?.('Failed to send reply', 'error');
+                    }
+                }
+
+                // Send reply on button click
+                if (sendReplyBtn) {
+                    sendReplyBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        sendReply();
+                    };
+                }
+
+                // Send reply on Enter key
+                if (replyInput) {
+                    replyInput.onkeypress = (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            sendReply();
+                        }
+                    };
+                }
+
+                // Close reply bar
+                if (closeReplyBtn) {
+                    closeReplyBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        toggleReplyBar(false);
+                    };
+                }
+
+                function toggleReplyBar(show) {
+                    if (!replyBar) return;
+                    
+                    isReplyOpen = show;
+                    replyBar.style.transform = show ? 'translateY(0)' : 'translateY(100%)';
+                    
+                    if (show) {
+                        replyInput?.focus();
+                        // Pause the story when replying
+                        if (!isPaused) {
+                            togglePause();
+                        }
+                    } else {
+                        // Resume the story if it was paused by reply
+                        if (isPaused && !isLongPress) {
+                            togglePause();
+                        }
+                    }
+                }
+
+                // Share button
+                const shareBtn = modal.querySelector('#storyShareBtn');
+                if (shareBtn) {
+                    shareBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        try {
+                            const token = localStorage.getItem('sparkleToken');
+                            const response = await fetch(`/api/stories/${storyId}/share`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (!response.ok) throw new Error('Failed to share');
+                            
+                            showShareOptions(storyId, username, mediaUrl, storyUserId, caption);
+                            window.showNotification?.('Story shared!', 'success');
+                            
+                        } catch (error) {
+                            console.error('Failed to share story:', error);
+                            window.showNotification?.('Failed to share story', 'error');
+                        }
+                    };
                 }
             }
-        }
-    }
 
-    function closeViewer() {
-        if (progressInterval) {
-            clearTimeout(progressInterval);
-        }
-        clearTimeout(longPressTimer);
-        if (currentVideo) {
-            currentVideo.pause();
-            currentVideo = null;
-        }
-        modal.classList.add('fade-out');
-        setTimeout(() => {
-            if (modal.parentNode) modal.remove();
-        }, 300);
-    }
+            function showHeartAnimation() {
+                const heart = document.createElement('div');
+                heart.innerHTML = '<i class="fas fa-heart" style="color: #ff3b6d; font-size: 80px;"></i>';
+                heart.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%) scale(0);
+                    z-index: 100;
+                    animation: heartBurst 0.6s ease forwards;
+                    pointer-events: none;
+                `;
+                modal.appendChild(heart);
+                setTimeout(() => heart.remove(), 600);
+            }
 
-    // Render first story
-    renderStory(currentIndex);
+            function showPauseIndicator() {
+                const indicator = modal.querySelector('#pauseIndicator');
+                if (indicator) indicator.style.display = 'flex';
+            }
 
-    // Add event listeners
-    setTimeout(() => {
-        const closeBtn = modal.querySelector('.close-story');
-        const prevArea = modal.querySelector('#prevStoryArea');
-        const nextArea = modal.querySelector('#nextStoryArea');
-        const mediaContainer = modal.querySelector('#storyMediaContainer');
+            function hidePauseIndicator() {
+                const indicator = modal.querySelector('#pauseIndicator');
+                if (indicator) indicator.style.display = 'none';
+            }
 
-        // Close button
-        closeBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeViewer();
-        });
+            function showShareOptions(storyId, username, mediaUrl, storyUserId, caption) {
+                const shareModal = document.createElement('div');
+                shareModal.className = 'modal';
+                shareModal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.8);
+                    z-index: 100001;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+                
+                shareModal.innerHTML = `
+                    <div style="background: white; border-radius: 20px; max-width: 400px; width: 90%; padding: 20px;">
+                        <h3 style="margin-bottom: 20px; color: #333;">Share Story</h3>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button class="share-option" data-share="feed" style="padding: 15px; background: #f0f2f5; border: none; border-radius: 10px; cursor: pointer; text-align: left; font-size: 16px; color: #333;">
+                                <i class="fas fa-newspaper" style="margin-right: 10px; color: #4267B2;"></i> Share to Feed
+                            </button>
+                            <button class="share-option" data-share="message" style="padding: 15px; background: #f0f2f5; border: none; border-radius: 10px; cursor: pointer; text-align: left; font-size: 16px; color: #333;">
+                                <i class="fas fa-paper-plane" style="margin-right: 10px; color: #FF3D6D;"></i> Send in Message
+                            </button>
+                            <button class="share-option" data-share="copy" style="padding: 15px; background: #f0f2f5; border: none; border-radius: 10px; cursor: pointer; text-align: left; font-size: 16px; color: #333;">
+                                <i class="fas fa-link" style="margin-right: 10px; color: #34A853;"></i> Copy Link
+                            </button>
+                        </div>
+                        <button id="closeShareModal" style="margin-top: 20px; width: 100%; padding: 12px; background: #f0f2f5; border: none; border-radius: 10px; cursor: pointer; color: #666;">Cancel</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(shareModal);
+                
+                shareModal.querySelectorAll('.share-option').forEach(btn => {
+                    btn.onclick = () => {
+                        const type = btn.dataset.share;
+                        if (type === 'feed') {
+                            document.body.removeChild(shareModal);
+                            closeViewer();
+                            setTimeout(() => {
+                                if (window.showCreateOptions) {
+                                    window.showCreateOptions();
+                                    setTimeout(() => {
+                                        const captionInput = document.getElementById('postCaption');
+                                        if (captionInput) {
+                                            captionInput.value = `Shared a story from @${username}: "${caption || 'Check out this story!'}"`;
+                                        }
+                                    }, 500);
+                                }
+                            }, 300);
+                        } else if (type === 'message') {
+                            document.body.removeChild(shareModal);
+                            closeViewer();
+                            setTimeout(() => {
+                                // Open chat with story owner
+                                if (window.startChat) {
+                                    window.startChat({
+                                        id: storyUserId,
+                                        name: username,
+                                        avatar: mediaUrl
+                                    });
+                                }
+                            }, 300);
+                        } else if (type === 'copy') {
+                            const storyUrl = `${window.location.origin}/stories/${storyId}`;
+                            navigator.clipboard.writeText(storyUrl);
+                            window.showNotification?.('Link copied!', 'success');
+                            document.body.removeChild(shareModal);
+                        }
+                    };
+                });
+                
+                shareModal.querySelector('#closeShareModal').onclick = () => {
+                    document.body.removeChild(shareModal);
+                };
+                
+                shareModal.onclick = (e) => {
+                    if (e.target === shareModal) {
+                        document.body.removeChild(shareModal);
+                    }
+                };
+            }
 
-        // Navigation - only works if reply bar is closed
-        prevArea?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isPaused && !isReplyOpen) goToPrev();
-        });
-        
-        nextArea?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isPaused && !isReplyOpen) goToNext();
-        });
-
-        // Long press to pause
-        if (mediaContainer) {
-            mediaContainer.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                longPressTimer = setTimeout(() => {
-                    isLongPress = true;
-                    togglePause();
-                }, 300);
-            });
-
-            mediaContainer.addEventListener('mouseup', () => {
-                clearTimeout(longPressTimer);
-                if (isLongPress) isLongPress = false;
-            });
-
-            mediaContainer.addEventListener('mouseleave', () => {
-                clearTimeout(longPressTimer);
-                if (isLongPress) {
-                    isLongPress = false;
-                    if (isPaused) togglePause();
+            function goToNext() {
+                if (!isPaused && !isReplyOpen) {
+                    if (currentIndex < stories.length - 1) {
+                        // Clear current progress timeout
+                        if (progressInterval) {
+                            clearTimeout(progressInterval);
+                            progressInterval = null;
+                        }
+                        currentIndex++;
+                        renderStory(currentIndex);
+                    } else {
+                        closeViewer();
+                    }
                 }
-            });
+            }
 
-            mediaContainer.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                longPressTimer = setTimeout(() => {
-                    isLongPress = true;
-                    togglePause();
-                }, 300);
-            });
-
-            mediaContainer.addEventListener('touchend', () => {
-                clearTimeout(longPressTimer);
-                if (isLongPress) isLongPress = false;
-            });
-
-            mediaContainer.addEventListener('touchmove', () => {
-                clearTimeout(longPressTimer);
-            });
-
-            // Double tap to like
-            let lastTap = 0;
-            mediaContainer.addEventListener('touchend', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 300 && tapLength > 0) {
-                    e.preventDefault();
-                    const likeBtn = modal.querySelector('#storyLikeBtn');
-                    if (likeBtn) likeBtn.click();
+            function goToPrev() {
+                if (!isPaused && !isReplyOpen) {
+                    if (currentIndex > 0) {
+                        // Clear current progress timeout
+                        if (progressInterval) {
+                            clearTimeout(progressInterval);
+                            progressInterval = null;
+                        }
+                        currentIndex--;
+                        renderStory(currentIndex);
+                    } else {
+                        closeViewer();
+                    }
                 }
-                lastTap = currentTime;
-            });
-        }
+            }
 
-        // Keyboard navigation
-        const keyHandler = (e) => {
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                if (!isPaused && !isReplyOpen) goToPrev();
-            } else if (e.key === 'ArrowRight') {
-                e.preventDefault();
-                if (!isPaused && !isReplyOpen) goToNext();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                if (isReplyOpen) {
-                    // Close reply bar if open
-                    const closeReplyBtn = modal.querySelector('#closeReplyBtn');
-                    if (closeReplyBtn) closeReplyBtn.click();
+            function togglePause() {
+                isPaused = !isPaused;
+                
+                if (isPaused) {
+                    showPauseIndicator();
                 } else {
-                    closeViewer();
+                    hidePauseIndicator();
                 }
-            } else if (e.key === ' ' || e.key === 'Space') {
-                e.preventDefault();
-                togglePause();
+                
+                if (currentVideo) {
+                    if (isPaused) {
+                        currentVideo.pause();
+                    } else {
+                        currentVideo.play().catch(e => console.log('Play failed:', e));
+                    }
+                } else {
+                    if (isPaused) {
+                        // Pause progress
+                        if (progressInterval) {
+                            clearTimeout(progressInterval);
+                            progressInterval = null;
+                        }
+                        
+                        // Pause progress bar animation
+                        const progressBar = modal.querySelector(`#progress-${currentIndex}`);
+                        if (progressBar) {
+                            const computedStyle = window.getComputedStyle(progressBar);
+                            const width = computedStyle.width;
+                            progressBar.style.transition = 'none';
+                            progressBar.style.width = width;
+                        }
+                    } else {
+                        // Resume progress
+                        const progressBar = modal.querySelector(`#progress-${currentIndex}`);
+                        if (progressBar) {
+                            const computedStyle = window.getComputedStyle(progressBar);
+                            const currentWidth = parseFloat(computedStyle.width);
+                            const parentWidth = progressBar.parentElement.offsetWidth;
+                            const percentComplete = (currentWidth / parentWidth) * 100;
+                            const remainingPercent = 100 - percentComplete;
+                            const remainingTime = (remainingPercent / 100) * 5;
+                            
+                            progressBar.style.transition = `width ${remainingTime}s linear`;
+                            progressBar.style.width = '100%';
+                            
+                            progressInterval = setTimeout(() => {
+                                if (!isPaused && !isReplyOpen) {
+                                    goToNext();
+                                }
+                            }, remainingTime * 1000);
+                        }
+                    }
+                }
             }
+
+            function closeViewer() {
+                if (progressInterval) {
+                    clearTimeout(progressInterval);
+                }
+                clearTimeout(longPressTimer);
+                if (currentVideo) {
+                    currentVideo.pause();
+                    currentVideo = null;
+                }
+                modal.classList.add('fade-out');
+                setTimeout(() => {
+                    if (modal.parentNode) modal.remove();
+                }, 300);
+            }
+
+            // Render first story
+            renderStory(currentIndex);
+
+            // Add event listeners
+            setTimeout(() => {
+                const closeBtn = modal.querySelector('.close-story');
+                const prevArea = modal.querySelector('#prevStoryArea');
+                const nextArea = modal.querySelector('#nextStoryArea');
+                const mediaContainer = modal.querySelector('#storyMediaContainer');
+
+                // Close button - Now works
+                closeBtn?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    closeViewer();
+                });
+
+                // Navigation
+                prevArea?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!isPaused && !isReplyOpen) goToPrev();
+                });
+                
+                nextArea?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!isPaused && !isReplyOpen) goToNext();
+                });
+
+                // Long press to pause
+                if (mediaContainer) {
+                    mediaContainer.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        longPressTimer = setTimeout(() => {
+                            isLongPress = true;
+                            togglePause();
+                        }, 300);
+                    });
+
+                    mediaContainer.addEventListener('mouseup', () => {
+                        clearTimeout(longPressTimer);
+                        if (isLongPress) isLongPress = false;
+                    });
+
+                    mediaContainer.addEventListener('mouseleave', () => {
+                        clearTimeout(longPressTimer);
+                        if (isLongPress) {
+                            isLongPress = false;
+                            if (isPaused) togglePause();
+                        }
+                    });
+
+                    mediaContainer.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        longPressTimer = setTimeout(() => {
+                            isLongPress = true;
+                            togglePause();
+                        }, 300);
+                    });
+
+                    mediaContainer.addEventListener('touchend', () => {
+                        clearTimeout(longPressTimer);
+                        if (isLongPress) isLongPress = false;
+                    });
+
+                    mediaContainer.addEventListener('touchmove', () => {
+                        clearTimeout(longPressTimer);
+                    });
+
+                    // Double tap to like
+                    let lastTap = 0;
+                    mediaContainer.addEventListener('touchend', (e) => {
+                        const currentTime = new Date().getTime();
+                        const tapLength = currentTime - lastTap;
+                        if (tapLength < 300 && tapLength > 0) {
+                            e.preventDefault();
+                            const likeBtn = modal.querySelector('#storyLikeBtn');
+                            if (likeBtn) likeBtn.click();
+                        }
+                        lastTap = currentTime;
+                    });
+                }
+
+                // Keyboard navigation
+                const keyHandler = (e) => {
+                    if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        if (!isPaused && !isReplyOpen) goToPrev();
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        if (!isPaused && !isReplyOpen) goToNext();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        if (isReplyOpen) {
+                            const closeReplyBtn = modal.querySelector('#closeReplyBtn');
+                            if (closeReplyBtn) closeReplyBtn.click();
+                        } else {
+                            closeViewer();
+                        }
+                    } else if (e.key === ' ' || e.key === 'Space') {
+                        e.preventDefault();
+                        togglePause();
+                    }
+                };
+                
+                document.addEventListener('keydown', keyHandler);
+
+                modal.cleanup = () => {
+                    document.removeEventListener('keydown', keyHandler);
+                    if (progressInterval) clearTimeout(progressInterval);
+                    clearTimeout(longPressTimer);
+                    if (currentVideo) currentVideo.pause();
+                };
+            }, 100);
+
+            document.body.appendChild(modal);
+
+            // Add animation styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .afterglow-viewer-modal {
+                    animation: fadeIn 0.3s ease;
+                }
+                .afterglow-viewer-modal.fade-out {
+                    animation: fadeOut 0.3s ease forwards;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes fadeOut {
+                    from { opacity: 1; }
+                    to { opacity: 0; }
+                }
+                @keyframes heartBurst {
+                    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+                    50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.8; }
+                    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+                }
+                .story-interaction-btn:hover > div:first-child {
+                    transform: scale(1.1);
+                    background: rgba(255, 59, 109, 0.3) !important;
+                }
+                .close-story:hover {
+                    background: rgba(255,255,255,0.2) !important;
+                    transform: scale(1.1);
+                }
+                .prev-story:hover, .next-story:hover {
+                    background: rgba(255,255,255,0.05);
+                }
+                #replyInput:focus {
+                    border-color: #ff3b6d;
+                    box-shadow: 0 0 0 2px rgba(255, 59, 109, 0.3);
+                }
+                #sendReplyBtn:hover {
+                    background: #ff1f57 !important;
+                    transform: scale(1.05);
+                }
+                #closeReplyBtn:hover {
+                    background: rgba(255,255,255,0.2) !important;
+                }
+            `;
+            document.head.appendChild(style);
         };
-        
-        document.addEventListener('keydown', keyHandler);
 
-        modal.cleanup = () => {
-            document.removeEventListener('keydown', keyHandler);
-            if (progressInterval) clearTimeout(progressInterval);
-            clearTimeout(longPressTimer);
-            if (currentVideo) currentVideo.pause();
-        };
-    }, 100);
-
-    document.body.appendChild(modal);
-
-    // Add animation styles
-    const style = document.createElement('style');
-    style.textContent = `
-        .afterglow-viewer-modal {
-            animation: fadeIn 0.3s ease;
-        }
-        .afterglow-viewer-modal.fade-out {
-            animation: fadeOut 0.3s ease forwards;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        @keyframes heartBurst {
-            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.8; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-        }
-        .story-interaction-btn:hover > div:first-child {
-            transform: scale(1.1);
-            background: rgba(255, 59, 109, 0.3) !important;
-        }
-        .close-story:hover {
-            background: rgba(255,255,255,0.2) !important;
-            transform: scale(1.1);
-        }
-        .prev-story:hover, .next-story:hover {
-            background: rgba(255,255,255,0.05);
-        }
-        #replyInput:focus {
-            border-color: #ff3b6d;
-            box-shadow: 0 0 0 2px rgba(255, 59, 109, 0.3);
-        }
-        #sendReplyBtn:hover {
-            background: #ff1f57 !important;
-            transform: scale(1.05);
-        }
-        #closeReplyBtn:hover {
-            background: rgba(255,255,255,0.2) !important;
-        }
-    `;
-    document.head.appendChild(style);
-};
-      
-      
-      
         window.afterglowTimerInterval = setInterval(() => {
             const container = document.getElementById('afterglowStories');
             if (!container) return;
@@ -4090,11 +4140,11 @@ window.showAfterglowViewer = function (story) {
                 container.innerHTML = '';
 
                 if (!listings || listings.length === 0) {
-                    container.innerHTML = `< div style = "grid-column: span 2; text-align: center; padding: 40px; color: #666;" >
+                    container.innerHTML = `<div style="grid-column: span 2; text-align: center; padding: 40px; color: #666;">
                         <i class="fas fa-store-slash" style="font-size: 40px; margin-bottom: 10px; color:#ccc;"></i>
                         <p style="color: #666;">No items found in ${userCampus !== 'all' ? userCampus : 'any campus'}.</p>
                         <button class="btn btn-sm" onclick="window.createListing()" style="margin-top:10px;">Sell Something</button>
-                    </div > `;
+                    </div>`;
                     return;
                 }
 
@@ -4107,7 +4157,7 @@ window.showAfterglowViewer = function (story) {
                     const imageUrl = (item.images && item.images.length > 0) ? item.images[0] : 'https://via.placeholder.com/300x200?text=No+Image';
 
                     card.innerHTML = `
-    < div style = "position: relative; height: 150px;" >
+                        <div style="position: relative; height: 150px;">
                             <img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Error'">
                             ${item.isSold ? '<div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 2px 8px; border-radius: 5px; font-size: 12px;">SOLD</div>' : ''}
                             <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 5px 10px; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); color: white; font-size: 12px;">
@@ -4155,7 +4205,7 @@ window.showAfterglowViewer = function (story) {
             modal.className = 'modal';
             modal.style.display = 'flex';
             modal.innerHTML = `
-    < div class= "modal-content" style = "max-width: 500px;" >
+                <div class="modal-content" style="max-width: 500px;">
                     <div class="modal-header">
                         <div class="modal-title" style="color: #333;"><i class="fas fa-tag"></i> Sell Item</div>
                         <button class="close-modal">&times;</button>
@@ -4186,8 +4236,8 @@ window.showAfterglowViewer = function (story) {
                         </div>
                         <button class="btn btn-primary btn-block" onclick="submitListing()">Post Listing</button>
                     </div>
-                </div >
-    `;
+                </div>
+            `;
             document.body.appendChild(modal);
             modal.querySelector('.close-modal').onclick = () => modal.remove();
         };
@@ -4239,11 +4289,11 @@ window.showAfterglowViewer = function (story) {
                 container.innerHTML = '';
 
                 if (!events || events.length === 0) {
-                    container.innerHTML = `< div style = "grid-column: span 3; text-align: center; padding: 40px; color: #666;" >
+                    container.innerHTML = `<div style="grid-column: span 3; text-align: center; padding: 40px; color: #666;">
                         <i class="fas fa-calendar-times" style="font-size: 40px; margin-bottom: 10px; color:#ccc;"></i>
                         <p style="color: #666;">No upcoming events found in ${campus !== 'all' ? campus : 'any campus'}.</p>
                         <button class="btn btn-sm" onclick="showModal('createEventModal')" style="margin-top:10px;">Host an Event</button>
-                    </div > `;
+                    </div>`;
                     return;
                 }
 
@@ -4257,7 +4307,7 @@ window.showAfterglowViewer = function (story) {
                     const day = date.getDate();
 
                     el.innerHTML = `
-    < div style = "height: 120px; background: #eee; position: relative;" >
+                        <div style="height: 120px; background: #eee; position: relative;">
                             <img src="${event.image || 'https://via.placeholder.com/300x150?text=Event'}" style="width:100%; height:100%; object-fit:cover;">
                             <div style="position: absolute; top: 10px; right: 10px; background: white; padding: 5px 12px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                                 <div style="font-size: 10px; font-weight: bold; color: var(--primary); text-transform: uppercase;">${month}</div>
@@ -4570,7 +4620,7 @@ window.showAfterglowViewer = function (story) {
             } catch (error) {
                 console.error('❌ Failed to load feed:', error);
                 if (!isSilent) {
-                    container.innerHTML = `< div style = "text-align:center; padding:40px; color:var(--danger);" > Failed to load feed. < br > <button onclick="window.loadFeedPosts()" class="btn btn-sm" style="margin-top:10px;">Retry</button></div > `;
+                    container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--danger);" > Failed to load feed. <br><button onclick="window.loadFeedPosts()" class="btn btn-sm" style="margin-top:10px;">Retry</button></div>`;
                     showNotification('Failed to load feed', 'error');
                 }
             } finally {
@@ -4614,7 +4664,7 @@ window.showAfterglowViewer = function (story) {
             } else {
                 const container = document.getElementById('messagesList');
                 if (container) {
-                    container.innerHTML = `< div style = "text-align:center; padding:40px; color:#999;" >
+                    container.innerHTML = `<div style="text-align:center; padding:40px; color:#999;" >
                         <i class="fas fa-lock" style="font-size:30px; margin-bottom:10px; color: #ccc;"></i>
                         <br><span style="color: #666;">${type.charAt(0).toUpperCase() + type.slice(1)} messaging coming soon!</span>
                     </div>`;
@@ -4642,7 +4692,7 @@ window.showAfterglowViewer = function (story) {
                     const card = document.createElement('div');
                     card.className = 'confession-card';
                     card.innerHTML = `
-    < div class="confession-text" style = "color: #333;" > "${conf.text}"</div >
+                        <div class="confession-text" style="color: #333;">"${conf.text}"</div>
                         <div class="confession-meta" style="color: #666;">
                             <span><i class="fas fa-university"></i> ${conf.campus || 'Campus'}</span>
                             <span>${conf.timestamp}</span>
@@ -4681,7 +4731,7 @@ window.showAfterglowViewer = function (story) {
                 container.innerHTML = '';
 
                 if (polls.length === 0) {
-                    container.innerHTML = `< div style = "text-align: center; color: #666;" > No active polls in ${userCampus !== 'all' ? userCampus : 'any campus'}.</div > `;
+                    container.innerHTML = `<div style="text-align: center; color: #666;">No active polls in ${userCampus !== 'all' ? userCampus : 'any campus'}.</div>`;
                     return;
                 }
 
@@ -4689,15 +4739,15 @@ window.showAfterglowViewer = function (story) {
                     const card = document.createElement('div');
                     card.className = 'poll-card';
                     const optionsHtml = poll.options.map((opt) => `
-    < div class="poll-option" onclick = "window.votePoll('${poll.id || poll.poll_id}', '${opt.option_id}')" >
+                        <div class="poll-option" onclick="window.votePoll('${poll.id || poll.poll_id}', '${opt.option_id}')">
                             <div class="poll-option-text" style="color: #333;">${opt.option_text || opt.text}</div>
                             <div class="poll-option-bar" style="width: ${opt.vote_count > 0 ? (Math.round((opt.vote_count / (poll.total_votes || 1)) * 100)) : 0}%"></div>
                             <div class="poll-option-percent" style="color: #666;">${opt.vote_count > 0 ? (Math.round((opt.vote_count / (poll.total_votes || 1)) * 100)) : 0}%</div>
-                        </div >
-    `).join('');
+                        </div>
+                    `).join('');
 
                     card.innerHTML = `
-    < div class="poll-question" style = "color: #333;" > ${poll.question}</div >
+                        <div class="poll-question" style="color: #333;">${poll.question}</div>
                         <div class="poll-options">${optionsHtml}</div>
                         <div class="poll-footer" style="color: #666;">
                             <span><i class="fas fa-users"></i> ${poll.total_votes || 0} votes</span>
@@ -4741,7 +4791,7 @@ window.showAfterglowViewer = function (story) {
                 container.innerHTML = '';
 
                 if (items.length === 0) {
-                    container.innerHTML = `< div style = "text-align: center; padding: 40px; color: #666;" > No items reported in ${userCampus !== 'all' ? userCampus : 'any campus'}.</div > `;
+                    container.innerHTML = `<div style="text-align: center; padding: 40px; color: #666;">No items reported in ${userCampus !== 'all' ? userCampus : 'any campus'}.</div>`;
                     return;
                 }
 
@@ -4750,7 +4800,7 @@ window.showAfterglowViewer = function (story) {
                     card.className = 'lost-card';
                     card.style = 'background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px; overflow: hidden;';
                     card.innerHTML = `
-    < div style = "padding: 15px;" >
+                        <div style="padding: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                                 <div class="badge ${item.type === 'lost' ? 'badge-danger' : 'badge-success'}" 
                                      style="background: ${item.type === 'lost' ? '#ff4757' : '#2ed573'}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px;">
@@ -4766,8 +4816,8 @@ window.showAfterglowViewer = function (story) {
                             <button class="btn btn-block" style="margin-top: 15px; font-size: 12px; width:100%; background: var(--primary); color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer;" onclick="claimItem('${item.id}')">
                                 ${item.type === 'lost' ? 'I found this' : 'This is mine'}
                             </button>
-                        </div >
-    `;
+                        </div>
+                    `;
                     container.appendChild(card);
                 });
             } catch (error) {
@@ -4792,7 +4842,7 @@ window.showAfterglowViewer = function (story) {
 
                 if (!offers || offers.length === 0) {
                     container.innerHTML = `
-    < div style = "text-align: center; padding: 40px; color: #666;" >
+                        <div style="text-align: center; padding: 40px; color: #666;">
                             <i class="fas fa-graduation-cap fa-3x" style="display: block; margin-bottom: 20px; opacity: 0.2; color: #ccc;"></i>
                             <span style="color: #666;">No skill offers found ${userCampus !== 'all' ? 'in ' + userCampus : ''}.</span>
                             <br><small style="color: #999;">Be the first to offer a skill!</small>
@@ -4805,7 +4855,7 @@ window.showAfterglowViewer = function (story) {
                     card.className = 'skill-card';
                     card.style = 'background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px; overflow: hidden;';
                     card.innerHTML = `
-    < div style = "padding: 15px;" >
+                        <div style="padding: 15px;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
                                 <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary, #3498db); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                                     <i class="fas fa-graduation-cap"></i>
@@ -4820,8 +4870,8 @@ window.showAfterglowViewer = function (story) {
                                 <div style="font-weight: 700; color: var(--primary, #3498db);">KSh ${offer.price || 'Free'}</div>
                                 <button class="btn btn-sm btn-primary" style="padding: 5px 15px; font-size: 12px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;" onclick="requestSkill('${offer.id}')">Request</button>
                             </div>
-                        </div >
-    `;
+                        </div>
+                    `;
                     container.appendChild(card);
                 });
             } catch (error) {
@@ -4856,15 +4906,15 @@ window.showAfterglowViewer = function (story) {
 
                 if (moments.length === 0) {
                     container.innerHTML = `
-    < div style = "display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: white; text-align: center;" >
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: white; text-align: center;">
                             <i class="fas fa-film" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5; color: #999;"></i>
                             <h3 style="color: #333;">No Moments Yet</h3>
                             <p style="opacity: 0.7; max-width: 300px; margin-bottom: 20px; color: #666;">Be the first to share a moment with your campus!</p>
                             <button class="btn btn-primary" onclick="uploadMoment()" style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
                                 <i class="fas fa-plus"></i> Create Moment
                             </button>
-                        </div >
-    `;
+                        </div>
+                    `;
                     return;
                 }
 
@@ -4877,7 +4927,7 @@ window.showAfterglowViewer = function (story) {
                     const videoSrc = moment.video || 'assets/videos/sample1.mp4';
 
                     momentEl.innerHTML = `
-    < video class="moment-video-player" loop playsinline style = "width:100%; height:100%; object-fit:cover;" >
+                        <video class="moment-video-player" loop playsinline style="width:100%; height:100%; object-fit:cover;">
                             <source src="${videoSrc}" type="video/mp4">
                         </video>
                         <div class="moment-overlay">
@@ -4933,16 +4983,16 @@ window.showAfterglowViewer = function (story) {
                     const empty = document.createElement('div');
                     empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #999; width: 100%;';
                     empty.innerHTML = `
-    < i class="fas fa-users-slash" style = "font-size: 40px; margin-bottom: 15px; color: #ccc;" ></i >
-        <p style="color: #666;">No students found matching your search</p>
-`;
+                        <i class="fas fa-users-slash" style="font-size: 40px; margin-bottom: 15px; color: #ccc;"></i>
+                        <p style="color: #666;">No students found matching your search</p>
+                    `;
                     fragment.appendChild(empty);
                 } else {
                     availableUsers.forEach(user => {
                         const userEl = document.createElement('div');
                         userEl.className = 'connect-card';
                         userEl.innerHTML = `
-    < div class="connect-card-inner" >
+                            <div class="connect-card-inner">
                                 <div class="connect-avatar-container">
                                     <img src="${user.avatar || '/uploads/avatars/default.png'}" alt="${user.name}" class="connect-avatar">
                                     <div class="status-indicator online"></div>
@@ -4960,8 +5010,8 @@ window.showAfterglowViewer = function (story) {
                                         Profile
                                     </button>
                                 </div>
-                            </div >
-    `;
+                            </div>
+                        `;
                         fragment.appendChild(userEl);
                     });
                 }
@@ -5036,7 +5086,7 @@ window.showAfterglowViewer = function (story) {
                     const lastMsgText = isAnonymous ? '<i>[Anonymous Message]</i>' : (chat.last_message_text || chat.last_message || 'Click to view conversation');
 
                     el.innerHTML = `
-    < div class="avatar-container-premium" style = "position: relative;" >
+                        <div class="avatar-container-premium" style="position: relative;">
                             <img src="${chatAvatar}" alt="User" class="avatar-premium" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; ${isAnonymous ? 'filter: grayscale(1);' : ''}">
                             ${isAnonymous ? '<div style="position:absolute; bottom:0; right:0; background:#333; color:white; font-size:10px; padding:2px 4px; border-radius:4px;"><i class="fas fa-mask"></i></div>' : ''}
                         </div>
@@ -5186,7 +5236,7 @@ window.showAfterglowViewer = function (story) {
                             </div>
                         </div>
                     </div>
-    `;
+                `;
 
                 document.body.appendChild(modal);
                 modal.querySelector('.close-modal').onclick = () => modal.remove();
@@ -5221,7 +5271,7 @@ window.showAfterglowViewer = function (story) {
                                 <span>${c.rating_count !== undefined ? c.rating_count : (c.reactions !== undefined ? c.reactions : 0)} <i class="fas fa-fire" style="color:orange;"></i></span>
                             </div>
                         </div>
-    `).join('') || '<div style="text-align:center; color:#999;">No confessions yet. Be the first to whisper.</div>';
+                    `).join('') || '<div style="text-align:center; color:#999;">No confessions yet. Be the first to whisper.</div>';
                 }
 
             } catch (e) {

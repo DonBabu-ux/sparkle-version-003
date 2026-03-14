@@ -68,22 +68,16 @@ h4,
 }
 
 /* Sidebar & Layout Adjustments */
+/* Sidebar & Layout Adjustments (FIXED: Grid handles this now) */
 body {
     background-color: var(--bg-light);
     color: var(--text-light);
     line-height: 1.6;
     padding-bottom: 70px;
-    padding-left: 280px;
-    /* Space for sidebar */
     max-width: 100%;
     overflow-x: hidden;
     position: relative;
     min-height: 100vh;
-    transition: padding-left 0.3s ease;
-}
-
-body.sidebar-collapsed {
-    padding-left: 70px;
 }
 
 @media (max-width: 768px) {
@@ -93,33 +87,27 @@ body.sidebar-collapsed {
     }
 }
 
-/* Hamburger Menu */
-.hamburger-btn {
-    cursor: pointer;
-    font-size: 24px;
-    padding: 5px 10px;
-    color: var(--primary);
-    margin-right: 10px;
-}
-
+/* Hamburger Menu (Mobile/Desktop Overhaul) */
 .hamburger-menu {
     position: fixed;
     top: 0;
-    left: 0;
+    left: -320px;
+    /* Hide by default */
     width: 280px;
     height: 100vh;
     background: white;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    transition: width 0.3s ease, left 0.3s ease;
+    z-index: 2000;
+    /* Over everything */
+    transition: left 0.3s ease;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 20px 0;
     white-space: nowrap;
 }
 
-.hamburger-menu.collapsed {
-    width: 70px;
+.hamburger-menu.active {
+    left: 0;
 }
 
 .hamburger-menu.collapsed .hamburger-section-title,

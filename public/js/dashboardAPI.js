@@ -341,16 +341,26 @@ const DashboardAPI = {
             const qs = new URLSearchParams();
             if (params.page) qs.set('page', params.page);
             if (params.limit) qs.set('limit', params.limit);
+            if (params.render) qs.set('render', params.render);
             if ([...qs].length) endpoint += `?${qs.toString()}`;
 
-            const posts = await this.request(endpoint);
+            const response = await this.request(endpoint);
 
-            if (!posts || !Array.isArray(posts)) {
-                console.warn('⚠️ DashboardAPI: Feed API did not return an array:', posts);
+            // Handle new response format { posts: [], htmls: [] } or old array format
+            let posts = [];
+            let htmls = null;
+
+            if (response && response.posts && Array.isArray(response.posts)) {
+                posts = response.posts;
+                htmls = response.htmls;
+            } else if (Array.isArray(response)) {
+                posts = response;
+            } else {
+                console.warn('⚠️ DashboardAPI: Feed API did not return expected format:', response);
                 return [];
             }
 
-            return posts.map(post => {
+            const mappedPosts = posts.map(post => {
                 try {
                     // Helper to ensure correct media URL
                     const ensureUrl = (url) => {
@@ -398,6 +408,8 @@ const DashboardAPI = {
                     return null;
                 }
             }).filter(p => p !== null);
+
+            return htmls ? { posts: mappedPosts, htmls } : mappedPosts;
         } catch (error) {
             console.error('❌ DashboardAPI: Failed to load feed:', error);
             // Return empty array instead of throwing to prevent UI crash
@@ -1272,6 +1284,15 @@ const DashboardAPI = {
             return await this.request(`/stories/${storyId}/likes`);
         } catch (error) {
             console.error(`Failed to fetch likes for story ${storyId}:`, error);
+            throw error;
+        }
+    },
+
+    async deleteStory(storyId) {
+        try {
+            return await this.request(`/stories/${storyId}`, { method: 'DELETE' });
+        } catch (error) {
+            console.error(`Failed to delete story ${storyId}:`, error);
             throw error;
         }
     },

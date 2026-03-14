@@ -1,71 +1,77 @@
-<div class="post-card" data-post-id="<%= post.post_id %>">
+<article class="post-card" data-post-id="<%= post.post_id %>">
     <!-- Header -->
-    <div class="post-header">
-        <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>" alt="<%= post.username %>"
-            class="post-avatar" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+    <header class="post-header">
+        <div class="post-avatar-wrapper">
+            <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>" alt="<%= post.username %>"
+                class="post-avatar" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+        </div>
         <div class="post-author-info">
-            <div class="post-username-row">
-                <div class="post-username">@<%= (post.username && post.username !=='undefined' && post.username
-                        !=='null' ) ? post.username : 'Sparkler' %>
-                </div>
-            </div>
+            <span class="post-username">@<%= (post.username && post.username !=='undefined' && post.username !=='null' )
+                    ? post.username : 'Sparkler' %>
+            </span>
             <div class="post-meta-row">
-                <span>
+                <span class="campus-dot">•</span>
+                <span class="meta-campus">
                     <%= (post.campus && post.campus !=='undefined' && post.campus !=='null' ) ? post.campus
                         : 'Main Campus' %>
-                </span> •
-                <span class="post-time-simple">
+                </span>
+                <span class="meta-sep">•</span>
+                <time class="post-time-simple" datetime="<%= post.created_at %>">
                     <% let d=new Date(post.created_at); %>
                         <%= (d && !isNaN(d.getTime())) ? d.toLocaleDateString() : 'Recently' %>
-                </span>
+                </time>
             </div>
         </div>
-        <button class="post-options-btn">
+        <button class="post-options-btn" aria-label="Post Options">
             <i class="fas fa-ellipsis-h"></i>
         </button>
-    </div>
+    </header>
 
     <!-- Content -->
     <% if (post.content && post.content !=='undefined' && post.content !=='null' && post.content !=='NaN' &&
         post.content.trim() !=='' ) { %>
         <div class="post-text-body">
-            <div class="post-caption-full">
+            <p class="post-caption-full">
                 <%= post.content %>
-            </div>
+            </p>
         </div>
         <% } %>
 
-            <!-- Media Area (Full Bleed) -->
+            <!-- Media Section -->
             <% if (post.media_url) { %>
-                <div class="post-media-proper">
+                <figure class="post-media-proper">
                     <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
                         <video class="media-obj-proper" src="<%= post.media_url %>" controls preload="metadata"></video>
                         <% } else { %>
                             <img class="media-obj-proper" src="<%= post.media_url %>" alt="Post media" loading="lazy">
                             <% } %>
-                </div>
+                </figure>
                 <% } %>
 
-                    <!-- Interaction Area (Facebook Style) -->
+                    <!-- Metrics Overlay -->
                     <div class="post-interaction-metrics">
-                        <div class="metric-stat spark-stat">
+                        <div class="metric-stat" onclick="toggleSpark('<%= post.post_id %>', this)">
                             <i class="fas fa-bolt"></i>
                             <span class="spark-count-val">
                                 <%= post.spark_count || post.sparks || 0 %>
-                            </span> Sparks
+                            </span>
                         </div>
-                        <div class="metric-stat comment-stat">
+                        <div class="metric-stat" onclick="toggleComments('<%= post.post_id %>')">
                             <i class="far fa-comment"></i>
                             <span class="comment-count-val">
                                 <%= post.comment_count || post.comments || 0 %>
-                            </span> Comments
+                            </span>
+                        </div>
+                        <div class="metric-stat" onclick="savePost('<%= post.post_id %>', this)">
+                            <i class="far fa-bookmark"></i>
                         </div>
                     </div>
 
+                    <!-- Action Bar -->
                     <div class="post-interaction-actions">
-                        <button class="action-btn-custom spark <%= post.is_sparked ? 'active' : '' %>"
+                        <button class="action-btn-custom spark <%= post.is_sparked || post.is_liked ? 'active' : '' %>"
                             onclick="sparkPost('<%= post.post_id %>', this)">
-                            <i class="<%= post.is_sparked ? 'fas' : 'far' %> fa-bolt"></i>
+                            <i class="<%= (post.is_sparked || post.is_liked) ? 'fas' : 'far' %> fa-bolt"></i>
                             <span>Spark</span>
                         </button>
 
@@ -86,23 +92,23 @@
                         </button>
                     </div>
 
-                    <!-- Footnote / Quick Comment -->
-                    <div class="post-footer-minimal">
+                    <!-- High-End Comment Input Area -->
+                    <footer class="post-footer-minimal">
                         <div class="post-comment-quick">
-                            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="post-avatar"
-                                style="width: 32px !important; height: 32px !important;">
+                            <img src="<%= (user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png' %>"
+                                class="post-avatar"
+                                style="width: 32px !important; height: 32px !important; border-radius: 10px !important;">
                             <input type="text" id="comment-input-<%= post.post_id %>" class="comment-input-min"
-                                placeholder="Add a comment..."
+                                placeholder="Write a comment..."
                                 onkeypress="if(event.key === 'Enter') addComment('<%= post.post_id %>', this)">
                         </div>
 
-                        <!-- Comments Container -->
+                        <!-- Lazy-loaded Comments -->
                         <div class="comments-section" id="comments-<%= post.post_id %>"
-                            style="display: none; padding: 0 16px 16px;">
-                            <div class="comments-loading"
-                                style="text-align: center; color: var(--text-muted); font-size: 13px;">
-                                <i class="fas fa-spinner fa-spin"></i> Loading comments...
+                            style="display: none; padding-top: 16px;">
+                            <div class="comments-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
                             </div>
                         </div>
-                    </div>
-</div>
+                    </footer>
+</article>

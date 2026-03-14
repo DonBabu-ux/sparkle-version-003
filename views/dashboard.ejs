@@ -327,8 +327,7 @@
         @media (min-width: 1100px) {
             .dashboard-layout {
                 grid-template-columns: 1fr 340px;
-                padding-left: 80px;
-                /* Space for sidebar if needed */
+                /* Padding handled by global layout */
             }
 
             .suggestions-column {
@@ -456,8 +455,50 @@
                         </div>
 
                         <div class="suggestions-column">
-                            <div id="dashboard-suggestions-sidebar">
-                                <!-- Suggestions will be injected here -->
+                            <!-- Suggestions Column -->
+                            <div class="suggestions-sidebar-card glass">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                    <h4 style="font-weight: 800; font-size: 15px; margin: 0; color: var(--text-main);">
+                                        Suggested for you</h4>
+                                    <a href="/connect"
+                                        style="font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none;">See
+                                        All</a>
+                                </div>
+
+                                <div class="suggestions-list">
+                                    <% if (typeof suggestions !=='undefined' && suggestions && suggestions.length> 0) {
+                                        %>
+                                        <% suggestions.forEach(suggestion=> { %>
+                                            <div class="suggestion-item"
+                                                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                                                <div style="display: flex; align-items: center; gap: 12px; cursor: pointer;"
+                                                    onclick="window.location.href='/profile/<%= suggestion.user_id %>' ">
+                                                    <img src="<%= suggestion.avatar_url || '/uploads/avatars/default.png' %>"
+                                                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--accent);">
+                                                    <div style="overflow: hidden; max-width: 120px;">
+                                                        <div
+                                                            style="font-weight: 700; font-size: 13px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                            <%= suggestion.username %>
+                                                        </div>
+                                                        <div style="font-size: 11px; color: var(--text-muted);">
+                                                            <%= suggestion.campus || 'Sparkler' %>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button class="follow-btn-suggestion"
+                                                    data-user-id="<%= suggestion.user_id %>"
+                                                    style="background: none; border: none; color: var(--accent); font-weight: 700; font-size: 12px; cursor: pointer; padding: 4px 8px;">
+                                                    Follow
+                                                </button>
+                                            </div>
+                                            <% }); %>
+                                                <% } else { %>
+                                                    <p
+                                                        style="font-size: 12px; color: var(--text-muted); text-align: center;">
+                                                        No new suggestions right now</p>
+                                                    <% } %>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -541,228 +582,16 @@
             });
         </script>
 
-        <!-- Premium Story Viewer Modal -->
-        <div id="afterglowViewer" class="modal"
-            style="display:none; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); z-index: 2000; position: fixed; inset: 0;">
 
-            <!-- Story Container (100% full screen) -->
-            <div
-                style="position: relative; width: 100%; height: 100vh; background: #000; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center;">
 
-                <!-- Story Header Overlay -->
-                <div
-                    style="position: absolute; top: 0; left: 0; right: 0; padding: 20px 15px; display: flex; align-items: center; justify-content: space-between; z-index: 20; background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <img id="viewerAvatar" src=""
-                            style="width: 38px; height: 38px; border-radius: 50%; border: 2px solid white; object-fit: cover; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-                        <div id="viewerUsername"
-                            style="color: white; font-weight: 700; font-size: 14px; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                        </div>
-                    </div>
-                    <button onclick="closeAfterglowViewer()"
-                        style="background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
 
-                <!-- Story Media -->
-                <div id="viewerMedia"
-                    style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 70px 10px 80px 10px;">
-                </div>
-
-                <!-- Story Caption Overlay -->
-                <div id="viewerCaption"
-                    style="position: absolute; bottom: 0; left: 0; right: 0; padding: 40px 20px 20px 20px; text-align: center; color: white; font-size: 15px; font-weight: 500; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%); text-shadow: 0 1px 3px rgba(0,0,0,0.5); z-index: 20;">
-                </div>
-            </div>
-        </div>
-
-        <script>
-            // ============ DASHBOARD CORE SCRIPT ============
-            (function () {
-                // Fix for Tailwind CDN production warning
-                if (window.tailwind) {
-                    console.log('✨ Premium Tailwinding initialized');
-                }
-
-                const Dashboard = {
-                    currentUser: window.currentUser,
-
-                    openStoryViewer(userId) {
-                        fetch(`/api/dashboard/stories`)
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    const group = data.data.find(u => u.user_id === userId);
-                                    if (group) this.showViewer(group.stories, group);
-                                }
-                            });
-                    },
-
-                    showViewer(stories, user) {
-                        const modal = document.getElementById('afterglowViewer');
-                        const mediaContainer = document.getElementById('viewerMedia');
-                        document.getElementById('viewerUsername').textContent = user.username;
-                        document.getElementById('viewerAvatar').src = user.avatar_url || '/uploads/avatars/default.png';
-
-                        const story = stories[0];
-                        if (story.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) {
-                            mediaContainer.innerHTML = `<video src="${story.media_url}" autoplay controls style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 16px;"></video>`;
-                        } else {
-                            mediaContainer.innerHTML = `<img src="${story.media_url}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 16px;">`;
-                        }
-                        document.getElementById('viewerCaption').textContent = story.caption || '';
-                        modal.style.display = 'block';
-                    },
-
-                    closeViewer() {
-                        document.getElementById('afterglowViewer').style.display = 'none';
-                        document.getElementById('viewerMedia').innerHTML = '';
-                    },
-
-                    async spark(postId, button) {
-                        // Premium feedback
-                        button.style.transform = 'scale(0.95)';
-                        setTimeout(() => button.style.transform = '', 100);
-
-                        try {
-                            const res = await fetch(`/api/posts/${postId}/spark`, { method: 'POST' });
-                            const data = await res.json();
-                            if (data.status === 'success' || data.success) {
-                                const isSparked = data.action === 'sparked';
-                                button.classList.toggle('active', isSparked);
-
-                                const icon = button.querySelector('i');
-                                if (icon) icon.className = isSparked ? 'fas fa-bolt' : 'far fa-bolt';
-
-                                // Update count in metrics bar
-                                const card = button.closest('.post-card');
-                                const countVal = card?.querySelector('.spark-count-val');
-                                if (countVal) {
-                                    let current = parseInt(countVal.textContent) || 0;
-                                    countVal.textContent = isSparked ? current + 1 : Math.max(0, current - 1);
-                                }
-
-                                if (isSparked) {
-                                    button.style.transform = 'scale(1.05)';
-                                    setTimeout(() => button.style.transform = '', 150);
-                                }
-                            }
-                        } catch (e) {
-                            console.error('Spark failed', e);
-                        }
-                    },
-
-                    async save(postId, button) {
-                        button.style.transform = 'scale(0.95)';
-                        setTimeout(() => button.style.transform = '', 100);
-
-                        try {
-                            const res = await fetch(`/api/posts/${postId}/save`, { method: 'POST' });
-                            const data = await res.json();
-                            const isSaved = data.action === 'saved';
-                            button.classList.toggle('active', isSaved);
-
-                            const icon = button.querySelector('i');
-                            if (icon) icon.className = isSaved ? 'fas fa-bookmark' : 'far fa-bookmark';
-                        } catch (e) {
-                            console.error('Save failed', e);
-                        }
-                    },
-
-                    async share(postId) {
-                        if (window.openShareModal) {
-                            window.openShareModal(postId);
-                        } else {
-                            // Standard Web Share API fallback
-                            if (navigator.share) {
-                                navigator.share({
-                                    title: 'Sparkle Post',
-                                    url: window.location.origin + '/posts/' + postId
-                                }).catch(console.error);
-                            } else {
-                                alert('Sharing options opened!');
-                            }
-                        }
-                    },
-
-                    async addComment(postId, input) {
-                        const content = input.value.trim();
-                        if (!content) return;
-                        try {
-                            const res = await fetch(`/api/posts/${postId}/comments`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ content })
-                            });
-                            if (res.ok) {
-                                input.value = '';
-                                location.reload();
-                            }
-                        } catch (e) {
-                            console.error('Comment failed', e);
-                        }
-                    },
-
-                    toggleComments(postId) {
-                        const section = document.getElementById(`comments-${postId}`);
-                        if (!section) return;
-                        section.style.display = section.style.display === 'none' ? 'block' : 'none';
-                    },
-
-                    showCreateOptions() {
-                        // Open the "choose what to create" picker
-                        const picker = document.getElementById('createPickerModal');
-                        if (picker) {
-                            picker.style.display = 'flex';
-                        } else if (window._dynamicShowCreateOptions) {
-                            window._dynamicShowCreateOptions();
-                        } else {
-                            // Fallback: open post modal directly
-                            const cm = document.getElementById('createModal');
-                            if (cm) cm.style.display = 'flex';
-                        }
-                    },
-
-                    openPostModal() {
-                        const cm = document.getElementById('createModal');
-                        if (cm) cm.style.display = 'flex';
-                    },
-
-                    openMomentModal() {
-                        const mm = document.getElementById('momentModal');
-                        if (mm) mm.style.display = 'flex';
-                    },
-
-                    openAfterglowModal() {
-                        const am = document.getElementById('afterglowModal');
-                        if (am) am.style.display = 'flex';
-                        else if (window.uploadAfterglowMedia) uploadAfterglowMedia();
-                    }
-                };
-
-                // EXPOSE GLOBALLY
-                window.Dashboard = Dashboard;
-                window.sparkPost = (id, btn) => Dashboard.spark(id, btn);
-                window.savePost = (id, btn) => Dashboard.save(id, btn);
-                window.sharePost = (id) => Dashboard.share(id);
-                window.addComment = (id, input) => Dashboard.addComment(id, input);
-                window.toggleComments = (id) => Dashboard.toggleComments(id);
-                window.openStoryViewer = (id) => Dashboard.openStoryViewer(id);
-                window.closeAfterglowViewer = () => Dashboard.closeViewer();
-                window.showCreateOptions = () => Dashboard.showCreateOptions();
-                window.openCreateModal = () => Dashboard.openPostModal();
-                window.openMomentModal = () => Dashboard.openMomentModal();
-                window.openAfterglowModal = () => Dashboard.openAfterglowModal();
-            })();
-        </script>
 
         <!-- Scripts & Partials -->
         <script src="/js/dashboardAPI.js"></script>
         <%- include('partials/dashboard-modals') %>
             <%- include('partials/share-modal') %>
                 <%- include('partials/bottom-nav') %>
-                    <script src="/js/dynamicPatch.js"></script>
+                    <script type="module" src="/js/dynamicPatch/index.js"></script>
                     </body>
 
                     </html>

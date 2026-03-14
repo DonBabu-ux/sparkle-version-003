@@ -6,47 +6,117 @@
     </div>
 
     <nav class="sidebar-nav">
-        <a href="/dashboard" class="sidebar-item <%= title === 'Dashboard' ? 'active' : '' %>">
-            <i class="fas fa-home"></i>
+        <!-- 1. Home -->
+        <a href="/dashboard" class="sidebar-item <%= title === 'Dashboard' ? 'active' : '' %>" title="Home">
+            <i class="fas fa-house-chimney"></i>
             <span>Home</span>
         </a>
-        <a href="/connect" class="sidebar-item <%= title === 'Connect' ? 'active' : '' %>">
-            <i class="fas fa-compass"></i>
-            <span>Explore</span>
-        </a>
-        <a href="/moments" class="sidebar-item <%= title === 'Moments' ? 'active' : '' %>">
+
+        <!-- 2. Discover Students Hub -->
+        <div class="sidebar-hub-container" id="discoverHub">
+            <div class="sidebar-item hub-trigger">
+                <i class="fas fa-compass"></i>
+                <span>Discover</span>
+                <i class="fas fa-chevron-right hub-chevron"></i>
+            </div>
+            <div class="hub-dropdown">
+                <a href="/connect" class="hub-sub-item">
+                    <i class="fas fa-search"></i>
+                    <span>Find Students</span>
+                </a>
+                <a href="/follow-requests" class="hub-sub-item">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Follow Requests</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 3. Moments -->
+        <a href="/moments" class="sidebar-item <%= title === 'Moments' ? 'active' : '' %>" title="Moments">
             <i class="fas fa-play-circle"></i>
             <span>Moments</span>
         </a>
-        <a href="/messages" class="sidebar-item <%= title === 'Messages' ? 'active' : '' %>">
-            <i class="fas fa-paper-plane"></i>
-            <span>Messages</span>
-        </a>
-        <a href="/notifications" class="sidebar-item">
-            <i class="fas fa-bell"></i>
-            <span>Notifications</span>
-        </a>
-        <a href="#" class="sidebar-item" onclick="window.showCreateOptions(); return false;">
-            <i class="fas fa-plus-square"></i>
-            <span>Create</span>
-        </a>
-        <a href="/profile" class="sidebar-item <%= title === 'Profile' ? 'active' : '' %>">
+
+        <!-- 4. Profile -->
+        <a href="/profile" class="sidebar-item <%= title === 'Profile' ? 'active' : '' %>" title="Profile">
             <img src="<%= (typeof user !== 'undefined' && user) ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
                 style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
             <span>Profile</span>
         </a>
-    </nav>
 
-    <div class="sidebar-footer" style="padding-top: 20px; border-top: 1px solid #f1f5f9;">
-        <a href="/settings" class="sidebar-item">
-            <i class="fas fa-cog"></i>
-            <span>Settings</span>
+        <!-- 5. Confessions -->
+        <a href="/confessions" class="sidebar-item <%= title === 'Confessions' ? 'active' : '' %>" title="Confessions">
+            <i class="fas fa-user-secret"></i>
+            <span>Confessions</span>
         </a>
-        <a href="/logout" class="sidebar-item">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
+
+        <!-- 6. Create -->
+        <a href="#" class="sidebar-item create-trigger" onclick="window.showCreateOptions(); return false;"
+            title="Create">
+            <i class="fas fa-plus-square"></i>
+            <span>Create</span>
         </a>
-    </div>
+
+        <!-- 7. Messages -->
+        <a href="/messages" class="sidebar-item <%= title === 'Messages' ? 'active' : '' %>" title="Messages">
+            <i class="fas fa-paper-plane"></i>
+            <span>Messages</span>
+        </a>
+
+        <!-- 8. Sparkle Shop Hub (Marketplace + Skill Market) -->
+        <div class="sidebar-hub-container" id="shopHub">
+            <div class="sidebar-item hub-trigger">
+                <i class="fas fa-bag-shopping"></i>
+                <span>Sparkle Shop</span>
+                <i class="fas fa-chevron-right hub-chevron"></i>
+            </div>
+            <div class="hub-dropdown">
+                <a href="/marketplace" class="hub-sub-item">
+                    <i class="fas fa-store"></i>
+                    <span>Marketplace</span>
+                </a>
+                <a href="/skill-market" class="hub-sub-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Skill Market</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 9. More Menu -->
+        <div class="sidebar-hub-container" id="moreHub" style="margin-top: auto;">
+            <div class="sidebar-item hub-trigger">
+                <i class="fas fa-ellipsis-h"></i>
+                <span>More</span>
+            </div>
+            <div class="hub-dropdown up">
+                <a href="/groups" class="hub-sub-item">
+                    <i class="fas fa-users"></i>
+                    <span>Groups & Clubs</span>
+                </a>
+                <a href="/lost-found" class="hub-sub-item">
+                    <i class="fas fa-search"></i>
+                    <span>Lost & Found</span>
+                </a>
+                <a href="/polls" class="hub-sub-item">
+                    <i class="fas fa-poll-h"></i>
+                    <span>Polls</span>
+                </a>
+                <a href="/events" class="hub-sub-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Events</span>
+                </a>
+                <a href="/settings" class="hub-sub-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <div class="hub-divider"></div>
+                <a href="/logout" class="hub-sub-item logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+    </nav>
 </div>
 
 <!-- Hamburger Menu Overlay (Mobile) -->
@@ -81,178 +151,104 @@
         <div style="font-size: 13px; color: #666;">Access all features from here</div>
     </div>
 
-    <!-- Campus Life & Social (Flat) -->
+    <!-- Main Navigation -->
     <div class="hamburger-section">
-        <div class="hamburger-section-title">
-            <i class="fas fa-heart"></i> Campus Life & Social
-        </div>
         <div class="hamburger-item" onclick="window.location.href='/dashboard'; hideHamburger();">
-            <i class="fas fa-home"></i>
+            <i class="fas fa-house-chimney"></i>
             <span>Home Feed</span>
         </div>
-        <div class="hamburger-item" onclick="window.location.href='/connect'; hideHamburger();">
-            <i class="fas fa-user-friends"></i>
-            <span>Discover Students</span>
+
+        <!-- Discover Hub -->
+        <div class="hamburger-section collapsible">
+            <div class="hamburger-section-header" onclick="toggleSidebarSection(this)">
+                <div class="hamburger-section-title">
+                    <i class="fas fa-compass"></i> Discover
+                </div>
+                <i class="fas fa-chevron-down toggle-chevron"></i>
+            </div>
+            <div class="collapsible-content">
+                <div class="hamburger-item" onclick="window.location.href='/connect'; hideHamburger();">
+                    <i class="fas fa-search"></i>
+                    <span>Find Students</span>
+                </div>
+                <div class="hamburger-item" onclick="window.location.href='/follow-requests'; hideHamburger();">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Follow Requests</span>
+                </div>
+            </div>
         </div>
+
         <div class="hamburger-item" onclick="window.location.href='/moments'; hideHamburger();">
             <i class="fas fa-play-circle"></i>
             <span>Moments</span>
         </div>
-        <div class="hamburger-item" onclick="window.location.href='/clubs'; hideHamburger();">
-            <i class="fas fa-university"></i>
-            <span>Campus Clubs</span>
-            <span class="hamburger-badge" id="clubsBadge" style="display: none;">0</span>
+        <div class="hamburger-item" onclick="window.location.href='/profile'; hideHamburger();">
+            <i class="fas fa-user-circle"></i>
+            <span>My Profile</span>
+        </div>
+        <div class="hamburger-item" onclick="window.location.href='/confessions'; hideHamburger();">
+            <i class="fas fa-user-secret"></i>
+            <span>Confessions</span>
         </div>
         <div class="hamburger-item" onclick="window.location.href='/messages'; hideHamburger();">
-            <i class="fas fa-envelope"></i>
+            <i class="fas fa-paper-plane"></i>
             <span>Messaging</span>
-            <span class="hamburger-badge" id="messagesBadge" style="display: none;">0</span>
-        </div>
-        <div class="hamburger-item" onclick="window.location.href='/follow-requests'; hideHamburger();">
-            <i class="fas fa-user-plus"></i>
-            <span>Follow Requests</span>
-            <span class="hamburger-badge" id="followRequestsBadge" style="display: none;">0</span>
         </div>
     </div>
 
-    <!-- Groups Section (Dropdown) -->
+    <!-- Sparkle Shop Hub -->
     <div class="hamburger-section collapsible">
         <div class="hamburger-section-header" onclick="toggleSidebarSection(this)">
             <div class="hamburger-section-title">
-                <i class="fas fa-users"></i> Groups
+                <i class="fas fa-bag-shopping"></i> Sparkle Shop
             </div>
             <i class="fas fa-chevron-down toggle-chevron"></i>
         </div>
         <div class="collapsible-content">
-            <div class="hamburger-item" onclick="window.location.href='/groups?filter=my'; hideHamburger();">
+            <div class="hamburger-item" onclick="window.location.href='/marketplace'; hideHamburger();">
+                <i class="fas fa-store"></i>
+                <span>Marketplace</span>
+            </div>
+            <div class="hamburger-item" onclick="window.location.href='/skill-market'; hideHamburger();">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Skill Market</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- More Menu Hub -->
+    <div class="hamburger-section collapsible">
+        <div class="hamburger-section-header" onclick="toggleSidebarSection(this)">
+            <div class="hamburger-section-title">
+                <i class="fas fa-ellipsis-h"></i> More
+            </div>
+            <i class="fas fa-chevron-down toggle-chevron"></i>
+        </div>
+        <div class="collapsible-content">
+            <div class="hamburger-item" onclick="window.location.href='/groups'; hideHamburger();">
                 <i class="fas fa-users"></i>
-                <span>My Groups</span>
-                <span class="hamburger-badge" id="groupsCountBadge" style="display: none;">0</span>
-            </div>
-            <div class="hamburger-item" onclick="showGroupManagement(); hideHamburger();">
-                <i class="fas fa-user-cog"></i>
-                <span>Browse Groups</span>
-            </div>
-            <div class="hamburger-item" onclick="window.location.href='/groups/feed'; hideHamburger();">
-                <i class="fas fa-newspaper"></i>
-                <span>Group Feed</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Campus Marketplace (Dropdown) -->
-    <div class="hamburger-section collapsible">
-        <div class="hamburger-section-header" onclick="toggleSidebarSection(this)">
-            <div class="hamburger-section-title">
-                <i class="fas fa-store"></i> Marketplace
-            </div>
-            <i class="fas fa-chevron-down toggle-chevron"></i>
-        </div>
-        <div class="collapsible-content">
-            <div class="hamburger-item" onclick="window.location.href='/marketplace'; hideHamburger();">
-                <i class="fas fa-shopping-bag"></i>
-                <span>Black Market</span>
-            </div>
-            <div class="hamburger-item" onclick="window.location.href='/marketplace'; hideHamburger();">
-                <i class="fas fa-recycle"></i>
-                <span>Second-hand Goods</span>
-                <span class="hamburger-badge" id="secondhandBadge" style="display: none;">0</span>
-            </div>
-            <div class="hamburger-item" onclick="window.location.href='/marketplace'; hideHamburger();">
-                <i class="fas fa-tools"></i>
-                <span>Campus Services</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Lost & Found (Dropdown) -->
-    <div class="hamburger-section collapsible">
-        <div class="hamburger-section-header" onclick="toggleSidebarSection(this)">
-            <div class="hamburger-section-title">
-                <i class="fas fa-search"></i> Lost & Found
-            </div>
-            <i class="fas fa-chevron-down toggle-chevron"></i>
-        </div>
-        <div class="collapsible-content">
-            <div class="hamburger-item" onclick="window.location.href='/lost-found'; hideHamburger();">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Lost Items</span>
-                <span class="hamburger-badge" id="lostItemsBadge" style="display: none;">0</span>
+                <span>Groups & Clubs</span>
             </div>
             <div class="hamburger-item" onclick="window.location.href='/lost-found'; hideHamburger();">
-                <i class="fas fa-check-circle"></i>
-                <span>Found Items</span>
-                <span class="hamburger-badge" id="foundItemsBadge" style="display: none;">0</span>
+                <i class="fas fa-search"></i>
+                <span>Lost & Found</span>
             </div>
-        </div>
-    </div>
-
-    <!-- Skill Marketplace (Dropdown) -->
-    <div class="hamburger-section collapsible">
-        <div class="hamburger-section-header" onclick="toggleSidebarSection(this)">
-            <div class="hamburger-section-title">
-                <i class="fas fa-graduation-cap"></i> Skill Market
+            <div class="hamburger-item" onclick="window.location.href='/polls'; hideHamburger();">
+                <i class="fas fa-poll-h"></i>
+                <span>Polls</span>
             </div>
-            <i class="fas fa-chevron-down toggle-chevron"></i>
-        </div>
-        <div class="collapsible-content">
-            <div class="hamburger-item" onclick="window.location.href='/skill-market'; hideHamburger();">
-                <i class="fas fa-chalkboard-teacher"></i>
-                <span>Tutoring Services</span>
-                <span class="hamburger-badge" id="tutorsBadge" style="display: none;">0</span>
+            <div class="hamburger-item" onclick="window.location.href='/events'; hideHamburger();">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Events</span>
             </div>
-            <div class="hamburger-item" onclick="window.location.href='/skill-market'; hideHamburger();">
-                <i class="fas fa-laptop-code"></i>
-                <span>Tech Support</span>
+            <div class="hamburger-item" onclick="window.location.href='/settings'; hideHamburger();">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
             </div>
-            <div class="hamburger-item" onclick="window.location.href='/skill-market'; hideHamburger();">
-                <i class="fas fa-hands-helping"></i>
-                <span>Skill Sharing</span>
+            <div class="hamburger-item logout" onclick="window.location.href='/logout'; hideHamburger();">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
             </div>
-        </div>
-    </div>
-
-    <!-- Settings Section (Flat) -->
-    <div class="hamburger-section">
-        <div class="hamburger-section-title">
-            <i class="fas fa-cog"></i> Settings
-        </div>
-        <div class="hamburger-item"
-            onclick="if(typeof showEnhancedSettings === 'function') { showEnhancedSettings(); } else { window.location.href='/settings'; } hideHamburger();">
-            <i class="fas fa-sliders-h"></i>
-            <span>All Settings</span>
-        </div>
-        <div class="hamburger-item"
-            onclick="if(typeof showConfessionsGallery === 'function') { showConfessionsGallery(); } else { window.location.href='/confessions'; } hideHamburger();">
-            <i class="fas fa-user-secret"></i>
-            <span>Anonymous Confessions</span>
-            <span class="hamburger-badge" id="confessionsBadge" style="display: none;">0</span>
-        </div>
-        <div class="hamburger-item" onclick="window.location.href='/about'; hideHamburger();">
-            <i class="fas fa-info-circle"></i>
-            <span>About Sparkle</span>
-        </div>
-    </div>
-
-    <!-- Quick Actions (Flat) -->
-    <div class="hamburger-section">
-        <div class="hamburger-section-title">
-            <i class="fas fa-bolt"></i> Quick Actions
-        </div>
-        <div class="hamburger-item"
-            onclick="if(typeof openGoLiveModal === 'function') { openGoLiveModal(); } else { alert('Go Live feature coming soon!'); } hideHamburger();">
-            <i class="fas fa-video" style="color: #FF416C;"></i>
-            <span>Go Live</span>
-        </div>
-        <div class="hamburger-item"
-            onclick="if(typeof openCreatePollModal === 'function') { openCreatePollModal(); } else { window.location.href='/polls'; } hideHamburger();">
-            <i class="fas fa-poll-h" style="color: #667eea;"></i>
-            <span>Create Poll</span>
-        </div>
-        <div class="hamburger-item"
-            onclick="if(typeof openEventModal === 'function') { openEventModal(); } else { window.location.href='/events'; } hideHamburger();">
-            <i class="fas fa-calendar-plus" style="color: #f2994a;"></i>
-            <span>Create Event</span>
         </div>
     </div>
 

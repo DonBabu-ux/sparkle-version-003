@@ -66,6 +66,22 @@ const getFeedPosts = async (req, res) => {
             avatar_url: getSafeAvatarUrl(post.avatar_url)
         }));
 
+        if (req.query.render === 'true') {
+            const renderedPosts = await Promise.all(sanitizedPosts.map(post => {
+                return new Promise((resolve, reject) => {
+                    res.render('partials/post-card', { post, user: req.user }, (err, html) => {
+                        if (err) {
+                            logger.error('Error rendering post-card partial:', err);
+                            resolve(`<div class="error">Error rendering post</div>`);
+                        } else {
+                            resolve(html);
+                        }
+                    });
+                });
+            }));
+            return res.json({ posts: sanitizedPosts, htmls: renderedPosts });
+        }
+
         res.json(sanitizedPosts);
     } catch (error) {
         logger.error('Get Feed Posts Error:', error);
@@ -175,7 +191,7 @@ const renderPost = async (req, res) => {
 const createStory = async (req, res) => {
     try {
         const { caption } = req.body;
-        
+
         // Handle both file upload and direct URL with multiple field name support
         let media_url;
         if (req.file) {
@@ -213,7 +229,7 @@ const createStory = async (req, res) => {
         }
 
         const storyId = crypto.randomUUID();
-        
+
         // Determine media type
         let media_type = 'image';
         if (req.file) {
@@ -238,12 +254,12 @@ const createStory = async (req, res) => {
         );
 
         console.log('✅ Story created successfully:', storyId);
-        res.status(201).json({ 
-            status: 'success', 
-            message: 'Story created', 
-            story_id: storyId 
+        res.status(201).json({
+            status: 'success',
+            message: 'Story created',
+            story_id: storyId
         });
-        
+
     } catch (error) {
         console.error('❌ Create Story Error:', error);
         logger.error('Create Story Error:', error);
@@ -260,48 +276,37 @@ const likeStory = async (req, res) => {
 
         console.log(`📝 Like story request - Story: ${storyId}, User: ${userId}`);
 
-        // Validate inputs
         if (!storyId || !userId) {
             return res.status(400).json({ error: 'Missing storyId or userId' });
         }
-
-        // First check if story exists
-        const [story] = await pool.query('SELECT story_id, user_id FROM stories WHERE story_id = ?', [storyId]);
-        if (!story || story.length === 0) {
-            console.log('❌ Story not found:', storyId);
-            return res.status(404).json({ error: 'Story not found' });
-        }
-
-        // Ensure likes table exists
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS story_likes (
-                like_id CHAR(36) NOT NULL PRIMARY KEY,
-                story_id CHAR(36) NOT NULL,
-                user_id CHAR(36) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_like (story_id, user_id),
-                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
 
         // Get connection for transaction
         connection = await pool.getConnection();
         await connection.beginTransaction();
 
+        // Check if story exists and LOCK it to prevent deadlocks during concurrent likes
+        const [storiesFound] = await connection.query(
+            'SELECT story_id, user_id FROM stories WHERE story_id = ? FOR UPDATE',
+            [storyId]
+        );
+
+        if (!storiesFound || storiesFound.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Story not found' });
+        }
+
         // Check if already liked
         const [existingRows] = await connection.query(
-            'SELECT like_id FROM story_likes WHERE story_id = ? AND user_id = ?', 
+            'SELECT like_id FROM story_likes WHERE story_id = ? AND user_id = ? FOR UPDATE',
             [storyId, userId]
         );
-        
-        let liked = false;
 
+        let liked = false;
         if (existingRows && existingRows.length > 0) {
             // Unlike
             await connection.query('DELETE FROM story_likes WHERE story_id = ? AND user_id = ?', [storyId, userId]);
             await connection.query(
-                'UPDATE stories SET like_count = GREATEST(COALESCE(like_count, 0) - 1, 0) WHERE story_id = ?', 
+                'UPDATE stories SET like_count = GREATEST(COALESCE(like_count, 0) - 1, 0) WHERE story_id = ?',
                 [storyId]
             );
             liked = false;
@@ -310,59 +315,72 @@ const likeStory = async (req, res) => {
             // Like
             const likeId = crypto.randomUUID();
             await connection.query(
-                'INSERT INTO story_likes (like_id, story_id, user_id) VALUES (?, ?, ?)', 
+                'INSERT INTO story_likes (like_id, story_id, user_id) VALUES (?, ?, ?)',
                 [likeId, storyId, userId]
             );
             await connection.query(
-                'UPDATE stories SET like_count = COALESCE(like_count, 0) + 1 WHERE story_id = ?', 
+                'UPDATE stories SET like_count = COALESCE(like_count, 0) + 1 WHERE story_id = ?',
                 [storyId]
             );
             liked = true;
             console.log('👍 Story liked');
 
             // Create notification for story owner (if not self)
-            if (story[0].user_id !== userId) {
+            const storyData = storiesFound[0];
+            if (storyData.user_id !== userId) {
                 try {
-                    const [actor] = await connection.query(
-                        'SELECT name FROM users WHERE user_id = ?', 
-                        [userId]
-                    );
+                    const [actor] = await connection.query('SELECT name FROM users WHERE user_id = ?', [userId]);
                     const notificationId = crypto.randomUUID();
                     await connection.query(
-                        `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url) 
+                        `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
                          VALUES (?, ?, 'story_like', 'Story Liked', ?, ?, ?)`,
                         [
-                            notificationId, 
-                            story[0].user_id, 
-                            `${actor[0]?.name || 'Someone'} liked your story`, 
-                            userId, 
+                            notificationId,
+                            storyData.user_id,
+                            `${actor[0]?.name || 'Someone'} liked your story`,
+                            userId,
                             `/stories/${storyId}`
                         ]
                     );
-                    console.log('📨 Notification created for story like');
+                    logger.error('Notification error (ignoring):', notifErr);
                 } catch (notifErr) {
-                    logger.error('Failed to create notification:', notifErr);
-                    // Continue even if notification fails
+                    logger.error('Notification error (ignoring):', notifErr);
                 }
             }
         }
 
         await connection.commit();
+        res.json({ success: true, liked, action: liked ? 'liked' : 'unliked' });
 
-        // Get updated like count
-        const [[info]] = await pool.query('SELECT like_count FROM stories WHERE story_id = ?', [storyId]);
-        const likeCount = info?.like_count || 0;
-        
-        console.log(`✅ Like toggled successfully: liked=${liked}, count=${likeCount}`);
-        res.json({ liked, like_count: likeCount });
-        
     } catch (error) {
         if (connection) await connection.rollback();
-        logger.error('Like Story Error:', error);
-        console.error('❌ Like story error details:', error.message);
+        logger.error('Like story error:', error);
         res.status(500).json({ error: 'Failed to toggle like', details: error.message });
     } finally {
         if (connection) connection.release();
+    }
+};
+
+const deleteStory = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+
+        if (!storyId) return res.status(400).json({ error: 'Missing story ID' });
+
+        const [result] = await pool.query(
+            'DELETE FROM stories WHERE story_id = ? AND user_id = ?',
+            [storyId, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Story not found or unauthorized' });
+        }
+
+        res.json({ success: true, message: 'Story deleted successfully' });
+    } catch (error) {
+        logger.error('Delete story error:', error);
+        res.status(500).json({ error: 'Failed to delete story' });
     }
 };
 
@@ -371,13 +389,13 @@ const getStoryLikes = async (req, res) => {
     try {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
-        
+
         const [[countRow]] = await pool.query('SELECT like_count FROM stories WHERE story_id = ?', [storyId]);
         const [[exists]] = await pool.query('SELECT 1 FROM story_likes WHERE story_id = ? AND user_id = ?', [storyId, userId]);
-        
-        res.json({ 
-            like_count: (countRow && countRow.like_count) || 0, 
-            liked: !!exists 
+
+        res.json({
+            like_count: (countRow && countRow.like_count) || 0,
+            liked: !!exists
         });
     } catch (error) {
         logger.error('Get story likes error:', error);
@@ -425,12 +443,12 @@ const shareStory = async (req, res) => {
         // Record share
         const shareId = crypto.randomUUID();
         await connection.query(
-            'INSERT INTO story_shares (share_id, story_id, user_id) VALUES (?, ?, ?)', 
+            'INSERT INTO story_shares (share_id, story_id, user_id) VALUES (?, ?, ?)',
             [shareId, storyId, userId]
         );
-        
+
         await connection.query(
-            'UPDATE stories SET share_count = COALESCE(share_count, 0) + 1 WHERE story_id = ?', 
+            'UPDATE stories SET share_count = COALESCE(share_count, 0) + 1 WHERE story_id = ?',
             [storyId]
         );
 
@@ -440,7 +458,7 @@ const shareStory = async (req, res) => {
         if (story[0].user_id !== userId) {
             try {
                 const [actor] = await connection.query(
-                    'SELECT name FROM users WHERE user_id = ?', 
+                    'SELECT name FROM users WHERE user_id = ?',
                     [userId]
                 );
                 const notificationId = crypto.randomUUID();
@@ -448,10 +466,10 @@ const shareStory = async (req, res) => {
                     `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url) 
                      VALUES (?, ?, 'story_share', 'Story Shared', ?, ?, ?)`,
                     [
-                        notificationId, 
-                        story[0].user_id, 
-                        `${actor[0]?.name || 'Someone'} shared your story`, 
-                        userId, 
+                        notificationId,
+                        story[0].user_id,
+                        `${actor[0]?.name || 'Someone'} shared your story`,
+                        userId,
                         `/stories/${storyId}`
                     ]
                 );
@@ -467,7 +485,7 @@ const shareStory = async (req, res) => {
         // Get updated share count
         const [[info]] = await pool.query('SELECT share_count FROM stories WHERE story_id = ?', [storyId]);
         const shareCount = info?.share_count || 0;
-        
+
         console.log(`✅ Story shared successfully, total shares: ${shareCount}`);
         res.json({ success: true, share_count: shareCount });
 
@@ -481,13 +499,14 @@ const shareStory = async (req, res) => {
     }
 };
 
-module.exports = { 
-    renderDashboard, 
-    getFeedPosts, 
-    getStories, 
-    renderPost, 
-    createStory, 
-    likeStory, 
-    getStoryLikes, 
-    shareStory 
+module.exports = {
+    renderDashboard,
+    getFeedPosts,
+    getStories,
+    renderPost,
+    createStory,
+    likeStory,
+    getStoryLikes,
+    shareStory,
+    deleteStory
 };

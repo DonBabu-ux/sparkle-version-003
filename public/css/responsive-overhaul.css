@@ -46,9 +46,10 @@
     display: flex;
     flex-direction: column;
     padding: 20px 12px;
-    z-index: 1000;
+    z-index: 1002;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
+    /* overflow: hidden; */
+    /* REMOVED to allow floating menus! */
 }
 
 .desktop-sidebar:hover {
@@ -85,6 +86,16 @@
     flex-direction: column;
     gap: 8px;
     flex: 1;
+    overflow-y: auto;
+    /* Scrollable if long */
+    overflow-x: visible;
+    /* CRITICAL for hub dropdowns */
+    padding-bottom: 20px;
+}
+
+/* Hide scrollbar */
+.sidebar-nav::-webkit-scrollbar {
+    display: none;
 }
 
 .sidebar-item {
@@ -98,6 +109,8 @@
     font-weight: 600;
     transition: all 0.2s;
     white-space: nowrap;
+    position: relative;
+    cursor: pointer;
 }
 
 .sidebar-item i {
@@ -128,7 +141,145 @@
 }
 
 .sidebar-item.active {
-    color: var(--accent);
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--pc-accent);
+}
+
+.sidebar-item.active i {
+    color: var(--pc-accent);
+}
+
+/* Hub Containers & Dropdowns (IG Style Popups) */
+.sidebar-hub-container {
+    position: relative;
+    width: 100%;
+    overflow: visible;
+}
+
+.hub-trigger {
+    cursor: pointer;
+    display: flex !important;
+    align-items: center;
+}
+
+.hub-chevron {
+    margin-left: auto;
+    font-size: 10px;
+    opacity: 0.5;
+    transition: transform 0.3s ease;
+}
+
+/* Dropdown styling - Floating POPUP */
+.hub-dropdown {
+    display: none;
+    flex-direction: column;
+    background: #ffffff;
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    padding: 8px;
+    min-width: 240px;
+    position: absolute;
+    left: 4px;
+    /* Default left for collapsed mode */
+    z-index: 10000;
+    animation: hubPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes hubPop {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.sidebar-hub-container.active .hub-dropdown {
+    display: flex;
+}
+
+/* Downward opening hubs */
+#discoverHub .hub-dropdown,
+#shopHub .hub-dropdown {
+    top: 54px;
+}
+
+/* Upward opening 'More' hub (Bottom pinned) */
+#moreHub .hub-dropdown.up {
+    bottom: 54px;
+    left: 4px;
+    animation: hubPopUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes hubPopUp {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Adjust dropdowns when sidebar is expanded */
+.desktop-sidebar:hover .hub-dropdown {
+    left: 8px;
+    min-width: calc(var(--sidebar-width-expanded) - 24px);
+}
+
+.hub-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #475569;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.hub-sub-item:hover {
+    background: #f1f5f9;
+    color: var(--pc-accent);
+}
+
+.hub-sub-item i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    color: var(--pc-accent);
+}
+
+.hub-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 6px 0;
+}
+
+.hub-sub-item.logout {
+    color: #ef4444;
+}
+
+/* Reset tweaks for collapsed state */
+.desktop-sidebar:not(:hover) .hub-dropdown {
+    left: 54px;
+    /* Pop out to the side when collapsed */
+    bottom: 0px !important;
+    /* Align bottom with item */
+}
+
+/* More Hub special rule for collapsed */
+.desktop-sidebar:not(:hover) #moreHub .hub-dropdown {
+    bottom: 0px !important;
 }
 
 /* Mobile & Tablet Adjustments */
@@ -160,6 +311,14 @@
         left: var(--sidebar-width-collapsed);
         width: calc(100% - var(--sidebar-width-collapsed));
         transition: left 0.3s, width 0.3s;
+        z-index: 1001;
+    }
+
+    /* Hide legacy mobile elements */
+    .hamburger-menu,
+    .hamburger-overlay,
+    .nav-bar {
+        display: none !important;
     }
 
     /* Optional: If you want the header to slide with sidebar expansion */

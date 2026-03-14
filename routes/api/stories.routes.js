@@ -10,5 +10,6 @@ router.post('/', authMiddleware, upload.single('media'), feedController.createSt
 router.get('/:id/likes', authMiddleware, feedController.getStoryLikes);
 router.post('/:id/like', authMiddleware, feedController.likeStory);
 router.post('/:id/share', authMiddleware, feedController.shareStory);
+router.delete('/:id', authMiddleware, feedController.deleteStory);
 
 module.exports = router;

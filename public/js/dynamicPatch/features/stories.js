@@ -343,6 +343,7 @@ export function showAfterglowViewer(story) {
         };
 
         const sendReplyBtn = modal.querySelector('#storySendReplyBtn');
+        const replyInput = modal.querySelector('#storyReplyInput');
 
         async function handleReply() {
             const content = replyInput.value.trim();

@@ -1,8 +1,9 @@
-<div class="header glass">
+<header class="header glass">
     <div style="display: flex; align-items: center; gap: 15px;">
-        <div class="hamburger-btn" onclick="toggleHamburger()" style="font-size: 20px; cursor: pointer;">
+        <button class="hamburger-btn" onclick="toggleHamburger()" aria-label="Toggle Menu"
+            style="font-size: 20px; cursor: pointer; background: none; border: none; padding: 0; color: inherit;">
             <i class="fas fa-bars"></i>
-        </div>
+        </button>
         <style>
             @media (min-width: 1025px) {
                 .hamburger-btn {
@@ -10,47 +11,50 @@
                 }
             }
         </style>
-        <div class="logo-text"
-            style="font-size: 28px; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif; letter-spacing: -1px;">
-            Sparkle</div>
+        <h1 class="logo-text"
+            style="font-size: 28px; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif; letter-spacing: -1px; margin: 0;">
+            Sparkle</h1>
     </div>
-    <div id="notificationIcon" onclick="window.toggleNotificationPanel()"
-        style="font-size: 22px; position: relative; cursor: pointer; display: flex; align-items: center; gap: 15px;">
-        <i class="far fa-bell" id="navBellIcon"></i>
-        <span class="badge" id="notificationCount"
-            style="position: absolute; top: -8px; right: 25px; background: #e91e63; color: white; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10px; padding: 0 4px; display: none; align-items: center; justify-content: center; border: 2px solid var(--card-bg); font-weight: 700;"></span>
+    <div class="nav-actions" style="display: flex; align-items: center; gap: 15px;">
+        <button id="notificationIcon" onclick="window.toggleNotificationPanel()" aria-label="Notifications"
+            style="font-size: 22px; position: relative; cursor: pointer; background: none; border: none; padding: 0; color: inherit; display: flex; align-items: center;">
+            <i class="far fa-bell" id="navBellIcon"></i>
+            <span class="badge" id="notificationCount"
+                style="position: absolute; top: -8px; right: -8px; background: #e91e63; color: white; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10px; padding: 0 4px; display: none; align-items: center; justify-content: center; border: 2px solid var(--card-bg); font-weight: 700;"></span>
+        </button>
 
-        <!-- Quick Action Floating Icons -->
-        <div class="quick-action-icons" style="display: flex; align-items: center; gap: 10px;">
-            <!-- View Live Icon -->
-            <div class="quick-action-icon" onclick="window.location.href='/streams'" title="View Live Streams" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FF416C, #FF4B2B); 
+        <nav class="quick-action-icons" aria-label="Quick Actions"
+            style="display: flex; align-items: center; gap: 10px;">
+            <a href="/streams" class="quick-action-icon" title="View Live Streams" aria-label="Live Streams"
+                style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FF416C, #FF4B2B); 
                        display: flex; align-items: center; justify-content: center; cursor: pointer; 
-                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(255, 65, 108, 0.3);">
+                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(255, 65, 108, 0.3); text-decoration: none;">
                 <i class="fas fa-satellite-dish" style="color: white; font-size: 16px;"></i>
-            </div>
+            </a>
 
-            <!-- View Polls Icon -->
-            <div class="quick-action-icon" onclick="window.location.href='/polls'" title="View Polls" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); 
+            <a href="/polls" class="quick-action-icon" title="View Polls" aria-label="Polls"
+                style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); 
                        display: flex; align-items: center; justify-content: center; cursor: pointer; 
-                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">
+                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); text-decoration: none;">
                 <i class="fas fa-vote-yea" style="color: white; font-size: 16px;"></i>
-            </div>
+            </a>
 
-            <!-- View Events Icon -->
-            <div class="quick-action-icon" onclick="window.location.href='/events'" title="View Campus Events" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #f2994a, #f2c94c); 
+            <a href="/events" class="quick-action-icon" title="View Campus Events" aria-label="Campus Events"
+                style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #f2994a, #f2c94c); 
                        display: flex; align-items: center; justify-content: center; cursor: pointer; 
-                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(242, 153, 74, 0.3);">
+                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(242, 153, 74, 0.3); text-decoration: none;">
                 <i class="fas fa-calendar-alt" style="color: white; font-size: 16px;"></i>
-            </div>
-        </div>
+            </a>
+        </nav>
 
-        <!-- User Avatar in Nav house 5.0 -->
-        <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
-            alt="User" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--primary);"
-            onclick="window.location.href='/profile'"
-            onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+        <a href="/profile" aria-label="Profile" style="display: flex; align-items: center; text-decoration: none;">
+            <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                alt="User Profile"
+                style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--primary);"
+                onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+        </a>
     </div>
-</div>
+</header>
 
 <style>
     .logo-text {

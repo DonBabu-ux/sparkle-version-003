@@ -12,11 +12,12 @@
         display: grid;
         grid-template-columns: var(--sidebar-width-collapsed) 1fr;
         min-height: 100vh;
-        transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        /* Stable grid to prevent "poor resizing" */
     }
 
+    /* Expansion NO LONGER shifts the grid to keep post cards stable */
     body.sidebar-expanded {
-        grid-template-columns: var(--sidebar-width-expanded) 1fr;
+        grid-template-columns: var(--sidebar-width-collapsed) 1fr;
     }
 
     .container {
@@ -102,7 +103,9 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 12px;
+    padding: 0 12px;
+    height: 52px;
+    /* FIXED HEIGHT for stability */
     border-radius: 12px;
     color: #475569;
     text-decoration: none;

@@ -9,7 +9,7 @@ const upload = require('../../utils/fileUpload');
 // Which means these routes might need to be prefixed with `/marketplace` or it relies on the root. Wait, index.js has `router.use('/', marketplaceRoutes);` and `router.use('/marketplace', marketplaceRoutes)`? No, it just has `router.use('/', marketplaceRoutes);`.
 // But wait, actually, if it's mounted at `/`, then the route here should be `/marketplace`. Let's check other routers.
 
-router.get('/marketplace/listings', authMiddleware, marketplaceController.getListings);
+router.get('/marketplace/listings', authMiddleware, ...marketplaceController.getListings);
 router.get('/marketplace/listings/:id', authMiddleware, marketplaceController.getListingById);
 router.post('/marketplace/listings', authMiddleware, upload.array('media', 5), marketplaceController.createListing);
 router.put('/marketplace/listings/:id', authMiddleware, upload.array('media', 5), marketplaceController.updateListing);

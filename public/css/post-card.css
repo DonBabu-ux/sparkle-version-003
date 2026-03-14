@@ -177,43 +177,12 @@
     transform: scale(1.05);
 }
 
-/* Metrics Overlay */
-.post-interaction-metrics {
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    /* Increased gap */
-    border-top: none;
-    /* Flow naturally from media or text */
-}
-
-.metric-stat {
-    font-size: 14px;
-    /* Slightly larger */
-    font-weight: 700;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.metric-stat:hover {
-    color: var(--pc-text-main);
-}
-
-.metric-stat i {
-    font-size: 15px;
-    opacity: 0.8;
-}
-
-/* Action Buttons */
+/* Action Bar - Unified Row */
 .post-interaction-actions {
-    padding: 4px 16px 20px;
+    padding: 12px 24px 24px;
     display: flex;
     gap: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .action-btn-custom {
@@ -238,7 +207,14 @@
     transform: translateY(-4px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
     color: var(--pc-accent);
-    background: #fdfdfd;
+    border-color: rgba(255, 61, 109, 0.2);
+}
+
+.spark-count-val,
+.comment-count-val {
+    font-size: 13px;
+    font-weight: 800;
+    margin-right: 2px;
 }
 
 /* Professional Active States */
@@ -341,4 +317,62 @@
     .post-card {
         border-radius: 36px;
     }
+}
+
+/* Post Options Menu - Premium Glassmorphism */
+.post-options-menu {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.post-options-menu.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+}
+
+.menu-item {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+}
+
+.menu-item:hover {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--pc-accent);
+}
+
+.menu-item i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+.menu-item.danger {
+    color: #ef4444;
+}
+
+.menu-item.danger:hover {
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.menu-divider {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.05);
+    margin: 4px 0;
 }

@@ -7,6 +7,7 @@ import { initNotifications } from './ui/notifications.js';
 import { initFabButton } from './ui/fab-button.js';
 import { initMobileFixes } from './ui/mobile-fixes.js';
 import { initHubs } from './ui/hubs.js';
+import { initPostMenu } from './ui/post-menu.js';
 
 // Import features
 import { initFeed } from './features/feed.js';
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFabButton();
     initMobileFixes();
     initHubs();
+    initPostMenu();
 
     // Initialize features
     initFeed();

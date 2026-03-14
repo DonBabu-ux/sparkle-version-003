@@ -1,4 +1,5 @@
-<article class="post-card" data-post-id="<%= post.post_id %>">
+<article class="post-card" data-post-id="<%= post.post_id %>"
+    data-is-owner="<%= (locals.user && (post.user_id === locals.user.user_id || post.userId === locals.user.id)) ? 'true' : 'false' %>">
     <!-- Header -->
     <header class="post-header">
         <div class="post-avatar-wrapper">
@@ -22,7 +23,8 @@
                 </time>
             </div>
         </div>
-        <button class="post-options-btn" aria-label="Post Options">
+        <button class="post-options-btn" aria-label="Post Options"
+            onclick="showPostOptions('<%= post.post_id %>', this)">
             <i class="fas fa-ellipsis-h"></i>
         </button>
     </header>
@@ -48,40 +50,27 @@
                 </figure>
                 <% } %>
 
-                    <!-- Metrics Overlay -->
-                    <div class="post-interaction-metrics">
-                        <div class="metric-stat" onclick="toggleSpark('<%= post.post_id %>', this)">
-                            <i class="fas fa-bolt"></i>
-                            <span class="spark-count-val">
-                                <%= post.spark_count || post.sparks || 0 %>
-                            </span>
-                        </div>
-                        <div class="metric-stat" onclick="toggleComments('<%= post.post_id %>')">
-                            <i class="far fa-comment"></i>
-                            <span class="comment-count-val">
-                                <%= post.comment_count || post.comments || 0 %>
-                            </span>
-                        </div>
-                        <div class="metric-stat" onclick="savePost('<%= post.post_id %>', this)">
-                            <i class="far fa-bookmark"></i>
-                        </div>
-                    </div>
-
-                    <!-- Action Bar -->
+                    <!-- Consolidated Action Bar -->
                     <div class="post-interaction-actions">
                         <button class="action-btn-custom spark <%= post.is_sparked || post.is_liked ? 'active' : '' %>"
                             onclick="sparkPost('<%= post.post_id %>', this)">
-                            <i class="<%= (post.is_sparked || post.is_liked) ? 'fas' : 'far' %> fa-bolt"></i>
+                            <i class="<%= (post.is_sparked || post.is_liked) ? 'fas' : 'far' %> fa-sparkles"></i>
+                            <span class="spark-count-val">
+                                <%= post.spark_count || post.sparks || 0 %>
+                            </span>
                             <span>Spark</span>
                         </button>
 
                         <button class="action-btn-custom comment" onclick="toggleComments('<%= post.post_id %>')">
                             <i class="far fa-comment"></i>
+                            <span class="comment-count-val">
+                                <%= post.comment_count || post.comments || 0 %>
+                            </span>
                             <span>Comment</span>
                         </button>
 
                         <button class="action-btn-custom share" onclick="sharePost('<%= post.post_id %>')">
-                            <i class="far fa-share-square"></i>
+                            <i class="far fa-paper-plane"></i>
                             <span>Share</span>
                         </button>
 

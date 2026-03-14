@@ -16,10 +16,8 @@ router.get('/api/dashboard/stories', dashboardController.getStoriesAPI.bind(dash
 router.get('/api/dashboard/feed', dashboardController.getFeedAPI.bind(dashboardController));
 router.get('/api/dashboard/notifications', dashboardController.getNotificationsAPI.bind(dashboardController));
 
-// ============ INTERACTION ENDPOINTS ============
-router.post('/api/posts/:postId/spark', dashboardController.sparkPost.bind(dashboardController));
-router.post('/api/posts/:postId/save', dashboardController.savePost.bind(dashboardController));
-router.post('/api/posts/:postId/comments', dashboardController.addComment.bind(dashboardController));
+// ============ INTERACTION ENDPOINTS (Now handled by API routes) ============
+// Handled by c:\Users\ADMIN\Documents\prooooojects\sparkle-version-003\routes\api\posts.routes.js
 
 // ============ CONTENT CREATION ============
 router.post('/api/posts', upload.single('media'), dashboardController.createPost.bind(dashboardController));

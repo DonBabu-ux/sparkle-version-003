@@ -86,8 +86,8 @@ const getStories = async (req, res) => {
                 u.campus,
                 TIMESTAMPDIFF(SECOND, NOW(), s.created_at + INTERVAL 24 HOUR) as seconds_left,
                 (SELECT COUNT(*) FROM stories WHERE user_id = s.user_id AND created_at > NOW() - INTERVAL 24 HOUR) as user_story_count,
-                (SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id) as like_count,
-                (SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id AND user_id = ?) as is_liked
+                COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id), 0) as like_count,
+                COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0) as is_liked
             FROM stories s
             JOIN users u ON s.user_id = u.user_id
             WHERE s.created_at > NOW() - INTERVAL 24 HOUR
@@ -122,8 +122,8 @@ const getStories = async (req, res) => {
                 media_type: s.media_type,
                 caption: s.caption,
                 created_at: s.created_at,
-                like_count: s.like_count || 0,
-                is_liked: s.is_liked || false
+                like_count: parseInt(s.like_count) || 0,
+                is_liked: parseInt(s.is_liked) === 1
             });
         });
 
@@ -171,41 +171,123 @@ const renderPost = async (req, res) => {
 const createStory = async (req, res) => {
     try {
         const { caption } = req.body;
-        const media_url = req.file ? req.file.path : req.body.media_url;
+        
+        // Handle both file upload and direct URL with multiple field name support
+        let media_url;
+        if (req.file) {
+            // File upload from multipart/form-data
+            media_url = req.file.path;
+            console.log('📸 Story media from file upload:', media_url);
+        } else if (req.body.media_url) {
+            // Direct URL from JSON
+            media_url = req.body.media_url;
+            console.log('🔗 Story media from URL (media_url):', media_url);
+        } else if (req.body.media) {
+            // Alternative field name 'media' (for compatibility)
+            media_url = req.body.media;
+            console.log('🔗 Story media from URL (media):', media_url);
+        }
 
         if (!media_url) {
+            console.error('❌ No media provided in request:', {
+                hasFile: !!req.file,
+                bodyFields: Object.keys(req.body),
+                file: req.file ? {
+                    originalname: req.file.originalname,
+                    mimetype: req.file.mimetype,
+                    size: req.file.size,
+                    path: req.file.path
+                } : null
+            });
             return res.status(400).json({ error: 'Media is required for story' });
         }
 
         const userId = req.user.userId || req.user.user_id;
+        if (!userId) {
+            console.error('❌ No user ID found in request:', req.user);
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
         const storyId = crypto.randomUUID();
-        const media_type = req.file && req.file.mimetype.startsWith('video') ? 'video' : 'image';
+        
+        // Determine media type
+        let media_type = 'image';
+        if (req.file) {
+            media_type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
+        } else if (media_url) {
+            // Try to determine from URL extension
+            const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.mpg', '.mpeg'];
+            media_type = videoExtensions.some(ext => media_url.toLowerCase().includes(ext)) ? 'video' : 'image';
+        }
+
+        console.log('📝 Creating story with:', {
+            storyId,
+            userId,
+            media_url,
+            media_type,
+            caption: caption || 'no caption'
+        });
+
+        // Ensure stories table exists
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS stories (
+                story_id CHAR(36) NOT NULL PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                media_url VARCHAR(500) NOT NULL,
+                media_type ENUM('image', 'video') DEFAULT 'image',
+                caption VARCHAR(255) DEFAULT NULL,
+                view_count INT DEFAULT 0,
+                like_count INT DEFAULT 0,
+                share_count INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL 24 HOUR),
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_stories_user (user_id, created_at),
+                INDEX idx_stories_active (expires_at, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
 
         await pool.query(
             'INSERT INTO stories (story_id, user_id, media_url, media_type, caption, like_count, share_count) VALUES (?, ?, ?, ?, ?, 0, 0)',
-            [storyId, userId, media_url, media_type, caption]
+            [storyId, userId, media_url, media_type, caption || null]
         );
 
-        res.status(201).json({ status: 'success', message: 'Story created', story_id: storyId });
+        console.log('✅ Story created successfully:', storyId);
+        res.status(201).json({ 
+            status: 'success', 
+            message: 'Story created', 
+            story_id: storyId 
+        });
+        
     } catch (error) {
+        console.error('❌ Create Story Error:', error);
         logger.error('Create Story Error:', error);
-        res.status(500).json({ error: 'Failed to create story' });
+        res.status(500).json({ error: 'Failed to create story', details: error.message });
     }
 };
 
 // toggle like on a story and notify owner
 const likeStory = async (req, res) => {
+    let connection;
     try {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
 
+        console.log(`📝 Like story request - Story: ${storyId}, User: ${userId}`);
+
+        // Validate inputs
+        if (!storyId || !userId) {
+            return res.status(400).json({ error: 'Missing storyId or userId' });
+        }
+
         // First check if story exists
         const [story] = await pool.query('SELECT story_id, user_id FROM stories WHERE story_id = ?', [storyId]);
         if (!story || story.length === 0) {
+            console.log('❌ Story not found:', storyId);
             return res.status(404).json({ error: 'Story not found' });
         }
 
-        // ensure likes table exists
+        // Ensure likes table exists
         await pool.query(`
             CREATE TABLE IF NOT EXISTS story_likes (
                 like_id CHAR(36) NOT NULL PRIMARY KEY,
@@ -218,60 +300,84 @@ const likeStory = async (req, res) => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // Start transaction
-        const connection = await pool.getConnection();
+        // Get connection for transaction
+        connection = await pool.getConnection();
         await connection.beginTransaction();
 
-        try {
-            // check existing
-            const [existingRows] = await connection.query('SELECT like_id FROM story_likes WHERE story_id = ? AND user_id = ?', [storyId, userId]);
-            let liked = false;
+        // Check if already liked
+        const [existingRows] = await connection.query(
+            'SELECT like_id FROM story_likes WHERE story_id = ? AND user_id = ?', 
+            [storyId, userId]
+        );
+        
+        let liked = false;
 
-            if (existingRows && existingRows.length > 0) {
-                // unlike
-                await connection.query('DELETE FROM story_likes WHERE story_id = ? AND user_id = ?', [storyId, userId]);
-                await connection.query('UPDATE stories SET like_count = GREATEST(COALESCE(like_count, 0) - 1, 0) WHERE story_id = ?', [storyId]);
-                liked = false;
-            } else {
-                // like
-                const likeId = crypto.randomUUID();
-                await connection.query('INSERT INTO story_likes (like_id, story_id, user_id) VALUES (?, ?, ?)', [likeId, storyId, userId]);
-                await connection.query('UPDATE stories SET like_count = COALESCE(like_count, 0) + 1 WHERE story_id = ?', [storyId]);
-                liked = true;
+        if (existingRows && existingRows.length > 0) {
+            // Unlike
+            await connection.query('DELETE FROM story_likes WHERE story_id = ? AND user_id = ?', [storyId, userId]);
+            await connection.query(
+                'UPDATE stories SET like_count = GREATEST(COALESCE(like_count, 0) - 1, 0) WHERE story_id = ?', 
+                [storyId]
+            );
+            liked = false;
+            console.log('👎 Story unliked');
+        } else {
+            // Like
+            const likeId = crypto.randomUUID();
+            await connection.query(
+                'INSERT INTO story_likes (like_id, story_id, user_id) VALUES (?, ?, ?)', 
+                [likeId, storyId, userId]
+            );
+            await connection.query(
+                'UPDATE stories SET like_count = COALESCE(like_count, 0) + 1 WHERE story_id = ?', 
+                [storyId]
+            );
+            liked = true;
+            console.log('👍 Story liked');
 
-                // create notification for story owner (if not self)
-                if (story[0].user_id !== userId) {
-                    try {
-                        const [actor] = await connection.query('SELECT name FROM users WHERE user_id = ?', [userId]);
-                        const notificationId = crypto.randomUUID();
-                        await connection.query(
-                            `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url) 
-                             VALUES (?, ?, 'story_like', 'Story Liked', ?, ?, ?)`,
-                            [notificationId, story[0].user_id, `${actor[0]?.name || 'Someone'} liked your story`, userId, `/stories/${storyId}`]
-                        );
-                    } catch (notifErr) {
-                        logger.error('Failed to create notification:', notifErr);
-                        // Continue even if notification fails
-                    }
+            // Create notification for story owner (if not self)
+            if (story[0].user_id !== userId) {
+                try {
+                    const [actor] = await connection.query(
+                        'SELECT name FROM users WHERE user_id = ?', 
+                        [userId]
+                    );
+                    const notificationId = crypto.randomUUID();
+                    await connection.query(
+                        `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url) 
+                         VALUES (?, ?, 'story_like', 'Story Liked', ?, ?, ?)`,
+                        [
+                            notificationId, 
+                            story[0].user_id, 
+                            `${actor[0]?.name || 'Someone'} liked your story`, 
+                            userId, 
+                            `/stories/${storyId}`
+                        ]
+                    );
+                    console.log('📨 Notification created for story like');
+                } catch (notifErr) {
+                    logger.error('Failed to create notification:', notifErr);
+                    // Continue even if notification fails
                 }
             }
-
-            await connection.commit();
-
-            // get updated like count
-            const [[info]] = await pool.query('SELECT like_count FROM stories WHERE story_id = ?', [storyId]);
-            res.json({ liked, like_count: info.like_count || 0 });
-            
-        } catch (err) {
-            await connection.rollback();
-            throw err;
-        } finally {
-            connection.release();
         }
 
+        await connection.commit();
+
+        // Get updated like count
+        const [[info]] = await pool.query('SELECT like_count FROM stories WHERE story_id = ?', [storyId]);
+        const likeCount = info?.like_count || 0;
+        
+        console.log(`✅ Like toggled successfully: liked=${liked}, count=${likeCount}`);
+        res.json({ liked, like_count: likeCount });
+        
     } catch (error) {
+        if (connection) await connection.rollback();
         logger.error('Like Story Error:', error);
-        res.status(500).json({ error: 'Failed to toggle like' });
+        console.error('❌ Like story error details:', error.message);
+        res.status(500).json({ error: 'Failed to toggle like', details: error.message });
+    } finally {
+        if (connection) connection.release();
     }
 };
 
@@ -280,9 +386,14 @@ const getStoryLikes = async (req, res) => {
     try {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
+        
         const [[countRow]] = await pool.query('SELECT like_count FROM stories WHERE story_id = ?', [storyId]);
         const [[exists]] = await pool.query('SELECT 1 FROM story_likes WHERE story_id = ? AND user_id = ?', [storyId, userId]);
-        res.json({ like_count: (countRow && countRow.like_count) || 0, liked: !!exists });
+        
+        res.json({ 
+            like_count: (countRow && countRow.like_count) || 0, 
+            liked: !!exists 
+        });
     } catch (error) {
         logger.error('Get story likes error:', error);
         res.status(500).json({ error: 'Failed to fetch likes' });
@@ -291,17 +402,26 @@ const getStoryLikes = async (req, res) => {
 
 // record a share on a story and notify owner
 const shareStory = async (req, res) => {
+    let connection;
     try {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
 
+        console.log(`📝 Share story request - Story: ${storyId}, User: ${userId}`);
+
+        // Validate inputs
+        if (!storyId || !userId) {
+            return res.status(400).json({ error: 'Missing storyId or userId' });
+        }
+
         // First check if story exists
         const [story] = await pool.query('SELECT story_id, user_id FROM stories WHERE story_id = ?', [storyId]);
         if (!story || story.length === 0) {
+            console.log('❌ Story not found:', storyId);
             return res.status(404).json({ error: 'Story not found' });
         }
 
-        // ensure shares table exists
+        // Ensure shares table exists
         await pool.query(`
             CREATE TABLE IF NOT EXISTS story_shares (
                 share_id CHAR(36) NOT NULL PRIMARY KEY,
@@ -313,46 +433,76 @@ const shareStory = async (req, res) => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // Start transaction
-        const connection = await pool.getConnection();
+        // Get connection for transaction
+        connection = await pool.getConnection();
         await connection.beginTransaction();
 
-        try {
-            // record share
-            const shareId = crypto.randomUUID();
-            await connection.query('INSERT INTO story_shares (share_id, story_id, user_id) VALUES (?, ?, ?)', [shareId, storyId, userId]);
-            await connection.query('UPDATE stories SET share_count = COALESCE(share_count, 0) + 1 WHERE story_id = ?', [storyId]);
+        // Record share
+        const shareId = crypto.randomUUID();
+        await connection.query(
+            'INSERT INTO story_shares (share_id, story_id, user_id) VALUES (?, ?, ?)', 
+            [shareId, storyId, userId]
+        );
+        
+        await connection.query(
+            'UPDATE stories SET share_count = COALESCE(share_count, 0) + 1 WHERE story_id = ?', 
+            [storyId]
+        );
 
-            // create notification for story owner (if not self)
-            if (story[0].user_id !== userId) {
-                try {
-                    const [actor] = await connection.query('SELECT name FROM users WHERE user_id = ?', [userId]);
-                    const notificationId = crypto.randomUUID();
-                    await connection.query(
-                        `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url) 
-                         VALUES (?, ?, 'story_share', 'Story Shared', ?, ?, ?)`,
-                        [notificationId, story[0].user_id, `${actor[0]?.name || 'Someone'} shared your story`, userId, `/stories/${storyId}`]
-                    );
-                } catch (notifErr) {
-                    logger.error('Failed to create notification:', notifErr);
-                    // Continue even if notification fails
-                }
+        console.log('📤 Story share recorded');
+
+        // Create notification for story owner (if not self)
+        if (story[0].user_id !== userId) {
+            try {
+                const [actor] = await connection.query(
+                    'SELECT name FROM users WHERE user_id = ?', 
+                    [userId]
+                );
+                const notificationId = crypto.randomUUID();
+                await connection.query(
+                    `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url) 
+                     VALUES (?, ?, 'story_share', 'Story Shared', ?, ?, ?)`,
+                    [
+                        notificationId, 
+                        story[0].user_id, 
+                        `${actor[0]?.name || 'Someone'} shared your story`, 
+                        userId, 
+                        `/stories/${storyId}`
+                    ]
+                );
+                console.log('📨 Notification created for story share');
+            } catch (notifErr) {
+                logger.error('Failed to create notification:', notifErr);
+                // Continue even if notification fails
             }
-
-            await connection.commit();
-            res.json({ success: true });
-
-        } catch (err) {
-            await connection.rollback();
-            throw err;
-        } finally {
-            connection.release();
         }
 
+        await connection.commit();
+
+        // Get updated share count
+        const [[info]] = await pool.query('SELECT share_count FROM stories WHERE story_id = ?', [storyId]);
+        const shareCount = info?.share_count || 0;
+        
+        console.log(`✅ Story shared successfully, total shares: ${shareCount}`);
+        res.json({ success: true, share_count: shareCount });
+
     } catch (error) {
+        if (connection) await connection.rollback();
         logger.error('Share Story Error:', error);
-        res.status(500).json({ error: 'Failed to record share' });
+        console.error('❌ Share story error details:', error.message);
+        res.status(500).json({ error: 'Failed to record share', details: error.message });
+    } finally {
+        if (connection) connection.release();
     }
 };
 
-module.exports = { renderDashboard, getFeedPosts, getStories, renderPost, createStory, likeStory, getStoryLikes, shareStory };
+module.exports = { 
+    renderDashboard, 
+    getFeedPosts, 
+    getStories, 
+    renderPost, 
+    createStory, 
+    likeStory, 
+    getStoryLikes, 
+    shareStory 
+};

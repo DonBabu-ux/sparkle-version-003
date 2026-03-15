@@ -15,6 +15,7 @@ import { initStories } from './features/stories.js';
 import { initProfile } from './features/profile.js';
 import { initMoments } from './features/moments.js';
 import { initSuggestions } from './features/suggestions.js';
+import { initSearch } from './features/search.js';
 
 // Import data modules
 import { initializeByPath } from './data/initialization.js';
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initProfile();
     initMoments();
     initSuggestions();
+    initSearch();
 
     // Initialize data logic
     initializeByPath();
@@ -57,6 +59,13 @@ window.scrollToComments = (postId) => import('./features/feed.js').then(m => m.s
 window.likeComment = (commentId) => import('./features/feed.js').then(m => m.likeComment(commentId));
 window.replyToComment = (commentId) => import('./features/feed.js').then(m => m.replyToComment(commentId));
 window.openPostViewer = (postId) => import('./features/feed.js').then(m => m.openPostViewer(postId));
+window.toggleViewerLike = () => import('./features/feed.js').then(m => m.toggleViewerLike());
+window.postViewerComment = () => import('./features/feed.js').then(m => m.postViewerComment());
+window.sharePostFromViewer = () => import('./features/feed.js').then(m => m.sharePostFromViewer());
+window.savePostFromViewer = () => import('./features/feed.js').then(m => m.savePostFromViewer());
+window.notInterestedFromViewer = () => import('./features/feed.js').then(m => m.notInterestedFromViewer());
+window.reportPostFromViewer = () => import('./features/feed.js').then(m => m.reportPostFromViewer());
+window.copyLinkFromViewer = () => import('./features/feed.js').then(m => m.copyLinkFromViewer());
 window.toggleCaption = (postId) => import('./features/feed.js').then(m => m.toggleCaption(postId));
 window.loadMorePosts = () => import('./features/feed.js').then(m => m.loadMorePosts());
 

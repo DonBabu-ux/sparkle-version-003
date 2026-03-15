@@ -123,7 +123,7 @@ class DashboardController {
             FROM posts p
             JOIN users u ON p.user_id = u.user_id
             LEFT JOIN sparks s ON p.post_id = s.post_id AND s.user_id = ?
-            LEFT JOIN saved_posts sp ON p.post_id = sp.post_id AND sp.user_id = ?
+            LEFT JOIN bookmarks sp ON p.post_id = sp.post_id AND sp.user_id = ?
             WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
             ORDER BY p.created_at DESC
             LIMIT ? OFFSET ?
@@ -222,19 +222,19 @@ class DashboardController {
 
         try {
             const [existing] = await pool.query(
-                'SELECT * FROM saved_posts WHERE post_id = ? AND user_id = ?',
+                'SELECT * FROM bookmarks WHERE post_id = ? AND user_id = ?',
                 [postId, userId]
             );
 
             if (existing.length > 0) {
                 await pool.query(
-                    'DELETE FROM saved_posts WHERE post_id = ? AND user_id = ?',
+                    'DELETE FROM bookmarks WHERE post_id = ? AND user_id = ?',
                     [postId, userId]
                 );
                 res.json({ success: true, action: 'unsaved' });
             } else {
                 await pool.query(
-                    'INSERT INTO saved_posts (save_id, post_id, user_id) VALUES (UUID(), ?, ?)',
+                    'INSERT INTO bookmarks (bookmark_id, post_id, user_id) VALUES (UUID(), ?, ?)',
                     [postId, userId]
                 );
                 res.json({ success: true, action: 'saved' });

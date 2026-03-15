@@ -2,6 +2,7 @@
 import { timeAgo } from '../core/utils.js';
 
 let lastSeenPostId = null;
+let currentViewerPost = null;
 let feedLoading = false;
 let feedPage = 1;
 let allPostsLoaded = false;
@@ -107,11 +108,11 @@ export function toggleCaption(postId) {
     const btn = document.getElementById('toggle-' + postId);
     if (!caption || !btn) return;
 
-    if (caption.classList.contains('collapsed')) {
-        caption.classList.remove('collapsed');
-        btn.textContent = 'See less';
+    if (caption.classList.contains('caption-collapsed')) {
+        caption.classList.remove('caption-collapsed');
+        btn.textContent = 'Read less';
     } else {
-        caption.classList.add('collapsed');
+        caption.classList.add('caption-collapsed');
         btn.textContent = 'Read more';
     }
 }
@@ -220,9 +221,166 @@ export async function replyToComment(commentId) {
 }
 
 export async function openPostViewer(postId) {
-    // Placeholder for post viewer modal
-    console.log('Open post viewer for:', postId);
-    // TODO: Implement post viewer modal
+    const modal = document.getElementById('postViewerModal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Show loading state
+    const viewerBody = modal.querySelector('.viewer-body');
+    if (viewerBody) viewerBody.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i></div>';
+
+    try {
+        const post = await window.DashboardAPI.request(`/posts/${postId}`);
+        if (!post) throw new Error('Post not found');
+
+        // Layout matches Dashboard-Modals.ejs IDs
+        const mediaImg = document.getElementById('viewerMedia');
+        const mediaVideo = document.getElementById('viewerVideo');
+        const mediaContainer = document.getElementById('viewerMediaContainer');
+
+        if (post.media_url) {
+            mediaContainer.style.display = 'flex';
+            const isVideo = post.media_url.match(/\.(mp4|webm|ogg|mov)$/i);
+            if (isVideo) {
+                mediaImg.style.display = 'none';
+                mediaVideo.style.display = 'block';
+                mediaVideo.src = post.media_url;
+            } else {
+                mediaVideo.style.display = 'none';
+                mediaImg.style.display = 'block';
+                mediaImg.src = post.media_url;
+            }
+        } else {
+            mediaContainer.style.display = 'none';
+        }
+
+        if (document.getElementById('viewerAvatar')) document.getElementById('viewerAvatar').src = post.avatar_url || '/uploads/avatars/default.png';
+        if (document.getElementById('viewerUsername')) document.getElementById('viewerUsername').textContent = post.username || 'Sparkler';
+        if (document.getElementById('viewerTime')) document.getElementById('viewerTime').textContent = timeAgo(post.created_at);
+        if (document.getElementById('viewerCaptionText')) document.getElementById('viewerCaptionText').textContent = post.content || '';
+        if (document.getElementById('viewerLikesCount')) document.getElementById('viewerLikesCount').textContent = post.spark_count || 0;
+        if (document.getElementById('viewerCommentsCount')) document.getElementById('viewerCommentsCount').textContent = post.comment_count || 0;
+
+        currentViewerPost = post;
+
+        // Load comments into viewer
+        const commentsList = document.getElementById('viewerComments');
+        if (commentsList) {
+            commentsList.innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i></div>';
+            
+            const comments = await window.DashboardAPI.loadComments(postId);
+            if (comments && comments.length > 0) {
+                commentsList.innerHTML = comments.map(c => `
+                    <div class="comment-item" style="display:flex; gap:10px; margin-bottom:12px;">
+                        <img src="${c.avatar_url || '/uploads/avatars/default.png'}" style="width:32px; height:32px; border-radius:50%;">
+                        <div style="flex:1;">
+                            <div style="background:#f0f2f5; padding:8px 12px; border-radius:12px;">
+                                <div style="font-weight:700; font-size:13px;">${c.username}</div>
+                                <div style="font-size:13px; line-height:1.4;">${c.content}</div>
+                            </div>
+                            <div style="display:flex; gap:12px; padding-left:12px; font-size:12px; color:#65676b; margin-top:4px;">
+                                <span onclick="window.likeComment('${c.id}')" style="cursor:pointer; font-weight:700;">Like</span>
+                                <span onclick="window.replyToComment('${c.id}')" style="cursor:pointer; font-weight:700;">Reply</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                commentsList.innerHTML = '<div style="text-align:center; color:#65676b; padding: 20px;">No comments yet.</div>';
+            }
+        }
+
+    } catch (error) {
+        console.error('Post Viewer Error:', error);
+        if (viewerBody) viewerBody.innerHTML = '<div style="text-align:center; color:red; padding:40px;">Failed to load post</div>';
+    }
+}
+
+// Global closer
+window.closePostViewer = function() {
+    const modal = document.getElementById('postViewerModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        currentViewerPost = null;
+        // Stop video if playing
+        const video = document.getElementById('viewerVideo');
+        if (video) { video.pause(); video.src = ''; }
+    }
+};
+
+export async function toggleViewerLike() {
+    if (!currentViewerPost) return;
+    const btn = document.getElementById('viewerLikeBtn');
+    await toggleSpark(currentViewerPost.id || currentViewerPost.post_id, btn);
+    // Update viewer count
+    const result = await window.DashboardAPI.request(`/posts/${currentViewerPost.id || currentViewerPost.post_id}`);
+    if (result && document.getElementById('viewerLikesCount')) {
+        document.getElementById('viewerLikesCount').textContent = result.spark_count || 0;
+    }
+}
+
+export async function postViewerComment() {
+    if (!currentViewerPost) return;
+    const input = document.getElementById('viewerCommentInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    try {
+        await window.DashboardAPI.postComment(currentViewerPost.id || currentViewerPost.post_id, text);
+        input.value = '';
+        // Reload comments in viewer
+        const commentsList = document.getElementById('viewerComments');
+        const comments = await window.DashboardAPI.loadComments(currentViewerPost.id || currentViewerPost.post_id);
+        if (commentsList && comments) {
+            commentsList.innerHTML = comments.map(c => `
+                <div class="comment-item" style="display:flex; gap:10px; margin-bottom:12px;">
+                    <img src="${c.avatar_url || '/uploads/avatars/default.png'}" style="width:32px; height:32px; border-radius:50%;">
+                    <div style="flex:1;">
+                        <div style="background:#f0f2f5; padding:8px 12px; border-radius:12px;">
+                            <div style="font-weight:700; font-size:13px;">${c.username}</div>
+                            <div style="font-size:13px; line-height:1.4;">${c.content}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        // Update count
+        const result = await window.DashboardAPI.request(`/posts/${currentViewerPost.id || currentViewerPost.post_id}`);
+        if (result && document.getElementById('viewerCommentsCount')) {
+            document.getElementById('viewerCommentsCount').textContent = result.comment_count || 0;
+        }
+    } catch (err) {
+        console.error('Viewer comment error:', err);
+    }
+}
+
+export function sharePostFromViewer() {
+    if (currentViewerPost) sharePost(currentViewerPost.id || currentViewerPost.post_id);
+}
+
+export function savePostFromViewer() {
+    if (currentViewerPost) savePost(currentViewerPost.id || currentViewerPost.post_id, document.querySelector('.viewer-options-menu button'));
+}
+
+export function notInterestedFromViewer() {
+    alert('We will show you fewer posts like this.');
+    window.closePostViewer();
+}
+
+export function reportPostFromViewer() {
+    alert('Post reported. Thank you for keeping Sparkle safe.');
+    window.closePostViewer();
+}
+
+export function copyLinkFromViewer() {
+    if (!currentViewerPost) return;
+    const url = window.location.origin + '/post/' + (currentViewerPost.id || currentViewerPost.post_id);
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Link copied to clipboard!');
+    });
 }
 
 export async function loadMorePosts() {
@@ -289,7 +447,7 @@ export async function toggleComments(postId) {
 }
 
 export async function loadComments(postId) {
-    const container = document.getElementById(`comments-${postId}`);
+    const container = document.getElementById(`comments-list-${postId}`);
     if (!container) return;
 
     container.innerHTML = '<div class="comments-loading" style="text-align: center; padding: 10px;"><i class="fas fa-spinner fa-spin"></i></div>';
@@ -332,9 +490,8 @@ export async function addComment(postId, input) {
         input.value = '';
 
         // Refresh comments section
-        const commentsContainer = document.getElementById(`comments-${postId}`);
-        if (commentsContainer) {
-            commentsContainer.style.display = 'block';
+        const listContainer = document.getElementById(`comments-list-${postId}`);
+        if (listContainer) {
             loadComments(postId);
         }
 

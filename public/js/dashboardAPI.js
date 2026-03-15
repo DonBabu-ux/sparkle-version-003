@@ -322,6 +322,10 @@ const DashboardAPI = {
         }
     },
 
+    async addComment(postId, text) {
+        return this.postComment(postId, text);
+    },
+
     async deleteComment(commentId) {
         try {
             const result = await this.request(`/comments/${commentId}`, {
@@ -454,34 +458,7 @@ const DashboardAPI = {
         }
     },
 
-    async createMoment(momentData) {
-        try {
-            let options;
-            const hasFile = momentData.media instanceof File;
 
-            if (hasFile) {
-                const formData = new FormData();
-                // backend expects caption, media
-                formData.append('caption', momentData.caption || '');
-                formData.append('media', momentData.media);
-                formData.append('category', momentData.category || 'general');
-                options = { method: 'POST', body: formData };
-            } else {
-                options = {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        caption: momentData.caption || '',
-                        media_url: momentData.media || momentData.media_url,
-                        category: momentData.category || 'general'
-                    })
-                };
-            }
-            return await this.request('/moments', options);
-        } catch (error) {
-            console.error('❌ DashboardAPI: Failed to create moment:', error);
-            throw error;
-        }
-    },
 
     async sparkPost(postId) {
         try {
@@ -519,28 +496,7 @@ const DashboardAPI = {
         }
     },
 
-    async loadComments(postId) {
-        try {
-            const comments = await this.request(`/posts/${postId}/comments`);
-            return comments;
-        } catch (error) {
-            console.error('Failed to load comments:', error);
-            return [];
-        }
-    },
 
-    async addComment(postId, content) {
-        try {
-            const result = await this.request(`/posts/${postId}/comments`, {
-                method: 'POST',
-                body: JSON.stringify({ content })
-            });
-            return result;
-        } catch (error) {
-            console.error('Failed to add comment:', error);
-            throw error;
-        }
-    },
 
     async deletePost(postId) {
         try {
@@ -1538,6 +1494,49 @@ const DashboardAPI = {
 
     async loadGroupFeed() {
         return [];
+    },
+
+    // ============ SEARCH ============
+    async search(query, type = 'all') {
+        try {
+            const params = new URLSearchParams({ q: query, type });
+            return await this.request(`/search?${params.toString()}`);
+        } catch (error) {
+            console.error('Search error:', error);
+            return { users: [], posts: [], moments: [], groups: [], marketplace: [], clubs: [] };
+        }
+    },
+
+    async searchSuggestions(query) {
+        try {
+            const params = new URLSearchParams({ q: query });
+            return await this.request(`/search/suggestions?${params.toString()}`);
+        } catch (error) {
+            return [];
+        }
+    },
+
+    async getSearchHistory() {
+        try {
+            return await this.request('/search/history');
+        } catch (error) {
+            return [];
+        }
+    },
+
+    async saveSearchQuery(query) {
+        try {
+            return await this.request('/search/history', {
+                method: 'POST',
+                body: JSON.stringify({ query })
+            });
+        } catch (error) { /* silence */ }
+    },
+
+    async clearSearchHistory() {
+        try {
+            return await this.request('/search/history', { method: 'DELETE' });
+        } catch (error) { /* silence */ }
     }
 };
 

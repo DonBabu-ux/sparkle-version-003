@@ -628,6 +628,22 @@ CREATE TABLE `marketplace_search_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
+-- GENERAL SEARCH HISTORY
+-- ============================================
+DROP TABLE IF EXISTS `search_history`;
+CREATE TABLE `search_history` (
+  `id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `query` VARCHAR(255) NOT NULL,
+  `searched_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_user_query` (`user_id`, `query`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX `idx_search_user` (`user_id`, `searched_at`),
+  INDEX `idx_search_query` (`query`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================
 -- MARKETPLACE NOTIFICATIONS
 -- ============================================
 DROP TABLE IF EXISTS `marketplace_notifications`;

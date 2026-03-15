@@ -113,6 +113,20 @@ const getComments = async (req, res) => {
     }
 };
 
+const getPost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+        res.json(post);
+    } catch (error) {
+        logger.error('Get post error:', error);
+        res.status(500).json({ error: 'Failed to get post' });
+    }
+};
+
 const addComment = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
@@ -209,6 +223,7 @@ const sharePost = async (req, res) => {
 module.exports = {
     createPost,
     deletePost,
+    getPost,
     sparkPost,
     getComments,
     addComment,

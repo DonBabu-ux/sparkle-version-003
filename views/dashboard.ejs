@@ -351,6 +351,63 @@
             max-width: 100% !important;
             padding: 0 !important;
         }
+
+        /* Universal Search Bar Styling */
+        .universal-search-wrapper {
+            max-width: var(--feed-max-width);
+            margin: 0 auto 24px;
+            padding: 0 12px;
+            position: relative;
+        }
+
+        .universal-search-bar {
+            background: white;
+            border-radius: 24px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #e4e6eb;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .universal-search-bar:focus-within {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-color: var(--accent-color);
+        }
+
+        .universal-search-bar input {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 15px;
+            color: var(--text-main);
+        }
+
+        .universal-search-bar i {
+            color: var(--text-muted);
+        }
+
+        .search-results-panel {
+            position: absolute;
+            top: 100%;
+            left: 12px;
+            right: 12px;
+            background: white;
+            border-radius: 12px;
+            margin-top: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e4e6eb;
+        }
+
+        .search-results-panel.active {
+            display: block;
+        }
     </style>
 
     <%- include('partials/sidebar') %>
@@ -424,8 +481,19 @@
                                 </div>
                             </div>
 
-                            <!-- Premium Feed -->
-                            <div class="posts-feed" id="feed">
+                            <!-- Universal Search Bar -->
+                            <div class="universal-search-wrapper">
+                                <div class="universal-search-bar">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="universalSearchInput" placeholder="Search users, posts, hashtags..." autocomplete="off">
+                                </div>
+                                <div class="search-results-panel" id="searchResultsPanel">
+                                    <!-- Results will be injected here -->
+                                </div>
+                            </div>
+
+                            <!-- Premium Feed Container -->
+                            <div class="feed-container" id="feed">
                                 <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
                                     <% feed.forEach(post=> { %>
                                         <%- include('partials/post-card', { post, user }) %>
@@ -439,16 +507,12 @@
                                                     <div class="glass"
                                                         style="text-align:center; padding: 60px 40px; border-radius: 30px;">
                                                         <div
-                                                            style="width: 80px; height: 80px; background: var(--pink-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+                                                            style="width: 80px; height: 80px; background: rgba(255,255,255,0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
                                                             <i class="fas fa-wind"
-                                                                style="font-size: 30px; color: var(--pink-primary);"></i>
+                                                                style="font-size: 30px; color: var(--accent);"></i>
                                                         </div>
-                                                        <h3 style="font-weight: 800; margin-bottom: 10px;">Your feed is
-                                                            quiet
-                                                        </h3>
-                                                        <p style="color: var(--text-muted); font-size: 14px;">Follow
-                                                            more
-                                                            students or share your own thoughts to start the spark!</p>
+                                                        <h3 style="font-weight: 800; margin-bottom: 10px;">Your feed is quiet</h3>
+                                                        <p style="color: var(--text-muted); font-size: 14px;">Follow more students or share your own thoughts to start the spark!</p>
                                                         <button onclick="window.showCreateOptions()" class="btn"
                                                             style="margin-top: 25px; background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
                                                             <i class="fas fa-plus"></i> Create Post

@@ -264,17 +264,17 @@ class Post {
      * Toggle save/bookmark post
      */
     static async toggleSave(postId, userId) {
-        const saveId = crypto.randomUUID();
+        const bookmarkId = crypto.randomUUID();
         try {
             await pool.query(
-                'INSERT INTO saved_posts (save_id, user_id, post_id) VALUES (?, ?, ?)',
-                [saveId, userId, postId]
+                'INSERT INTO bookmarks (bookmark_id, user_id, post_id) VALUES (?, ?, ?)',
+                [bookmarkId, userId, postId]
             );
             return { success: true, action: 'saved' };
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') {
                 await pool.query(
-                    'DELETE FROM saved_posts WHERE user_id = ? AND post_id = ?',
+                    'DELETE FROM bookmarks WHERE user_id = ? AND post_id = ?',
                     [userId, postId]
                 );
                 return { success: true, action: 'unsaved' };
@@ -291,11 +291,11 @@ class Post {
             `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
-             FROM saved_posts sp
+             FROM bookmarks sp
              JOIN posts p ON sp.post_id = p.post_id
              JOIN users u ON p.user_id = u.user_id
              WHERE sp.user_id = ?
-             ORDER BY sp.saved_at DESC
+             ORDER BY sp.created_at DESC
              LIMIT ?`,
             [userId, limit]
         );

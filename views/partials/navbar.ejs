@@ -16,11 +16,11 @@
             Sparkle</h1>
     </div>
     <div class="nav-actions" style="display: flex; align-items: center; gap: 15px;">
-        <button id="notificationIcon" onclick="window.toggleNotificationPanel()" aria-label="Notifications"
-            style="font-size: 22px; position: relative; cursor: pointer; background: none; border: none; padding: 0; color: inherit; display: flex; align-items: center;">
+        <button id="navNotificationBell" onclick="event.stopPropagation(); window.location.href='/notifications'" aria-label="Notifications"
+            style="font-size: 22px; position: relative; cursor: pointer; background: none; border: none; padding: 0; color: inherit; display: flex; align-items: center; z-index: 10;">
             <i class="far fa-bell" id="navBellIcon"></i>
             <span class="badge" id="notificationCount"
-                style="position: absolute; top: -8px; right: -8px; background: #e91e63; color: white; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10px; padding: 0 4px; display: none; align-items: center; justify-content: center; border: 2px solid var(--card-bg); font-weight: 700;"></span>
+                style="position: absolute; top: -8px; right: -8px; background: #e91e63; color: white; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10px; padding: 0 4px; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 700;"></span>
         </button>
 
         <nav class="quick-action-icons" aria-label="Quick Actions"

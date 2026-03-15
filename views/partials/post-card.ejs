@@ -1,26 +1,37 @@
 <article class="post-card" data-post-id="<%= post.post_id %>"
     data-is-owner="<%= (locals.user && (post.user_id === locals.user.user_id || post.userId === locals.user.id)) ? 'true' : 'false' %>">
-    <!-- Header -->
+    <!-- 1. PostHeader -->
     <header class="post-header">
-        <div class="post-avatar-wrapper">
+        <div class="post-avatar-wrapper" onclick="window.location.href='/profile/<%= post.user_id %>'">
             <img src="<%= post.avatar_url || '/uploads/avatars/default.png' %>" alt="<%= post.username %>"
                 class="post-avatar" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
         </div>
         <div class="post-author-info">
-            <span class="post-username">@<%= (post.username && post.username !=='undefined' && post.username !=='null' )
+            <span class="post-username" onclick="window.location.href='/profile/<%= post.user_id %>'">@<%= (post.username && post.username !=='undefined' && post.username !=='null' )
                     ? post.username : 'Sparkler' %>
             </span>
             <div class="post-meta-row">
+                <time class="post-time-simple" datetime="<%= post.created_at %>">
+                    <% 
+                        let d = new Date(post.created_at);
+                        let now = new Date();
+                        let diff = Math.floor((now - d) / 1000);
+                        let timeStr = 'Recently';
+                        if (!isNaN(d.getTime())) {
+                            if (diff < 60) timeStr = 'Just now';
+                            else if (diff < 3600) timeStr = Math.floor(diff / 60) + 'm';
+                            else if (diff < 86400) timeStr = Math.floor(diff / 3600) + 'h';
+                            else if (diff < 604800) timeStr = Math.floor(diff / 86400) + 'd';
+                            else timeStr = d.toLocaleDateString();
+                        }
+                    %>
+                    <%= timeStr %>
+                </time>
                 <span class="campus-dot">•</span>
                 <span class="meta-campus">
                     <%= (post.campus && post.campus !=='undefined' && post.campus !=='null' ) ? post.campus
                         : 'Main Campus' %>
                 </span>
-                <span class="meta-sep">•</span>
-                <time class="post-time-simple" datetime="<%= post.created_at %>">
-                    <% let d=new Date(post.created_at); %>
-                        <%= (d && !isNaN(d.getTime())) ? d.toLocaleDateString() : 'Recently' %>
-                </time>
             </div>
         </div>
         <button class="post-options-btn" aria-label="Post Options"
@@ -29,75 +40,100 @@
         </button>
     </header>
 
-    <!-- Content -->
+    <!-- 2. PostCaption -->
     <% if (post.content && post.content !=='undefined' && post.content !=='null' && post.content !=='NaN' &&
         post.content.trim() !=='' ) { %>
-        <div class="post-text-body">
-            <p class="post-caption-full">
-                <%= post.content %>
-            </p>
+        <div class="post-caption-section">
+            <div class="post-caption-container">
+                <div class="post-caption-preview collapsed" id="caption-<%= post.post_id %>">
+                    <%= post.content %>
+                </div>
+                <div class="caption-toggle-btn" id="toggle-<%= post.post_id %>" style="display: none;" onclick="toggleCaption('<%= post.post_id %>')">Read more</div>
+            </div>
         </div>
-        <% } %>
+    <% } %>
 
-            <!-- Media Section -->
-            <% if (post.media_url) { %>
-                <figure class="post-media-proper">
-                    <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
-                        <video class="media-obj-proper" src="<%= post.media_url %>" controls preload="metadata"></video>
-                        <% } else { %>
-                            <img class="media-obj-proper" src="<%= post.media_url %>" alt="Post media" loading="lazy">
-                            <% } %>
-                </figure>
-                <% } %>
+    <!-- 3. PostMedia -->
+    <% if (post.media_url) { %>
+        <figure class="post-media" onclick="openPostViewer('<%= post.post_id %>')">
+            <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
+                <video src="<%= post.media_url %>" controls preload="metadata"></video>
+            <% } else { %>
+                <img src="<%= post.media_url %>" alt="Post media" loading="lazy">
+            <% } %>
+        </figure>
+    <% } %>
 
-                    <!-- Consolidated Action Bar -->
-                    <div class="post-interaction-actions">
-                        <button class="action-btn-custom spark <%= post.is_sparked || post.is_liked ? 'active' : '' %>"
-                            onclick="sparkPost('<%= post.post_id %>', this)">
-                            <i class="<%= (post.is_sparked || post.is_liked) ? 'fas' : 'far' %> fa-sparkles"></i>
-                            <span class="spark-count-val">
-                                <%= post.spark_count || post.sparks || 0 %>
-                            </span>
-                            <span>Spark</span>
-                        </button>
+    <!-- 4. PostStats -->
+    <div class="post-stats">
+        <div class="stats-left">
+            <div class="stat-item">
+                <i class="fas fa-heart" style="color: #ff3d6d;"></i>
+                <span class="spark-count-val"><%= post.spark_count || post.sparks || 0 %></span>
+            </div>
+        </div>
+        <div class="stats-right">
+            <div class="stat-item" onclick="scrollToComments('<%= post.post_id %>')">
+                <span class="comment-count-val"><%= post.comment_count || post.comments || 0 %></span> comments
+            </div>
+            <div class="stat-item">
+                <span><%= post.share_count || 0 %></span> shares
+            </div>
+        </div>
+    </div>
 
-                        <button class="action-btn-custom comment" onclick="toggleComments('<%= post.post_id %>')">
-                            <i class="far fa-comment"></i>
-                            <span class="comment-count-val">
-                                <%= post.comment_count || post.comments || 0 %>
-                            </span>
-                            <span>Comment</span>
-                        </button>
+    <!-- 5. PostActions -->
+    <div class="post-actions">
+        <div class="action-container like-action <%= post.is_sparked || post.is_liked ? 'active' : '' %>" 
+             id="like-btn-<%= post.post_id %>"
+             onclick="sparkPost('<%= post.post_id %>', this)">
+            <i class="<%= (post.is_sparked || post.is_liked) ? 'fas fa-heart pink-yellow-spark' : 'far fa-heart' %>"></i>
+            <span>Like</span>
+        </div>
+        <div class="action-container comment-action" onclick="scrollToComments('<%= post.post_id %>')">
+            <i class="far fa-comment"></i>
+            <span>Comment</span>
+        </div>
+        <div class="action-container share-action" onclick="sharePost('<%= post.post_id %>')">
+            <i class="far fa-share-square"></i>
+            <span>Share</span>
+        </div>
+        <div class="action-container save-action <%= post.is_saved ? 'active' : '' %>" onclick="savePost('<%= post.post_id %>', this)">
+            <i class="<%= post.is_saved ? 'fas' : 'far' %> fa-bookmark"></i>
+            <span>Save</span>
+        </div>
+    </div>
 
-                        <button class="action-btn-custom share" onclick="sharePost('<%= post.post_id %>')">
-                            <i class="far fa-paper-plane"></i>
-                            <span>Share</span>
-                        </button>
+    <!-- 6. CommentSection (Footer) -->
+    <footer class="comment-section" id="comment-section-<%= post.post_id %>">
+        <div class="comment-input-wrapper">
+            <img src="<%= (typeof user !== 'undefined' && user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png' %>"
+                class="current-user-avatar">
+            <input type="text" id="comment-input-<%= post.post_id %>" class="comment-field"
+                placeholder="Write a comment..."
+                onkeypress="if(event.key === 'Enter') addComment('<%= post.post_id %>', this)">
+        </div>
 
-                        <button class="action-btn-custom save <%= post.is_saved ? 'active' : '' %>"
-                            onclick="savePost('<%= post.post_id %>', this)">
-                            <i class="<%= post.is_saved ? 'fas' : 'far' %> fa-bookmark"></i>
-                            <span>Save</span>
-                        </button>
-                    </div>
+        <!-- Comments Container -->
+        <div class="comments-list" id="comments-<%= post.post_id %>" style="display: none;">
+            <!-- Comments will be injected here -->
+        </div>
+    </footer>
+</article>
 
-                    <!-- High-End Comment Input Area -->
-                    <footer class="post-footer-minimal">
-                        <div class="post-comment-quick">
-                            <img src="<%= (user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png' %>"
-                                class="post-avatar"
-                                style="width: 32px !important; height: 32px !important; border-radius: 10px !important;">
-                            <input type="text" id="comment-input-<%= post.post_id %>" class="comment-input-min"
-                                placeholder="Write a comment..."
-                                onkeypress="if(event.key === 'Enter') addComment('<%= post.post_id %>', this)">
-                        </div>
-
-                        <!-- Lazy-loaded Comments -->
-                        <div class="comments-section" id="comments-<%= post.post_id %>"
-                            style="display: none; padding-top: 16px;">
-                            <div class="comments-loading">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
-                    </footer>
+<script>
+    // Local check for caption length on render
+    (function() {
+        const postId = '<%= post.post_id %>';
+        const caption = document.getElementById('caption-' + postId);
+        if (caption) {
+            // Check if height exceeds 3em (approx 48px if line-height is 1.6 * 16px)
+            if (caption.scrollHeight > 50) {
+                document.getElementById('toggle-' + postId).style.display = 'block';
+            } else {
+                caption.classList.remove('collapsed');
+            }
+        }
+    })();
+</script>
 </article>

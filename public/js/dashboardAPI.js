@@ -1062,17 +1062,21 @@ const DashboardAPI = {
     async loadUserProfile(userId) {
         try {
             const user = await this.request(`/users/${userId}`);
-            const avatarUrl = this.ensureUrl(user.avatar_url) || '/uploads/avatars/default.png';
+            const avatarUrl = this.ensureUrl(user.avatar_url || user.profile_picture) || '/uploads/avatars/default.png';
             return {
                 ...user,
-                id: user.user_id,
+                id: user.user_id || user.id,
                 avatar: avatarUrl,
-                avatar_url: avatarUrl // Both for compatibility
+                avatar_url: avatarUrl
             };
         } catch (error) {
             console.error(`Failed to load user profile (${userId}):`, error);
             throw error;
         }
+    },
+
+    async loadUserProfileByUsername(username) {
+        return this.loadUserProfile(username); // Our API now handles both
     },
 
     async loadUserPosts(userId) {

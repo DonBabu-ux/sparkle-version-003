@@ -255,19 +255,23 @@ const followUser = async (req, res) => {
     try {
         const followerId = req.user.userId || req.user.user_id;
         const followingId = req.params.id;
-        await User.follow(followerId, followingId);
 
-        // Create follow notification (non-blocking)
-        notificationController.createNotification({
-            user_id: followingId,
-            actor_id: followerId,
-            type: 'follow',
-            title: 'New Follower',
-            content: 'followed you',
-            action_url: `/profile/${followerId}`
-        }).catch(() => { });
+        // Check if already following
+        const [existing] = await User.pool.query(
+            'SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?',
+            [followerId, followingId]
+        );
 
-        res.json({ success: true, message: 'User followed' });
+        if (existing.length > 0) {
+            // Toggle off (unfollow)
+            await User.unfollow(followerId, followingId);
+            return res.json({ success: true, status: 'unfollowed', message: 'User unfollowed' });
+        }
+
+        // Toggle on (follow)
+        const result = await User.follow(followerId, followingId);
+
+        res.json({ success: true, status: result.status, message: result.status === 'requested' ? 'Follow request sent' : 'User followed' });
     } catch (error) {
         logger.error('Follow user error:', error);
         res.status(500).json({ error: error.message || 'Failed to follow user' });
@@ -291,7 +295,15 @@ const getFollowers = async (req, res) => {
         const userId = req.params.id;
         const currentUserId = req.user.userId || req.user.user_id;
         const followers = await User.getFollowersDetailed(userId, currentUserId);
-        res.json(followers);
+        
+        const mappedFollowers = followers.map(f => ({
+            ...f,
+            id: f.user_id,
+            profile_picture: f.avatar_url || '/uploads/avatars/default.png',
+            is_followed_by_me: !!f.is_followed_by_me
+        }));
+
+        res.json(mappedFollowers);
     } catch (error) {
         logger.error('Get followers error:', error);
         res.status(500).json({ error: 'Failed to get followers' });
@@ -303,7 +315,15 @@ const getFollowing = async (req, res) => {
         const userId = req.params.id;
         const currentUserId = req.user.userId || req.user.user_id;
         const following = await User.getFollowingDetailed(userId, currentUserId);
-        res.json(following);
+
+        const mappedFollowing = following.map(f => ({
+            ...f,
+            id: f.user_id,
+            profile_picture: f.avatar_url || '/uploads/avatars/default.png',
+            is_followed_by_me: !!f.is_followed_by_me
+        }));
+
+        res.json(mappedFollowing);
     } catch (error) {
         logger.error('Get following error:', error);
         res.status(500).json({ error: 'Failed to get following' });
@@ -312,30 +332,49 @@ const getFollowing = async (req, res) => {
 
 const getUserProfile = async (req, res) => {
     try {
-        const userId = req.params.id;
+        const identifier = req.params.id; // Could be ID or Username
         const currentUserId = req.user.userId || req.user.user_id;
+
+        let user;
+        // Basic check if it's a UUID (very loose but enough for Sparkle's UUIDs)
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+
+        if (isUuid) {
+            user = await User.findById(identifier);
+        } else {
+            user = await User.getProfileWithStats(identifier, currentUserId);
+        }
+
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
         // Check if blocked
         const [blockCheck] = await User.pool.query(
             'SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)',
-            [currentUserId, userId, userId, currentUserId]
+            [currentUserId, user.user_id, user.user_id, currentUserId]
         );
 
         if (blockCheck.length > 0) {
-            return res.status(404).json({ error: 'User not found' }); // Stealth 404
+            return res.status(404).json({ error: 'User not found' });
         }
-
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
 
         // Map stats for frontend compatibility
         const profile = {
-            ...user,
             id: user.user_id,
-            followers: user.followers_count || 0,
-            following: user.following_count || 0,
-            posts: user.posts_count || 0,
-            avatar: user.avatar_url || '/uploads/avatars/default.png'
+            username: user.username,
+            name: user.name,
+            profile_picture: user.avatar_url || '/uploads/avatars/default.png',
+            avatar: user.avatar_url || '/uploads/avatars/default.png',
+            bio: user.bio || '',
+            followers_count: user.followers_count || 0,
+            following_count: user.following_count || 0,
+            posts_count: user.posts_count || 0,
+            followers: user.followers_count || 0, // compatibility
+            following: user.following_count || 0, // compatibility
+            posts: user.posts_count || 0, // compatibility
+            campus: user.campus,
+            major: user.major,
+            is_followed_by_me: !!user.is_followed_by_me,
+            is_requested_by_me: !!user.is_requested_by_me
         };
 
         res.json(profile);
@@ -349,7 +388,18 @@ const getUserPosts = async (req, res) => {
     try {
         const userId = req.params.id;
         const posts = await Post.getUserPosts(userId);
-        res.json(posts);
+        
+        const mappedPosts = posts.map(post => ({
+            ...post,
+            id: post.post_id,
+            likes_count: post.sparks || 0,
+            comments_count: post.comments || 0,
+            media_url: post.media_url,
+            content: post.content,
+            created_at: post.created_at
+        }));
+
+        res.json(mappedPosts);
     } catch (error) {
         logger.error('Get user posts error:', error);
         res.status(500).json({ error: 'Failed to get posts' });

@@ -59,6 +59,7 @@ window.scrollToComments = (postId) => import('./features/feed.js').then(m => m.s
 window.likeComment = (commentId) => import('./features/feed.js').then(m => m.likeComment(commentId));
 window.replyToComment = (commentId) => import('./features/feed.js').then(m => m.replyToComment(commentId));
 window.openPostViewer = (postId) => import('./features/feed.js').then(m => m.openPostViewer(postId));
+window.closePostViewer = () => import('./features/feed.js').then(m => m.closePostViewer());
 window.toggleViewerLike = () => import('./features/feed.js').then(m => m.toggleViewerLike());
 window.postViewerComment = () => import('./features/feed.js').then(m => m.postViewerComment());
 window.sharePostFromViewer = () => import('./features/feed.js').then(m => m.sharePostFromViewer());

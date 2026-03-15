@@ -207,6 +207,7 @@ class User {
             `SELECT u.*, 
                     (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
+                    (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
                     (SELECT COUNT(*) FROM follow_requests WHERE follower_id = ? AND following_id = u.user_id AND status = 'pending') as is_requested_by_me
              FROM users u 

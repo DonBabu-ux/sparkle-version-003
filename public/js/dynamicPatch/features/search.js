@@ -39,6 +39,11 @@ async function performSearch(query) {
     const resultsPanel = document.getElementById('searchResultsPanel');
     if (!resultsPanel) return;
 
+    // Point 13: Save search history
+    try {
+        window.DashboardAPI.request('/search/history', 'POST', { q: query }).catch(() => {});
+    } catch (_) {}
+
     resultsPanel.innerHTML = '<div style="padding: 20px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
     resultsPanel.classList.add('active');
 

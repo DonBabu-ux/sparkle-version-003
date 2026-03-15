@@ -116,7 +116,7 @@
                 <div class="discover-grid" id="connectContainer">
                     <% if (typeof initialUsers !=='undefined' && initialUsers.length> 0) { %>
                         <% initialUsers.forEach(u=> { %>
-                            <div class="discover-card" onclick="showProfileModal('<%= u.user_id %>')">
+                            <div class="discover-card" onclick="window.location.href='/profile/<%= u.username %>'">
                                 <% if (!u.is_followed) { %>
                                     <button onclick="event.stopPropagation(); removeSuggestion('<%= u.user_id %>')"
                                         class="discover-close-btn">
@@ -279,7 +279,7 @@
                     }
 
                     container.innerHTML = users.map(u => `
-                <div class="discover-card" onclick="showProfileModal('${u.id}')">
+                <div class="discover-card" onclick="window.location.href='/profile/${u.username}'">
                     ${!u.isConnected ? `
                     <button onclick="event.stopPropagation(); removeSuggestion('${u.id}')" class="discover-close-btn">
                         <i class="fas fa-times"></i>

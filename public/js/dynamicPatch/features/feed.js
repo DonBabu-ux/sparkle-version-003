@@ -220,6 +220,15 @@ export async function replyToComment(commentId) {
     });
 }
 
+export function closePostViewer() {
+    const viewer = document.getElementById('postViewerModal');
+    if (viewer) {
+        viewer.style.display = 'none';
+        document.body.style.overflow = '';
+        currentViewerPost = null;
+    }
+}
+
 export async function openPostViewer(postId) {
     const modal = document.getElementById('postViewerModal');
     if (!modal) return;

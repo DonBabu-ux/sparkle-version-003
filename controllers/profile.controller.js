@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
+const pool = require('../config/database');
 const logger = require('../utils/logger');
 
 // Helper to sanitize avatars - prioritizes internal uploads and whitelisted CDNs

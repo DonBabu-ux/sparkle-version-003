@@ -164,7 +164,58 @@
         return localStorage.getItem('sparkleToken');
     };
 
+    function urlB64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    const setupPushNotifications = async () => {
+        try {
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                const reg = await navigator.serviceWorker.register('/service-worker.js');
+                const perm = await Notification.requestPermission();
+                if (perm === 'granted') {
+                    const sub = await reg.pushManager.getSubscription();
+                    if (!sub) {
+                        const token = getAuthToken();
+                        if (!token) return;
+
+                        const vapidRes = await fetch('/api/notifications/vapid-public-key', { headers: { 'Authorization': `Bearer ${token}` } });
+                        const vapidData = await vapidRes.json();
+                        
+                        if (vapidData.key) {
+                            const newSub = await reg.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: urlB64ToUint8Array(vapidData.key)
+                            });
+                            
+                            await fetch('/api/notifications/subscribe', {
+                                method: 'POST',
+                                body: JSON.stringify(newSub),
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Push Setup Error:', err);
+        }
+    };
+
 document.addEventListener('DOMContentLoaded', () => {
+    setupPushNotifications();
     // Initialize socket.io globally if not already initializing
     if (typeof io !== 'undefined' && !window.socket) {
         window.socket = io({ auth: { token: getAuthToken() } });

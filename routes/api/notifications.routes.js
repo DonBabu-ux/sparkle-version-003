@@ -12,6 +12,12 @@ router.get('/', notificationController.getNotifications);
 // Get unread notification count
 router.get('/unread-count', notificationController.getUnreadCount);
 
+// VAPID key
+router.get('/vapid-public-key', (req, res) => res.json({ key: process.env.VAPID_PUBLIC_KEY }));
+
+// Subscribe to push notifications
+router.post('/subscribe', notificationController.subscribePush);
+
 // Mark all as read
 router.put('/read-all', notificationController.markAllAsRead);
 

@@ -1,5 +1,14 @@
 const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+const webpush = require('web-push');
+
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+        'mailto:sparkle@example.com',
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+    );
+}
 let _emitNotification = null;
 const getEmitter = () => {
     if (!_emitNotification) {
@@ -9,6 +18,32 @@ const getEmitter = () => {
 };
 
 const notificationController = {
+    subscribePush: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const subscription = req.body;
+            
+            if (!subscription || !subscription.endpoint) {
+                return res.status(400).json({ error: 'Invalid subscription object' });
+            }
+            
+            // Check if exists
+            const [existing] = await pool.query('SELECT id FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, subscription.endpoint]);
+            if (existing.length === 0) {
+                await pool.query('INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)', [
+                    userId,
+                    subscription.endpoint,
+                    subscription.keys.p256dh,
+                    subscription.keys.auth
+                ]);
+            }
+            res.status(201).json({ message: 'Subscribed' });
+        } catch (error) {
+            console.error('Push subscribe error:', error);
+            res.status(500).json({ error: 'Failed' });
+        }
+    },
+    
     // Get user's notifications
     getNotifications: async (req, res) => {
         try {
@@ -187,6 +222,35 @@ const notificationController = {
                 });
             }
             
+            // Send web push notification
+            try {
+                if (process.env.VAPID_PUBLIC_KEY) {
+                    const [subs] = await connection.query('SELECT * FROM push_subscriptions WHERE user_id = ?', [data.user_id]);
+                    const payload = JSON.stringify({
+                        title: data.title || 'Sparkle Notification',
+                        body: data.content,
+                        icon: actorInfo.actor_avatar || '/images/logo.png',
+                        url: data.action_url || '/'
+                    });
+                    
+                    for (const sub of subs) {
+                        try {
+                            await webpush.sendNotification({
+                                endpoint: sub.endpoint,
+                                keys: { p256dh: sub.p256dh, auth: sub.auth }
+                            }, payload);
+                        } catch (err) {
+                            if (err.statusCode === 410 || err.statusCode === 404) {
+                                await connection.query('DELETE FROM push_subscriptions WHERE id = ?', [sub.id]);
+                            } else {
+                                console.error('webpush error', err);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Push notification system failed:', err);
+            }
             return notificationId;
         } catch (error) {
             console.error('Error creating notification via helper:', error);

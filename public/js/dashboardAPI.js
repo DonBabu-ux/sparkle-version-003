@@ -6,6 +6,17 @@ const DashboardAPI = {
     baseUrl: '/api',
     token: localStorage.getItem('sparkleToken'),
 
+    getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    },
+
+    getToken() {
+        return localStorage.getItem('sparkleToken') || this.getCookie('sparkleToken');
+    },
+
     // Route tracking for debugging
     routeLog: [],
 
@@ -48,7 +59,7 @@ const DashboardAPI = {
 
     async request(endpoint, options = {}) {
         const startTime = performance.now();
-        const token = localStorage.getItem('sparkleToken');
+        const token = this.getToken();
         const method = options.method || 'GET';
 
         const headers = {
@@ -1209,6 +1220,23 @@ const DashboardAPI = {
             console.error('Failed to unfollow user:', error);
             throw error;
         }
+    },
+
+    // === Follow Request Methods ===
+    async getFollowRequests() {
+        return this.fetchWithAuth('/users/follow-requests');
+    },
+
+    async acceptFollowRequest(requestId) {
+        return this.fetchWithAuth(`/users/follow-requests/${requestId}/accept`, {
+            method: 'POST'
+        });
+    },
+
+    async rejectFollowRequest(requestId) {
+        return this.fetchWithAuth(`/users/follow-requests/${requestId}/reject`, {
+            method: 'POST'
+        });
     },
 
     async getSuggestions(limit = 5) {

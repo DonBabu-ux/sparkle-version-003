@@ -22,7 +22,7 @@ const notificationController = {
             let baseSql = `
                 SELECT n.*, u.username as actor_username, u.name as actor_name, u.avatar_url as actor_avatar
                 FROM notifications n
-                LEFT JOIN users u ON n.actor_id = u.user_id
+                LEFT JOIN users u ON u.user_id = COALESCE(n.related_user_id, n.actor_id)
                 WHERE n.user_id = ?`;
             const params = [userId];
             if (unreadOnly) {
@@ -31,24 +31,47 @@ const notificationController = {
             baseSql += ` ORDER BY n.created_at DESC LIMIT ? OFFSET ?`;
             params.push(limit, offset);
 
-            const [notifications] = await pool.query(baseSql, params);
+            const [rows] = await pool.query(baseSql, params);
 
-            // Get total count for pagination
-            const [[{ total }]] = await pool.query(`
-                SELECT COUNT(*) as total FROM notifications WHERE user_id = ?
-            `, [userId]);
+            const notifications = rows.map(n => ({
+                id: n.id || n.notification_id,
+                message: n.message || n.content || n.title,
+                type: n.type,
+                is_read: !!n.is_read,
+                created_at: n.created_at,
+                related_user: n.actor_id || n.related_user_id ? {
+                    id: n.related_user_id || n.actor_id,
+                    username: n.actor_username,
+                    name: n.actor_name,
+                    avatar: n.actor_avatar
+                } : null,
+                related_post_id: n.related_post_id || n.related_id,
+                
+                // Backwards compatibility keys
+                notification_id: n.notification_id,
+                content: n.content,
+                title: n.title,
+                actor_id: n.actor_id,
+                actor_name: n.actor_name,
+                actor_username: n.actor_username,
+                actor_avatar: n.actor_avatar,
+                action_url: n.action_url
+            }));
 
-            res.json({
-                notifications,
-                pagination: {
-                    total,
-                    page,
-                    totalPages: Math.ceil(total / limit)
-                }
-            });
+            res.json(notifications);
         } catch (error) {
             console.error('Error fetching notifications:', error);
             res.status(500).json({ error: 'Failed to fetch notifications' });
+        }
+    },
+
+    clearNotifications: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            await pool.query('DELETE FROM notifications WHERE user_id = ?', [userId]);
+            res.json({ message: 'Notifications cleared' });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to clear notifications' });
         }
     },
 

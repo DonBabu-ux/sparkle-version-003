@@ -202,11 +202,16 @@ class DashboardController {
                 );
 
                 if (post.length > 0 && post[0].user_id !== userId) {
-                    await pool.query(
-                        `INSERT INTO notifications (notification_id, user_id, actor_id, type, content, related_id, related_type)
-                         VALUES (UUID(), ?, ?, 'spark', 'sparked your post', ?, 'post')`,
-                        [post[0].user_id, userId, postId]
-                    );
+                    await require('./notification.controller').createNotification({
+                        user_id: post[0].user_id,
+                        type: 'spark',
+                        title: 'Sparked Post',
+                        content: 'sparked your post',
+                        actor_id: userId,
+                        related_id: postId,
+                        related_type: 'post',
+                        action_url: `/post/${postId}`
+                    }, pool);
                 }
 
                 res.json({ success: true, action: 'sparked' });
@@ -265,11 +270,16 @@ class DashboardController {
             );
 
             if (post.length > 0 && post[0].user_id !== userId) {
-                await pool.query(
-                    `INSERT INTO notifications (notification_id, user_id, actor_id, type, content, related_id, related_type)
-                     VALUES (UUID(), ?, ?, 'comment', 'commented on your post', ?, 'post')`,
-                    [post[0].user_id, userId, postId]
-                );
+                await require('./notification.controller').createNotification({
+                    user_id: post[0].user_id,
+                    type: 'comment',
+                    title: 'New Comment',
+                    content: 'commented on your post',
+                    actor_id: userId,
+                    related_id: postId,
+                    related_type: 'post',
+                    action_url: `/post/${postId}`
+                }, pool);
             }
 
             // Get the created comment with user details

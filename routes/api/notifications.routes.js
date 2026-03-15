@@ -15,7 +15,14 @@ router.get('/unread-count', notificationController.getUnreadCount);
 // Mark all as read
 router.put('/read-all', notificationController.markAllAsRead);
 
-// Mark specific notification as read
+// Mark specific notification as read (existing PUT)
 router.put('/:notificationId/read', notificationController.markAsRead);
+
+// Additional routes requested 
+router.post('/clear', notificationController.clearNotifications);
+router.post('/:id/read', (req, res) => {
+    req.params.notificationId = req.params.id;
+    return notificationController.markAsRead(req, res);
+});
 
 module.exports = router;

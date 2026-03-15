@@ -276,10 +276,14 @@ class User {
                 );
 
                 // Create notification for follow request (Step 7)
-                await pool.query(`
-                    INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
-                    VALUES (UUID(), ?, 'follow_request', 'Follow Request', 'requested to follow you.', ?, '/follow-requests')
-                `, [followingId, followerId]);
+                await require('../controllers/notification.controller').createNotification({
+                    user_id: followingId,
+                    type: 'follow_request',
+                    title: 'Follow Request',
+                    content: 'requested to follow you.',
+                    actor_id: followerId,
+                    action_url: '/follow-requests'
+                }, pool);
 
                 return { status: 'requested' };
             } catch (error) {
@@ -295,10 +299,15 @@ class User {
             );
 
             // Create notification for follow
-            await pool.query(`
-                INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
-                VALUES (UUID(), ?, 'follow', 'New Follower', 'started following you.', ?, CONCAT('/profile/', (SELECT username FROM users WHERE user_id = ?)))
-            `, [followingId, followerId, followerId]);
+            const [[user]] = await pool.query('SELECT username FROM users WHERE user_id = ?', [followerId]);
+            await require('../controllers/notification.controller').createNotification({
+                user_id: followingId,
+                type: 'follow',
+                title: 'New Follower',
+                content: 'started following you.',
+                actor_id: followerId,
+                action_url: '/profile/' + user.username
+            }, pool);
 
             return { status: 'following' };
         } catch (error) {

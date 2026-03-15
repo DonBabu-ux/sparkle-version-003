@@ -490,6 +490,18 @@
 
                             <div class="settings-item">
                                 <div class="item-info">
+                                    <h4>Private Account</h4>
+                                    <p>When your account is private, only people you approve can see your photos and videos.</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" onchange="saveSetting('is_private', this.checked)"
+                                        <%=user.is_private ? 'checked' : '' %>>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="settings-item">
+                                <div class="item-info">
                                     <h4>Anonymous Mode</h4>
                                     <p>Hide your identity when posting by default.</p>
                                 </div>

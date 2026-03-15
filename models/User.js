@@ -2,6 +2,8 @@ const pool = require('../config/database');
 const crypto = require('crypto');
 
 class User {
+    static pool = pool;
+
     /**
      * Find user by ID
      */
@@ -209,7 +211,7 @@ class User {
                     (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
                     (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
-                    (SELECT COUNT(*) FROM follow_requests WHERE follower_id = ? AND following_id = u.user_id AND status = 'pending') as is_requested_by_me
+                    (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as is_requested_by_me
              FROM users u 
              WHERE u.username = ?`,
             [currentUserId, currentUserId, username]
@@ -255,24 +257,28 @@ class User {
 
         // Check if the target user is private
         const [targetUser] = await pool.query(
-            'SELECT profile_visibility FROM users WHERE user_id = ?',
+            'SELECT is_private, profile_visibility FROM users WHERE user_id = ?',
             [followingId]
         );
 
         if (!targetUser[0]) throw new Error('User not found');
 
-        if (targetUser[0].profile_visibility === 'private') {
+        // Priority to is_private as per prompt Step 4
+        const isPrivate = targetUser[0].is_private || targetUser[0].profile_visibility === 'private';
+
+        if (isPrivate) {
             // Send follow request
             try {
+                const requestId = crypto.randomUUID();
                 await pool.query(
-                    'INSERT INTO follow_requests (request_id, follower_id, following_id, status) VALUES (UUID(), ?, ?, "pending")',
-                    [followerId, followingId]
+                    'INSERT INTO follow_requests (id, requester_id, target_user_id, status) VALUES (?, ?, ?, "pending")',
+                    [requestId, followerId, followingId]
                 );
 
-                // Create notification for follow request
+                // Create notification for follow request (Step 7)
                 await pool.query(`
                     INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
-                    VALUES (UUID(), ?, 'follow', 'Follow Request', 'sent you a follow request.', ?, '/connect/requests')
+                    VALUES (UUID(), ?, 'follow_request', 'Follow Request', 'requested to follow you.', ?, '/follow-requests')
                 `, [followingId, followerId]);
 
                 return { status: 'requested' };
@@ -291,8 +297,8 @@ class User {
             // Create notification for follow
             await pool.query(`
                 INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
-                VALUES (UUID(), ?, 'follow', 'New Follower', 'started following you.', ?, '/connect')
-            `, [followingId, followerId]);
+                VALUES (UUID(), ?, 'follow', 'New Follower', 'started following you.', ?, CONCAT('/profile/', (SELECT username FROM users WHERE user_id = ?)))
+            `, [followingId, followerId, followerId]);
 
             return { status: 'following' };
         } catch (error) {
@@ -413,8 +419,8 @@ class User {
         const [requests] = await pool.query(
             `SELECT fr.*, u.username, u.name, u.avatar_url, u.campus
              FROM follow_requests fr
-             JOIN users u ON fr.follower_id = u.user_id
-             WHERE fr.following_id = ? AND fr.status = 'pending'
+             JOIN users u ON fr.requester_id = u.user_id
+             WHERE fr.target_user_id = ? AND fr.status = 'pending'
              ORDER BY fr.created_at DESC`,
             [userId]
         );
@@ -422,30 +428,31 @@ class User {
     }
 
     /**
-     * Accept follow request
+     * Accept follow request (Step 6)
      */
     static async acceptFollowRequest(requestId, userId) {
         const [request] = await pool.query(
-            'SELECT * FROM follow_requests WHERE request_id = ? AND following_id = ?',
+            'SELECT * FROM follow_requests WHERE id = ? AND target_user_id = ?',
             [requestId, userId]
         );
 
         if (!request[0]) throw new Error('Request not found or unauthorized');
 
-        // Delete request and add follow
-        await pool.query('DELETE FROM follow_requests WHERE request_id = ?', [requestId]);
+        // Update request status to accepted
+        await pool.query('UPDATE follow_requests SET status = "accepted" WHERE id = ?', [requestId]);
 
         try {
+            // Create follower relationship
             await pool.query(
                 'INSERT INTO follows (follower_id, following_id) VALUES (?, ?)',
-                [request[0].follower_id, request[0].following_id]
+                [request[0].requester_id, request[0].target_user_id]
             );
 
-            // Notify follower that they were accepted
+            // Notify requester that they were accepted (Step 7)
             await pool.query(`
                 INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
-                VALUES (UUID(), ?, 'follow', 'Request Accepted', 'accepted your follow request.', ?, '/profile/' + (SELECT username FROM users WHERE user_id = ?))
-            `, [request[0].follower_id, userId, userId]);
+                VALUES (UUID(), ?, 'follow_accepted', 'Request Accepted', 'accepted your follow request.', ?, CONCAT('/profile/', (SELECT username FROM users WHERE user_id = ?)))
+            `, [request[0].requester_id, userId, userId]);
 
             return true;
         } catch (error) {
@@ -455,11 +462,11 @@ class User {
     }
 
     /**
-     * Decline follow request
+     * Reject follow request (Step 6)
      */
-    static async declineFollowRequest(requestId, userId) {
+    static async rejectFollowRequest(requestId, userId) {
         await pool.query(
-            'DELETE FROM follow_requests WHERE request_id = ? AND following_id = ?',
+            'UPDATE follow_requests SET status = "rejected" WHERE id = ? AND target_user_id = ?',
             [requestId, userId]
         );
         return true;

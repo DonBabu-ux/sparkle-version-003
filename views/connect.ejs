@@ -148,15 +148,19 @@
                                             <%= u.campus || 'Global' %>
                                         </div>
 
-                                        <button class="discover-btn <%= u.is_followed ? 'following' : 'follow' %>"
-                                            data-user-id="<%= u.user_id %>"
-                                            onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
-                                            <% if (u.is_followed) { %>
+                                        <% if (u.is_followed) { %>
+                                            <button class="discover-btn following" data-user-id="<%= u.user_id %>" onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
                                                 <i class="fas fa-check"></i> Following
-                                                <% } else { %>
-                                                    <i class="fas fa-plus"></i> Follow
-                                                    <% } %>
-                                        </button>
+                                            </button>
+                                        <% } else if (u.request_status === 'pending') { %>
+                                            <button class="discover-btn requested" disabled data-user-id="<%= u.user_id %>" onclick="event.stopPropagation()">
+                                                <i class="fas fa-clock"></i> Requested
+                                            </button>
+                                        <% } else { %>
+                                            <button class="discover-btn follow" data-user-id="<%= u.user_id %>" onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
+                                                <i class="fas fa-plus"></i> Follow
+                                            </button>
+                                        <% } %>
                             </div>
                             <% }); %>
                                 <% } else { %>
@@ -302,11 +306,21 @@
                         <i class="fas fa-map-marker-alt"></i> ${u.campus}
                     </div>
 
-                    <button class="discover-btn ${u.isConnected ? 'following' : 'follow'}" 
-                        data-user-id="${u.id}" 
-                        onclick="event.stopPropagation(); toggleFollow('${u.id}', this)">
-                        ${u.isConnected ? '<i class="fas fa-check"></i> Following' : '<i class="fas fa-plus"></i> Follow'}
-                    </button>
+                    <div class="discover-btn-container">
+                        ${u.is_followed || u.isConnected ? `
+                            <button class="discover-btn following" data-user-id="${u.id}" onclick="event.stopPropagation(); toggleFollow('${u.id}', this)">
+                                <i class="fas fa-check"></i> Following
+                            </button>
+                        ` : (u.request_status === 'pending' || u.is_requested) ? `
+                            <button class="discover-btn requested" disabled data-user-id="${u.id}" onclick="event.stopPropagation()">
+                                <i class="fas fa-clock"></i> Requested
+                            </button>
+                        ` : `
+                            <button class="discover-btn follow" data-user-id="${u.id}" onclick="event.stopPropagation(); toggleFollow('${u.id}', this)">
+                                <i class="fas fa-plus"></i> Follow
+                            </button>
+                        `}
+                    </div>
                 </div>
             `).join('');
                 }
@@ -405,23 +419,32 @@
                             followBtn.innerHTML = '<i class="fas fa-plus"></i> Follow';
                             await DashboardAPI.unfollowUser(userId);
                         } else {
-                            followBtn.classList.remove('follow');
-                            followBtn.classList.add('following');
-                            followBtn.innerHTML = '<i class="fas fa-check"></i> Following';
-                            await DashboardAPI.followUser(userId);
+                            // Call API to follow
+                            const res = await DashboardAPI.followUser(userId);
+                            
+                            if (res.status === 'requested') {
+                                followBtn.classList.remove('follow');
+                                followBtn.classList.add('requested');
+                                followBtn.innerHTML = '<i class="fas fa-clock"></i> Requested';
+                                followBtn.disabled = true;
+                            } else {
+                                followBtn.classList.remove('follow');
+                                followBtn.classList.add('following');
+                                followBtn.innerHTML = '<i class="fas fa-check"></i> Following';
+                                
+                                // Move card to bottom if it's in the grid
+                                if (card && !fromModal) {
+                                    card.style.transition = 'all 0.5s ease';
+                                    card.style.opacity = '0.5';
+                                    card.style.transform = 'scale(0.95)';
 
-                            // Move card to bottom if it's in the grid
-                            if (card && !fromModal) {
-                                card.style.transition = 'all 0.5s ease';
-                                card.style.opacity = '0.5';
-                                card.style.transform = 'scale(0.95)';
-
-                                setTimeout(() => {
-                                    const container = document.getElementById('connectContainer');
-                                    container.appendChild(card);
-                                    card.style.opacity = '1';
-                                    card.style.transform = 'scale(1)';
-                                }, 500);
+                                    setTimeout(() => {
+                                        const container = document.getElementById('connectContainer');
+                                        container.appendChild(card);
+                                        card.style.opacity = '1';
+                                        card.style.transform = 'scale(1)';
+                                    }, 500);
+                                }
                             }
                         }
 

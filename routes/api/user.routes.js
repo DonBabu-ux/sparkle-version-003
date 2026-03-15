@@ -19,9 +19,11 @@ router.get('/blocks', authMiddleware, socialController.getBlockedUsers);
 router.post('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.blockUser);
 router.delete('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.unblockUser);
 
-// Follow Requests
+// Follow Requests (Step 6)
 router.get('/follow-requests', authMiddleware, socialController.getFollowRequests);
 router.post('/follow-requests/respond', authMiddleware, socialController.respondToFollowRequest);
+router.post('/follow-requests/:requestId/accept', authMiddleware, socialController.acceptRequest);
+router.post('/follow-requests/:requestId/reject', authMiddleware, socialController.rejectRequest);
 
 router.put('/settings', authMiddleware, userController.updateSettings);
 router.get('/export-data', authMiddleware, userController.exportUserData);

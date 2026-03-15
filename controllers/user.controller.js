@@ -86,6 +86,7 @@ const updateSettings = async (req, res) => {
         // whitelist allowed settings (this list drives what may be written to DB)
         const allowedSettings = [
             // privacy / visibility
+            'is_private',
             'anonymous_enabled',
             'profile_visibility',
             'is_online',

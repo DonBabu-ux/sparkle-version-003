@@ -21,8 +21,14 @@ const renderConnect = async (req, res) => {
     try {
         const currentUserId = req.user.userId || req.user.user_id;
         const { campus, major, year, search } = req.query;
-        let query = 'SELECT u.*, (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed FROM users u WHERE u.user_id != ?';
-        const params = [currentUserId, currentUserId];
+        // Updated to use the new join and status check
+        let query = `
+            SELECT u.*, 
+            (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+            (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status
+            FROM users u 
+            WHERE u.user_id != ?`;
+        const params = [currentUserId, currentUserId, currentUserId];
 
         if (campus && campus !== 'all') { query += ' AND u.campus = ?'; params.push(campus); }
         if (major && major !== 'all') { query += ' AND u.major = ?'; params.push(major); }
@@ -31,16 +37,39 @@ const renderConnect = async (req, res) => {
 
         const [users] = await pool.query(query + ' LIMIT 50', params);
 
-        // Sanitize avatars - prioritizing internal uploads
+        // Sanitize avatars
         const sanitizedUsers = users.map(user => ({
             ...user,
-            avatar_url: getSafeAvatarUrl(user.avatar_url)
+            id: user.user_id,
+            avatar_url: getSafeAvatarUrl(user.avatar_url),
+            is_followed: !!user.is_followed,
+            request_status: user.request_status
         }));
 
-        res.render('connect', { title: 'Connect', initialUsers: sanitizedUsers || [], filters: { campus, major, year, search } });
+        res.render('connect', { 
+            title: 'Connect', 
+            user: { ...req.user, userId: currentUserId }, // Ensure user object persists
+            initialUsers: sanitizedUsers || [], 
+            filters: { campus, major, year, search } 
+        });
     } catch (error) {
         console.error('Connect Error:', error);
-        res.render('connect', { title: 'Connect', initialUsers: [], filters: {} });
+        res.render('connect', { title: 'Connect', user: req.user, initialUsers: [], filters: {} });
+    }
+};
+
+const renderFollowRequests = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const requests = await User.getPendingFollowRequests(userId);
+        res.render('follow-requests', { 
+            title: 'Follow Requests', 
+            user: req.user, 
+            requests: requests || [] 
+        });
+    } catch (error) {
+        console.error('Render Follow Requests Error:', error);
+        res.render('follow-requests', { title: 'Follow Requests', user: req.user, requests: [] });
     }
 };
 
@@ -95,14 +124,15 @@ const getFollowRequests = async (req, res) => {
 const respondToFollowRequest = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        const { requestId, action } = req.body; // action: 'accept' or 'decline'
+        const { requestId, action } = req.body; // action: 'accept' or 'reject'
+        const rId = requestId || req.params.requestId;
 
-        if (action === 'accept') {
-            await User.acceptFollowRequest(requestId, userId);
-            res.json({ message: 'Follow request accepted' });
+        if (action === 'accept' || req.path.endsWith('/accept')) {
+            await User.acceptFollowRequest(rId, userId);
+            res.json({ success: true, message: 'Follow request accepted' });
         } else {
-            await User.declineFollowRequest(requestId, userId);
-            res.json({ message: 'Follow request declined' });
+            await User.rejectFollowRequest(rId, userId);
+            res.json({ success: true, message: 'Follow request rejected' });
         }
     } catch (error) {
         console.error('Respond to follow request error:', error);
@@ -110,11 +140,36 @@ const respondToFollowRequest = async (req, res) => {
     }
 };
 
+const acceptRequest = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { requestId } = req.params;
+        await User.acceptFollowRequest(requestId, userId);
+        res.json({ success: true, message: 'Follow request accepted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const rejectRequest = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { requestId } = req.params;
+        await User.rejectFollowRequest(requestId, userId);
+        res.json({ success: true, message: 'Follow request rejected' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     renderConnect,
+    renderFollowRequests,
     blockUser,
     unblockUser,
     getBlockedUsers,
     getFollowRequests,
-    respondToFollowRequest
+    respondToFollowRequest,
+    acceptRequest,
+    rejectRequest
 };

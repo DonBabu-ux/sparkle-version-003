@@ -132,17 +132,31 @@ class User {
      * Search users by name or username
      */
     static async search(query, currentUserId, limit = 20) {
+        const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
+        
         if (!query || !query.trim()) {
             const [users] = await pool.query(
-                'SELECT user_id, name, username, avatar_url, campus, major FROM users WHERE user_id != ? LIMIT ?',
-                [currentUserId, limit]
+                `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major, u.bio, u.is_online,
+                        (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+                        (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
+                        ${mutualQuery} as mutual_connections
+                 FROM users u 
+                 WHERE u.user_id != ? 
+                 LIMIT ?`,
+                [currentUserId, currentUserId, currentUserId, currentUserId, limit]
             );
             return users;
         }
 
         const [users] = await pool.query(
-            'SELECT user_id, name, username, avatar_url, campus, major FROM users WHERE (name LIKE ? OR username LIKE ?) AND user_id != ? LIMIT ?',
-            [`%${query}%`, `%${query}%`, currentUserId, limit]
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major, u.bio, u.is_online,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+                    (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
+                    ${mutualQuery} as mutual_connections
+             FROM users u 
+             WHERE (u.name LIKE ? OR u.username LIKE ?) AND u.user_id != ? 
+             LIMIT ?`,
+            [currentUserId, currentUserId, currentUserId, `%${query}%`, `%${query}%`, currentUserId, limit]
         );
         return users;
     }
@@ -176,10 +190,40 @@ class User {
     }
 
     /**
+     * Get active friends (online or seen recently)
+     */
+    static async getActiveFriends(currentUserId, limit = 20) {
+        const [users] = await pool.query(
+            `SELECT DISTINCT u.user_id, u.username, u.name, u.avatar_url, u.campus, u.is_online, u.last_seen_at
+             FROM users u
+             WHERE u.user_id != ? 
+             AND (u.is_online = 1 OR TIMESTAMPDIFF(MINUTE, u.last_seen_at, NOW()) < 2)
+             AND (
+                u.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
+                OR
+                u.user_id IN (
+                    SELECT f1.following_id 
+                    FROM follows f1 
+                    JOIN follows f2 ON f1.following_id = f2.follower_id 
+                    WHERE f1.follower_id = ? AND f2.following_id = ?
+                )
+             )
+             ORDER BY u.is_online DESC, u.last_seen_at DESC
+             LIMIT ?`,
+            [currentUserId, currentUserId, currentUserId, currentUserId, limit]
+        );
+        return users;
+    }
+
+    /**
      * Fetch a small set of users that the current user isn't already following.
      * Used for profile suggestions on the feed or moments pages.
      */
     static async getSuggestions(currentUserId, limit = 5) {
+        // Fetch current user details for ranking
+        const [me] = await pool.query('SELECT major, year_of_study, campus FROM users WHERE user_id = ?', [currentUserId]);
+        if (!me[0]) return [];
+
         const [users] = await pool.query(
             `
             SELECT 
@@ -187,16 +231,23 @@ class User {
                 u.username,
                 u.name,
                 u.avatar_url,
+                u.major,
+                u.campus,
                 (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count
             FROM users u
             WHERE u.user_id != ? 
             AND u.user_id NOT IN (
                 SELECT following_id FROM follows WHERE follower_id = ?
             )
-            ORDER BY RAND()
+            ORDER BY 
+                CASE WHEN u.major = ? THEN 0 ELSE 1 END,
+                CASE WHEN u.year_of_study = ? THEN 0 ELSE 1 END,
+                CASE WHEN u.campus = ? THEN 0 ELSE 1 END,
+                follower_count DESC,
+                RAND()
             LIMIT ?
         `,
-            [currentUserId, currentUserId, limit]
+            [currentUserId, currentUserId, me[0].major, me[0].year_of_study, me[0].campus, limit]
         );
         return users;
     }
@@ -331,13 +382,15 @@ class User {
      * Get detailed follower list
      */
     static async getFollowersDetailed(userId, currentUserId) {
+        const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
         const [followers] = await pool.query(
             `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
-                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+                    ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.follower_id = u.user_id
              WHERE f.following_id = ?`,
-            [currentUserId, userId]
+            [currentUserId, currentUserId, userId]
         );
         return followers;
     }
@@ -346,13 +399,15 @@ class User {
      * Get detailed following list
      */
     static async getFollowingDetailed(userId, currentUserId) {
+        const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
         const [following] = await pool.query(
             `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
-                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+                    ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.following_id = u.user_id
              WHERE f.follower_id = ?`,
-            [currentUserId, userId]
+            [currentUserId, currentUserId, userId]
         );
         return following;
     }

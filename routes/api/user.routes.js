@@ -10,6 +10,7 @@ const { searchSchema, updateProfileSchema, updatePasswordSchema, userIdSchema } 
 const socialController = require('../../controllers/social.controller');
 
 router.get('/me', authMiddleware, userController.getCurrentUser);
+router.get('/active-friends', authMiddleware, userController.getActiveFriends);
 router.get('/search', authMiddleware, validate(searchSchema, 'query'), userController.searchUsers);
 router.get('/suggestions', authMiddleware, userController.getSuggestions);
 router.get('/following', authMiddleware, userController.searchFollowingUsers);

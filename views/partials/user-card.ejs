@@ -1,0 +1,55 @@
+<div class="discover-card" onclick="window.location.href='/profile/<%= u.username %>'">
+    <% if (!u.is_followed) { %>
+        <button onclick="event.stopPropagation(); removeSuggestion('<%= u.user_id %>')"
+            class="discover-close-btn">
+            <i class="fas fa-times"></i>
+        </button>
+    <% } %>
+
+    <div class="discover-avatar-container">
+        <img src="<%= u.avatar_url || u.avatar || '/uploads/avatars/default.png' %>"
+            alt="<%= u.username %>" class="discover-avatar">
+        <% if (u.is_online) { %>
+            <div class="discover-status"></div>
+        <% } %>
+    </div>
+
+    <div class="discover-name">
+        <%= u.username %>
+        <% if (u.is_new_user) { %>
+            <span class="discover-new-badge">NEW</span>
+        <% } %>
+        <% if (u.is_developer) { %>
+            <i class="fas fa-check-circle" style="color: var(--accent); font-size: 12px; margin-left: 4px;" title="Sparkle Developer"></i>
+        <% } %>
+    </div>
+
+    <div class="discover-info">
+        <%= u.major || 'Sparkler' %>
+    </div>
+
+    <div class="discover-campus">
+        <i class="fas fa-map-marker-alt"></i>
+        <%= u.campus || 'Global' %>
+    </div>
+
+    <% if (u.mutual_connections > 0) { %>
+        <div style="font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 4px;">
+            <i class="fas fa-users" style="margin-right: 4px;"></i> <%= u.mutual_connections %> mutual connections
+        </div>
+    <% } %>
+
+    <% if (u.is_followed) { %>
+        <button class="discover-btn following" data-user-id="<%= u.user_id %>" onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
+            <i class="fas fa-check"></i> Following
+        </button>
+    <% } else if (u.request_status === 'pending') { %>
+        <button class="discover-btn requested" disabled data-user-id="<%= u.user_id %>" onclick="event.stopPropagation()">
+            <i class="fas fa-clock"></i> Requested
+        </button>
+    <% } else { %>
+        <button class="discover-btn follow" data-user-id="<%= u.user_id %>" onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
+            <i class="fas fa-plus"></i> Follow
+        </button>
+    <% } %>
+</div>

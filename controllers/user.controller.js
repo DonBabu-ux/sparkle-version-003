@@ -420,6 +420,24 @@ const getSuggestions = async (req, res) => {
     }
 };
 
+const getActiveFriends = async (req, res) => {
+    try {
+        const currentUserId = req.user.userId || req.user.user_id;
+        const friends = await User.getActiveFriends(currentUserId, 20);
+        res.json(friends.map(u => ({
+            id: u.user_id,
+            username: u.username,
+            name: u.name,
+            avatar_url: u.avatar_url || '/uploads/avatars/default.png',
+            campus: u.campus,
+            is_online: u.is_online
+        })));
+    } catch (error) {
+        logger.error('Get active friends error:', error);
+        res.status(500).json({ error: 'Failed to get active friends' });
+    }
+};
+
 module.exports = {
     getCurrentUser,
     searchUsers,
@@ -437,5 +455,6 @@ module.exports = {
     getSuggestions,
     updateSettings,
     exportUserData,
-    toggleTwoFactor
+    toggleTwoFactor,
+    getActiveFriends
 };

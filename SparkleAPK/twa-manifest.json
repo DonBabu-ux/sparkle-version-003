@@ -17,16 +17,21 @@
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "C:\\Users\\user\\Desktop\\BABU DON\\SPARKLE\\SPARKLE 2\\sparkle-version-003\\SparkleAPK\\android.keystore",
-    "alias": "android"
+    "alias": "android",
+    "password": "babu001",
+    "keyPassword": "babu001"
   },
-  "appVersionName": "1",
-  "appVersionCode": 1,
+  "appVersionName": "1.2",
+  "appVersionCode": 4,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://sparkle-version-003-1-f4v3.onrender.com/manifest.json",
   "fallbackType": "customtabs",
   "features": {
     "locationDelegation": {
+      "enabled": true
+    },
+    "pushNotifications": {
       "enabled": true
     }
   },
@@ -45,12 +50,7 @@
       "title": "Sparkle Campus App Share",
       "text": "Check out this amazing campus social app!",
       "url": "https://sparkle-version-003-1-f4v3.onrender.com",
-      "files": [
-        {
-          "name": "",
-          "accept": []
-        }
-      ]
+      "files": []
     }
   },
   "orientation": "portrait",
@@ -63,5 +63,5 @@
   "displayOverride": [
     "window-controls-overlay"
   ],
-  "appVersion": "1"
+  "appVersion": "1.2"
 }

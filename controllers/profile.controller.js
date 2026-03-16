@@ -65,6 +65,15 @@ const renderProfile = async (req, res) => {
         const posts = await Post.getUserPosts(userProfile.user_id);
         const sanitizedPosts = posts.map(p => ({ ...p, media_url: getSafeMediaUrl(p.media_url) }));
 
+        // 1. Fetch active friends (mutual connections currently online/active)
+        const activeFriends = await User.getActiveFriends(currentUserId, 15);
+
+        // 2. Fetch following list for "Friends List" section
+        let followingList = [];
+        if (isOwnProfile) {
+            followingList = await User.getFollowingDetailed(currentUserId, currentUserId);
+        }
+
         // Fetch mutual connections if viewing someone else
         let mutualConnections = [];
         if (!isOwnProfile) {
@@ -73,9 +82,12 @@ const renderProfile = async (req, res) => {
 
         res.render('profile', {
             title: isOwnProfile ? 'My Profile' : `${userProfile.name}'s Profile`,
+            user: req.user, // for nav
             profile: userProfile,
             posts: sanitizedPosts || [],
             mutualConnections,
+            activeFriends: activeFriends.map(u => ({ ...u, avatar_url: getSafeAvatarUrl(u.avatar_url) })),
+            followingList: followingList.map(u => ({ ...u, avatar_url: getSafeAvatarUrl(u.avatar_url) })),
             isOwnProfile
         });
     } catch (error) {

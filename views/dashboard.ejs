@@ -420,6 +420,29 @@
 
                     <div class="dashboard-layout">
                         <div class="main-feed-column">
+                            <!-- Premium Universal Search Bar -->
+                            <div class="universal-search-wrapper" style="margin-top: 10px;">
+                                <div class="universal-search-bar" style="background: var(--pink-gradient); padding: 12px 20px; border-radius: 30px; border: none; box-shadow: 0 4px 15px rgba(244, 114, 182, 0.3);">
+                                    <i class="fas fa-search" style="color: white; font-size: 16px;"></i>
+                                    <input type="text" id="universalSearchInput" placeholder="Search users, posts, hashtags..." autocomplete="off" style="color: white; font-weight: 500; font-size: 16px; background: transparent; padding-left: 8px;">
+                                    <style>
+                                        #universalSearchInput::placeholder {
+                                            color: rgba(255, 255, 255, 0.8);
+                                        }
+                                    </style>
+                                </div>
+                                <div class="search-results-panel" id="searchResultsPanel">
+                                    <div id="searchHistoryContainer" style="padding: 12px; display: none;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Recent Searches</span>
+                                            <span style="font-size: 12px; color: var(--accent); cursor: pointer;" onclick="clearAllSearchHistory()">Clear All</span>
+                                        </div>
+                                        <div id="searchHistoryItems"></div>
+                                    </div>
+                                    <div id="suggestionsContainer"></div>
+                                </div>
+                            </div>
+
                             <!-- Premium AfterGlow Stories Section -->
                             <div class="afterglow-section">
                                 <div class="afterglow-title">
@@ -480,16 +503,153 @@
                                                     <% } %>
                                 </div>
                             </div>
+                            
+                            <!-- Active Friends Section -->
+                            <div class="active-friends-section" style="margin: 0 10px 20px 10px; padding: 16px; background: white; border-radius: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05);">
+                                <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                                    Active Friends <span style="background: #10b981; width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+                                </h4>
+                                <div class="active-friends-container" id="homeActiveFriendsList" style="display: flex; gap: 16px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 8px;">
+                                    <div style="font-size: 13px; color: var(--text-muted);">Loading active friends...</div>
+                                </div>
+                                <style>
+                                    .active-friends-container::-webkit-scrollbar { display: none; }
+                                    .active-friend-item {
+                                        position: relative;
+                                        display: flex;
+                                        flex-direction: column;
+                                        align-items: center;
+                                        cursor: pointer;
+                                        min-width: 60px;
+                                    }
+                                    .active-friend-avatar {
+                                        width: 50px;
+                                        height: 50px;
+                                        border-radius: 50%;
+                                        object-fit: cover;
+                                        border: 2px solid white;
+                                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                    }
+                                    .active-friend-dot {
+                                        position: absolute;
+                                        bottom: 20px;
+                                        right: 4px;
+                                        width: 14px;
+                                        height: 14px;
+                                        background: #10b981;
+                                        border: 2.5px solid white;
+                                        border-radius: 50%;
+                                    }
+                                    .active-friend-name {
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        color: var(--text-main);
+                                        margin-top: 6px;
+                                        white-space: nowrap;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                        max-width: 60px;
+                                        text-align: center;
+                                    }
+                                </style>
+                                 <script>
+                                    document.addEventListener('DOMContentLoaded', async () => {
+                                        // Active Friends loading
+                                        try {
+                                            const response = await fetch('/api/users/active-friends');
+                                            if (response.ok) {
+                                                const friends = await response.json();
+                                                const container = document.getElementById('homeActiveFriendsList');
+                                                if (friends.length === 0) {
+                                                    container.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">No active friends right now</div>';
+                                                } else {
+                                                    container.innerHTML = friends.map(friend => `
+                                                        <div class="active-friend-item" onclick="window.location.href='/profile/${friend.id}'">
+                                                            <img src="${friend.avatar_url || '/uploads/avatars/default.png'}" class="active-friend-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                                                            <div class="active-friend-dot"></div>
+                                                            <div class="active-friend-name">${friend.username}</div>
+                                                        </div>
+                                                    `).join('');
+                                                }
+                                            }
+                                        } catch(e) { console.error('Error fetching active friends', e); }
 
-                            <!-- Universal Search Bar -->
-                            <div class="universal-search-wrapper">
-                                <div class="universal-search-bar">
-                                    <i class="fas fa-search"></i>
-                                    <input type="text" id="universalSearchInput" placeholder="Search users, posts, hashtags..." autocomplete="off">
-                                </div>
-                                <div class="search-results-panel" id="searchResultsPanel">
-                                    <!-- Results will be injected here -->
-                                </div>
+                                        // Search History Logic
+                                        const searchInput = document.getElementById('universalSearchInput');
+                                        const searchResults = document.getElementById('searchResultsPanel');
+                                        const historyList = document.getElementById('searchHistoryItems');
+                                        const clearBtn = document.querySelector('[onclick="clearAllSearchHistory()"]');
+
+                                        const getHistory = () => JSON.parse(localStorage.getItem('sparkle_search_history') || '[]');
+                                        const saveHistory = (query) => {
+                                            if (!query.trim()) return;
+                                            let history = getHistory();
+                                            history = [query, ...history.filter(q => q !== query)].slice(0, 10);
+                                            localStorage.setItem('sparkle_search_history', JSON.stringify(history));
+                                            renderHistory();
+                                        };
+
+                                        const renderHistory = () => {
+                                            const history = getHistory();
+                                            if (!historyList) return;
+                                            
+                                            if (history.length === 0) {
+                                                historyList.innerHTML = '<div style="font-size: 12px; color: var(--text-muted); padding: 5px;">No recent searches</div>';
+                                                const container = document.getElementById('searchHistoryContainer');
+                                                if (container) container.style.display = 'none';
+                                                return;
+                                            }
+                                            
+                                            const container = document.getElementById('searchHistoryContainer');
+                                            if (container) container.style.display = 'block';
+
+                                            historyList.innerHTML = history.map(query => `
+                                                <div class="history-item" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer;">
+                                                    <div onclick="window.location.href='/connect?search=${encodeURIComponent(query)}'" style="font-size: 13px; color: var(--text-main); flex: 1;">
+                                                        <i class="fas fa-history" style="margin-right: 10px; color: var(--text-muted);"></i>
+                                                        ${query}
+                                                    </div>
+                                                    <i class="fas fa-times remove-history" data-query="${query}" style="color: var(--text-muted); padding: 5px;"></i>
+                                                </div>
+                                            `).join('');
+
+                                            document.querySelectorAll('.remove-history').forEach(btn => {
+                                                btn.onclick = (e) => {
+                                                    e.stopPropagation();
+                                                    const q = btn.dataset.query;
+                                                    let history = getHistory().filter(item => item !== q);
+                                                    localStorage.setItem('sparkle_search_history', JSON.stringify(history));
+                                                    renderHistory();
+                                                };
+                                            });
+                                        };
+
+                                        if (searchInput) {
+                                            searchInput.onfocus = () => {
+                                                searchResults.style.display = 'block';
+                                                renderHistory();
+                                            };
+
+                                            document.addEventListener('click', (e) => {
+                                                if (!e.target.closest('.search-container')) {
+                                                    searchResults.style.display = 'none';
+                                                }
+                                            });
+
+                                        window.clearAllSearchHistory = () => {
+                                            localStorage.setItem('sparkle_search_history', '[]');
+                                            renderHistory();
+                                        };
+
+                                            searchInput.addEventListener('keypress', (e) => {
+                                                if (e.key === 'Enter' && searchInput.value.trim()) {
+                                                    saveHistory(searchInput.value);
+                                                    window.location.href = `/connect?search=${encodeURIComponent(searchInput.value)}`;
+                                                }
+                                            });
+                                        }
+                                    });
+                                </script>
                             </div>
 
                             <!-- Premium Feed Container -->

@@ -112,64 +112,75 @@
                     </button>
                 </div>
 
-                <!-- User Grid -->
-                <div class="discover-grid" id="connectContainer">
-                    <% if (typeof initialUsers !=='undefined' && initialUsers.length> 0) { %>
-                        <% initialUsers.forEach(u=> { %>
-                            <div class="discover-card" onclick="window.location.href='/profile/<%= u.username %>'">
-                                <% if (!u.is_followed) { %>
-                                    <button onclick="event.stopPropagation(); removeSuggestion('<%= u.user_id %>')"
-                                        class="discover-close-btn">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                    <% } %>
-
-                                        <div class="discover-avatar-container">
-                                            <img src="<%= u.avatar_url || u.avatar || '/uploads/avatars/default.png' %>"
-                                                alt="<%= u.username %>" class="discover-avatar">
-                                            <% if (u.is_online) { %>
-                                                <div class="discover-status"></div>
-                                                <% } %>
-                                        </div>
-
-                                        <div class="discover-name">
-                                            <%= u.username %>
-                                                <% if (u.is_new_user) { %>
-                                                    <span class="discover-new-badge">NEW</span>
-                                                    <% } %>
-                                        </div>
-
-                                        <div class="discover-info">
-                                            <%= u.major || 'Sparkler' %>
-                                        </div>
-
-                                        <div class="discover-campus">
-                                            <i class="fas fa-map-marker-alt"></i>
-                                            <%= u.campus || 'Global' %>
-                                        </div>
-
-                                        <% if (u.is_followed) { %>
-                                            <button class="discover-btn following" data-user-id="<%= u.user_id %>" onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
-                                                <i class="fas fa-check"></i> Following
-                                            </button>
-                                        <% } else if (u.request_status === 'pending') { %>
-                                            <button class="discover-btn requested" disabled data-user-id="<%= u.user_id %>" onclick="event.stopPropagation()">
-                                                <i class="fas fa-clock"></i> Requested
-                                            </button>
-                                        <% } else { %>
-                                            <button class="discover-btn follow" data-user-id="<%= u.user_id %>" onclick="event.stopPropagation(); toggleFollow('<%= u.user_id %>', this)">
-                                                <i class="fas fa-plus"></i> Follow
-                                            </button>
-                                        <% } %>
-                            </div>
-                            <% }); %>
-                                <% } else { %>
-                                    <div class="discover-empty-state">
-                                        <i class="fas fa-users-slash"></i>
-                                        <h4>No Students Found</h4>
-                                        <p>Try adjusted your filters to find more campus sparks!</p>
+                <!-- Connect Page Sections -->
+                <div class="connect-sections" style="display: flex; flex-direction: column; gap: 32px; padding-top: 20px;">
+                    
+                    <!-- 1. Active Friends Section -->
+                    <% if (typeof activeFriends !== 'undefined' && activeFriends && activeFriends.length > 0) { %>
+                    <section class="connect-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">Active Friends <span style="background: #10b981; width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 4px;"></span></h3>
+                        </div>
+                        <div style="display: flex; gap: 16px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none;">
+                            <style>.connect-section div::-webkit-scrollbar { display: none; }</style>
+                            <% activeFriends.forEach(u => { %>
+                                <div class="active-friend-item" onclick="window.location.href='/profile/<%= u.username %>'" style="min-width: 80px; text-align: center; cursor: pointer;">
+                                    <div style="position: relative; width: 64px; height: 64px; margin: 0 auto;">
+                                        <img src="<%= u.avatar_url %>" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent);">
+                                        <div style="position: absolute; bottom: 2px; right: 2px; width: 14px; height: 14px; background: #10b981; border: 2px solid white; border-radius: 50%;"></div>
                                     </div>
-                                    <% } %>
+                                    <div style="font-size: 12px; font-weight: 600; margin-top: 6px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= u.username %></div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    </section>
+                    <% } %>
+
+                    <!-- 2. Suggested For You (Ranked) -->
+                    <section class="connect-section" id="suggestedSection">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">Suggested For You</h3>
+                        </div>
+                        <div class="discover-grid" id="connectContainer">
+                            <% if (typeof suggestedUsers !== 'undefined' && suggestedUsers && suggestedUsers.length > 0) { %>
+                                <% suggestedUsers.forEach(u => { %>
+                                    <%- include('partials/user-card', { u }) %>
+                                <% }); %>
+                            <% } else { %>
+                                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">No suggestions right now</div>
+                            <% } %>
+                        </div>
+                    </section>
+
+                    <!-- 3. Sparkle Creators / Developers -->
+                    <% if (typeof creators !== 'undefined' && creators && creators.length > 0) { %>
+                    <section class="connect-section" id="creatorsSection" style="background: rgba(255, 105, 180, 0.05); padding: 20px; border-radius: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="font-weight: 800; font-size: 18px; color: var(--accent); margin: 0;">
+                                <i class="fas fa-crown" style="margin-right: 8px;"></i> Sparkle Developers & Creators
+                            </h3>
+                        </div>
+                        <div class="discover-grid">
+                            <% creators.forEach(u => { %>
+                                <%- include('partials/user-card', { u }) %>
+                            <% }); %>
+                        </div>
+                    </section>
+                    <% } %>
+
+                    <!-- 4. People You Follow -->
+                    <% if (typeof followingUsers !== 'undefined' && followingUsers && followingUsers.length > 0 && !(typeof filters !== 'undefined' && filters.search)) { %>
+                    <section class="connect-section" id="followingSection">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">People You Follow</h3>
+                        </div>
+                        <div class="discover-grid">
+                            <% followingUsers.forEach(u => { %>
+                                <%- include('partials/user-card', { u }) %>
+                            <% }); %>
+                        </div>
+                    </section>
+                    <% } %>
                 </div>
             </div>
         </div>
@@ -247,6 +258,21 @@
 
                 async function fetchUsers() {
                     const container = document.getElementById('connectContainer');
+                    const nonSuggestedSections = document.querySelectorAll('.connect-section:not(#suggestedSection)');
+                    const suggestedHeading = document.querySelector('#suggestedSection h3');
+
+                    // If searching or filtering, handle section visibility
+                    const isSearching = searchQuery.trim().length > 0;
+                    const hasFilters = currentFilters.campus !== 'all' || currentFilters.major !== 'all' || currentFilters.year !== 'all';
+
+                    if (isSearching || hasFilters) {
+                        nonSuggestedSections.forEach(s => s.style.display = 'none');
+                        if (suggestedHeading) suggestedHeading.innerText = isSearching ? 'Search Results' : 'Filtered Students';
+                    } else {
+                        nonSuggestedSections.forEach(s => s.style.display = 'block');
+                        if (suggestedHeading) suggestedHeading.innerText = 'Suggested For You';
+                    }
+
                     container.innerHTML = `
                 <div style="grid-column: 1 / -1; text-align: center; padding: 60px;">
                     <div class="spinner" style="margin: 0 auto 20px;"></div>
@@ -273,7 +299,7 @@
                     const container = document.getElementById('connectContainer');
                     if (!users || users.length === 0) {
                         container.innerHTML = `
-                    <div class="discover-empty-state">
+                    <div class="discover-empty-state" style="grid-column: 1/-1;">
                         <i class="fas fa-users-slash"></i>
                         <h4>No Students Found</h4>
                         <p>Try adjusting your filters or search terms to find more campus sparks!</p>
@@ -284,7 +310,7 @@
 
                     container.innerHTML = users.map(u => `
                 <div class="discover-card" onclick="window.location.href='/profile/${u.username}'">
-                    ${!u.isConnected ? `
+                    ${!(u.is_followed || u.isConnected) ? `
                     <button onclick="event.stopPropagation(); removeSuggestion('${u.id}')" class="discover-close-btn">
                         <i class="fas fa-times"></i>
                     </button>` : ''}
@@ -296,18 +322,25 @@
 
                     <div class="discover-name">
                         ${u.username}
+                        ${u.is_developer ? `<i class="fas fa-check-circle" style="color: var(--accent); font-size: 12px; margin-left: 4px;" title="Sparkle Developer"></i>` : ''}
                     </div>
 
                     <div class="discover-info">
-                        ${u.major}
+                        ${u.major || 'Sparkler'}
                     </div>
 
                     <div class="discover-campus">
-                        <i class="fas fa-map-marker-alt"></i> ${u.campus}
+                        <i class="fas fa-map-marker-alt"></i> ${u.campus || 'Global'}
                     </div>
 
+                    ${u.mutual_connections > 0 ? `
+                    <div style="font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 4px;">
+                        <i class="fas fa-users" style="margin-right: 4px;"></i> ${u.mutual_connections} mutual connections
+                    </div>
+                    ` : ''}
+
                     <div class="discover-btn-container">
-                        ${u.is_followed || u.isConnected ? `
+                        ${(u.is_followed || u.isConnected) ? `
                             <button class="discover-btn following" data-user-id="${u.id}" onclick="event.stopPropagation(); toggleFollow('${u.id}', this)">
                                 <i class="fas fa-check"></i> Following
                             </button>

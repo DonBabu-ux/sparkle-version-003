@@ -21,40 +21,91 @@ const renderConnect = async (req, res) => {
     try {
         const currentUserId = req.user.userId || req.user.user_id;
         const { campus, major, year, search } = req.query;
-        // Updated to use the new join and status check
-        let query = `
+
+        // 1. Fetch current user to get their major/campus/year for suggestions ranking
+        const currentUser = await User.findById(currentUserId);
+        if (!currentUser) throw new Error('User not found');
+
+        // 2. Active Friends
+        const activeFriends = await User.getActiveFriends(currentUserId, 15);
+
+        // 3. Suggested Users (Ranked)
+        let suggestionQuery = `
+            SELECT u.*, 
+            (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+            (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
+            (SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id) as mutual_connections
+            FROM users u 
+            WHERE u.user_id != ? 
+            AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+        
+        const suggestionParams = [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId];
+
+        // Apply filters if present
+        if (campus && campus !== 'all') { suggestionQuery += ' AND u.campus = ?'; suggestionParams.push(campus); }
+        if (major && major !== 'all') { suggestionQuery += ' AND u.major = ?'; suggestionParams.push(major); }
+        if (year && year !== 'all') { suggestionQuery += ' AND u.year_of_study = ?'; suggestionParams.push(year); }
+        if (search) { 
+            suggestionQuery += ' AND (u.name LIKE ? OR u.username LIKE ?)'; 
+            const s = `%${search}%`; 
+            suggestionParams.push(s, s); 
+        }
+
+        suggestionQuery += `
+            ORDER BY 
+                CASE WHEN u.major = ? THEN 0 ELSE 1 END,
+                CASE WHEN u.year_of_study = ? THEN 0 ELSE 1 END,
+                CASE WHEN u.campus = ? THEN 0 ELSE 1 END,
+                followers_count DESC
+            LIMIT 20`;
+        suggestionParams.push(currentUser.major, currentUser.year_of_study, currentUser.campus);
+
+        const [suggestedUsers] = await pool.query(suggestionQuery, suggestionParams);
+
+        // 4. Developers / Creators
+        const [creators] = await pool.query(`
             SELECT u.*, 
             (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
             (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status
             FROM users u 
-            WHERE u.user_id != ?`;
-        const params = [currentUserId, currentUserId, currentUserId];
+            WHERE u.user_id != ? 
+            AND (u.bio LIKE '%developer%' OR u.bio LIKE '%creator%' OR u.username IN ('sparkle', 'admin', 'donbabu'))
+            LIMIT 10`, [currentUserId, currentUserId, currentUserId]);
 
-        if (campus && campus !== 'all') { query += ' AND u.campus = ?'; params.push(campus); }
-        if (major && major !== 'all') { query += ' AND u.major = ?'; params.push(major); }
-        if (year && year !== 'all') { query += ' AND u.year_of_study = ?'; params.push(year); }
-        if (search) { query += ' AND (u.name LIKE ? OR u.username LIKE ?)'; const s = `%${search}%`; params.push(s, s); }
+        // 5. People You Follow
+        const followingUsers = await User.getFollowingDetailed(currentUserId, currentUserId);
 
-        const [users] = await pool.query(query + ' LIMIT 50', params);
-
-        // Sanitize avatars
-        const sanitizedUsers = users.map(user => ({
-            ...user,
-            id: user.user_id,
-            avatar_url: getSafeAvatarUrl(user.avatar_url),
-            is_followed: !!user.is_followed,
-            request_status: user.request_status
-        }));
+        // helper to map users
+        const mapUser = (u) => ({
+            ...u,
+            id: u.user_id,
+            avatar_url: getSafeAvatarUrl(u.avatar_url),
+            is_followed: !!u.is_followed,
+            request_status: u.request_status,
+            is_developer: u.bio ? (u.bio.toLowerCase().includes('developer') || u.bio.toLowerCase().includes('creator')) : false
+        });
 
         res.render('connect', { 
             title: 'Connect', 
-            user: { ...req.user, userId: currentUserId }, // Ensure user object persists
-            initialUsers: sanitizedUsers || [], 
+            user: { ...currentUser, userId: currentUserId },
+            activeFriends: activeFriends.map(mapUser),
+            suggestedUsers: suggestedUsers.map(mapUser),
+            creators: creators.map(mapUser),
+            followingUsers: followingUsers.map(mapUser),
             filters: { campus, major, year, search } 
         });
     } catch (error) {
         console.error('Connect Error:', error);
-        res.render('connect', { title: 'Connect', user: req.user, initialUsers: [], filters: {} });
+        res.render('connect', { 
+            title: 'Connect', 
+            user: req.user, 
+            activeFriends: [],
+            suggestedUsers: [],
+            creators: [],
+            followingUsers: [],
+            filters: {} 
+        });
     }
 };
 

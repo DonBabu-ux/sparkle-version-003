@@ -150,26 +150,7 @@ class DashboardController {
     }
 
     async getSuggestionsData(userId) {
-        const [suggestions] = await pool.query(`
-            SELECT 
-                u.user_id,
-                u.username,
-                u.name,
-                u.avatar_url,
-                u.campus,
-                u.major,
-                CASE WHEN f.follower_id IS NOT NULL THEN 1 ELSE 0 END as is_followed
-            FROM users u
-            LEFT JOIN follows f ON u.user_id = f.following_id AND f.follower_id = ?
-            WHERE u.user_id != ?
-                AND u.user_id NOT IN (
-                    SELECT following_id FROM follows WHERE follower_id = ?
-                )
-            ORDER BY RAND()
-            LIMIT 5
-        `, [userId, userId, userId]);
-
-        return suggestions;
+        return await require('../models/User').getSuggestions(userId, 5);
     }
 
     // ============ INTERACTION HANDLERS ============

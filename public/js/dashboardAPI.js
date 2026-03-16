@@ -1187,9 +1187,13 @@ const DashboardAPI = {
                     bio: user.bio || '',
                     year: user.year_of_study || 'Student',
                     isOnline: !!user.is_online,
+                    is_online: !!user.is_online,
                     major: user.major || 'Sparkler',
                     mutualConnections: 0,
-                    isConnected: !!user.is_followed
+                    isConnected: !!user.is_followed,
+                    is_followed: !!user.is_followed,
+                    request_status: user.request_status,
+                    is_developer: user.bio ? (user.bio.toLowerCase().includes('developer') || user.bio.toLowerCase().includes('creator') || (user.username && ['sparkle', 'admin', 'donbabu'].includes(user.username.toLowerCase()))) : false
                 };
             });
         } catch (error) {

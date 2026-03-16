@@ -33,28 +33,33 @@
     </div>
 
     <!-- Right Section: Actions & Profile -->
-    <nav class="header-right" style="display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end;">
+    <nav class="header-right" style="display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end;">
+        <!-- Mobile-only search icon (outside nav-actions-group so it isn't hidden) -->
+        <button class="action-btn-circle mobile-search-btn" onclick="openMobileSearch()" aria-label="Search" style="display:none;">
+            <i class="fas fa-search"></i>
+        </button>
+
+        <!-- Desktop-only nav links -->
         <div class="nav-actions-group" style="display: flex; align-items: center; gap: 8px;">
-            <button class="action-btn-circle mobile-search-btn" onclick="openMobileSearch()" aria-label="Search" style="display:none;"><i class="fas fa-search"></i></button>
             <a href="/dashboard" class="action-btn-circle" title="Home Feed"><i class="fas fa-home"></i></a>
             <a href="/messages" class="action-btn-circle" title="Messages"><i class="fas fa-comment-dots"></i></a>
             <a href="/moments" class="action-btn-circle" title="Moments"><i class="fas fa-play-circle"></i></a>
+        </div>
 
-            <!-- Notifications -->
-            <div class="notification-trigger-wrapper" style="position: relative;">
-                <button id="navNotificationBell" class="action-btn-circle" aria-label="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="badge-dot" id="notificationCount"></span>
-                </button>
-                <div class="notification-panel-dropdown" id="notificationDropdown">
-                    <div class="dropdown-header-main">
-                        <h3>Notifications</h3>
-                        <button id="markAllReadBtn">Mark all read</button>
-                    </div>
-                    <div class="notification-scroll-area" id="notificationList"></div>
-                    <div class="dropdown-footer-main">
-                        <a href="/notifications" style="color: var(--accent); font-weight: 700; font-size: 13px; text-decoration: none;">View All Notifications</a>
-                    </div>
+        <!-- Notifications (always visible) -->
+        <div class="notification-trigger-wrapper" style="position: relative;">
+            <button id="navNotificationBell" class="action-btn-circle" aria-label="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="badge-dot" id="notificationCount"></span>
+            </button>
+            <div class="notification-panel-dropdown" id="notificationDropdown">
+                <div class="dropdown-header-main">
+                    <h3>Notifications</h3>
+                    <button id="markAllReadBtn">Mark all read</button>
+                </div>
+                <div class="notification-scroll-area" id="notificationList"></div>
+                <div class="dropdown-footer-main">
+                    <a href="/notifications" style="color: var(--accent); font-weight: 700; font-size: 13px; text-decoration: none;">View All Notifications</a>
                 </div>
             </div>
         </div>

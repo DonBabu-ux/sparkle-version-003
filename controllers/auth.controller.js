@@ -328,7 +328,8 @@ const logout = (req, res) => {
         sameSite: 'strict',
         path: '/'
     });
-    res.json({ status: 'success', message: 'Logged out successfully' });
+    // Also clear token from localStorage via redirect
+    res.redirect('/login');
 };
 
 const validateToken = (req, res) => {

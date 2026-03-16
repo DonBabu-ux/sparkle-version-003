@@ -1171,6 +1171,7 @@ const DashboardAPI = {
             if (filters.campus && filters.campus !== 'all') params.append('campus', filters.campus);
             if (filters.major && filters.major !== 'all') params.append('major', filters.major);
             if (filters.year && filters.year !== 'all') params.append('year', filters.year);
+            if (filters.relationship && filters.relationship !== 'all') params.append('relationship', filters.relationship);
 
             const url = `/users/search?${params.toString()}`;
             const users = await this.request(url);

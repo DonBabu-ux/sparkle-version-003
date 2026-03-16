@@ -88,22 +88,23 @@ body {
 }
 
 /* Hamburger Menu (Mobile/Desktop Overhaul) */
+/* Hamburger Menu (Mobile premium drawer) */
 .hamburger-menu {
     position: fixed;
-    top: 0;
-    left: -320px;
-    /* Hide by default */
-    width: 280px;
-    height: 100vh;
-    background: white;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    top: 80px; /* Below header */
+    left: -350px; /* Hidden */
+    width: 300px;
+    max-width: 85vw;
+    height: calc(100vh - 160px); /* Leave space for bottom nav */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.15);
     z-index: 2000;
-    /* Over everything */
-    transition: left 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
     overflow-y: auto;
-    overflow-x: hidden;
-    padding: 20px 0;
-    white-space: nowrap;
+    border-radius: 20px;
+    margin-left: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .hamburger-menu.active {

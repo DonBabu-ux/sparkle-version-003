@@ -129,35 +129,53 @@ class User {
     }
 
     /**
-     * Search users by name or username
+     * Search users by name or username with advanced filters
      */
-    static async search(query, currentUserId, limit = 20) {
+    static async search(query, currentUserId, filters = {}, limit = 20) {
         const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
         
-        if (!query || !query.trim()) {
-            const [users] = await pool.query(
-                `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major, u.bio, u.is_online,
-                        (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
-                        (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
-                        ${mutualQuery} as mutual_connections
-                 FROM users u 
-                 WHERE u.user_id != ? 
-                 LIMIT ?`,
-                [currentUserId, currentUserId, currentUserId, currentUserId, limit]
-            );
-            return users;
+        let sql = `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major, u.bio, u.is_online,
+                          u.year_of_study,
+                          (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+                          (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
+                          ${mutualQuery} as mutual_connections
+                   FROM users u 
+                   WHERE u.user_id != ?`;
+        
+        const params = [currentUserId, currentUserId, currentUserId, currentUserId];
+
+        if (query && query.trim()) {
+            sql += ` AND (u.name LIKE ? OR u.username LIKE ?)`;
+            params.push(`%${query}%`, `%${query}%`);
         }
 
-        const [users] = await pool.query(
-            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major, u.bio, u.is_online,
-                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
-                    (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
-                    ${mutualQuery} as mutual_connections
-             FROM users u 
-             WHERE (u.name LIKE ? OR u.username LIKE ?) AND u.user_id != ? 
-             LIMIT ?`,
-            [currentUserId, currentUserId, currentUserId, `%${query}%`, `%${query}%`, currentUserId, limit]
-        );
+        if (filters.campus && filters.campus !== 'all') {
+            sql += ` AND u.campus = ?`;
+            params.push(filters.campus);
+        }
+
+        if (filters.major && filters.major !== 'all') {
+            sql += ` AND u.major = ?`;
+            params.push(filters.major);
+        }
+
+        if (filters.year && filters.year !== 'all') {
+            sql += ` AND u.year_of_study = ?`;
+            params.push(filters.year);
+        }
+
+        if (filters.relationship === 'following') {
+            sql += ` AND u.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+            params.push(currentUserId);
+        } else if (filters.relationship === 'not_following') {
+            sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+            params.push(currentUserId);
+        }
+
+        sql += ` LIMIT ?`;
+        params.push(limit);
+
+        const [users] = await pool.query(sql, params);
         return users;
     }
 

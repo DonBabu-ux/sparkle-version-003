@@ -2,7 +2,8 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const crypto = require('crypto');
+require('dotenv').config();
 
 // Configuration
 cloudinary.config({
@@ -14,11 +15,13 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-        const isVideo = file.mimetype.startsWith('video');
+        const folder = file.fieldname === 'avatar' ? 'sparkle_avatars' : 'sparkle_uploads';
         return {
-            folder: 'sparkle_uploads',
-            resource_type: isVideo ? 'video' : 'image',
-            public_id: file.fieldname + '-' + Date.now(),
+            folder: folder,
+            resource_type: 'auto',
+            public_id: `${file.fieldname}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'webm'],
+            transformation: file.fieldname === 'avatar' ? [{ width: 500, height: 500, crop: 'limit' }] : []
         };
     },
 });
@@ -26,17 +29,20 @@ const storage = new CloudinaryStorage({
 const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|mp4|webm|mov/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
+        const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|webm|mov|avi/;
+        const ext = path.extname(file.originalname).toLowerCase();
+        const isExtMatch = allowedTypes.test(ext);
+        const isMimeMatch = allowedTypes.test(file.mimetype);
 
-        if (mimetype && extname) {
+        if (isExtMatch && isMimeMatch) {
             return cb(null, true);
         } else {
-            cb(new Error('Only images and videos are allowed!'));
+            cb(new Error('Invalid file type! Only images and videos are allowed.'));
         }
     },
-    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+    limits: { 
+        fileSize: 50 * 1024 * 1024 // 50MB total limit
+    }
 });
 
 module.exports = {

@@ -300,438 +300,258 @@
             opacity: 0.7;
         }
 
-        /* ============ DASHBOARD GRID LAYOUT ============ */
-        .dashboard-layout {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 80px 20px 100px;
+        /* Create Post Box Styles */
+        .create-post-box {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-
-        .main-feed-column {
-            max-width: 680px;
-            margin: 0 auto;
-            width: 100%;
+        .create-post-box:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
         }
-
-        .suggestions-column {
-            display: none;
-            position: sticky;
-            top: 100px;
-            height: fit-content;
-        }
-
-        @media (min-width: 1100px) {
-            .dashboard-layout {
-                grid-template-columns: 1fr 340px;
-                /* Padding handled by global layout */
-            }
-
-            .suggestions-column {
-                display: block;
-            }
-
-            .main-feed-column {
-                margin: 0;
-            }
-        }
-
-        .suggestions-sidebar-card {
-            background: white;
-            border-radius: 24px;
-            padding: 24px;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-        }
-
-        /* Adjustments for existing elements */
-        .container {
-            max-width: 100% !important;
-            padding: 0 !important;
-        }
-
-        /* Universal Search Bar Styling */
-        .universal-search-wrapper {
-            max-width: var(--feed-max-width);
-            margin: 0 auto 24px;
-            padding: 0 12px;
-            position: relative;
-        }
-
-        .universal-search-bar {
-            background: white;
-            border-radius: 24px;
-            padding: 10px 16px;
+        .cp-top {
             display: flex;
             align-items: center;
             gap: 12px;
-            border: 1px solid #e4e6eb;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+        .cp-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+        }
+        .cp-placeholder {
+            flex: 1;
+            background: #f8fafc;
+            padding: 10px 18px;
+            border-radius: 25px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .cp-divider {
+            height: 1px;
+            background: #f1f5f9;
+            margin: 0 -16px 12px;
+        }
+        .cp-actions {
+            display: flex;
+            justify-content: space-around;
+        }
+        .cp-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            padding: 8px 16px;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+        .cp-action:hover {
+            background: #f1f5f9;
+        }
+        .cp-action i {
+            font-size: 16px;
         }
 
-        .universal-search-bar:focus-within {
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-color: var(--accent-color);
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr 320px;
+            gap: 25px;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 85px 20px 40px;
         }
 
-        .universal-search-bar input {
-            border: none;
-            outline: none;
-            width: 100%;
-            font-size: 15px;
-            color: var(--text-main);
-        }
-
-        .universal-search-bar i {
-            color: var(--text-muted);
-        }
-
-        .search-results-panel {
-            position: absolute;
-            top: 100%;
-            left: 12px;
-            right: 12px;
-            background: white;
-            border-radius: 12px;
-            margin-top: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            z-index: 1000;
-            display: none;
-            max-height: 400px;
+        .sidebar-column {
+            position: sticky;
+            top: 85px;
+            height: calc(100vh - 100px);
             overflow-y: auto;
-            border: 1px solid #e4e6eb;
+            scrollbar-width: none;
+        }
+        .sidebar-column::-webkit-scrollbar { display: none; }
+
+        .main-feed-column {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .search-results-panel.active {
-            display: block;
+        .suggestions-column {
+            position: sticky;
+            top: 85px;
+            height: fit-content;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-layout {
+                grid-template-columns: 240px 1fr;
+            }
+            .suggestions-column {
+                display: none;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+                padding-top: 80px;
+            }
+            .sidebar-column {
+                display: none;
+            }
+        }
+
+        /* Override restrictive container */
+        .container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
     </style>
 
-    <%- include('partials/sidebar') %>
+    <div id="mainContent">
+        <div id="homePage" class="page active">
+            <%- include('partials/navbar') %>
 
-        <div class="container" id="mainContent">
-            <div id="homePage" class="page active"
-                style="animation: pageFadeIn 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);">
+            <div class="dashboard-layout">
+                <!-- Left Column: Sidebar -->
+                <aside class="sidebar-column">
+                    <%- include('partials/sidebar') %>
+                </aside>
 
-                <%- include('partials/navbar') %>
-
-                    <div class="dashboard-layout">
-                        <div class="main-feed-column">
-                            <!-- Premium Universal Search Bar -->
-                            <div class="universal-search-wrapper" style="margin-top: 10px;">
-                                <div class="universal-search-bar" style="background: var(--pink-gradient); padding: 12px 20px; border-radius: 30px; border: none; box-shadow: 0 4px 15px rgba(244, 114, 182, 0.3);">
-                                    <i class="fas fa-search" style="color: white; font-size: 16px;"></i>
-                                    <input type="text" id="universalSearchInput" placeholder="Search users, posts, hashtags..." autocomplete="off" style="color: white; font-weight: 500; font-size: 16px; background: transparent; padding-left: 8px;">
-                                    <style>
-                                        #universalSearchInput::placeholder {
-                                            color: rgba(255, 255, 255, 0.8);
-                                        }
-                                    </style>
-                                </div>
-                                <div class="search-results-panel" id="searchResultsPanel">
-                                    <div id="searchHistoryContainer" style="padding: 12px; display: none;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Recent Searches</span>
-                                            <span style="font-size: 12px; color: var(--accent); cursor: pointer;" onclick="clearAllSearchHistory()">Clear All</span>
-                                        </div>
-                                        <div id="searchHistoryItems"></div>
-                                    </div>
-                                    <div id="suggestionsContainer"></div>
-                                </div>
-                            </div>
-
-                            <!-- Premium AfterGlow Stories Section -->
-                            <div class="afterglow-section">
-                                <div class="afterglow-title">
-                                    <span
-                                        style="background: var(--pink-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">AfterGlow</span>
-                                    <span class="vanish-timer" id="vanishTimer" style="margin-left: auto;">
-                                        <i class="fas fa-bolt" style="color: #f59e0b"></i> 24h vanish
-                                    </span>
-                                </div>
-
-                                <div class="stories-container" id="afterglowStories">
-                                    <!-- Create Story Card -->
-                                    <div class="story-create-card" onclick="window.showCreateOptions()">
-                                        <div class="story-create-content">
-                                            <div class="story-create-top">
-                                                <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
-                                                    style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                                            </div>
-                                            <div class="story-plus-btn">
-                                                <i class="fas fa-plus"></i>
-                                            </div>
-                                            <div class="story-create-bottom">
-                                                Post Glow
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Server Stories -->
-                                    <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
-                                        <% stories.forEach(storyGroup=> { %>
-                                            <% const firstStory=storyGroup.stories[0]; %>
-                                                <div class="story-view-card"
-                                                    onclick="openStoryViewer('<%= storyGroup.user_id %>')">
-                                                    <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
-                                                        class="story-media-bg"
-                                                        onerror="this.src='/uploads/avatars/default.png'; this.style.filter='blur(15px) brightness(0.6)';"
-                                                        loading="lazy">
-
-                                                    <div class="story-overlay-gradient"></div>
-
-                                                    <% if (storyGroup.stories.length> 1) { %>
-                                                        <div class="story-multi-badge">
-                                                            <%= storyGroup.stories.length %>
-                                                        </div>
-                                                        <% } %>
-
-                                                            <div class="story-avatar-badge">
-                                                                <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>"
-                                                                    onerror="this.src='/uploads/avatars/default.png'"
-                                                                    loading="lazy">
-                                                            </div>
-
-                                                            <div class="story-username-label">
-                                                                <%= storyGroup.username || 'Sparkler' %>
-                                                            </div>
-                                                </div>
-                                                <% }); %>
-                                                    <% } %>
-                                </div>
-                            </div>
-                            
-                            <!-- Active Friends Section -->
-                            <div class="active-friends-section" style="margin: 0 10px 20px 10px; padding: 16px; background: white; border-radius: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05);">
-                                <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    Active Friends <span style="background: #10b981; width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
-                                </h4>
-                                <div class="active-friends-container" id="homeActiveFriendsList" style="display: flex; gap: 16px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 8px;">
-                                    <div style="font-size: 13px; color: var(--text-muted);">Loading active friends...</div>
-                                </div>
-                                <style>
-                                    .active-friends-container::-webkit-scrollbar { display: none; }
-                                    .active-friend-item {
-                                        position: relative;
-                                        display: flex;
-                                        flex-direction: column;
-                                        align-items: center;
-                                        cursor: pointer;
-                                        min-width: 60px;
-                                    }
-                                    .active-friend-avatar {
-                                        width: 50px;
-                                        height: 50px;
-                                        border-radius: 50%;
-                                        object-fit: cover;
-                                        border: 2px solid white;
-                                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                                    }
-                                    .active-friend-dot {
-                                        position: absolute;
-                                        bottom: 20px;
-                                        right: 4px;
-                                        width: 14px;
-                                        height: 14px;
-                                        background: #10b981;
-                                        border: 2.5px solid white;
-                                        border-radius: 50%;
-                                    }
-                                    .active-friend-name {
-                                        font-size: 11px;
-                                        font-weight: 600;
-                                        color: var(--text-main);
-                                        margin-top: 6px;
-                                        white-space: nowrap;
-                                        overflow: hidden;
-                                        text-overflow: ellipsis;
-                                        max-width: 60px;
-                                        text-align: center;
-                                    }
-                                </style>
-                                 <script>
-                                    document.addEventListener('DOMContentLoaded', async () => {
-                                        // Active Friends loading
-                                        try {
-                                            const response = await fetch('/api/users/active-friends');
-                                            if (response.ok) {
-                                                const friends = await response.json();
-                                                const container = document.getElementById('homeActiveFriendsList');
-                                                if (friends.length === 0) {
-                                                    container.innerHTML = '<div style="font-size: 13px; color: var(--text-muted);">No active friends right now</div>';
-                                                } else {
-                                                    container.innerHTML = friends.map(friend => `
-                                                        <div class="active-friend-item" onclick="window.location.href='/profile/${friend.id}'">
-                                                            <img src="${friend.avatar_url || '/uploads/avatars/default.png'}" class="active-friend-avatar" onerror="this.src='/uploads/avatars/default.png'">
-                                                            <div class="active-friend-dot"></div>
-                                                            <div class="active-friend-name">${friend.username}</div>
-                                                        </div>
-                                                    `).join('');
-                                                }
-                                            }
-                                        } catch(e) { console.error('Error fetching active friends', e); }
-
-                                        // Search History Logic
-                                        const searchInput = document.getElementById('universalSearchInput');
-                                        const searchResults = document.getElementById('searchResultsPanel');
-                                        const historyList = document.getElementById('searchHistoryItems');
-                                        const clearBtn = document.querySelector('[onclick="clearAllSearchHistory()"]');
-
-                                        const getHistory = () => JSON.parse(localStorage.getItem('sparkle_search_history') || '[]');
-                                        const saveHistory = (query) => {
-                                            if (!query.trim()) return;
-                                            let history = getHistory();
-                                            history = [query, ...history.filter(q => q !== query)].slice(0, 10);
-                                            localStorage.setItem('sparkle_search_history', JSON.stringify(history));
-                                            renderHistory();
-                                        };
-
-                                        const renderHistory = () => {
-                                            const history = getHistory();
-                                            if (!historyList) return;
-                                            
-                                            if (history.length === 0) {
-                                                historyList.innerHTML = '<div style="font-size: 12px; color: var(--text-muted); padding: 5px;">No recent searches</div>';
-                                                const container = document.getElementById('searchHistoryContainer');
-                                                if (container) container.style.display = 'none';
-                                                return;
-                                            }
-                                            
-                                            const container = document.getElementById('searchHistoryContainer');
-                                            if (container) container.style.display = 'block';
-
-                                            historyList.innerHTML = history.map(query => `
-                                                <div class="history-item" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer;">
-                                                    <div onclick="window.location.href='/connect?search=${encodeURIComponent(query)}'" style="font-size: 13px; color: var(--text-main); flex: 1;">
-                                                        <i class="fas fa-history" style="margin-right: 10px; color: var(--text-muted);"></i>
-                                                        ${query}
-                                                    </div>
-                                                    <i class="fas fa-times remove-history" data-query="${query}" style="color: var(--text-muted); padding: 5px;"></i>
-                                                </div>
-                                            `).join('');
-
-                                            document.querySelectorAll('.remove-history').forEach(btn => {
-                                                btn.onclick = (e) => {
-                                                    e.stopPropagation();
-                                                    const q = btn.dataset.query;
-                                                    let history = getHistory().filter(item => item !== q);
-                                                    localStorage.setItem('sparkle_search_history', JSON.stringify(history));
-                                                    renderHistory();
-                                                };
-                                            });
-                                        };
-
-                                        if (searchInput) {
-                                            searchInput.onfocus = () => {
-                                                searchResults.style.display = 'block';
-                                                renderHistory();
-                                            };
-
-                                            document.addEventListener('click', (e) => {
-                                                if (!e.target.closest('.search-container')) {
-                                                    searchResults.style.display = 'none';
-                                                }
-                                            });
-
-                                        window.clearAllSearchHistory = () => {
-                                            localStorage.setItem('sparkle_search_history', '[]');
-                                            renderHistory();
-                                        };
-
-                                            searchInput.addEventListener('keypress', (e) => {
-                                                if (e.key === 'Enter' && searchInput.value.trim()) {
-                                                    saveHistory(searchInput.value);
-                                                    window.location.href = `/connect?search=${encodeURIComponent(searchInput.value)}`;
-                                                }
-                                            });
-                                        }
-                                    });
-                                </script>
-                            </div>
-
-                            <!-- Premium Feed Container -->
-                            <div class="feed-container" id="feed">
-                                <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
-                                    <% feed.forEach(post=> { %>
-                                        <%- include('partials/post-card', { post, user }) %>
-                                            <% }); %>
-                                    <div id="load-more-container" style="text-align: center; padding: 20px;">
-                                        <button id="load-more-btn" onclick="loadMorePosts()" class="btn" style="background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
-                                            Load More Posts
-                                        </button>
-                                    </div>
-                                                <% } else { %>
-                                                    <div class="glass"
-                                                        style="text-align:center; padding: 60px 40px; border-radius: 30px;">
-                                                        <div
-                                                            style="width: 80px; height: 80px; background: rgba(255,255,255,0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
-                                                            <i class="fas fa-wind"
-                                                                style="font-size: 30px; color: var(--accent);"></i>
-                                                        </div>
-                                                        <h3 style="font-weight: 800; margin-bottom: 10px;">Your feed is quiet</h3>
-                                                        <p style="color: var(--text-muted); font-size: 14px;">Follow more students or share your own thoughts to start the spark!</p>
-                                                        <button onclick="window.showCreateOptions()" class="btn"
-                                                            style="margin-top: 25px; background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
-                                                            <i class="fas fa-plus"></i> Create Post
-                                                        </button>
-                                                    </div>
-                                                    <% } %>
-                            </div>
+                <!-- Center Column: Feed -->
+                <main class="main-feed-column">
+                    <!-- Premium Create Post Box -->
+                    <div class="create-post-box glass" onclick="openCreateModal()">
+                        <div class="cp-top">
+                            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="cp-avatar">
+                            <div class="cp-placeholder">What's on your mind, <%= user.name.split(' ')[0] %>?</div>
                         </div>
-
-                        <div class="suggestions-column">
-                            <!-- Suggestions Column -->
-                            <div class="suggestions-sidebar-card glass">
-                                <div
-                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                    <h4 style="font-weight: 800; font-size: 15px; margin: 0; color: var(--text-main);">
-                                        Suggested for you</h4>
-                                    <a href="/connect"
-                                        style="font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none;">See
-                                        All</a>
-                                </div>
-
-                                <div class="suggestions-list">
-                                    <% if (typeof suggestions !=='undefined' && suggestions && suggestions.length> 0) {
-                                        %>
-                                        <% suggestions.forEach(suggestion=> { %>
-                                            <div class="suggestion-item"
-                                                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                                                <div style="display: flex; align-items: center; gap: 12px; cursor: pointer;"
-                                                    onclick="window.location.href='/profile/<%= suggestion.user_id %>' ">
-                                                    <img src="<%= suggestion.avatar_url || '/uploads/avatars/default.png' %>"
-                                                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--accent);">
-                                                    <div style="overflow: hidden; max-width: 120px;">
-                                                        <div
-                                                            style="font-weight: 700; font-size: 13px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                            <%= suggestion.username %>
-                                                        </div>
-                                                        <div style="font-size: 11px; color: var(--text-muted);">
-                                                            <%= suggestion.campus || 'Sparkler' %>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button class="follow-btn-suggestion"
-                                                    data-user-id="<%= suggestion.user_id %>"
-                                                    style="background: none; border: none; color: var(--accent); font-weight: 700; font-size: 12px; cursor: pointer; padding: 4px 8px;">
-                                                    Follow
-                                                </button>
-                                            </div>
-                                            <% }); %>
-                                                <% } else { %>
-                                                    <p
-                                                        style="font-size: 12px; color: var(--text-muted); text-align: center;">
-                                                        No new suggestions right now</p>
-                                                    <% } %>
-                                </div>
-                            </div>
+                        <div class="cp-divider"></div>
+                        <div class="cp-actions">
+                            <div class="cp-action"><i class="fas fa-image" style="color: #4CAF50;"></i> Photo</div>
+                            <div class="cp-action"><i class="fas fa-video" style="color: #f44336;"></i> Video</div>
+                            <div class="cp-action"><i class="fas fa-laugh" style="color: #FFC107;"></i> Feeling</div>
                         </div>
                     </div>
+
+                    <!-- Premium AfterGlow Stories Section -->
+                    <div class="afterglow-section" style="margin-bottom: 5px;">
+                        <div class="afterglow-title">
+                            <span style="background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-size: 20px; font-weight: 800;">Stories</span>
+                            <span class="vanish-timer" id="vanishTimer" style="margin-left: auto;">
+                                <i class="fas fa-history" style="color: var(--accent)"></i> 24h
+                            </span>
+                        </div>
+
+                        <div class="stories-container" id="afterglowStories">
+                            <!-- Create Story Card -->
+                            <div class="story-create-card" onclick="window.showCreateOptions()">
+                                <div class="story-create-content">
+                                    <div class="story-create-top">
+                                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                                            style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                    </div>
+                                    <div class="story-plus-btn">
+                                        <i class="fas fa-plus"></i>
+                                    </div>
+                                    <div class="story-create-bottom">Create Story</div>
+                                </div>
+                            </div>
+
+                            <!-- Server Stories -->
+                            <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
+                                <% stories.forEach(storyGroup=> { %>
+                                    <% const firstStory=storyGroup.stories[0]; %>
+                                        <div class="story-view-card" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
+                                            <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
+                                                class="story-media-bg" onerror="this.src='/uploads/avatars/default.png';">
+                                            <div class="story-overlay-gradient"></div>
+                                            <% if (storyGroup.stories.length> 1) { %>
+                                                <div class="story-multi-badge"><%= storyGroup.stories.length %></div>
+                                            <% } %>
+                                            <div class="story-avatar-badge">
+                                                <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>">
+                                            </div>
+                                            <div class="story-username-label"><%= storyGroup.username %></div>
+                                        </div>
+                                <% }); %>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Premium Feed Container -->
+                    <div class="feed-container" id="feed">
+                        <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
+                            <% feed.forEach(post=> { %>
+                                <%- include('partials/post-card', { post, user }) %>
+                            <% }); %>
+                            <div id="load-more-container" style="text-align: center; padding: 20px;">
+                                <button id="load-more-btn" onclick="loadMorePosts()" class="btn" style="background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
+                                    Load More Posts
+                                </button>
+                            </div>
+                        <% } else { %>
+                            <div class="glass" style="text-align:center; padding: 60px 40px; border-radius: 30px;">
+                                <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+                                    <i class="fas fa-wind" style="font-size: 30px; color: var(--accent);"></i>
+                                </div>
+                                <h3 style="font-weight: 800; margin-bottom: 10px;">Your feed is quiet</h3>
+                                <p style="color: var(--text-muted); font-size: 14px;">Follow more students or share your own thoughts to start the spark!</p>
+                                <button onclick="window.showCreateOptions()" class="btn" style="margin-top: 25px; background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
+                                    <i class="fas fa-plus"></i> Create Post
+                                </button>
+                            </div>
+                        <% } %>
+                    </div>
+                </main>
+
+                <!-- Right Column: Suggestions -->
+                <aside class="suggestions-column">
+                    <div class="suggestions-sidebar-card glass">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h4 style="font-weight: 800; font-size: 15px; margin: 0; color: var(--text-main);">Suggested for you</h4>
+                            <a href="/connect" style="font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none;">See All</a>
+                        </div>
+
+                        <div class="suggestions-list">
+                            <% if (typeof suggestions !=='undefined' && suggestions && suggestions.length> 0) { %>
+                                <% suggestions.forEach(suggestion=> { %>
+                                    <div class="suggestion-item" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                                        <div style="display: flex; align-items: center; gap: 12px; cursor: pointer;" onclick="window.location.href='/profile/<%= suggestion.user_id %>' ">
+                                            <img src="<%= suggestion.avatar_url || '/uploads/avatars/default.png' %>" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--accent);">
+                                            <div style="overflow: hidden; max-width: 120px;">
+                                                <div style="font-weight: 700; font-size: 13px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= suggestion.username %></div>
+                                                <div style="font-size: 11px; color: var(--text-muted);"><%= suggestion.campus || 'Sparkler' %></div>
+                                            </div>
+                                        </div>
+                                        <button class="follow-btn-suggestion" data-user-id="<%= suggestion.user_id %>" style="background: none; border: none; color: var(--accent); font-weight: 700; font-size: 12px; cursor: pointer; padding: 4px 8px;">Follow</button>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <p style="font-size: 12px; color: var(--text-muted); text-align: center;">No new suggestions right now</p>
+                            <% } %>
+                        </div>
+                    </div>
+                </aside>
             </div>
         </div>
+    </div>
 
         <!-- ===== Create Picker Modal ===== -->
         <div id="createPickerModal"

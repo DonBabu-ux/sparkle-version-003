@@ -342,7 +342,6 @@ const likeStory = async (req, res) => {
                             `/stories/${storyId}`
                         ]
                     );
-                    logger.error('Notification error (ignoring):', notifErr);
                 } catch (notifErr) {
                     logger.error('Notification error (ignoring):', notifErr);
                 }

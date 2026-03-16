@@ -20,6 +20,31 @@ class SparkleChat {
         this.setupSocket();
         this.bindEvents();
         await this.loadInbox();
+        this.checkUrlParameters();
+    }
+
+    async checkUrlParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatId = urlParams.get('chat');
+        const userId = urlParams.get('user');
+
+        if (chatId) {
+            console.log('🔗 Deep-link: Opening chat ID', chatId);
+            this.openChat(chatId);
+        } else if (userId) {
+            console.log('🔗 Deep-link: Initializing chat with user', userId);
+            try {
+                // Try to get existing chat first by just calling openChat with userId
+                // The backend model fix now handles userId as input to getMessages
+                const response = await fetch(`/api/messages/chat/${userId}`);
+                const result = await response.json();
+                if (result.status === 'success' && result.chatId) {
+                    this.openChat(result.chatId);
+                }
+            } catch (err) {
+                console.error('Deep-link failed:', err);
+            }
+        }
     }
 
     setupSocket() {
@@ -132,26 +157,34 @@ class SparkleChat {
         }).join('');
     }
 
-    renderActiveFriends() {
+    async renderActiveFriends() {
         const carousel = document.getElementById('activeFriendsCarousel');
         if (!carousel) return;
 
-        const onlineUsers = this.conversations.filter(c => c.is_online && c.chat_type === 'personal');
-        if (onlineUsers.length === 0) {
-            carousel.parentElement.style.display = 'none';
-            return;
-        }
+        try {
+            const response = await fetch('/api/users/active-friends');
+            if (!response.ok) throw new Error('API Error');
+            const friends = await response.json();
 
-        carousel.parentElement.style.display = 'block';
-        carousel.innerHTML = onlineUsers.map(user => `
-            <div class="active-friend-item" onclick="sparkChat.openChat('${user.chat_id}')">
-                <div class="af-avatar-wrapper">
-                    <img src="${user.partner_avatar || '/uploads/avatars/default.png'}" alt="">
-                    <div class="af-online-dot"></div>
+            if (!friends || friends.length === 0) {
+                carousel.parentElement.style.display = 'none';
+                return;
+            }
+
+            carousel.parentElement.style.display = 'block';
+            carousel.innerHTML = friends.map(friend => `
+                <div class="active-friend-item" onclick="window.location.href='/profile/${friend.id}'">
+                    <div class="af-avatar-wrapper">
+                        <img src="${friend.avatar_url || '/uploads/avatars/default.png'}" alt="${friend.username}" onerror="this.src='/uploads/avatars/default.png'">
+                        <div class="af-online-dot"></div>
+                    </div>
+                    <div class="af-name">${friend.username.split(' ')[0]}</div>
                 </div>
-                <div class="af-name">${user.partner_name.split(' ')[0]}</div>
-            </div>
-        `).join('');
+            `).join('');
+        } catch (err) {
+            console.error('Failed to load active friends:', err);
+            carousel.parentElement.style.display = 'none';
+        }
     }
 
     filterInbox(query) {

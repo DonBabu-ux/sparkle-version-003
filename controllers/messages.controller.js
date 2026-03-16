@@ -27,8 +27,8 @@ class MessageController {
             // But usually the client will pass a chatId if they have one.
             // For starting a new chat, startConversation endpoint is used.
             
-            const messages = await Message.getMessages(chatId, userId);
-            res.json({ status: 'success', data: messages });
+            const { chatId: resolvedChatId, messages } = await Message.getMessages(chatId, userId);
+            res.json({ status: 'success', data: messages, chatId: resolvedChatId });
         } catch (error) {
             console.error('getConversationMessages Error:', error);
             res.status(500).json({ status: 'error', error: error.message });

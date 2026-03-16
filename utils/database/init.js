@@ -290,6 +290,37 @@ const initMessagesTable = async () => {
                 INDEX idx_messages_story (story_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
+
+        // Harmonize existing table structure
+        const columnsToAdd = [
+            { name: 'conversation_id', type: 'CHAR(36) DEFAULT NULL' },
+            { name: 'personal_chat_id', type: 'CHAR(36) DEFAULT NULL' }
+        ];
+
+        for (const col of columnsToAdd) {
+            try {
+                await pool.query(`ALTER TABLE messages ADD COLUMN ${col.name} ${col.type}`);
+                logger.debug(`✅ Added ${col.name} column to messages table`);
+            } catch (err) {
+                if (err.code !== 'ER_DUP_FIELDNAME') {
+                    logger.warn(`Could not add ${col.name} column to messages:`, err.message);
+                }
+            }
+        }
+
+        // Ensure foreign keys are consistent
+        try {
+            await pool.query(`
+                ALTER TABLE messages 
+                ADD CONSTRAINT fk_messages_conversation 
+                FOREIGN KEY (conversation_id) REFERENCES personal_chats(chat_id) ON DELETE CASCADE
+            `);
+        } catch (err) {
+            if (err.code !== 'ER_DUP_CONSTRAINT_NAME') {
+                logger.warn('Could not add FK constraint to messages:', err.message);
+            }
+        }
+
         logger.debug('✅ Messages table verified');
     } catch (err) {
         logger.error('❌ Failed to init messages table:', err.message);

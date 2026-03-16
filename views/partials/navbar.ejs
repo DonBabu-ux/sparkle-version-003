@@ -1,382 +1,615 @@
-<header class="header glass">
-    <div style="display: flex; align-items: center; gap: 15px;">
+<header class="header glass" style="position: fixed; top: 0; width: 100%; z-index: 1000; height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;">
+    <!-- Left Section: Logo & Mobile Toggle -->
+    <div class="header-left" style="display: flex; align-items: center; gap: 15px; flex: 1;">
         <button class="hamburger-btn" onclick="toggleHamburger()" aria-label="Toggle Menu"
-            style="font-size: 20px; cursor: pointer; background: none; border: none; padding: 0; color: inherit;">
+            style="font-size: 20px; cursor: pointer; background: none; border: none; padding: 0; color: var(--text-main); display: none;">
             <i class="fas fa-bars"></i>
         </button>
-        <style>
-            @media (min-width: 1025px) {
-                .hamburger-btn {
-                    display: none !important;
-                }
-            }
-        </style>
-        <h1 class="logo-text"
-            style="font-size: 28px; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif; letter-spacing: -1px; margin: 0;">
+        <h1 class="logo-text" onclick="window.location.href='/dashboard'"
+            style="font-size: 26px; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif; cursor: pointer; margin: 0; letter-spacing: -0.5px;">
             Sparkle</h1>
     </div>
-    <div class="nav-actions" style="display: flex; align-items: center; gap: 15px; position: relative;">
-        <!-- Container for Bell and Dropdown -->
-        <div class="notification-container" style="position: relative;">
-            <button id="navNotificationBell" aria-label="Notifications"
-                style="font-size: 22px; position: relative; cursor: pointer; background: none; border: none; padding: 0; color: #e91e63; display: flex; align-items: center; z-index: 10;">
-                <i class="fas fa-bell" id="navBellIcon"></i>
-                <span class="badge" id="notificationCount"
-                    style="position: absolute; top: -8px; right: -8px; background: #e91e63; color: white; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10px; padding: 0 4px; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 700;"></span>
-            </button>
 
-            <!-- Dropdown Panel -->
-            <div class="notification-dropdown" id="notificationDropdown" style="display: none; position: absolute; top: 100%; right: -10px; width: 360px; background: var(--surface, #fff); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 1000; overflow: hidden; max-height: 80vh; flex-direction: column; margin-top: 15px;">
-                <div class="dropdown-header" style="padding: 15px; border-bottom: 1px solid var(--border-color, #eee); display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin: 0; font-size: 18px; font-weight: 700;">Notifications</h3>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="markAllReadBtn" style="background: none; border: none; color: var(--primary, #007bff); cursor: pointer; font-size: 14px; font-weight: 600;">Mark all read</button>
-                        <button id="clearNotificationsBtn" style="background: none; border: none; color: #e91e63; cursor: pointer; font-size: 14px; font-weight: 600;">Clear</button>
-                    </div>
+    <!-- Center Section: Universal Search -->
+    <div class="header-center" style="flex: 2; max-width: 600px; position: relative;">
+        <div class="universal-search-bar" style="background: #f0f2f5; padding: 10px 18px; border-radius: 25px; display: flex; align-items: center; gap: 10px; border: 1px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+            <i class="fas fa-search" style="color: var(--text-muted); font-size: 15px;"></i>
+            <input type="text" id="universalSearchInput" placeholder="Search users, posts, hashtags..." autocomplete="off" 
+                style="border: none; background: transparent; outline: none; width: 100%; font-size: 15px; color: var(--text-main); font-weight: 500;">
+        </div>
+        
+        <!-- Search Results Panel -->
+        <div class="search-results-panel shadow-premium" id="searchResultsPanel" 
+            style="position: absolute; top: 110%; left: 0; right: 0; background: #fff; border-radius: 16px; box-shadow: 0 15px 45px rgba(0,0,0,0.12); display: none; max-height: 450px; overflow-y: auto; z-index: 1001; border: 1px solid rgba(0,0,0,0.05);">
+            <div id="searchHistoryContainer" style="padding: 16px; border-bottom: 1px solid #f1f5f9; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Recent Searches</span>
+                    <span style="font-size: 12px; color: var(--accent); cursor: pointer; font-weight: 700;" onclick="clearAllSearchHistory()">Clear All</span>
                 </div>
-                <div class="dropdown-body notification-list" id="notificationList" style="overflow-y: auto; max-height: calc(80vh - 55px);">
-                    <!-- Notifications rendered here -->
+                <div id="searchHistoryItems"></div>
+            </div>
+            <div id="suggestionsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Right Section: Actions & Profile -->
+    <nav class="header-right" style="display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end;">
+        <div class="nav-actions-group" style="display: flex; align-items: center; gap: 8px;">
+            <button class="action-btn-circle mobile-search-btn" onclick="openMobileSearch()" aria-label="Search" style="display:none;"><i class="fas fa-search"></i></button>
+            <a href="/dashboard" class="action-btn-circle" title="Home Feed"><i class="fas fa-home"></i></a>
+            <a href="/messages" class="action-btn-circle" title="Messages"><i class="fas fa-comment-dots"></i></a>
+            <a href="/moments" class="action-btn-circle" title="Moments"><i class="fas fa-play-circle"></i></a>
+
+            <!-- Notifications -->
+            <div class="notification-trigger-wrapper" style="position: relative;">
+                <button id="navNotificationBell" class="action-btn-circle" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge-dot" id="notificationCount"></span>
+                </button>
+                <div class="notification-panel-dropdown" id="notificationDropdown">
+                    <div class="dropdown-header-main">
+                        <h3>Notifications</h3>
+                        <button id="markAllReadBtn">Mark all read</button>
+                    </div>
+                    <div class="notification-scroll-area" id="notificationList"></div>
+                    <div class="dropdown-footer-main">
+                        <a href="/notifications" style="color: var(--accent); font-weight: 700; font-size: 13px; text-decoration: none;">View All Notifications</a>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <nav class="quick-action-icons" aria-label="Quick Actions"
-            style="display: flex; align-items: center; gap: 10px;">
-            <a href="/streams" class="quick-action-icon" title="View Live Streams" aria-label="Live Streams"
-                style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FF416C, #FF4B2B); 
-                       display: flex; align-items: center; justify-content: center; cursor: pointer; 
-                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(255, 65, 108, 0.3); text-decoration: none;">
-                <i class="fas fa-satellite-dish" style="color: white; font-size: 16px;"></i>
-            </a>
-
-            <a href="/polls" class="quick-action-icon" title="View Polls" aria-label="Polls"
-                style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); 
-                       display: flex; align-items: center; justify-content: center; cursor: pointer; 
-                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); text-decoration: none;">
-                <i class="fas fa-vote-yea" style="color: white; font-size: 16px;"></i>
-            </a>
-
-            <a href="/events" class="quick-action-icon" title="View Campus Events" aria-label="Campus Events"
-                style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #f2994a, #f2c94c); 
-                       display: flex; align-items: center; justify-content: center; cursor: pointer; 
-                       transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(242, 153, 74, 0.3); text-decoration: none;">
-                <i class="fas fa-calendar-alt" style="color: white; font-size: 16px;"></i>
-            </a>
-        </nav>
-
-        <a href="/profile" aria-label="Profile" style="display: flex; align-items: center; text-decoration: none;">
-            <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
-                alt="User Profile"
-                style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--primary);"
-                onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
-        </a>
-    </div>
+        <!-- Profile Dropdown -->
+        <div class="profile-nav-item" style="position: relative; margin-left: 8px;">
+            <div id="profileDropdownTrigger" class="profile-trigger-btn">
+                <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>" 
+                     alt="Me" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid transparent; transition: border 0.3s; object-fit: cover;">
+                <div class="chevron-badge"><i class="fas fa-chevron-down"></i></div>
+            </div>
+            
+            <div id="profileDropdown" class="premium-dropdown-menu">
+                <div class="user-peek-section">
+                    <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>" 
+                         style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                    <div class="user-peek-info">
+                        <span class="peek-name"><%= typeof user !== 'undefined' ? user.name : 'Sparkle Student' %></span>
+                        <span class="peek-handle">@<%= typeof user !== 'undefined' ? user.username : 'sparkler' %></span>
+                    </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <a href="/profile" class="dropdown-menu-item">
+                    <div class="item-icon"><i class="fas fa-user-circle"></i></div>
+                    <div class="item-label">My Profile</div>
+                </a>
+                <a href="/settings" class="dropdown-menu-item">
+                    <div class="item-icon"><i class="fas fa-cog"></i></div>
+                    <div class="item-label">Settings & Privacy</div>
+                </a>
+                <a href="/support" class="dropdown-menu-item">
+                    <div class="item-icon"><i class="fas fa-question-circle"></i></div>
+                    <div class="item-label">Help & Support</div>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a href="/logout" class="dropdown-menu-item logout-item">
+                    <div class="item-icon"><i class="fas fa-sign-out-alt"></i></div>
+                    <div class="item-label">Log Out</div>
+                </a>
+            </div>
+        </div>
+    </nav>
 </header>
 
-<style>
-    .logo-text {
-        letter-spacing: -0.5px;
-        user-select: none;
+<!-- ── Mobile Search Overlay ──────────────────────────────── -->
+<div id="mobileSearchOverlay">
+    <div class="mob-search-header">
+        <button class="mob-search-back" onclick="closeMobileSearch()" aria-label="Back">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="mob-search-input-wrap">
+            <i class="fas fa-search" style="color:#94a3b8;font-size:15px;flex-shrink:0;"></i>
+            <input type="text" id="mobileSearchInput" placeholder="Search users, posts, hashtags..." autocomplete="off">
+        </div>
+    </div>
+    <div id="mobileSearchResults"></div>
+</div>
+<script>
+(function(){
+    var _mt;
+    window.openMobileSearch = function(){
+        document.getElementById('mobileSearchOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        setTimeout(function(){ document.getElementById('mobileSearchInput').focus(); }, 80);
+    };
+    window.closeMobileSearch = function(){
+        document.getElementById('mobileSearchOverlay').classList.remove('open');
+        document.getElementById('mobileSearchResults').innerHTML = '';
+        document.getElementById('mobileSearchInput').value = '';
+        document.body.style.overflow = '';
+    };
+    document.addEventListener('DOMContentLoaded', function(){
+        var inp = document.getElementById('mobileSearchInput');
+        if (!inp) return;
+        inp.addEventListener('input', function(){
+            var q = inp.value.trim();
+            var res = document.getElementById('mobileSearchResults');
+            if (q.length < 2) { res.innerHTML = ''; return; }
+            clearTimeout(_mt);
+            _mt = setTimeout(async function(){
+                try {
+                    var r = await fetch('/api/search?q=' + encodeURIComponent(q) + '&type=all&limit=5');
+                    var d = await r.json();
+                    _renderMob(d.data && d.data.results ? d.data.results : {}, res);
+                } catch(e){}
+            }, 280);
+        });
+    });
+    var TC = {user:'#6366f1',post:'#10b981',group:'#f59e0b',moment:'#ec4899',marketplace:'#3b82f6',club:'#8b5cf6'};
+    var TI = {user:'user-circle',post:'file-alt',group:'users',moment:'play-circle',marketplace:'tag',club:'shield-alt'};
+    function _renderMob(grouped, el){
+        var entries = Object.entries(grouped).filter(function(e){ return e[1] && e[1].length; });
+        if (!entries.length){ el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No results found</div>'; return; }
+        el.innerHTML = entries.map(function(e){
+            var type=e[0], items=e[1];
+            return '<div class="search-section-header">' + type.charAt(0).toUpperCase() + type.slice(1) + 's</div>' +
+                items.slice(0,4).map(function(item){
+                    var c=TC[type]||'#6366f1', i=TI[type]||'search';
+                    var av = item.image ? '<img src="'+item.image+'" onerror="this.style.display=\'none\'">' : '<i class="fas fa-'+i+'" style="color:'+c+'"></i>';
+                    return '<div class="search-item-row" onclick="navigateSearchResult(\''+type+'\',\''+item.id+'\',\'\')">' +
+                        '<div class="search-item-avatar" style="background:'+c+'22;">'+av+'</div>' +
+                        '<div class="search-item-info"><div class="search-item-title">'+(item.title||item.label||'')+'</div>' +
+                        '<div class="search-item-sub">'+(item.subtitle||(item.description||'').slice(0,50))+'</div></div>' +
+                        '<span class="search-type-chip" style="background:'+c+'22;color:'+c+'">'+type+'</span></div>';
+                }).join('');
+        }).join('');
     }
+})();
+</script>
 
-    .quick-action-icon:hover {
-        transform: scale(1.1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-    }
-
-    .quick-action-icon:active {
-        transform: scale(0.95);
-    }
-
-    /* Notification Items */
-    .notification-item {
-        display: flex;
-        gap: 12px;
-        padding: 15px;
-        border-bottom: 1px solid var(--border-color, #eee);
-        transition: background 0.2s;
-        cursor: pointer;
-        text-decoration: none;
-        color: inherit;
-    }
-    .notification-item:hover {
-        background: var(--hover-bg, #f8f9fa);
-    }
-    .notification-item.unread {
-        background: rgba(233, 30, 99, 0.05);
-    }
-    .notification-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
-    .notification-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .notification-text {
-        font-size: 14px;
-        margin: 0 0 5px 0;
-        line-height: 1.4;
-    }
-    .notification-time {
-        font-size: 12px;
-        color: var(--text-muted, #888);
-    }
-
-    /* Mobile Full Screen Panel */
-    @media (max-width: 768px) {
-        .quick-action-icons {
-            display: none !important;
-        }
-        .notification-dropdown {
-            position: fixed !important;
-            top: 60px !important;
-            right: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: calc(100vh - 60px) !important;
-            max-height: 100vh !important;
-            border-radius: 0 !important;
-            margin-top: 0 !important;
-        }
-    }
-</style>
-
-<!-- Real-time Push Notification Popup Banner -->
-<div id="pushNotificationBanner" style="position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background: var(--surface, #fff); border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); padding: 15px 20px; display: flex; align-items: center; gap: 15px; z-index: 9999; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); width: 90%; max-width: 400px; cursor: pointer;">
-    <img id="pushAvatar" src="" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-    <div style="flex: 1;">
-        <h4 style="margin: 0; font-size: 14px; color: #e91e63;">New Notification</h4>
-        <p id="pushMessage" style="margin: 3px 0 0 0; font-size: 14px;"></p>
+<!-- Notification Banner for Real-time -->
+<div id="pushNotificationBanner" class="push-banner-container">
+    <img id="pushAvatar" src="" class="push-banner-avatar">
+    <div class="push-banner-content">
+        <span class="push-banner-title">Sparkle Notification</span>
+        <p id="pushMessage" class="push-banner-text"></p>
     </div>
 </div>
 
+<style>
+    :root {
+        --primary: #6366f1;
+        --accent: #e91e63;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --bg-surface: #ffffff;
+    }
+
+    .header.glass {
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .action-btn-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        font-size: 18px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .action-btn-circle:hover {
+        background: #e2e8f0;
+        transform: translateY(-2px);
+        color: var(--primary);
+    }
+
+    .badge-dot {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 10px;
+        height: 10px;
+        background: #ef4444;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        display: none;
+    }
+
+    .profile-trigger-btn {
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+
+    .profile-trigger-btn:hover img {
+        border-color: var(--primary);
+    }
+
+    .chevron-badge {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        background: #fff;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        font-size: 8px;
+        color: var(--text-muted);
+    }
+
+    .premium-dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 130%;
+        right: 0;
+        width: 280px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+        padding: 12px;
+        z-index: 1000;
+        border: 1px solid rgba(0,0,0,0.05);
+        animation: dropdownSlide 0.3s ease;
+    }
+
+    @keyframes dropdownSlide {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .user-peek-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 4px 12px;
+    }
+
+    .peek-name { font-weight: 800; display: block; color: var(--text-main); }
+    .peek-handle { font-size: 12px; color: var(--text-muted); }
+
+    .dropdown-divider { height: 1px; background: #f1f5f9; margin: 8px 0; }
+
+    .dropdown-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        text-decoration: none;
+        color: var(--text-main);
+        transition: background 0.2s;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .dropdown-menu-item:hover { background: #f8fafc; color: var(--primary); }
+    .dropdown-menu-item .item-icon { width: 20px; font-size: 16px; opacity: 0.7; }
+
+    .notification-panel-dropdown {
+        display: none;
+        position: absolute;
+        top: 130%;
+        right: -10px;
+        width: 380px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        z-index: 1000;
+        overflow: hidden;
+    }
+
+    .dropdown-header-main {
+        padding: 16px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dropdown-header-main h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main); }
+    .dropdown-header-main button { background: none; border: none; color: var(--primary); font-weight: 700; font-size: 13px; cursor: pointer; }
+
+    .notification-scroll-area { max-height: 400px; overflow-y: auto; }
+    .dropdown-footer-main { padding: 12px; text-align: center; border-top: 1px solid #f1f5f9; }
+
+    .push-banner-container {
+        position: fixed;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 35px rgba(0,0,0,0.15);
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        z-index: 9999;
+        width: 90%;
+        max-width: 420px;
+        transition: top 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* ── DESKTOP (≥1025px) ───────────────────────────────────── */
+    @media (min-width: 1025px) {
+        .header-left { flex: 1; }
+        .header-center { flex: 2; display: block !important; }
+        .header-right { flex: 1; }
+        .hamburger-btn { display: none !important; }
+        /* show all action buttons on desktop */
+        .nav-actions-group { display: flex !important; }
+    }
+
+    /* ── MOBILE (≤1024px) ───────────────────────────────────── */
+    @media (max-width: 1024px) {
+        .header-center { display: none !important; }
+        .nav-actions-group { display: none !important; }
+        .hamburger-btn { display: none !important; }
+        .header-left, .header-right { flex: unset; }
+        header.header { padding: 0 16px; }
+        /* Show the mobile search icon */
+        .mobile-search-btn { display: flex !important; }
+    }
+
+    /* Mobile search overlay */
+    #mobileSearchOverlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: #fff; z-index: 1200;
+        flex-direction: column;
+        display: none;
+    }
+    #mobileSearchOverlay.open { display: flex !important; }
+    .mob-search-header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 0 16px; height: 70px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .mob-search-back {
+        background: none; border: none; cursor: pointer;
+        color: #64748b; font-size: 20px; padding: 8px; border-radius: 50%;
+        transition: background 0.2s;
+    }
+    .mob-search-back:hover { background: #f1f5f9; }
+    .mob-search-input-wrap {
+        flex: 1; background: #f0f2f5; border-radius: 25px;
+        display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+    }
+    .mob-search-input-wrap input {
+        border: none; background: transparent; outline: none;
+        width: 100%; font-size: 15px; color: #1e293b; font-weight: 500;
+    }
+    #mobileSearchResults { flex: 1; overflow-y: auto; padding: 8px 0; }
+</style>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const getAuthToken = () => {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; sparkleToken=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-        return localStorage.getItem('sparkleToken');
-    };
-
-    function urlB64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-            .replace(/\-/g, '+')
-            .replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-    }
-
-    const setupPushNotifications = async () => {
-        try {
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
-                const reg = await navigator.serviceWorker.register('/service-worker.js');
-                const perm = await Notification.requestPermission();
-                if (perm === 'granted') {
-                    const sub = await reg.pushManager.getSubscription();
-                    if (!sub) {
-                        const token = getAuthToken();
-                        if (!token) return;
-
-                        const vapidRes = await fetch('/api/notifications/vapid-public-key', { headers: { 'Authorization': `Bearer ${token}` } });
-                        const vapidData = await vapidRes.json();
-                        
-                        if (vapidData.key) {
-                            const newSub = await reg.pushManager.subscribe({
-                                userVisibleOnly: true,
-                                applicationServerKey: urlB64ToUint8Array(vapidData.key)
-                            });
-                            
-                            await fetch('/api/notifications/subscribe', {
-                                method: 'POST',
-                                body: JSON.stringify(newSub),
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${token}`
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-        } catch (err) {
-            console.error('Push Setup Error:', err);
-        }
-    };
-
 document.addEventListener('DOMContentLoaded', () => {
-    setupPushNotifications();
-    // Initialize socket.io globally if not already initializing
-    if (typeof io !== 'undefined' && !window.socket) {
-        window.socket = io({ auth: { token: getAuthToken() } });
-        window.dispatchEvent(new Event('socket-init'));
-    }
-
+    // Dropdown Toggles
+    const profileTrigger = document.getElementById('profileDropdownTrigger');
+    const profileDropdown = document.getElementById('profileDropdown');
     const bellBtn = document.getElementById('navNotificationBell');
-    const dropdown = document.getElementById('notificationDropdown');
-    const badge = document.getElementById('notificationCount');
-    const list = document.getElementById('notificationList');
-    const markAllBtn = document.getElementById('markAllReadBtn');
-    const clearBtn = document.getElementById('clearNotificationsBtn');
-    
-    // Toggle dropdown
-    bellBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isVisible = dropdown.style.display === 'flex';
-        dropdown.style.display = isVisible ? 'none' : 'flex';
-        if (!isVisible) fetchNotifications();
-    });
+    const notifDropdown = document.getElementById('notificationDropdown');
 
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
-            dropdown.style.display = 'none';
-        }
-    });
-
-    // Prevent closing when clicking inside dropdown
-    dropdown.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-
-    // Formatter
-    const timeAgo = (dateStr) => {
-        const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
-        if (seconds < 60) return 'Just now';
-        const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes}m ago`;
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h ago`;
-        return `${Math.floor(hours / 24)}d ago`;
-    };
-
-    const fetchNotifications = async () => {
-        try {
-            const token = getAuthToken();
-            if (!token) return;
-
-            const res = await fetch('/api/notifications', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
+    const toggleDropdown = (trigger, menu) => {
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = menu.style.display === 'block';
             
-            const notifications = Array.isArray(data) ? data : (data.notifications || []);
-            renderNotifications(notifications);
-            updateBadge(notifications);
-        } catch (err) {
-            console.error('Failed to fetch notifications', err);
-        }
-    };
-
-    const updateBadge = (notifications) => {
-        const unread = notifications.filter(n => !n.is_read).length;
-        if (unread > 0) {
-            badge.textContent = unread > 99 ? '99+' : unread;
-            badge.style.display = 'flex';
-        } else {
-            badge.style.display = 'none';
-        }
-    };
-
-    const renderNotifications = (notifications) => {
-        list.innerHTML = '';
-        if (notifications.length === 0) {
-            list.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No notifications yet</div>';
-            return;
-        }
-
-        notifications.forEach(n => {
-            const el = document.createElement('a');
-            el.className = `notification-item ${n.is_read ? '' : 'unread'}`;
-            // Navigate based on action_url or fallback
-            el.href = n.action_url || (n.related_user ? `/profile/${n.related_user.username}` : '#');
+            // Close all other menus
+            document.querySelectorAll('[id$="Dropdown"]').forEach(m => m.style.display = 'none');
             
-            // Mark as read on click
-            el.addEventListener('click', async (e) => {
-                if (!n.is_read) {
-                    try {
-                        await fetch(`/api/notifications/${n.id}/read`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
-                        });
-                    } catch (e) {}
-                }
-            });
-
-            const avatar = n.related_user && n.related_user.avatar ? n.related_user.avatar : '/uploads/avatars/default.png';
-            const name = n.related_user ? n.related_user.name : 'Someone';
-            const actionText = n.message || 'interacted with you';
-
-            el.innerHTML = `
-                <img src="${avatar}" class="notification-avatar" onerror="this.src='/uploads/avatars/default.png'">
-                <div class="notification-content">
-                    <p class="notification-text"><strong>${name}</strong> ${actionText}</p>
-                    <span class="notification-time">${timeAgo(n.created_at)}</span>
-                </div>
-            `;
-            list.appendChild(el);
+            menu.style.display = isOpen ? 'none' : 'block';
+            if (menu === notifDropdown && !isOpen) fetchNotifications();
         });
     };
 
-    markAllBtn.addEventListener('click', async () => {
-        try {
-            await fetch('/api/notifications/read-all', {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${getAuthToken()}` }
-            });
-            fetchNotifications();
-        } catch (e) {}
+    if (profileTrigger) toggleDropdown(profileTrigger, profileDropdown);
+    if (bellBtn) toggleDropdown(bellBtn, notifDropdown);
+
+    document.addEventListener('click', () => {
+        if (profileDropdown) profileDropdown.style.display = 'none';
+        if (notifDropdown) notifDropdown.style.display = 'none';
+        document.getElementById('searchResultsPanel').style.display = 'none';
     });
 
-    clearBtn.addEventListener('click', async () => {
-        try {
-            await fetch('/api/notifications/clear', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${getAuthToken()}` }
-            });
-            fetchNotifications();
-        } catch (e) {}
-    });
+    // Search Logic (Centralized)
+    const searchInput = document.getElementById('universalSearchInput');
+    const searchResults = document.getElementById('searchResultsPanel');
+    const historyList = document.getElementById('searchHistoryItems');
 
-    // Handle incoming real-time notifications via existing socket if available
-    window.addEventListener('socket-init', () => {
-        if (window.socket) {
-            window.socket.on('new-notification', (notif) => {
-                // Show push banner
-                const banner = document.getElementById('pushNotificationBanner');
-                const avatar = document.getElementById('pushAvatar');
-                const msg = document.getElementById('pushMessage');
-                
-                avatar.src = notif.actor_avatar || '/uploads/avatars/default.png';
-                msg.innerHTML = `<strong>${notif.actor_name || 'Someone'}</strong> ${notif.content || notif.title}`;
-                
-                banner.style.top = '20px';
-                banner.onclick = () => {
-                    banner.style.top = '-100px';
-                    if (notif.action_url) window.location.href = notif.action_url;
-                };
+    const getHistory = () => JSON.parse(localStorage.getItem('sparkle_search_history') || '[]');
+    const saveHistory = (q) => {
+        if (!q.trim()) return;
+        let history = getHistory();
+        history = [q, ...history.filter(item => item !== q)].slice(0, 10);
+        localStorage.setItem('sparkle_search_history', JSON.stringify(history));
+    };
 
-                setTimeout(() => {
-                    banner.style.top = '-100px';
-                }, 4000);
+    if (searchInput) {
+        searchInput.addEventListener('focus', () => {
+            searchResults.style.display = 'block';
+            renderHistory();
+        });
 
-                // Update list & badge implicitly
-                fetchNotifications();
-            });
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && searchInput.value.trim()) {
+                saveHistory(searchInput.value);
+                window.location.href = `/connect?search=${encodeURIComponent(searchInput.value)}`;
+            }
+        });
+        
+        let _searchTimer;
+        searchInput.addEventListener('input', async () => {
+            const q = searchInput.value.trim();
+            if (q.length < 2) { document.getElementById('suggestionsContainer').innerHTML = ''; return; }
+            clearTimeout(_searchTimer);
+            _searchTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&type=all&limit=5`);
+                    const data = await res.json();
+                    renderGroupedResults(data.data?.results || {});
+                } catch(e) {}
+            }, 280);
+        });
+    }
+
+    function renderHistory() {
+        const history = getHistory();
+        const container = document.getElementById('searchHistoryContainer');
+        if (history.length === 0) {
+            container.style.display = 'none';
+            return;
         }
-    });
+        container.style.display = 'block';
+        historyList.innerHTML = history.map(item => `
+            <div class="search-item-row" onclick="window.location.href='/connect?search=${encodeURIComponent(item)}'">
+                <i class="fas fa-history" style="opacity: 0.5;"></i>
+                <span>${item}</span>
+            </div>
+        `).join('');
+    }
 
-    // Initial load
-    fetchNotifications();
+    const TYPE_ICONS = { user: 'user-circle', post: 'file-alt', group: 'users', moment: 'play-circle', marketplace: 'tag', club: 'shield-alt' };
+    const TYPE_COLORS = { user: '#6366f1', post: '#10b981', group: '#f59e0b', moment: '#ec4899', marketplace: '#3b82f6', club: '#8b5cf6' };
+
+    function renderGroupedResults(grouped) {
+        const container = document.getElementById('suggestionsContainer');
+        const entries = Object.entries(grouped).filter(([,arr]) => arr && arr.length > 0);
+        if (entries.length === 0) {
+            container.innerHTML = '<div style="padding:16px;text-align:center;color:#94a3b8;font-size:13px;">No results found</div>';
+            return;
+        }
+        container.innerHTML = entries.map(([type, items]) => `
+            <div class="search-section-header">${type.charAt(0).toUpperCase()+type.slice(1)}s</div>
+            ${items.slice(0,3).map(item => `
+                <div class="search-item-row" onclick="navigateSearchResult('${type}', '${item.id}', encodeURIComponent(item.title||item.label||''))">
+                    <div class="search-item-avatar" style="background:${TYPE_COLORS[type]}22;">
+                        ${item.image ? `<img src="${item.image}" onerror="this.style.display='none'">` : `<i class="fas fa-${TYPE_ICONS[type]||'search'}" style="color:${TYPE_COLORS[type]}"></i>`}
+                    </div>
+                    <div class="search-item-info">
+                        <div class="search-item-title">${item.title||item.label||''}</div>
+                        <div class="search-item-sub">${item.subtitle||item.description?.slice(0,50)||''}</div>
+                    </div>
+                    <span class="search-type-chip" style="background:${TYPE_COLORS[type]}22;color:${TYPE_COLORS[type]}">${type}</span>
+                </div>
+            `).join('')}
+        `).join('');
+    }
+
+    window.navigateSearchResult = (type, id, label) => {
+        const routes = { user: `/profile/${id}`, group: `/groups/${id}`, club: `/clubs/${id}`, marketplace: `/marketplace?listing=${id}`, post: `/posts/${id}`, moment: `/moments` };
+        window.location.href = routes[type] || `/connect?search=${decodeURIComponent(label)}`;
+    };
+    // Legacy compat
+    window.navigateFromSearch = (type, value) => window.navigateSearchResult(type, value, value);
+
+    window.clearAllSearchHistory = () => {
+        localStorage.setItem('sparkle_search_history', '[]');
+        renderHistory();
+    };
+
+    // Notification Logic (Real-time)
+    const fetchNotifications = async () => {
+        try {
+            const res = await fetch('/api/notifications', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('sparkleToken')}` }
+            });
+            const data = await res.json();
+            renderNotifications(Array.isArray(data) ? data : (data.notifications || []));
+        } catch(e) {}
+    };
+
+    function timeAgo(dateStr) {
+        const d = new Date(dateStr);
+        if (isNaN(d)) return 'just now';
+        const secs = Math.floor((Date.now() - d) / 1000);
+        if (secs < 60) return 'just now';
+        if (secs < 3600) return `${Math.floor(secs/60)}m ago`;
+        if (secs < 86400) return `${Math.floor(secs/3600)}h ago`;
+        return `${Math.floor(secs/86400)}d ago`;
+    }
+
+    function renderNotifications(notifs) {
+        const list = document.getElementById('notificationList');
+        const badge = document.getElementById('notificationCount');
+        const unread = notifs.filter(n => !n.is_read).length;
+        badge.style.display = unread > 0 ? 'flex' : 'none';
+        if (unread > 0) badge.textContent = unread > 9 ? '9+' : unread;
+        
+        if (notifs.length === 0) {
+            list.innerHTML = '<div style="padding: 24px; text-align:center; color:#94a3b8;">No notifications yet 🔔</div>';
+            return;
+        }
+        
+        list.innerHTML = notifs.map(n => {
+            const actor = n.actor || n.related_user || {};
+            const avatar = actor.avatar_url || actor.avatar || '/uploads/avatars/default.png';
+            const name = actor.name || actor.username || 'Someone';
+            return `
+            <a href="${n.action_url || '#'}" class="notif-row ${n.is_read ? '' : 'unread'}">
+                <img src="${avatar}" class="notif-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                <div class="notif-content">
+                    <p><strong>${name}</strong> ${n.content || n.message || 'interacted with you'}</p>
+                    <span>${timeAgo(n.created_at)}</span>
+                </div>
+                ${!n.is_read ? '<span class="notif-unread-dot"></span>' : ''}
+            </a>`;
+        }).join('');
+    }
+
+    // Auth Helpers
+    const getAuthToken = () => {
+        const parts = `; ${document.cookie}`.split(`; sparkleToken=`);
+        return parts.length === 2 ? parts.pop().split(';').shift() : localStorage.getItem('sparkleToken');
+    };
+
+    // Socket.io initialization
+    if (typeof io !== 'undefined' && !window.socket) {
+        window.socket = io({ auth: { token: getAuthToken() } });
+        window.socket.on('new-notification', (n) => {
+            const banner = document.getElementById('pushNotificationBanner');
+            document.getElementById('pushAvatar').src = n.actor_avatar || '/uploads/avatars/default.png';
+            document.getElementById('pushMessage').innerHTML = `<strong>${n.actor_name}</strong> ${n.content}`;
+            banner.style.top = '20px';
+            setTimeout(() => banner.style.top = '-100px', 4000);
+            fetchNotifications();
+        });
+    }
 });
 </script>
+
+<style>
+    .search-section-header { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 16px 4px; }
+    .search-item-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; transition: background 0.15s; }
+    .search-item-row:hover { background: #f8fafc; }
+    .search-item-avatar { width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .search-item-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .search-item-info { flex: 1; min-width: 0; }
+    .search-item-title { font-weight: 700; font-size: 14px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .search-item-sub { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .search-type-chip { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; flex-shrink: 0; text-transform: capitalize; }
+    
+    .notif-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; text-decoration: none; color: inherit; transition: background 0.2s; border-bottom: 1px solid #f1f5f9; position: relative; }
+    .notif-row:hover { background: #f8fafc; }
+    .notif-row.unread { background: #eff6ff; }
+    .notif-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .notif-content { flex: 1; min-width: 0; }
+    .notif-content p { font-size: 14px; margin: 0 0 3px 0; line-height: 1.4; }
+    .notif-content span { font-size: 11px; color: var(--text-muted); }
+    .notif-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary, #6366f1); flex-shrink: 0; }
+    #notificationCount { font-size: 9px; font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center; min-width: 10px; }
+</style>

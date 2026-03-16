@@ -130,13 +130,18 @@ class Post {
                AND (
                      p.user_id = ?
                    OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
-                   OR p.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
-                   OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
+                   OR (
+                       (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
+                       AND (
+                           p.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
+                           OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
+                       )
+                   )
                )
                AND NOT EXISTS (
                    SELECT 1 FROM user_blocks 
                    WHERE (blocker_id = ? AND blocked_id = p.user_id)
-                      OR (blocker_id = p.user_id AND blocked_id = ?)
+                       OR (blocker_id = p.user_id AND blocked_id = ?)
                )
              ORDER BY p.created_at DESC 
              LIMIT ? OFFSET ?`,
@@ -168,7 +173,18 @@ class Post {
     /**
      * Get user posts
      */
-    static async getUserPosts(userId, limit = 20) {
+    static async getUserPosts(userId, currentUserId = null, limit = 20) {
+        // Privacy Check
+        if (currentUserId && userId !== currentUserId) {
+            const [user] = await pool.query('SELECT is_private, profile_visibility FROM users WHERE user_id = ?', [userId]);
+            if (user[0] && (user[0].is_private || user[0].profile_visibility === 'private')) {
+                const [followed] = await pool.query('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [currentUserId, userId]);
+                if (followed.length === 0) {
+                    return []; // User is private and not followed
+                }
+            }
+        }
+
         const [posts] = await pool.query(
             `SELECT p.*, 
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,

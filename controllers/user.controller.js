@@ -22,17 +22,14 @@ const searchUsers = async (req, res) => {
     try {
         const query = req.query.q || '';
         const currentUserId = req.user.userId || req.user.user_id;
-        const { campus, major, year } = req.query;
+        const filters = {
+            campus: req.query.campus,
+            major: req.query.major,
+            year: req.query.year,
+            relationship: req.query.relationship
+        };
 
-        // Use more detailed search if filters are provided
-        let users;
-        if (campus || major || year) {
-            // We can use a custom query here or update User.search
-            // For now let's just use User.search but we might want to extend it
-            users = await User.search(query, currentUserId, 20);
-        } else {
-            users = await User.search(query, currentUserId);
-        }
+        const users = await User.search(query, currentUserId, filters);
 
         const sanitizedUsers = users.map(u => ({
             ...u,
@@ -209,7 +206,7 @@ const exportUserData = async (req, res) => {
             confessions
         ] = await Promise.all([
             User.findById(userId),
-            Post.getUserPosts(userId),
+            Post.getUserPosts(userId, userId), // Exporting own data, can see all
             User.pool.query('SELECT * FROM messages WHERE sender_id = ?', [userId]),
             User.pool.query('SELECT * FROM marketplace_listings WHERE seller_id = ?', [userId]),
             User.pool.query('SELECT * FROM confessions WHERE campus = (SELECT campus FROM users WHERE user_id = ?)', [userId]) // Confessions aren't tied to user IDs usually, but maybe they were saved?
@@ -388,7 +385,8 @@ const getUserProfile = async (req, res) => {
 const getUserPosts = async (req, res) => {
     try {
         const userId = req.params.id;
-        const posts = await Post.getUserPosts(userId);
+        const currentUserId = req.user.userId || req.user.user_id;
+        const posts = await Post.getUserPosts(userId, currentUserId);
         
         const mappedPosts = posts.map(post => ({
             ...post,

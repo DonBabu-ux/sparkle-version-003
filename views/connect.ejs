@@ -89,17 +89,23 @@
                     </div>
                 </div>
 
-                <!-- Discover Search -->
-                <div class="premium-search-container">
-                    <i class="fas fa-search text-primary"></i>
+                <!-- Discover Search (Facebook Style) -->
+                <div class="premium-search-container" style="background: rgba(240, 242, 245, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(0,0,0,0.05); margin-bottom: 20px;">
+                    <i class="fas fa-search" style="color: var(--text-muted);"></i>
                     <input type="text" id="userSearchInput" class="premium-search-input"
-                        placeholder="Search students, majors, campus...">
+                        placeholder="Search students, majors, campus..." style="background: transparent;">
                 </div>
 
                 <!-- Connection Filters -->
                 <div class="premium-filter-bar">
                     <button class="premium-filter-btn active" onclick="filterUsers('all')">
                         <i class="fas fa-globe"></i> All
+                    </button>
+                    <button class="premium-filter-btn" onclick="filterUsers('relationship', 'not_following')">
+                        <i class="fas fa-user-plus"></i> For You
+                    </button>
+                    <button class="premium-filter-btn" onclick="filterUsers('relationship', 'following')">
+                        <i class="fas fa-user-check"></i> Following
                     </button>
                     <button class="premium-filter-btn" onclick="filterUsers('campus', '<%= user.campus %>')">
                         <i class="fas fa-university"></i> My Campus
@@ -220,7 +226,8 @@
                 let currentFilters = {
                     campus: 'all',
                     major: 'all',
-                    year: 'all'
+                    year: 'all',
+                    relationship: 'all'
                 };
                 let searchQuery = '';
 
@@ -241,7 +248,7 @@
 
                 async function filterUsers(type, value = 'all') {
                     if (type === 'all') {
-                        currentFilters = { campus: 'all', major: 'all', year: 'all' };
+                        currentFilters = { campus: 'all', major: 'all', year: 'all', relationship: 'all' };
                     } else {
                         currentFilters[type] = value;
                     }

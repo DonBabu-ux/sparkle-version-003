@@ -11,7 +11,7 @@ class Message {
             SELECT chat_id FROM personal_chats 
             WHERE (participant1_id = ? AND participant2_id = ?)
                OR (participant1_id = ? AND participant2_id = ?)
-        `, [currentUserId, partnerId, partnerId, currentUserId]);
+        `, [user1, user2, user2, user1]);
 
         if (existing && existing.length > 0) {
             return existing[0].chat_id;
@@ -22,7 +22,7 @@ class Message {
         await db.query(`
             INSERT INTO personal_chats (chat_id, participant1_id, participant2_id)
             VALUES (?, ?, ?)
-        `, [chatId, currentUserId, partnerId]);
+        `, [chatId, user1, user2]);
 
         return chatId;
     }
@@ -78,12 +78,31 @@ class Message {
     /**
      * Get messages for conversation
      */
-    static async getMessages(chatId, userId) {
-        // Check if it's a personal chat or group chat
+    static async getMessages(input, userId) {
+        // 'input' could be a partnerId (user_id) or a conversationId (chat_id)
+        let chatId = input;
+
+        // Try to find if input is already a chat_id
+        const [chatExists] = await db.query(`
+            SELECT chat_id FROM personal_chats 
+            WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)
+        `, [input, userId, userId]);
+
+        if (chatExists.length === 0) {
+            // Check if it's a group chat_id
+            const [groupExists] = await db.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [input]);
+            if (groupExists.length === 0) {
+                // Assume it's a partnerId and find/create the conversation
+                chatId = await this.getOrCreateConversation(userId, input);
+            }
+        }
+        
+        // Re-check chat type for the query
         const [pc] = await db.query('SELECT chat_id FROM personal_chats WHERE chat_id = ?', [chatId]);
         
         let query;
         if (pc.length > 0) {
+            // Rest of the query remains the same, but we return the resolved chatId too
             query = `
                 SELECT 
                     m.*,
@@ -97,10 +116,12 @@ class Message {
                 FROM messages m
                 JOIN users u ON m.sender_id = u.user_id
                 LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
-                WHERE m.conversation_id = ? 
+                WHERE (m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
             `;
+            const [messages] = await db.query(query, [chatId, chatId, userId]);
+            return { chatId, messages };
         } else {
             query = `
                 SELECT 
@@ -119,10 +140,9 @@ class Message {
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
             `;
+            const [messages] = await db.query(query, [chatId, userId]);
+            return { chatId, messages };
         }
-
-        const [messages] = await db.query(query, [chatId, userId]);
-        return messages;
     }
 
     /**

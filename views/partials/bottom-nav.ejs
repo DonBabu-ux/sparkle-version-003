@@ -1,30 +1,255 @@
-<div class="bottom-nav" style="display: flex;">
-    <style>
-        @media (min-width: 1025px) {
-            .bottom-nav {
-                display: none !important;
-            }
-        }
-    </style>
-    <a href="/dashboard" class="b-nav-item <%= title === 'Dashboard' ? 'active' : '' %>">
+<style>
+    /* ── Bottom Nav ─────────────────────────────────────────── */
+    .bottom-nav {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 60px;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-top: 1px solid rgba(0,0,0,0.07);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        z-index: 999;
+        padding: 0 4px;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    }
+    .b-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        color: #64748b;
+        text-decoration: none;
+        flex: 1;
+        padding: 6px 0;
+        cursor: pointer;
+        transition: color 0.2s;
+        min-width: 0;
+        border: none;
+        background: none;
+        outline: none;
+        font-family: inherit;
+    }
+    .b-nav-item i { font-size: 20px; line-height: 1; }
+    .b-nav-item span { font-size: 10px; font-weight: 600; white-space: nowrap; }
+    .b-nav-item.active, .b-nav-item:hover { color: var(--primary, #6366f1); }
+    .b-nav-item.create-action i { color: var(--primary, #6366f1); font-size: 32px; }
+    .b-nav-item.more-btn.open { color: var(--primary, #6366f1); }
+
+    /* Push content above nav */
+    @media (max-width: 1024px) {
+        body { padding-bottom: 70px !important; }
+    }
+    @media (min-width: 1025px) {
+        .bottom-nav { display: none !important; }
+        .more-drawer-overlay { display: none !important; }
+    }
+
+    /* ── More Drawer ─────────────────────────────────────────── */
+    .more-drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.35);
+        z-index: 1100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    .more-drawer-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+    }
+    .more-drawer {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        z-index: 1101;
+        background: #fff;
+        border-radius: 24px 24px 0 0;
+        padding: 12px 20px 28px;
+        transform: translateY(100%);
+        transition: transform 0.35s cubic-bezier(0.32, 0, 0.15, 1);
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.12);
+    }
+    .more-drawer.open {
+        transform: translateY(0);
+    }
+    .more-drawer-handle {
+        width: 40px; height: 4px;
+        background: #e2e8f0;
+        border-radius: 99px;
+        margin: 0 auto 16px;
+    }
+    .more-drawer-title {
+        font-size: 11px;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        margin-bottom: 12px;
+        padding: 0 4px;
+    }
+    .more-drawer-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .more-drawer-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        color: #334155;
+        padding: 12px 4px;
+        border-radius: 14px;
+        background: #f8fafc;
+        transition: all 0.2s;
+        font-size: 11px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .more-drawer-item:hover, .more-drawer-item.active {
+        background: #ede9fe;
+        color: var(--primary, #6366f1);
+    }
+    .more-drawer-item i {
+        font-size: 22px;
+        line-height: 1;
+    }
+    .more-drawer-item span { white-space: nowrap; }
+    .more-drawer-divider {
+        height: 1px;
+        background: #f1f5f9;
+        margin: 12px 0;
+    }
+    .more-drawer-danger {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        text-decoration: none;
+        color: #ef4444;
+        font-size: 14px;
+        font-weight: 600;
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+    .more-drawer-danger:hover { background: #fef2f2; }
+</style>
+
+<div class="bottom-nav">
+    <a href="/dashboard" class="b-nav-item <%= locals.title === 'Dashboard' ? 'active' : '' %>">
         <i class="fas fa-home"></i>
         <span>Home</span>
     </a>
-    <a href="/connect" class="b-nav-item <%= title === 'Connect' ? 'active' : '' %>">
+    <a href="/connect" class="b-nav-item <%= locals.title === 'Connect' ? 'active' : '' %>">
         <i class="fas fa-search"></i>
         <span>Discover</span>
     </a>
     <div class="b-nav-item create-action" onclick="toggleQuickActions()">
-        <i class="fas fa-plus-circle" style="font-size: 32px; color: var(--primary);"></i>
+        <i class="fas fa-plus-circle"></i>
     </div>
-    <a href="/moments" class="b-nav-item <%= title === 'Moments' ? 'active' : '' %>">
+    <a href="/moments" class="b-nav-item <%= locals.title === 'Moments' ? 'active' : '' %>">
         <i class="fas fa-play-circle"></i>
         <span>Moments</span>
     </a>
-    <div class="b-nav-item" onclick="toggleHamburger()">
-        <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
-            style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1.5px solid currentColor;">
-        <span>You</span>
-    </div>
+    <button class="b-nav-item more-btn" id="moreNavBtn" onclick="toggleMoreDrawer()">
+        <i class="fas fa-th"></i>
+        <span>More</span>
+    </button>
 </div>
+
+<!-- More Drawer -->
+<div class="more-drawer-overlay" id="moreDrawerOverlay" onclick="closeMoreDrawer()"></div>
+<div class="more-drawer" id="moreDrawer">
+    <div class="more-drawer-handle"></div>
+    
+    <%
+        var _avatarUrl = (typeof user !== 'undefined' && user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png';
+        var _userName  = (typeof user !== 'undefined' && user && user.name) ? user.name : 'You';
+        var _userHandle = (typeof user !== 'undefined' && user && user.username) ? '@' + user.username : '';
+    %>
+    <!-- User peek -->
+    <a href="/profile" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:#1e293b;padding:4px 4px 16px;border-bottom:1px solid #f1f5f9;margin-bottom:16px;" onclick="closeMoreDrawer()">
+        <img src="<%= _avatarUrl %>" onerror="this.src='/uploads/avatars/default.png'"
+             style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #e0e7ff;">
+        <div>
+            <div style="font-weight:800;font-size:15px;"><%= _userName %></div>
+            <div style="font-size:12px;color:#94a3b8;"><%= _userHandle %></div>
+        </div>
+        <i class="fas fa-chevron-right" style="margin-left:auto;color:#cbd5e1;font-size:13px;"></i>
+    </a>
+
+    <div class="more-drawer-title">Pages</div>
+    <div class="more-drawer-grid">
+        <a href="/messages"    class="more-drawer-item <%= locals.title === 'Messages'    ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-comment-dots"></i><span>Messages</span>
+        </a>
+        <a href="/marketplace" class="more-drawer-item <%= locals.title === 'Marketplace' ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-store"></i><span>Market</span>
+        </a>
+        <a href="/groups"      class="more-drawer-item <%= locals.title === 'Groups'      ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-users"></i><span>Groups</span>
+        </a>
+        <a href="/clubs"       class="more-drawer-item <%= locals.title === 'Clubs'       ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-shield-alt"></i><span>Clubs</span>
+        </a>
+        <a href="/lost-found"  class="more-drawer-item <%= locals.title === 'Lost & Found' ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-map-marker-alt"></i><span>Lost&Found</span>
+        </a>
+        <a href="/confessions" class="more-drawer-item <%= locals.title === 'Confessions' ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-fire"></i><span>Confessions</span>
+        </a>
+        <a href="/notifications" class="more-drawer-item <%= locals.title === 'Notifications' ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-bell"></i><span>Notifications</span>
+        </a>
+        <a href="/settings"    class="more-drawer-item <%= locals.title === 'Settings'    ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-cog"></i><span>Settings</span>
+        </a>
+    </div>
+
+    <div class="more-drawer-divider"></div>
+    <a href="/logout" class="more-drawer-danger">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Log Out</span>
+    </a>
+</div>
+
+<script>
+(function() {
+    function openMoreDrawer() {
+        document.getElementById('moreDrawer').classList.add('open');
+        document.getElementById('moreDrawerOverlay').classList.add('open');
+        document.getElementById('moreNavBtn').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeMoreDrawer() {
+        document.getElementById('moreDrawer').classList.remove('open');
+        document.getElementById('moreDrawerOverlay').classList.remove('open');
+        document.getElementById('moreNavBtn').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    window.toggleMoreDrawer = function() {
+        const isOpen = document.getElementById('moreDrawer').classList.contains('open');
+        isOpen ? closeMoreDrawer() : openMoreDrawer();
+    };
+    window.closeMoreDrawer = closeMoreDrawer;
+
+    // Swipe down to close
+    let startY = 0;
+    const drawer = document.getElementById('moreDrawer');
+    drawer.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+    drawer.addEventListener('touchend', e => {
+        if (e.changedTouches[0].clientY - startY > 60) closeMoreDrawer();
+    }, { passive: true });
+})();
+</script>
+
 <%- include('quick-actions') %>

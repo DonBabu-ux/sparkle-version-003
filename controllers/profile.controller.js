@@ -62,7 +62,7 @@ const renderProfile = async (req, res) => {
 
         userProfile.avatar_url = getSafeAvatarUrl(userProfile.avatar_url);
 
-        const posts = await Post.getUserPosts(userProfile.user_id);
+        const posts = await Post.getUserPosts(userProfile.user_id, currentUserId);
         const sanitizedPosts = posts.map(p => ({ ...p, media_url: getSafeMediaUrl(p.media_url) }));
 
         // 1. Fetch active friends (mutual connections currently online/active)

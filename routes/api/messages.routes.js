@@ -5,30 +5,31 @@ const { authMiddleware } = require('../../middleware/auth.middleware');
 
 router.use(authMiddleware);
 
-// Existing
+// Inbox & Conversations
 router.get('/inbox', messageController.getInbox);
-router.get('/conversations', messageController.getInbox);       // Frontend alias
-router.get('/chat/:partnerId', messageController.getConversationMessages);
-router.post('/send', messageController.sendMessage);
+router.get('/conversations', messageController.getInbox);
 router.post('/start', messageController.startConversation);
-router.post('/:partnerId', messageController.sendMessage);      // Frontend send alias
-
-// Read receipts
-router.post('/read/:partnerId', messageController.markRead);
-
-// Mute / unmute
-router.post('/mute/:partnerId', messageController.muteConversation);
 
 // Search
 router.get('/search', messageController.searchMessages);
 
-// Per-message actions (must come AFTER named routes to avoid conflicts)
+// Messaging
+router.post('/send', messageController.sendMessage);
+router.post('/read/:chatId', messageController.markRead);
+router.post('/mute/:chatId', messageController.muteConversation);
+
+// Per-message actions
 router.delete('/:messageId', messageController.deleteMessage);
 router.patch('/:messageId', messageController.editMessage);
 router.post('/:messageId/react', messageController.reactToMessage);
-router.delete('/:messageId/react', messageController.removeReaction);
 
-// Conversation messages (keep last to avoid swallowing other GET routes)
-router.get('/:conversationId', messageController.getConversationMessages);
+// Conversation messages (Keep these at the end)
+router.get('/chat/:chatId', messageController.getConversationMessages);
+router.get('/:chatId', messageController.getConversationMessages);
+
+// Backward Compatibility Aliases
+router.get('/chat/:partnerId', messageController.getConversationMessages);
+router.post('/read/:partnerId', messageController.markRead);
+router.post('/mute/:partnerId', messageController.muteConversation);
 
 module.exports = router;

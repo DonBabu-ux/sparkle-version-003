@@ -2,7 +2,9 @@ const db = require('../config/database');
 const crypto = require('crypto');
 
 class Message {
-    // Start or get conversation
+    /**
+     * Start or get conversation
+     */
     static async getOrCreateConversation(currentUserId, partnerId) {
         // Check if personal chat already exists
         const [existing] = await db.query(`
@@ -25,22 +27,17 @@ class Message {
         return chatId;
     }
 
-    // Send message (support for Direct and Group)
-    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null }) {
+    /**
+     * Send message (Direct or Group)
+     */
+    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null }) {
         const messageId = crypto.randomUUID();
-
-        console.log(`[DEBUG] Message.sendMessage: model preparing query for ${messageId}`);
-        console.log(`[DEBUG] Params:`, { recipientId, chatId, senderId, type, storyId });
-
         let personalChatId = null;
         let groupChatId = null;
 
-        // Determine chat type
         if (recipientId) {
-            // Personal message - find or create personal chat
             personalChatId = await this.getOrCreateConversation(senderId, recipientId);
         } else if (chatId) {
-            // Group message
             groupChatId = chatId;
         } else {
             throw new Error('Recipient or Chat ID required');
@@ -49,20 +46,28 @@ class Message {
         try {
             await db.query(`
                 INSERT INTO messages (
-                    message_id, chat_id, personal_chat_id, sender_id, content, type, media_url, story_id, sent_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, storyId]);
+                    message_id, chat_id, conversation_id, sender_id, content, 
+                    type, media_url, story_id, reply_to_message_id, status, sent_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())
+            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, storyId, replyToId]);
 
-            // Update last_message_time for personal chats
+            // Update last_message_time and clear archives for both participants in personal chats
             if (personalChatId) {
                 await db.query(`
                     UPDATE personal_chats 
-                    SET last_message_time = NOW() 
+                    SET last_message_time = NOW(),
+                        is_archived_p1 = 0,
+                        is_archived_p2 = 0
                     WHERE chat_id = ?
                 `, [personalChatId]);
+            } else if (groupChatId) {
+                 await db.query(`
+                    UPDATE group_chats 
+                    SET last_message_at = NOW()
+                    WHERE chat_id = ?
+                `, [groupChatId]);
             }
 
-            console.log(`[DEBUG] Message.sendMessage: query executed successfully`);
             return messageId;
         } catch (dbError) {
             console.error('[ERROR] Message.sendMessage DB Error:', dbError);
@@ -70,188 +75,245 @@ class Message {
         }
     }
 
-    // Get messages for conversation (Personal)
-    static async getMessages(partnerId, currentUserId) {
-        // First get the personal chat ID
-        const chatId = await this.getOrCreateConversation(currentUserId, partnerId);
+    /**
+     * Get messages for conversation
+     */
+    static async getMessages(chatId, userId) {
+        // Check if it's a personal chat or group chat
+        const [pc] = await db.query('SELECT chat_id FROM personal_chats WHERE chat_id = ?', [chatId]);
         
-        const [messages] = await db.query(`
-            SELECT 
-                m.*,
-                u.name as sender_name, 
-                u.username as sender_username, 
-                u.avatar_url as sender_avatar
-            FROM messages m
-            JOIN users u ON m.sender_id = u.user_id
-            WHERE m.personal_chat_id = ?
-            ORDER BY m.sent_at ASC
-        `, [chatId]);
-
-        return messages;
-    }
-
-    // Get messages for Group Chat
-    static async getGroupMessages(chatId) {
-        const [messages] = await db.query(`
-            SELECT 
-                m.*,
-                u.name as sender_name, 
-                u.username as sender_username, 
-                u.avatar_url as sender_avatar
-            FROM messages m
-            JOIN users u ON m.sender_id = u.user_id
-            WHERE m.chat_id = ?
-            ORDER BY m.sent_at ASC
-        `, [chatId]);
-
-        return messages;
-    }
-
-    // Get user's conversations (Mixed: Direct + Groups will be handled by merging lists or separate calls)
-    // This existing method is for 1-on-1. We will keep it but GroupChat.getUserChats handles groups.
-    static async getUserConversations(userId) {
-        // ... (Existing logic for direct messages)
-        const [rows] = await db.query(`
-            SELECT 
-                m.content as last_message,
-                m.sent_at as last_message_at,
-                m.sent_at as last_message_time,
-                m.sender_id as last_message_sender_id,
-                
-                u.user_id as conversation_id,
-                u.user_id as partner_id,
-                u.name as partner_name,
-                u.username as partner_username,
-                u.avatar_url as partner_avatar,
-                u.is_online
-            FROM messages m
-            INNER JOIN (
+        let query;
+        if (pc.length > 0) {
+            query = `
                 SELECT 
-                    IF(sender_id = ?, recipient_id, sender_id) as partner_id,
-                    MAX(sent_at) as max_sent_at
-                FROM messages
-                WHERE (sender_id = ? OR recipient_id = ?) AND chat_id IS NULL
-                GROUP BY partner_id
-            ) latest ON (
-                IF(m.sender_id = ?, m.recipient_id, m.sender_id) = latest.partner_id 
-                AND m.sent_at = latest.max_sent_at
-            )
-            JOIN users u ON latest.partner_id = u.user_id
-            ORDER BY m.sent_at DESC
-        `, [userId, userId, userId, userId]);
+                    m.*,
+                    u.name as sender_name, 
+                    u.username as sender_username, 
+                    u.avatar_url as sender_avatar,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('emoji', r.emoji, 'user_id', r.user_id)) 
+                     FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
+                    rm.content as reply_content,
+                    rm.type as reply_type
+                FROM messages m
+                JOIN users u ON m.sender_id = u.user_id
+                LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                WHERE m.conversation_id = ? 
+                  AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
+                ORDER BY m.sent_at ASC
+            `;
+        } else {
+            query = `
+                SELECT 
+                    m.*,
+                    u.name as sender_name, 
+                    u.username as sender_username, 
+                    u.avatar_url as sender_avatar,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('emoji', r.emoji, 'user_id', r.user_id)) 
+                     FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
+                    rm.content as reply_content,
+                    rm.type as reply_type
+                FROM messages m
+                JOIN users u ON m.sender_id = u.user_id
+                LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                WHERE m.chat_id = ?
+                  AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
+                ORDER BY m.sent_at ASC
+            `;
+        }
+
+        const [messages] = await db.query(query, [chatId, userId]);
+        return messages;
+    }
+
+    /**
+     * Get user's active conversations (Personal + Group)
+     */
+    static async getUserConversations(userId) {
+        // This is a complex query to combine personal and group chats with latest messages
+        const [rows] = await db.query(`
+            SELECT * FROM (
+                -- Personal Chats
+                SELECT 
+                    pc.chat_id,
+                    'personal' as chat_type,
+                    u.user_id as partner_id,
+                    u.name as partner_name,
+                    u.username as partner_username,
+                    u.avatar_url as partner_avatar,
+                    u.is_online,
+                    u.last_seen_at,
+                    m.content as last_message,
+                    m.type as last_message_type,
+                    m.sent_at as last_message_at,
+                    m.sender_id as last_message_sender_id,
+                    m.status as last_message_status,
+                    (SELECT COUNT(*) FROM messages m2 
+                     WHERE m2.conversation_id = pc.chat_id 
+                     AND m2.sender_id != ? AND m2.status != 'read') as unread_count,
+                    IF(pc.participant1_id = ?, pc.is_pinned_p1, pc.is_pinned_p2) as is_pinned,
+                    IF(pc.participant1_id = ?, pc.is_muted_p1, pc.is_muted_p2) as is_muted,
+                    IF(pc.participant1_id = ?, pc.is_archived_p1, pc.is_archived_p2) as is_archived,
+                    2 as member_count
+                FROM personal_chats pc
+                JOIN users u ON (u.user_id = IF(pc.participant1_id = ?, pc.participant2_id, pc.participant1_id))
+                LEFT JOIN messages m ON m.message_id = (
+                    SELECT message_id FROM messages 
+                    WHERE conversation_id = pc.chat_id 
+                    ORDER BY sent_at DESC LIMIT 1
+                )
+                WHERE pc.participant1_id = ? OR pc.participant2_id = ?
+
+                UNION ALL
+
+                -- Group Chats
+                SELECT 
+                    gc.chat_id,
+                    'group' as chat_type,
+                    NULL as partner_id,
+                    gc.name as partner_name,
+                    NULL as partner_username,
+                    gc.photo_url as partner_avatar,
+                    0 as is_online,
+                    NULL as last_seen_at,
+                    m.content as last_message,
+                    m.type as last_message_type,
+                    m.sent_at as last_message_at,
+                    m.sender_id as last_message_sender_id,
+                    m.status as last_message_status,
+                    0 as unread_count, -- TODO: unread for groups
+                    0 as is_pinned,
+                    0 as is_muted,
+                    0 as is_archived,
+                    (SELECT COUNT(*) FROM group_chat_members WHERE chat_id = gc.chat_id AND status != 'left') as member_count
+                FROM group_chats gc
+                JOIN group_chat_members gcm ON gc.chat_id = gcm.chat_id
+                LEFT JOIN messages m ON m.message_id = (
+                    SELECT message_id FROM messages 
+                    WHERE chat_id = gc.chat_id 
+                    ORDER BY sent_at DESC LIMIT 1
+                )
+                WHERE gcm.user_id = ? AND gcm.status = 'active'
+            ) as conversations
+            ORDER BY is_pinned DESC, last_message_at DESC
+        `, [userId, userId, userId, userId, userId, userId, userId, userId]);
 
         return rows;
     }
 
-    static async checkFollowStatus(currentUserId, targetUserId) {
-        const [results] = await db.query(`
-            SELECT 
-                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = ?) as is_following,
-                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = ?) as is_followed_by,
-                (SELECT COUNT(*) FROM users WHERE user_id = ?) as user_exists
-        `, [currentUserId, targetUserId, targetUserId, currentUserId, targetUserId]);
-
-        if (results[0].user_exists === 0) return { error: 'User not found' };
-
-        return {
-            is_following: results[0].is_following > 0,
-            is_followed_by: results[0].is_followed_by > 0
-        };
+    /**
+     * Mark messages as delivered/read
+     */
+    static async updateStatus(chatId, userId, status) {
+        // userId is the one who IS NOT the sender
+        await db.query(`
+            UPDATE messages 
+            SET status = ?, read_at = IF(? = 'read', NOW(), read_at)
+            WHERE (conversation_id = ? OR chat_id = ?) 
+              AND sender_id != ? 
+              AND status != 'read'
+        `, [status, status, chatId, chatId, userId]);
+        return true;
     }
 
-    // Soft-delete a message (only by sender)
-    static async deleteMessage(messageId, userId) {
-        const [result] = await db.query(
-            'UPDATE messages SET deleted_at = NOW(), content = "[Message deleted]" WHERE message_id = ? AND sender_id = ?',
-            [messageId, userId]
-        );
+    /**
+     * Soft delete for user (Delete for me)
+     */
+    static async deleteForMe(messageId, userId) {
+        const deletionId = crypto.randomUUID();
+        await db.query(`
+            INSERT IGNORE INTO message_deletions (deletion_id, message_id, user_id)
+            VALUES (?, ?, ?)
+        `, [deletionId, messageId, userId]);
+        return true;
+    }
+
+    /**
+     * Delete for everyone
+     */
+    static async deleteForEveryone(messageId, userId) {
+        const [result] = await db.query(`
+            UPDATE messages 
+            SET is_deleted_for_everyone = 1, content = '[Message deleted]' 
+            WHERE message_id = ? AND sender_id = ?
+        `, [messageId, userId]);
         return result.affectedRows > 0;
     }
 
-    // Edit a message (only by sender, within 15 minutes)
+    /**
+     * Add/Update Reaction
+     */
+    static async addReaction(messageId, userId, emoji) {
+        const reactionId = crypto.randomUUID();
+        await db.query(`
+            INSERT INTO message_reactions (reaction_id, message_id, user_id, emoji)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE emoji = VALUES(emoji)
+        `, [reactionId, messageId, userId, emoji]);
+        return true;
+    }
+
+    /**
+     * Remove Reaction
+     */
+    static async removeReaction(messageId, userId, emoji) {
+        await db.query(`
+            DELETE FROM message_reactions 
+            WHERE message_id = ? AND user_id = ? AND emoji = ?
+        `, [messageId, userId, emoji]);
+        return true;
+    }
+
+    /**
+     * Edit a message (only by sender, within 15 minutes)
+     */
     static async editMessage(messageId, userId, newContent) {
         const [result] = await db.query(
             `UPDATE messages 
              SET content = ?, edited_at = NOW() 
              WHERE message_id = ? AND sender_id = ? 
-               AND deleted_at IS NULL
+               AND is_deleted_for_everyone = 0
                AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 15`,
             [newContent, messageId, userId]
         );
         return result.affectedRows > 0;
     }
 
-    // Add or update a reaction to a message
-    static async addReaction(messageId, userId, emoji) {
-        await db.query(
-            `INSERT INTO message_reactions (message_id, user_id, emoji, reacted_at)
-             VALUES (?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE emoji = VALUES(emoji), reacted_at = NOW()`,
-            [messageId, userId, emoji]
-        );
-        return true;
-    }
-
-    // Remove a reaction
-    static async removeReaction(messageId, userId) {
-        const [result] = await db.query(
-            'DELETE FROM message_reactions WHERE message_id = ? AND user_id = ?',
-            [messageId, userId]
-        );
-        return result.affectedRows > 0;
-    }
-
-    // Mark all messages from a partner as read
-    static async markMessagesRead(partnerId, currentUserId) {
-        const [result] = await db.query(
-            `UPDATE messages 
-             SET read_at = NOW() 
-             WHERE sender_id = ? AND recipient_id = ? AND read_at IS NULL AND deleted_at IS NULL`,
-            [partnerId, currentUserId]
-        );
-        return result.affectedRows;
-    }
-
-    // Search messages within a 1-on-1 conversation
-    static async searchMessages(userId, partnerId, query) {
+    /**
+     * Search messages within a conversation
+     */
+    static async searchMessages(userId, chatId, query) {
         const [messages] = await db.query(
             `SELECT m.*, u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
              FROM messages m
              JOIN users u ON m.sender_id = u.user_id
-             WHERE ((m.sender_id = ? AND m.recipient_id = ?) OR (m.sender_id = ? AND m.recipient_id = ?))
+             WHERE (m.conversation_id = ? OR m.chat_id = ?)
                AND m.content LIKE ?
-               AND m.deleted_at IS NULL
+               AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
+               AND m.is_deleted_for_everyone = 0
              ORDER BY m.sent_at DESC
              LIMIT 50`,
-            [userId, partnerId, partnerId, userId, `%${query}%`]
+            [chatId, chatId, `%${query}%`, userId]
         );
         return messages;
     }
 
-    // Mute or unmute a conversation
-    static async muteConversation(userId, partnerId, muted = true) {
-        if (muted) {
-            await db.query(
-                `INSERT INTO muted_conversations (user_id, partner_id, muted_at)
-                 VALUES (?, ?, NOW())
-                 ON DUPLICATE KEY UPDATE muted_at = NOW()`,
-                [userId, partnerId]
-            );
-        } else {
-            await db.query(
-                'DELETE FROM muted_conversations WHERE user_id = ? AND partner_id = ?',
-                [userId, partnerId]
-            );
-        }
+    /**
+     * Mute or unmute a conversation
+     */
+    static async muteConversation(userId, chatId, muted = true) {
+        const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
+        if (chat.length === 0) return false;
+
+        const isP1 = chat[0].participant1_id === userId;
+        const column = isP1 ? 'is_muted_p1' : 'is_muted_p2';
+
+        await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [muted ? 1 : 0, chatId]);
         return true;
     }
 
-    // Get a single message by ID
+    // Existing helpers
     static async getById(messageId) {
-        const [rows] = await db.query(
-            'SELECT * FROM messages WHERE message_id = ?',
-            [messageId]
-        );
+        const [rows] = await db.query('SELECT * FROM messages WHERE message_id = ?', [messageId]);
         return rows[0] || null;
     }
 }

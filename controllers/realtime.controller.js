@@ -73,7 +73,7 @@ const getChatHistory = async (req, res) => {
                    u.avatar_url as sender_avatar
             FROM messages m
             JOIN users u ON m.sender_id = u.user_id
-            WHERE m.personal_chat_id = ?
+            WHERE m.conversation_id = ?
         `;
         const params = [chatId];
 
@@ -106,7 +106,7 @@ const markAllAsRead = async (req, res) => {
         await pool.query(
             `UPDATE messages 
              SET is_read = true 
-             WHERE personal_chat_id = ? AND sender_id != ? AND is_read = false`,
+             WHERE conversation_id = ? AND sender_id != ? AND is_read = false`,
             [chatId, userId]
         );
 

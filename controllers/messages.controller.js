@@ -1,6 +1,9 @@
 const Message = require('../models/Message');
 
 class MessageController {
+    /**
+     * Get user's conversation list (Direct + Group)
+     */
     async getInbox(req, res) {
         try {
             const userId = req.user.user_id || req.user.userId;
@@ -12,75 +15,58 @@ class MessageController {
         }
     }
 
+    /**
+     * Get messages for a specific conversation
+     */
     async getConversationMessages(req, res) {
         try {
-            const partnerId = req.params.conversationId || req.params.partnerId;
+            const chatId = req.params.chatId || req.params.conversationId || req.params.partnerId;
             const userId = req.user.user_id || req.user.userId;
-            const messages = await Message.getMessages(partnerId, userId);
+            
+            // If it's a partnerId (UUID format but not a chat_id), we might need to getOrCreate first
+            // But usually the client will pass a chatId if they have one.
+            // For starting a new chat, startConversation endpoint is used.
+            
+            const messages = await Message.getMessages(chatId, userId);
             res.json({ status: 'success', data: messages });
         } catch (error) {
+            console.error('getConversationMessages Error:', error);
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
 
+    /**
+     * HTTP fallback for sending messages
+     */
     async sendMessage(req, res) {
         try {
-            const { content, media_url, type, story_reply, partnerId, conversationId } = req.body;
-            const recipientId = req.params.partnerId || partnerId || conversationId;
-            const userId = (req.user && (req.user.user_id || req.user.userId)) || null;
-
-            if (!userId) {
-                return res.status(401).json({ status: 'error', error: 'Authentication required' });
-            }
+            const { content, media_url, type, partnerId, conversationId, chatId, replyToId } = req.body;
+            const userId = req.user.user_id || req.user.userId;
 
             if (!content && !media_url) {
                 return res.status(400).json({ status: 'error', error: 'Content or media is required' });
             }
 
-            console.log(`[DEBUG] Sending message from ${userId} to ${recipientId}, type: ${type}`);
-
-            // Handle story reply type
-            let storyId = null;
-            let messageContent = content;
-
-            if (type === 'story_reply' && story_reply) {
-                // Verify story exists
-                const pool = require('../config/database');
-                const [story] = await pool.query(
-                    'SELECT story_id, caption FROM stories WHERE story_id = ?', 
-                    [story_reply.storyId]
-                );
-                
-                if (!story || story.length === 0) {
-                    return res.status(404).json({ status: 'error', error: 'Story not found' });
-                }
-
-                storyId = story_reply.storyId;
-                
-                // Include story metadata in content
-                messageContent = JSON.stringify({
-                    text: content,
-                    storyId: story_reply.storyId,
-                    storyCaption: story[0].caption
-                });
-            }
-
             const messageId = await Message.sendMessage({
-                recipientId,
+                recipientId: partnerId || null,
+                chatId: chatId || conversationId || null,
                 senderId: userId,
-                content: messageContent,
+                content,
                 type: type || 'text',
                 mediaUrl: media_url || null,
-                storyId
+                replyToId
             });
 
-            res.json({ status: 'success', data: { messageId, recipientId } });
+            res.json({ status: 'success', data: { messageId } });
         } catch (error) {
             console.error('[ERROR] sendMessage:', error);
             res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });
         }
     }
 
+    /**
+     * Start a new conversation or get existing one
+     */
     async startConversation(req, res) {
         try {
             const { partnerId } = req.body;
@@ -92,25 +78,44 @@ class MessageController {
         }
     }
 
-    // ============ NEW ENDPOINTS ============
-
-    // DELETE /api/messages/:messageId — soft delete a message (sender only)
+    /**
+     * Message management (Delete for me, Delete for everyone, Edit, React)
+     */
     async deleteMessage(req, res) {
         try {
             const { messageId } = req.params;
+            const { forEveryone } = req.body;
             const userId = req.user.user_id || req.user.userId;
-            const deleted = await Message.deleteMessage(messageId, userId);
-            if (!deleted) {
-                return res.status(403).json({ status: 'error', error: 'Cannot delete this message' });
+
+            if (forEveryone) {
+                const success = await Message.deleteForEveryone(messageId, userId);
+                return res.json({ status: success ? 'success' : 'error', message: success ? 'Deleted for everyone' : 'Could not delete' });
+            } else {
+                await Message.deleteForMe(messageId, userId);
+                return res.json({ status: 'success', message: 'Deleted for me' });
             }
-            res.json({ status: 'success', message: 'Message deleted' });
         } catch (error) {
-            console.error('deleteMessage Error:', error);
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
 
-    // PATCH /api/messages/:messageId — edit message (sender only, within 15 min)
+    async reactToMessage(req, res) {
+        try {
+            const { messageId } = req.params;
+            const { emoji, remove } = req.body;
+            const userId = req.user.user_id || req.user.userId;
+
+            if (remove) {
+                await Message.removeReaction(messageId, userId, emoji);
+            } else {
+                await Message.addReaction(messageId, userId, emoji);
+            }
+            res.json({ status: 'success' });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
     async editMessage(req, res) {
         try {
             const { messageId } = req.params;
@@ -123,87 +128,44 @@ class MessageController {
 
             const updated = await Message.editMessage(messageId, userId, content.trim());
             if (!updated) {
-                return res.status(403).json({ status: 'error', error: 'Cannot edit this message (not yours, deleted, or past 15 min limit)' });
+                return res.status(403).json({ status: 'error', error: 'Cannot edit message (not yours or past 15 min)' });
             }
-            res.json({ status: 'success', message: 'Message updated' });
-        } catch (error) {
-            console.error('editMessage Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
-        }
-    }
-
-    // POST /api/messages/:messageId/react — add emoji reaction
-    async reactToMessage(req, res) {
-        try {
-            const { messageId } = req.params;
-            const { emoji } = req.body;
-            const userId = req.user.user_id || req.user.userId;
-
-            if (!emoji) {
-                return res.status(400).json({ status: 'error', error: 'Emoji is required' });
-            }
-
-            await Message.addReaction(messageId, userId, emoji);
-            res.json({ status: 'success', message: 'Reaction added' });
-        } catch (error) {
-            console.error('reactToMessage Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
-        }
-    }
-
-    // DELETE /api/messages/:messageId/react — remove emoji reaction
-    async removeReaction(req, res) {
-        try {
-            const { messageId } = req.params;
-            const userId = req.user.user_id || req.user.userId;
-            await Message.removeReaction(messageId, userId);
-            res.json({ status: 'success', message: 'Reaction removed' });
+            res.json({ status: 'success' });
         } catch (error) {
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
 
-    // POST /api/messages/read/:partnerId — mark all messages from partner as read
-    async markRead(req, res) {
-        try {
-            const { partnerId } = req.params;
-            const userId = req.user.user_id || req.user.userId;
-            const count = await Message.markMessagesRead(partnerId, userId);
-            res.json({ status: 'success', data: { marked: count } });
-        } catch (error) {
-            console.error('markRead Error:', error);
-            res.status(500).json({ status: 'error', error: error.message });
-        }
-    }
-
-    // GET /api/messages/search?partnerId=X&q=hello — search within conversation
     async searchMessages(req, res) {
         try {
-            const { partnerId, q } = req.query;
+            const { chatId, q } = req.query;
             const userId = req.user.user_id || req.user.userId;
-
-            if (!partnerId || !q) {
-                return res.status(400).json({ status: 'error', error: 'partnerId and q are required' });
-            }
-
-            const messages = await Message.searchMessages(userId, partnerId, q);
+            const messages = await Message.searchMessages(userId, chatId, q);
             res.json({ status: 'success', data: messages });
         } catch (error) {
-            console.error('searchMessages Error:', error);
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
 
-    // POST /api/messages/mute/:partnerId — mute/unmute a conversation
     async muteConversation(req, res) {
         try {
-            const { partnerId } = req.params;
-            const { muted } = req.body; // true or false
+            const { chatId } = req.params;
+            const { muted } = req.body;
             const userId = req.user.user_id || req.user.userId;
-            await Message.muteConversation(userId, partnerId, muted !== false);
-            res.json({ status: 'success', message: muted !== false ? 'Conversation muted' : 'Conversation unmuted' });
+            await Message.muteConversation(userId, chatId, muted !== false);
+            res.json({ status: 'success' });
         } catch (error) {
-            console.error('muteConversation Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async markRead(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            await Message.updateStatus(chatId, userId, 'read');
+            res.json({ status: 'success' });
+        } catch (error) {
             res.status(500).json({ status: 'error', error: error.message });
         }
     }

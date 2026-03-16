@@ -301,6 +301,17 @@ class User {
     }
 
     /**
+     * Get user presence information
+     */
+    static async getUserPresence(userId) {
+        const [rows] = await pool.query(
+            'SELECT user_id, is_online, last_seen_at FROM users WHERE user_id = ?',
+            [userId]
+        );
+        return rows[0] || null;
+    }
+
+    /**
      * Follow a user or send a follow request if the profile is private
      */
     static async follow(followerId, followingId) {

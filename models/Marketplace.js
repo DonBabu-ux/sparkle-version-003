@@ -387,7 +387,7 @@ class Marketplace {
 
             // Insert message
             await connection.query(
-                `INSERT INTO messages (message_id, personal_chat_id, sender_id, type, content) 
+                `INSERT INTO messages (message_id, conversation_id, sender_id, type, content) 
                  VALUES (?, ?, ?, 'text', ?)`,
                 [messageId, chatId, senderId, content.trim()]
             );
@@ -432,7 +432,7 @@ class Marketplace {
                 `SELECT m.*, u.username as sender_username, u.avatar_url as sender_avatar
                  FROM messages m
                  JOIN users u ON m.sender_id = u.user_id
-                 WHERE m.personal_chat_id = ?
+                 WHERE m.conversation_id = ?
                  ORDER BY m.sent_at DESC
                  LIMIT ?`,
                 [chatId, limit]
@@ -500,7 +500,7 @@ class Marketplace {
             await pool.query(
                 `UPDATE messages m
                  SET m.is_read = TRUE
-                 WHERE m.personal_chat_id = ? 
+                 WHERE m.conversation_id = ? 
                  AND m.sender_id != ?
                  AND m.is_read = FALSE`,
                 [chatId, userId]
@@ -529,7 +529,7 @@ class Marketplace {
                  FROM messages m
                  WHERE (EXISTS (
                     SELECT 1 FROM personal_chats pc 
-                    WHERE pc.chat_id = m.personal_chat_id 
+                    WHERE pc.chat_id = m.conversation_id 
                     AND (pc.participant1_id = ? OR pc.participant2_id = ?)
                  ))
                  AND m.sender_id != ?

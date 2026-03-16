@@ -508,7 +508,7 @@ DROP TABLE IF EXISTS `messages`;
 CREATE TABLE `messages` (
   `message_id` CHAR(36) NOT NULL,
   `chat_id` CHAR(36) DEFAULT NULL,
-  `personal_chat_id` CHAR(36) DEFAULT NULL,
+  `conversation_id` CHAR(36) DEFAULT NULL,
   `sender_id` CHAR(36) NOT NULL,
   `type` ENUM('text', 'image', 'video', 'voice_note', 'post_share', 'system', 'call', 'marketplace_listing', 'story_reply') DEFAULT 'text',
   `content` TEXT DEFAULT NULL,
@@ -519,17 +519,17 @@ CREATE TABLE `messages` (
   `read_at` TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (`message_id`),
   FOREIGN KEY (`chat_id`) REFERENCES `group_chats`(`chat_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`personal_chat_id`) REFERENCES `personal_chats`(`chat_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`conversation_id`) REFERENCES `personal_chats`(`chat_id`) ON DELETE CASCADE,
   FOREIGN KEY (`sender_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   FOREIGN KEY (`story_id`) REFERENCES `stories`(`story_id`) ON DELETE SET NULL,
   INDEX `idx_messages_group_chat` (`chat_id`, `sent_at`),
-  INDEX `idx_messages_personal_chat` (`personal_chat_id`, `sent_at`),
+  INDEX `idx_messages_personal_chat` (`conversation_id`, `sent_at`),
   INDEX `idx_messages_sender` (`sender_id`, `sent_at`),
   INDEX `idx_messages_unread` (`sender_id`, `is_read`, `sent_at`),
   INDEX `idx_messages_story` (`story_id`),
   CHECK (
-    (chat_id IS NOT NULL AND personal_chat_id IS NULL) OR 
-    (chat_id IS NULL AND personal_chat_id IS NOT NULL)
+    (chat_id IS NOT NULL AND conversation_id IS NULL) OR 
+    (chat_id IS NULL AND conversation_id IS NOT NULL)
   )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

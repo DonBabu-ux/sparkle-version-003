@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const Message = require('../models/Message');
+const User = require('../models/User');
 
 let io;
 
@@ -11,9 +13,11 @@ const initializeSocket = (server) => {
         cors: {
             origin: process.env.NODE_ENV === 'production'
                 ? process.env.API_URL
-                : 'http://localhost:3000',
+                : ['http://localhost:3000', 'http://127.0.0.1:3000'],
             credentials: true
-        }
+        },
+        pingTimeout: 60000,
+        pingInterval: 25000
     });
 
     // Authentication middleware
@@ -27,180 +31,176 @@ const initializeSocket = (server) => {
             }
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const [users] = await pool.query(
-                'SELECT user_id, username, name, avatar_url, is_online FROM users WHERE user_id = ?',
-                [decoded.userId]
-            );
+            const user = await User.findById(decoded.userId);
 
-            if (!users[0]) {
+            if (!user) {
                 return next(new Error('User not found'));
             }
 
-            socket.user = users[0];
-            socket.userId = users[0].user_id;
-
-            // Update user online status
-            await pool.query(
-                'UPDATE users SET is_online = true, last_seen_at = CURRENT_TIMESTAMP WHERE user_id = ?',
-                [socket.userId]
-            );
-
+            socket.user = user;
+            socket.userId = user.user_id;
             next();
         } catch (error) {
+            logger.error('Socket Auth Error:', error.message);
             next(new Error('Invalid token'));
         }
     });
 
-    io.on('connection', (socket) => {
-        logger.info(`User connected: ${socket.userId} (${socket.user.username})`);
+    io.on('connection', async (socket) => {
+        logger.info(`🔌 User connected: ${socket.userId} (${socket.user.username})`);
+
+        // Update user online status
+        await User.setOnlineStatus(socket.userId, true);
 
         // Join user to their personal room
         socket.join(`user:${socket.userId}`);
 
-        // Join all chat rooms they're part of
-        joinUserChatRooms(socket);
+        // Join all chat rooms (personal and group) they're part of
+        await joinUserChatRooms(socket);
 
         // Broadcast online status to followers
         broadcastOnlineStatus(socket, true);
 
-        // Handle joining a chat room
+        // --- CHAT EVENTS ---
+
+        // Join a specific chat (e.g., when opening a chat window)
         socket.on('join-chat', async (chatId) => {
-            try {
-                const [chats] = await pool.query(
-                    `SELECT chat_id FROM personal_chats 
-                     WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)`,
-                    [chatId, socket.userId, socket.userId]
-                );
-
-                if (chats[0]) {
-                    socket.join(`chat:${chatId}`);
-                    socket.emit('chat-joined', { chatId, success: true });
-                }
-            } catch (error) {
-                logger.error('Join chat error:', error);
-            }
+            socket.join(`chat:${chatId}`);
+            // Mark messages in this chat as delivered if they were sent to this user
+            await Message.updateStatus(chatId, socket.userId, 'delivered');
+            socket.to(`chat:${chatId}`).emit('messages-delivered', { chatId, userId: socket.userId });
         });
 
-        // Handle sending message
-        socket.on('send-message', async (data) => {
-            try {
-                const { chatId, content, type = 'text' } = data;
-
-                // Verify user is participant
-                const [chats] = await pool.query(
-                    `SELECT * FROM personal_chats 
-                     WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)`,
-                    [chatId, socket.userId, socket.userId]
-                );
-
-                if (!chats[0]) {
-                    return socket.emit('message-error', { error: 'Not authorized' });
-                }
-
-                const chat = chats[0];
-                const recipientId = chat.participant1_id === socket.userId
-                    ? chat.participant2_id
-                    : chat.participant1_id;
-
-                // Save message to database
-                const messageId = crypto.randomUUID();
-                await pool.query(
-                    `INSERT INTO messages (message_id, personal_chat_id, sender_id, type, content, is_read, created_at)
-                     VALUES (?, ?, ?, ?, ?, false, NOW())`,
-                    [messageId, chatId, socket.userId, type, content]
-                );
-
-                const message = {
-                    message_id: messageId,
-                    personal_chat_id: chatId,
-                    sender_id: socket.userId,
-                    sender: {
-                        user_id: socket.userId,
-                        username: socket.user.username,
-                        name: socket.user.name,
-                        avatar_url: socket.user.avatar_url
-                    },
-                    type,
-                    content,
-                    is_read: false,
-                    created_at: new Date().toISOString()
-                };
-
-                // Emit to sender for confirmation
-                socket.emit('message-sent', message);
-
-                // Emit to recipient if online
-                socket.to(`user:${recipientId}`).emit('new-message', message);
-
-                // Send push notification if recipient offline
-                const [recipients] = await pool.query(
-                    'SELECT is_online FROM users WHERE user_id = ?',
-                    [recipientId]
-                );
-
-                if (recipients[0] && !recipients[0].is_online) {
-                    await queuePushNotification(recipientId, {
-                        type: 'message',
-                        title: socket.user.name,
-                        body: content,
-                        data: { chatId, messageId }
-                    });
-                }
-
-                // Update chat's last_message
-                await pool.query(
-                    `UPDATE personal_chats 
-                     SET last_message = ?, last_message_at = NOW() 
-                     WHERE chat_id = ?`,
-                    [content, chatId]
-                );
-
-            } catch (error) {
-                logger.error('Send message error:', error);
-                socket.emit('message-error', { error: 'Failed to send message' });
-            }
-        });
-
-        // Handle typing indicator
+        // Typing indicator
         socket.on('typing', (data) => {
             const { chatId, isTyping } = data;
             socket.to(`chat:${chatId}`).emit('user-typing', {
+                chatId,
                 userId: socket.userId,
                 username: socket.user.username,
                 isTyping
             });
         });
 
-        // Handle read receipts
-        socket.on('mark-read', async (data) => {
+        // Send Message
+        socket.on('send-message', async (data) => {
             try {
-                const { chatId, messageIds } = data;
+                const { chatId, recipientId, content, type = 'text', mediaUrl, storyId, replyToId } = data;
 
-                await pool.query(
-                    `UPDATE messages SET is_read = true 
-                     WHERE personal_chat_id = ? AND sender_id != ? AND message_id IN (?)`,
-                    [chatId, socket.userId, messageIds]
-                );
+                // 1. Save to DB
+                const messageId = await Message.sendMessage({
+                    chatId,
+                    recipientId,
+                    senderId: socket.userId,
+                    content,
+                    type,
+                    mediaUrl,
+                    storyId,
+                    replyToId
+                });
 
+                // Get the saved message with sender info and reply info
+                const [fullMessage] = await pool.query(`
+                    SELECT m.*, 
+                           u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar,
+                           rm.content as reply_content, rm.type as reply_type
+                    FROM messages m
+                    JOIN users u ON m.sender_id = u.user_id
+                    LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                    WHERE m.message_id = ?
+                `, [messageId]);
+
+                const message = fullMessage[0];
+                const finalChatId = message.conversation_id || message.chat_id;
+
+                // 2. Emit to sender for confirmation
+                socket.emit('message-sent', message);
+
+                // 3. Emit to all in the chat room (delivered status)
+                socket.to(`chat:${finalChatId}`).emit('new-message', message);
+
+                // 4. Handle notifications if it's a personal chat and recipient is offline
+                if (recipientId) {
+                     const presence = await User.getUserPresence(recipientId);
+                     if (presence && !presence.is_online) {
+                         await queuePushNotification(recipientId, {
+                             type: 'message',
+                             title: socket.user.name,
+                             body: type === 'text' ? content : `Sent a ${type}`,
+                             data: { chatId: finalChatId, messageId }
+                         });
+                     }
+                }
+            } catch (error) {
+                logger.error('Send message error:', error);
+                socket.emit('message-error', { error: 'Failed to send message' });
+            }
+        });
+
+        // Mark messages as read
+        socket.on('mark-read', async (chatId) => {
+            try {
+                await Message.updateStatus(chatId, socket.userId, 'read');
                 socket.to(`chat:${chatId}`).emit('messages-read', {
+                    chatId,
                     userId: socket.userId,
-                    messageIds
+                    readAt: new Date().toISOString()
                 });
             } catch (error) {
                 logger.error('Mark read error:', error);
             }
         });
 
+        // Add Reaction
+        socket.on('add-reaction', async (data) => {
+            const { messageId, chatId, emoji } = data;
+            try {
+                await Message.addReaction(messageId, socket.userId, emoji);
+                io.to(`chat:${chatId}`).emit('new-reaction', {
+                    messageId,
+                    chatId,
+                    userId: socket.userId,
+                    emoji
+                });
+            } catch (error) {
+                 logger.error('Add reaction error:', error);
+            }
+        });
+
+        // Remove Reaction
+        socket.on('remove-reaction', async (data) => {
+            const { messageId, chatId, emoji } = data;
+            try {
+                await Message.removeReaction(messageId, socket.userId, emoji);
+                io.to(`chat:${chatId}`).emit('reaction-removed', {
+                    messageId,
+                    chatId,
+                    userId: socket.userId,
+                    emoji
+                });
+            } catch (error) {
+                 logger.error('Remove reaction error:', error);
+            }
+        });
+
+        // Delete message for everyone
+        socket.on('delete-for-everyone', async (data) => {
+            const { messageId, chatId } = data;
+            try {
+                const success = await Message.deleteForEveryone(messageId, socket.userId);
+                if (success) {
+                    io.to(`chat:${chatId}`).emit('message-deleted-everyone', { messageId, chatId });
+                }
+            } catch (error) {
+                logger.error('Delete for everyone error:', error);
+            }
+        });
+
         // Handle disconnection
         socket.on('disconnect', async () => {
             try {
-                logger.info(`User disconnected: ${socket.userId}`);
-
-                await pool.query(
-                    'UPDATE users SET is_online = false, last_seen_at = NOW() WHERE user_id = ?',
-                    [socket.userId]
-                );
-
+                logger.info(`🔌 User disconnected: ${socket.userId}`);
+                await User.setOnlineStatus(socket.userId, false);
                 broadcastOnlineStatus(socket, false);
             } catch (error) {
                 logger.error('Disconnect error:', error);
@@ -211,17 +211,12 @@ const initializeSocket = (server) => {
     return io;
 };
 
-// Helper: Join user's chat rooms
+// Helper: Join user's chat rooms (Personal + Group)
 const joinUserChatRooms = async (socket) => {
     try {
-        const [chats] = await pool.query(
-            `SELECT chat_id FROM personal_chats 
-             WHERE participant1_id = ? OR participant2_id = ?`,
-            [socket.userId, socket.userId]
-        );
-
-        chats.forEach(chat => {
-            socket.join(`chat:${chat.chat_id}`);
+        const conversations = await Message.getUserConversations(socket.userId);
+        conversations.forEach(conv => {
+            socket.join(`chat:${conv.chat_id}`);
         });
     } catch (error) {
         logger.error('Join chat rooms error:', error);
@@ -260,26 +255,30 @@ const queuePushNotification = async (userId, notification) => {
                 notification.body, JSON.stringify(notification.data)]
         );
     } catch (error) {
-        logger.error('Queue push notification error:', error);
+        // Fallback: search for existing notification mechanism
+        logger.warn('Push notification table might not exist, using standard notifications...');
+        try {
+             await pool.query(`
+                INSERT INTO notifications (notification_id, user_id, type, title, content, created_at)
+                VALUES (UUID(), ?, ?, ?, ?, NOW())
+            `, [userId, notification.type, notification.title, notification.body]);
+        } catch (innerErr) {
+             logger.error('Failed to queue fallback notification:', innerErr.message);
+        }
     }
 };
 
-// Helper to get io instance
 const getIO = () => {
-    if (!io) {
-        throw new Error('Socket.io not initialized');
-    }
+    if (!io) throw new Error('Socket.io not initialized');
     return io;
 };
 
-// Helper to emit a notification to a specific user's socket room
 const emitNotification = (userId, notificationData) => {
     try {
         if (io) {
             io.to(`user:${userId}`).emit('new-notification', notificationData);
         }
     } catch (error) {
-        // Non-blocking - don't crash if socket fails
         logger.error('emitNotification error:', error);
     }
 };

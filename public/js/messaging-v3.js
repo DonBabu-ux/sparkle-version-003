@@ -11,6 +11,7 @@ class SparkleChat {
         this.conversations = [];
         this.typingTimeout = null;
         this.isTyping = false;
+        this.isLoading = false;
         
         this.init();
     }
@@ -79,6 +80,7 @@ class SparkleChat {
     async loadInbox() {
         try {
             const response = await fetch('/api/messages/inbox');
+            if (response.status === 429) return;
             const result = await response.json();
             if (result.status === 'success') {
                 this.conversations = result.data;
@@ -189,6 +191,9 @@ class SparkleChat {
     }
 
     async loadMessages(chatId) {
+        if (this.isLoading || !chatId) return;
+        this.isLoading = true;
+
         const container = document.getElementById('messagesContainer');
         const emptyState = document.getElementById('chatEmptyWindow');
         const chatMain = document.getElementById('chatMain');
@@ -204,6 +209,12 @@ class SparkleChat {
 
         try {
             const response = await fetch(`/api/messages/chat/${chatId}`);
+            
+            if (response.status === 429) {
+                container.innerHTML = '<div class="error-msg">Too many requests. Please wait a moment...</div>';
+                return;
+            }
+
             const result = await response.json();
             
             if (result.status === 'success') {
@@ -212,6 +223,9 @@ class SparkleChat {
             }
         } catch (err) {
             console.error('Load messages error:', err);
+            container.innerHTML = '<div class="error-msg">Failed to load messages.</div>';
+        } finally {
+            this.isLoading = false;
         }
     }
 
@@ -294,18 +308,18 @@ class SparkleChat {
             statusEl.classList.add('offline');
         }
 
-        // Hide search on chat switch
-        this.toggleChatSearch(false);
+        // Hide search on chat switch without triggering a reload loop
+        this.toggleChatSearch(false, true);
     }
 
-    toggleChatSearch(show) {
+    toggleChatSearch(show, skipReload = false) {
         const wrap = document.getElementById('headerSearchWrap');
         if (!wrap) return;
         wrap.style.display = show ? 'flex' : 'none';
         if (show) document.getElementById('chatMsgSearch').focus();
         else {
             document.getElementById('chatMsgSearch').value = '';
-            this.handleChatSearch(''); 
+            if (!skipReload) this.handleChatSearch(''); 
         }
     }
 
@@ -319,6 +333,12 @@ class SparkleChat {
 
         try {
             const response = await fetch(`/api/messages/search?chatId=${this.currentChatId}&q=${query}`);
+            
+            if (response.status === 429) {
+                console.warn('Search rate limited');
+                return;
+            }
+
             const result = await response.json();
             if (result.status === 'success') {
                 this.renderMessages(result.data);

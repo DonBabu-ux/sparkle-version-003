@@ -71,7 +71,7 @@ const securityHeaders = helmet({
             scriptSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com", "https://cdn.tailwindcss.com", "https://unpkg.com", "https://cdn.jsdelivr.net"],
             scriptSrcAttr: ["'unsafe-inline'"],
             imgSrc: ["'self'", "blob:", "data:", "https:", "http:"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
             connectSrc: ["'self'", "https://*.firebaseio.com", "wss://*.firebaseio.com", "https://*.googleapis.com", "https://www.gstatic.com", "https://cdn.tailwindcss.com", "https://unpkg.com", "https://*.supabase.co"],
             mediaSrc: ["'self'", "blob:", "data:", "https:", "http:"],
         },

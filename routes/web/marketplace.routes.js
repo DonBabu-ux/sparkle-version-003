@@ -14,25 +14,16 @@ router.get('/marketplace', marketplaceController.renderMarketplace);
 router.get('/marketplace/listings/:id', marketplaceController.renderListingDetail);
 
 // User's listings page (requires auth)
-router.get('/my-listings', authMiddleware, marketplaceController.renderUserListings);
+router.get('/marketplace/my-shop', authMiddleware, marketplaceController.renderUserListings);
 
 // Create listing page (requires auth)
-router.get('/create-listing', authMiddleware, (req, res) => {
-    res.render('marketplace/create-listing', {
-        title: 'Create Listing',
-        user: req.session.user,
-        csrfToken: req.csrfToken()
-    });
-});
+router.get('/marketplace/sell', authMiddleware, marketplaceController.renderSell);
 
-// Edit listing page (requires auth)
-router.get('/edit-listing/:id', authMiddleware, (req, res) => {
-    res.render('marketplace/edit-listing', {
-        title: 'Edit Listing',
-        user: req.session.user,
-        listingId: req.params.id,
-        csrfToken: req.csrfToken()
-    });
-});
+// Track orders page (requires auth)
+router.get('/marketplace/orders', authMiddleware, marketplaceController.renderOrders);
+
+// Old compatibility routes
+router.get('/my-listings', authMiddleware, (req, res) => res.redirect('/marketplace/my-shop'));
+router.get('/create-listing', authMiddleware, (req, res) => res.redirect('/marketplace/sell'));
 
 module.exports = router;

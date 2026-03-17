@@ -78,6 +78,8 @@ const signup = async (req, res) => {
         validateJWTSecret();
         const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '7d' });
 
+        logger.info(`New user signed up: ${username} (${email}) - ID: ${userId}`);
+
         res.status(201).json({
             status: 'success',
             message: 'Account created! Please verify your email.',

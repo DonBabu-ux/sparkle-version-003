@@ -8,39 +8,53 @@ class Marketplace {
     static async getListings(filters = {}) {
         try {
             let query = `
-                SELECT ml.*, u.username as seller_username, u.avatar_url as seller_avatar
+                SELECT ml.*, u.username as seller_username, u.avatar_url as seller_avatar,
+                       (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_rating,
+                       (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_review_count
                 FROM marketplace_listings ml
                 JOIN users u ON ml.seller_id = u.user_id
                 WHERE ml.is_sold = FALSE
             `;
             const params = [];
 
+            // Seller filter
+            if (filters.seller_id) {
+                query += ' AND ml.seller_id = ?';
+                params.push(filters.seller_id);
+            }
+
             // Campus filter
-            if (filters.campus && this.isValidCampus(filters.campus)) {
+            if (filters.campus && filters.campus !== 'all') {
                 query += ' AND ml.campus = ?';
                 params.push(filters.campus);
             }
 
             // Category filter
-            if (filters.category && filters.category !== 'all' && this.isValidCategory(filters.category)) {
+            if (filters.category && filters.category !== 'all') {
                 query += ' AND ml.category = ?';
                 params.push(filters.category);
             }
 
             // Price filters
-            if (filters.min_price && !isNaN(filters.min_price)) {
+            if (filters.minPrice && !isNaN(filters.minPrice)) {
                 query += ' AND ml.price >= ?';
-                params.push(parseFloat(filters.min_price));
+                params.push(parseFloat(filters.minPrice));
             }
-            if (filters.max_price && !isNaN(filters.max_price)) {
+            if (filters.maxPrice && !isNaN(filters.maxPrice)) {
                 query += ' AND ml.price <= ?';
-                params.push(parseFloat(filters.max_price));
+                params.push(parseFloat(filters.maxPrice));
             }
 
             // Condition filter
-            if (filters.condition && this.isValidCondition(filters.condition)) {
+            if (filters.condition && filters.condition !== 'all') {
                 query += ' AND ml.condition = ?';
                 params.push(filters.condition);
+            }
+
+            // Seller rating filter
+            if (filters.minRating && !isNaN(filters.minRating)) {
+                query += ` AND (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) >= ?`;
+                params.push(parseFloat(filters.minRating));
             }
 
             // Search term
@@ -51,9 +65,22 @@ class Marketplace {
             }
 
             // Sorting
-            const sortBy = filters.sortBy || 'created_at';
-            const sortOrder = filters.sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-            query += ` ORDER BY ml.${sortBy} ${sortOrder}`;
+            const sortBy = filters.sort || 'newest';
+            switch (sortBy) {
+                case 'price_low':
+                    query += ' ORDER BY ml.price ASC';
+                    break;
+                case 'price_high':
+                    query += ' ORDER BY ml.price DESC';
+                    break;
+                case 'popular':
+                    query += ' ORDER BY ml.view_count DESC';
+                    break;
+                case 'newest':
+                default:
+                    query += ' ORDER BY ml.created_at DESC';
+                    break;
+            }
 
             // Pagination
             const limit = Math.min(parseInt(filters.limit) || 20, 100);
@@ -63,22 +90,21 @@ class Marketplace {
 
             const [listings] = await pool.query(query, params);
 
-            // Get media for each listing from listing_media table
+            // Get media and favorited status if userId is provided
             for (let listing of listings) {
-                try {
-                    const [media] = await pool.query(
-                        'SELECT * FROM listing_media WHERE listing_id = ? ORDER BY upload_order',
-                        [listing.listing_id]
+                const [media] = await pool.query(
+                    'SELECT * FROM listing_media WHERE listing_id = ? ORDER BY upload_order',
+                    [listing.listing_id]
+                );
+                listing.media = media;
+                listing.image_urls = media.map(m => m.media_url);
+
+                if (filters.currentUserId) {
+                    const [fav] = await pool.query(
+                        'SELECT 1 FROM marketplace_favorites WHERE user_id = ? AND listing_id = ?',
+                        [filters.currentUserId, listing.listing_id]
                     );
-                    listing.media = media;
-                    listing.image_urls = media
-                        .filter(m => m.media_type === 'image')
-                        .map(m => m.media_url);
-                } catch (mediaError) {
-                    // If listing_media table doesn't exist or has issues, use image_url from marketplace_listings
-                    logger.warn('Could not fetch media for listing:', listing.listing_id);
-                    listing.media = [];
-                    listing.image_urls = listing.image_url ? [listing.image_url] : [];
+                    listing.is_favorited = fav.length > 0;
                 }
             }
 
@@ -97,7 +123,97 @@ class Marketplace {
             };
         } catch (error) {
             logger.error('Database error in getListings:', error);
-            throw new Error('Failed to fetch listings');
+            throw error;
+        }
+    }
+
+    /**
+     * Get recommended listings for a user
+     */
+    static async getRecommendations(userId, campus = 'main_campus', limit = 5) {
+        try {
+            // Simple algorithm: 
+            // 1. Featured/Promoted listings first
+            // 2. High rated sellers
+            // 3. Newest listings in same campus
+            const query = `
+                SELECT ml.*, u.username as seller_username, u.avatar_url as seller_avatar,
+                       (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_rating
+                FROM marketplace_listings ml
+                JOIN users u ON ml.seller_id = u.user_id
+                WHERE ml.is_sold = FALSE 
+                AND (ml.campus = ? OR ml.campus = 'main_campus')
+                AND ml.seller_id != ?
+                ORDER BY (status = 'active') DESC, ml.view_count DESC, ml.created_at DESC
+                LIMIT ?
+            `;
+            const [listings] = await pool.query(query, [campus, userId, limit]);
+
+            // Add media to recommendations
+            for (let listing of listings) {
+                const [media] = await pool.query(
+                    'SELECT media_url FROM listing_media WHERE listing_id = ? ORDER BY upload_order LIMIT 1',
+                    [listing.listing_id]
+                );
+                listing.media_url = media[0]?.media_url || listing.image_url || '/images/default-listing.jpg';
+            }
+
+            return listings;
+        } catch (error) {
+            logger.error('Error fetching recommendations:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Track user search history
+     */
+    static async trackSearch(userId, query, filters = {}) {
+        try {
+            const [tables] = await pool.query("SHOW TABLES LIKE 'marketplace_search_history'");
+            if (tables.length === 0) return;
+
+            const searchId = require('crypto').randomUUID();
+            await pool.query(
+                `INSERT INTO marketplace_search_history 
+                (search_id, user_id, search_query, category, campus, min_price, max_price) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    searchId, userId, query.trim(), 
+                    filters.category || null, 
+                    filters.campus || null,
+                    filters.min_price || null,
+                    filters.max_price || null
+                ]
+            );
+        } catch (error) {
+            logger.warn('Failed to track search history:', error.message);
+        }
+    }
+
+    /**
+     * Get seller rating stats
+     */
+    static async getSellerStats(sellerId) {
+        try {
+            const [rows] = await pool.query(
+                `SELECT 
+                    COUNT(*) as total_reviews,
+                    AVG(rating) as average_rating,
+                    COUNT(DISTINCT listing_id) as sold_count
+                 FROM marketplace_reviews 
+                 WHERE reviewee_id = ?`,
+                [sellerId]
+            );
+            
+            return {
+                total_reviews: rows[0]?.total_reviews || 0,
+                average_rating: parseFloat(rows[0]?.average_rating || 0).toFixed(1),
+                sold_count: rows[0]?.sold_count || 0
+            };
+        } catch (error) {
+            logger.error('Error fetching seller stats:', error);
+            return { total_reviews: 0, average_rating: 0, sold_count: 0 };
         }
     }
 
@@ -548,26 +664,17 @@ class Marketplace {
      * Toggle favorite/wishlist
      */
     static async toggleFavorite(userId, listingId) {
-        // Check if marketplace_favorites table exists
-        const [tables] = await pool.query("SHOW TABLES LIKE 'marketplace_favorites'");
-        if (tables.length === 0) {
-            // Table doesn't exist, just return mock response
-            return { favorited: false };
-        }
-
         const connection = await pool.getConnection();
         
         try {
             await connection.beginTransaction();
 
-            // Check if already favorited
             const [existing] = await connection.query(
                 'SELECT * FROM marketplace_favorites WHERE user_id = ? AND listing_id = ?',
                 [userId, listingId]
             );
 
             if (existing.length > 0) {
-                // Remove favorite
                 await connection.query(
                     'DELETE FROM marketplace_favorites WHERE user_id = ? AND listing_id = ?',
                     [userId, listingId]
@@ -575,10 +682,7 @@ class Marketplace {
                 await connection.commit();
                 return { favorited: false };
             } else {
-                // Add favorite
-                const [uuidResult] = await connection.query('SELECT UUID() as uuid');
-                const favoriteId = uuidResult[0].uuid;
-                
+                const favoriteId = require('crypto').randomUUID();
                 await connection.query(
                     'INSERT INTO marketplace_favorites (favorite_id, user_id, listing_id) VALUES (?, ?, ?)',
                     [favoriteId, userId, listingId]
@@ -589,11 +693,62 @@ class Marketplace {
         } catch (error) {
             await connection.rollback();
             logger.error('Transaction error in toggleFavorite:', error);
-            return { favorited: false };
+            throw error;
         } finally {
             connection.release();
         }
     }
+
+    /**
+     * Seller Favoriting
+     */
+    static async toggleSellerFavorite(userId, sellerId) {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [existing] = await connection.query(
+                'SELECT * FROM marketplace_favorite_sellers WHERE user_id = ? AND seller_id = ?',
+                [userId, sellerId]
+            );
+
+            if (existing.length > 0) {
+                await connection.query(
+                    'DELETE FROM marketplace_favorite_sellers WHERE user_id = ? AND seller_id = ?',
+                    [userId, sellerId]
+                );
+                await connection.commit();
+                return { favorited: false };
+            } else {
+                const favoriteId = require('crypto').randomUUID();
+                await connection.query(
+                    'INSERT INTO marketplace_favorite_sellers (favorite_id, user_id, seller_id) VALUES (?, ?, ?)',
+                    [favoriteId, userId, sellerId]
+                );
+                await connection.commit();
+                return { favorited: true };
+            }
+        } catch (error) {
+            await connection.rollback();
+            logger.error('Transaction error in toggleSellerFavorite:', error);
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+
+    static async getFavoriteSellers(userId) {
+        const [rows] = await pool.query(
+            `SELECT u.*, 
+                    (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = u.user_id) as average_rating
+             FROM marketplace_favorite_sellers mfs
+             JOIN users u ON mfs.seller_id = u.user_id
+             WHERE mfs.user_id = ?`,
+            [userId]
+        );
+        return rows;
+    }
+
 
     /**
      * Get user's favorites
@@ -701,11 +856,70 @@ class Marketplace {
     }
 
     /**
+     * Create a new marketplace order
+     */
+    static async createOrder(buyerId, sellerId, listingId, price, orderDetails = '') {
+        try {
+            const orderId = require('crypto').randomUUID();
+            await pool.query(
+                `INSERT INTO marketplace_orders
+                 (order_id, buyer_id, seller_id, listing_id, price, order_details, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+                [orderId, buyerId, sellerId, listingId, price, orderDetails || '']
+            );
+            return orderId;
+        } catch (error) {
+            logger.error('Database error in createOrder:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get orders for a user (as buyer or seller)
+     */
+    static async getOrders(userId) {
+        try {
+            const [orders] = await pool.query(
+                `SELECT o.*,
+                        l.title AS listing_title,
+                        l.image_url,
+                        buyer.username  AS buyer_username,
+                        buyer.avatar_url AS buyer_avatar,
+                        seller.username  AS seller_username,
+                        seller.avatar_url AS seller_avatar,
+                        CASE
+                            WHEN o.buyer_id = ? THEN o.seller_id
+                            ELSE o.buyer_id
+                        END AS other_user_id,
+                        CASE
+                            WHEN o.buyer_id = ? THEN seller.username
+                            ELSE buyer.username
+                        END AS other_username,
+                        CASE
+                            WHEN o.buyer_id = ? THEN seller.avatar_url
+                            ELSE buyer.avatar_url
+                        END AS other_avatar
+                 FROM marketplace_orders o
+                 JOIN marketplace_listings l  ON o.listing_id = l.listing_id
+                 JOIN users buyer             ON o.buyer_id   = buyer.user_id
+                 JOIN users seller            ON o.seller_id  = seller.user_id
+                 WHERE o.buyer_id = ? OR o.seller_id = ?
+                 ORDER BY o.created_at DESC`,
+                [userId, userId, userId, userId, userId]
+            );
+            return orders;
+        } catch (error) {
+            logger.error('Database error in getOrders:', error);
+            return [];
+        }
+    }
+
+    /**
      * VALIDATION HELPERS
      */
     static isValidCategory(category) {
         const validCategories = ['electronics', 'books', 'clothing', 'furniture', 'services', 
-                                'student_market', 'secondhand', 'other'];
+                                'student_market', 'secondhand', 'sports', 'other'];
         return validCategories.includes(category);
     }
 

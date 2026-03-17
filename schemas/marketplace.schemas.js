@@ -266,6 +266,34 @@ const marketplaceSchemas = {
                 'string.guid': 'Invalid listing ID format',
                 'any.required': 'Listing ID is required'
             })
+    }),
+
+    // Toggle seller favorite validation
+    toggleSellerFavorite: Joi.object({
+        sellerId: Joi.string()
+            .guid({ version: 'uuidv4' })
+            .required()
+            .messages({
+                'string.guid': 'Invalid seller ID format',
+                'any.required': 'Seller ID is required'
+            })
+    }),
+
+    // Create order validation
+    createOrder: Joi.object({
+        listingId: Joi.string()
+            .guid({ version: 'uuidv4' })
+            .required(),
+        sellerId: Joi.string()
+            .guid({ version: 'uuidv4' })
+            .required(),
+        price: Joi.number()
+            .positive()
+            .required(),
+        orderDetails: Joi.string()
+            .trim()
+            .max(500)
+            .allow('')
     })
 };
 

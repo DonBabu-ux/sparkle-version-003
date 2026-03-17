@@ -1,0 +1,219 @@
+<%- include('../partials/head', { title: 'Purchase Orders | Sparkle Mall' }) %>
+
+<style>
+    :root {
+        --primary: #E1306C;
+        --secondary: #833AB4;
+        --bg-main: #f8f9fa;
+        --card-bg: #fff;
+        --border: #efefef;
+        --radius: 20px;
+        --gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    }
+
+    body {
+        background: var(--bg-main);
+        padding-top: 80px;
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .page-title {
+        font-weight: 900;
+        font-size: 2rem;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .order-card {
+        background: white;
+        border-radius: var(--radius);
+        padding: 25px;
+        margin-bottom: 25px;
+        border: 1.5px solid var(--border);
+        display: flex;
+        gap: 25px;
+        transition: 0.2s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+    }
+
+    .order-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+
+    .item-img {
+        width: 150px;
+        height: 150px;
+        border-radius: 15px;
+        object-fit: cover;
+        background: #fdf2f8;
+    }
+
+    .order-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .order-meta {
+        font-size: 0.8rem;
+        color: #888;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+    }
+
+    .item-title {
+        font-weight: 800;
+        font-size: 1.25rem;
+        margin-bottom: 8px;
+        text-decoration: none;
+        color: #333;
+    }
+
+    .seller-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .seller-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .seller-name {
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        padding: 5px 15px;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 900;
+        text-transform: capitalize;
+    }
+
+    .status-pending { background: #fff8e1; color: #ffa000; }
+    .status-accepted { background: #e8f5e9; color: #4caf50; }
+    .status-completed { background: #e3f2fd; color: #2196f3; }
+    .status-cancelled { background: #ffebee; color: #f44336; }
+
+    .price-tag {
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: var(--primary);
+    }
+
+    .btn-row {
+        margin-top: auto;
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.85rem;
+        border: none;
+        cursor: pointer;
+        transition: 0.2s;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-chat { background: #fdf2f8; color: var(--primary); }
+    .btn-chat:hover { background: var(--primary-light); }
+    .btn-detail { background: #fff; border: 1.5px solid #efefef; }
+    .btn-detail:hover { border-color: var(--primary); }
+
+    .empty-state {
+        text-align: center;
+        padding: 100px 0;
+    }
+
+    .empty-state i {
+        width: 80px;
+        height: 80px;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">My Orders</h1>
+        <div style="display: flex; gap: 10px;">
+            <a href="/marketplace" class="btn btn-detail"><i data-lucide="shopping-cart"></i> Go Shopping</a>
+        </div>
+    </div>
+
+    <div id="ordersContainer">
+        <!-- Loop orders here -->
+        <% if (orders && orders.length > 0) { %>
+            <% orders.forEach(order => { %>
+                <div class="order-card">
+                    <img src="<%= order.image_url || '/images/default-item.jpg' %>" class="item-img" alt="Item">
+                    <div class="order-details">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div class="order-meta">Ordered on <%= new Date(order.created_at).toLocaleDateString() %></div>
+                                <a href="/marketplace/item/<%= order.listing_id %>" class="item-title"><%= order.listing_title %></a>
+                            </div>
+                            <span class="status-badge status-<%= order.status %>"><%= order.status %></span>
+                        </div>
+                        
+                        <div class="seller-row">
+                            <img src="<%= order.other_avatar || '/images/default-avatar.png' %>" class="seller-avatar" alt="Seller">
+                            <span class="seller-name">Seller: <%= order.other_username %></span>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                            <div class="price-tag">$<%= parseFloat(order.price).toFixed(2) %></div>
+                            <div class="btn-row">
+                                <a href="/messages?chat_with=<%= order.seller_id %>&order=<%= order.order_id %>" class="btn btn-chat">
+                                    <i data-lucide="message-circle"></i> Chat with Seller
+                                </a>
+                                <a href="/marketplace/order/<%= order.order_id %>" class="btn btn-detail">Detail View</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="empty-state">
+                <i data-lucide="package-search"></i>
+                <h2>No active orders yet...</h2>
+                <p>Ready to find some campus treasures?</p>
+                <a href="/marketplace" class="btn btn-primary" style="display: inline-flex; margin-top: 20px; padding: 15px 40px;">Explore Market</a>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<%- include('../partials/scripts') %>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    lucide.createIcons();
+</script>

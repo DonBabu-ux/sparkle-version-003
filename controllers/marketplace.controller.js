@@ -1,4 +1,4 @@
-﻿const Marketplace = require('../models/Marketplace');
+const Marketplace = require('../models/Marketplace');
 const LostFound = require('../models/LostFound');
 const SkillMarket = require('../models/SkillMarket');
 const marketplaceSchemas = require('../schemas/marketplace.schemas');
@@ -54,54 +54,39 @@ const normalizeUser = (user) => {
 
 const renderMarketplace = async (req, res) => {
     try {
-        // Get user with safe defaults
         const user = normalizeUser(req.user);
-
         const filters = {
             category: req.query.category || 'all',
-            campus: user?.campus || req.query.campus || 'main_campus',
+            campus: req.query.campus || user?.campus || 'all',
+            sort: req.query.sort || 'newest',
+            minPrice: req.query.minPrice,
+            maxPrice: req.query.maxPrice,
+            minRating: req.query.minRating,
+            condition: req.query.condition,
+            search: req.query.search,
+            currentUserId: user?.user_id,
             limit: 20
         };
 
-        const { listings } = await Marketplace.getListings(filters);
-
-        const sanitizedListings = listings.map(listing => {
-            const images = (listing.image_urls || []).map(url => getSafeMediaUrl(url)).filter(url => url);
-            // Simple date formatting for SSR
-            const date = new Date(listing.created_at);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            let dateDisplay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            if (diffDays === 0) dateDisplay = 'Today';
-            else if (diffDays === 1) dateDisplay = 'Yesterday';
-            else if (diffDays < 7) dateDisplay = `${diffDays} days ago`;
-
-            return {
-                ...listing,
-                image_urls: images.length > 0 ? images : ['/images/default-listing.jpg'],
-                image_url: images[0] || '/images/default-listing.jpg',
-                date_display: dateDisplay
-            };
-        });
+        const { listings, total, hasMore } = await Marketplace.getListings(filters);
+        const recommendedListings = await Marketplace.getRecommendations(user?.user_id || null, user?.campus || 'main_campus', 6);
+        const counts = user?.user_id ? await Marketplace.getCounts(user.user_id) : { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
 
         res.render('marketplace', {
-            title: 'Marketplace',
-            initialListings: sanitizedListings || [],
+            title: 'Sparkle Mall | Marketplace',
+            listings: listings || [],
+            recommendedListings: recommendedListings || [],
             user: user,
-            campus: user?.campus || 'main_campus'
+            counts: counts,
+            campus: user?.campus || 'main_campus',
+            filters: filters
         });
     } catch (error) {
         logger.error('Render marketplace error:', error);
-
-        // Get user with safe defaults
-        const user = normalizeUser(req.user);
-
-        res.render('marketplace', {
-            title: 'Marketplace',
-            initialListings: [],
-            user: user,
-            campus: user?.campus || 'main_campus'
+        res.status(500).render('error', {
+            title: 'Error',
+            message: 'Failed to load marketplace',
+            user: normalizeUser(req.user)
         });
     }
 };
@@ -179,49 +164,77 @@ const renderUserListings = async (req, res) => {
     }
 };
 
+const renderOrders = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user || !user.user_id) return res.redirect('/login');
+
+        const orders = await Marketplace.getOrders(user.user_id);
+        res.render('marketplace/orders', {
+            title: 'My Orders',
+            orders: orders || [],
+            user: user
+        });
+    } catch (error) {
+        logger.error('Render orders error:', error);
+        res.status(500).render('error', { title: 'Error', message: 'Failed to load orders', user: normalizeUser(req.user) });
+    }
+};
+
+const renderSell = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user || !user.user_id) return res.redirect('/login');
+        res.render('marketplace/sell', {
+            title: 'Sell Item',
+            user: user
+        });
+    } catch (error) {
+        logger.error('Render sell error:', error);
+        res.status(500).render('error', { title: 'Error', message: 'Failed to load sell page', user: normalizeUser(req.user) });
+    }
+};
+
 // ========== API ROUTES ==========
 
-const getListings = [
-    validate(marketplaceSchemas.searchListings, 'query'),
-    async (req, res) => {
-        try {
-            const user = normalizeUser(req.user);
-            const filters = {
-                ...req.query,
-                campus: user?.campus || req.query.campus || 'main_campus'
-            };
-
-            const result = await Marketplace.getListings(filters);
-
-            const processedListings = result.listings.map(listing => {
-                const images = (listing.image_urls || []).map(url => getSafeMediaUrl(url)).filter(url => url);
-                return {
-                    ...listing,
-                    image_urls: images.length > 0 ? images : ['/images/default-listing.jpg'],
-                    image_url: images[0] || '/images/default-listing.jpg',
-                    seller_avatar: listing.seller_avatar || '/images/default-avatar.png'
-                };
-            });
-
-            res.json({
-                success: true,
-                listings: processedListings,
-                pagination: {
-                    total: result.total,
-                    limit: result.limit,
-                    offset: result.offset,
-                    hasMore: result.hasMore
-                }
-            });
-        } catch (error) {
-            logger.error('Get listings error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to fetch listings'
-            });
-        }
+const getRecommendations = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        const limit = parseInt(req.query.limit) || 5;
+        const listings = await Marketplace.getRecommendations(user?.user_id || null, user?.campus || 'main_campus', limit);
+        res.json({ success: true, listings });
+    } catch (error) {
+        logger.error('API recommendations error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch recommendations' });
     }
-];
+};
+
+const getListings = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        const filters = {
+            ...req.query,
+            currentUserId: user?.user_id,
+            campus: req.query.campus || user?.campus || 'all'
+        };
+
+        const result = await Marketplace.getListings(filters);
+
+        res.json({
+            success: true,
+            listings: result.listings,
+            pagination: {
+                total: result.total,
+                limit: result.limit,
+                offset: result.offset,
+                hasMore: result.hasMore
+            }
+        });
+    } catch (error) {
+        logger.error('Get listings API error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch listings' });
+    }
+};
 
 const getListingById = async (req, res) => {
     try {
@@ -278,6 +291,25 @@ const createListing = [
             }
 
             const listingId = await Marketplace.createListingWithMedia(user.user_id, req.body, mediaFiles);
+
+            // Optional: Notify followers about new product
+            try {
+                const notificationController = require('./notification.controller');
+                const [followers] = await pool.query('SELECT follower_id FROM follows WHERE following_id = ?', [user.user_id]);
+                
+                for (const f of followers) {
+                    await notificationController.createNotification({
+                        user_id: f.follower_id,
+                        type: 'marketplace_activity',
+                        title: 'New Product nearby! 🛍️',
+                        content: `${user.username || 'A seller'} posted a new product: "${req.body.title}". Check it out!`,
+                        actor_id: user.user_id,
+                        action_url: `/marketplace/listings/${listingId}`
+                    }, pool);
+                }
+            } catch (notifyError) {
+                logger.warn('Failed to send marketplace notifications:', notifyError.message);
+            }
 
             res.status(201).json({
                 success: true,
@@ -356,129 +388,98 @@ const deleteListing = async (req, res) => {
     }
 };
 
-const contactSeller = [
-    validate(marketplaceSchemas.contactSeller),
+const toggleSellerFavorite = [
+    validate(marketplaceSchemas.toggleSellerFavorite, 'body'),
     async (req, res) => {
         try {
             const user = normalizeUser(req.user);
-            if (!user || !user.user_id) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Authentication required'
-                });
-            }
+            if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-            const { sellerId, listingId, message } = req.body;
-
-            if (user.user_id === sellerId) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Cannot contact yourself'
-                });
-            }
-
-            const chat = await Marketplace.getOrCreateChat(user.user_id, sellerId, listingId);
-
-            // Send initial message if provided
-            if (message && message.trim()) {
-                await Marketplace.sendMessage(chat.chat_id, user.user_id, message);
-            }
-
-            res.json({
-                success: true,
-                chatId: chat.chat_id,
-                redirect: `/messages?chat=${chat.chat_id}`
-            });
+            const { sellerId } = req.body;
+            const result = await Marketplace.toggleSellerFavorite(user.user_id, sellerId);
+            res.json({ success: true, favorited: result.favorited });
         } catch (error) {
-            logger.error('Contact seller error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to contact seller'
-            });
+            logger.error('Toggle seller favorite error:', error);
+            res.status(500).json({ success: false, message: 'An error occurred' });
         }
     }
 ];
 
+const contactSeller = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const { sellerId, listingId, message } = req.body;
+        if (user.user_id === sellerId) {
+            return res.status(400).json({ success: false, message: 'Cannot contact yourself' });
+        }
+
+        const chat = await Marketplace.getOrCreateChat(user.user_id, sellerId, listingId);
+        if (message && message.trim()) {
+            await Marketplace.sendMessage(chat.chat_id, user.user_id, message);
+        }
+
+        res.json({ success: true, chatId: chat.chat_id, redirect: `/messages?chat=${chat.chat_id}` });
+    } catch (error) {
+        logger.error('Contact seller error:', error);
+        res.status(500).json({ success: false, message: 'Failed to contact seller' });
+    }
+};
+
 const getUserChats = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
-        if (!user || !user.user_id) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
-            });
-        }
-
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
         const chats = await Marketplace.getUserChats(user.user_id);
-
-        res.json({
-            success: true,
-            chats: chats || []
-        });
+        res.json({ success: true, chats: chats || [] });
     } catch (error) {
         logger.error('Get user chats error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch chats'
-        });
+        res.status(500).json({ success: false, message: 'Failed to fetch chats' });
     }
 };
 
 const getChatMessages = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
-        if (!user || !user.user_id) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
-            });
-        }
-
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
         const messages = await Marketplace.getChatMessages(req.params.chatId);
-
-        // Mark messages as read
         await Marketplace.markMessagesAsRead(req.params.chatId, user.user_id);
-
-        res.json({
-            success: true,
-            messages: messages || []
-        });
+        res.json({ success: true, messages: messages || [] });
     } catch (error) {
         logger.error('Get chat messages error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch messages'
-        });
+        res.status(500).json({ success: false, message: 'Failed to fetch messages' });
     }
 };
 
-const sendMessage = [
-    validate(marketplaceSchemas.sendMessage),
+const sendMessage = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+        const { chatId } = req.params;
+        const { content } = req.body;
+        const messageId = await Marketplace.sendMessage(chatId, user.user_id, content);
+        res.json({ success: true, messageId });
+    } catch (error) {
+        logger.error('Send message error:', error);
+        res.status(500).json({ success: false, message: 'Failed to send message' });
+    }
+};
+
+const placeOrder = [
+    validate(marketplaceSchemas.createOrder, 'body'),
     async (req, res) => {
         try {
             const user = normalizeUser(req.user);
-            if (!user || !user.user_id) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Authentication required'
-                });
-            }
+            if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-            const { chatId } = req.params;
-            const { content } = req.body;
+            const { listingId, sellerId, price, orderDetails } = req.body;
+            const orderId = await Marketplace.createOrder(user.user_id, sellerId, listingId, price, orderDetails);
 
-            const messageId = await Marketplace.sendMessage(chatId, user.user_id, content);
-
-            res.json({
-                success: true,
-                messageId: messageId
-            });
+            res.json({ success: true, orderId, message: 'Order placed successfully' });
         } catch (error) {
-            logger.error('Send message error:', error);
-            res.status(500).json({
-                success: false,
-                message: error.message || 'Failed to send message'
-            });
+            logger.error('Place order error:', error);
+            res.status(500).json({ success: false, message: 'Failed to place order' });
         }
     }
 ];
@@ -1032,6 +1033,8 @@ module.exports = {
     renderMarketplace,
     renderListingDetail,
     renderUserListings,
+    renderOrders,
+    renderSell,
 
     // API Routes
     getListings,
@@ -1059,5 +1062,8 @@ module.exports = {
     getUserReviews,
     boostListing,
     markAsSold,
-    relistItem
+    relistItem,
+    getRecommendations,
+    placeOrder,
+    toggleSellerFavorite
 };

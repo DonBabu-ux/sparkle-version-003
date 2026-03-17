@@ -34,8 +34,8 @@
 
     <!-- Right Section: Actions & Profile -->
     <nav class="header-right" style="display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end;">
-        <!-- Mobile-only search icon (outside nav-actions-group so it isn't hidden) -->
-        <button class="action-btn-circle mobile-search-btn" onclick="openMobileSearch()" aria-label="Search" style="display:none;">
+        <!-- Mobile-only search icon -->
+        <button class="mob-search-icon" onclick="openMobileSearch()" aria-label="Search">
             <i class="fas fa-search"></i>
         </button>
 
@@ -359,6 +359,24 @@
         .nav-actions-group { display: flex !important; }
     }
 
+    /* Dedicated mobile search icon — hidden by default, shown on mobile */
+    .mob-search-icon {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #f0f2f5;
+        border: none;
+        cursor: pointer;
+        color: var(--text-main, #1e293b);
+        font-size: 16px;
+        transition: background 0.2s;
+        flex-shrink: 0;
+    }
+    .mob-search-icon:hover { background: #e2e8f0; }
+
     /* ── MOBILE (≤1024px) ───────────────────────────────────── */
     @media (max-width: 1024px) {
         .header-center { display: none !important; }
@@ -366,8 +384,8 @@
         .hamburger-btn { display: none !important; }
         .header-left, .header-right { flex: unset; }
         header.header { padding: 0 16px; }
-        /* Show the mobile search icon */
-        .mobile-search-btn { display: flex !important; }
+        /* Show the dedicated mobile search icon */
+        .mob-search-icon { display: flex !important; }
     }
 
     /* Mobile search overlay */

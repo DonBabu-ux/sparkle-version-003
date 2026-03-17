@@ -391,12 +391,14 @@
                         <div class="tab active" onclick="switchTab(event, 'posts')">
                             <i class="fas fa-th"></i> POSTS
                         </div>
+                        <% if (isOwnProfile) { %>
                         <div class="tab" onclick="switchTab(event, 'sparks')">
                             <i class="fas fa-heart"></i> LIKED
                         </div>
                         <div class="tab" onclick="switchTab(event, 'saved')">
                             <i class="fas fa-bookmark"></i> SAVED
                         </div>
+                        <% } %>
                     </div>
 
                     <!-- Posts Grid -->
@@ -654,6 +656,8 @@
                 document.getElementById('imageViewerModal').style.display = 'none';
             }
 
+            const _isOwnProfile = <%= isOwnProfile ? 'true' : 'false' %>;
+
             async function switchTab(event, tabName) {
                 // Update active state
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -665,6 +669,12 @@
                     if (window.originalPostsHTML) {
                         postsGrid.innerHTML = window.originalPostsHTML;
                     }
+                    return;
+                }
+
+                // Guard: Liked/Saved are only accessible to the profile owner
+                if (!_isOwnProfile && (tabName === 'sparks' || tabName === 'saved')) {
+                    postsGrid.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-lock"></i></div><h3>Private</h3><p>This content is only visible to the account owner.</p></div>`;
                     return;
                 }
 

@@ -458,6 +458,27 @@ class SparkleRealtime {
         return subId;
     }
 
+    // ============= ORDER TRACKING =============
+
+    // Watch a specific order for updates
+    watchOrder(orderId, callback) {
+        if (!this.db || !orderId) return null;
+
+        const orderRef = ref(this.db, `marketplace/orders/${orderId}`);
+
+        const unsubscribe = onValue(orderRef, (snapshot) => {
+            const order = snapshot.val();
+            if (order) {
+                callback(order);
+            }
+        });
+
+        const subId = `order_${orderId}_${Date.now()}`;
+        this.subscriptions.set(subId, unsubscribe);
+
+        return subId;
+    }
+
     // ============= NOTIFICATIONS =============
 
     // Send notification to user

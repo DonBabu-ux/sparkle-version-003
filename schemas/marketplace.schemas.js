@@ -1,300 +1,181 @@
+// schemas/marketplace.schemas.js - Fixed version
 const Joi = require('joi');
 
-const marketplaceSchemas = {
-    // Create listing validation
-    createListing: Joi.object({
-        title: Joi.string()
-            .trim()
-            .min(3)
-            .max(100)
-            .required()
-            .messages({
-                'string.min': 'Title must be at least 3 characters',
-                'string.max': 'Title cannot exceed 100 characters',
-                'any.required': 'Title is required'
-            }),
+// UUID validation helper
+const uuidSchema = Joi.string().guid({ version: 'uuidv4' }).required();
 
-        description: Joi.string()
-            .trim()
-            .min(10)
-            .max(1000)
-            .required()
-            .messages({
-                'string.min': 'Description must be at least 10 characters',
-                'string.max': 'Description cannot exceed 1000 characters',
-                'any.required': 'Description is required'
-            }),
+// ==================== LISTING SCHEMAS ====================
 
-        price: Joi.number()
-            .positive()
-            .max(1000000)
-            .required()
-            .messages({
-                'number.positive': 'Price must be a positive number',
-                'number.max': 'Price cannot exceed $1,000,000',
-                'any.required': 'Price is required'
-            }),
+exports.createListingSchema = Joi.object({
+  title: Joi.string().min(3).max(100).required(),
+  description: Joi.string().min(10).max(1000).required(),
+  price: Joi.number().positive().max(1000000).required(),
+  category: Joi.string().valid(
+    'electronics', 'books', 'clothing', 'furniture', 'services', 'other'
+  ).default('other'),
+  condition: Joi.string().valid(
+    'new', 'like_new', 'good', 'fair', 'poor'
+  ).default('good'),
+  campus: Joi.string().valid(
+    'main_campus', 'north_campus', 'south_campus', 'downtown'
+  ).required(),
+  location: Joi.string().max(255).optional().allow(''),
+  tags: Joi.alternatives().try(
+    Joi.array().items(Joi.string()),
+    Joi.string()
+  ).optional()
+});
 
-        category: Joi.string()
-            .valid('electronics', 'books', 'clothing', 'furniture', 'services', 'student_market', 'secondhand', 'other')
-            .default('other'),
+// ==================== ORDER SCHEMAS ====================
 
-        condition: Joi.string()
-            .valid('new', 'like_new', 'good', 'fair', 'poor')
-            .default('good'),
+/**
+ * Create order schema - FIXED: Only require listingId
+ * Server derives all other data from database for security
+ */
+exports.createOrderSchema = Joi.object({
+  listingId: uuidSchema
+});
 
-        campus: Joi.string()
-            .valid('main_campus', 'north_campus', 'south_campus', 'downtown')
-            .required()
-            .messages({
-                'any.only': 'Invalid campus selection',
-                'any.required': 'Campus is required'
-            }),
+/**
+ * Update order status schema - NEW: Complete validation
+ */
+exports.updateOrderStatusSchema = Joi.object({
+  status: Joi.string().valid(
+    'accepted', 'rejected', 'cancelled', 'completed', 'disputed'
+  ).required(),
+  reason: Joi.string().max(500).when('status', {
+    is: 'cancelled',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  })
+});
 
-        location: Joi.string()
-            .trim()
-            .max(255)
-            .allow(''),
+/**
+ * Confirm meetup schema
+ */
+exports.confirmMeetupSchema = Joi.object({}); // No body params needed
 
-        tags: Joi.alternatives().try(
-            Joi.string(),
-            Joi.array().items(Joi.string())
-        ).default([])
-    }),
+// ==================== REVIEW SCHEMAS ====================
 
-    // Update listing validation
-    updateListing: Joi.object({
-        title: Joi.string()
-            .trim()
-            .min(3)
-            .max(100),
+/**
+ * Create review schema - NEW: Complete validation
+ */
+exports.createReviewSchema = Joi.object({
+  listing_id: uuidSchema,
+  reviewee_id: uuidSchema,
+  rating: Joi.number().integer().min(1).max(5).required(),
+  comment: Joi.string().max(1000).optional().allow(''),
+  transaction_type: Joi.string().valid('buyer', 'seller').required()
+});
 
-        description: Joi.string()
-            .trim()
-            .min(10)
-            .max(1000),
+// ==================== CONTACT/REPORT SCHEMAS ====================
 
-        price: Joi.number()
-            .positive()
-            .max(1000000),
+exports.contactSellerSchema = Joi.object({
+  sellerId: uuidSchema,
+  listingId: uuidSchema.optional(),
+  message: Joi.string().max(500).required()
+});
 
-        category: Joi.string()
-            .valid('electronics', 'books', 'clothing', 'furniture', 'services', 'student_market', 'secondhand', 'other'),
+exports.reportListingSchema = Joi.object({
+  reason: Joi.string().valid(
+    'fake_item', 'wrong_category', 'prohibited', 'spam', 'offensive', 'other'
+  ).required(),
+  details: Joi.string().max(1000).optional().allow('')
+});
 
-        condition: Joi.string()
-            .valid('new', 'like_new', 'good', 'fair', 'poor'),
+// ==================== FAVORITE SCHEMAS ====================
 
-        status: Joi.string()
-            .valid('active', 'sold', 'pending', 'inactive'),
+exports.toggleFavoriteSchema = Joi.object({
+  listingId: uuidSchema
+});
 
-        location: Joi.string()
-            .trim()
-            .max(255)
-            .allow(''),
+exports.favoriteSellerSchema = Joi.object({
+  sellerId: uuidSchema
+});
 
-        tags: Joi.alternatives().try(
-            Joi.string(),
-            Joi.array().items(Joi.string())
-        )
-    }),
+// ==================== BLOCK USER SCHEMA ====================
 
-    // Search listings validation
-    searchListings: Joi.object({
-        search: Joi.string()
-            .trim()
-            .max(100)
-            .allow(''),
+exports.blockUserSchema = Joi.object({
+  reason: Joi.string().max(255).optional().allow('')
+});
 
-        category: Joi.string()
-            .valid('electronics', 'books', 'clothing', 'furniture', 'services', 'student_market', 'secondhand', 'other', 'all')
-            .default('all'),
+// ==================== LOST & FOUND SCHEMAS ====================
 
-        min_price: Joi.number()
-            .min(0)
-            .max(1000000),
+exports.createLostFoundSchema = Joi.object({
+  type: Joi.string().valid('lost', 'found').required(),
+  title: Joi.string().min(3).max(100).required(),
+  description: Joi.string().max(1000).required(),
+  category: Joi.string().valid(
+    'electronics', 'books', 'clothing', 'accessories', 'id_cards', 'keys', 'other'
+  ).required(),
+  campus: Joi.string().valid(
+    'main_campus', 'north_campus', 'south_campus', 'downtown'
+  ).required(),
+  location: Joi.string().max(255).optional().allow(''),
+  date_lost_found: Joi.date().optional()
+});
 
-        max_price: Joi.number()
-            .min(0)
-            .max(1000000),
+// ==================== SKILL OFFER SCHEMAS ====================
 
-        campus: Joi.string()
-            .valid('main_campus', 'north_campus', 'south_campus', 'downtown'),
+exports.createSkillOfferSchema = Joi.object({
+  title: Joi.string().min(3).max(100).required(),
+  description: Joi.string().max(1000).required(),
+  category: Joi.string().valid(
+    'academic', 'music', 'sports', 'technology', 'language', 'other'
+  ).required(),
+  skill_type: Joi.string().valid('tutor', 'service', 'exchange').required(),
+  price: Joi.number().positive().max(100000).when('is_free', {
+    is: true,
+    then: Joi.optional(),
+    otherwise: Joi.required()
+  }),
+  is_free: Joi.boolean().default(false),
+  campus: Joi.string().valid(
+    'main_campus', 'north_campus', 'south_campus', 'downtown'
+  ).required()
+});
 
-        condition: Joi.string()
-            .valid('new', 'like_new', 'good', 'fair', 'poor'),
+// ==================== QUERY PARAM SCHEMAS ====================
 
-        limit: Joi.number()
-            .integer()
-            .min(1)
-            .max(100)
-            .default(20),
+exports.listingsQuerySchema = Joi.object({
+  search: Joi.string().max(100).optional().allow(''),
+  category: Joi.string().valid(
+    'electronics', 'books', 'clothing', 'furniture', 'services', 'other', 'all'
+  ).optional(),
+  campus: Joi.string().valid(
+    'main_campus', 'north_campus', 'south_campus', 'downtown', 'all'
+  ).optional(),
+  condition: Joi.string().valid(
+    'new', 'like_new', 'good', 'fair', 'poor', 'all'
+  ).optional(),
+  minPrice: Joi.number().min(0).default(0),
+  maxPrice: Joi.number().min(0).max(1000000).default(1000000),
+  minRating: Joi.number().min(0).max(5).default(0),
+  sort: Joi.string().valid(
+    'newest', 'popular', 'price_low', 'price_high'
+  ).default('newest'),
+  limit: Joi.number().integer().min(1).max(100).default(20),
+  offset: Joi.number().integer().min(0).default(0),
+  currentUserId: uuidSchema.optional()
+});
 
-        offset: Joi.number()
-            .integer()
-            .min(0)
-            .default(0),
+exports.ordersQuerySchema = Joi.object({
+  limit: Joi.number().integer().min(1).max(100).default(20),
+  offset: Joi.number().integer().min(0).default(0),
+  role: Joi.string().valid('buyer', 'seller').optional()
+});
 
-        sortBy: Joi.string()
-            .valid('price', 'created_at', 'view_count')
-            .default('created_at'),
+// ==================== ERROR RESPONSES ====================
 
-        sortOrder: Joi.string()
-            .valid('ASC', 'DESC')
-            .default('DESC')
-    }),
-
-    // Contact seller validation
-    contactSeller: Joi.object({
-        sellerId: Joi.string()
-            .guid({ version: 'uuidv4' })
-            .required()
-            .messages({
-                'string.guid': 'Invalid seller ID format',
-                'any.required': 'Seller ID is required'
-            }),
-
-        listingId: Joi.string()
-            .guid({ version: 'uuidv4' })
-            .allow(null),
-
-        message: Joi.string()
-            .trim()
-            .max(500)
-            .allow('')
-    }),
-
-    // Send message validation
-    sendMessage: Joi.object({
-        content: Joi.string()
-            .trim()
-            .min(1)
-            .max(1000)
-            .required()
-            .messages({
-                'string.min': 'Message cannot be empty',
-                'string.max': 'Message cannot exceed 1000 characters',
-                'any.required': 'Message content is required'
-            })
-    }),
-
-    // Create lost/found item validation
-    createLostFoundItem: Joi.object({
-        type: Joi.string()
-            .valid('lost', 'found')
-            .required()
-            .messages({
-                'any.only': 'Type must be either "lost" or "found"',
-                'any.required': 'Type is required'
-            }),
-
-        title: Joi.string()
-            .trim()
-            .min(3)
-            .max(255)
-            .required()
-            .messages({
-                'string.min': 'Title must be at least 3 characters',
-                'string.max': 'Title cannot exceed 255 characters',
-                'any.required': 'Title is required'
-            }),
-
-        description: Joi.string()
-            .trim()
-            .min(10)
-            .max(1000)
-            .required(),
-
-        category: Joi.string()
-            .max(50)
-            .allow(''),
-
-        campus: Joi.string()
-            .valid('main_campus', 'north_campus', 'south_campus', 'downtown')
-            .required(),
-
-        location: Joi.string()
-            .trim()
-            .max(255)
-            .allow(''),
-
-        date_lost_found: Joi.date()
-            .max('now')
-            .allow(null)
-    }),
-
-    // Create skill offer validation
-    createSkillOffer: Joi.object({
-        title: Joi.string()
-            .trim()
-            .min(3)
-            .max(255)
-            .required(),
-
-        description: Joi.string()
-            .trim()
-            .min(10)
-            .max(1000)
-            .required(),
-
-        category: Joi.string()
-            .max(50)
-            .allow(''),
-
-        skill_type: Joi.string()
-            .max(100)
-            .allow(''),
-
-        price: Joi.number()
-            .min(0)
-            .max(10000)
-            .allow(null),
-
-        is_free: Joi.boolean()
-            .default(false),
-
-        campus: Joi.string()
-            .valid('main_campus', 'north_campus', 'south_campus', 'downtown')
-            .required()
-    }),
-
-    // Toggle favorite validation
-    toggleFavorite: Joi.object({
-        listingId: Joi.string()
-            .guid({ version: 'uuidv4' })
-            .required()
-            .messages({
-                'string.guid': 'Invalid listing ID format',
-                'any.required': 'Listing ID is required'
-            })
-    }),
-
-    // Toggle seller favorite validation
-    toggleSellerFavorite: Joi.object({
-        sellerId: Joi.string()
-            .guid({ version: 'uuidv4' })
-            .required()
-            .messages({
-                'string.guid': 'Invalid seller ID format',
-                'any.required': 'Seller ID is required'
-            })
-    }),
-
-    // Create order validation
-    createOrder: Joi.object({
-        listingId: Joi.string()
-            .guid({ version: 'uuidv4' })
-            .required(),
-        sellerId: Joi.string()
-            .guid({ version: 'uuidv4' })
-            .required(),
-        price: Joi.number()
-            .positive()
-            .required(),
-        orderDetails: Joi.string()
-            .trim()
-            .max(500)
-            .allow('')
-    })
+exports.errorCodes = {
+  LISTING_NOT_FOUND: 'Listing not found',
+  LISTING_SOLD: 'Item already sold',
+  LISTING_NOT_ACTIVE: 'Listing is not active',
+  CANNOT_BUY_OWN: 'Cannot buy your own item',
+  ORDER_EXISTS: 'You already have an active order for this item',
+  ORDER_NOT_FOUND: 'Order not found',
+  UNAUTHORIZED: 'You are not authorized to perform this action',
+  INVALID_TRANSITION: 'Cannot change status from current to requested',
+  MEETUP_NOT_CONFIRMED: 'Both parties must confirm the meetup first',
+  INVALID_STATUS: 'Invalid status value provided'
 };
-
-module.exports = marketplaceSchemas;

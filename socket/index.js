@@ -283,4 +283,22 @@ const emitNotification = (userId, notificationData) => {
     }
 };
 
-module.exports = { initializeSocket, getIO, emitNotification };
+/**
+ * Notify participants about order updates
+ */
+const notifyOrderUpdate = (orderData) => {
+    try {
+        if (!io) return;
+        const { order_id, buyer_id, seller_id, status } = orderData;
+        
+        // Notify both parties
+        io.to(`user:${buyer_id}`).emit('marketplace:order_update', { orderId: order_id, status });
+        io.to(`user:${seller_id}`).emit('marketplace:order_update', { orderId: order_id, status });
+        
+        logger.info(`📡 Order update broadcasted: ${order_id} -> ${status}`);
+    } catch (error) {
+        logger.error('notifyOrderUpdate error:', error);
+    }
+};
+
+module.exports = { initializeSocket, getIO, emitNotification, notifyOrderUpdate };

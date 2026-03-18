@@ -17,7 +17,8 @@ router.post('/marketplace/listings/:id/contact', authMiddleware, marketplaceCont
 router.put('/marketplace/listings/:id/sold',     authMiddleware, marketplaceController.markAsSold);
 router.post('/marketplace/listings/:id/favorite',authMiddleware, ...marketplaceController.toggleFavorite);
 router.post('/marketplace/listings/:id/report',  authMiddleware, marketplaceController.reportListing);
-router.post('/marketplace/listings/:id/boost',   authMiddleware, marketplaceController.boostListing);
+router.post('/marketplace/listings/:id/boost',   authMiddleware, ...marketplaceController.boostListing);
+router.post('/marketplace/listings/:id/relist',  authMiddleware, marketplaceController.relistItem);
 
 // ── Seller Actions ────────────────────────────────────────────────────────────
 router.post('/marketplace/seller/favorite',      authMiddleware, ...marketplaceController.toggleSellerFavorite);
@@ -26,7 +27,7 @@ router.post('/marketplace/seller/favorite',      authMiddleware, ...marketplaceC
 router.post('/marketplace/order',                            authMiddleware, ...marketplaceController.placeOrder);
 router.get('/marketplace/orders',                            authMiddleware, marketplaceController.getOrders);
 router.get('/marketplace/orders/:orderId',                   authMiddleware, marketplaceController.getOrderById);
-router.patch('/marketplace/orders/:orderId/status',          authMiddleware, marketplaceController.updateOrderStatus);
+router.patch('/marketplace/orders/:orderId/status',          authMiddleware, ...marketplaceController.updateOrderStatus);
 router.post('/marketplace/orders/:orderId/confirm-meetup',   authMiddleware, marketplaceController.confirmMeetup);
 
 // ── Chats ─────────────────────────────────────────────────────────────────────
@@ -35,8 +36,8 @@ router.get('/marketplace/chats/:id/messages',      authMiddleware, marketplaceCo
 router.post('/marketplace/chats/:chatId/messages', authMiddleware, marketplaceController.sendMessage);
 
 // ── Reviews & Users ───────────────────────────────────────────────────────────
-router.post('/marketplace/users/:id/block',        authMiddleware, marketplaceController.blockUser);
-router.post('/marketplace/users/:id/review',       authMiddleware, marketplaceController.createReview);
+router.post('/marketplace/users/:id/block',        authMiddleware, ...marketplaceController.blockUser);
+router.post('/marketplace/users/:id/review',       authMiddleware, ...marketplaceController.createReview);
 router.get('/marketplace/users/:id/reviews',       authMiddleware, marketplaceController.getUserReviews);
 
 // ── Lost & Found / Skills ─────────────────────────────────────────────────────

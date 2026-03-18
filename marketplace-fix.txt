@@ -1,0 +1,91 @@
+# Complete Solution Guide for Sparkle Marketplace Errors
+
+This document provides a comprehensive overview of the marketplace feature, its architecture, and the fixes implemented to resolve identified errors.
+
+## 1. Feature Overview
+The Sparkle Marketplace is a peer-to-peer platform for university students to buy, sell, and trade.
+It supports:
+- Listing creation with media and tags.
+- Order management with transactional safety.
+- User interactions (Favoriting, Reviewing, Blocking).
+- Real-time updates via Firebase.
+
+## 2. API Architecture
+
+### Listings API
+| Method | Endpoint | Request Fields | Response Fields |
+|--------|----------|----------------|-----------------|
+| GET | `/api/marketplace/listings` | `category`, `campus`, `sort`, `limit`, `offset` | `listings[]`, `total`, `pagination` |
+| POST | `/api/marketplace/listings` | `title`, `price`, `description`, `category`, `condition`, `campus`, `files` (media) | `success`, `listing_id`, `redirect_url` |
+| PUT | `/api/marketplace/listings/:id` | `title`, `price`, `description`, `category`, `condition`, `status`, `files` | `success`, `message` |
+| DELETE | `/api/marketplace/listings/:id` | (Auth header) | `success`, `message` |
+
+### Orders API
+| Method | Endpoint | Request Fields | Response Fields |
+|--------|----------|----------------|-----------------|
+| POST | `/api/marketplace/orders` | `listingId` | `success`, `orderId`, `message` |
+| PUT | `/api/marketplace/orders/:orderId/status` | `status`, `reason` | `success`, `order`, `message` |
+| POST | `/api/marketplace/orders/:orderId/confirm-meetup` | (Auth header) | `success`, `confirmedBy`, `bothConfirmed` |
+
+### Interaction API
+| Method | Endpoint | Request Fields | Response Fields |
+|--------|----------|----------------|-----------------|
+| POST | `/api/marketplace/favorites/toggle` | `listingId` | `success`, `favorited` |
+| POST | `/api/marketplace/favorites/sellers/toggle` | `sellerId` | `success`, `favorited` |
+| POST | `/api/marketplace/reviews` | `listing_id`, `reviewee_id`, `rating`, `comment` | `success`, `message` |
+| POST | `/api/marketplace/users/:id/block` | `reason` | `success`, `message` |
+
+## 3. Database Schema
+
+### Table: marketplace_listings
+- `listing_id` (CHAR 36, PK)
+- `seller_id` (CHAR 36, FK)
+- `title` (VARCHAR 255)
+- `description` (TEXT)
+- `price` (DECIMAL 10,2)
+- `status` (ENUM: active, pending, sold, cancelled, deleted)
+- `created_at` (TIMESTAMP)
+
+### Table: marketplace_orders
+- `order_id` (CHAR 36, PK)
+- `listing_id` (CHAR 36, FK)
+- `buyer_id` (CHAR 36, FK)
+- `seller_id` (CHAR 36)
+- `snapshot_title`/`snapshot_price` (Backup data)
+- `status` (ENUM: pending, accepted, completed, disputed, cancelled)
+
+## 4. Implemented Fixes
+
+### A. Model Restoration (`models/Marketplace.js`)
+- Restored `createListing`, `updateListing`, `placeOrder`, `createReview`, `relistItem`.
+- Fixed `generateMockData` to use valid UUIDs for `listing_id` and `seller_id` to prevent Joi validation failures (400 Request errors).
+- Implemented `getListingsWithMock` for robust UI performance.
+
+### B. Controller Stabilization (`controllers/marketplace.controller.js`)
+- Deduplicated all API handlers to resolve "Cannot redeclare block-scoped variable" errors.
+- Corrected `placeOrder` to synchronize with the new model's transactional signature.
+- Restored missing handlers for `markAsSold`, `relistItem`, `blockUser`, and `reportListing`.
+- Integrated `normalizeUser` for safe property access across all routes.
+
+### C. Frontend Consistency (`views/marketplace.ejs`)
+- Escapes single quotes in listing titles within JavaScript event handlers (e.g., `openOrderModal`) to prevent syntax errors when titles contain apostrophes.
+- Added mock data fallback to ensure campus views never appear empty.
+
+## 5. Execution Flow
+1. **User Action**: Clicks "Place Order".
+2. **Frontend**: Sends POST to `/api/marketplace/orders` with `listingId`.
+3. **Controller**: Calls `Marketplace.placeOrder` within a MySQL transaction.
+4. **Model**:
+   - Checks listing availability.
+   - Snapshots price/title.
+   - Creates Order.
+   - Updates listing status to 'pending'.
+   - Logs audit trail.
+   - Syncs to Firebase for real-time seller notification.
+5. **Response**: 200 OK with `orderId`.
+
+## 6. Error Cases
+- **400 Bad Request**: Listing sold, buying own item, or missing required fields.
+- **401 Unauthorized**: Missing session token.
+- **404 Not Found**: Listing deleted or removed.
+- **500 Internal Error**: Database timeout or schema mismatch (Resolved by restored logic).

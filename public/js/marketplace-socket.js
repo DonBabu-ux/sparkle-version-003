@@ -146,6 +146,25 @@ class MarketplaceSocket {
         console.log(`Joined campus room: ${campus}`);
     }
 
+    subscribeToOrder(orderId, callback) {
+        if (!orderId || !this.realtime) return;
+        
+        const subId = this.realtime.watchOrder(orderId, (order) => {
+            if (callback) callback(order);
+            this.handleOrderUpdate(order);
+        });
+        
+        this.subscriptions.set(`order_${orderId}`, subId);
+    }
+
+    handleOrderUpdate(order) {
+        // Broad event for UI to listen to
+        const handlers = this.messageHandlers.get('order_update') || [];
+        handlers.forEach(handler => handler(order));
+        
+        console.log(`📡 Order update received: ${order.orderId} -> ${order.status}`);
+    }
+
     sendMarketplaceMessage(chatId, message, senderId) {
         if (!chatId || !message) return false;
 

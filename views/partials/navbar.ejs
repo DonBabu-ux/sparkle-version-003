@@ -635,4 +635,55 @@ document.addEventListener('DOMContentLoaded', () => {
     .notif-content span { font-size: 11px; color: var(--text-muted); }
     .notif-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary, #6366f1); flex-shrink: 0; }
     #notificationCount { font-size: 9px; font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center; min-width: 10px; }
-</style>
+    
+    /* Global Message FAB */
+    .global-msg-fab {
+        position: fixed;
+        bottom: 80px; /* Above mobile nav */
+        right: 20px;
+        background: var(--primary-gradient, linear-gradient(135deg, #6366f1, #a855f7));
+        color: white;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        z-index: 999;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        padding: 15px;
+    }
+    .global-msg-fab:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+        color: white;
+    }
+    .global-msg-fab i {
+        font-size: 20px;
+    }
+    .global-msg-fab .fab-text {
+        display: none;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        margin-left: 8px;
+        font-size: 15px;
+    }
+    @media (min-width: 1025px) {
+        .global-msg-fab {
+            bottom: 30px;
+            right: 30px;
+            padding: 12px 24px;
+        }
+        .global-msg-fab .fab-text {
+            display: block;
+        }
+    }
+</style>
+
+<!-- Global Message FAB (Hidden on Messages page) -->
+<% if (locals.title !== 'Messages') { %>
+<a href="/messages" class="global-msg-fab">
+    <i class="fas fa-comment-dots"></i>
+    <span class="fab-text">Messages</span>
+</a>
+<% } %>

@@ -7,6 +7,10 @@ export function initFabButton() {
 function injectCreateButton() {
     if (document.getElementById('globalCreateBtn')) return;
 
+    // Only show on marketplace pages
+    const isMarketplace = window.location.pathname.startsWith('/marketplace');
+    if (!isMarketplace) return;
+
     const fab = document.createElement('div');
     fab.id = 'globalCreateBtn';
     fab.style.cssText = `

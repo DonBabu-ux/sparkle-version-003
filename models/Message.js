@@ -11,7 +11,7 @@ class Message {
             SELECT chat_id FROM personal_chats 
             WHERE (participant1_id = ? AND participant2_id = ?)
                OR (participant1_id = ? AND participant2_id = ?)
-        `, [user1, user2, user2, user1]);
+        `, [currentUserId, partnerId, partnerId, currentUserId]);
 
         if (existing && existing.length > 0) {
             return existing[0].chat_id;
@@ -22,7 +22,7 @@ class Message {
         await db.query(`
             INSERT INTO personal_chats (chat_id, participant1_id, participant2_id)
             VALUES (?, ?, ?)
-        `, [chatId, user1, user2]);
+        `, [chatId, currentUserId, partnerId]);
 
         return chatId;
     }
@@ -47,9 +47,9 @@ class Message {
             await db.query(`
                 INSERT INTO messages (
                     message_id, chat_id, conversation_id, sender_id, content, 
-                    type, media_url, story_id, reply_to_message_id, status, sent_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())
-            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, storyId, replyToId]);
+                    type, media_url, reply_to_message_id, status, sent_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())
+            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId]);
 
             // Update last_message_time and clear archives for both participants in personal chats
             if (personalChatId) {

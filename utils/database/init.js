@@ -316,7 +316,7 @@ const initMessagesTable = async () => {
                 FOREIGN KEY (conversation_id) REFERENCES personal_chats(chat_id) ON DELETE CASCADE
             `);
         } catch (err) {
-            if (err.code !== 'ER_DUP_CONSTRAINT_NAME') {
+            if (err.code !== 'ER_DUP_CONSTRAINT_NAME' && err.errno !== 121 && !String(err.message).includes('errno: 121')) {
                 logger.warn('Could not add FK constraint to messages:', err.message);
             }
         }

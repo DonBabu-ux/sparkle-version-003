@@ -10,7 +10,12 @@
         <!-- SIDEBAR -->
         <aside class="conversation-sidebar">
             <div class="sidebar-header">
-                <h1>Conversations</h1>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h1>Conversations</h1>
+                    <button class="new-chat-btn" onclick="sparkChat.openNewChatModal()" title="New Chat">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                </div>
                 <div class="search-bar-container">
                     <i class="bi bi-search"></i>
                     <input type="text" id="sidebarSearch" class="sidebar-search" placeholder="Search chats or friends...">
@@ -49,10 +54,17 @@
                         <input type="text" id="chatMsgSearch" placeholder="Search in chat...">
                         <i class="bi bi-x-lg" onclick="sparkChat.toggleChatSearch(false)"></i>
                     </div>
-                    <i class="bi bi-search" onclick="sparkChat.toggleChatSearch(true)"></i>
-                    <i class="bi bi-telephone"></i>
-                    <i class="bi bi-camera-video"></i>
-                    <i class="bi bi-three-dots-vertical"></i>
+                    <i class="bi bi-search" onclick="sparkChat.toggleChatSearch(true)" title="Search"></i>
+                    <i class="bi bi-telephone" title="Voice Call"></i>
+                    <i class="bi bi-camera-video" title="Video Call"></i>
+                    <div class="chat-menu-wrapper" style="position: relative;">
+                        <i class="bi bi-three-dots-vertical" onclick="sparkChat.toggleChatMenu()" title="More"></i>
+                        <div class="chat-dropdown-menu" id="chatDropdownMenu" style="display: none;">
+                            <a href="#" onclick="sparkChat.handleGroupSettings()" id="menuGroupSettings" style="display: none;">Group Settings</a>
+                            <a href="#" onclick="sparkChat.handleMuteNotifications()" id="menuMute">Mute Notifications</a>
+                            <a href="#" onclick="sparkChat.handleBlockUser()" class="text-danger" id="menuBlock">Block User</a>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -62,9 +74,16 @@
 
             <footer class="chat-composer" id="chatComposer">
                 <input type="file" id="mediaUpload" accept="image/*,video/*" hidden>
+                <div class="message-preview-container" id="messagePreviewContainer" style="display: none;">
+                    <div class="preview-content">
+                        <span class="preview-label" id="previewLabel">Replying to</span>
+                        <p class="preview-text" id="previewText"></p>
+                    </div>
+                    <i class="bi bi-x" onclick="sparkChat.cancelReplyOrEdit()"></i>
+                </div>
                 <div class="composer-actions">
                     <i class="bi bi-plus-lg"></i>
-                    <i class="bi bi-image"></i>
+                    <i class="bi bi-image" onclick="document.getElementById('mediaUpload').click()"></i>
                     <i class="bi bi-emoji-smile"></i>
                     <i class="bi bi-mic"></i>
                 </div>
@@ -72,7 +91,7 @@
                     <div class="input-wrapper">
                         <textarea id="messageInput" class="composer-textarea" placeholder="Type a message..." rows="1"></textarea>
                     </div>
-                    <button class="msg-send-btn" id="sendBtn">
+                    <button class="msg-send-btn" id="sendBtn" disabled>
                         <i class="bi bi-send-fill"></i>
                     </button>
                 </div>
@@ -91,6 +110,211 @@
 
     </div>
 </div>
+
+<!-- Message Action Overlay (Combined Reactions + Actions like IG/Messenger) -->
+<div class="overlay-backdrop" id="messageActionOverlay" style="display:none;" onclick="sparkChat.closeMessageActionMenu()">
+    <div class="message-action-modal" id="messageActionModal" onclick="event.stopPropagation()">
+        
+        <!-- Reactions Row -->
+        <div class="message-reactions-row">
+            <button onclick="sparkChat.selectReaction('❤️')">❤️</button>
+            <button onclick="sparkChat.selectReaction('😂')">😂</button>
+            <button onclick="sparkChat.selectReaction('👍')">👍</button>
+            <button onclick="sparkChat.selectReaction('😮')">😮</button>
+            <button onclick="sparkChat.selectReaction('😢')">😢</button>
+            <button onclick="sparkChat.selectReaction('😡')">😡</button>
+        </div>
+        
+        <div class="action-drawer-options">
+            <button onclick="sparkChat.handleActionReply()" class="action-btn">
+                <i class="bi bi-reply"></i> Reply
+            </button>
+            <button onclick="sparkChat.handleActionEdit()" class="action-btn" id="actionDrawerEditBtn">
+                <i class="bi bi-pencil"></i> Edit Message
+            </button>
+            <button onclick="sparkChat.handleActionDeleteForMe()" class="action-btn">
+                <i class="bi bi-trash"></i> Delete for Me
+            </button>
+            <button onclick="sparkChat.handleActionDeleteForEveryone()" class="action-btn text-danger" id="actionDrawerDeleteEveryoneBtn">
+                <i class="bi bi-trash-fill"></i> Unsend
+            </button>
+            <button onclick="sparkChat.closeMessageActionMenu()" class="action-btn cancel-btn">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- New Chat / Create Group Modal -->
+<div class="modal-overlay" id="newChatModalOverlay" style="display:none; z-index: 1000;" onclick="sparkChat.closeNewChatModal(event)">
+    <div class="new-chat-modal">
+        <div class="modal-header border-b px-4 py-3 flex items-center justify-between">
+            <h2 class="text-lg font-semibold" id="newChatModalTitle">New Chat</h2>
+            <i class="bi bi-x-lg cursor-pointer" onclick="sparkChat.closeNewChatModal(true)"></i>
+        </div>
+        <div class="modal-tabs flex border-b">
+            <button class="flex-1 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600" id="tabNewMessage" onclick="sparkChat.switchNewChatTab('new')">New Message</button>
+            <button class="flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent" id="tabCreateGroup" onclick="sparkChat.switchNewChatTab('group')">Create Group</button>
+        </div>
+        
+        <div class="modal-body p-4 h-96 overflow-y-auto">
+            <!-- Group Details Form (Hidden initally) -->
+            <div id="groupDetailsForm" style="display:none;" class="mb-4">
+                <input type="text" id="groupNameInput" class="w-full p-2 border rounded mb-2" placeholder="Group Name">
+                <input type="file" id="groupIconInput" accept="image/*" class="text-sm">
+            </div>
+
+            <!-- Search Area -->
+            <div class="search-bar-container w-full mb-4">
+                <i class="bi bi-search"></i>
+                <input type="text" id="newChatSearch" class="sidebar-search w-full" placeholder="Search for users..." oninput="sparkChat.handleUserSearch(this.value)">
+            </div>
+            
+            <div id="selectedGroupUsers" class="flex flex-wrap gap-2 mb-4" style="display:none;"></div>
+            
+            <div id="userSearchResults" class="space-y-2">
+                <div class="text-center text-gray-500 py-4 text-sm">Type a name or username to search...</div>
+            </div>
+        </div>
+        
+        <div class="modal-footer border-t p-4 flex justify-end" id="groupModalFooter" style="display:none;">
+            <button class="px-4 py-2 bg-gray-200 rounded mr-2" onclick="sparkChat.closeNewChatModal(true)">Cancel</button>
+            <button class="px-4 py-2 bg-blue-500 text-white rounded" onclick="sparkChat.submitCreateGroup()">Create Group</button>
+        </div>
+    </div>
+</div>
+
+<!-- WhatsApp Style FAB for Messages Page -->
+<div class="wa-fab-container">
+    <div class="wa-fab-menu" id="waFabMenu">
+        <button class="wa-fab-item" onclick="toggleWaFab(); sparkChat.openNewChatModal(); sparkChat.switchNewChatTab('group');">
+            <i class="bi bi-people-fill text-blue-500"></i>
+            <span class="wa-fab-label">Create Group</span>
+        </button>
+        <button class="wa-fab-item" onclick="toggleWaFab(); sparkChat.openNewChatModal(); sparkChat.switchNewChatTab('new');">
+            <i class="bi bi-person-fill-add text-green-500"></i>
+            <span class="wa-fab-label">New Chat</span>
+        </button>
+    </div>
+    <button class="wa-main-fab" id="waMainFab" onclick="toggleWaFab()">
+        <i class="bi bi-chat-text-fill" id="waFabIcon_chat"></i>
+        <i class="bi bi-x-lg" id="waFabIcon_close" style="display:none; font-size: 26px;"></i>
+    </button>
+</div>
+
+<style>
+.wa-fab-container {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    z-index: 999;
+}
+.wa-main-fab {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #25D366;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s;
+}
+.wa-main-fab:hover {
+    transform: scale(1.05);
+}
+.wa-main-fab.active {
+    background: #128C7E;
+    transform: rotate(90deg);
+}
+.wa-fab-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+    margin-bottom: 20px;
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1);
+    transform: translateY(20px) scale(0.9);
+    transform-origin: bottom right;
+}
+.wa-fab-menu.open {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.wa-fab-item {
+    background: white;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #475569;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s, background 0.2s;
+}
+.wa-fab-item:hover {
+    transform: scale(1.1);
+}
+.wa-fab-label {
+    position: absolute;
+    right: 60px;
+    background: white;
+    color: #1e293b;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    pointer-events: none;
+}
+@media (min-width: 1025px) {
+    .wa-fab-container {
+        bottom: 30px;
+        right: 30px;
+    }
+}
+</style>
+
+<script>
+function toggleWaFab() {
+    const menu = document.getElementById('waFabMenu');
+    const fabButton = document.getElementById('waMainFab');
+    const chatIcon = document.getElementById('waFabIcon_chat');
+    const closeIcon = document.getElementById('waFabIcon_close');
+    
+    if (menu.classList.contains('open')) {
+        menu.classList.remove('open');
+        fabButton.classList.remove('active');
+        setTimeout(() => {
+            chatIcon.style.display = 'block';
+            closeIcon.style.display = 'none';
+        }, 150);
+    } else {
+        menu.classList.add('open');
+        fabButton.classList.add('active');
+        setTimeout(() => {
+            chatIcon.style.display = 'none';
+            closeIcon.style.display = 'block';
+        }, 100);
+    }
+}
+</script>
 
 <%- include('partials/navbar') %>
 <%- include('partials/bottom-nav') %>

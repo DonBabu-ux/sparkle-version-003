@@ -13,6 +13,15 @@ class SparkleChat {
         this.isTyping = false;
         this.isLoading = false;
         
+        // New State for V3 Features
+        this.activeMessageId = null;
+        this.replyingToMessageId = null;
+        this.editingMessageId = null;
+        this.touchStartX = 0;
+        this.longPressTimer = null;
+        this.selectedGroupUsers = [];
+        this.newChatTab = 'new';
+        
         this.init();
     }
 
@@ -68,6 +77,7 @@ class SparkleChat {
         this.socket.on('user-status', (data) => this.handleUserStatus(data));
         this.socket.on('new-reaction', (data) => this.handleReaction(data));
         this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
+        this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted(data));
     }
 
     bindEvents() {
@@ -91,13 +101,43 @@ class SparkleChat {
         chatSearchInput?.addEventListener('input', (e) => this.handleChatSearch(e.target.value));
         
         // Send Buttons
-        document.getElementById('sendBtn')?.addEventListener('click', () => this.sendMessage());
+        const sendBtn = document.getElementById('sendBtn');
+        sendBtn?.addEventListener('click', () => this.submitMessageForm());
         textarea?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                this.sendMessage();
+                this.submitMessageForm();
             }
         });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.chat-menu-wrapper')) {
+                const menu = document.getElementById('chatDropdownMenu');
+                if (menu) menu.style.display = 'none';
+            }
+        });
+    }
+
+    submitMessageForm() {
+        if (this.editingMessageId) {
+            this.sendEdit();
+        } else {
+            this.sendMessage();
+        }
+    }
+
+    autoResizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) {
+            if (textarea.value.trim().length > 0 || this.editingMessageId) {
+                sendBtn.disabled = false;
+            } else {
+                sendBtn.disabled = true;
+            }
+        }
     }
 
     // --- Inbox & Conversations ---
@@ -285,6 +325,7 @@ class SparkleChat {
 
         container.innerHTML = html;
         this.scrollToBottom();
+        this.bindGestures();
     }
 
     createMessageHTML(msg) {
@@ -304,20 +345,45 @@ class SparkleChat {
             }
         }
 
+        let reactionsHtml = '';
+        if (msg.reactions && msg.reactions.length > 0) {
+            // Deduplicate emojis and count
+            const reactionCounts = {};
+            let reactionsArray = msg.reactions;
+            if (typeof reactionsArray === 'string') {
+                try { reactionsArray = JSON.parse(reactionsArray); } catch(e){}
+            }
+            if (Array.isArray(reactionsArray)) {
+                reactionsArray.forEach(r => {
+                    if (r && r.emoji) {
+                        reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
+                    }
+                });
+                const summary = Object.entries(reactionCounts).map(([emoji, count]) => `${emoji} ${count > 1 ? count : ''}`).join(' ');
+                if (summary) {
+                    reactionsHtml = `<div class="msg-reactions"><span class="reaction-badge">${summary}</span></div>`;
+                }
+            }
+        }
+
+        const isDeleted = msg.is_deleted_for_everyone === 1;
+
         return `
-            <div class="msg-bubble ${isMe ? 'msg-sent' : 'msg-received'}" data-msg-id="${msg.message_id}">
-                ${msg.reply_to_message_id ? `
+            <div class="msg-bubble ${isMe ? 'msg-sent' : 'msg-received'} ${isDeleted ? 'msg-deleted' : ''}" data-msg-id="${msg.message_id}" data-is-own="${isMe}">
+                ${msg.reply_to_message_id && !isDeleted ? `
                     <div class="reply-preview">
                         <i class="bi bi-reply-fill"></i>
                         <span>${msg.reply_content}</span>
                     </div>
                 ` : ''}
-                ${mediaContent}
-                ${msg.content ? `<div class="msg-body">${msg.content}</div>` : ''}
+                ${!isDeleted ? mediaContent : ''}
+                ${msg.content || isDeleted ? `<div class="msg-body">${isDeleted ? '🚫 This message was deleted.' : msg.content}</div>` : ''}
                 <div class="msg-footer">
                     <span>${this.formatTime(msg.sent_at)}</span>
-                    ${isMe ? `<span class="msg-tick ${readClass}"><i class="bi ${statusIcon}"></i></span>` : ''}
+                    ${msg.edited_at && !isDeleted ? '<span style="font-style:italic; margin-inline: 4px;">(edited)</span>' : ''}
+                    ${isMe && !isDeleted ? `<span class="msg-tick ${readClass}"><i class="bi ${statusIcon}"></i></span>` : ''}
                 </div>
+                ${reactionsHtml}
             </div>
         `;
     }
@@ -436,18 +502,22 @@ class SparkleChat {
         const content = input.value.trim();
         if (!content || !this.currentChatId) return;
 
-        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        // Use '==' to handle cases where one is string and one is int
+        const conv = this.conversations.find(c => c.chat_id == this.currentChatId);
         const data = {
             chatId: this.currentChatId,
             recipientId: conv?.partner_id,
             content: content,
-            type: 'text'
+            type: 'text',
+            replyToId: this.replyingToMessageId
         };
 
         this.socket.emit('send-message', data);
         input.value = '';
         input.style.height = 'auto';
+        document.getElementById('sendBtn').disabled = true;
         this.stopTyping();
+        this.cancelReplyOrEdit();
     }
 
     handleIncomingMessage(msg) {
@@ -583,6 +653,372 @@ class SparkleChat {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
         if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // ==========================================
+    // V3 EXTENDED FEATURES 
+    // ==========================================
+
+    bindGestures() {
+        const bubbles = document.querySelectorAll('.msg-bubble');
+        bubbles.forEach(bubble => {
+            // Only attach if not deleted
+            if (bubble.classList.contains('msg-deleted')) return;
+
+            bubble.addEventListener('touchstart', (e) => {
+                this.touchStartX = e.changedTouches[0].screenX;
+                this.longPressTimer = setTimeout(() => {
+                    this.openMessageActionMenu(bubble.dataset.msgId, bubble.dataset.isOwn === 'true');
+                }, 500);
+            }, { passive: true });
+
+            bubble.addEventListener('touchend', (e) => {
+                clearTimeout(this.longPressTimer);
+                const touchEndX = e.changedTouches[0].screenX;
+                const diffX = this.touchStartX - touchEndX;
+
+                if (Math.abs(diffX) > 50) {
+                    // Swipe right or left triggers reply directly
+                    this.activeMessageId = bubble.dataset.msgId;
+                    this.handleActionReply();
+                }
+            }, { passive: true });
+
+            // Desktop fallback: right click for actions
+            bubble.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                this.openMessageActionMenu(bubble.dataset.msgId, bubble.dataset.isOwn === 'true');
+            });
+            // Desktop fallback: double click for heart
+            bubble.addEventListener('dblclick', () => {
+                this.activeMessageId = bubble.dataset.msgId;
+                this.selectReaction('❤️');
+            });
+        });
+    }
+
+    // --- Unified Action Drawer ---
+    openMessageActionMenu(msgId, isOwn) {
+        this.activeMessageId = msgId;
+        const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${msgId}"]`);
+        if (!msgEl) return;
+
+        document.getElementById('actionDrawerEditBtn').style.display = isOwn ? 'flex' : 'none';
+        document.getElementById('actionDrawerDeleteEveryoneBtn').style.display = isOwn ? 'flex' : 'none';
+
+        document.getElementById('messageActionOverlay').style.display = 'flex';
+    }
+
+    closeMessageActionMenu() {
+        document.getElementById('messageActionOverlay').style.display = 'none';
+        this.activeMessageId = null;
+    }
+
+    handleActionReply() {
+        this.replyingToMessageId = this.activeMessageId;
+        const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.activeMessageId}"]`);
+        
+        document.getElementById('previewLabel').textContent = 'Replying to';
+        document.getElementById('previewText').textContent = msgEl.querySelector('.msg-body')?.textContent || 'Message';
+        document.getElementById('messagePreviewContainer').style.display = 'flex';
+        
+        document.getElementById('messageInput').focus();
+        this.closeMessageActionMenu();
+    }
+
+    handleActionEdit() {
+        this.editingMessageId = this.activeMessageId;
+        const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.activeMessageId}"]`);
+        
+        document.getElementById('previewLabel').textContent = 'Editing Message';
+        document.getElementById('previewText').textContent = msgEl.querySelector('.msg-body')?.textContent || '';
+        document.getElementById('messagePreviewContainer').style.display = 'flex';
+        
+        const input = document.getElementById('messageInput');
+        input.value = msgEl.querySelector('.msg-body')?.textContent || '';
+        input.focus();
+        this.autoResizeTextarea(input);
+        
+        this.closeMessageActionMenu();
+    }
+
+    async sendEdit() {
+        if (!this.editingMessageId) return;
+        const input = document.getElementById('messageInput');
+        const content = input.value.trim();
+        
+        try {
+            const response = await fetch(`/api/messages/${this.editingMessageId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                // Update local UI
+                const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.editingMessageId}"]`);
+                if (msgEl) {
+                    const body = msgEl.querySelector('.msg-body');
+                    if (body) body.textContent = content;
+                }
+            } else {
+                alert(result.error || 'Cannot edit this message anymore.');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+        
+        this.cancelReplyOrEdit();
+    }
+
+    async handleActionDeleteForMe() {
+        if (!this.activeMessageId) return;
+        try {
+            await fetch(`/api/messages/${this.activeMessageId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ forEveryone: false })
+            });
+            const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.activeMessageId}"]`);
+            if (msgEl) msgEl.remove();
+        } catch (err) {}
+        this.closeMessageActionMenu();
+    }
+
+    async handleActionDeleteForEveryone() {
+        if (!this.activeMessageId) return;
+        try {
+            await fetch(`/api/messages/${this.activeMessageId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ forEveryone: true })
+            });
+            this.socket.emit('delete-for-everyone', { 
+                messageId: this.activeMessageId, 
+                chatId: this.currentChatId 
+            });
+            
+            // Delete locally
+            this.handleMessageDeleted({ messageId: this.activeMessageId });
+        } catch (err) {}
+        this.closeMessageActionMenu();
+    }
+
+    handleMessageDeleted(data) {
+        if (data.messageId) {
+            const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${data.messageId}"]`);
+            if (msgEl) {
+                msgEl.classList.add('msg-deleted');
+                const body = msgEl.querySelector('.msg-body');
+                if (body) body.textContent = '🚫 This message was deleted.';
+                const media = msgEl.querySelector('.msg-media-img, .msg-media-video');
+                if (media) media.remove();
+                const reply = msgEl.querySelector('.reply-preview');
+                if (reply) reply.remove();
+            }
+        }
+    }
+
+    cancelReplyOrEdit() {
+        this.replyingToMessageId = null;
+        this.editingMessageId = null;
+        document.getElementById('messagePreviewContainer').style.display = 'none';
+        const input = document.getElementById('messageInput');
+        input.value = '';
+        this.autoResizeTextarea(input);
+    }
+
+    // --- Reactions ---
+
+    selectReaction(emoji) {
+        if (!this.activeMessageId || !this.currentChatId) return;
+        this.socket.emit('add-reaction', {
+            messageId: this.activeMessageId,
+            chatId: this.currentChatId,
+            emoji
+        });
+        this.closeMessageActionMenu();
+    }
+
+    handleReaction(data) {
+        // We need to refresh the messages or mutate the DOM
+        // The easiest is just to reload or inject it manually
+        // For now, let's just trigger a chat reload if we are in this chat, to get accurate groupings
+        if (this.currentChatId === data.chatId) {
+            // Only if it's not our own emit looping back, but we can debounce it or just inject
+            this.loadMessages(this.currentChatId); // In a real app we'd mutate DOM directly to avoid load jitter
+        }
+    }
+    
+    handleReactionRemoved(data) {
+        if (this.currentChatId === data.chatId) {
+            this.loadMessages(this.currentChatId);
+        }
+    }
+
+    // --- Header Dropdown ---
+    toggleChatMenu() {
+        const menu = document.getElementById('chatDropdownMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        
+        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        if (conv) {
+            document.getElementById('menuGroupSettings').style.display = conv.chat_type === 'group' ? 'block' : 'none';
+        }
+    }
+
+    async handleMuteNotifications() {
+        if (!this.currentChatId) return;
+        await fetch(`/api/messages/mute/${this.currentChatId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ muted: true })
+        });
+        alert('Chat muted!');
+        document.getElementById('chatDropdownMenu').style.display = 'none';
+    }
+
+    // --- New Chat Modal ---
+    openNewChatModal() {
+        document.getElementById('newChatModalOverlay').style.display = 'flex';
+        this.switchNewChatTab('new');
+        this.selectedGroupUsers = [];
+        this.renderSelectedGroupUsers();
+    }
+    
+    closeNewChatModal(force = false) {
+        if (force || event.target.id === 'newChatModalOverlay') {
+            document.getElementById('newChatModalOverlay').style.display = 'none';
+        }
+    }
+
+    switchNewChatTab(tab) {
+        this.newChatTab = tab;
+        document.getElementById('tabNewMessage').className = tab === 'new' ? 'flex-1 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent';
+        document.getElementById('tabCreateGroup').className = tab === 'group' ? 'flex-1 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent';
+        
+        document.getElementById('groupDetailsForm').style.display = tab === 'group' ? 'block' : 'none';
+        document.getElementById('groupModalFooter').style.display = tab === 'group' ? 'flex' : 'none';
+        document.getElementById('selectedGroupUsers').style.display = tab === 'group' ? 'flex' : 'none';
+        
+        this.selectedGroupUsers = [];
+        this.renderSelectedGroupUsers();
+    }
+
+    async handleUserSearch(query) {
+        const resultsEl = document.getElementById('userSearchResults');
+        if (query.trim().length < 2) {
+            resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Type a name or username to search...</div>';
+            return;
+        }
+        
+        resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm"><div class="spinner-pink mx-auto"></div></div>';
+        
+        try {
+            const response = await fetch(`/api/search/users?q=${query}`);
+            const result = await response.json();
+            
+            if (result.status === 'success' && result.data.length > 0) {
+                resultsEl.innerHTML = result.data.map(user => `
+                    <div class="user-search-result" onclick="sparkChat.selectUserFromSearch('${user.user_id}', '${user.name}', '${user.avatar_url}')">
+                        <img src="${user.avatar_url || '/uploads/avatars/default.png'}">
+                        <div class="flex-1">
+                            <div class="font-medium text-sm text-gray-900">${user.name}</div>
+                            <div class="text-xs text-gray-500">@${user.username}</div>
+                        </div>
+                        ${this.newChatTab === 'group' ? `
+                            <div class="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center ${this.selectedGroupUsers.find(u => u.id === user.user_id) ? 'bg-blue-500 border-blue-500 text-white' : ''}">
+                                ${this.selectedGroupUsers.find(u => u.id === user.user_id) ? '<i class="bi bi-check"></i>' : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } else {
+                resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">No users found.</div>';
+            }
+        } catch (err) {
+             resultsEl.innerHTML = '<div class="text-center text-red-500 py-4 text-sm">Error searching.</div>';
+        }
+    }
+
+    async selectUserFromSearch(userId, name, avatar) {
+        if (this.newChatTab === 'new') {
+            // Start direct chat
+            try {
+                const res = await fetch('/api/messages/start', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ partnerId: userId })
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    this.closeNewChatModal(true);
+                    this.loadInbox().then(() => {
+                        this.openChat(result.data.conversationId);
+                    });
+                }
+            } catch (err) { console.error(err); }
+        } else {
+            // Group chat selection
+            const exists = this.selectedGroupUsers.findIndex(u => u.id === userId);
+            if (exists >= 0) {
+                this.selectedGroupUsers.splice(exists, 1);
+            } else {
+                this.selectedGroupUsers.push({ id: userId, name, avatar });
+            }
+            this.renderSelectedGroupUsers();
+            // Re-render search results to toggle checkbox
+            this.handleUserSearch(document.getElementById('newChatSearch').value);
+        }
+    }
+
+    renderSelectedGroupUsers() {
+        const container = document.getElementById('selectedGroupUsers');
+        if (this.selectedGroupUsers.length === 0) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'flex';
+        container.innerHTML = this.selectedGroupUsers.map(u => `
+            <div class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                ${u.name.split(' ')[0]}
+                <i class="bi bi-x cursor-pointer" onclick="event.stopPropagation(); sparkChat.selectUserFromSearch('${u.id}')"></i>
+            </div>
+        `).join('');
+    }
+
+    async submitCreateGroup() {
+        const name = document.getElementById('groupNameInput').value;
+        const fileRef = document.getElementById('groupIconInput').files[0];
+        
+        if (!name || this.selectedGroupUsers.length === 0) {
+            alert('Please provide a group name and select at least one member!');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('members', JSON.stringify(this.selectedGroupUsers.map(u => u.id)));
+        if (fileRef) formData.append('pfp', fileRef);
+
+        try {
+            const res = await fetch('/api/groupChat', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            if (result.status === 'success') {
+                this.closeNewChatModal(true);
+                this.loadInbox().then(() => {
+                    this.openChat(result.data.chat.chat_id);
+                });
+            } else {
+                alert('Group creation failed: ' + result.error);
+            }
+        } catch (err) {
+            console.error(err);
+        }
     }
 }
 

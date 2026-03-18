@@ -146,40 +146,76 @@
 </div>
 
 <!-- New Chat / Create Group Modal -->
-<div class="modal-overlay" id="newChatModalOverlay" style="display:none; z-index: 1000;" onclick="sparkChat.closeNewChatModal(event)">
-    <div class="new-chat-modal">
-        <div class="modal-header border-b px-4 py-3 flex items-center justify-between">
-            <h2 class="text-lg font-semibold" id="newChatModalTitle">New Chat</h2>
-            <i class="bi bi-x-lg cursor-pointer" onclick="sparkChat.closeNewChatModal(true)"></i>
+<div class="modal-overlay" id="newChatModalOverlay" style="display:none; z-index:1000; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; padding:16px;" onclick="sparkChat.closeNewChatModal(event)">
+    <div class="new-chat-modal" style="background:white; width:100%; max-width:480px; border-radius:24px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.2); display:flex; flex-direction:column; max-height:85vh;">
+
+        <!-- Header -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 20px 0;">
+            <div>
+                <div style="font-size:19px; font-weight:800; color:#111;" id="newChatModalTitle">New Chat</div>
+                <div style="font-size:12px; color:#888; margin-top:2px;">Start a direct message or group</div>
+            </div>
+            <button onclick="sparkChat.closeNewChatModal(true)" style="width:36px;height:36px;border-radius:50%;background:#f1f5f9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:#64748b;transition:background .2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
-        <div class="modal-tabs flex border-b">
-            <button class="flex-1 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600" id="tabNewMessage" onclick="sparkChat.switchNewChatTab('new')">New Message</button>
-            <button class="flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent" id="tabCreateGroup" onclick="sparkChat.switchNewChatTab('group')">Create Group</button>
+
+        <!-- Tabs -->
+        <div style="display:flex; gap:0; margin:16px 20px 0; background:#f8fafc; border-radius:12px; padding:4px;">
+            <button id="tabNewMessage" onclick="sparkChat.switchNewChatTab('new')"
+                style="flex:1; padding:10px; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; transition:all .25s; background:white; color:#6366f1; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <i class="bi bi-chat-dots" style="margin-right:6px;"></i>New Message
+            </button>
+            <button id="tabCreateGroup" onclick="sparkChat.switchNewChatTab('group')"
+                style="flex:1; padding:10px; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; transition:all .25s; background:transparent; color:#94a3b8;">
+                <i class="bi bi-people" style="margin-right:6px;"></i>Create Group
+            </button>
         </div>
-        
-        <div class="modal-body p-4 h-96 overflow-y-auto">
-            <!-- Group Details Form (Hidden initally) -->
-            <div id="groupDetailsForm" style="display:none;" class="mb-4">
-                <input type="text" id="groupNameInput" class="w-full p-2 border rounded mb-2" placeholder="Group Name">
-                <input type="file" id="groupIconInput" accept="image/*" class="text-sm">
+
+        <!-- Modal Body -->
+        <div style="padding:16px 20px; overflow-y:auto; flex:1;">
+
+            <!-- Group Details Form -->
+            <div id="groupDetailsForm" style="display:none; margin-bottom:14px;">
+                <div style="position:relative; margin-bottom:10px;">
+                    <i class="bi bi-pencil-fill" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:14px;"></i>
+                    <input type="text" id="groupNameInput" placeholder="Group name..."
+                        style="width:100%; padding:12px 14px 12px 38px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; font-weight:600; outline:none; color:#111; transition:border .2s; box-sizing:border-box;"
+                        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+                <label style="display:flex; align-items:center; gap:10px; padding:10px 14px; border:2px dashed #e2e8f0; border-radius:14px; cursor:pointer; color:#94a3b8; font-size:13px; font-weight:600; transition:border .2s;" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#e2e8f0'">
+                    <i class="bi bi-image" style="font-size:18px; color:#6366f1;"></i>
+                    Add group icon (optional)
+                    <input type="file" id="groupIconInput" accept="image/*" style="display:none;">
+                </label>
             </div>
 
-            <!-- Search Area -->
-            <div class="search-bar-container w-full mb-4">
-                <i class="bi bi-search"></i>
-                <input type="text" id="newChatSearch" class="sidebar-search w-full" placeholder="Search for users..." oninput="sparkChat.handleUserSearch(this.value)">
+            <!-- Selected Group Users Tags -->
+            <div id="selectedGroupUsers" style="display:none; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
+
+            <!-- Search Bar -->
+            <div style="display:flex; align-items:center; gap:10px; background:#f8fafc; border-radius:14px; padding:10px 14px; margin-bottom:14px; border:2px solid transparent; transition:border .2s;" onfocusin="this.style.borderColor='#6366f1'" onfocusout="this.style.borderColor='transparent'">
+                <i class="bi bi-search" style="color:#94a3b8; font-size:15px; flex-shrink:0;"></i>
+                <input type="text" id="newChatSearch"
+                    placeholder="Search people..."
+                    oninput="sparkChat.handleUserSearch(this.value)"
+                    style="flex:1; background:none; border:none; outline:none; font-size:14px; color:#111; font-family:inherit;">
             </div>
-            
-            <div id="selectedGroupUsers" class="flex flex-wrap gap-2 mb-4" style="display:none;"></div>
-            
-            <div id="userSearchResults" class="space-y-2">
-                <div class="text-center text-gray-500 py-4 text-sm">Type a name or username to search...</div>
-            </div>
+
+            <!-- Results -->
+            <div id="userSearchResults" style="display:flex; flex-direction:column; gap:4px;"></div>
         </div>
-        
-        <div class="modal-footer border-t p-4 flex justify-end" id="groupModalFooter" style="display:none;">
-            <button class="px-4 py-2 bg-gray-200 rounded mr-2" onclick="sparkChat.closeNewChatModal(true)">Cancel</button>
-            <button class="px-4 py-2 bg-blue-500 text-white rounded" onclick="sparkChat.submitCreateGroup()">Create Group</button>
+
+        <!-- Group Footer -->
+        <div id="groupModalFooter" style="display:none; padding:16px 20px; border-top:1px solid #f1f5f9; gap:10px;">
+            <button onclick="sparkChat.closeNewChatModal(true)"
+                style="flex:1; padding:12px; border:2px solid #e2e8f0; border-radius:14px; background:white; font-size:14px; font-weight:700; color:#64748b; cursor:pointer; transition:all .2s;"
+                onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">Cancel</button>
+            <button onclick="sparkChat.submitCreateGroup()"
+                style="flex:1; padding:12px; border:none; border-radius:14px; background:linear-gradient(135deg,#6366f1,#a855f7); color:white; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(99,102,241,0.35); transition:all .2s; display:flex; align-items:center; justify-content:center; gap:8px;"
+                onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                <i class="bi bi-people-fill"></i> Create Group
+            </button>
         </div>
     </div>
 </div>

@@ -884,6 +884,45 @@ class SparkleChat {
         this.switchNewChatTab('new');
         this.selectedGroupUsers = [];
         this.renderSelectedGroupUsers();
+        this.loadFollowedUsers();
+    }
+
+    async loadFollowedUsers() {
+        const resultsEl = document.getElementById('userSearchResults');
+        resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm"><div class="spinner-pink mx-auto"></div></div>';
+        try {
+            const res = await fetch('/api/users/following');
+            const result = await res.json();
+            const users = result.data || result.users || (Array.isArray(result) ? result : []);
+            this._followedUsers = users;
+            if (users.length === 0) {
+                resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">You\'re not following anyone yet.</div>';
+                return;
+            }
+            this.renderUserList(users, resultsEl);
+        } catch (e) {
+            resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Could not load contacts.</div>';
+        }
+    }
+
+    renderUserList(users, container) {
+        container.innerHTML = users.map(user => `
+            <div class="user-search-result" onclick="sparkChat.selectUserFromSearch('${user.user_id}', '${user.name}', '${user.avatar_url}')">
+                <div style="position:relative;flex-shrink:0;">
+                    <img src="${user.avatar_url || '/uploads/avatars/default.png'}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">
+                    ${user.is_online ? '<div style="position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:#22c55e;border-radius:50%;border:2px solid white;"></div>' : ''}
+                </div>
+                <div class="flex-1" style="min-width:0;">
+                    <div style="font-weight:600;font-size:14px;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${user.name}</div>
+                    <div style="font-size:12px;color:#888;">@${user.username}</div>
+                </div>
+                ${this.newChatTab === 'group' ? `
+                    <div style="width:22px;height:22px;border-radius:50%;border:2px solid ${this.selectedGroupUsers.find(u => u.id === user.user_id) ? '#3b82f6' : '#d1d5db'};background:${this.selectedGroupUsers.find(u => u.id === user.user_id) ? '#3b82f6' : 'white'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        ${this.selectedGroupUsers.find(u => u.id === user.user_id) ? '<i class="bi bi-check" style="color:white;font-size:13px;"></i>' : ''}
+                    </div>
+                ` : '<i class="bi bi-chevron-right" style="color:#d1d5db;font-size:14px;"></i>'}
+            </div>
+        `).join('');
     }
     
     closeNewChatModal(force = false) {
@@ -894,50 +933,72 @@ class SparkleChat {
 
     switchNewChatTab(tab) {
         this.newChatTab = tab;
-        document.getElementById('tabNewMessage').className = tab === 'new' ? 'flex-1 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent';
-        document.getElementById('tabCreateGroup').className = tab === 'group' ? 'flex-1 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent';
-        
+
+        // Pill-style tab toggle
+        const tabNew = document.getElementById('tabNewMessage');
+        const tabGroup = document.getElementById('tabCreateGroup');
+        tabNew.style.background = tab === 'new' ? 'white' : 'transparent';
+        tabNew.style.color = tab === 'new' ? '#6366f1' : '#94a3b8';
+        tabNew.style.boxShadow = tab === 'new' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none';
+        tabGroup.style.background = tab === 'group' ? 'white' : 'transparent';
+        tabGroup.style.color = tab === 'group' ? '#6366f1' : '#94a3b8';
+        tabGroup.style.boxShadow = tab === 'group' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none';
+
         document.getElementById('groupDetailsForm').style.display = tab === 'group' ? 'block' : 'none';
         document.getElementById('groupModalFooter').style.display = tab === 'group' ? 'flex' : 'none';
         document.getElementById('selectedGroupUsers').style.display = tab === 'group' ? 'flex' : 'none';
-        
+
         this.selectedGroupUsers = [];
         this.renderSelectedGroupUsers();
+        document.getElementById('newChatSearch').value = '';
+
+        // Reload followed users list for the current tab
+        this.loadFollowedUsers();
     }
 
     async handleUserSearch(query) {
         const resultsEl = document.getElementById('userSearchResults');
+
+        // If query is empty/very short, filter locally from followed users
         if (query.trim().length < 2) {
-            resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Type a name or username to search...</div>';
+            if (this._followedUsers && this._followedUsers.length > 0) {
+                const filtered = query.trim().length === 0 ? this._followedUsers :
+                    this._followedUsers.filter(u =>
+                        u.name.toLowerCase().includes(query.toLowerCase()) ||
+                        (u.username || '').toLowerCase().includes(query.toLowerCase())
+                    );
+                this.renderUserList(filtered, resultsEl);
+            } else {
+                resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Type a name to search all users...</div>';
+            }
             return;
         }
-        
+
+        // First filter from followed list locally
+        if (this._followedUsers && this._followedUsers.length > 0) {
+            const localMatches = this._followedUsers.filter(u =>
+                u.name.toLowerCase().includes(query.toLowerCase()) ||
+                (u.username || '').toLowerCase().includes(query.toLowerCase())
+            );
+            if (localMatches.length > 0) {
+                this.renderUserList(localMatches, resultsEl);
+                return;
+            }
+        }
+
+        // Fall back to global search
         resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm"><div class="spinner-pink mx-auto"></div></div>';
-        
         try {
-            const response = await fetch(`/api/search/users?q=${query}`);
+            const response = await fetch(`/api/search/users?q=${encodeURIComponent(query)}`);
             const result = await response.json();
-            
-            if (result.status === 'success' && result.data.length > 0) {
-                resultsEl.innerHTML = result.data.map(user => `
-                    <div class="user-search-result" onclick="sparkChat.selectUserFromSearch('${user.user_id}', '${user.name}', '${user.avatar_url}')">
-                        <img src="${user.avatar_url || '/uploads/avatars/default.png'}">
-                        <div class="flex-1">
-                            <div class="font-medium text-sm text-gray-900">${user.name}</div>
-                            <div class="text-xs text-gray-500">@${user.username}</div>
-                        </div>
-                        ${this.newChatTab === 'group' ? `
-                            <div class="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center ${this.selectedGroupUsers.find(u => u.id === user.user_id) ? 'bg-blue-500 border-blue-500 text-white' : ''}">
-                                ${this.selectedGroupUsers.find(u => u.id === user.user_id) ? '<i class="bi bi-check"></i>' : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                `).join('');
+            const data = result.data || result.users || [];
+            if (data.length > 0) {
+                this.renderUserList(data, resultsEl);
             } else {
                 resultsEl.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">No users found.</div>';
             }
         } catch (err) {
-             resultsEl.innerHTML = '<div class="text-center text-red-500 py-4 text-sm">Error searching.</div>';
+            resultsEl.innerHTML = '<div class="text-center text-red-500 py-4 text-sm">Error searching.</div>';
         }
     }
 

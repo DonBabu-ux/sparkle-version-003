@@ -1,0 +1,54 @@
+✨ Sparkle - Existing Features Documentation
+
+=========================================
+1. CORE SOCIAL EXPERIENCE
+=========================================
+- Home Feed: Campus-prioritized content feed with Instagram-style layout for familiarity.
+- Sparks: Reimagined content interaction system (likes) with custom animations.
+- Posts: Support for image and text posts with comments and spark interactions.
+- AfterGlow (Stories): Ephemeral content (stories) with delayed publishing (1–3 hours) and 24-hour auto-expiry.
+- Moments: Vertical short-form video content (15–60s) with swipe navigation.
+
+=========================================
+2. CAMPUS COMMUNITY & CLUBS
+=========================================
+- Campus Groups: Create and join social, academic, or interest-based groups within the campus.
+- Group Feeds: Dedicated content feeds for each group.
+- Group Chats: Real-time messaging for group members.
+- Campus Clubs: Formal organization directory with detailed club profiles and membership management.
+
+=========================================
+3. CAMPUS UTILITIES
+=========================================
+- Marketplace: A secure platform for students to buy and sell items within the campus community.
+- Skill Marketplace: A dedicated space for trading or offering skills and services.
+- Lost & Found: Digital bulletin board for reporting and claiming lost items on campus.
+- Confessions: Anonymous campus confession system that resets daily to maintain freshness.
+
+=========================================
+4. COMMUNICATION & DISCOVERY
+=========================================
+- Messaging (DMs): Private, real-time one-on-one chat system.
+- Connect: People discovery tool tailored to find students based on campus, interests, and year of study.
+- Follow System: Privacy-focused connection model (Following/Follow Requests) without public follower counts.
+- Real-time Notifications: In-app and Web Push notification support for interactions and messages.
+
+=========================================
+5. PRIVACY, SAFETY & MODERATION
+=========================================
+- Anonymous Mode: Access to anonymous posting and chatting via a dedicated secure interface (Pink Padlock).
+- Privacy Controls: Detailed settings for profile visibility, notifications, and user blocking.
+- Admin Dashboard: Robust moderation suite for content review, user verification, and handling bans/mutes.
+
+=========================================
+6. USER MANAGEMENT
+=========================================
+- Authentication: Secure login, signup, email verification, and password recovery.
+- Dynamic Profiles: Content-focused vertical profiles (TikTok-style) showing bio, campus, and posts grid.
+- App Settings: Centralized hub for managing account details and preferences.
+
+=========================================
+7. DEVELOPER TOOLS
+=========================================
+- API Tester: Integrated tool for testing and debugging backend API endpoints.
+- Route Scanner: Utility for auditing and mapping application routes.

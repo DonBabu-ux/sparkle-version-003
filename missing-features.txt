@@ -1,0 +1,36 @@
+✨ Sparkle - Missing & Unimplemented Features Documentation
+
+=========================================
+1. COMPLETELY MISSING BACKEND (UI ONLY)
+=========================================
+- Campus Events: The `events.ejs` view and `openEventModal()` exist, but there are no backend routes or controllers to handle event creation, listing, or RSVPs.
+- Campus Polls: The `polls.ejs` view exists, but there is no backend support for creating polls, voting, or calculating results.
+- Live Streams: The `streams.ejs` view and `openGoLiveModal()` exist, but no backend logic exists for managing active streams, joining streams, or updating viewer counts.
+
+=========================================
+2. MISSING DATABASE COMPONENTS
+=========================================
+- Post Reports Table: The Admin Controller references `post_reports`, but the table is missing from `db.sql`.
+- Confession Reports Table: The Admin and Confession Controllers reference `confession_reports`, but the table is missing from `db.sql`.
+- Anonymous Messaging Support: The `messages` table lacks a specific type or flag for "Anonymous Chats" as described in the Design Philosophy.
+
+=========================================
+3. UNIMPLEMENTED LOGIC (READABLE VS FUNCTIONAL)
+=========================================
+- Delayed Publishing (AfterGlow): README describes a 1–3 hour delay for story publishing, but current logic publishes stories immediately upon creation.
+- Privacy in Moments: README states "No public likes or views" for Moments, but the database tracks them and the UI currently displays them to users.
+- Anonymous Mode Lock: The "Pink Padlock" interface for entering a global Anonymous Mode is mentioned, but the backend lacks a session-level or global toggle beyond the basic `anonymous_enabled` user setting.
+- Infinite Scroll Restriction: Moments are intended to have "No infinite scroll" to reduce social pressure, but no restriction logic is currently implemented in the frontend or backend.
+
+=========================================
+4. PARTIAL ADMIN FUNCTIONALITY
+=========================================
+- Report Resolution: While the controller has `resolveReport`, it relies on the missing report tables mentioned above.
+- System Log Exports: Exporting logs as JSON is implemented in code but requires the `admin_logs` table to be fully populated by all admin actions.
+- Content Moderation: The dashboard for reviewing anonymous confessions and user verification is partially implemented but lacks the full feedback loop for moderators.
+
+=========================================
+5. DESIGN PHILOSOPHY GAPS
+=========================================
+- Campus-Scoped Anonymity: Logic to strictly scope anonymous interactions to the user's campus is partially present in some controllers but not enforced across all features (e.g., global messaging).
+- Presence over Performance: Metrics like "Last Seen" are implemented but the "Presence" focus (e.g., real-time activity indicators) is not fully integrated into the Home Feed.

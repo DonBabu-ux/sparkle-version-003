@@ -1,26 +1,26 @@
-// signupIntegration.js - Unified Supabase Auth Integration
+// signupIntegration.js - Unified Supabase Auth Integration with Fallback
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🔌 Unified Auth Integration Loaded');
 
     // 1. Initialize Supabase
     let supabase = null;
     const config = window.SUPABASE_CONFIG;
+    let useSupabase = false;
 
     console.log('🚀 Initializing Supabase Integration...');
 
     if (window.supabase && config && config.url && config.key) {
         try {
             supabase = window.supabase.createClient(config.url, config.key);
+            useSupabase = true;
             console.log('✅ Supabase Client Initialized');
         } catch (err) {
             console.error('❌ Failed to create Supabase client:', err);
+            useSupabase = false;
         }
     } else {
-        console.warn('⚠️ Supabase config incomplete or library missing:', {
-            library: !!window.supabase,
-            url: !!config?.url,
-            key: !!config?.key
-        });
+        console.warn('⚠️ Supabase config incomplete or library missing, using fallback API');
+        useSupabase = false;
     }
 
     // App State for Signup
@@ -34,9 +34,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const googleBtn = document.getElementById('google-login');
     if (googleBtn) {
         googleBtn.addEventListener('click', async () => {
-            if (!supabase) {
-                console.error('Signup flow blocked: Supabase not initialized.');
-                return alert('Supabase not configured locally. Check your .env file and ensure the server restarted.');
+            if (!useSupabase) {
+                console.error('Google login requires Supabase');
+                return alert('Google login not available in local development without Supabase.');
             }
             try {
                 const { error } = await supabase.auth.signInWithOAuth({
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Phone/Email OTP Flow ---
 
-    // Step 4 "Create Account" really means "Send OTP"
+    // Step 4 "Create Account" really means "Send OTP" or "Create Account"
     const createAccountBtn = document.getElementById('create-account');
     if (createAccountBtn) {
         createAccountBtn.onclick = async function () {
@@ -61,47 +61,81 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const btn = document.getElementById('create-account');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending code...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
             btn.disabled = true;
 
             const u = window.appState.userData;
             state.userData = u;
 
-            // Prefer phone for OTP if provided, otherwise email
-            state.otpType = u.phone ? 'phone' : 'email';
-            state.identifier = u.phone || u.email;
-
             try {
-                if (!supabase) throw new Error('Supabase client not initialized. Check your project configuration.');
+                if (useSupabase) {
+                    // Use Supabase OTP flow
+                    state.otpType = u.phone ? 'phone' : 'email';
+                    state.identifier = u.phone || u.email;
 
-                const { error } = await supabase.auth.signInWithOtp({
-                    [state.otpType]: state.identifier,
-                    options: {
-                        shouldCreateUser: true,
-                        captchaToken: null
+                    const { error } = await supabase.auth.signInWithOtp({
+                        [state.otpType]: state.identifier,
+                        options: {
+                            shouldCreateUser: true,
+                            captchaToken: null
+                        }
+                    });
+
+                    if (error) throw error;
+
+                    // Move to Panel 5
+                    window.goToStep(5);
+                    document.getElementById('panel5-message').textContent = `Code sent to ${state.identifier}`;
+                    document.getElementById('panel5-message').className = 'auth-message success show';
+
+                } else {
+                    // Fallback: Use direct API signup (no OTP for local dev)
+                    console.log('Using fallback API signup...');
+
+                    const signupData = {
+                        name: u.name,
+                        username: u.username,
+                        email: u.email,
+                        password: u.password,
+                        campus: u.campus,
+                        major: u.major,
+                        year: u.year,
+                        phone_number: u.phone
+                    };
+
+                    const response = await fetch('/api/auth/signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(signupData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status === 'success') {
+                        // Success - redirect to dashboard
+                        window.location.href = '/dashboard';
+                    } else {
+                        throw new Error(result.message || 'Signup failed');
                     }
-                });
-
-                if (error) throw error;
-
-                // Move to Panel 5
-                window.goToStep(5);
-                document.getElementById('panel5-message').textContent = `Code sent to ${state.identifier}`;
-                document.getElementById('panel5-message').className = 'auth-message success show';
+                }
 
             } catch (err) {
-                console.error('OTP Send Error:', err);
-                alert('Failed to send code: ' + err.message);
+                console.error('Signup Error:', err);
+                alert('Signup failed: ' + err.message);
                 btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
                 btn.disabled = false;
             }
         };
     }
 
-    // Step 5 Verify OTP
+    // Step 5 Verify OTP (only if using Supabase)
     const verifyBtn = document.getElementById('verify-otp-btn');
     if (verifyBtn) {
         verifyBtn.addEventListener('click', async () => {
+            if (!useSupabase) {
+                return alert('OTP verification not available in fallback mode.');
+            }
+
             const code = document.getElementById('otp-code').value.trim();
             if (!code || code.length < 6) return alert('Enter a valid 6-digit code');
 

@@ -128,29 +128,124 @@ class Marketplace {
     }
 
     /**
-     * Get recommended listings for a user
+     * Get recommended listings for a user with advanced algorithm
      */
-    static async getRecommendations(userId, campus = 'main_campus', limit = 5) {
+    static async getRecommendations(userId, campus = 'main_campus', limit = 6) {
         try {
-            // Simple algorithm: 
-            // 1. Featured/Promoted listings first
-            // 2. High rated sellers
-            // 3. Newest listings in same campus
-            const query = `
-                SELECT ml.*, u.username as seller_username, u.avatar_url as seller_avatar,
-                       (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_rating
-                FROM marketplace_listings ml
-                JOIN users u ON ml.seller_id = u.user_id
-                WHERE ml.is_sold = FALSE 
-                AND (ml.campus = ? OR ml.campus = 'main_campus')
-                AND ml.seller_id != ?
-                ORDER BY (status = 'active') DESC, ml.view_count DESC, ml.created_at DESC
-                LIMIT ?
-            `;
-            const [listings] = await pool.query(query, [campus, userId, limit]);
+            let recommendations = [];
 
-            // Add media to recommendations
-            for (let listing of listings) {
+            if (userId) {
+                // Advanced algorithm for logged-in users
+                // 1. Get user's interaction history (favorites, views, purchases)
+                const [userInteractions] = await pool.query(`
+                    SELECT DISTINCT ml.category, ml.price, ml.condition
+                    FROM marketplace_listings ml
+                    LEFT JOIN marketplace_favorites mf ON ml.listing_id = mf.listing_id AND mf.user_id = ?
+                    LEFT JOIN marketplace_orders mo ON ml.listing_id = mo.listing_id AND mo.buyer_id = ?
+                    WHERE (mf.user_id IS NOT NULL OR mo.buyer_id IS NOT NULL)
+                    AND ml.is_sold = FALSE
+                    ORDER BY ml.created_at DESC
+                    LIMIT 20
+                `, [userId, userId]);
+
+                // 2. Calculate user preferences
+                const categoryPrefs = {};
+                const pricePrefs = { min: Infinity, max: 0, avg: 0 };
+                const conditionPrefs = {};
+
+                userInteractions.forEach(item => {
+                    // Category preferences
+                    categoryPrefs[item.category] = (categoryPrefs[item.category] || 0) + 1;
+
+                    // Price preferences
+                    pricePrefs.min = Math.min(pricePrefs.min, item.price);
+                    pricePrefs.max = Math.max(pricePrefs.max, item.price);
+                    pricePrefs.avg = pricePrefs.avg ? (pricePrefs.avg + item.price) / 2 : item.price;
+
+                    // Condition preferences
+                    conditionPrefs[item.condition] = (conditionPrefs[item.condition] || 0) + 1;
+                });
+
+                // 3. Find most preferred categories
+                const topCategories = Object.entries(categoryPrefs)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 3)
+                    .map(([cat]) => cat);
+
+                // 4. Build recommendation query with scoring
+                let query = `
+                    SELECT ml.*,
+                           u.username as seller_username,
+                           u.avatar_url as seller_avatar,
+                           (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_rating,
+                           (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_review_count,
+                           (
+                               CASE
+                                   WHEN ml.category IN (${topCategories.map(() => '?').join(',')}) THEN 10
+                                   ELSE 0
+                               END +
+                               CASE
+                                   WHEN ml.price BETWEEN ? AND ? THEN 5
+                                   ELSE 0
+                               END +
+                               CASE
+                                   WHEN ml.condition = ? THEN 3
+                                   ELSE 0
+                               END +
+                               (ml.view_count * 0.1) +
+                               (COALESCE((SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id), 0) * 2)
+                           ) as recommendation_score
+                    FROM marketplace_listings ml
+                    JOIN users u ON ml.seller_id = u.user_id
+                    WHERE ml.is_sold = FALSE
+                    AND ml.seller_id != ?
+                    AND (ml.campus = ? OR ml.campus = 'main_campus')
+                    ORDER BY recommendation_score DESC, ml.created_at DESC
+                    LIMIT ?
+                `;
+
+                const params = [
+                    ...topCategories,
+                    Math.max(0, pricePrefs.avg * 0.7), // 70% of avg price
+                    pricePrefs.avg * 1.3, // 130% of avg price
+                    Object.keys(conditionPrefs).sort((a,b) => conditionPrefs[b] - conditionPrefs[a])[0] || 'good',
+                    userId,
+                    campus,
+                    limit
+                ];
+
+                const [result] = await pool.query(query, params);
+                recommendations = result;
+            }
+
+            // Fallback for non-logged-in users or if no personalized recommendations
+            if (recommendations.length < limit) {
+                const fallbackLimit = limit - recommendations.length;
+                const fallbackQuery = `
+                    SELECT ml.*, u.username as seller_username, u.avatar_url as seller_avatar,
+                           (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_rating,
+                           (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_review_count
+                    FROM marketplace_listings ml
+                    JOIN users u ON ml.seller_id = u.user_id
+                    WHERE ml.is_sold = FALSE
+                    AND (ml.campus = ? OR ml.campus = 'main_campus')
+                    ${userId ? 'AND ml.seller_id != ?' : ''}
+                    AND ml.listing_id NOT IN (${recommendations.map(() => '?').join(',') || 'NULL'})
+                    ORDER BY ml.view_count DESC, ml.created_at DESC
+                    LIMIT ?
+                `;
+
+                const params = [campus];
+                if (userId) params.push(userId);
+                params.push(...recommendations.map(r => r.listing_id));
+                params.push(fallbackLimit);
+
+                const [fallback] = await pool.query(fallbackQuery, params);
+                recommendations = [...recommendations, ...fallback];
+            }
+
+            // Add media to all recommendations
+            for (let listing of recommendations) {
                 const [media] = await pool.query(
                     'SELECT media_url FROM listing_media WHERE listing_id = ? ORDER BY upload_order LIMIT 1',
                     [listing.listing_id]
@@ -158,120 +253,224 @@ class Marketplace {
                 listing.media_url = media[0]?.media_url || listing.image_url || '/images/default-listing.jpg';
             }
 
-            return listings;
+            return recommendations;
         } catch (error) {
-            logger.error('Error fetching recommendations:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Track user search history
-     */
-    static async trackSearch(userId, query, filters = {}) {
-        try {
-            const [tables] = await pool.query("SHOW TABLES LIKE 'marketplace_search_history'");
-            if (tables.length === 0) return;
-
-            const searchId = require('crypto').randomUUID();
-            await pool.query(
-                `INSERT INTO marketplace_search_history 
-                (search_id, user_id, search_query, category, campus, min_price, max_price) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    searchId, userId, query.trim(), 
-                    filters.category || null, 
-                    filters.campus || null,
-                    filters.min_price || null,
-                    filters.max_price || null
-                ]
-            );
-        } catch (error) {
-            logger.warn('Failed to track search history:', error.message);
-        }
-    }
-
-    /**
-     * Get seller rating stats
-     */
-    static async getSellerStats(sellerId) {
-        try {
-            const [rows] = await pool.query(
-                `SELECT 
-                    COUNT(*) as total_reviews,
-                    AVG(rating) as average_rating,
-                    COUNT(DISTINCT listing_id) as sold_count
-                 FROM marketplace_reviews 
-                 WHERE reviewee_id = ?`,
-                [sellerId]
-            );
-            
-            return {
-                total_reviews: rows[0]?.total_reviews || 0,
-                average_rating: parseFloat(rows[0]?.average_rating || 0).toFixed(1),
-                sold_count: rows[0]?.sold_count || 0
-            };
-        } catch (error) {
-            logger.error('Error fetching seller stats:', error);
-            return { total_reviews: 0, average_rating: 0, sold_count: 0 };
-        }
-    }
-
-    /**
-     * Get single listing with all media
-     */
-    static async getListingWithMedia(listingId) {
-        try {
-            const [listings] = await pool.query(
-                `SELECT ml.*, u.username as seller_username, u.avatar_url as seller_avatar,
-                        u.user_id as seller_id, u.email as seller_email
-                 FROM marketplace_listings ml
-                 JOIN users u ON ml.seller_id = u.user_id
-                 WHERE ml.listing_id = ? AND ml.is_sold = FALSE`,
-                [listingId]
-            );
-
-            if (listings.length === 0) return null;
-
-            const listing = listings[0];
-
-            // Get media files from listing_media table if it exists
+            logger.error('Database error in getRecommendations:', error);
+            // Fallback to simple recommendations
             try {
-                const [media] = await pool.query(
-                    'SELECT * FROM listing_media WHERE listing_id = ? ORDER BY upload_order ASC',
-                    [listingId]
+                const query = `
+                    SELECT ml.*, u.username as seller_username, u.avatar_url as seller_avatar,
+                           (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_rating
+                    FROM marketplace_listings ml
+                    JOIN users u ON ml.seller_id = u.user_id
+                    WHERE ml.is_sold = FALSE
+                    AND (ml.campus = ? OR ml.campus = 'main_campus')
+                    ${userId ? 'AND ml.seller_id != ?' : ''}
+                    ORDER BY ml.view_count DESC, ml.created_at DESC
+                    LIMIT ?
+                `;
+                const params = [campus];
+                if (userId) params.push(userId);
+                params.push(limit);
+
+                const [listings] = await pool.query(query, params);
+
+                // Add media
+                for (let listing of listings) {
+                    const [media] = await pool.query(
+                        'SELECT media_url FROM listing_media WHERE listing_id = ? ORDER BY upload_order LIMIT 1',
+                        [listing.listing_id]
+                    );
+                    listing.media_url = media[0]?.media_url || listing.image_url || '/images/default-listing.jpg';
+                }
+
+                return listings;
+            } catch (fallbackError) {
+                logger.error('Fallback recommendation error:', fallbackError);
+                return [];
+            }
+        }
+    }
+
+    /**
+     * Generate mock marketplace data for testing
+     */
+    static generateMockData(count = 10) {
+        const categories = ['electronics', 'books', 'clothing', 'furniture', 'services', 'sports', 'home', 'other'];
+        const conditions = ['new', 'like_new', 'good', 'fair'];
+        const campuses = ['main_campus', 'west_campus', 'east_campus', 'north_campus'];
+        const titles = [
+            'iPhone 12 Pro Max', 'Calculus Textbook', 'Nike Air Max', 'Study Desk', 'Tutoring Services',
+            'MacBook Pro 2023', 'Psychology Notes', 'Levi\'s Jeans', 'Dorm Fridge', 'Photography Service',
+            'Gaming Laptop', 'Chemistry Lab Manual', 'Adidas Sneakers', 'Bookshelf', 'Math Tutoring',
+            'Wireless Headphones', 'History Textbook', 'Winter Jacket', 'Coffee Maker', 'Logo Design'
+        ];
+        const descriptions = [
+            'Barely used, in excellent condition. Comes with original packaging.',
+            'Essential textbook for your course. Highlighted notes included.',
+            'Comfortable and stylish. Perfect for campus life.',
+            'Solid wood construction. Great for studying or storage.',
+            'Professional tutoring services. Flexible scheduling available.',
+            'Latest model with M2 chip. Perfect for development work.',
+            'Comprehensive study guide with practice problems.',
+            'Classic fit, durable material. Campus approved style.',
+            'Compact and efficient. Quiet operation for dorm rooms.',
+            'High-quality photography for events and portraits.'
+        ];
+
+        const mockListings = [];
+
+        for (let i = 0; i < count; i++) {
+            const category = categories[Math.floor(Math.random() * categories.length)];
+            const basePrice = this.getBasePriceForCategory(category);
+            const price = Math.round(basePrice * (0.5 + Math.random() * 1.5)); // 50-200% of base price
+
+            mockListings.push({
+                listing_id: `mock_${crypto.randomUUID()}`,
+                seller_id: `user_${Math.floor(Math.random() * 100) + 1}`,
+                title: titles[Math.floor(Math.random() * titles.length)],
+                description: descriptions[Math.floor(Math.random() * descriptions.length)],
+                price: price,
+                category: category,
+                condition: conditions[Math.floor(Math.random() * conditions.length)],
+                campus: campuses[Math.floor(Math.random() * campuses.length)],
+                location: `Building ${Math.floor(Math.random() * 20) + 1}, Room ${Math.floor(Math.random() * 500) + 100}`,
+                is_sold: false,
+                status: 'active',
+                view_count: Math.floor(Math.random() * 100),
+                created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000), // Last 30 days
+                seller_username: `student${Math.floor(Math.random() * 1000) + 1}`,
+                seller_avatar: `/uploads/avatars/default.png`,
+                seller_rating: (3 + Math.random() * 2).toFixed(1), // 3.0-5.0 rating
+                seller_review_count: Math.floor(Math.random() * 20),
+                is_favorited: Math.random() > 0.7, // 30% favorited
+                image_urls: [`/images/mock-listing-${Math.floor(Math.random() * 5) + 1}.jpg`],
+                media_url: `/images/mock-listing-${Math.floor(Math.random() * 5) + 1}.jpg`
+            });
+        }
+
+        return mockListings;
+    }
+
+    /**
+     * Get base price for category
+     */
+    static getBasePriceForCategory(category) {
+        const priceMap = {
+            'electronics': 15000,
+            'books': 2000,
+            'clothing': 3000,
+            'furniture': 8000,
+            'services': 5000,
+            'sports': 4000,
+            'home': 2500,
+            'other': 1000
+        };
+        return priceMap[category] || 1000;
+    }
+
+    /**
+     * Get listings with option to include mock data
+     */
+    static async getListingsWithMock(filters = {}, includeMock = false) {
+        try {
+            const realListings = await this.getListings(filters);
+
+            if (includeMock && realListings.listings.length < filters.limit) {
+                const mockCount = Math.min(
+                    filters.limit - realListings.listings.length,
+                    5 // Max 5 mock items
                 );
-                listing.media = media;
-                listing.image_urls = media
-                    .filter(m => m.media_type === 'image')
-                    .map(m => m.media_url);
-            } catch (mediaError) {
-                // If listing_media table doesn't exist, use image_url from marketplace_listings
-                listing.media = [];
-                listing.image_urls = listing.image_url ? [listing.image_url] : [];
+                const mockListings = this.generateMockData(mockCount);
+
+                // Mark mock listings
+                mockListings.forEach(listing => {
+                    listing.is_mock = true;
+                });
+
+                realListings.listings = [...realListings.listings, ...mockListings];
+                realListings.total += mockCount;
             }
 
-            // Try to increment view count if column exists
-            try {
-                await pool.query(
-                    'UPDATE marketplace_listings SET view_count = COALESCE(view_count, 0) + 1 WHERE listing_id = ?',
-                    [listingId]
-                );
-            } catch (viewError) {
-                // view_count column might not exist, ignore error
-                logger.warn('Could not increment view count for listing:', listingId);
+            return realListings;
+        } catch (error) {
+            logger.error('Error in getListingsWithMock:', error);
+
+            // Return mock data as fallback
+            if (includeMock) {
+                const mockListings = this.generateMockData(filters.limit || 10);
+                return {
+                    listings: mockListings,
+                    total: mockListings.length,
+                    limit: filters.limit || 10,
+                    offset: filters.offset || 0,
+                    hasMore: false
+                };
             }
 
-            return listing;
-        } catch (error) {
-            logger.error('Database error in getListingWithMedia:', error);
-            throw new Error('Failed to fetch listing');
+            throw error;
         }
     }
 
     /**
-     * Create marketplace listing with multiple media files
+     * Get base price for category
      */
+    static getBasePriceForCategory(category) {
+        const priceMap = {
+            'electronics': 15000,
+            'books': 2000,
+            'clothing': 3000,
+            'furniture': 8000,
+            'services': 5000,
+            'sports': 4000,
+            'home': 2500,
+            'other': 1000
+        };
+        return priceMap[category] || 1000;
+    }
+
+    /**
+     * Get listings with option to include mock data
+     */
+    static async getListingsWithMock(filters = {}, includeMock = false) {
+        try {
+            const realListings = await this.getListings(filters);
+
+            if (includeMock && realListings.listings.length < filters.limit) {
+                const mockCount = Math.min(
+                    filters.limit - realListings.listings.length,
+                    5 // Max 5 mock items
+                );
+                const mockListings = this.generateMockData(mockCount);
+
+                // Mark mock listings
+                mockListings.forEach(listing => {
+                    listing.is_mock = true;
+                });
+
+                realListings.listings = [...realListings.listings, ...mockListings];
+                realListings.total += mockCount;
+            }
+
+            return realListings;
+        } catch (error) {
+            logger.error('Error in getListingsWithMock:', error);
+
+            // Return mock data as fallback
+            if (includeMock) {
+                const mockListings = this.generateMockData(filters.limit || 10);
+                return {
+                    listings: mockListings,
+                    total: mockListings.length,
+                    limit: filters.limit || 10,
+                    offset: filters.offset || 0,
+                    hasMore: false
+                };
+            }
+
+            throw error;
+        }
+    }
     static async createListingWithMedia(sellerId, listingData, mediaFiles = []) {
         const connection = await pool.getConnection();
         
@@ -856,53 +1055,264 @@ class Marketplace {
     }
 
     /**
-     * Create a new marketplace order
+     * Create order – atomic MySQL transaction with row-level locking.
+     * Derives ALL critical values server-side; trusts nothing from client.
+     * Prices stored in KES.
      */
-    static async createOrder(buyerId, sellerId, listingId, price, orderDetails = '') {
+    static async createOrder(buyerId, listingId) {
+        const connection = await pool.getConnection();
         try {
-            const orderId = require('crypto').randomUUID();
-            await pool.query(
-                `INSERT INTO marketplace_orders
-                 (order_id, buyer_id, seller_id, listing_id, price, order_details, status, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())`,
-                [orderId, buyerId, sellerId, listingId, price, orderDetails || '']
+            await connection.beginTransaction();
+
+            // Lock listing row to prevent race conditions
+            const [[listing]] = await connection.query(
+                `SELECT seller_id, price, title, description, \`condition\`, status
+                 FROM marketplace_listings WHERE listing_id = ? FOR UPDATE`,
+                [listingId]
             );
+
+            if (!listing)                          { throw Object.assign(new Error('Listing not found'),          { code: 'LISTING_NOT_FOUND' }); }
+            if (listing.status === 'sold')          { throw Object.assign(new Error('Item already sold'),          { code: 'LISTING_SOLD' }); }
+            if (listing.status !== 'active')        { throw Object.assign(new Error('Listing is not active'),      { code: 'LISTING_NOT_ACTIVE' }); }
+            if (listing.seller_id === buyerId)      { throw Object.assign(new Error('Cannot buy your own item'),   { code: 'CANNOT_BUY_OWN' }); }
+
+            // Prevent duplicate active orders
+            const [[dup]] = await connection.query(
+                `SELECT COUNT(*) AS cnt FROM marketplace_orders
+                 WHERE listing_id = ? AND buyer_id = ? AND status IN ('pending','accepted')`,
+                [listingId, buyerId]
+            );
+            if (dup.cnt > 0) { throw Object.assign(new Error('You already have an active order for this item'), { code: 'ORDER_EXISTS' }); }
+
+            const orderId   = require('crypto').randomUUID();
+            const logId     = require('crypto').randomUUID();
+
+            // Insert order – snapshot listing data, KES currency
+            await connection.query(
+                `INSERT INTO marketplace_orders
+                 (order_id, listing_id, buyer_id, seller_id,
+                  listing_title, listing_description, price_at_time, currency, item_condition,
+                  status)
+                 VALUES (?, ?, ?, ?,
+                         ?, ?, ?, 'KES', ?,
+                         'pending')`,
+                [
+                    orderId, listingId, buyerId, listing.seller_id,
+                    listing.title, listing.description, listing.price, listing.condition
+                ]
+            );
+
+            // Lock listing so other buyers can't order simultaneously
+            await connection.query(
+                `UPDATE marketplace_listings SET status = 'pending' WHERE listing_id = ?`,
+                [listingId]
+            );
+
+            // Write immutable audit log entry
+            await connection.query(
+                `INSERT INTO order_audit_log (log_id, order_id, actor_id, action, new_status)
+                 VALUES (?, ?, ?, 'ORDER_CREATED', 'pending')`,
+                [logId, orderId, buyerId]
+            );
+
+            await connection.commit();
             return orderId;
         } catch (error) {
-            logger.error('Database error in createOrder:', error);
+            await connection.rollback();
+            logger.error('Transaction error in createOrder:', error);
             throw error;
+        } finally {
+            connection.release();
         }
     }
 
     /**
-     * Get orders for a user (as buyer or seller)
+     * Update order status with business-rule enforcement.
+     * - accepted / rejected → seller only (from pending)
+     * - cancelled           → buyer or seller (from pending/accepted)
+     * - completed           → both parties confirmed meetup
+     */
+    static async updateOrderStatus(orderId, actorId, newStatus, reason = null) {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // Lock order row
+            const [[order]] = await connection.query(
+                `SELECT order_id, status, buyer_id, seller_id, listing_id,
+                        meetup_confirmed_by_buyer, meetup_confirmed_by_seller
+                 FROM marketplace_orders WHERE order_id = ? FOR UPDATE`,
+                [orderId]
+            );
+            if (!order) throw Object.assign(new Error('Order not found'), { code: 'ORDER_NOT_FOUND' });
+
+            const { status: curr, buyer_id, seller_id, listing_id } = order;
+            const logId = require('crypto').randomUUID();
+
+            let updateSql = '';
+            let updateParams = [];
+            let reactivateListing = false;
+
+            if (newStatus === 'accepted') {
+                if (actorId !== seller_id)       throw Object.assign(new Error('Only seller can accept'), { code: 'UNAUTHORIZED' });
+                if (curr !== 'pending')          throw Object.assign(new Error('Can only accept pending orders'), { code: 'INVALID_TRANSITION' });
+                updateSql = 'UPDATE marketplace_orders SET status=?, accepted_at=NOW(), last_action_by=?, last_action_at=NOW() WHERE order_id=?';
+                updateParams = ['accepted', actorId, orderId];
+
+            } else if (newStatus === 'rejected') {
+                if (actorId !== seller_id)       throw Object.assign(new Error('Only seller can reject'), { code: 'UNAUTHORIZED' });
+                if (curr !== 'pending')          throw Object.assign(new Error('Can only reject pending orders'), { code: 'INVALID_TRANSITION' });
+                updateSql = 'UPDATE marketplace_orders SET status=?, rejected_at=NOW(), last_action_by=?, last_action_at=NOW() WHERE order_id=?';
+                updateParams = ['rejected', actorId, orderId];
+                reactivateListing = true;
+
+            } else if (newStatus === 'cancelled') {
+                if (actorId !== buyer_id && actorId !== seller_id)
+                    throw Object.assign(new Error('Unauthorized'), { code: 'UNAUTHORIZED' });
+                if (!['pending','accepted'].includes(curr))
+                    throw Object.assign(new Error('Cannot cancel at this stage'), { code: 'INVALID_TRANSITION' });
+                updateSql = `UPDATE marketplace_orders
+                             SET status=?, cancelled_at=NOW(), cancelled_by=?, cancellation_reason=?,
+                                 last_action_by=?, last_action_at=NOW()
+                             WHERE order_id=?`;
+                updateParams = ['cancelled', actorId, reason, actorId, orderId];
+                reactivateListing = true;
+
+            } else if (newStatus === 'completed') {
+                if (curr !== 'accepted')
+                    throw Object.assign(new Error('Can only complete accepted orders'), { code: 'INVALID_TRANSITION' });
+                if (!order.meetup_confirmed_by_buyer || !order.meetup_confirmed_by_seller)
+                    throw Object.assign(new Error('Both parties must confirm the meetup first'), { code: 'MEETUP_NOT_CONFIRMED' });
+                updateSql = 'UPDATE marketplace_orders SET status=?, completed_at=NOW(), last_action_by=?, last_action_at=NOW() WHERE order_id=?';
+                updateParams = ['completed', actorId, orderId];
+                // Mark listing as sold
+                await connection.query(
+                    `UPDATE marketplace_listings SET status='sold', is_sold=1, sold_at=NOW() WHERE listing_id=?`,
+                    [listing_id]
+                );
+
+            } else if (newStatus === 'disputed') {
+                if (actorId !== buyer_id && actorId !== seller_id)
+                    throw Object.assign(new Error('Unauthorized'), { code: 'UNAUTHORIZED' });
+                if (curr !== 'accepted')
+                    throw Object.assign(new Error('Can only dispute accepted orders'), { code: 'INVALID_TRANSITION' });
+                updateSql = 'UPDATE marketplace_orders SET status=?, disputed_at=NOW(), last_action_by=?, last_action_at=NOW() WHERE order_id=?';
+                updateParams = ['disputed', actorId, orderId];
+
+            } else {
+                throw Object.assign(new Error('Invalid status'), { code: 'INVALID_STATUS' });
+            }
+
+            await connection.query(updateSql, updateParams);
+
+            if (reactivateListing) {
+                await connection.query(
+                    `UPDATE marketplace_listings SET status='active' WHERE listing_id=? AND is_sold=0`,
+                    [listing_id]
+                );
+            }
+
+            // Audit log
+            await connection.query(
+                `INSERT INTO order_audit_log (log_id, order_id, actor_id, action, old_status, new_status)
+                 VALUES (?, ?, ?, 'STATUS_CHANGE', ?, ?)`,
+                [logId, orderId, actorId, curr, newStatus]
+            );
+
+            await connection.commit();
+            return true;
+        } catch (error) {
+            await connection.rollback();
+            logger.error('Transaction error in updateOrderStatus:', error);
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+
+    /**
+     * Confirm meetup attendance (buyer or seller)
+     * When both confirm, order can be completed.
+     */
+    static async confirmMeetup(orderId, userId) {
+        const [[order]] = await pool.query(
+            `SELECT order_id, buyer_id, seller_id, status,
+                    meetup_confirmed_by_buyer, meetup_confirmed_by_seller
+             FROM marketplace_orders WHERE order_id = ?`,
+            [orderId]
+        );
+        if (!order) throw new Error('Order not found');
+        if (order.status !== 'accepted') throw new Error('Can only confirm meetup for accepted orders');
+
+        let field = null;
+        if (userId === order.buyer_id)  field = 'meetup_confirmed_by_buyer';
+        if (userId === order.seller_id) field = 'meetup_confirmed_by_seller';
+        if (!field) throw Object.assign(new Error('Unauthorized'), { code: 'UNAUTHORIZED' });
+
+        await pool.query(
+            `UPDATE marketplace_orders SET \`${field}\` = 1 WHERE order_id = ?`,
+            [orderId]
+        );
+
+        // Reload to check both confirmed
+        const [[updated]] = await pool.query(
+            `SELECT meetup_confirmed_by_buyer, meetup_confirmed_by_seller FROM marketplace_orders WHERE order_id = ?`,
+            [orderId]
+        );
+        return {
+            buyerConfirmed:  !!updated.meetup_confirmed_by_buyer,
+            sellerConfirmed: !!updated.meetup_confirmed_by_seller,
+            bothConfirmed:   !!(updated.meetup_confirmed_by_buyer && updated.meetup_confirmed_by_seller)
+        };
+    }
+
+    /**
+     * Get single order details – only accessible by buyer or seller
+     */
+    static async getOrderById(orderId, userId) {
+        try {
+            const [rows] = await pool.query(
+                `SELECT o.*,
+                        lm.media_url AS listing_image,
+                        buyer.username   AS buyer_username,
+                        buyer.avatar_url AS buyer_avatar,
+                        seller.username  AS seller_username,
+                        seller.avatar_url AS seller_avatar
+                 FROM marketplace_orders o
+                 LEFT JOIN listing_media lm ON lm.listing_id = o.listing_id AND lm.upload_order = 0
+                 JOIN users buyer   ON o.buyer_id  = buyer.user_id
+                 JOIN users seller  ON o.seller_id = seller.user_id
+                 WHERE o.order_id = ?
+                   AND (o.buyer_id = ? OR o.seller_id = ?)`,
+                [orderId, userId, userId]
+            );
+            return rows[0] || null;
+        } catch (error) {
+            logger.error('Database error in getOrderById:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get orders for a user (as buyer or seller) with images – KES prices
      */
     static async getOrders(userId) {
         try {
             const [orders] = await pool.query(
                 `SELECT o.*,
-                        l.title AS listing_title,
-                        l.image_url,
-                        buyer.username  AS buyer_username,
+                        COALESCE(lm.media_url, ml.image_url) AS image_url,
+                        buyer.username   AS buyer_username,
                         buyer.avatar_url AS buyer_avatar,
                         seller.username  AS seller_username,
                         seller.avatar_url AS seller_avatar,
-                        CASE
-                            WHEN o.buyer_id = ? THEN o.seller_id
-                            ELSE o.buyer_id
-                        END AS other_user_id,
-                        CASE
-                            WHEN o.buyer_id = ? THEN seller.username
-                            ELSE buyer.username
-                        END AS other_username,
-                        CASE
-                            WHEN o.buyer_id = ? THEN seller.avatar_url
-                            ELSE buyer.avatar_url
-                        END AS other_avatar
+                        CASE WHEN o.buyer_id = ? THEN o.seller_id  ELSE o.buyer_id      END AS other_user_id,
+                        CASE WHEN o.buyer_id = ? THEN seller.username  ELSE buyer.username  END AS other_username,
+                        CASE WHEN o.buyer_id = ? THEN seller.avatar_url ELSE buyer.avatar_url END AS other_avatar
                  FROM marketplace_orders o
-                 JOIN marketplace_listings l  ON o.listing_id = l.listing_id
-                 JOIN users buyer             ON o.buyer_id   = buyer.user_id
-                 JOIN users seller            ON o.seller_id  = seller.user_id
+                 JOIN marketplace_listings ml ON o.listing_id = ml.listing_id
+                 LEFT JOIN listing_media lm   ON lm.listing_id = o.listing_id AND lm.upload_order = 0
+                 JOIN users buyer             ON o.buyer_id  = buyer.user_id
+                 JOIN users seller            ON o.seller_id = seller.user_id
                  WHERE o.buyer_id = ? OR o.seller_id = ?
                  ORDER BY o.created_at DESC`,
                 [userId, userId, userId, userId, userId]

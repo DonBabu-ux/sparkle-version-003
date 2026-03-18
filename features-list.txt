@@ -9,7 +9,7 @@ This list serves as a master plan to track the implementation of all web app fea
 [x] Spark (Like) System
 [x] Post Creation (Text, Single Media)
 [ ] Post Creation (Multi-media/Carousel Support)
-[ ] Global Search (Posts, People, Hashtags)
+[ ] Global Search (Posts, People, Hash2tags)
 [ ] Trending Hashtags Sidebar
 [ ] Bookmarks / Saved Posts
 

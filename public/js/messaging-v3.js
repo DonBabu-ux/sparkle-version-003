@@ -703,13 +703,51 @@ class SparkleChat {
         const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${msgId}"]`);
         if (!msgEl) return;
 
+        // Visual highlight for the selected bubble
+        msgEl.classList.add('msg-active-press');
+
+        const modal = document.getElementById('messageActionModal');
+        const overlay = document.getElementById('messageActionOverlay');
+
+        // Show/Hide buttons
         document.getElementById('actionDrawerEditBtn').style.display = isOwn ? 'flex' : 'none';
         document.getElementById('actionDrawerDeleteEveryoneBtn').style.display = isOwn ? 'flex' : 'none';
 
-        document.getElementById('messageActionOverlay').style.display = 'flex';
+        // Position Calculation
+        const rect = msgEl.getBoundingClientRect();
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        overlay.style.display = 'flex';
+        
+        // Initial positioning style
+        modal.style.position = 'fixed';
+        modal.style.margin = '0';
+        
+        // Horizontal centering relative to bubble
+        let left = rect.left + (rect.width / 2) - (160); // 160 is half of max-width 320
+        if (left < 10) left = 10;
+        if (left + 320 > screenWidth - 10) left = screenWidth - 330;
+        modal.style.left = left + 'px';
+
+        // Vertical positioning (prefer above, fallback to below)
+        let top = rect.top - (isOwn ? 240 : 180); // Adjusted for own vs partner
+        if (top < 80) {
+            top = rect.bottom + 10;
+        }
+        
+        // Final sanity check for bottom boundary
+        if (top + 280 > screenHeight) {
+            top = screenHeight - 290;
+        }
+
+        modal.style.top = top + 'px';
     }
 
     closeMessageActionMenu() {
+        // Remove highlight from all bubbles
+        document.querySelectorAll('.msg-bubble.msg-active-press').forEach(el => el.classList.remove('msg-active-press'));
+        
         document.getElementById('messageActionOverlay').style.display = 'none';
         this.activeMessageId = null;
     }

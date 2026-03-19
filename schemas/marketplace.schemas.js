@@ -7,23 +7,28 @@ const uuidSchema = Joi.string().guid({ version: 'uuidv4' }).required();
 // ==================== LISTING SCHEMAS ====================
 
 exports.createListingSchema = Joi.object({
-  title: Joi.string().min(3).max(100).required(),
-  description: Joi.string().min(10).max(1000).required(),
-  price: Joi.number().positive().max(1000000).required(),
-  category: Joi.string().valid(
-    'electronics', 'books', 'clothing', 'furniture', 'services', 'other'
+  title: Joi.string().trim().min(2).max(100).required(),
+  description: Joi.string().trim().max(2000).optional().allow('', null).default(''),
+  price: Joi.number().min(0).max(10000000).required(),
+  category: Joi.string().trim().lowercase().valid(
+    'electronics', 'books', 'fashion', 'home', 'services', 'other', 'clothing', 'furniture', 'academic',
+    'fashion_lab', 'dorm_life', 'electronics_books', 'fashion_lab', 'fashion lab', 'dorm life', 'electronics & books',
+    'electronics & appliances', 'fashion & beauty', 'home & garden', 'property', 'jobs', 'vehicles'
   ).default('other'),
-  condition: Joi.string().valid(
-    'new', 'like_new', 'good', 'fair', 'poor'
+  condition: Joi.string().trim().lowercase().valid(
+    'new', 'like_new', 'good', 'fair', 'poor', 'used'
   ).default('good'),
-  campus: Joi.string().valid(
-    'main_campus', 'north_campus', 'south_campus', 'downtown'
+  campus: Joi.string().trim().lowercase().valid(
+    'main_campus', 'north_campus', 'south_campus', 'downtown', 'all', 'main campus', 'north campus', 'south campus',
+    'west_campus', 'east_campus'
   ).required(),
-  location: Joi.string().max(255).optional().allow(''),
-  tags: Joi.alternatives().try(
-    Joi.array().items(Joi.string()),
-    Joi.string()
-  ).optional()
+  location: Joi.string().trim().max(500).optional().allow('', null),
+  tags: Joi.any().optional().allow('', null),
+  media: Joi.any().optional(),
+  id: Joi.any().optional(),
+  _csrf: Joi.any().optional(),
+  status: Joi.string().optional().allow('', null),
+  is_negotiable: Joi.any().optional()
 });
 
 // ==================== ORDER SCHEMAS ====================
@@ -86,11 +91,11 @@ exports.reportListingSchema = Joi.object({
 // ==================== FAVORITE SCHEMAS ====================
 
 exports.toggleFavoriteSchema = Joi.object({
-  listingId: uuidSchema
+  listingId: uuidSchema.optional()
 });
 
 exports.favoriteSellerSchema = Joi.object({
-  sellerId: uuidSchema
+  sellerId: uuidSchema.optional()
 });
 
 // ==================== BLOCK USER SCHEMA ====================

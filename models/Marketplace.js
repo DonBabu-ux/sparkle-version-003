@@ -333,7 +333,7 @@ class Marketplace {
                            (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_review_count,
                            (
                                CASE
-                                   WHEN ml.category IN (${topCategories.map(() => '?').join(',')}) THEN 10
+                                   WHEN ml.category IN (${topCategories.length > 0 ? topCategories.map(() => '?').join(',') : "''"}) THEN 10
                                    ELSE 0
                                END +
                                CASE

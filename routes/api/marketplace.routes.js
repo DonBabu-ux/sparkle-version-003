@@ -13,7 +13,7 @@ router.put('/marketplace/listings/:id',          authMiddleware, upload.array('m
 router.delete('/marketplace/listings/:id',       authMiddleware, marketplaceController.deleteListing);
 
 // ── Listing Actions ───────────────────────────────────────────────────────────
-router.post('/marketplace/listings/:id/contact', authMiddleware, marketplaceController.contactSeller);
+router.post('/marketplace/listings/:id/contact', authMiddleware, ...marketplaceController.contactSeller);
 router.put('/marketplace/listings/:id/sold',     authMiddleware, marketplaceController.markAsSold);
 router.post('/marketplace/listings/:id/favorite',authMiddleware, ...marketplaceController.toggleFavorite);
 router.post('/marketplace/listings/:id/report',  authMiddleware, marketplaceController.reportListing);

@@ -457,27 +457,32 @@ const deleteListing = async (req, res) => {
     }
 };
 
-const contactSeller = async (req, res) => {
-    try {
-        const user = normalizeUser(req.user);
-        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+const contactSeller = [
+    validate(marketplaceSchemas.contactSellerSchema, 'body'),
+    async (req, res) => {
+        try {
+            const user = normalizeUser(req.user);
+            if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-        const { sellerId, listingId, message } = req.body;
-        if (user.user_id === sellerId) {
-            return res.status(400).json({ success: false, message: 'Cannot contact yourself' });
+            const { sellerId, message } = req.body;
+            const listingId = req.params.id || req.body.listingId;
+
+            if (user.user_id === sellerId) {
+                return res.status(400).json({ success: false, message: 'Cannot contact yourself' });
+            }
+
+            const chat = await Marketplace.getOrCreateChat(user.user_id, sellerId, listingId);
+            if (message && message.trim()) {
+                await Marketplace.sendMessage(chat.chat_id, user.user_id, message);
+            }
+
+            res.json({ success: true, chatId: chat.chat_id, redirect: `/messages?chat=${chat.chat_id}` });
+        } catch (error) {
+            logger.error('Contact seller error:', error);
+            res.status(500).json({ success: false, message: 'Failed to contact seller' });
         }
-
-        const chat = await Marketplace.getOrCreateChat(user.user_id, sellerId, listingId);
-        if (message && message.trim()) {
-            await Marketplace.sendMessage(chat.chat_id, user.user_id, message);
-        }
-
-        res.json({ success: true, chatId: chat.chat_id, redirect: `/messages?chat=${chat.chat_id}` });
-    } catch (error) {
-        logger.error('Contact seller error:', error);
-        res.status(500).json({ success: false, message: 'Failed to contact seller' });
     }
-};
+];
 
 const getUserChats = async (req, res) => {
     try {
@@ -655,7 +660,7 @@ const getOrders = async (req, res) => {
 };
 
 const toggleFavorite = [
-    validate(marketplaceSchemas.toggleFavorite, 'body'),
+    validate(marketplaceSchemas.toggleFavoriteSchema, 'body'), // Body might still be required by schema
     async (req, res) => {
         try {
             const user = normalizeUser(req.user);
@@ -666,7 +671,13 @@ const toggleFavorite = [
                 });
             }
 
-            const { listingId } = req.body;
+            // Get listingId from params (URL) or fallback to body
+            const listingId = req.params.id || req.body.listingId;
+            
+            if (!listingId) {
+                return res.status(400).json({ success: false, message: 'Listing ID is required' });
+            }
+
             const result = await Marketplace.toggleFavorite(user.user_id, listingId);
 
             res.json({

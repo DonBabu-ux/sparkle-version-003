@@ -30,6 +30,34 @@ const retryWithBackoff = async (fn, maxRetries = 3, initialDelay = 1000) => {
     }
 };
 
+const repairUsersTable = async () => {
+    try {
+        const [columns] = await pool.query('SHOW COLUMNS FROM users');
+        const colNames = columns.map(c => c.Field);
+
+        if (!colNames.includes('role')) {
+            logger.info('Adding missing "role" column to users table...');
+            await pool.query("ALTER TABLE users ADD COLUMN role ENUM('member', 'moderator', 'admin') DEFAULT 'member'");
+            logger.info('✅ role column added.');
+        }
+
+        if (!colNames.includes('is_verified')) {
+            logger.info('Adding missing "is_verified" column to users table...');
+            await pool.query("ALTER TABLE users ADD COLUMN is_verified TINYINT(1) DEFAULT 0");
+            logger.info('✅ is_verified column added.');
+        }
+
+        // Set first user as admin if not already set
+        const [users] = await pool.query('SELECT user_id, role FROM users ORDER BY joined_at LIMIT 1');
+        if (users.length > 0 && users[0].role !== 'admin') {
+            await pool.query('UPDATE users SET role = "admin" WHERE user_id = ?', [users[0].user_id]);
+            logger.info('✅ First user set as admin.');
+        }
+    } catch (err) {
+        logger.error('❌ Failed to repair users table:', err.message);
+    }
+};
+
 const initNotificationsTable = async () => {
     try {
         await pool.query(`
@@ -569,6 +597,7 @@ const initDB = async () => {
     // Initialize tables with retry logic
     try {
         await retryWithBackoff(async () => {
+            await repairUsersTable();
             await initNotificationsTable();
             await initUserInteractionsTables();
             await initMomentsTable();

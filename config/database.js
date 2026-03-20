@@ -16,7 +16,7 @@ const pool = mysql.createPool({
 
     // SSL for production (most cloud DBs require this)
     ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: true
+        rejectUnauthorized: false // Often required for shared hosting with self-signed certs
     } : undefined,
 
     // Performance & Resilience

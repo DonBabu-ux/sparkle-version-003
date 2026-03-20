@@ -74,25 +74,18 @@ const renderMarketplace = async (req, res) => {
         let counts = { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
 
         try {
-            const result = await Marketplace.getListingsWithMock(filters, true); // Enable mock data
-            listings = result.listings;
-            total = result.total;
-            hasMore = result.hasMore;
+            const result = await Marketplace.getListings(filters);
+            listings = result.listings || [];
+            total = result.total || result.pagination?.total || listings.length;
+            hasMore = result.pagination?.hasMore || false;
         } catch (dbError) {
-            logger.warn('Database error in marketplace, using mock data:', dbError.message);
-            // Use only mock data as fallback
-            const mockResult = await Marketplace.getListingsWithMock(filters, true);
-            listings = mockResult.listings;
-            total = mockResult.total;
-            hasMore = mockResult.hasMore;
+            logger.error('Database error in marketplace:', dbError.message);
         }
 
         try {
             recommendedListings = await Marketplace.getRecommendations(user?.user_id || null, user?.campus || 'main_campus', 6);
         } catch (recError) {
             logger.warn('Error getting recommendations:', recError.message);
-            // Use mock recommendations
-            recommendedListings = Marketplace.generateMockData(6);
         }
 
         try {
@@ -115,15 +108,10 @@ const renderMarketplace = async (req, res) => {
         });
     } catch (error) {
         logger.error('Render marketplace error:', error);
-        // Ultimate fallback - render with empty data
-        res.render('marketplace', {
-            title: 'Sparkle Mall | Marketplace',
-            listings: Marketplace.generateMockData(10),
-            recommendedListings: Marketplace.generateMockData(6),
-            user: normalizeUser(req.user),
-            counts: { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 },
-            campus: 'main_campus',
-            filters: { category: 'all', sort: 'newest' }
+        res.status(500).render('error', {
+            title: 'Error',
+            message: 'Failed to load marketplace data. Please try again later.',
+            user: normalizeUser(req.user)
         });
     }
 };
@@ -250,12 +238,7 @@ const getListings = async (req, res) => {
         res.json({
             success: true,
             listings: result.listings,
-            pagination: {
-                total: result.total,
-                limit: result.limit,
-                offset: result.offset,
-                hasMore: result.hasMore
-            }
+            pagination: result.pagination
         });
     } catch (error) {
         logger.error('Get listings API error:', error);
@@ -933,13 +916,12 @@ const getCounts = async (req, res) => {
 
 const getSafeMeetupLocations = async (req, res) => {
     try {
-        const locations = [
-            { id: 1, name: 'Campus Security Office', description: 'Available 24/7, high visibility.', lat: -1.2833, lng: 36.8167 },
-            { id: 2, name: 'Student Union Lounge', description: 'Busy public area.', lat: -1.2840, lng: 36.8170 },
-            { id: 3, name: 'Main Library Entrance', description: 'Monitored by cameras.', lat: -1.2850, lng: 36.8180 }
-        ];
+        const user = normalizeUser(req.user);
+        const campus = req.query.campus || user?.campus || 'all';
+        const locations = await Marketplace.getSafeMeetupLocations(campus);
         res.json({ success: true, locations });
     } catch (error) {
+        logger.error('Get safe meetup locations error:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch meetup locations' });
     }
 };

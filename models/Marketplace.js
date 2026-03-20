@@ -5,64 +5,58 @@ const admin = require('../config/firebase-admin');
 
 class Marketplace {
     /**
-     * Get listings with optional mock data fallback (MySQL SAFE)
+     * Get user counts (favorites, etc.) for the navbar
      */
-    static async getListingsWithMock(filters, includeMock = true) {
+    static async getCounts(userId) {
         try {
-            const { listings, total, pagination } = await this.getListings(filters);
-            
-            if (listings.length >= (filters.limit || 20) || !includeMock) {
-                return { listings, total, hasMore: pagination.hasMore };
+            if (!userId) {
+                return { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
             }
-
-            const mockCount = (filters.limit || 20) - listings.length;
-            const mockData = this.generateMockData(mockCount, filters.campus !== 'all' ? filters.campus : null);
+            
+            // Get favorites count
+            const [favs] = await pool.query(
+                'SELECT COUNT(*) as count FROM marketplace_favorites WHERE user_id = ?',
+                [userId]
+            );
             
             return {
-                listings: [...listings, ...mockData],
-                total: total + mockData.length,
-                hasMore: false
+                favoritesCount: favs[0]?.count || 0,
+                wishlistCount: 0,
+                notificationCount: 0
             };
         } catch (error) {
-            logger.warn('getListings failed, using only mock data:', error.message);
-            if (!includeMock) throw error;
-            
-            const mockData = this.generateMockData(filters.limit || 20, filters.campus !== 'all' ? filters.campus : null);
-            return {
-                listings: mockData,
-                total: mockData.length,
-                hasMore: false
-            };
+            logger.error('Error getting user counts:', error);
+            return { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
         }
     }
 
     /**
-     * Generate mock listing data for UI testing (MySQL SAFE IDs)
+     * Get safe meetup locations for campus
      */
-    static generateMockData(count = 10, campus = null) {
-        const categories = ['electronics', 'books', 'clothing', 'furniture', 'services', 'other'];
-        const campuses = ['main_campus', 'north_campus', 'south_campus', 'downtown'];
-        const conditions = ['new', 'like_new', 'good', 'fair'];
-        const crypto = require('crypto');
-        
-        return Array.from({ length: count }, (_, i) => ({
-            listing_id: crypto.randomUUID(),
-            seller_id: crypto.randomUUID(),
-            title: `Recommended: Item ${i + 1}`,
-            description: 'This is a sample item recommended for you based on your browsing history.',
-            price: (Math.random() * 5000 + 500).toFixed(2),
-            category: categories[Math.floor(Math.random() * categories.length)],
-            condition: conditions[Math.floor(Math.random() * conditions.length)],
-            campus: campus || campuses[Math.floor(Math.random() * campuses.length)],
-            image_url: `/images/mock-listing-${(i % 5) + 1}.jpg`,
-            seller_username: 'SparkleBot',
-            seller_avatar: '/images/default-avatar.png',
-            seller_rating: 4.5,
-            seller_review_count: (Math.random() * 100).toFixed(0),
-            created_at: new Date().toISOString(),
-            is_mock: true
-        }));
+    static async getSafeMeetupLocations(campus = 'all') {
+        try {
+            let query = 'SELECT * FROM safe_meetup_locations WHERE 1=1';
+            const params = [];
+
+            if (campus && campus !== 'all') {
+                query += ' AND campus = ?';
+                params.push(campus);
+            }
+
+            query += ' ORDER BY is_verified DESC, name ASC';
+            const [locations] = await pool.query(query, params);
+            return locations;
+        } catch (error) {
+            logger.error('Error getting safe meetup locations:', error);
+            // Return defaults if table is missing or DB fails
+            return [
+                { id: 1, name: 'Campus Security Office', description: 'Available 24/7, high visibility.', lat: -1.2833, lng: 36.8167, campus: 'main_campus' },
+                { id: 2, name: 'Student Union Lounge', description: 'Busy public area.', lat: -1.2840, lng: 36.8170, campus: 'main_campus' },
+                { id: 3, name: 'Main Library Entrance', description: 'Monitored by cameras.', lat: -1.2850, lng: 36.8180, campus: 'main_campus' }
+            ];
+        }
     }
+
 
     /**
      * Toggle favorite for a listing
@@ -136,8 +130,11 @@ class Marketplace {
             minRating = 0,
             sort = 'newest',
             limit = 20,
-            offset = 0
+            offset = 0,
+            currentUserId = null
         } = filters;
+
+        const sessionUserId = currentUserId || userId;
 
         try {
             let query = `
@@ -145,6 +142,7 @@ class Marketplace {
                     l.*,
                     u.username as seller_username,
                     u.avatar_url as seller_avatar,
+                    (SELECT media_url FROM listing_media WHERE listing_id = l.listing_id LIMIT 1) as media_url,
                     (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) as seller_rating,
                     CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
                     (SELECT COUNT(*) FROM marketplace_orders WHERE listing_id = l.listing_id) as order_count
@@ -153,7 +151,7 @@ class Marketplace {
                 LEFT JOIN marketplace_favorites f ON l.listing_id = f.listing_id AND f.user_id = ?
                 WHERE l.status = 'active' AND l.is_sold = 0
             `;
-            const params = [userId];
+            const params = [sessionUserId];
 
             // Apply filters
             if (search) {
@@ -441,73 +439,6 @@ class Marketplace {
                 logger.error('Fallback recommendation error:', fallbackError);
                 return [];
             }
-        }
-    }
-
-    /**
-     * Generate mock marketplace data for testing
-     */
-    /**
-     * Generate mock listing data for UI testing (MySQL SAFE IDs)
-     */
-    static generateMockData(count = 10, campus = null) {
-        const categories = ['electronics', 'books', 'clothing', 'furniture', 'services', 'other'];
-        const campuses = ['main_campus', 'north_campus', 'south_campus', 'downtown'];
-        const conditions = ['new', 'like_new', 'good', 'fair'];
-        const titles = [
-            'iPhone 12 Pro Max', 'Calculus Textbook', 'Nike Air Max', 'Study Desk', 'Tutoring Services',
-            'MacBook Pro 2023', 'Psychology Notes', 'Levi\'s Jeans', 'Dorm Fridge', 'Photography Service'
-        ];
-        const crypto = require('crypto');
-        
-        return Array.from({ length: count }, (_, i) => ({
-            listing_id: crypto.randomUUID(),
-            seller_id: crypto.randomUUID(),
-            title: titles[i % titles.length] || `Recommended: Item ${i + 1}`,
-            description: 'This is a sample item recommended for you based on your browsing history.',
-            price: (Math.random() * 5000 + 500).toFixed(2),
-            category: categories[Math.floor(Math.random() * categories.length)],
-            condition: conditions[Math.floor(Math.random() * conditions.length)],
-            campus: campus || campuses[Math.floor(Math.random() * campuses.length)],
-            image_url: `/images/mock-listing-${(i % 5) + 1}.jpg`,
-            seller_username: 'SparkleBot',
-            seller_avatar: '/images/default-avatar.png',
-            seller_rating: 4.5,
-            seller_review_count: (Math.random() * 100).toFixed(0),
-            created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-            is_mock: true
-        }));
-    }
-
-    /**
-     * Get listings with optional mock data fallback (MySQL SAFE)
-     */
-    static async getListingsWithMock(filters, includeMock = true) {
-        try {
-            const { listings, total, pagination } = await this.getListings(filters);
-            
-            if (listings.length >= (filters.limit || 20) || !includeMock) {
-                return { listings, total, hasMore: pagination.hasMore };
-            }
-
-            const mockCount = (filters.limit || 20) - listings.length;
-            const mockData = this.generateMockData(mockCount, filters.campus !== 'all' ? filters.campus : null);
-            
-            return {
-                listings: [...listings, ...mockData],
-                total: total + mockData.length,
-                hasMore: false
-            };
-        } catch (error) {
-            logger.warn('getListings failed, using only mock data:', error.message);
-            if (!includeMock) throw error;
-            
-            const mockData = this.generateMockData(filters.limit || 20, filters.campus !== 'all' ? filters.campus : null);
-            return {
-                listings: mockData,
-                total: mockData.length,
-                hasMore: false
-            };
         }
     }
 

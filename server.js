@@ -112,9 +112,20 @@ app.use((req, res) => {
 // Error Handler
 app.use((err, req, res, next) => {
     console.error('❌ Server Error:', err.stack);
+    
+    // Check if it's an API request
+    if (req.originalUrl.startsWith('/api') || req.path.startsWith('/api')) {
+        return res.status(err.status || 500).json({
+            success: false,
+            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
+            error: err.message
+        });
+    }
+
     res.status(err.status || 500).render('error', {
         title: 'Error',
-        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
+        user: req.user || null
     });
 });
 

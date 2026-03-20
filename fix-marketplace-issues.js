@@ -10,7 +10,6 @@ async function fixMarketplaceIssues() {
             await pool.query(`
                 ALTER TABLE users
                 ADD COLUMN role ENUM('member', 'moderator', 'admin') DEFAULT 'member'
-                AFTER language
             `);
             console.log('✅ Role column added successfully!');
         } catch (error) {
@@ -18,6 +17,19 @@ async function fixMarketplaceIssues() {
                 console.log('⚠️  Role column already exists');
             } else {
                 console.error('❌ Error adding role column:', error.message);
+            }
+        }
+
+        // Add is_verified if missing
+        try {
+            await pool.query(`
+                ALTER TABLE users
+                ADD COLUMN is_verified TINYINT(1) DEFAULT 0
+            `);
+            console.log('✅ is_verified column added successfully!');
+        } catch (error) {
+            if (error.code !== 'ER_DUP_FIELDNAME') {
+                console.error('❌ Error adding is_verified:', error.message);
             }
         }
 

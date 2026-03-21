@@ -23,7 +23,7 @@ https.get('https://api.cloudinary.com', (res) => {
         console.log(`[Cloudinary] Time offset adjusted by ${timeOffsetSeconds} seconds`);
     }
 }).on('error', () => {
-    timeOffsetSeconds = 21600; // generic fallback 
+    timeOffsetSeconds = 0; // safe fallback – no offset
 });
 
 

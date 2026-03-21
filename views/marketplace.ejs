@@ -1140,6 +1140,8 @@
             condition: 'all',
             minRating: 0
         };
+        // Registry so onclick handlers can look up listing data by ID safely
+        const listingsMap = {};
 
         // Fetch current user
         async function fetchCurrentUser() {
@@ -1325,6 +1327,9 @@
                 `;
                 return;
             }
+
+            // Register listings in map for safe onclick lookup
+            listings.forEach(l => { listingsMap[l.listing_id] = l; });
             
             const gridClass = currentView === 'list' ? 'products-grid list-view' : 'products-grid';
             container.innerHTML = `
@@ -1341,9 +1346,10 @@
             const conditionText = formatCondition(listing.condition);
             const sellerRating = listing.seller_rating ? listing.seller_rating.toFixed(1) : 'New';
             const formattedPrice = new Intl.NumberFormat('en-KE').format(listing.price);
+            const lid = listing.listing_id; // short alias for attribute embedding
             
             return `
-                <div class="product-card" onclick="viewListing('${listing.listing_id}')">
+                <div class="product-card" onclick="viewListing('${lid}')">
                     <div class="product-header">
                         <div class="seller-info">
                             <div class="seller-avatar">
@@ -1354,7 +1360,7 @@
                                 <p><i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i> ${sellerRating} • ${listing.total_sales || 0} sold</p>
                             </div>
                         </div>
-                        <div class="product-menu" onclick="event.stopPropagation(); showOptions('${listing.listing_id}')">
+                        <div class="product-menu" onclick="event.stopPropagation(); showOptions('${lid}')">
                             <i class="fas fa-ellipsis-h"></i>
                         </div>
                     </div>
@@ -1372,13 +1378,13 @@
                     </div>
                     
                     <div class="product-actions">
-                        <button class="action-btn" onclick="event.stopPropagation(); toggleLike('${listing.listing_id}')">
-                            <i class="far fa-heart"></i> <span id="like-${listing.listing_id}">${listing.likes_count || 0}</span>
+                        <button class="action-btn" onclick="toggleLike('${lid}', event)">
+                            <i class="far fa-heart"></i> <span id="like-${lid}">${listing.likes_count || 0}</span>
                         </button>
                         <button class="action-btn" onclick="event.stopPropagation();">
                             <i class="far fa-eye"></i> ${listing.view_count || 0}
                         </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); shareListing('${listing.listing_id}')">
+                        <button class="action-btn" onclick="event.stopPropagation(); shareListing('${lid}')">
                             <i class="far fa-share-square"></i> Share
                         </button>
                     </div>
@@ -1395,10 +1401,10 @@
                     </div>
                     
                     <div class="order-buttons">
-                        <button class="btn-order" onclick="event.stopPropagation(); openOrderModal('${listing.title}', '${listing.listing_id}')">
+                        <button class="btn-order" onclick="event.stopPropagation(); openOrderModal('${lid}')">
                             <i class="fas fa-shopping-cart"></i> Order
                         </button>
-                        <button class="btn-chat" onclick="event.stopPropagation(); startChat('${listing.seller_id}')">
+                        <button class="btn-chat" onclick="event.stopPropagation(); startChat('${lid}')">
                             <i class="fas fa-comment"></i> Chat
                         </button>
                     </div>
@@ -1539,7 +1545,9 @@
         // Order functions
         let currentOrderId = null;
         
-        function openOrderModal(title, listingId) {
+        function openOrderModal(listingId) {
+            const listing = listingsMap[listingId];
+            const title = listing ? listing.title : 'item';
             currentOrderId = listingId;
             document.getElementById('orderItemName').innerHTML = `
                 <strong><i class="fas fa-box"></i> ${escapeHtml(title)}</strong><br>
@@ -1581,30 +1589,59 @@
         }
 
         function viewListing(listingId) {
+            // Record the view first (fire-and-forget)
+            fetch(`${API_BASE_URL}/listings/${listingId}/view`, {
+                method: 'POST',
+                credentials: 'include'
+            }).catch(() => {});
             window.location.href = `/marketplace/listings/${listingId}`;
         }
 
-        function startChat(sellerId) {
-            window.location.href = `/messages?user=${sellerId}`;
+        function startChat(listingId) {
+            const listing = listingsMap[listingId];
+            if (!listing) { window.location.href = '/messages'; return; }
+            const msg = encodeURIComponent(`Hi! I'm interested in your listing: "${listing.title}". Is it still available?`);
+            window.location.href = `/messages?user=${listing.seller_id}&text=${msg}&listing=${listingId}`;
         }
 
-        function toggleLike(listingId) {
+        function toggleLike(listingId, event) {
+            event.stopPropagation();
+            const btn = event.currentTarget;
+            const icon = btn.querySelector('i');
+            const likeSpan = document.getElementById(`like-${listingId}`);
+
             fetch(`${API_BASE_URL}/listings/${listingId}/favorite`, {
                 method: 'POST',
                 credentials: 'include'
-            }).then(response => {
-                if (response.ok) {
-                    const likeSpan = document.getElementById(`like-${listingId}`);
-                    if (likeSpan) {
-                        likeSpan.textContent = parseInt(likeSpan.textContent) + 1;
+            }).then(response => response.json()).then(data => {
+                if (data.success) {
+                    const current = parseInt(likeSpan.textContent) || 0;
+                    if (data.favorited) {
+                        icon.classList.replace('far', 'fas');
+                        icon.style.color = '#ef4444';
+                        likeSpan.textContent = current + 1;
+                    } else {
+                        icon.classList.replace('fas', 'far');
+                        icon.style.color = '';
+                        likeSpan.textContent = Math.max(0, current - 1);
                     }
                 }
             }).catch(console.error);
         }
 
         function shareListing(listingId) {
-            navigator.clipboard.writeText(`${window.location.origin}/marketplace/listings/${listingId}`);
-            alert('Link copied to clipboard!');
+            const listing = listingsMap[listingId];
+            const url = `${window.location.origin}/marketplace/listings/${listingId}`;
+            navigator.clipboard.writeText(url).then(() => {
+                // Record share server-side (fire-and-forget)
+                fetch(`${API_BASE_URL}/listings/${listingId}/share`, {
+                    method: 'POST',
+                    credentials: 'include'
+                }).catch(() => {});
+                alert('✅ Link copied to clipboard!');
+            }).catch(() => {
+                prompt('Copy this link:', url);
+            });
         }
 
         function showOptions(listingId) {

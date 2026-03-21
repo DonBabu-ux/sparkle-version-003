@@ -599,16 +599,17 @@ const initMarketplaceTables = async () => {
         const missingOrderCols = [
             'currency', 'item_condition', 'agreed_price', 'campus', 'location_description',
             'scheduled_time', 'accepted_at', 'rejected_at', 'cancelled_at', 'completed_at',
-            'disputed_at', 'last_action_by', 'last_action_at'
+            'disputed_at', 'last_action_by', 'last_action_at', 'listing_title', 'listing_description', 'price_at_time'
         ];
 
         for (const col of missingOrderCols) {
             if (!orderColNames.includes(col)) {
                 let colDef = '';
                 if (col.endsWith('_at') || col === 'scheduled_time') colDef = 'TIMESTAMP NULL DEFAULT NULL';
-                else if (col === 'agreed_price') colDef = 'DECIMAL(12,2) DEFAULT NULL';
+                else if (col === 'agreed_price' || col === 'price_at_time') colDef = 'DECIMAL(12,2) DEFAULT NULL';
                 else if (col === 'last_action_by') colDef = 'CHAR(36) NULL';
                 else if (col === 'currency') colDef = 'VARCHAR(10) DEFAULT "KES"';
+                else if (col === 'listing_title') colDef = 'VARCHAR(255) NULL';
                 else colDef = 'TEXT NULL';
                 
                 try {
@@ -618,6 +619,24 @@ const initMarketplaceTables = async () => {
                     logger.warn(`Failed to add column ${col}: ${e.message}`);
                 }
             }
+        }
+
+        try {
+            await pool.query('ALTER TABLE marketplace_orders MODIFY COLUMN price DECIMAL(10,2) NULL');
+            logger.debug('Modified price to be NULLABLE in marketplace_orders');
+        } catch (e) {
+            // Price might not exist anymore, or syntax error
+        }
+
+        // Migration: Add tags to listings
+        try {
+            const [listingCols] = await pool.query("SHOW COLUMNS FROM marketplace_listings");
+            if (!listingCols.find(c => c.Field === 'tags')) {
+                await pool.query('ALTER TABLE marketplace_listings ADD COLUMN tags JSON NULL');
+                logger.debug('Added tags column to marketplace_listings');
+            }
+        } catch (e) {
+            logger.warn('Failed to migrate marketplace_listings tags: ' + e.message);
         }
 
         // 6. Reviews

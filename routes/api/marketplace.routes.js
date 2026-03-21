@@ -18,6 +18,8 @@ router.delete('/marketplace/listings/:id',       authMiddleware, marketplaceCont
 router.post('/marketplace/listings/:id/contact', authMiddleware, ...marketplaceController.contactSeller);
 router.put('/marketplace/listings/:id/sold',     authMiddleware, marketplaceController.markAsSold);
 router.post('/marketplace/listings/:id/favorite',authMiddleware, ...marketplaceController.toggleFavorite);
+router.post('/marketplace/listings/:id/view',    authMiddleware, marketplaceController.recordView);
+router.post('/marketplace/listings/:id/share',   authMiddleware, marketplaceController.recordShare);
 router.post('/marketplace/listings/:id/report',  authMiddleware, marketplaceController.reportListing);
 router.post('/marketplace/listings/:id/boost',   authMiddleware, ...marketplaceController.boostListing);
 router.post('/marketplace/listings/:id/relist',  authMiddleware, marketplaceController.relistItem);

@@ -6,6 +6,8 @@ const { validate } = require('../middleware/validation.middleware');
 const logger = require('../utils/logger');
 const upload = require('../utils/fileUpload');
 const crypto = require('crypto');
+const notificationController = require('./notification.controller');
+const pool = require('../config/database');
 
 // Helper for media URLs
 const getSafeMediaUrl = (url) => {
@@ -718,6 +720,28 @@ const toggleFavorite = [
 
             const result = await Marketplace.toggleFavorite(user.user_id, listingId);
 
+            // Notify seller when someone favorites their listing (non-blocking)
+            if (result.favorited) {
+                try {
+                    const [[listing]] = await pool.query(
+                        'SELECT seller_id, title FROM marketplace_listings WHERE listing_id = ?', 
+                        [listingId]
+                    );
+                    if (listing && listing.seller_id !== user.user_id) {
+                        notificationController.createNotification({
+                            user_id: listing.seller_id,
+                            actor_id: user.user_id,
+                            type: 'marketplace_like',
+                            title: '❤️ Someone liked your listing!',
+                            content: `${user.name || user.username || 'A user'} liked your listing: "${listing.title}"`,
+                            related_id: listingId,
+                            related_type: 'marketplace_listing',
+                            action_url: `/marketplace/listings/${listingId}`
+                        }).catch(() => {});
+                    }
+                } catch (_) { /* non-blocking */ }
+            }
+
             res.json({
                 success: true,
                 favorited: result.favorited
@@ -1071,6 +1095,86 @@ const relistItem = async (req, res) => {
     }
 };
 
+// ── View Tracking ─────────────────────────────────────────────────────────────
+const recordView = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        const { id } = req.params;
+
+        // Increment view_count in DB (deduplicated per session via header flag from frontend)
+        await pool.query(
+            'UPDATE marketplace_listings SET view_count = view_count + 1 WHERE listing_id = ?',
+            [id]
+        );
+
+        // Notify seller (max once per day per viewer — simple check)
+        if (user) {
+            try {
+                const [[listing]] = await pool.query(
+                    'SELECT seller_id, title, view_count FROM marketplace_listings WHERE listing_id = ?',
+                    [id]
+                );
+                if (listing && listing.seller_id !== user.user_id) {
+                    // only notify at milestone view counts to reduce noise
+                    const views = listing.view_count;
+                    if ([10, 25, 50, 100, 250, 500].includes(views)) {
+                        notificationController.createNotification({
+                            user_id: listing.seller_id,
+                            actor_id: user.user_id,
+                            type: 'marketplace_view',
+                            title: `👀 Your listing reached ${views} views!`,
+                            content: `"${listing.title}" has been viewed ${views} times. Keep it active!`,
+                            related_id: id,
+                            related_type: 'marketplace_listing',
+                            action_url: `/marketplace/listings/${id}`
+                        }).catch(() => {});
+                    }
+                }
+            } catch (_) { /* non-blocking */ }
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Record view error:', error);
+        res.json({ success: false }); // silent fail
+    }
+};
+
+// ── Share Tracking ────────────────────────────────────────────────────────────
+const recordShare = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        const { id } = req.params;
+
+        // Notify the seller about the share
+        if (user) {
+            try {
+                const [[listing]] = await pool.query(
+                    'SELECT seller_id, title FROM marketplace_listings WHERE listing_id = ?',
+                    [id]
+                );
+                if (listing && listing.seller_id !== user.user_id) {
+                    notificationController.createNotification({
+                        user_id: listing.seller_id,
+                        actor_id: user.user_id,
+                        type: 'marketplace_share',
+                        title: '🔗 Someone shared your listing!',
+                        content: `${user.name || user.username || 'A user'} shared your listing: "${listing.title}"`,
+                        related_id: id,
+                        related_type: 'marketplace_listing',
+                        action_url: `/marketplace/listings/${id}`
+                    }).catch(() => {});
+                }
+            } catch (_) { /* non-blocking */ }
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Record share error:', error);
+        res.json({ success: false }); // silent fail
+    }
+};
+
 module.exports = {
     // Web Routes
     renderMarketplace,
@@ -1116,5 +1220,7 @@ module.exports = {
     markAsSold,
     relistItem,
     getRecommendations,
-    toggleSellerFavorite
+    toggleSellerFavorite,
+    recordView,
+    recordShare
 };

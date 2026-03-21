@@ -106,25 +106,9 @@
     </div>
 
     <script>
-        async function contactSeller(sellerId, listingId) {
-            try {
-                const response = await fetch('/api/marketplace/contact-seller', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sellerId, listingId })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    window.location.href = data.redirect || `/messages?chat=${data.chatId}`;
-                } else {
-                    alert(data.message || 'Failed to contact seller');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
-            }
+        function contactSeller(sellerId, listingId, title) {
+            const message = encodeURIComponent(`Hi, I'm interested in your listing: ${title.replace(/'/g, "\\'")}. Is it still available?`);
+            window.location.href = `/messages?user=${sellerId}&text=${message}&listing=${listingId}`;
         }
     </script>
     

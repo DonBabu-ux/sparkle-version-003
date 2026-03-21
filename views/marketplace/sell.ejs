@@ -200,7 +200,7 @@
                     <label class="input-label">Product Showcase</label>
                     <div class="media-upload" onclick="document.getElementById('mediaInput').click()">
                         <i data-lucide="camera" style="width: 40px; height: 40px;"></i>
-                        <span style="font-weight: 700;">Add up to 5 photos</span>
+                        <span style="font-weight: 700;">Add photos</span>
                         <span style="font-size: 0.8rem;">Highlight features and any flaws</span>
                     </div>
                     <input type="file" id="mediaInput" name="media" multiple accept="image/*" style="display: none;">
@@ -308,7 +308,7 @@
     mediaInput.addEventListener('change', () => {
         previewGrid.innerHTML = '';
         if (mediaInput.files) {
-            Array.from(mediaInput.files).slice(0, 5).forEach(file => {
+            Array.from(mediaInput.files).slice(0, 20).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const item = document.createElement('div');

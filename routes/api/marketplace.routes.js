@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const marketplaceController = require('../../controllers/marketplace.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
-const upload = require('../../utils/fileUpload');
+const { upload, marketplaceUpload } = require('../../utils/fileUpload');
 
 // ── Listings ──────────────────────────────────────────────────────────────────
 router.get('/marketplace/listings',              authMiddleware, marketplaceController.getListings);
@@ -10,8 +10,8 @@ router.get('/marketplace/categories',            authMiddleware, marketplaceCont
 router.get('/marketplace/trending',              authMiddleware, marketplaceController.getTrending);
 router.get('/marketplace/listings/recommended',  authMiddleware, marketplaceController.getRecommendations);
 router.get('/marketplace/listings/:id',          authMiddleware, marketplaceController.getListingById);
-router.post('/marketplace/listings',             authMiddleware, upload.array('media', 5), ...marketplaceController.createListing);
-router.put('/marketplace/listings/:id',          authMiddleware, upload.array('media', 5), ...marketplaceController.updateListing);
+router.post('/marketplace/listings',             authMiddleware, marketplaceUpload.array('media', 20), ...marketplaceController.createListing);
+router.put('/marketplace/listings/:id',          authMiddleware, marketplaceUpload.array('media', 20), ...marketplaceController.updateListing);
 router.delete('/marketplace/listings/:id',       authMiddleware, marketplaceController.deleteListing);
 
 // ── Listing Actions ───────────────────────────────────────────────────────────

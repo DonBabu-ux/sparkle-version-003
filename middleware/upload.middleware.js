@@ -42,6 +42,19 @@ const storage = new CloudinaryStorage({
     },
 });
 
+const marketplaceStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        return {
+            folder: 'sparkle_marketplace',
+            resource_type: 'image', // Force image type for marketplace
+            timestamp: Math.round(Date.now() / 1000) + timeOffsetSeconds,
+            public_id: `listing-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+            allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'], // Images only
+        };
+    },
+});
+
 const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
@@ -61,7 +74,27 @@ const upload = multer({
     }
 });
 
+const marketplaceUpload = multer({
+    storage: marketplaceStorage,
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        const ext = path.extname(file.originalname).toLowerCase();
+        const isExtMatch = allowedTypes.test(ext);
+        const isMimeMatch = allowedTypes.test(file.mimetype);
+
+        if (isExtMatch && isMimeMatch) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Invalid file type! Only images are allowed for marketplace listings.'));
+        }
+    },
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB per image
+    }
+});
+
 module.exports = {
     upload,
+    marketplaceUpload,
     cloudinary
 };

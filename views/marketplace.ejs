@@ -11,6 +11,8 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
         * {
             margin: 0;
@@ -497,26 +499,146 @@
             aspect-ratio: 1;
             background: #f0f2f5;
             overflow: hidden;
+            display: grid;
+            gap: 2px;
         }
 
-        .product-media img {
+        /* Grid layouts based on image count */
+        .product-media.grid-1 { grid-template-columns: 1fr; }
+        .product-media.grid-2 { grid-template-columns: 1fr 1fr; }
+        .product-media.grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .product-media.grid-3 .media-item:first-child { grid-row: span 2; }
+        .product-media.grid-4, .product-media.grid-more { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+        .media-item {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            cursor: zoom-in;
+        }
+
+        .media-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .media-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .more-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            pointer-events: none;
         }
 
         .media-indicator {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
+            top: 0.75rem;
+            right: 0.75rem;
             background: rgba(0,0,0,0.6);
             color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
             display: flex;
             align-items: center;
             gap: 0.25rem;
+            z-index: 10;
+        }
+
+        /* Lightbox Styles */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 80%;
+            position: relative;
+        }
+
+        .lightbox-image {
+            max-width: 100%;
+            max-height: 85vh;
+            border-radius: 8px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .lightbox-info {
+            color: white;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9rem;
         }
 
         .condition-badge {
@@ -1365,13 +1487,20 @@
                         </div>
                     </div>
                     
-                    <div class="product-media">
-                        <img src="${listing.image_url || '/images/default-listing.jpg'}" alt="${escapeHtml(listing.title)}" onerror="this.src='/images/default-listing.jpg'">
-                        ${listing.media_count > 1 || (listing.media && listing.media.length > 1) ? `
-                            <div class="media-indicator">
-                                <i class="fas fa-images"></i> ${listing.media_count || (listing.media && listing.media.length)}
-                            </div>
-                        ` : ''}
+                    <div class="product-media ${listing.media && listing.media.length > 0 ? 'grid-' + (listing.media.length > 4 ? 'more' : listing.media.length) : 'grid-1'}">
+                        ${(() => {
+                            const media = listing.media && listing.media.length > 0 ? listing.media : [{ media_url: listing.image_url || '/images/default-listing.jpg' }];
+                            const displayMedia = media.slice(0, 4);
+                            const moreCount = media.length - 4;
+                            
+                            return displayMedia.map((m, idx) => `
+                                <div class="media-item" onclick="openLightbox('${lid}', ${idx}, event)">
+                                    <img src="${m.media_url}" alt="${escapeHtml(listing.title)}" onerror="this.src='/images/default-listing.jpg'">
+                                    ${idx === 3 && moreCount > 0 ? `<div class="more-overlay">+${moreCount}</div>` : ''}
+                                </div>
+                            `).join('');
+                        })()}
+                        
                         <div class="condition-badge">
                             <i class="${conditionIcon}"></i> ${conditionText}
                         </div>
@@ -1726,6 +1855,85 @@
                 if (event.target === sellModal) closeSellModal();
                 if (event.target === orderModal) closeOrderModal();
             };
+        });
+    </script>
+    <!-- Lightbox Viewer -->
+    <div id="lightbox" class="lightbox" onclick="if(event.target === this) closeLightbox()">
+        <div class="lightbox-close" onclick="closeLightbox()">&times;</div>
+        <div class="lightbox-content">
+            <img id="lightboxImage" class="lightbox-image" src="" alt="Listing Image">
+            <div class="lightbox-nav">
+                <button class="nav-btn" onclick="event.stopPropagation(); changeLightboxImage(-1)"><i class="fas fa-chevron-left"></i></button>
+                <button class="nav-btn" onclick="event.stopPropagation(); changeLightboxImage(1)"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+        <div id="lightboxInfo" class="lightbox-info">Image 1 of 1</div>
+    </div>
+
+    <script>
+        // Lightbox state
+        let currentLightboxImages = [];
+        let currentLightboxIndex = 0;
+
+        function openLightbox(listingId, index, event) {
+            if (event) event.stopPropagation();
+            const listing = listingsMap[listingId];
+            if (!listing || !listing.media || listing.media.length === 0) {
+                // Fallback to main image
+                currentLightboxImages = [listing.image_url || '/images/default-listing.jpg'];
+            } else {
+                currentLightboxImages = listing.media.map(m => m.media_url);
+            }
+            
+            currentLightboxIndex = index || 0;
+            updateLightbox();
+            document.getElementById('lightbox').style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent scroll
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function changeLightboxImage(dir) {
+            currentLightboxIndex = (currentLightboxIndex + dir + currentLightboxImages.length) % currentLightboxImages.length;
+            updateLightbox();
+        }
+
+        function updateLightbox() {
+            const img = document.getElementById('lightboxImage');
+            const info = document.getElementById('lightboxInfo');
+            img.src = currentLightboxImages[currentLightboxIndex];
+            info.textContent = `Image ${currentLightboxIndex + 1} of ${currentLightboxImages.length}`;
+        }
+
+        // Touch support for swiping
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.getElementById('lightbox').addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.getElementById('lightbox').addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const threshold = 50;
+            if (touchEndX < touchStartX - threshold) changeLightboxImage(1); // Swipe Left
+            if (touchEndX > touchStartX + threshold) changeLightboxImage(-1); // Swipe Right
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('lightbox').style.display === 'flex') {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') changeLightboxImage(-1);
+                if (e.key === 'ArrowRight') changeLightboxImage(1);
+            }
         });
     </script>
 </body>

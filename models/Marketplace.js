@@ -554,7 +554,7 @@ class Marketplace {
      */
     static async createListing(listingData) {
         const connection = await pool.getConnection();
-        const { seller_id, title, description, price, category, condition, campus, location, tags, media } = listingData;
+        const { seller_id, title, description, price, category, condition, campus, location, tags, media, image_url } = listingData;
         
         try {
             await connection.beginTransaction();
@@ -564,9 +564,9 @@ class Marketplace {
             // 1. Insert into marketplace_listings
             await connection.query(
                 `INSERT INTO marketplace_listings 
-                (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
-                [listing_id, seller_id, title, description, price, category, condition, campus, location]
+                (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, status, image_url) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+                [listing_id, seller_id, title, description, price, category, condition, campus, location, image_url]
             );
 
             // 2. Insert media

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const lostFoundController = require('../../controllers/lostFound.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
-const upload = require('../../utils/fileUpload');
+const { upload } = require('../../utils/fileUpload');
 
 // Base path in index.js is `/lost-found`
 

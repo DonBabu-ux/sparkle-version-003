@@ -85,7 +85,7 @@ const initializeSocket = (server) => {
         // Send Message
         socket.on('send-message', async (data) => {
             try {
-                const { chatId, recipientId, content, type = 'text', mediaUrl, storyId, replyToId } = data;
+                const { chatId, recipientId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId } = data;
 
                 // 1. Save to DB
                 const messageId = await Message.sendMessage({
@@ -96,7 +96,8 @@ const initializeSocket = (server) => {
                     type,
                     mediaUrl,
                     storyId,
-                    replyToId
+                    replyToId,
+                    marketplaceListingId
                 });
 
                 // Get the saved message with sender info and reply info

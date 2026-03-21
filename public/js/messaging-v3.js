@@ -78,14 +78,14 @@ class SparkleChat {
         // For now, I'll assume the new init() event bindings are the source of truth.
         // The original setupSocket() event bindings are now effectively superseded by the new init() bindings.
         // To avoid duplicate listeners, I'll comment out the original ones here.
-        // this.socket.on('new-message', (message) => this.handleIncomingMessage(message));
-        // this.socket.on('message-sent', (message) => this.handleMessageSent(message));
-        // this.socket.on('user-typing', (data) => this.handleTypingIndicator(data));
-        // this.socket.on('messages-read', (data) => this.handleReadReceipt(data));
-        // this.socket.on('user-status', (data) => this.handleUserStatus(data));
-        // this.socket.on('new-reaction', (data) => this.handleReaction(data));
-        // this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
-        // this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted(data));
+        this.socket.on('new-message', (message) => this.handleIncomingMessage(message));
+        this.socket.on('message-sent', (message) => this.handleMessageSent(message));
+        this.socket.on('user-typing', (data) => this.handleTypingIndicator(data));
+        this.socket.on('messages-read', (data) => this.handleReadReceipt(data));
+        this.socket.on('user-status', (data) => this.handleUserStatus(data));
+        this.socket.on('new-reaction', (data) => this.handleReaction(data));
+        this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
+        this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted(data));
     }
 
     bindEvents() {
@@ -536,7 +536,8 @@ class SparkleChat {
                     recipientId: conv?.partner_id,
                     content: '',
                     type: type,
-                    mediaUrl: result.data.url
+                    mediaUrl: result.data.url,
+                    marketplaceListingId: conv?.marketplace_listing_id
                 });
             } else {
                 alert('Upload failed: ' + result.error);
@@ -559,7 +560,8 @@ class SparkleChat {
             recipientId: conv?.partner_id,
             content: content,
             type: 'text',
-            replyToId: this.replyingToMessageId
+            replyToId: this.replyingToMessageId,
+            marketplaceListingId: conv?.marketplace_listing_id
         };
 
         this.socket.emit('send-message', data);

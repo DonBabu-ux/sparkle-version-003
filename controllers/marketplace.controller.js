@@ -246,6 +246,43 @@ const getListings = async (req, res) => {
     }
 };
 
+const getCategories = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        const categories = await Marketplace.getCategories({
+            campus: req.query.campus || user?.campus || 'all'
+        });
+        
+        res.json({
+            success: true,
+            categories
+        });
+    } catch (error) {
+        logger.error('Get categories API error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch categories' });
+    }
+};
+
+const getTrending = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        // trending is popular listings
+        const result = await Marketplace.getListings({
+            sort: 'popular',
+            limit: 5,
+            campus: req.query.campus || user?.campus || 'all'
+        });
+        
+        res.json({
+            success: true,
+            trending: result.listings
+        });
+    } catch (error) {
+        logger.error('Get trending API error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch trending' });
+    }
+};
+
 const getListingById = async (req, res) => {
     try {
         const listing = await Marketplace.getListingWithMedia(req.params.id);
@@ -289,42 +326,47 @@ const createListing = [
             const files = req.files || [];
             
             // Process media files
-            const media = files.map((file, index) => ({
-                url: file.path || file.filename, // Cloudinary sets file.path
-                type: file.mimetype.startsWith('image/') ? 'image' : 'video',
-                order: index
-            }));
+            const media = files.map((file, index) => {
+                const url = file.path || file.secure_url || file.url;
+                if (!url) {
+                    logger.warn(`Missing URL for file ${index}:`, file);
+                }
+                return {
+                    url: url || 'invalid_url',
+                    type: file.mimetype?.startsWith('video/') ? 'video' : 'image',
+                    order: index
+                };
+            }).filter(m => m.url !== 'invalid_url');
+
+            // Get primary image
+            const primaryImage = media.find(m => m.type === 'image')?.url || (media.length > 0 ? media[0].url : null);
             
-            // Get primary image URL
-            const primaryImage = media.find(m => m.type === 'image')?.url || null;
-            
-            // Parse tags if provided
+            // Parse tags
             let tags = [];
             if (req.body.tags) {
                 try {
-                    tags = typeof req.body.tags === 'string' 
-                        ? JSON.parse(req.body.tags) 
-                        : req.body.tags;
+                    tags = typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
                 } catch (e) {
-                    tags = req.body.tags.split(',').map(t => t.trim());
+                    tags = req.body.tags.split(',').map(t => t.trim()).filter(Boolean);
                 }
             }
             
-            // Create listing in database
+            // Construct listing data
             const listingData = {
-                seller_id: user.user_id,
+                seller_id: user.user_id || user.id,
                 title: req.body.title,
                 description: req.body.description || '',
-                price: parseFloat(req.body.price),
+                price: parseFloat(req.body.price) || 0,
                 category: req.body.category || 'other',
                 condition: req.body.condition || 'good',
-                campus: req.body.campus || user.campus,
+                campus: req.body.campus || user.campus || 'main_campus',
                 location: req.body.location || '',
                 tags: tags,
                 image_url: primaryImage,
                 media: media
             };
             
+            logger.info(`Attempting to create listing for user ${user.user_id || user.id}`);
             const listingId = await Marketplace.createListing(listingData);
             
             res.status(201).json({
@@ -335,10 +377,18 @@ const createListing = [
             });
             
         } catch (error) {
-            logger.error('Create listing error:', error);
+            const errorDetails = {
+                message: error?.message || 'Unknown Error',
+                stack: error?.stack,
+                body: req.body,
+                userId: req.user?.user_id
+            };
+            logger.error('Create listing error details:', errorDetails);
+            
             res.status(500).json({
                 success: false,
-                message: error.message || 'Failed to create listing'
+                message: error?.message || 'Failed to create listing',
+                debug: process.env.NODE_ENV === 'development' ? errorDetails : undefined
             });
         }
     }
@@ -515,12 +565,17 @@ const placeOrder = [
             const user = normalizeUser(req.user);
             if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-            const { listingId } = req.body;
+            const { listingId, agreedPrice, message, campus, location, scheduledTime } = req.body;
             
             // Server derives all data from database for security
             const orderId = await Marketplace.placeOrder({ 
                 listingId, 
-                buyerId: user.user_id 
+                buyerId: user.user_id,
+                agreedPrice,
+                message,
+                campus,
+                location,
+                scheduledTime
             });
             
             res.json({
@@ -1026,6 +1081,8 @@ module.exports = {
 
     // API Routes
     getListings,
+    getCategories,
+    getTrending,
     getListingById,
     createListing,
     updateListing,

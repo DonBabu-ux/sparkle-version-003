@@ -1,0 +1,76 @@
+# Sparkle Marketplace: Full UI & Logic Description
+
+### 1. User Interface (UI) Components
+The marketplace is designed as a modern, single-page-style application using EJS for server-side rendering and vanilla JS for dynamic updates.
+
+#### **A. Main Feed (`/marketplace`)**
+*   **Hero Section**: Features a search bar with **real-time debouncing**. As you type, the URL updates and the feed refreshes without a full manual reload.
+*   **Header Actions**: 
+    *   **Grid/List Toggle**: Switch between a visual grid for photos and a detailed list mode for specifications.
+    *   **Sort Select**: Options include `Just In`, `Popular`, `Price ↑/↓`, `A-Z/Z-A`, and `Top Rated` (based on seller history).
+*   **Filter Sidebar**: Refines results by `Category`, `Price Range`, `Condition`, and `Meetup Campus`.
+*   **Product Cards**: Displays primary image/video, title, formatted price (KES), condition badge, and a "Quick Favorite" button.
+
+#### **B. Listing Detail Page (`/marketplace/listings/:id`)**
+*   **Media Gallery**: A customized Bootstrap carousel supporting both images and **auto-playing videos**.
+*   **Seller Card**: A glassmorphism-styled profile section showing the seller’s avatar, verification status, campus, and aggregated star rating.
+*   **Action Panel**: Offers quick buttons for "Message Seller" (Chat) and "Place Formal Order."
+
+#### **C. "Sell Your Item" Flow (`/marketplace/sell`)**
+*   **Multi-Media Upload**: Allows up to 5 images or videos via a drag-and-drop or file selector.
+*   **Dynamic Tagging**: Users can add tags to improve searchability.
+*   **Validation**: Real-time frontend feedback for required fields like title, price, and category.
+
+---
+
+### 2. Backend API Endpoints
+All marketplace APIs are prefixed with `/api/marketplace` and require **JWT authentication**.
+
+#### **Listings Management**
+| Endpoint | Method | Input (Body/Query) | Description |
+| :--- | :--- | :--- | :--- |
+| `/listings` | `GET` | `search`, `category`, `sort`, `limit`, `offset` | Retrieves filtered listings. |
+| `/listings` | `POST` | `title`, `description`, `price`, `category`, `media` (Files) | Creates a new listing with Cloudinary upload. |
+| `/listings/:id` | `PUT` | `title`, `price`, `status`, `media` | Updates an existing listing. |
+| `/listings/:id` | `DELETE` | N/A | Permanently removes a listing. |
+
+#### **Trading & Interaction**
+| Endpoint | Method | Input (Body) | Description |
+| :--- | :--- | :--- | :--- |
+| `/order` | `POST` | `listingId` | Initiates a formal transaction. |
+| `/orders/:id/status` | `PATCH` | `status` (`accepted`, `rejected`, `cancelled`, `completed`, `disputed`) | Updates order lifecycle. |
+| `/listings/:id/favorite` | `POST` | N/A | Toggles item in user's wishlist. |
+| `/listings/:id/report` | `POST` | `reason`, `details` | Reports a listing for moderation. |
+
+---
+
+### 3. Core Database Logic (`Marketplace.js`)
+The logic is built on **transactional integrity** to ensure data never gets desynchronized.
+
+*   **Initialization (`init.js`)**: 
+    *   Ensures safety by checking for the existence of columns before attempting to repair them.
+    *   Creates a `listing_tags` junction table for many-to-many tag relationships.
+*   **Listings Retrieval**:
+    *   Uses a complex SQL query with subqueries to calculate **Live Ratings** for each seller and check if the current user has **Favorited** the item in one go.
+    *   **Status Logic**: Only items with status `active` and `is_sold: 0` are served to the public feed.
+*   **Media Handling**: 
+    *   Integrates with **Cloudinary**. Files are uploaded via `multer-storage-cloudinary`, and the resulting URLs are stored in `listing_media`.
+    *   Automatically designates the first uploaded image as the `image_url` (primary thumbnail).
+
+---
+
+### 4. Logic Flows & Security
+*   **Real-time Interaction**: When an order is placed, the backend uses **Firebase Realtime Database** to push a notification to the seller's dashboard instantly.
+*   **Price Security**: Prices are stored as `DECIMAL(12,2)` to prevent floating-point errors common in financial calculations.
+*   **Protection**: 
+    *   **Ownership Check**: A user cannot update or delete a listing they didn't create.
+    *   **Input Sanitization**: All text inputs are filtered for XSS, and price inputs are validated to be positive numbers.
+    *   **CSRF Protection**: Native `csurf` middleware protects state-changing requests in the views.
+
+### 5. Current Data Schema
+The system uses the following core tables:
+1.  **`marketplace_listings`**: Stores core product data (Title, Price, description, condition, etc.).
+2.  **`marketplace_orders`**: Manages the lifecycle of a sale (Pending -> Accepted -> Completed).
+3.  **`listing_media`**: Links multiple Cloudinary URLs to a single listing.
+4.  **`listing_tags`**: Key-value pair table for modern categorization.
+5.  **`marketplace_reviews`**: Peer-to-peer ratings that build seller reputation.

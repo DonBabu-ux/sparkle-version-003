@@ -32,19 +32,43 @@ const retryWithBackoff = async (fn, maxRetries = 3, initialDelay = 1000) => {
 
 const repairUsersTable = async () => {
     try {
-        const [columns] = await pool.query('SHOW COLUMNS FROM users');
-        const colNames = columns.map(c => c.Field);
-
-        if (!colNames.includes('role')) {
-            logger.info('Adding missing "role" column to users table...');
-            await pool.query("ALTER TABLE users ADD COLUMN role ENUM('member', 'moderator', 'admin') DEFAULT 'member'");
-            logger.info('✅ role column added.');
+        // Add is_verified column if it doesn't exist
+        const [isVerifiedCol] = await pool.query(`
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'is_verified'
+        `);
+        if (isVerifiedCol.length === 0) {
+            await pool.query('ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE');
+            logger.info('Added is_verified column to users table');
         }
 
-        if (!colNames.includes('is_verified')) {
-            logger.info('Adding missing "is_verified" column to users table...');
-            await pool.query("ALTER TABLE users ADD COLUMN is_verified TINYINT(1) DEFAULT 0");
-            logger.info('✅ is_verified column added.');
+        // Add role column if it doesn't exist
+        const [roleCol] = await pool.query(`
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'
+        `);
+        if (roleCol.length === 0) {
+            await pool.query("ALTER TABLE users ADD COLUMN role ENUM('user', 'moderator', 'admin') DEFAULT 'user'");
+            logger.info('Added role column to users table');
+        }
+
+        // Add other missing columns
+        const columnsToAdd = [
+            { name: 'bio', type: 'TEXT DEFAULT NULL' },
+            { name: 'campus', type: 'VARCHAR(100) DEFAULT NULL' },
+            { name: 'major', type: 'VARCHAR(100) DEFAULT NULL' },
+            { name: 'year_of_study', type: 'VARCHAR(50) DEFAULT NULL' }
+        ];
+
+        for (const col of columnsToAdd) {
+            const [exists] = await pool.query(`
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = ?
+            `, [col.name]);
+            if (exists.length === 0) {
+                await pool.query(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`);
+                logger.info(`Added ${col.name} column to users table`);
+            }
         }
 
         // Set first user as admin if not already set
@@ -506,7 +530,17 @@ const initMarketplaceTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
-        // 3. Favorites
+        // 3. Listing Tags
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS listing_tags (
+                listing_id CHAR(36) NOT NULL,
+                tag_name VARCHAR(50) NOT NULL,
+                PRIMARY KEY (listing_id, tag_name),
+                FOREIGN KEY (listing_id) REFERENCES marketplace_listings(listing_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 4. Favorites
         await pool.query(`
             CREATE TABLE IF NOT EXISTS marketplace_favorites (
                 favorite_id CHAR(36) NOT NULL PRIMARY KEY,
@@ -519,7 +553,7 @@ const initMarketplaceTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
-        // 4. Orders (Production-Grade)
+        // 5. Orders (Production-Grade)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS marketplace_orders (
                 order_id              CHAR(36)         NOT NULL PRIMARY KEY,
@@ -529,7 +563,27 @@ const initMarketplaceTables = async () => {
                 listing_title         VARCHAR(255)     NOT NULL,
                 listing_description   TEXT,
                 price_at_time         DECIMAL(12,2)    NOT NULL,
+                currency              VARCHAR(10)      DEFAULT 'KES',
+                item_condition        VARCHAR(50)      DEFAULT NULL,
                 status ENUM('pending','accepted','rejected','cancelled','completed','disputed') NOT NULL DEFAULT 'pending',
+                
+                -- Dynamic details from suggested fix
+                agreed_price          DECIMAL(12,2)    DEFAULT NULL,
+                campus                VARCHAR(100)     DEFAULT NULL,
+                location_description   TEXT            DEFAULT NULL,
+                scheduled_time        TIMESTAMP        NULL DEFAULT NULL,
+                
+                -- Timestamps for lifecycle
+                accepted_at           TIMESTAMP        NULL DEFAULT NULL,
+                rejected_at           TIMESTAMP        NULL DEFAULT NULL,
+                cancelled_at          TIMESTAMP        NULL DEFAULT NULL,
+                completed_at          TIMESTAMP        NULL DEFAULT NULL,
+                disputed_at           TIMESTAMP        NULL DEFAULT NULL,
+                
+                -- Audit
+                last_action_by        CHAR(36)         NULL,
+                last_action_at        TIMESTAMP        NULL DEFAULT NULL,
+                
                 created_at            TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
                 updated_at            TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (listing_id) REFERENCES marketplace_listings(listing_id) ON DELETE CASCADE,
@@ -538,7 +592,35 @@ const initMarketplaceTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
-        // 5. Reviews
+        // Migration: Add missing columns if they don't exist
+        const [orderCols] = await pool.query("SHOW COLUMNS FROM marketplace_orders");
+        const orderColNames = orderCols.map(c => c.Field);
+        
+        const missingOrderCols = [
+            'currency', 'item_condition', 'agreed_price', 'campus', 'location_description',
+            'scheduled_time', 'accepted_at', 'rejected_at', 'cancelled_at', 'completed_at',
+            'disputed_at', 'last_action_by', 'last_action_at'
+        ];
+
+        for (const col of missingOrderCols) {
+            if (!orderColNames.includes(col)) {
+                let colDef = '';
+                if (col.endsWith('_at') || col === 'scheduled_time') colDef = 'TIMESTAMP NULL DEFAULT NULL';
+                else if (col === 'agreed_price') colDef = 'DECIMAL(12,2) DEFAULT NULL';
+                else if (col === 'last_action_by') colDef = 'CHAR(36) NULL';
+                else if (col === 'currency') colDef = 'VARCHAR(10) DEFAULT "KES"';
+                else colDef = 'TEXT NULL';
+                
+                try {
+                    await pool.query(`ALTER TABLE marketplace_orders ADD COLUMN ${col} ${colDef}`);
+                    logger.debug(`Added column ${col} to marketplace_orders`);
+                } catch (e) {
+                    logger.warn(`Failed to add column ${col}: ${e.message}`);
+                }
+            }
+        }
+
+        // 6. Reviews
         await pool.query(`
             CREATE TABLE IF NOT EXISTS marketplace_reviews (
                 review_id CHAR(36) NOT NULL PRIMARY KEY,
@@ -555,7 +637,7 @@ const initMarketplaceTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
-        // 6. Safe Meetup Locations
+        // 7. Safe Meetup Locations
         await pool.query(`
             CREATE TABLE IF NOT EXISTS safe_meetup_locations (
                 location_id CHAR(36) NOT NULL PRIMARY KEY,
@@ -566,6 +648,16 @@ const initMarketplaceTables = async () => {
                 is_verified TINYINT(1) DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_campus (campus)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 8. Tags Table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS listing_tags (
+                listing_id CHAR(36) NOT NULL,
+                tag_name VARCHAR(100) NOT NULL,
+                PRIMARY KEY (listing_id, tag_name),
+                FOREIGN KEY (listing_id) REFERENCES marketplace_listings(listing_id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 

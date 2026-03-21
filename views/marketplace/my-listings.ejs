@@ -192,7 +192,7 @@
             <% listings.forEach(listing => { %>
                 <div class="shop-card">
                     <div class="card-img-wrapper">
-                        <img src="<%= listing.thumbnail_url || '/images/default-item.jpg' %>" class="card-img" alt="Item">
+                        <img src="<%= listing.thumbnail_url || '/images/default-listing.jpg' %>" class="card-img" alt="Item">
                         <span class="status-badge <%= listing.is_sold ? 'status-sold' : 'status-active' %>">
                             <%= listing.is_sold ? 'Sold' : 'Active' %>
                         </span>

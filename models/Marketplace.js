@@ -187,14 +187,23 @@ class Marketplace {
 
             // Apply sorting
             switch (sort) {
+                case 'name_asc':
+                    query += ` ORDER BY l.title ASC`;
+                    break;
+                case 'name_desc':
+                    query += ` ORDER BY l.title DESC`;
+                    break;
+                case 'rating':
+                    query += ` ORDER BY (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) DESC, l.created_at DESC`;
+                    break;
+                case 'popular':
+                    query += ` ORDER BY l.view_count DESC, l.created_at DESC`;
+                    break;
                 case 'price_low':
                     query += ` ORDER BY l.price ASC`;
                     break;
                 case 'price_high':
                     query += ` ORDER BY l.price DESC`;
-                    break;
-                case 'popular':
-                    query += ` ORDER BY l.view_count DESC, l.created_at DESC`;
                     break;
                 case 'newest':
                 default:
@@ -273,8 +282,46 @@ class Marketplace {
 
         } catch (error) {
             logger.error('Database error in getListings:', error);
-            throw error;
+            // On error return empty array
+            return { listings: [], pagination: { total: 0, limit: 20, offset: 0, hasMore: false } };
         }
+    }
+
+    /**
+     * Get categories with active listing counts
+     */
+    static async getCategories(filters = {}) {
+        let query = `
+            SELECT category AS id, 
+                   COUNT(*) AS count 
+            FROM marketplace_listings 
+            WHERE status = 'active' AND is_sold = 0
+        `;
+        const params = [];
+
+        if (filters.campus && filters.campus !== 'all') {
+            query += ` AND campus = ?`;
+            params.push(filters.campus);
+        }
+
+        query += ` GROUP BY category ORDER BY count DESC`;
+
+        const [rows] = await pool.query(query, params);
+        
+        const categoryNames = {
+            'electronics': 'Electronics',
+            'books': 'Books & Notes',
+            'fashion': 'Fashion',
+            'dorm': 'Dorm Life',
+            'services': 'Services',
+            'other': 'Other'
+        };
+
+        return rows.map(row => ({
+            id: row.id,
+            name: categoryNames[row.id] || (row.id.charAt(0).toUpperCase() + row.id.slice(1).replace('_', ' ')),
+            count: row.count
+        }));
     }
 
     /**
@@ -622,10 +669,19 @@ class Marketplace {
 
     /**
      * Place an order with listing snapshot
+     * Derives critical values from DB but allows custom meetup details.
      */
     static async placeOrder(orderData) {
         const connection = await pool.getConnection();
-        const { listingId, buyerId } = orderData;
+        const { 
+            listingId, 
+            buyerId, 
+            agreedPrice, 
+            campus, 
+            location, 
+            scheduledTime,
+            message 
+        } = orderData;
 
         try {
             await connection.beginTransaction();
@@ -639,7 +695,10 @@ class Marketplace {
             if (listings.length === 0) throw new Error('LISTING_NOT_FOUND');
             const listing = listings[0];
 
-            if (listing.status !== 'active') throw new Error('LISTING_NOT_ACTIVE');
+            if (listing.is_sold) throw new Error('LISTING_SOLD');
+            if (listing.status !== 'active' && listing.status !== 'pending') {
+                throw new Error('LISTING_NOT_AVAILABLE');
+            }
             if (listing.seller_id === buyerId) throw new Error('CANNOT_BUY_OWN');
 
             // 2. Check for existing active orders
@@ -650,13 +709,22 @@ class Marketplace {
             if (existing.length > 0) throw new Error('ORDER_EXISTS');
 
             const orderId = uuidv4();
+            const finalPrice = agreedPrice || listing.price;
 
             // 3. Create order record (Snapshot data)
             await connection.query(
                 `INSERT INTO marketplace_orders 
-                (order_id, listing_id, buyer_id, seller_id, listing_title, listing_description, price_at_time, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
-                [orderId, listingId, buyerId, listing.seller_id, listing.title, listing.description, listing.price]
+                (order_id, listing_id, buyer_id, seller_id, 
+                 listing_title, listing_description, price_at_time, 
+                 currency, item_condition, agreed_price, campus, 
+                 location_description, scheduled_time, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'KES', ?, ?, ?, ?, ?, 'pending')`,
+                [
+                    orderId, listingId, buyerId, listing.seller_id, 
+                    listing.title, listing.description, listing.price, 
+                    listing.condition, finalPrice, campus || listing.campus, 
+                    location || listing.location, scheduledTime || null
+                ]
             );
 
             // 4. Update listing status to 'pending' to prevent multiple buyers
@@ -667,8 +735,8 @@ class Marketplace {
 
             // 5. Initial audit log
             await connection.query(
-                'INSERT INTO order_audit_log (log_id, order_id, actor_id, action, new_status) VALUES (?, ?, ?, ?, ?)',
-                [uuidv4(), orderId, buyerId, 'ORDER_PLACED', 'pending']
+                'INSERT INTO order_audit_log (log_id, order_id, actor_id, action, new_status, changes) VALUES (?, ?, ?, ?, ?, ?)',
+                [uuidv4(), orderId, buyerId, 'ORDER_PLACED', 'pending', JSON.stringify({ message })]
             );
 
             await connection.commit();
@@ -682,12 +750,11 @@ class Marketplace {
                     buyerId,
                     sellerId: listing.seller_id,
                     status: 'pending',
-                    price: listing.price,
-                    title: listing.title,
+                    price: finalPrice,
                     createdAt: new Date().toISOString()
                 });
             } catch (firebaseError) {
-                logger.error('Firebase sync failed:', firebaseError);
+                logger.error('Firebase push failed in placeOrder:', firebaseError);
             }
 
             return orderId;
@@ -1506,95 +1573,7 @@ class Marketplace {
         }
     }
 
-    /**
-     * Create order – atomic MySQL transaction with row-level locking.
-     * Derives ALL critical values server-side; trusts nothing from client.
-     * Prices stored in KES.
-     */
-    /**
-     * Create order – atomic MySQL transaction with row-level locking.
-     * FIXED VERSION with Firebase integration and improved validation.
-     */
-    static async createOrder(userId, listingId) {
-        const connection = await pool.getConnection();
-        try {
-            await connection.beginTransaction();
 
-            // Lock listing row to prevent race conditions
-            const [[listing]] = await connection.query(
-                `SELECT * FROM marketplace_listings WHERE listing_id = ? FOR UPDATE`,
-                [listingId]
-            );
-
-            if (!listing)                         throw new Error('LISTING_NOT_FOUND');
-            if (listing.is_sold)                  throw new Error('LISTING_SOLD');
-            if (listing.status !== 'active')       throw new Error('LISTING_NOT_ACTIVE');
-            if (listing.seller_id === userId)     throw new Error('CANNOT_BUY_OWN');
-
-            // Prevent duplicate active orders
-            const [[dup]] = await connection.query(
-                `SELECT COUNT(*) AS cnt FROM marketplace_orders
-                 WHERE listing_id = ? AND buyer_id = ? AND status IN ('pending','accepted')`,
-                [listingId, userId]
-            );
-            if (dup.cnt > 0) throw new Error('ORDER_EXISTS');
-
-            const orderId = uuidv4();
-
-            // Insert order – snapshot listing data, KES currency
-            await connection.query(
-                `INSERT INTO marketplace_orders
-                 (order_id, listing_id, buyer_id, seller_id,
-                  listing_title, listing_description, price_at_time, currency, item_condition,
-                  status, campus, location_description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, 'KES', ?, 'pending', ?, ?)`,
-                [
-                    orderId, listingId, userId, listing.seller_id,
-                    listing.title, listing.description, listing.price, listing.condition,
-                    listing.campus, listing.location
-                ]
-            );
-
-            // Lock listing so other buyers can't order simultaneously
-            await connection.query(
-                `UPDATE marketplace_listings SET status = 'pending' WHERE listing_id = ?`,
-                [listingId]
-            );
-
-            // Write audit log
-            await connection.query(
-                `INSERT INTO order_audit_log (log_id, order_id, actor_id, action, new_status, changes)
-                 VALUES (?, ?, ?, 'ORDER_CREATED', 'pending', ?)`,
-                [uuidv4(), orderId, userId, JSON.stringify({ listing_id: listingId, price: listing.price })]
-            );
-
-            await connection.commit();
-
-            // Push to Firebase for real-time updates
-            try {
-                const firebaseRef = admin.database().ref(`marketplace/orders/${orderId}`);
-                await firebaseRef.set({
-                    orderId,
-                    listingId,
-                    buyerId: userId,
-                    sellerId: listing.seller_id,
-                    status: 'pending',
-                    price: listing.price,
-                    createdAt: new Date().toISOString()
-                });
-            } catch (firebaseError) {
-                logger.error('Firebase push failed:', firebaseError);
-            }
-
-            return orderId;
-        } catch (error) {
-            await connection.rollback();
-            logger.error('Transaction error in createOrder:', error);
-            throw error;
-        } finally {
-            connection.release();
-        }
-    }
 
     /**
      * Update order status with business-rule enforcement.

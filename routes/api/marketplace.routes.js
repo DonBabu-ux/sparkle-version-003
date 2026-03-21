@@ -6,6 +6,8 @@ const upload = require('../../utils/fileUpload');
 
 // ── Listings ──────────────────────────────────────────────────────────────────
 router.get('/marketplace/listings',              authMiddleware, marketplaceController.getListings);
+router.get('/marketplace/categories',            authMiddleware, marketplaceController.getCategories);
+router.get('/marketplace/trending',              authMiddleware, marketplaceController.getTrending);
 router.get('/marketplace/listings/recommended',  authMiddleware, marketplaceController.getRecommendations);
 router.get('/marketplace/listings/:id',          authMiddleware, marketplaceController.getListingById);
 router.post('/marketplace/listings',             authMiddleware, upload.array('media', 5), ...marketplaceController.createListing);

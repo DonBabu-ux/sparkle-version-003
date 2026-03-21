@@ -21,7 +21,7 @@ exports.createListingSchema = Joi.object({
   campus: Joi.string().trim().lowercase().valid(
     'main_campus', 'north_campus', 'south_campus', 'downtown', 'all', 'main campus', 'north campus', 'south campus',
     'west_campus', 'east_campus'
-  ).required(),
+  ).optional().allow('', null).default('main_campus'),
   location: Joi.string().trim().max(500).optional().allow('', null),
   tags: Joi.any().optional().allow('', null),
   media: Joi.any().optional(),
@@ -34,11 +34,15 @@ exports.createListingSchema = Joi.object({
 // ==================== ORDER SCHEMAS ====================
 
 /**
- * Create order schema - FIXED: Only require listingId
- * Server derives all other data from database for security
+ * Create order schema - UPDATE: Allow negotiation fields
  */
 exports.createOrderSchema = Joi.object({
-  listingId: uuidSchema
+  listingId: uuidSchema,
+  agreedPrice: Joi.number().min(0).max(10000000).optional(),
+  message: Joi.string().max(1000).optional().allow(''),
+  campus: Joi.string().max(100).optional().allow(''),
+  location: Joi.string().max(255).optional().allow(''),
+  scheduledTime: Joi.date().iso().optional().allow(null, '')
 });
 
 /**

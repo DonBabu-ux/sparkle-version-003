@@ -21,6 +21,7 @@ CREATE TABLE `users` (
   `anonymous_enabled` TINYINT(1) DEFAULT 0,
   `dark_mode_enabled` TINYINT(1) DEFAULT 0,
   `account_status` ENUM('active', 'suspended', 'deactivated') DEFAULT 'active',
+  `role` ENUM('user', 'moderator', 'admin') DEFAULT 'user',
   `email_notifications` TINYINT(1) DEFAULT 1,
   `push_notifications` TINYINT(1) DEFAULT 1,
   `profile_visibility` ENUM('public', 'campus', 'private') DEFAULT 'public',
@@ -592,6 +593,14 @@ CREATE TABLE `listing_media` (
   FOREIGN KEY (`listing_id`) REFERENCES `marketplace_listings`(`listing_id`) ON DELETE CASCADE,
   INDEX `idx_listing_media_listing` (`listing_id`, `upload_order`),
   INDEX `idx_listing_media_type` (`media_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `listing_tags`;
+CREATE TABLE `listing_tags` (
+  `listing_id` CHAR(36) NOT NULL,
+  `tag_name` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`listing_id`, `tag_name`),
+  FOREIGN KEY (`listing_id`) REFERENCES `marketplace_listings`(`listing_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================

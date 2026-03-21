@@ -12,6 +12,21 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+const https = require('https');
+let timeOffsetSeconds = 0;
+
+// Dynamically fix Cloudinary "Stale request" due to system time skew
+https.get('https://api.cloudinary.com', (res) => {
+    if (res.headers.date) {
+        const apiDate = new Date(res.headers.date);
+        timeOffsetSeconds = Math.round((apiDate - new Date()) / 1000);
+        console.log(`[Cloudinary] Time offset adjusted by ${timeOffsetSeconds} seconds`);
+    }
+}).on('error', () => {
+    timeOffsetSeconds = 21600; // generic fallback 
+});
+
+
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
@@ -19,6 +34,7 @@ const storage = new CloudinaryStorage({
         return {
             folder: folder,
             resource_type: 'auto',
+            timestamp: Math.round(Date.now() / 1000) + timeOffsetSeconds,
             public_id: `${file.fieldname}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
             allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'webm'],
             transformation: file.fieldname === 'avatar' ? [{ width: 500, height: 500, crop: 'limit' }] : []

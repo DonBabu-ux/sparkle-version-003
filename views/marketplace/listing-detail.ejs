@@ -1,27 +1,34 @@
 <%- include('../partials/head', { title: listing.title }) %>
+<link rel="stylesheet" href="/css/marketplace.css">
 
-<body>
+<body class="marketplace-page">
     <%- include('../partials/sidebar') %>
     
-    <div class="container">
-        <div class="header glass">
-            <a href="/marketplace" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Marketplace
+    <div class="marketplace-container" style="display: block; width: 100%; max-width: 1200px; padding: 20px;">
+        <div class="header glass" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <a href="/marketplace" class="btn btn-outline" style="text-decoration: none; padding: 10px 20px; border-radius: 50px;">
+                <i class="fas fa-arrow-left"></i> Back to Market
             </a>
+            <div class="badge" style="background: var(--gradient); color: white; padding: 5px 15px; border-radius: 50px; font-weight: 800;">
+                <%= listing.category || 'Product' %>
+            </div>
         </div>
         
         <div class="listing-detail">
             <!-- Product Images Carousel -->
             <div class="listing-images">
                 <% if (listing.media && listing.media.length > 0) { %>
-                    <div id="listingCarousel" class="carousel slide">
+                    <div id="listingCarousel" class="carousel slide" data-bs-ride="carousel">
                         <div class="carousel-inner">
                             <% listing.media.forEach((media, index) => { %>
                                 <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
                                     <% if (media.media_type === 'image') { %>
-                                        <img src="<%= media.media_url %>" class="d-block w-100" alt="<%= listing.title %>">
+                                        <div class="img-zoom-container">
+                                            <img src="<%= media.media_url %>" class="d-block w-100" alt="<%= listing.title %>" 
+                                                 style="max-height: 500px; object-fit: contain; border-radius: 12px;">
+                                        </div>
                                     <% } else { %>
-                                        <video controls class="d-block w-100">
+                                        <video controls class="d-block w-100" style="max-height: 500px;">
                                             <source src="<%= media.media_url %>" type="video/mp4">
                                             Your browser does not support the video tag.
                                         </video>
@@ -30,49 +37,69 @@
                             <% }); %>
                         </div>
                         <% if (listing.media.length > 1) { %>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel">
+                            <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev">
                                 <span class="carousel-control-prev-icon"></span>
                             </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel">
+                            <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next">
                                 <span class="carousel-control-next-icon"></span>
                             </button>
                         <% } %>
                     </div>
                 <% } else { %>
-                    <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800" 
-                         class="img-fluid" alt="<%= listing.title %>">
+                    <img src="<%= listing.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800' %>" 
+                         class="img-fluid" alt="<%= listing.title %>" style="max-height: 500px; width: 100%; object-fit: contain;">
                 <% } %>
             </div>
             
             <!-- Product Details -->
             <div class="listing-info">
                 <h1><%= listing.title %></h1>
-                <div class="price-tag">$<%= listing.price %></div>
+                <div class="price-tag">KES <%= parseFloat(listing.price).toLocaleString('en-KE') %></div>
                 
-                <div class="seller-info">
-                    <img src="<%= listing.seller_avatar || '/uploads/avatars/default.png' %>" 
-                         alt="<%= listing.seller_username %>" class="seller-avatar">
-                    <div>
-                        <h5><%= listing.seller_username %></h5>
-                        <p>Seller</p>
+                <div class="seller-card glass" style="margin-bottom: 25px; padding: 15px; border-radius: 20px; border: 1px solid rgba(225, 48, 108, 0.1);">
+                    <div class="seller-info" style="display: flex; align-items: center; gap: 15px;">
+                        <img src="<%= listing.seller_avatar || '/uploads/avatars/default.png' %>" 
+                             alt="<%= listing.seller_username %>" class="seller-avatar"
+                             onerror="this.src='/uploads/avatars/default.png'">
+                        <div class="seller-details">
+                            <h5 style="margin: 0; font-weight: 800; font-size: 1.1rem;"><%= listing.seller_username %></h5>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
+                                <i class="fas fa-check-circle" style="color: #4CAF50;"></i> Verified Seller • <%= listing.campus || 'Main Campus' %>
+                            </p>
+                            <div class="rating" style="color: #FFD700; font-size: 0.8rem; margin-top: 3px;">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                                <span style="color: var(--text-muted); margin-left: 5px;">(4.5)</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="listing-meta">
-                    <span><i class="fas fa-eye"></i> <%= listing.view_count || 0 %> views</span>
+                    <span><i class="fas fa-eye"></i> <%= listing.view_count || 0 %> Views</span>
                     <span><i class="fas fa-calendar"></i> <%= new Date(listing.created_at).toLocaleDateString() %></span>
-                    <span><i class="fas fa-map-marker-alt"></i> <%= listing.campus %></span>
+                    <span><i class="fas fa-shield-alt"></i> Safe Meetup</span>
                 </div>
                 
                 <div class="description">
                     <h3>Description</h3>
-                    <p><%= listing.description %></p>
+                    <p style="white-space: pre-wrap;"><%= listing.description %></p>
                 </div>
                 
-                <div class="listing-actions">
-                    <button class="btn btn-primary btn-lg" onclick="contactSeller('<%= listing.seller_id %>', '<%= listing.listing_id %>')">
-                        <i class="fas fa-envelope"></i> Contact Seller
+                <div class="listing-actions" style="margin-top: 20px; display: grid; gap: 15px;">
+                    <button class="btn btn-primary" style="padding: 18px; font-size: 1.1rem; border-radius:18px;" 
+                            onclick="contactSeller('<%= listing.seller_id %>', '<%= listing.listing_id %>')">
+                        <i class="fas fa-envelope"></i> Message Seller Now
                     </button>
+                    <% if (user && user.user_id !== listing.seller_id) { %>
+                        <button class="btn btn-outline" style="padding: 15px; border-radius:18px;" id="orderBtn"
+                                onclick="window.location.href='/marketplace?order_now=<%= listing.listing_id %>&title=<%= encodeURIComponent(listing.title) %>&price=<%= listing.price %>'">
+                            <i class="fas fa-shopping-bag"></i> Place Formal Order
+                        </button>
+                    <% } %>
                 </div>
             </div>
         </div>

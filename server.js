@@ -109,9 +109,21 @@ app.use((req, res) => {
     res.status(404).render('404', { title: '404 - Page Not Found' });
 });
 
-// Error Handler
+// Enhanced Error Handler
 app.use((err, req, res, next) => {
-    console.error('❌ Server Error:', err.stack);
+    // Log the full error carefully
+    const errorMessage = err?.stack || err?.message || err || 'Unknown Error';
+    console.error('❌ Server Error:', errorMessage);
+
+    if (res.statusCode === 500 || !err.status) {
+        console.error('🔍 Error Context:', {
+            url: req.originalUrl,
+            method: req.method,
+            body: req.body,
+            user: req.user?.user_id || req.user?.id,
+            timestamp: new Date().toISOString()
+        });
+    }
     
     // Check if it's an API request
     if (req.originalUrl.startsWith('/api') || req.path.startsWith('/api')) {

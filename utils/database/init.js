@@ -300,13 +300,15 @@ const initPersonalChatsTable = async () => {
                 chat_id CHAR(36) NOT NULL PRIMARY KEY,
                 participant1_id CHAR(36) NOT NULL,
                 participant2_id CHAR(36) NOT NULL,
+                marketplace_listing_id CHAR(36) DEFAULT NULL,
                 last_message_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (participant1_id) REFERENCES users(user_id) ON DELETE CASCADE,
                 FOREIGN KEY (participant2_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                UNIQUE KEY unique_participants (participant1_id, participant2_id),
-                INDEX idx_personal_chats_participant1 (participant1_id, last_message_time),
-                INDEX idx_personal_chats_participant2 (participant2_id, last_message_time)
+                FOREIGN KEY (marketplace_listing_id) REFERENCES marketplace_listings(listing_id) ON DELETE SET NULL,
+                INDEX idx_personal_chats_participant1 (participant1_id, last_message_time, marketplace_listing_id),
+                INDEX idx_personal_chats_participant2 (participant2_id, last_message_time, marketplace_listing_id),
+                INDEX idx_marketplace_chat (marketplace_listing_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
         logger.debug('✅ Personal chats table verified');
@@ -328,6 +330,7 @@ const initMessagesTable = async () => {
                 content TEXT DEFAULT NULL,
                 media_url VARCHAR(500) DEFAULT NULL,
                 story_id CHAR(36) DEFAULT NULL,
+                marketplace_listing_id CHAR(36) DEFAULT NULL,
                 is_read TINYINT(1) DEFAULT 0,
                 sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 read_at TIMESTAMP NULL DEFAULT NULL,
@@ -335,9 +338,11 @@ const initMessagesTable = async () => {
                 FOREIGN KEY (conversation_id) REFERENCES personal_chats(chat_id) ON DELETE CASCADE,
                 FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE,
                 FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE SET NULL,
+                FOREIGN KEY (marketplace_listing_id) REFERENCES marketplace_listings(listing_id) ON DELETE SET NULL,
                 INDEX idx_messages_group_chat (chat_id, sent_at),
                 INDEX idx_messages_personal_chat (conversation_id, sent_at),
                 INDEX idx_messages_sender (sender_id, sent_at),
+                INDEX idx_messages_marketplace (marketplace_listing_id),
                 INDEX idx_messages_unread (sender_id, is_read, sent_at),
                 INDEX idx_messages_story (story_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4

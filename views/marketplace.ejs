@@ -462,13 +462,14 @@
 
         .seller-info {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 0.75rem;
+            gap: 4px;
         }
 
         .seller-avatar {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: linear-gradient(135deg, #6366f1, #a855f7);
             display: flex;
@@ -476,16 +477,35 @@
             justify-content: center;
             color: white;
             font-weight: bold;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .seller-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        .seller-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .seller-details {
+            text-align: center;
         }
 
         .seller-details h4 {
-            font-size: 0.9rem;
-            font-weight: 600;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #65676b;
+            margin: 0;
         }
 
         .seller-details p {
-            font-size: 0.75rem;
-            color: #65676b;
+            display: none; /* Hide rating in header to simplify */
         }
 
         .product-menu {
@@ -1073,19 +1093,19 @@
                     <div class="avatar" id="userAvatar">
                         <i class="fas fa-user"></i>
                     </div>
-                    <div class="create-input" id="openSellModal">
+                    <div class="create-input" id="openSellModalInput">
                         What are you selling today?
                     </div>
                 </div>
                 <div class="create-actions">
-                    <div class="create-action" id="openSellModalPhoto">
-                        <i class="fas fa-camera"></i> Photo/Video
+                    <div class="create-action" id="openSellModal">
+                        <i class="fas fa-plus-circle"></i> Create Listing
                     </div>
-                    <div class="create-action" id="openSellModalItem">
-                        <i class="fas fa-box"></i> Sell Item
+                    <div class="create-action" id="viewWishlistBtn" onclick="openWishlist()">
+                        <i class="fas fa-heart" style="color: #ef4444;"></i> Saved Wishlist
                     </div>
-                    <div class="create-action" id="openSellModalService">
-                        <i class="fas fa-briefcase"></i> Offer Service
+                    <div class="create-action" onclick="window.location.href='/messages?tab=marketplace'">
+                        <i class="fas fa-comments" style="color: #6366f1;"></i> Marketplace Chats
                     </div>
                 </div>
             </div>
@@ -1473,13 +1493,12 @@
             return `
                 <div class="product-card" onclick="viewListing('${lid}')">
                     <div class="product-header">
-                        <div class="seller-info">
+                        <div class="seller-info" onclick="event.stopPropagation(); window.location.href='/profile/${listing.seller_id}'">
                             <div class="seller-avatar">
-                                ${sellerInitial}
+                                ${listing.seller_avatar ? `<img src="${listing.seller_avatar}" alt="${escapeHtml(listing.seller_name)}">` : sellerInitial}
                             </div>
                             <div class="seller-details">
-                                <h4>${escapeHtml(listing.seller_name || 'Anonymous')}</h4>
-                                <p><i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i> ${sellerRating} • ${listing.total_sales || 0} sold</p>
+                                <h4>${escapeHtml(listing.seller_username || listing.seller_name || 'Anonymous')}</h4>
                             </div>
                         </div>
                         <div class="product-menu" onclick="event.stopPropagation(); showOptions('${lid}')">
@@ -1507,15 +1526,17 @@
                     </div>
                     
                     <div class="product-actions">
-                        <button class="action-btn" onclick="toggleLike('${lid}', event)">
-                            <i class="far fa-heart"></i> <span id="like-${lid}">${listing.likes_count || 0}</span>
-                        </button>
-                        <button class="action-btn" onclick="event.stopPropagation();">
-                            <i class="far fa-eye"></i> ${listing.view_count || 0}
+                        <button class="action-btn" onclick="toggleLike('${lid}', event)" title="Add to Wishlist">
+                            <i class="${listing.is_favorited ? 'fas' : 'far'} fa-heart" style="${listing.is_favorited ? 'color: #ef4444;' : ''}"></i> 
+                            <span id="like-${lid}">${listing.likes_count || 0}</span>
                         </button>
                         <button class="action-btn" onclick="event.stopPropagation(); shareListing('${lid}')">
                             <i class="far fa-share-square"></i> Share
                         </button>
+                        <div style="flex: 1;"></div>
+                        <div class="rating-display" style="font-size: 0.8rem; color: #fbbf24;">
+                            <i class="fas fa-star"></i> ${sellerRating}
+                        </div>
                     </div>
                     
                     <div class="product-info">
@@ -1726,11 +1747,91 @@
             window.location.href = `/marketplace/listings/${listingId}`;
         }
 
+        function openMessenger(userId, listingId = null) {
+            let url = `/messages/?user=${userId}`;
+            if (listingId) url += `&listing=${listingId}`;
+            window.location.href = url;
+        }
+
         function startChat(listingId) {
             const listing = listingsMap[listingId];
             if (!listing) { window.location.href = '/messages'; return; }
             const msg = encodeURIComponent(`Hi! I'm interested in your listing: "${listing.title}". Is it still available?`);
-            window.location.href = `/messages?user=${listing.seller_id}&text=${msg}&listing=${listingId}`;
+            openMessenger(listing.seller_id, listingId);
+        }
+
+        async function toggleWishlist(listingId) {
+            try {
+                const response = await fetch(`/api/marketplace/listings/${listingId}/favorite`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Update UI state
+                    const btn = document.querySelector(`.wishlist-btn[data-id="${listingId}"]`);
+                    const icon = btn?.querySelector('i');
+                    if (result.action === 'added') {
+                        icon?.classList.replace('bi-heart', 'bi-heart-fill');
+                        btn?.classList.add('active');
+                        showToast('Item saved to wishlist!', 'success');
+                    } else {
+                        icon?.classList.replace('bi-heart-fill', 'bi-heart');
+                        btn?.classList.remove('active');
+                        showToast('Item removed from wishlist', 'info');
+                    }
+                    // Refresh wishlist modal if it's open
+                    if (document.getElementById('wishlistModal').style.display === 'flex') {
+                        loadWishlist();
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadWishlist() {
+            const container = document.getElementById('wishlistItems');
+            container.innerHTML = '<div class="spinner-pink"></div>';
+            
+            try {
+                const response = await fetch('/api/marketplace/favorites');
+                const result = await response.json();
+                
+                if (result.success && result.favorites && result.favorites.length > 0) {
+                    container.innerHTML = result.favorites.map(item => `
+                        <div class="wishlist-item" onclick="viewListing('${item.listing_id}')">
+                            <img src="${item.media_url || item.image_url || '/images/default-listing.jpg'}" class="wishlist-img">
+                            <div class="wishlist-info">
+                                <h3>${item.title}</h3>
+                                <p>KES ${Number(item.price).toLocaleString()}</p>
+                            </div>
+                            <div class="wishlist-actions" style="margin-left: auto; display: flex; gap: 8px;">
+                                <button class="marketplace-msg-btn" style="margin:0;" onclick="event.stopPropagation(); startChat('${item.listing_id}')" title="Message Seller">
+                                    <i class="bi bi-chat-dots"></i>
+                                </button>
+                                <button class="wishlist-remove-btn" style="position:static; transform:none;" onclick="event.stopPropagation(); toggleLike('${item.listing_id}', event)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="empty-wishlist">Your wishlist is empty</div>';
+                }
+            } catch (err) {
+                container.innerHTML = '<div class="error-msg">Failed to load wishlist</div>';
+            }
+        }
+
+        function openWishlist() {
+            document.getElementById('wishlistModal').style.display = 'flex';
+            loadWishlist();
+        }
+
+        function closeWishlist() {
+            document.getElementById('wishlistModal').style.display = 'none';
         }
 
         function toggleLike(listingId, event) {
@@ -1936,5 +2037,39 @@
             }
         });
     </script>
+    <!-- Wishlist Modal -->
+    <div id="wishlistModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container wishlist-modal">
+            <div class="modal-header">
+                <h2><i class="bi bi-heart-fill" style="color: #ef4444;"></i> Saved Wishlist</h2>
+                <div class="modal-header-actions">
+                    <button class="marketplace-msg-btn" onclick="window.location.href='/messages?tab=marketplace'" title="Marketplace Messages">
+                        <i class="bi bi-chat-dots-fill"></i>
+                    </button>
+                    <button class="close-modal" onclick="closeWishlist()">&times;</button>
+                </div>
+            </div>
+            <div class="wishlist-body">
+                <div id="wishlistItems" class="wishlist-grid">
+                    <!-- Wishlist items will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Styles for Wishlist -->
+    <style>
+        .wishlist-modal { max-width: 600px; width: 90%; border-radius: 20px; overflow: hidden; }
+        .wishlist-grid { display: grid; grid-template-columns: 1fr; gap: 12px; max-height: 70vh; overflow-y: auto; padding: 10px; }
+        .wishlist-item { display: flex; align-items: center; gap: 15px; padding: 12px; background: #f8fafc; border-radius: 12px; cursor: pointer; transition: 0.2s; position: relative; }
+        .wishlist-item:hover { background: #f1f5f9; transform: translateX(5px); }
+        .wishlist-img { width: 70px; height: 70px; border-radius: 10px; object-fit: cover; }
+        .wishlist-info h3 { margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; }
+        .wishlist-info p { margin: 4px 0 0; font-weight: 800; color: var(--primary); }
+        .wishlist-remove-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 8px; border-radius: 50%; transition: 0.2s; }
+        .wishlist-remove-btn:hover { background: #fee2e2; color: #ef4444; }
+        .marketplace-msg-btn { background: #f1f5f9; border: none; width: 40px; height: 40px; border-radius: 12px; color: #6366f1; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 10px; transition: 0.2s; }
+        .marketplace-msg-btn:hover { background: #6366f1; color: white; }
+    </style>
 </body>
 </html>

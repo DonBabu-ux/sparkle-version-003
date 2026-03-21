@@ -71,12 +71,78 @@ class Marketplace {
             await pool.query('DELETE FROM marketplace_favorites WHERE favorite_id = ?', [existing[0].favorite_id]);
             return { favorited: false };
         } else {
+            const favorite_id = uuidv4();
             await pool.query(
                 'INSERT INTO marketplace_favorites (favorite_id, user_id, listing_id) VALUES (?, ?, ?)',
-                [uuidv4(), userId, listingId]
+                [favorite_id, userId, listingId]
             );
+
+            // Notify seller
+            try {
+                const [[listing]] = await pool.query(
+                    'SELECT seller_id, title FROM marketplace_listings WHERE listing_id = ?',
+                    [listingId]
+                );
+                const [[user]] = await pool.query('SELECT username FROM users WHERE user_id = ?', [userId]);
+                
+                if (listing && listing.seller_id !== userId) {
+                    const notificationController = require('../controllers/notification.controller');
+                    notificationController.createNotification({
+                        user_id: listing.seller_id,
+                        actor_id: userId,
+                        type: 'marketplace_favorite',
+                        title: '❤️ Someone liked your item!',
+                        content: `${user.username} favorited your listing: "${listing.title}"`,
+                        related_id: listingId,
+                        related_type: 'marketplace_listing',
+                        action_url: `/marketplace/listings/${listingId}`
+                    }).catch(() => {});
+                }
+            } catch (err) {
+                logger.error('Error notifying seller of favorite:', err);
+            }
+
             return { favorited: true };
         }
+    }
+
+    /**
+     * Record a view for a listing
+     */
+    static async recordView(listingId, userId = null) {
+        try {
+            await pool.query(
+                'UPDATE marketplace_listings SET view_count = view_count + 1 WHERE listing_id = ?',
+                [listingId]
+            );
+            return true;
+        } catch (error) {
+            logger.error('Error recording view:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Add a review for a seller
+     */
+    static async addReview(reviewerId, revieweeId, listingId, rating, comment) {
+        const review_id = uuidv4();
+        await pool.query(
+            'INSERT INTO marketplace_reviews (review_id, reviewer_id, reviewee_id, listing_id, rating, comment) VALUES (?, ?, ?, ?, ?, ?)',
+            [review_id, reviewerId, revieweeId, listingId, rating, comment]
+        );
+        return { review_id };
+    }
+
+    /**
+     * Record a share
+     */
+    static async recordShare(listingId, userId = null) {
+        await pool.query(
+            'UPDATE marketplace_listings SET share_count = share_count + 1 WHERE listing_id = ?',
+            [listingId]
+        );
+        return true;
     }
 
     /**
@@ -98,6 +164,34 @@ class Marketplace {
             );
             return { favorited: true };
         }
+    }
+
+    /**
+     * Create a review for a seller
+     */
+    static async createReview(reviewData) {
+        const { listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type } = reviewData;
+        const review_id = uuidv4();
+        await pool.query(
+            'INSERT INTO marketplace_reviews (review_id, listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [review_id, listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type]
+        );
+        return { review_id };
+    }
+
+    /**
+     * Get reviews for a user
+     */
+    static async getUserReviews(userId) {
+        const [rows] = await pool.query(
+            `SELECT r.*, u.username as reviewer_username, u.avatar_url as reviewer_avatar
+             FROM marketplace_reviews r
+             JOIN users u ON r.reviewer_id = u.user_id
+             WHERE r.reviewee_id = ?
+             ORDER BY r.created_at DESC`,
+            [userId]
+        );
+        return rows;
     }
 
     /**
@@ -144,6 +238,7 @@ class Marketplace {
                     u.avatar_url as seller_avatar,
                     (SELECT media_url FROM listing_media WHERE listing_id = l.listing_id LIMIT 1) as media_url,
                     (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) as seller_rating,
+                    (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) as review_count,
                     CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
                     (SELECT COUNT(*) FROM marketplace_orders WHERE listing_id = l.listing_id) as order_count
                 FROM marketplace_listings l
@@ -152,6 +247,12 @@ class Marketplace {
                 WHERE l.status = 'active' AND l.is_sold = 0
             `;
             const params = [sessionUserId];
+
+            // Record view if userId is provided
+            if (userId && listings.length > 0) {
+                 // Actually this should be done in individual listing view, but we can track impressions here?
+                 // No, only record view in getListingById or recordView endpoint.
+            }
 
             // Apply filters
             if (search) {
@@ -564,9 +665,9 @@ class Marketplace {
             // 1. Insert into marketplace_listings
             await connection.query(
                 `INSERT INTO marketplace_listings 
-                (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, status, image_url) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
-                [listing_id, seller_id, title, description, price, category, condition, campus, location, image_url]
+                (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, status, image_url, tags) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+                [listing_id, seller_id, title, description, price, category, condition, campus, location, image_url, JSON.stringify(tags || [])]
             );
 
             // 2. Insert media
@@ -608,7 +709,6 @@ class Marketplace {
         try {
             await connection.beginTransaction();
 
-            // Verification of ownership
             const [listing] = await connection.query(
                 'SELECT listing_id FROM marketplace_listings WHERE listing_id = ? AND seller_id = ?',
                 [id, sellerId]
@@ -1964,43 +2064,20 @@ class Marketplace {
      */
     static async getCounts(userId) {
         try {
-            let favoritesCount = 0;
-            let wishlistCount = 0;
-            let notificationCount = 0;
-
-            // Check and count favorites
-            const [favoritesTable] = await pool.query("SHOW TABLES LIKE 'marketplace_favorites'");
-            if (favoritesTable.length > 0) {
-                const [[cartCount]] = await pool.query('SELECT COUNT(*) as count FROM marketplace_favorites WHERE user_id = ?', [userId]);
-                favoritesCount = cartCount.count || 0;
-            }
-
-            // Check and count wishlist
-            const [wishlistTable] = await pool.query("SHOW TABLES LIKE 'wishlist'");
-            if (wishlistTable.length > 0) {
-                const [[wishlistResult]] = await pool.query('SELECT COUNT(*) as count FROM wishlist WHERE user_id = ?', [userId]);
-                wishlistCount = wishlistResult?.count || 0;
-            }
-
-            // Check and count notifications
-            const [notificationsTable] = await pool.query("SHOW TABLES LIKE 'notifications'");
-            if (notificationsTable.length > 0) {
-                const [[notificationResult]] = await pool.query('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE', [userId]);
-                notificationCount = notificationResult?.count || 0;
-            }
-
+            if (!userId) return { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
+            
+            const [favs] = await pool.query('SELECT COUNT(*) as count FROM marketplace_favorites WHERE user_id = ?', [userId]);
+            const [wish] = await pool.query('SELECT COUNT(*) as count FROM marketplace_favorites WHERE user_id = ?', [userId]); // Using same for now
+            const [notif] = await pool.query('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE', [userId]);
+            
             return {
-                favoritesCount,
-                wishlistCount,
-                notificationCount
+                favoritesCount: favs[0]?.count || 0,
+                wishlistCount: wish[0]?.count || 0,
+                notificationCount: notif[0]?.count || 0
             };
         } catch (error) {
-            logger.error('Database error in getCounts:', error);
-            return {
-                favoritesCount: 0,
-                wishlistCount: 0,
-                notificationCount: 0
-            };
+            logger.error('Error in getCounts:', error);
+            return { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
         }
     }
 }

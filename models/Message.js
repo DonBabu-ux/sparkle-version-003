@@ -5,13 +5,23 @@ class Message {
     /**
      * Start or get conversation
      */
-    static async getOrCreateConversation(currentUserId, partnerId) {
-        // Check if personal chat already exists
-        const [existing] = await db.query(`
+    static async getOrCreateConversation(currentUserId, partnerId, listingId = null) {
+        // Build the query and params
+        let query = `
             SELECT chat_id FROM personal_chats 
-            WHERE (participant1_id = ? AND participant2_id = ?)
-               OR (participant1_id = ? AND participant2_id = ?)
-        `, [currentUserId, partnerId, partnerId, currentUserId]);
+            WHERE ((participant1_id = ? AND participant2_id = ?)
+               OR (participant1_id = ? AND participant2_id = ?))
+        `;
+        let params = [currentUserId, partnerId, partnerId, currentUserId];
+
+        if (listingId) {
+            query += ` AND marketplace_listing_id = ? `;
+            params.push(listingId);
+        } else {
+            query += ` AND marketplace_listing_id IS NULL `;
+        }
+
+        const [existing] = await db.query(query, params);
 
         if (existing && existing.length > 0) {
             return existing[0].chat_id;
@@ -20,9 +30,9 @@ class Message {
         // Create new personal chat
         const chatId = crypto.randomUUID();
         await db.query(`
-            INSERT INTO personal_chats (chat_id, participant1_id, participant2_id)
-            VALUES (?, ?, ?)
-        `, [chatId, currentUserId, partnerId]);
+            INSERT INTO personal_chats (chat_id, participant1_id, participant2_id, marketplace_listing_id)
+            VALUES (?, ?, ?, ?)
+        `, [chatId, currentUserId, partnerId, listingId]);
 
         return chatId;
     }
@@ -30,13 +40,13 @@ class Message {
     /**
      * Send message (Direct or Group)
      */
-    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null }) {
+    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null }) {
         const messageId = crypto.randomUUID();
         let personalChatId = null;
         let groupChatId = null;
 
         if (recipientId) {
-            personalChatId = await this.getOrCreateConversation(senderId, recipientId);
+            personalChatId = await this.getOrCreateConversation(senderId, recipientId, marketplaceListingId);
         } else if (chatId) {
             groupChatId = chatId;
         } else {
@@ -47,9 +57,9 @@ class Message {
             await db.query(`
                 INSERT INTO messages (
                     message_id, chat_id, conversation_id, sender_id, content, 
-                    type, media_url, reply_to_message_id, status, sent_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())
-            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId]);
+                    type, media_url, reply_to_message_id, marketplace_listing_id, status, sent_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())
+            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId]);
 
             // Update last_message_time and clear archives for both participants in personal chats
             if (personalChatId) {
@@ -112,10 +122,14 @@ class Message {
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('emoji', r.emoji, 'user_id', r.user_id)) 
                      FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
                     rm.content as reply_content,
-                    rm.type as reply_type
+                    rm.type as reply_type,
+                    ml.title as listing_title,
+                    ml.price as listing_price,
+                    ml.image_url as listing_image
                 FROM messages m
                 JOIN users u ON m.sender_id = u.user_id
                 LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
                 WHERE (m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
@@ -132,10 +146,14 @@ class Message {
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('emoji', r.emoji, 'user_id', r.user_id)) 
                      FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
                     rm.content as reply_content,
-                    rm.type as reply_type
+                    rm.type as reply_type,
+                    ml.title as listing_title,
+                    ml.price as listing_price,
+                    ml.image_url as listing_image
                 FROM messages m
                 JOIN users u ON m.sender_id = u.user_id
                 LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
                 WHERE m.chat_id = ?
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
@@ -173,9 +191,12 @@ class Message {
                     IF(pc.participant1_id = ?, pc.is_pinned_p1, pc.is_pinned_p2) as is_pinned,
                     IF(pc.participant1_id = ?, pc.is_muted_p1, pc.is_muted_p2) as is_muted,
                     IF(pc.participant1_id = ?, pc.is_archived_p1, pc.is_archived_p2) as is_archived,
-                    2 as member_count
+                    2 as member_count,
+                    pc.marketplace_listing_id,
+                    ml.title as listing_title
                 FROM personal_chats pc
                 JOIN users u ON (u.user_id = IF(pc.participant1_id = ?, pc.participant2_id, pc.participant1_id))
+                LEFT JOIN marketplace_listings ml ON pc.marketplace_listing_id = ml.listing_id
                 LEFT JOIN messages m ON m.message_id = (
                     SELECT message_id FROM messages 
                     WHERE conversation_id = pc.chat_id 
@@ -204,7 +225,9 @@ class Message {
                     0 as is_pinned,
                     0 as is_muted,
                     0 as is_archived,
-                    (SELECT COUNT(*) FROM group_chat_members WHERE chat_id = gc.chat_id AND status != 'left') as member_count
+                    (SELECT COUNT(*) FROM group_chat_members WHERE chat_id = gc.chat_id AND status != 'left') as member_count,
+                    NULL as marketplace_listing_id,
+                    NULL as listing_title
                 FROM group_chats gc
                 JOIN group_chat_members gcm ON gc.chat_id = gcm.chat_id
                 LEFT JOIN messages m ON m.message_id = (

@@ -20,6 +20,12 @@
                     <i class="bi bi-search"></i>
                     <input type="text" id="sidebarSearch" class="sidebar-search" placeholder="Search chats or friends...">
                 </div>
+                <!-- Inbox Tabs -->
+                <div class="inbox-tabs">
+                    <button class="inbox-tab active" data-tab="all">All</button>
+                    <button class="inbox-tab" data-tab="personal">General</button>
+                    <button class="inbox-tab" data-tab="marketplace">Marketplace</button>
+                </div>
             </div>
 
             <!-- Active Friends -->
@@ -358,12 +364,8 @@ function toggleWaFab() {
 <!-- Scripts -->
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const user = <%- JSON.stringify(user || {}) %>;
-    window.sparkleUser = {
-        user_id: user.user_id || user.userId || null,
-        username: user.username || null,
-        name: user.name || null
-    };
+    const currentUserData = <%- JSON.stringify(user || {}) %>;
+    window.sparkleUser = { user_id: currentUserData.user_id || currentUserData.userId || null, username: currentUserData.username || null, name: currentUserData.name || null };
 </script>
 <script src="/js/messaging-v3.js"></script>
 

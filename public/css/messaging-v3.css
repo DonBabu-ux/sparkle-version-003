@@ -60,6 +60,41 @@
     box-shadow: 0 0 0 4px rgba(255, 61, 109, 0.1);
 }
 
+/* Sidebar Tabs */
+.sidebar-tabs {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding: 0 5px;
+}
+
+.sidebar-tab {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.sidebar-tab:hover {
+    background: white;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.sidebar-tab.active {
+    background: var(--primary-gradient);
+    border-color: transparent;
+    color: white;
+    box-shadow: 0 4px 10px rgba(255, 61, 109, 0.2);
+}
+
 /* Active Friends Carousel */
 .active-friends-carousel {
     padding: 15px 0;
@@ -357,6 +392,68 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
+/* Inbox Filtering Tabs */
+.inbox-tabs {
+    display: flex;
+    padding: 10px 15px;
+    gap: 8px;
+    border-bottom: 1px solid #f1f5f9;
+    background: white;
+    position: sticky;
+    top: 70px; /* Below search */
+    z-index: 10;
+}
+
+.inbox-tab {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #64748b;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.inbox-tab:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.inbox-tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+.inbox-tab i {
+    font-size: 14px;
+}
+
+/* Marketplace Conversation Item */
+.conv-item.marketplace-chat {
+    border-left: 3px solid var(--primary);
+}
+
+.conv-listing-tag {
+    font-size: 10px;
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    display: inline-block;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .msg-body {
     word-break: break-word;
 }
@@ -433,6 +530,85 @@
     color: var(--primary);
     margin-bottom: 3px;
     opacity: 0.9;
+}
+
+/* Marketplace Listing Card in Message */
+.msg-listing-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.05);
+    margin: 8px 0;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: 240px;
+}
+
+.msg-listing-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.listing-preview-img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+}
+
+.listing-preview-info {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.listing-preview-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1e293b;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.listing-preview-price {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 15px;
+}
+
+.listing-preview-action {
+    padding: 8px 12px;
+    background: #f1f5f9;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(0,0,0,0.03);
+}
+
+.msg-received .listing-tag {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.msg-sent .listing-tag {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.listing-tag {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 8px;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .msg-options-trigger {

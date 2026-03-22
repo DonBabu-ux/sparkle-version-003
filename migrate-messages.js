@@ -5,10 +5,11 @@ async function migrate() {
     try {
         console.log("Starting messages migration...");
         
-        // Ensure ENUM includes 'audio' and 'document'
+        // Ensure ENUM includes 'audio', 'document', 'voice_note', 'text', 'image', 'video', 'system', 'marketplace_listing'
+        // ENUM('text', 'image', 'video', 'voice_note', 'post_share', 'system', 'call', 'marketplace_listing', 'story_reply')
         await db.query(`
             ALTER TABLE messages 
-            MODIFY COLUMN type ENUM('text', 'image', 'video', 'audio', 'document', 'system', 'marketplace_listing') DEFAULT 'text'
+            MODIFY COLUMN type ENUM('text', 'image', 'video', 'voice_note', 'post_share', 'system', 'call', 'marketplace_listing', 'story_reply', 'audio', 'document') DEFAULT 'text'
         `);
         console.log("Updated type ENUM");
 
@@ -32,6 +33,21 @@ async function migrate() {
             console.log("Added views_allowed");
         } catch (e) {
             console.log("views_allowed likely exists", e.message);
+        }
+
+        // --- DELIVERY & READ ---
+        try {
+            await db.query(`ALTER TABLE messages ADD COLUMN delivered TINYINT(1) DEFAULT 0`);
+            console.log("Added delivered");
+        } catch (e) {
+            console.log("delivered likely exists", e.message);
+        }
+
+        try {
+            await db.query(`ALTER TABLE messages ADD COLUMN delivered_at TIMESTAMP NULL`);
+            console.log("Added delivered_at");
+        } catch (e) {
+            console.log("delivered_at likely exists", e.message);
         }
         
         console.log("Migration complete!");

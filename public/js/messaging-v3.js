@@ -623,7 +623,12 @@ class SparkleChat {
                 <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0; margin-top:2px;">
                     <span>${this.formatTime(msg.sent_at)}</span>
                     ${msg.edited_at && !isDeleted ? '<span style="font-style:italic;">(edited)</span>' : ''}
-                    ${isMe && !isDeleted ? `<span class="msg-tick"><i class="bi ${statusIcon}" style="color:${statusColor}; font-size:16px; margin-left:2px;"></i></span>` : ''}
+                    ${isMe && !isDeleted ? `
+                        <span class="msg-tick">
+                            <i class="bi ${msg.is_read || msg.status === 'read' ? 'bi-check-all' : (msg.delivered ? 'bi-check-all' : 'bi-check')}" 
+                               style="color:${msg.is_read || msg.status === 'read' ? '#53bdeb' : '#8696a0'}; font-size:16px; margin-left:2px;"></i>
+                        </span>
+                    ` : ''}
                 </div>
                 ${reactionsHtml}
             </div>
@@ -871,11 +876,18 @@ class SparkleChat {
     handleIncomingMessage(msg) {
         if(String(msg.sender_id) === String(this.userId)) return; // Prevent double message bug safely!
         
+        const messageId = msg.message_id || msg.id;
+        if(document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return; // Strict uniqueness
+
         const msgChatId = msg.conversation_id || msg.chat_id;
         if (this.currentChatId === msgChatId) {
             const container = document.getElementById('messagesContainer');
             container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
             this.scrollToBottom();
+            
+            // Emit received for double tick on sender's side
+            this.socket.emit('mark-delivered', { messageId: messageId, chatId: msgChatId });
+            // If chat is open, mark as read immediately
             this.socket.emit('mark-read', this.currentChatId);
         }
         
@@ -907,11 +919,25 @@ class SparkleChat {
     }
 
     handleReadReceipt(data) {
-        const { chatId } = data;
+        const { chatId, messageId } = data;
         if (this.currentChatId === chatId) {
-            document.querySelectorAll('.msg-sent .msg-tick').forEach(tick => {
-                tick.classList.add('read');
-                tick.querySelector('i').className = 'bi bi-check2-all';
+            const selector = messageId ? `.msg-bubble[data-msg-id="${messageId}"] .msg-tick i` : '.msg-sent .msg-tick i';
+            document.querySelectorAll(selector).forEach(tick => {
+                tick.className = 'bi bi-check-all';
+                tick.style.color = '#53bdeb'; // Double Blue Tick
+            });
+        }
+    }
+
+    handleMessageDelivered(data) {
+        const { chatId, messageId } = data;
+        if (this.currentChatId === chatId) {
+            const selector = messageId ? `.msg-bubble[data-msg-id="${messageId}"] .msg-tick i` : '.msg-sent .msg-tick i';
+            document.querySelectorAll(selector).forEach(tick => {
+                if (tick.style.color !== '#53bdeb') { // Don't downgrade from blue
+                    tick.className = 'bi bi-check-all';
+                    tick.style.color = '#8696a0'; // Double Grey Tick
+                }
             });
         }
     }
@@ -925,7 +951,7 @@ class SparkleChat {
         }
 
         clearTimeout(this.typingTimeout);
-        this.typingTimeout = setTimeout(() => this.stopTyping(), 2500);
+        this.typingTimeout = setTimeout(() => this.stopTyping(), 3000);
     }
 
     stopTyping() {
@@ -949,6 +975,11 @@ class SparkleChat {
                 `);
                 this.scrollToBottom();
             }
+            // Auto-remove after 4s as fallback
+            if (this.typingPillTimeout) clearTimeout(this.typingPillTimeout);
+            this.typingPillTimeout = setTimeout(() => {
+                document.getElementById('typingIndicator')?.remove();
+            }, 4000);
         } else {
             pill?.remove();
         }

@@ -125,27 +125,117 @@ class SparkleChat {
                 const menu = document.getElementById('chatDropdownMenu');
                 if (menu) menu.style.display = 'none';
             }
+            if (!e.target.closest('#emojiPickerPanel') && !e.target.closest('.bi-emoji-smile')) {
+                const picker = document.getElementById('emojiPickerPanel');
+                if (picker) picker.style.display = 'none';
+            }
         });
+
+        // Swipe to reply
+        const container = document.getElementById('messagesContainer');
+        const trackSwipe = { startX: 0, currentX: 0, el: null };
+        if (container) {
+            container.addEventListener('touchstart', e => {
+                const bubble = e.target.closest('.msg-bubble');
+                if(bubble) {
+                    trackSwipe.el = bubble;
+                    trackSwipe.startX = e.touches[0].clientX;
+                }
+            }, {passive:true});
+            container.addEventListener('touchmove', e => {
+                if(!trackSwipe.el) return;
+                trackSwipe.currentX = e.touches[0].clientX;
+                const diff = trackSwipe.currentX - trackSwipe.startX;
+                if(diff > 10 && diff < 80) {
+                    trackSwipe.el.style.transform = `translateX(${diff}px)`;
+                    trackSwipe.el.style.transition = 'none';
+                }
+            }, {passive:true});
+            container.addEventListener('touchend', e => {
+                if(!trackSwipe.el) return;
+                const diff = trackSwipe.currentX - trackSwipe.startX;
+                trackSwipe.el.style.transition = 'transform 0.2s ease';
+                trackSwipe.el.style.transform = `translateX(0px)`;
+                if(diff > 50) {
+                    // Trigger reply
+                    const msgId = trackSwipe.el.dataset.msgId;
+                    const txt = trackSwipe.el.querySelector('.msg-body')?.innerText || 'Attachment';
+                    this.replyingToMessageId = msgId;
+                    document.getElementById('messagePreviewContainer').style.display = 'flex';
+                    document.getElementById('previewText').innerText = txt;
+                    document.getElementById('messageInput').focus();
+                }
+                trackSwipe.el = null;
+            });
+        }
     }
 
     submitMessageForm() {
+        const input = document.getElementById('messageInput');
+        if (!input.value.trim() && !this.editingMessageId) {
+            // Probably clicked Microphone
+            this.handleMicClick();
+            return;
+        }
         if (this.editingMessageId) {
             this.sendEdit();
         } else {
             this.sendMessage();
         }
     }
+    
+    startVoiceNote() {
+        if (!this.currentChatId || this.isRecordingMedia) return;
+        this.isRecordingMedia = true;
+        
+        const input = document.getElementById('messageInput');
+        input.placeholder = "Recording Voice Note...";
+        
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            if(!this.isRecordingMedia) return; // Released too early
+            this.voiceChunks = [];
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.mediaRecorder.ondataavailable = e => this.voiceChunks.push(e.data);
+            this.mediaRecorder.onstop = () => {
+                const blob = new Blob(this.voiceChunks, { type: 'audio/webm' });
+                // We mock an event target to pass into the unified pipeline directly
+                this.handleMediaUpload({ target: { files: [new File([blob], 'voice_note.webm', { type: 'audio/webm' })] } });
+                stream.getTracks().forEach(track => track.stop());
+            };
+            this.mediaRecorder.start();
+        }).catch(err => {
+            console.error("Mic error:", err);
+            alert("Microphone access denied or unavailable.");
+            this.isRecordingMedia = false;
+        });
+    }
+
+    stopVoiceNote() {
+        if(!this.isRecordingMedia) return;
+        this.isRecordingMedia = false;
+        const input = document.getElementById('messageInput');
+        input.placeholder = "Message";
+        
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+    }
+
+    handleMicClick() {
+        // Now handled by startVoiceNote / stopVoiceNote through mousedown/mouseup
+    }
 
     autoResizeTextarea(textarea) {
         textarea.style.height = 'auto';
-        textarea.style.height = (textarea.scrollHeight) + 'px';
-        const sendBtn = document.getElementById('sendBtn');
-        if (sendBtn) {
-            if (textarea.value.trim().length > 0 || this.editingMessageId) {
-                sendBtn.disabled = false;
-            } else {
-                sendBtn.disabled = true;
-            }
+        textarea.style.height = (Math.min(textarea.scrollHeight, 100)) + 'px';
+        const sendIcon = document.getElementById('sendIcon');
+        const micIcon = document.getElementById('micIcon');
+        if (textarea.value.trim().length > 0 || this.editingMessageId) {
+            if(sendIcon) sendIcon.style.display = 'block';
+            if(micIcon) micIcon.style.display = 'none';
+        } else {
+            if(sendIcon) sendIcon.style.display = 'none';
+            if(micIcon) micIcon.style.display = 'block';
         }
     }
 
@@ -363,11 +453,15 @@ class SparkleChat {
 
     createMessageHTML(msg) {
         const isMe = msg.sender_id === this.userId;
-        let statusIcon = 'bi-check2';
-        if (msg.status === 'delivered') statusIcon = 'bi-check2-all';
-        if (msg.status === 'read') statusIcon = 'bi-check2-all';
-        
-        const readClass = msg.status === 'read' ? 'read' : '';
+        let statusIcon = 'bi-check';
+        let statusColor = '#8696a0'; // Default gray for sent
+        if (msg.status === 'delivered') {
+            statusIcon = 'bi-check-all';
+        }
+        if (msg.status === 'read') {
+            statusIcon = 'bi-check-all';
+            statusColor = '#53bdeb'; // WhatsApp Read Blue
+        }
         
         let mediaContent = '';
         const isLimited = msg.view_policy && msg.view_policy !== 'unlimited';
@@ -450,11 +544,11 @@ class SparkleChat {
                 ` : ''}
                 ${!isDeleted ? mediaContent : ''}
                 ${listingHtml && !isDeleted ? listingHtml : ''}
-                ${msg.content || isDeleted ? `<div class="msg-body">${isDeleted ? '🚫 This message was deleted.' : msg.content}</div>` : ''}
-                <div class="msg-footer">
+                ${msg.content || isDeleted ? `<div class="msg-body" style="font-size:14px;">${isDeleted ? '🚫 This message was deleted.' : msg.content}</div>` : ''}
+                <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0; margin-top:2px;">
                     <span>${this.formatTime(msg.sent_at)}</span>
-                    ${msg.edited_at && !isDeleted ? '<span style="font-style:italic; margin-inline: 4px;">(edited)</span>' : ''}
-                    ${isMe && !isDeleted ? `<span class="msg-tick ${readClass}"><i class="bi ${statusIcon}"></i></span>` : ''}
+                    ${msg.edited_at && !isDeleted ? '<span style="font-style:italic;">(edited)</span>' : ''}
+                    ${isMe && !isDeleted ? `<span class="msg-tick"><i class="bi ${statusIcon}" style="color:${statusColor}; font-size:16px; margin-left:2px;"></i></span>` : ''}
                 </div>
                 ${reactionsHtml}
             </div>
@@ -547,13 +641,76 @@ class SparkleChat {
             return;
         }
 
+        // Pre-cache context
+        this.pendingMediaParams = { file, type };
+
+        // Open Modal properly representing type
+        const previewModal = document.getElementById('mediaPreviewModal');
+        const previewContent = document.getElementById('mediaPreviewContent');
+        const viewPolicyLabel = document.getElementById('vpLabel');
+        const viewPolicyIcon = document.getElementById('vpIcon');
+
+        // Reset
+        this.pendingViewPolicy = 'unlimited';
+        viewPolicyLabel.innerText = 'Keep';
+        viewPolicyIcon.className = 'bi bi-infinity';
+
+        if(type === 'image') {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewContent.innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:80vh; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">`;
+                previewModal.style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        } else if(type === 'video') {
+            const url = URL.createObjectURL(file);
+            previewContent.innerHTML = `<video src="${url}" controls autoplay loop style="max-width:100%; max-height:80vh; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); background:#000;"></video>`;
+            previewModal.style.display = 'flex';
+        } else {
+            previewContent.innerHTML = `<div style="background:#fff; padding:30px; border-radius:16px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <i class="bi bi-file-earmark-fill" style="font-size:48px; color:#6366f1;"></i>
+                <div style="font-size:16px; font-weight:700; margin-top:10px; color:#111b21;">${file.name}</div>
+            </div>`;
+            previewModal.style.display = 'flex';
+        }
+    }
+
+    closeMediaPreview() {
+        document.getElementById('mediaPreviewModal').style.display = 'none';
+        this.pendingMediaParams = null;
+        this.pendingViewPolicy = 'unlimited';
+    }
+
+    cycleViewPolicy() {
+        const vpLabel = document.getElementById('vpLabel');
+        const vpIcon = document.getElementById('vpIcon');
+        
+        if(this.pendingViewPolicy === 'unlimited') {
+            this.pendingViewPolicy = 'once';
+            vpLabel.innerText = 'View Once';
+            vpIcon.className = 'bi bi-eye';
+        } else if(this.pendingViewPolicy === 'once') {
+            this.pendingViewPolicy = 'twice';
+            vpLabel.innerText = 'View Twice';
+            vpIcon.className = 'bi bi-eye-fill';
+        } else {
+            this.pendingViewPolicy = 'unlimited';
+            vpLabel.innerText = 'Keep';
+            vpIcon.className = 'bi bi-infinity';
+        }
+    }
+
+    async confirmSendMedia() {
+        if(!this.pendingMediaParams || !this.currentChatId) return;
+        
+        const { file, type } = this.pendingMediaParams;
+        const viewPolicy = this.pendingViewPolicy || 'unlimited';
+        this.closeMediaPreview();
+
         const formData = new FormData();
         formData.append('file', file);
-        
-        const viewPolicy = document.getElementById('viewPolicySelect')?.value || 'unlimited';
 
         try {
-            // Show temporary loading bubble
             const container = document.getElementById('messagesContainer');
             const placeholderId = 'uploading-' + Date.now();
             container.insertAdjacentHTML('beforeend', `
@@ -612,10 +769,21 @@ class SparkleChat {
 
         this.socket.emit('send-message', data);
         input.value = '';
-        input.style.height = 'auto';
-        document.getElementById('sendBtn').disabled = true;
+        this.autoResizeTextarea(input);
         this.stopTyping();
         this.cancelReplyOrEdit();
+    }
+
+    toggleEmojiPicker() {
+        const picker = document.getElementById('emojiPickerPanel');
+        picker.style.display = (picker.style.display === 'none') ? 'flex' : 'none';
+    }
+
+    insertEmoji(emoji) {
+        const input = document.getElementById('messageInput');
+        input.value += emoji;
+        this.autoResizeTextarea(input);
+        input.focus();
     }
 
     handleIncomingMessage(msg) {
@@ -724,10 +892,11 @@ class SparkleChat {
             msgEl.classList.add('msg-deleted');
             const body = msgEl.querySelector('.msg-body');
             if (body) {
-                body.innerHTML = '🚫 This message expired or was deleted.';
+                body.innerHTML = '🔒 Already opened or deleted.';
             } else {
-                msgEl.innerHTML = '<div class="msg-body">🚫 This message expired or was deleted.</div>';
+                msgEl.innerHTML = '<div class="msg-body">🔒 Already opened or deleted.</div>';
             }
+            msgEl.querySelector('.msg-media-img, .msg-media-video, .view-limited-placeholder')?.remove();
         }
     }
 

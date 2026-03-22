@@ -78,36 +78,64 @@
                 <!-- Messages go here -->
             </div>
 
-            <footer class="chat-composer" id="chatComposer">
+            <footer class="chat-composer" id="chatComposer" style="background:#f0f2f5; padding:10px; display:flex; gap:8px; align-items:flex-end;">
                 <input type="file" id="mediaUpload" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" hidden>
-                <div class="message-preview-container" id="messagePreviewContainer" style="display: none;">
-                    <div class="preview-content">
-                        <span class="preview-label" id="previewLabel">Replying to</span>
-                        <p class="preview-text" id="previewText"></p>
+                
+                <div class="message-preview-container" id="messagePreviewContainer" style="display: none; position:absolute; bottom:100%; left:0; right:0; background:#f0f2f5; padding:10px 15px; border-top:1px solid #d1d7db;">
+                    <div class="preview-content" style="background:#fff; border-left:4px solid #25d366; padding:8px 12px; border-radius:8px;">
+                        <span class="preview-label" id="previewLabel" style="color:#25d366; font-size:12px; font-weight:800; display:block;">Replying to</span>
+                        <p class="preview-text" id="previewText" style="font-size:13px; color:#667781; margin:0; line-height:1.4;"></p>
                     </div>
-                    <i class="bi bi-x" onclick="sparkChat.cancelReplyOrEdit()"></i>
+                    <i class="bi bi-x" onclick="sparkChat.cancelReplyOrEdit()" style="position:absolute; right:20px; top:20px; cursor:pointer; color:#8696a0; font-size:24px;"></i>
                 </div>
-                <div class="composer-actions">
-                    <i class="bi bi-plus-lg" onclick="document.getElementById('mediaUpload').click()" title="Send Media/Files"></i>
-                    
-                    <select id="viewPolicySelect" class="view-policy-select" style="background:transparent; border:none; outline:none; font-size:12px; color:#6366f1; cursor:pointer;" title="Media View Policy">
-                        <option value="unlimited">Keep</option>
-                        <option value="once">View Once</option>
-                        <option value="twice">View Twice</option>
-                    </select>
-                    
-                    <i class="bi bi-emoji-smile"></i>
-                    <i class="bi bi-mic"></i>
+                
+                <div class="wa-composer-input-wrapper" style="flex:1; background:#fff; border-radius:24px; display:flex; align-items:flex-end; padding:8px 12px; min-height:44px;">
+                    <i class="bi bi-emoji-smile" style="color:#8696a0; font-size:22px; cursor:pointer; padding-right:12px; padding-bottom:3px; margin-bottom:2px;" onclick="sparkChat.toggleEmojiPicker()"></i>
+                    <textarea id="messageInput" placeholder="Message" rows="1" style="flex:1; border:none; background:transparent; font-size:15px; resize:none; outline:none; font-family:inherit; padding:5px 0; max-height:100px; overflow-y:auto; color:#111b21;"></textarea>
+                    <i class="bi bi-paperclip" onclick="document.getElementById('mediaUpload').click()" style="color:#8696a0; font-size:22px; cursor:pointer; padding-left:12px; padding-bottom:3px; margin-bottom:2px;"></i>
                 </div>
-                <div class="composer-top">
-                    <div class="input-wrapper">
-                        <textarea id="messageInput" class="composer-textarea" placeholder="Type a message..." rows="1"></textarea>
-                    </div>
-                    <button class="msg-send-btn" id="sendBtn" disabled>
-                        <i class="bi bi-send-fill"></i>
+                
+                <button class="wa-composer-btn" id="sendBtn" style="width:44px; height:44px; border-radius:50%; background:#00a884; color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;"
+                    onmousedown="if(document.getElementById('micIcon').style.display !== 'none') sparkChat.startVoiceNote();" 
+                    onmouseup="if(document.getElementById('micIcon').style.display !== 'none') sparkChat.stopVoiceNote();" 
+                    ontouchstart="if(document.getElementById('micIcon').style.display !== 'none') sparkChat.startVoiceNote();" 
+                    ontouchend="if(document.getElementById('micIcon').style.display !== 'none') sparkChat.stopVoiceNote();"
+                >
+                    <i class="bi bi-mic-fill" id="micIcon" style="font-size:20px;"></i>
+                    <i class="bi bi-send-fill" id="sendIcon" style="font-size:20px; display:none; margin-left:-2px;"></i>
+                </button>
+            </footer>
+
+            <!-- FLOATING EMOJI PICKER -->
+            <div id="emojiPickerPanel" style="display:none; position:absolute; bottom:70px; left:15px; background:#f0f2f5; box-shadow:0 8px 24px rgba(0,0,0,0.15); border-radius:12px; z-index:9000; flex-wrap:wrap; width:260px; padding:10px; gap:8px;">
+                <script>
+                    const emojis = ['😂','❤️','😍','🥺','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩','🙏','👌','😊','🤦‍♂️','🤷‍♀️','💪'];
+                    document.write(emojis.map(e => `<span style="font-size:24px; cursor:pointer; transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="sparkChat.insertEmoji('${e}')">${e}</span>`).join(''));
+                </script>
+            </div>
+
+            <!-- MEDIA PREVIEW MODAL -->
+            <div id="mediaPreviewModal" style="display:none; position:fixed; inset:0; z-index:99999; background:#e9edef; flex-direction:column;">
+                <div style="padding:15px; background:#f0f2f5; display:flex; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                    <i class="bi bi-x-lg" onclick="sparkChat.closeMediaPreview()" style="font-size:24px; color:#54656f; cursor:pointer; margin-right:20px;"></i>
+                    <span style="font-size:16px; color:#111b21; font-weight:600;">Preview</span>
+                </div>
+                <div style="flex:1; display:flex; align-items:center; justify-content:center; background:#e9edef; padding:20px;" id="mediaPreviewContent">
+                    <!-- Image/Video goes here -->
+                </div>
+                <!-- WhatsApp-like Footer -->
+                <div style="background:#f0f2f5; padding:15px 20px; position:relative; display:flex; align-items:center; gap:10px;">
+                    <!-- View Limit Toggle (Eye Cycle) -->
+                    <button id="viewPolicyToggle" onclick="sparkChat.cycleViewPolicy()" style="background:#fff; border:1px solid #d1d7db; border-radius:20px; height:40px; padding:0 20px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; color:#54656f; font-weight:600; font-size:13px; box-shadow:0 1px 2px rgba(0,0,0,0.05); transition:background 0.2s;">
+                        <i class="bi bi-infinity" id="vpIcon" style="font-size:18px;"></i>
+                        <span id="vpLabel">Keep</span>
+                    </button>
+                    <!-- Floating Send Button inside Preview -->
+                    <button class="wa-composer-btn" onclick="sparkChat.confirmSendMedia()" style="width:48px; height:48px; border-radius:50%; background:#00a884; color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; margin-left:auto; box-shadow:0 2px 5px rgba(0,0,0,0.2);">
+                        <i class="bi bi-send-fill" style="font-size:20px; margin-left:-2px;"></i>
                     </button>
                 </div>
-            </footer>
+            </div>
         </main>
 
         <!-- EMPTY STATE WINDOW -->
@@ -124,8 +152,8 @@
 </div>
 
 <!-- Message Action Overlay (Combined Reactions + Actions like IG/Messenger) -->
-<div class="overlay-backdrop" id="messageActionOverlay" style="display:none;" onclick="sparkChat.closeMessageActionMenu()">
-    <div class="message-action-modal" id="messageActionModal" onclick="event.stopPropagation()">
+<div class="overlay-backdrop" id="messageActionOverlay" style="display:none; position:fixed; z-index:9999; inset:0; background:rgba(0,0,0,0.4);" onclick="sparkChat.closeMessageActionMenu()">
+    <div class="message-action-modal" id="messageActionModal" style="position:absolute; z-index:9999; background:#fff; border-radius:12px; padding:8px; box-shadow:0 10px 40px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
         
         <!-- Reactions Row -->
         <div class="message-reactions-row">

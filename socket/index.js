@@ -116,6 +116,8 @@ const initializeSocket = (server) => {
                 const finalChatId = message.conversation_id || message.chat_id;
 
                 // 2. Emit to sender for confirmation
+                // FIX: Sender Copy Bug - emit 'new-message' back to sender so it renders properly in their stream
+                socket.emit('new-message', message);
                 socket.emit('message-sent', message);
 
                 // 3. Emit to all in the chat room (delivered status)
@@ -140,8 +142,21 @@ const initializeSocket = (server) => {
         });
 
         // Open Message (View Logic for view_once/twice)
-        socket.on('open_message', async ({ messageId }) => {
+        socket.on('open_message', async ({ messageId }, callback) => {
             try {
+                const messageData = await Message.getById(messageId);
+                
+                // Server enforcement check
+                if (messageData && messageData.view_policy !== 'unlimited') {
+                    if (messageData.views_used >= messageData.views_allowed) {
+                        if (typeof callback === 'function') callback({ status: 'expired' });
+                        io.to(`chat:${messageData.conversation_id || messageData.chat_id}`).emit('message_deleted', messageId);
+                        return;
+                    }
+                }
+                
+                if (typeof callback === 'function') callback({ status: 'ok' });
+
                 const result = await Message.processMessageView(messageId);
                 if (result && result.action === 'deleted') {
                     io.to(`chat:${result.chatId}`).emit('message_deleted', messageId);
@@ -150,6 +165,7 @@ const initializeSocket = (server) => {
                 }
             } catch (error) {
                 logger.error('Open message error:', error);
+                if (typeof callback === 'function') callback({ status: 'error' });
             }
         });
 

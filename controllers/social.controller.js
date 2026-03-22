@@ -109,6 +109,14 @@ const renderConnect = async (req, res) => {
     }
 };
 
+const renderSearch = async (req, res) => {
+    res.render('search', {
+        title: 'Search results - Sparkle',
+        user: req.user,
+        query: req.query.q || ''
+    });
+};
+
 const renderFollowRequests = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
@@ -215,6 +223,7 @@ const rejectRequest = async (req, res) => {
 
 module.exports = {
     renderConnect,
+    renderSearch,
     renderFollowRequests,
     blockUser,
     unblockUser,

@@ -85,7 +85,8 @@ class SparkleChat {
         this.socket.on('user-status', (data) => this.handleUserStatus(data));
         this.socket.on('new-reaction', (data) => this.handleReaction(data));
         this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
-        this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted(data));
+        this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted({messageId: data.messageId}));
+        this.socket.on('message_deleted', (messageId) => this.handleMessageDeleted({messageId: messageId})); // View limit expired
     }
 
     bindEvents() {
@@ -369,11 +370,33 @@ class SparkleChat {
         const readClass = msg.status === 'read' ? 'read' : '';
         
         let mediaContent = '';
+        const isLimited = msg.view_policy && msg.view_policy !== 'unlimited';
+        
         if (msg.media_url) {
-            if (msg.type === 'image' || msg.media_url.match(/\.(jpeg|jpg|gif|png)$/i)) {
-                mediaContent = `<img src="${msg.media_url}" class="msg-media-img" onclick="window.open('${msg.media_url}')">`;
-            } else if (msg.type === 'video' || msg.media_url.match(/\.(mp4|webm)$/i)) {
-                mediaContent = `<video src="${msg.media_url}" controls class="msg-media-video"></video>`;
+            if (isLimited && !isMe) {
+                // Not viewed yet or partially viewed
+                mediaContent = `
+                    <div class="view-limited-placeholder" onclick="window.sparkChat.openLimitedMedia('${msg.message_id}', '${msg.media_url}', '${msg.type}')" 
+                         style="background:#f1f5f9; padding:20px; border-radius:12px; cursor:pointer; text-align:center; color:#6366f1; font-weight:700; border:2px dashed #cbd5e1;">
+                        <i class="bi bi-eye-fill" style="font-size:24px; display:block; margin-bottom:6px;"></i>
+                        Tap to view (${msg.view_policy})
+                    </div>
+                `;
+            } else {
+                if (msg.type === 'image' || msg.media_url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+                    mediaContent = `<img src="${msg.media_url}" class="msg-media-img" loading="lazy" onclick="window.open('${msg.media_url}')" style="max-width:80%; border-radius:12px;">`;
+                } else if (msg.type === 'video' || msg.media_url.match(/\.(mp4|webm|mov)$/i)) {
+                    mediaContent = `<video src="${msg.media_url}" class="msg-media-video" controls preload="none" style="max-width:80%; border-radius:12px; max-height:250px; background:#000;"></video>`;
+                } else if (msg.type === 'audio' || msg.media_url.match(/\.(mp3|wav|ogg)$/i)) {
+                    mediaContent = `<audio src="${msg.media_url}" controls preload="none" style="max-width:260px;"></audio>`;
+                } else {
+                    mediaContent = `
+                        <a href="${msg.media_url}" target="_blank" class="document-download" style="display:flex; align-items:center; gap:10px; padding:12px; background:rgba(0,0,0,0.05); border-radius:8px; text-decoration:none; color:inherit;">
+                            <i class="bi bi-file-earmark-arrow-down" style="font-size:24px; color:#6366f1;"></i>
+                            <div style="font-weight:600; font-size:13px; word-break:break-all;">Download Document</div>
+                        </a>
+                    `;
+                }
             }
         }
 
@@ -504,8 +527,30 @@ class SparkleChat {
         const file = event.target.files[0];
         if (!file || !this.currentChatId) return;
 
+        let type = 'document';
+        if (file.type.startsWith('image/')) type = 'image';
+        if (file.type.startsWith('video/')) type = 'video';
+        if (file.type.startsWith('audio/')) type = 'audio';
+
+        // Size limits
+        const sizeMB = file.size / (1024 * 1024);
+        if (type === 'image' && sizeMB > 1.5) {
+            alert('Image must be less than 1.5MB to stay free/fast!');
+            return;
+        }
+        if (type === 'video' && sizeMB > 10) {
+            alert('Video must be less than 10MB!');
+            return;
+        }
+        if (type === 'audio' && sizeMB > 5) {
+            alert('Audio must be less than 5MB!');
+            return;
+        }
+
         const formData = new FormData();
-        formData.append('media', file);
+        formData.append('file', file);
+        
+        const viewPolicy = document.getElementById('viewPolicySelect')?.value || 'unlimited';
 
         try {
             // Show temporary loading bubble
@@ -514,12 +559,12 @@ class SparkleChat {
             container.insertAdjacentHTML('beforeend', `
                 <div class="msg-bubble msg-sent" id="${placeholderId}">
                     <div class="chat-loader"><div class="spinner-pink" style="width:20px; height:20px;"></div></div>
-                    <div class="msg-body">Uploading media...</div>
+                    <div class="msg-body">Uploading ${type}...</div>
                 </div>
             `);
             this.scrollToBottom();
 
-            const response = await fetch('/api/upload', {
+            const response = await fetch('/api/upload/message', {
                 method: 'POST',
                 body: formData
             });
@@ -528,16 +573,16 @@ class SparkleChat {
             document.getElementById(placeholderId)?.remove();
 
             if (result.success) {
-                const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
-                const type = file.type.startsWith('image') ? 'image' : 'video';
+                const conv = this.conversations.find(c => c.chat_id == this.currentChatId);
                 
                 this.socket.emit('send-message', {
                     chatId: this.currentChatId,
                     recipientId: conv?.partner_id,
                     content: '',
                     type: type,
-                    mediaUrl: result.data.url,
-                    marketplaceListingId: conv?.marketplace_listing_id
+                    mediaUrl: result.url || result.data?.url,
+                    marketplaceListingId: conv?.marketplace_listing_id,
+                    viewPolicy: viewPolicy
                 });
             } else {
                 alert('Upload failed: ' + result.error);
@@ -545,6 +590,7 @@ class SparkleChat {
         } catch (err) {
             console.error('Media upload error:', err);
             alert('Media upload failed');
+            document.getElementById('uploading-' + Date.now())?.remove();
         }
     }
 
@@ -652,6 +698,36 @@ class SparkleChat {
             }
         } else {
             pill?.remove();
+        }
+    }
+
+    openLimitedMedia(messageId, mediaUrl, type) {
+        // Emit view logic
+        this.socket.emit('open_message', { messageId });
+
+        // Show media
+        if (type === 'image' || mediaUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+            window.open(mediaUrl);
+        } else if (type === 'video' || mediaUrl.match(/\.(mp4|webm|mov)$/i)) {
+            window.open(mediaUrl);
+        } else if (type === 'audio' || mediaUrl.match(/\.(mp3|wav|ogg)$/i)) {
+            window.open(mediaUrl);
+        } else {
+            // Document
+            window.open(mediaUrl);
+        }
+    }
+
+    handleMessageDeleted(data) {
+        const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${data.messageId}"]`);
+        if (msgEl) {
+            msgEl.classList.add('msg-deleted');
+            const body = msgEl.querySelector('.msg-body');
+            if (body) {
+                body.innerHTML = '🚫 This message expired or was deleted.';
+            } else {
+                msgEl.innerHTML = '<div class="msg-body">🚫 This message expired or was deleted.</div>';
+            }
         }
     }
 

@@ -160,7 +160,7 @@ const search = async (req, res) => {
 
                         const [listings] = await pool.query(
                             `SELECT 
-                                l.listing_id as id, 'marketplace' as type,
+                                l.listing_id as id, 'marketplace_item' as type,
                                 l.title,
                                 CONCAT('$', l.price) as subtitle,
                                 ${mediaSubquery} as image,

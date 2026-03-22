@@ -55,6 +55,19 @@ const marketplaceStorage = new CloudinaryStorage({
     },
 });
 
+const messageStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        return {
+            folder: 'sparkle_messages',
+            resource_type: 'auto',
+            timestamp: Math.round(Date.now() / 1000) + timeOffsetSeconds,
+            public_id: `msg-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
+            // We omit allowed_formats to allow 'raw' files like .pdf and 'video' like .mp3 and auto-detect
+        };
+    },
+});
+
 const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
@@ -93,8 +106,16 @@ const marketplaceUpload = multer({
     }
 });
 
+const messageUpload = multer({
+    storage: messageStorage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit for messages
+    }
+});
+
 module.exports = {
     upload,
     marketplaceUpload,
+    messageUpload,
     cloudinary
 };

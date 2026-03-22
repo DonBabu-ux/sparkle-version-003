@@ -85,7 +85,7 @@ const initializeSocket = (server) => {
         // Send Message
         socket.on('send-message', async (data) => {
             try {
-                const { chatId, recipientId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId } = data;
+                const { chatId, recipientId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited' } = data;
 
                 // 1. Save to DB
                 const messageId = await Message.sendMessage({
@@ -97,7 +97,8 @@ const initializeSocket = (server) => {
                     mediaUrl,
                     storyId,
                     replyToId,
-                    marketplaceListingId
+                    marketplaceListingId,
+                    viewPolicy
                 });
 
                 // Get the saved message with sender info and reply info
@@ -135,6 +136,20 @@ const initializeSocket = (server) => {
             } catch (error) {
                 logger.error('Send message error:', error);
                 socket.emit('message-error', { error: 'Failed to send message' });
+            }
+        });
+
+        // Open Message (View Logic for view_once/twice)
+        socket.on('open_message', async ({ messageId }) => {
+            try {
+                const result = await Message.processMessageView(messageId);
+                if (result && result.action === 'deleted') {
+                    io.to(`chat:${result.chatId}`).emit('message_deleted', messageId);
+                } else if (result && result.action === 'updated') {
+                    // Optionally notify sender that message was viewed X times
+                }
+            } catch (error) {
+                logger.error('Open message error:', error);
             }
         });
 

@@ -79,7 +79,7 @@
             </div>
 
             <footer class="chat-composer" id="chatComposer">
-                <input type="file" id="mediaUpload" accept="image/*,video/*" hidden>
+                <input type="file" id="mediaUpload" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" hidden>
                 <div class="message-preview-container" id="messagePreviewContainer" style="display: none;">
                     <div class="preview-content">
                         <span class="preview-label" id="previewLabel">Replying to</span>
@@ -88,8 +88,14 @@
                     <i class="bi bi-x" onclick="sparkChat.cancelReplyOrEdit()"></i>
                 </div>
                 <div class="composer-actions">
-                    <i class="bi bi-plus-lg"></i>
-                    <i class="bi bi-image" onclick="document.getElementById('mediaUpload').click()"></i>
+                    <i class="bi bi-plus-lg" onclick="document.getElementById('mediaUpload').click()" title="Send Media/Files"></i>
+                    
+                    <select id="viewPolicySelect" class="view-policy-select" style="background:transparent; border:none; outline:none; font-size:12px; color:#6366f1; cursor:pointer;" title="Media View Policy">
+                        <option value="unlimited">Keep</option>
+                        <option value="once">View Once</option>
+                        <option value="twice">View Twice</option>
+                    </select>
+                    
                     <i class="bi bi-emoji-smile"></i>
                     <i class="bi bi-mic"></i>
                 </div>
@@ -364,7 +370,8 @@ function toggleWaFab() {
 <!-- Scripts -->
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const currentUserData = <%- JSON.stringify(user || {}) %>;
+    const currentUserDataStr = '<%- JSON.stringify(user || {}) %>';
+    const currentUserData = currentUserDataStr ? JSON.parse(currentUserDataStr) : {};
     window.sparkleUser = { user_id: currentUserData.user_id || currentUserData.userId || null, username: currentUserData.username || null, name: currentUserData.name || null };
 </script>
 <script src="/js/messaging-v3.js"></script>

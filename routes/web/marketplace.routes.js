@@ -12,6 +12,7 @@ router.get('/marketplace', marketplaceController.renderMarketplace);
 
 // Single listing page (public)
 router.get('/marketplace/listings/:id', marketplaceController.renderListingDetail);
+router.get('/marketplace/item/:id', marketplaceController.renderListingDetail); // Alias for search routing
 
 // Seller Profile page (public)
 router.get('/marketplace/profile/:userId', marketplaceController.renderSellerProfile);

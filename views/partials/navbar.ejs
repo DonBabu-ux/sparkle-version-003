@@ -471,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && searchInput.value.trim()) {
                 saveHistory(searchInput.value);
-                window.location.href = `/connect?search=${encodeURIComponent(searchInput.value)}`;
+                window.location.href = `/search?q=${encodeURIComponent(searchInput.value)}`;
             }
         });
         
@@ -534,8 +534,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.navigateSearchResult = (type, id, label) => {
-        const routes = { user: `/profile/${id}`, group: `/groups/${id}`, club: `/clubs/${id}`, marketplace: `/marketplace?listing=${id}`, post: `/posts/${id}`, moment: `/moments` };
-        window.location.href = routes[type] || `/connect?search=${decodeURIComponent(label)}`;
+        const routes = { 
+            user: `/profile/${id}`, 
+            marketplace_profile: `/marketplace/profile/${id}`,
+            post: `/post/${id}`, 
+            marketplace_item: `/marketplace/item/${id}`, // Now uses the new /item/ alias
+            group: `/groups/${id}`, 
+            club: `/clubs/${id}`, 
+            moment: `/moments` 
+        };
+        
+        // Use the route if defined, otherwise search page with query preserved
+        const targetUrl = routes[type] || `/search?q=${decodeURIComponent(label)}`;
+        window.location.href = targetUrl;
     };
     // Legacy compat
     window.navigateFromSearch = (type, value) => window.navigateSearchResult(type, value, value);

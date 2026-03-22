@@ -40,7 +40,7 @@ class Message {
     /**
      * Send message (Direct or Group)
      */
-    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null }) {
+    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null, viewPolicy = 'unlimited' }) {
         const messageId = crypto.randomUUID();
         let personalChatId = null;
         let groupChatId = null;
@@ -53,13 +53,18 @@ class Message {
             throw new Error('Recipient or Chat ID required');
         }
 
+        let viewsAllowed = 1;
+        if (viewPolicy === 'twice') viewsAllowed = 2;
+        if (viewPolicy === 'unlimited') viewsAllowed = 99999;
+
         try {
             await db.query(`
                 INSERT INTO messages (
                     message_id, chat_id, conversation_id, sender_id, content, 
-                    type, media_url, reply_to_message_id, marketplace_listing_id, status, sent_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW())
-            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId]);
+                    type, media_url, reply_to_message_id, marketplace_listing_id, status, sent_at,
+                    view_policy, views_allowed
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW(), ?, ?)
+            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId, viewPolicy, viewsAllowed]);
 
             // Update last_message_time and clear archives for both participants in personal chats
             if (personalChatId) {
@@ -358,6 +363,31 @@ class Message {
     static async getById(messageId) {
         const [rows] = await db.query('SELECT * FROM messages WHERE message_id = ?', [messageId]);
         return rows[0] || null;
+    }
+
+    /**
+     * Process Message View (for View Once / Twice)
+     */
+    static async processMessageView(messageId) {
+        const msg = await this.getById(messageId);
+        if (!msg) return null;
+
+        if (msg.view_policy !== 'unlimited') {
+            const newViews = msg.views_used + 1;
+            if (newViews >= msg.views_allowed) {
+                // Hard delete or softly delete content
+                await db.query(`
+                    UPDATE messages 
+                    SET is_deleted_for_everyone = 1, content = '[Media Expired]', media_url = NULL 
+                    WHERE message_id = ?
+                `, [messageId]);
+                return { action: 'deleted', messageId, chatId: msg.conversation_id || msg.chat_id };
+            } else {
+                await db.query('UPDATE messages SET views_used = ? WHERE message_id = ?', [newViews, messageId]);
+                return { action: 'updated', viewsUsed: newViews, messageId };
+            }
+        }
+        return { action: 'ignored' };
     }
 }
 

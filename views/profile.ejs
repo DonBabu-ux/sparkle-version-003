@@ -242,11 +242,12 @@
                     <div class="profile-header-card">
                         <div class="profile-header-top">
                             <div class="avatar-section">
-                                <div class="profile-avatar-container" style="cursor: pointer;" 
+                                <div class="profile-avatar-container" style="width: 150px; height: 150px; border-radius: 50%; overflow: hidden; border: 4px solid var(--primary, #FF3D6D); cursor: pointer;" 
                                     data-avatar-url="<%= profile.avatar_url || '/uploads/avatars/default.png' %>"
                                     onclick="openImageViewer(this.dataset.avatarUrl)">
                                     <img src="<%= profile.avatar_url || '/uploads/avatars/default.png' %>"
                                         alt="<%= profile.name %>"
+                                        style="width: 100%; height: 100%; object-fit: cover;"
                                         onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
                                 </div>
                             </div>
@@ -447,7 +448,7 @@
                     </div>
 
                     <!-- Follow List Modal -->
-                    <div class="modal" id="followListModal">
+                    <div class="modal" id="followListModal" style="display: none;">
                         <div class="modal-content follow-list-content">
                             <div class="modal-header">
                                 <h3 id="followListTitle">Followers</h3>
@@ -460,7 +461,7 @@
                     </div>
 
                     <!-- Image Viewer Modal -->
-                    <div id="imageViewerModal" class="image-viewer-modal">
+                    <div id="imageViewerModal" class="image-viewer-modal" style="display: none;">
                         <span class="close-viewer" onclick="closeImageViewer()">&times;</span>
                         <div class="image-viewer-content">
                             <img id="viewerImage" src="" alt="Full size profile">

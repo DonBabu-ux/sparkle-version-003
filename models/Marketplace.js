@@ -9,15 +9,11 @@ class Marketplace {
      */
     static async getCounts(userId) {
         try {
-            if (!userId) {
-                return { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
-            }
+            if (!userId) return { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
             
-            // Get favorites count
-            const [favs] = await pool.query(
-                'SELECT COUNT(*) as count FROM marketplace_favorites WHERE user_id = ?',
-                [userId]
-            );
+            const [favs] = await pool.query('SELECT COUNT(*) as count FROM marketplace_favorites WHERE user_id = ?', [userId]);
+            const [wish] = await pool.query('SELECT COUNT(*) as count FROM marketplace_wishlist WHERE user_id = ?', [userId]);
+            const [notif] = await pool.query('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE', [userId]);
             
             return {
                 favoritesCount: favs[0]?.count || 0,
@@ -125,13 +121,59 @@ class Marketplace {
     /**
      * Add a review for a seller
      */
-    static async addReview(reviewerId, revieweeId, listingId, rating, comment) {
+    static async createReview(reviewData) {
+        const { listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type } = reviewData;
         const review_id = uuidv4();
-        await pool.query(
-            'INSERT INTO marketplace_reviews (review_id, reviewer_id, reviewee_id, listing_id, rating, comment) VALUES (?, ?, ?, ?, ?, ?)',
-            [review_id, reviewerId, revieweeId, listingId, rating, comment]
+
+        // Check for duplicate review
+        const [existing] = await pool.query(
+            'SELECT review_id FROM marketplace_reviews WHERE listing_id = ? AND reviewer_id = ?',
+            [listing_id, reviewer_id]
         );
-        return { review_id };
+
+        if (existing.length > 0) {
+            // Update existing review instead of creating new one
+            await pool.query(
+                'UPDATE marketplace_reviews SET rating = ?, comment = ?, transaction_type = ?, created_at = NOW() WHERE review_id = ?',
+                [rating, comment, transaction_type, existing[0].review_id]
+            );
+            return { review_id: existing[0].review_id, updated: true };
+        }
+
+        await pool.query(
+            'INSERT INTO marketplace_reviews (review_id, listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [review_id, listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type]
+        );
+
+        // Update listing average rating
+        await this.updateAverageRating(listing_id);
+
+        return { review_id, updated: false };
+    }
+
+    static async updateAverageRating(listingId) {
+        const [reviews] = await pool.query(
+            'SELECT AVG(rating) as avg, COUNT(*) as count FROM marketplace_reviews WHERE listing_id = ?',
+            [listingId]
+        );
+        if (reviews[0]) {
+            await pool.query(
+                'UPDATE marketplace_listings SET average_rating = ? WHERE listing_id = ?',
+                [reviews[0].avg || 0, listingId]
+            );
+        }
+    }
+
+    static async getListingReviews(listingId) {
+        const [reviews] = await pool.query(
+            `SELECT r.*, u.username as reviewer_name, u.avatar_url as reviewer_avatar
+             FROM marketplace_reviews r
+             JOIN users u ON r.reviewer_id = u.user_id
+             WHERE r.listing_id = ?
+             ORDER BY r.created_at DESC`,
+            [listingId]
+        );
+        return reviews;
     }
 
     /**
@@ -240,13 +282,15 @@ class Marketplace {
                     (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) as seller_rating,
                     (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) as review_count,
                     CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
+                    CASE WHEN w.wishlist_id IS NOT NULL THEN 1 ELSE 0 END as is_wishlisted,
                     (SELECT COUNT(*) FROM marketplace_orders WHERE listing_id = l.listing_id) as order_count
                 FROM marketplace_listings l
                 JOIN users u ON l.seller_id = u.user_id
                 LEFT JOIN marketplace_favorites f ON l.listing_id = f.listing_id AND f.user_id = ?
+                LEFT JOIN marketplace_wishlist w ON l.listing_id = w.listing_id AND w.user_id = ?
                 WHERE l.status = 'active' AND l.is_sold = 0
             `;
-            const params = [sessionUserId];
+            const params = [sessionUserId, sessionUserId];
 
             // Record view if userId is provided
             if (userId && listings.length > 0) {
@@ -616,12 +660,14 @@ class Marketplace {
                     u.is_verified as seller_verified,
                     (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_rating,
                     (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = ml.seller_id) as seller_review_count,
-                    CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited
+                    CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
+                    CASE WHEN w.wishlist_id IS NOT NULL THEN 1 ELSE 0 END as is_wishlisted
                 FROM marketplace_listings ml
                 JOIN users u ON ml.seller_id = u.user_id
                 LEFT JOIN marketplace_favorites f ON ml.listing_id = f.listing_id AND f.user_id = ?
+                LEFT JOIN marketplace_wishlist w ON ml.listing_id = w.listing_id AND w.user_id = ?
                 WHERE ml.listing_id = ? AND ml.status != 'deleted'
-            `, [userId, listingId]);
+            `, [userId, userId, listingId]);
 
             if (listings.length === 0) return null;
 
@@ -1518,6 +1564,58 @@ class Marketplace {
     }
 
     /**
+     * Wishlist Management (Separate from Likes)
+     */
+    static async toggleWishlist(userId, listingId) {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [existing] = await connection.query(
+                'SELECT wishlist_id FROM marketplace_wishlist WHERE user_id = ? AND listing_id = ?',
+                [userId, listingId]
+            );
+
+            if (existing.length > 0) {
+                await connection.query('DELETE FROM marketplace_wishlist WHERE wishlist_id = ?', [existing[0].wishlist_id]);
+                await connection.commit();
+                return { wishlisted: false };
+            } else {
+                const wishlist_id = require('crypto').randomUUID();
+                await connection.query(
+                    'INSERT INTO marketplace_wishlist (wishlist_id, user_id, listing_id) VALUES (?, ?, ?)',
+                    [wishlist_id, userId, listingId]
+                );
+                await connection.commit();
+                return { wishlisted: true };
+            }
+        } catch (error) {
+            if (connection) await connection.rollback();
+            logger.error('Transaction error in toggleWishlist:', error);
+            throw error;
+        } finally {
+            if (connection) connection.release();
+        }
+    }
+
+    static async getUserWishlist(userId) {
+        try {
+            const [rows] = await pool.query(
+                `SELECT ml.*, mw.created_at as wishlisted_at
+                 FROM marketplace_wishlist mw
+                 JOIN marketplace_listings ml ON mw.listing_id = ml.listing_id
+                 WHERE mw.user_id = ? AND ml.is_sold = FALSE
+                 ORDER BY mw.created_at DESC`,
+                [userId]
+            );
+            return rows;
+        } catch (error) {
+            logger.error('Database error in getUserWishlist:', error);
+            return [];
+        }
+    }
+
+    /**
      * Seller Favoriting
      */
     static async toggleSellerFavorite(userId, sellerId) {
@@ -2059,25 +2157,48 @@ class Marketplace {
         return ['image', 'video'].includes(type);
     }
 
-    /**
-     * Get counts for dashboard
-     */
-    static async getCounts(userId) {
+    static async getSellerProfile(userId) {
         try {
-            if (!userId) return { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
-            
-            const [favs] = await pool.query('SELECT COUNT(*) as count FROM marketplace_favorites WHERE user_id = ?', [userId]);
-            const [wish] = await pool.query('SELECT COUNT(*) as count FROM marketplace_favorites WHERE user_id = ?', [userId]); // Using same for now
-            const [notif] = await pool.query('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE', [userId]);
-            
+            // Get user basic info and aggregate ratings
+            const [users] = await pool.query(
+                `SELECT u.user_id, u.username, u.name, u.avatar_url, u.campus, u.is_verified, u.joined_at as created_at,
+                        (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = u.user_id) as average_rating,
+                        (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = u.user_id) as total_reviews,
+                        (SELECT COUNT(*) FROM marketplace_listings WHERE seller_id = u.user_id AND status = 'active') as active_listings
+                 FROM users u
+                 WHERE u.user_id = ?`,
+                [userId]
+            );
+
+            if (users.length === 0) return null;
+            const user = users[0];
+
+            // Get recent listings
+            const [listings] = await pool.query(
+                `SELECT * FROM marketplace_listings 
+                 WHERE seller_id = ? AND status = 'active' 
+                 ORDER BY created_at DESC LIMIT 20`,
+                [userId]
+            );
+
+            // Get recent reviews received
+            const [reviews] = await pool.query(
+                `SELECT r.*, u.username as reviewer_name, u.avatar_url as reviewer_avatar
+                 FROM marketplace_reviews r
+                 JOIN users u ON r.reviewer_id = u.user_id
+                 WHERE r.reviewee_id = ?
+                 ORDER BY r.created_at DESC LIMIT 10`,
+                [userId]
+            );
+
             return {
-                favoritesCount: favs[0]?.count || 0,
-                wishlistCount: wish[0]?.count || 0,
-                notificationCount: notif[0]?.count || 0
+                ...user,
+                listings,
+                reviews
             };
         } catch (error) {
-            logger.error('Error in getCounts:', error);
-            return { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
+            logger.error('Error in getSellerProfile:', error);
+            throw error;
         }
     }
 }

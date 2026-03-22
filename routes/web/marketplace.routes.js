@@ -13,6 +13,9 @@ router.get('/marketplace', marketplaceController.renderMarketplace);
 // Single listing page (public)
 router.get('/marketplace/listings/:id', marketplaceController.renderListingDetail);
 
+// Seller Profile page (public)
+router.get('/marketplace/profile/:userId', marketplaceController.renderSellerProfile);
+
 // User's listings page (requires auth)
 router.get('/marketplace/my-shop', authMiddleware, marketplaceController.renderUserListings);
 
@@ -21,6 +24,9 @@ router.get('/marketplace/sell', authMiddleware, marketplaceController.renderSell
 
 // Track orders page (requires auth)
 router.get('/marketplace/orders', authMiddleware, marketplaceController.renderOrders);
+
+// User's Wishlist page (requires auth)
+router.get('/marketplace/wishlist', authMiddleware, marketplaceController.renderWishlist);
 
 // Old compatibility routes
 router.get('/my-listings', authMiddleware, (req, res) => res.redirect('/marketplace/my-shop'));

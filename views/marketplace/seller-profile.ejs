@@ -1,0 +1,187 @@
+<%- include('../partials/head', { title: title }) %>
+<link rel="stylesheet" href="/css/marketplace.css">
+
+<body class="marketplace-page">
+    <%- include('../partials/sidebar') %>
+
+    <div class="marketplace-container" style="display: block; width: 100%; max-width: 1200px; padding: 20px;">
+        <!-- Header / Back -->
+        <div class="header glass" style="margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; border-radius: 50px;">
+            <a href="/marketplace" class="btn btn-outline" style="text-decoration: none; padding: 8px 20px; border-radius: 50px;">
+                <i class="fas fa-arrow-left"></i> Back to Market
+            </a>
+            <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-muted);">
+                Marketplace Profile
+            </div>
+        </div>
+
+        <!-- Profile Hero Section -->
+        <div class="seller-profile-hero glass" style="padding: 40px; border-radius: 30px; margin-bottom: 40px; border: 1px solid rgba(225, 48, 108, 0.1);">
+            <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px;">
+                <div style="position: relative;">
+                    <img src="<%= seller.avatar_url || '/uploads/avatars/default.png' %>" 
+                         style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); object-fit: cover;">
+                    <% if (seller.is_verified) { %>
+                        <div style="position: absolute; bottom: 5px; right: 5px; background: #4CAF50; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white;">
+                            <i class="fas fa-check" style="font-size: 12px;"></i>
+                        </div>
+                    <% } %>
+                </div>
+                
+                <div>
+                    <h1 style="font-weight: 900; margin: 0; font-size: 2rem;"><%= seller.name || seller.username %></h1>
+                    <p style="color: var(--text-muted); font-weight: 600; margin-top: 5px;">@<%= seller.username %> • Using Sparkle since <%= new Date(seller.created_at).getFullYear() %></p>
+                </div>
+
+                <div class="seller-stats" style="display: flex; gap: 40px; margin-top: 10px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);"><%= seller.active_listings || 0 %></div>
+                        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 800;">Active Listings</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 900; color: #FFB300;">
+                            <%= seller.average_rating ? Number(seller.average_rating).toFixed(1) : '—' %>
+                            <i class="fas fa-star" style="font-size: 1rem; vertical-align: middle;"></i>
+                        </div>
+                        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 800;"><%= seller.total_reviews %> Reviews</div>
+                    </div>
+                </div>
+
+                <% if (user && user.user_id !== seller.user_id) { %>
+                    <button class="btn btn-primary" style="padding: 12px 35px; border-radius: 50px; font-weight: 800;"
+                            onclick="window.location.href='/messages?user=<%= seller.user_id %>'">
+                        <i class="fas fa-paper-plane"></i> Contact Seller
+                    </button>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Content Tabs -->
+        <div class="profile-tabs" style="margin-bottom: 30px; display: flex; gap: 20px; border-bottom: 2px solid #efefef;">
+            <div class="p-tab active" data-target="listings" style="padding: 15px 30px; cursor: pointer; font-weight: 800; border-bottom: 3px solid var(--primary); color: var(--primary);">
+                Shop (<%= seller.listings.length %>)
+            </div>
+            <div class="p-tab" data-target="reviews" style="padding: 15px 30px; cursor: pointer; font-weight: 800; color: #888;">
+                Reviews
+            </div>
+            <% if (user && user.user_id === seller.user_id) { %>
+                <div class="p-tab" data-target="dashboard" style="padding: 15px 30px; cursor: pointer; font-weight: 800; color: #888;">
+                    Dashboard
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Dashboard Section (Owners Only) -->
+        <% if (user && user.user_id === seller.user_id) { %>
+            <div id="dashboard-content" class="tab-content" style="display: none;">
+                <div class="glass" style="padding: 30px; border-radius: 24px;">
+                    <h3 style="font-weight: 800; margin-bottom: 20px;">Marketplace Settings</h3>
+                    <div style="display: grid; gap: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 15px;">
+                            <div>
+                                <div style="font-weight: 800;">Seller Status</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">Enable or disable your marketplace storefront.</div>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" checked style="width: 45px; height: 22px; cursor: pointer;">
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 15px;">
+                            <div>
+                                <div style="font-weight: 800;">Marketplace Notifications</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">Get notified about inquiries and reviews.</div>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" checked style="width: 45px; height: 22px; cursor: pointer;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+
+        <!-- Listings Section -->
+        <div id="listings-content" class="tab-content">
+            <% if (seller.listings && seller.listings.length > 0) { %>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px;">
+                    <% seller.listings.forEach(listing => { %>
+                        <div class="listing-card card glass" style="border-radius: 20px; overflow: hidden; cursor: pointer;" 
+                             onclick="window.location.href='/marketplace/listings/<%= listing.listing_id %>'">
+                            <div style="height: 200px; overflow: hidden; background: #eee;">
+                                <img src="<%= listing.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800' %>" 
+                                     style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <div style="padding: 15px;">
+                                <h4 style="margin: 0; font-size: 1rem; font-weight: 800;"><%= listing.title %></h4>
+                                <div style="font-weight: 900; color: var(--primary); margin-top: 5px;">KES <%= parseFloat(listing.price).toLocaleString() %></div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
+                                    <i class="fas fa-map-marker-alt"></i> <%= listing.campus || 'Main Campus' %>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+                    <i class="fas fa-store-slash" style="font-size: 3rem; margin-bottom: 15px; display: block;"></i>
+                    This seller has no active listings.
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Reviews Section -->
+        <div id="reviews-content" class="tab-content" style="display: none;">
+            <% if (seller.reviews && seller.reviews.length > 0) { %>
+                <div style="display: grid; gap: 20px; max-width: 800px; margin: 0 auto;">
+                    <% seller.reviews.forEach(rv => { %>
+                        <div class="review-item glass" style="padding: 25px; border-radius: 24px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <img src="<%= rv.reviewer_avatar || '/uploads/avatars/default.png' %>" 
+                                         style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
+                                    <div>
+                                        <div style="font-weight: 800;"><%= rv.reviewer_name %></div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);"><%= new Date(rv.created_at).toLocaleDateString() %></div>
+                                    </div>
+                                </div>
+                                <div style="color: #FFB300;">
+                                    <% for(let i=0; i<5; i++) { %>
+                                        <i class="f<%= i < rv.rating ? 'as' : 'ar' %> fa-star"></i>
+                                    <% } %>
+                                </div>
+                            </div>
+                            <p style="margin: 0; color: #444; line-height: 1.6;"><%= rv.comment %></p>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+                    <i class="fas fa-star-half-alt" style="font-size: 3rem; margin-bottom: 15px; display: block;"></i>
+                    No reviews received yet.
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        // Tab Switching
+        document.querySelectorAll('.p-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.getAttribute('data-target');
+                
+                // Toggle active tab style
+                document.querySelectorAll('.p-tab').forEach(t => {
+                    t.style.color = '#888';
+                    t.style.borderBottom = 'none';
+                });
+                tab.style.color = 'var(--primary)';
+                tab.style.borderBottom = '3px solid var(--primary)';
+                
+                // Toggle content
+                document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                document.getElementById(target + '-content').style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>

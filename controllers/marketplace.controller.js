@@ -141,9 +141,13 @@ const renderListingDetail = async (req, res) => {
             }));
         }
 
+        // Fetch reviews for this listing
+        const reviews = await Marketplace.getListingReviews(req.params.id);
+
         res.render('marketplace/listing-detail', {
             title: listing.title || 'Listing Details',
             listing: listing,
+            reviews: reviews || [],
             user: user
         });
     } catch (error) {
@@ -219,6 +223,45 @@ const renderSell = async (req, res) => {
     } catch (error) {
         logger.error('Render sell error:', error);
         res.status(500).render('error', { title: 'Error', message: 'Failed to load sell page', user: normalizeUser(req.user) });
+    }
+};
+
+const renderSellerProfile = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = normalizeUser(req.user);
+        const profile = await Marketplace.getSellerProfile(userId);
+
+        if (!profile) {
+            return res.status(404).render('404', { title: 'Seller Not Found', message: 'This seller does not exist.', user });
+        }
+
+        res.render('marketplace/seller-profile', {
+            title: `${profile.username}'s Marketplace Profile`,
+            seller: profile,
+            user
+        });
+    } catch (error) {
+        logger.error('Render seller profile error:', error);
+        res.status(500).render('error', { title: 'Error', message: 'Failed to load seller profile', user: normalizeUser(req.user) });
+    }
+};
+
+const renderWishlist = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user) return res.redirect('/login');
+        
+        const wishlist = await Marketplace.getUserWishlist(user.user_id);
+        
+        res.render('marketplace/wishlist', {
+            title: 'My Wishlist',
+            listings: wishlist || [],
+            user
+        });
+    } catch (error) {
+        logger.error('Render wishlist error:', error);
+        res.status(500).render('error', { title: 'Error', message: 'Failed to load wishlist', user: normalizeUser(req.user) });
     }
 };
 
@@ -961,14 +1004,29 @@ const createReview = [
                 comment: req.body.comment,
                 transaction_type: req.body.transaction_type || 'purchase'
             };
-            await Marketplace.createReview(reviewData);
-            res.json({ success: true, message: 'Review submitted' });
+            const result = await Marketplace.createReview(reviewData);
+            res.json({ success: true, message: result.updated ? 'Review updated' : 'Review submitted' });
         } catch (error) {
             logger.error('Create review error:', error);
             res.status(500).json({ success: false, message: error.message });
         }
     }
 ];
+
+const toggleWishlist = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const { id } = req.params;
+        const result = await Marketplace.toggleWishlist(user.user_id, id);
+        
+        res.json({ success: true, ...result });
+    } catch (error) {
+        logger.error('Toggle wishlist error:', error);
+        res.status(500).json({ success: false, message: 'Failed to toggle wishlist' });
+    }
+};
 
 const getUserReviews = async (req, res) => {
     try {
@@ -1182,6 +1240,8 @@ module.exports = {
     renderUserListings,
     renderOrders,
     renderSell,
+    renderSellerProfile,
+    renderWishlist,
 
     // API Routes
     getListings,
@@ -1196,8 +1256,8 @@ module.exports = {
     getChatMessages,
     sendMessage,
     toggleFavorite,
+    toggleWishlist,
     getFavorites,
-    getCounts,
     getLostFoundItems,
     createLostFoundItem,
     getSkillOffers,
@@ -1222,5 +1282,6 @@ module.exports = {
     getRecommendations,
     toggleSellerFavorite,
     recordView,
-    recordShare
+    recordShare,
+    getCounts
 };

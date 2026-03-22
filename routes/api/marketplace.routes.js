@@ -8,6 +8,10 @@ const { upload, marketplaceUpload } = require('../../utils/fileUpload');
 router.get('/marketplace/listings',              authMiddleware, marketplaceController.getListings);
 router.get('/marketplace/categories',            authMiddleware, marketplaceController.getCategories);
 router.get('/marketplace/trending',              authMiddleware, marketplaceController.getTrending);
+// User's listings page (requires auth)
+router.get('/marketplace/my-shop', authMiddleware, marketplaceController.renderUserListings);
+router.get('/marketplace/wishlist', authMiddleware, marketplaceController.renderWishlist);
+router.get('/marketplace/orders', authMiddleware, marketplaceController.renderOrders);
 router.get('/marketplace/listings/recommended',  authMiddleware, marketplaceController.getRecommendations);
 router.get('/marketplace/listings/:id',          authMiddleware, marketplaceController.getListingById);
 router.post('/marketplace/listings',             authMiddleware, marketplaceUpload.array('media', 20), ...marketplaceController.createListing);
@@ -18,6 +22,7 @@ router.delete('/marketplace/listings/:id',       authMiddleware, marketplaceCont
 router.post('/marketplace/listings/:id/contact', authMiddleware, ...marketplaceController.contactSeller);
 router.put('/marketplace/listings/:id/sold',     authMiddleware, marketplaceController.markAsSold);
 router.post('/marketplace/listings/:id/favorite',authMiddleware, ...marketplaceController.toggleFavorite);
+router.post('/marketplace/listings/:id/wishlist',authMiddleware, marketplaceController.toggleWishlist);
 router.post('/marketplace/listings/:id/view',    authMiddleware, marketplaceController.recordView);
 router.post('/marketplace/listings/:id/share',   authMiddleware, marketplaceController.recordShare);
 router.post('/marketplace/listings/:id/report',  authMiddleware, marketplaceController.reportListing);
@@ -42,6 +47,7 @@ router.post('/marketplace/chats/:chatId/messages', authMiddleware, marketplaceCo
 // ── Reviews & Users ───────────────────────────────────────────────────────────
 router.post('/marketplace/users/:id/block',        authMiddleware, ...marketplaceController.blockUser);
 router.post('/marketplace/users/:id/review',       authMiddleware, ...marketplaceController.createReview);
+router.post('/marketplace/reviews',                authMiddleware, ...marketplaceController.createReview);
 router.get('/marketplace/users/:id/reviews',       authMiddleware, marketplaceController.getUserReviews);
 
 // ── Lost & Found / Skills ─────────────────────────────────────────────────────

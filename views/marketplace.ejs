@@ -1098,11 +1098,11 @@
                     </div>
                 </div>
                 <div class="create-actions">
-                    <div class="create-action" id="openSellModal">
-                        <i class="fas fa-plus-circle"></i> Create Listing
+                    <div class="create-action" id="openSellModalFull" onclick="window.location.href='/marketplace/sell'">
+                        <i class="fas fa-plus-circle" style="color: var(--primary);"></i> Create Listing
                     </div>
-                    <div class="create-action" id="viewWishlistBtn" onclick="openWishlist()">
-                        <i class="fas fa-heart" style="color: #ef4444;"></i> Saved Wishlist
+                    <div class="create-action" id="viewWishlistBtn" onclick="window.location.href='/marketplace/wishlist'">
+                        <i class="fas fa-bookmark" style="color: #6366f1;"></i> Wishlist (<%= counts && typeof counts.wishlistCount !== "undefined" ? counts.wishlistCount : 0 %>)
                     </div>
                     <div class="create-action" onclick="window.location.href='/messages?tab=marketplace'">
                         <i class="fas fa-comments" style="color: #6366f1;"></i> Marketplace Chats
@@ -1493,7 +1493,7 @@
             return `
                 <div class="product-card" onclick="viewListing('${lid}')">
                     <div class="product-header">
-                        <div class="seller-info" onclick="event.stopPropagation(); window.location.href='/profile/${listing.seller_id}'">
+                        <div class="seller-info" onclick="event.stopPropagation(); window.location.href='/marketplace/profile/${listing.seller_id}'">
                             <div class="seller-avatar">
                                 ${listing.seller_avatar ? `<img src="${listing.seller_avatar}" alt="${escapeHtml(listing.seller_name)}">` : sellerInitial}
                             </div>
@@ -1526,12 +1526,15 @@
                     </div>
                     
                     <div class="product-actions">
-                        <button class="action-btn" onclick="toggleLike('${lid}', event)" title="Add to Wishlist">
+                        <button class="action-btn like-btn" onclick="toggleLike('${lid}', event)" title="Spark this item">
                             <i class="${listing.is_favorited ? 'fas' : 'far'} fa-heart" style="${listing.is_favorited ? 'color: #ef4444;' : ''}"></i> 
                             <span id="like-${lid}">${listing.likes_count || 0}</span>
                         </button>
+                        <button class="action-btn wishlist-btn" onclick="toggleWishlist('${lid}', event)" title="Add to Wishlist">
+                            <i class="${listing.is_wishlisted ? 'fas' : 'far'} fa-bookmark" style="${listing.is_wishlisted ? 'color: #6366f1;' : ''}"></i>
+                        </button>
                         <button class="action-btn" onclick="event.stopPropagation(); shareListing('${lid}')">
-                            <i class="far fa-share-square"></i> Share
+                            <i class="far fa-share-square"></i>
                         </button>
                         <div style="flex: 1;"></div>
                         <div class="rating-display" style="font-size: 0.8rem; color: #fbbf24;">
@@ -1692,6 +1695,48 @@
             }
         }
 
+        async function toggleWishlist(listingId, event) {
+            if (event) event.stopPropagation();
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}/wishlist`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>' })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const btn = event.currentTarget;
+                    const icon = btn.querySelector('i');
+                    if (data.wishlisted) {
+                        icon.classList.replace('far', 'fas');
+                        icon.style.color = '#6366f1';
+                    } else {
+                        icon.classList.replace('fas', 'far');
+                        icon.style.color = '';
+                    }
+                    showToast(data.wishlisted ? 'Added to Wishlist' : 'Removed from Wishlist');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to sync wishlist');
+            }
+        }
+
+        // Initialize Sell Bar Click
+        document.addEventListener('DOMContentLoaded', () => {
+            const sellBar = document.getElementById('openSellModalInput');
+            if (sellBar) {
+                sellBar.addEventListener('click', () => {
+                    window.location.href = '/marketplace/sell';
+                });
+            }
+
+            document.querySelectorAll('.open-sell-modal-trigger').forEach(el => {
+                el.addEventListener('click', () => {
+                    window.location.href = '/marketplace/sell';
+                });
+            });
+        });
         // Order functions
         let currentOrderId = null;
         

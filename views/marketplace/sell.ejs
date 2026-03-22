@@ -152,6 +152,30 @@
         object-fit: cover;
     }
 
+    .remove-preview {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 11px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        z-index: 10;
+        backdrop-filter: blur(4px);
+    }
+    .remove-preview:hover {
+        background: var(--primary);
+        transform: scale(1.1);
+    }
+
     .btn-row {
         display: flex;
         justify-content: space-between;
@@ -301,34 +325,69 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Photo Preview
+    // Photo Preview & State Management
+    let selectedFiles = [];
     const mediaInput = document.getElementById('mediaInput');
     const previewGrid = document.getElementById('previewGrid');
 
-    mediaInput.addEventListener('change', () => {
-        previewGrid.innerHTML = '';
-        if (mediaInput.files) {
-            Array.from(mediaInput.files).slice(0, 20).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const item = document.createElement('div');
-                    item.className = 'preview-item';
-                    item.innerHTML = `<img src="${e.target.result}">`;
-                    previewGrid.appendChild(item);
-                }
-                reader.readAsDataURL(file);
-            });
-        }
+    mediaInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            // Prevent duplicates (optional)
+            if (selectedFiles.length < 20) {
+                selectedFiles.push(file);
+                renderPreviews();
+            }
+        });
+        // Clear input so same file can be selected again if removed
+        e.target.value = '';
     });
+
+    function renderPreviews() {
+        previewGrid.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.innerHTML = `
+                    <img src="${e.target.result}">
+                    <button type="button" class="remove-preview" onclick="removeFile(${index})">
+                        <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                    </button>
+                `;
+                previewGrid.appendChild(item);
+                lucide.createIcons(); // Re-render icons for the new button
+            }
+            reader.readAsDataURL(file);
+        });
+    }
+
+    window.removeFile = (index) => {
+        selectedFiles.splice(index, 1);
+        renderPreviews();
+    }
 
     // Form Submission
     document.getElementById('sellForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
-        btn.innerHTML = 'Publishing...';
+        const originalBtnText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
         btn.disabled = true;
 
         const formData = new FormData(e.target);
+        
+        // Remove old media entries if any (though unlikely from default form)
+        formData.delete('media');
+        
+        // Add our selected files
+        selectedFiles.forEach(file => {
+            formData.append('media', file);
+        });
+
+        // Add CSRF
+        formData.append('_csrf', '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>');
         
         try {
             const response = await fetch('/api/marketplace/listings', {

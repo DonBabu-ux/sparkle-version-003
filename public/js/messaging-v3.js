@@ -119,7 +119,7 @@ class SparkleChat {
             }
         });
 
-        // Close dropdown when clicking outside
+        // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.chat-menu-wrapper')) {
                 const menu = document.getElementById('chatDropdownMenu');
@@ -128,6 +128,10 @@ class SparkleChat {
             if (!e.target.closest('#emojiPickerPanel') && !e.target.closest('.bi-emoji-smile')) {
                 const picker = document.getElementById('emojiPickerPanel');
                 if (picker) picker.style.display = 'none';
+            }
+            if (!e.target.closest('#attachmentMenu') && !e.target.closest('.bi-paperclip')) {
+                const addMenu = document.getElementById('attachmentMenu');
+                if (addMenu) addMenu.style.display = 'none';
             }
         });
 
@@ -275,11 +279,13 @@ class SparkleChat {
         // Filter based on tab
         const filtered = this.conversations.filter(c => {
             if (this.currentTab === 'marketplace') {
-                return c.marketplace_listing_id !== null;
+                return c.marketplace_listing_id !== null && !c.is_archived;
             } else if (this.currentTab === 'all') {
-                return true; // Show everything in ALL tab
+                return !c.is_archived; 
+            } else if (this.currentTab === 'archived') {
+                return c.is_archived;
             } else {
-                return c.marketplace_listing_id === null; // Support 'personal' tab?
+                return c.marketplace_listing_id === null && !c.is_archived;
             }
         });
 
@@ -626,34 +632,35 @@ class SparkleChat {
         if (file.type.startsWith('video/')) type = 'video';
         if (file.type.startsWith('audio/')) type = 'audio';
 
-        // Size limits
         const sizeMB = file.size / (1024 * 1024);
-        if (type === 'image' && sizeMB > 1.5) {
-            alert('Image must be less than 1.5MB to stay free/fast!');
+        if (type === 'image' && sizeMB > 3) {
+            alert('Images must be under 3MB.');
             return;
-        }
-        if (type === 'video' && sizeMB > 10) {
-            alert('Video must be less than 10MB!');
+        } else if (type === 'video' && sizeMB > 10) {
+            alert('Videos must be under 10MB.');
             return;
-        }
-        if (type === 'audio' && sizeMB > 5) {
-            alert('Audio must be less than 5MB!');
+        } else if (type === 'audio' && sizeMB > 5) {
+            alert('Voice notes and audio must be under 5MB.');
+            return;
+        } else if (sizeMB > 10) {
+            alert('Documents must be under 10MB.');
             return;
         }
 
         // Pre-cache context
         this.pendingMediaParams = { file, type };
 
-        // Open Modal properly representing type
         const previewModal = document.getElementById('mediaPreviewModal');
         const previewContent = document.getElementById('mediaPreviewContent');
         const viewPolicyLabel = document.getElementById('vpLabel');
         const viewPolicyIcon = document.getElementById('vpIcon');
+        const captionInput = document.getElementById('mediaCaptionInput');
+        
+        if (captionInput) captionInput.value = '';
 
-        // Reset
         this.pendingViewPolicy = 'unlimited';
-        viewPolicyLabel.innerText = 'Keep';
-        viewPolicyIcon.className = 'bi bi-infinity';
+        if(viewPolicyLabel) viewPolicyLabel.innerText = 'Keep';
+        if(viewPolicyIcon) viewPolicyIcon.className = 'bi bi-infinity';
 
         if(type === 'image') {
             const reader = new FileReader();
@@ -687,15 +694,15 @@ class SparkleChat {
         
         if(this.pendingViewPolicy === 'unlimited') {
             this.pendingViewPolicy = 'once';
-            vpLabel.innerText = 'View Once';
+            if(vpLabel) vpLabel.innerText = 'View Once';
             vpIcon.className = 'bi bi-eye';
         } else if(this.pendingViewPolicy === 'once') {
             this.pendingViewPolicy = 'twice';
-            vpLabel.innerText = 'View Twice';
+            if(vpLabel) vpLabel.innerText = 'View Twice';
             vpIcon.className = 'bi bi-eye-fill';
         } else {
             this.pendingViewPolicy = 'unlimited';
-            vpLabel.innerText = 'Keep';
+            if(vpLabel) vpLabel.innerText = 'Keep';
             vpIcon.className = 'bi bi-infinity';
         }
     }
@@ -705,6 +712,8 @@ class SparkleChat {
         
         const { file, type } = this.pendingMediaParams;
         const viewPolicy = this.pendingViewPolicy || 'unlimited';
+        const captionField = document.getElementById('mediaCaptionInput');
+        const caption = captionField ? captionField.value.trim() : '';
         this.closeMediaPreview();
 
         const formData = new FormData();
@@ -735,7 +744,7 @@ class SparkleChat {
                 this.socket.emit('send-message', {
                     chatId: this.currentChatId,
                     recipientId: conv?.partner_id,
-                    content: '',
+                    content: caption,
                     type: type,
                     mediaUrl: result.url || result.data?.url,
                     marketplaceListingId: conv?.marketplace_listing_id,
@@ -1415,6 +1424,173 @@ class SparkleChat {
         } catch (err) {
             console.error(err);
         }
+    }
+
+    toggleAttachmentMenu() {
+        const menu = document.getElementById('attachmentMenu');
+        menu.style.display = (menu.style.display === 'none') ? 'block' : 'none';
+    }
+
+    openAttachment(type) {
+        this.toggleAttachmentMenu();
+        const input = document.getElementById('mediaUpload');
+        if(type === 'Gallery' || type === 'Camera') {
+            if(type === 'Gallery') {
+                input.setAttribute('accept', 'image/*,video/*');
+                input.click();
+            } else {
+                this.openCameraInterface();
+            }
+        } else if(type === 'Document') {
+            input.setAttribute('accept', '.pdf,.doc,.docx,.txt');
+            input.click();
+        } else if(type === 'Audio') {
+            input.setAttribute('accept', 'audio/*');
+            input.click();
+        } else if(type === 'Follower') {
+            this.openFollowerShareModal();
+        } else {
+            alert(`${type} attaching is coming soon!`);
+        }
+    }
+
+    // --- HTML5 Camera UI Flow ---
+    openCameraInterface() {
+        const ui = document.getElementById('cameraInterface');
+        ui.style.display = 'flex';
+        this.cameraFacingMode = 'user';
+        this.initCameraStream();
+    }
+
+    initCameraStream() {
+        if(this.cameraStream) {
+            this.cameraStream.getTracks().forEach(track => track.stop());
+        }
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: this.cameraFacingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: true
+        }).then(stream => {
+            this.cameraStream = stream;
+            document.getElementById('cameraVideo').srcObject = stream;
+        }).catch(err => {
+            alert("Camera access denied or unavailable.");
+            this.closeCamera();
+        });
+    }
+
+    switchCamera() {
+        this.cameraFacingMode = (this.cameraFacingMode === 'user') ? 'environment' : 'user';
+        this.initCameraStream();
+    }
+
+    closeCamera() {
+        const ui = document.getElementById('cameraInterface');
+        ui.style.display = 'none';
+        if(this.cameraStream) {
+            this.cameraStream.getTracks().forEach(track => track.stop());
+            this.cameraStream = null;
+        }
+    }
+
+    cameraCaptureStart() {
+        this.cameraPressTimer = Date.now();
+        const inner = document.getElementById('cameraCaptureInner');
+        if(inner) inner.style.transform = 'scale(0.8)';
+        
+        this.cameraHoldTimeout = setTimeout(() => {
+            this.isRecordingCamera = true;
+            if(inner) {
+                inner.style.background = '#e53f77';
+                inner.style.transform = 'scale(0.5)';
+            }
+            this.cameraChunks = [];
+            this.cameraRecorder = new MediaRecorder(this.cameraStream);
+            this.cameraRecorder.ondataavailable = e => this.cameraChunks.push(e.data);
+            this.cameraRecorder.onstop = () => {
+                const blob = new Blob(this.cameraChunks, { type: 'video/webm' });
+                const file = new File([blob], 'camera_capture_' + Date.now() + '.webm', { type: 'video/webm' });
+                this.closeCamera();
+                this.handleMediaUpload({ target: { files: [file] } });
+            };
+            this.cameraRecorder.start();
+        }, 500);
+    }
+
+    cameraCaptureEnd() {
+        // Clear timeout so we don't start recording if it was just a tap
+        if(this.cameraHoldTimeout) clearTimeout(this.cameraHoldTimeout);
+        
+        const inner = document.getElementById('cameraCaptureInner');
+        if(inner) {
+            inner.style.background = '#fff';
+            inner.style.transform = 'scale(1)';
+        }
+
+        const duration = Date.now() - (this.cameraPressTimer || 0);
+        if(duration < 500) {
+            // Tap -> Photo
+            this.captureCameraPhoto();
+        } else if(this.isRecordingCamera) {
+            // Long Press -> Stop Video
+            this.isRecordingCamera = false;
+            if(this.cameraRecorder && this.cameraRecorder.state !== 'inactive') {
+                this.cameraRecorder.stop();
+            }
+        }
+    }
+
+    captureCameraPhoto() {
+        const video = document.getElementById('cameraVideo');
+        if(!video || !this.cameraStream) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(blob => {
+            const file = new File([blob], 'camera_capture_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+            this.closeCamera();
+            this.handleMediaUpload({ target: { files: [file] } });
+        }, 'image/jpeg', 0.85);
+    }
+
+    async openFollowerShareModal() {
+        document.getElementById('followerShareModal').style.display = 'flex';
+        const list = document.getElementById('followerShareList');
+        
+        try {
+            const res = await fetch('/api/users/active-friends');
+            const data = await res.json();
+            
+            if(data && data.length > 0) {
+                list.innerHTML = `<div style="color:#8696a0; font-size:13px; margin-bottom:10px; padding:0 10px;">Select a user to share to your chat</div>` +
+                data.map(u => `
+                    <div style="background:#222; padding:15px; border-radius:12px; margin-top:8px; display:flex; align-items:center; cursor:pointer;" onclick="sparkChat.shareContact('${u.id}', '${u.username}')">
+                        <img src="${u.avatar_url || '/uploads/avatars/default.png'}" style="width:40px; height:40px; border-radius:50%; margin-right:15px; object-fit:cover;">
+                        <div>
+                            <div style="color:#fff; font-weight:600;">${u.username}</div>
+                            <div style="color:#8696a0; font-size:12px;">Tap to share contact</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                list.innerHTML = `<div style="color:#8696a0; font-size:13px; text-align:center;">No followers available to share at this moment.</div>`;
+            }
+        } catch(e) {
+            list.innerHTML = `<div style="color:red; font-size:12px;">Failed to load contacts.</div>`;
+        }
+    }
+
+    shareContact(userId, username) {
+        document.getElementById('followerShareModal').style.display = 'none';
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            recipientId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
+            content: `Sent a contact: @${username}`,
+            type: 'text',
+        });
     }
 }
 

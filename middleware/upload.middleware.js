@@ -109,7 +109,7 @@ const marketplaceUpload = multer({
 const messageUpload = multer({
     storage: messageStorage,
     limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB limit for messages
+        fileSize: 10 * 1024 * 1024 // 10MB limit for overall multi-media messages, logic restricted on frontend respectively
     }
 });
 

@@ -27,7 +27,11 @@ const updateProfileSchema = Joi.object({
     name: Joi.string().min(2).max(100).optional(),
     bio: Joi.string().max(500).allow('').optional(),
     major: Joi.string().max(100).allow('').optional(),
-    campus: Joi.string().max(100).optional()
+    campus: Joi.string().max(100).allow('').optional(),
+    headline: Joi.string().max(100).allow('').optional(),
+    website: Joi.string().uri().allow('').optional(),
+    birthday: Joi.date().iso().allow('', null).optional(),
+    phone_number: Joi.string().max(20).allow('').optional()
 });
 
 /**

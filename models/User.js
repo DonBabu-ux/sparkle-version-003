@@ -73,25 +73,11 @@ class User {
         const fields = [];
         const values = [];
 
-        if (updates.name !== undefined) {
-            fields.push('name = ?');
-            values.push(updates.name);
-        }
-        if (updates.bio !== undefined) {
-            fields.push('bio = ?');
-            values.push(updates.bio);
-        }
-        if (updates.major !== undefined) {
-            fields.push('major = ?');
-            values.push(updates.major);
-        }
-        if (updates.campus !== undefined) {
-            fields.push('campus = ?');
-            values.push(updates.campus);
-        }
-        if (updates.avatar_url !== undefined) {
-            fields.push('avatar_url = ?');
-            values.push(updates.avatar_url);
+        for (const [key, val] of Object.entries(updates)) {
+            if (val !== undefined) {
+                fields.push(`${key} = ?`);
+                values.push(val);
+            }
         }
 
         if (fields.length === 0) return false;

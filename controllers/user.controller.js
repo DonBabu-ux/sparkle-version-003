@@ -64,7 +64,11 @@ const updateProfile = async (req, res) => {
             name: req.body.name,
             bio: req.body.bio,
             major: req.body.major,
-            campus: req.body.campus
+            campus: req.body.campus,
+            headline: req.body.headline,
+            website: req.body.website,
+            birthday: req.body.birthday || null,
+            phone_number: req.body.phone_number
         };
 
         await User.update(userId, updates);
@@ -89,6 +93,8 @@ const updateSettings = async (req, res) => {
             'is_online',
             'last_seen_privacy',
             'message_privacy',
+            'show_contact_info',
+            'show_birthday',
 
             // notifications
             'push_notifications',

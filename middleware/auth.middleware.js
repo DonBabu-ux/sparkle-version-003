@@ -6,7 +6,7 @@ const authMiddleware = async (req, res, next) => {
     try {
         let token = null;
         const authHeader = req.headers['authorization'];
-        if (authHeader) {
+        if (authHeader && authHeader.split(' ')[1] !== 'null' && authHeader.split(' ')[1] !== 'undefined') {
             token = authHeader.split(' ')[1];
         } else if (req.cookies && req.cookies.sparkleToken) {
             token = req.cookies.sparkleToken;

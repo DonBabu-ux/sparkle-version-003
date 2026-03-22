@@ -201,6 +201,29 @@
             margin: 0;
             color: #64748b;
         }
+
+        /* New Profile Section Styles */
+        .profile-headline { font-weight: 600; color: #475569; margin-top: 5px; font-size: 15px; }
+        .profile-website { color: #6366f1; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+        .profile-website:hover { text-decoration: underline; }
+        .profile-details-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 25px; padding: 20px; background: rgba(255,255,255,0.5); border-radius: 20px; border: 1px solid rgba(225, 48, 108, 0.1); }
+        .detail-item { display: flex; align-items: flex-start; gap: 12px; }
+        .detail-icon { width: 36px; height: 36px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .detail-content h4 { margin: 0; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail-content p { margin: 2px 0 0; font-size: 14px; font-weight: 600; color: #1e293b; }
+        .social-links { display: flex; gap: 10px; margin-top: 20px; }
+        .social-btn { width: 40px; height: 40px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #475569; text-decoration: none; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .social-btn:hover { background: var(--primary); color: white; transform: translateY(-3px); }
+        
+        .birthday-badge { background: linear-gradient(135deg, #FF3D6D 0%, #FF8A00 100%); color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(255, 61, 109, 0.2); }
+        .similar-birthdays-btn { background: #fee2e2; color: #ef4444; border: none; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 15px; display: flex; align-items: center; gap: 8px; transition: 0.2s; width: 100%; justify-content: center; }
+        .similar-birthdays-btn:hover { background: #fecaca; transform: scale(1.02); }
+        
+        /* Birthday Wish Template Modal */
+        .birthday-list-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid #f1f5f9; }
+        .birthday-user-info { display: flex; align-items: center; gap: 12px; }
+        .birthday-user-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+        .wish-btn { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
     </style>
     <%- include('partials/sidebar') %>
 
@@ -294,33 +317,121 @@
                                     <div class="profile-bio-name">
                                         <%= profile.name %>
                                     </div>
-                                    <% if (profile.bio) { %>
-                                        <div class="profile-bio-text">
-                                            <%= profile.bio %>
-                                        </div>
-                                        <% } %>
-                                            <% if (profile.campus) { %>
-                                                <div class="profile-bio-campus">
-                                                    <i class="fas fa-graduation-cap"></i>
-                                                    <%= profile.campus %>
-                                                </div>
-                                                <% } %>
+                                    <% if (profile.headline) { %>
+                                        <div class="profile-headline"><%= profile.headline %></div>
+                                    <% } %>
 
-                                                    <% if (mutualConnections && mutualConnections.length> 0) { %>
-                                                        <div class="mutual-connections"
-                                                            onclick="showFollowList('mutual')">
-                                                            <div class="mutual-avatars">
-                                                                <% mutualConnections.slice(0, 3).forEach(user=> { %>
-                                                                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
-                                                                        alt="Mutual">
-                                                                    <% }) %>
-                                                            </div>
-                                                            <span>Followed by <%= mutualConnections[0].username %>
-                                                                    <%= mutualConnections.length> 1 ? `and
-                                                                        ${mutualConnections.length - 1} others` : ''
-                                                                        %></span>
-                                                        </div>
+                                    <% if (profile.bio) { %>
+                                        <div class="profile-bio-text" style="margin-top: 10px;">
+                                            <%- profile.bio.replace(/@(\w+)/g, '<a href="/profile/$1" style="color: var(--primary); text-decoration: none; font-weight: 600;">@$1</a>') %>
+                                        </div>
+                                    <% } %>
+
+                                    <% if (profile.website) { %>
+                                        <a href="https://<%= profile.website.replace('https://', '').replace('http://', '') %>" target="_blank" class="profile-website">
+                                            <i class="fas fa-link"></i> <%= profile.website.replace('https://', '').replace('http://', '') %>
+                                        </a>
+                                    <% } %>
+                                    
+                                    <div class="profile-details-grid">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                            <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--primary);">Personal details</h3>
+                                        </div>
+
+                                        <% if (profile.campus) { %>
+                                            <div class="detail-item">
+                                                <div class="detail-icon"><i class="fas fa-graduation-cap"></i></div>
+                                                <div class="detail-content">
+                                                    <h4>Education</h4>
+                                                    <p><%= profile.campus %> <%= profile.year_of_study ? `(${profile.year_of_study})` : '' %></p>
+                                                    <% if (profile.major) { %><p style="font-size: 12px; color: #64748b;"><%= profile.major %></p><% } %>
+                                                </div>
+                                            </div>
+                                        <% } %>
+
+                                        <% if (profile.relationship_status) { %>
+                                            <div class="detail-item">
+                                                <div class="detail-icon"><i class="fas fa-heart"></i></div>
+                                                <div class="detail-content">
+                                                    <h4>Relationship</h4>
+                                                    <p>
+                                                        <%= profile.relationship_status %>
+                                                        <% if (profile.partner_username) { %>
+                                                            with <a href="/profile/<%= profile.partner_username %>" style="color: var(--primary); text-decoration: none;">@<%= profile.partner_username %></a>
                                                         <% } %>
+                                                    </p>
+                                                    <% if (profile.relationship_since) { %>
+                                                        <p style="font-size: 12px; color: #64748b;">Since <%= new Date(profile.relationship_since).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %></p>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        <% } %>
+
+                                        <% if (profile.birthday && (isOwnProfile || profile.show_birthday)) { %>
+                                            <div class="detail-item">
+                                                <div class="detail-icon"><i class="fas fa-birthday-cake"></i></div>
+                                                <div class="detail-content">
+                                                    <h4>Birthday</h4>
+                                                    <p>
+                                                        <%= new Date(profile.birthday).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) %>
+                                                        <% if (isOwnProfile) { %>
+                                                            <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">(<%= new Date(profile.birthday).getFullYear() %>)</span>
+                                                        <% } %>
+                                                    </p>
+                                                    <% if (isOwnProfile) { %>
+                                                        <button class="similar-birthdays-btn" onclick="openSimilarBirthdays()">
+                                                            <i class="fas fa-magic"></i> Show similar birthdays
+                                                        </button>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        <% } %>
+
+                                        <% if (isOwnProfile || profile.show_contact_info) { %>
+                                            <div class="detail-item">
+                                                <div class="detail-icon"><i class="fas fa-address-book"></i></div>
+                                                <div class="detail-content">
+                                                    <h4>Contact info</h4>
+                                                    <p><%= profile.username %></p>
+                                                    <p style="font-size: 13px; color: #475569;"><i class="fas fa-envelope" style="font-size: 10px;"></i> <%= profile.email %></p>
+                                                    <% if (profile.phone_number) { %>
+                                                        <p style="font-size: 13px; color: #475569;"><i class="fas fa-phone" style="font-size: 10px;"></i> <%= profile.phone_number %></p>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        <% } %>
+                                    </div>
+
+                                    <div class="social-links">
+                                        <% if (profile.github_url) { %>
+                                            <a href="<%= profile.github_url %>" target="_blank" class="social-btn" title="GitHub"><i class="fab fa-github"></i></a>
+                                        <% } %>
+                                        <% if (profile.linkedin_url) { %>
+                                            <a href="<%= profile.linkedin_url %>" target="_blank" class="social-btn" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                                        <% } %>
+                                        <% if (profile.instagram_url) { %>
+                                            <a href="<%= profile.instagram_url %>" target="_blank" class="social-btn" title="Instagram"><i class="fab fa-instagram"></i></a>
+                                        <% } %>
+                                        <% if (profile.twitter_url) { %>
+                                            <a href="<%= profile.twitter_url %>" target="_blank" class="social-btn" title="X"><i class="fab fa-twitter"></i></a>
+                                        <% } %>
+                                    </div>
+
+                                    <% if (mutualConnections && mutualConnections.length> 0) { %>
+                                        <div class="mutual-connections"
+                                            onclick="showFollowList('mutual')">
+                                            <div class="mutual-avatars">
+                                                <% mutualConnections.slice(0, 3).forEach(user=> { %>
+                                                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
+                                                        alt="Mutual">
+                                                    <% }) %>
+                                            </div>
+                                            <span>Followed by <%= mutualConnections[0].username %>
+                                                    <%= mutualConnections.length> 1 ? `and
+                                                        ${mutualConnections.length - 1} others` : ''
+                                                        %></span>
+                                        </div>
+                                    <% } %>
                                 </div>
                             </div>
                         </div>
@@ -654,6 +765,85 @@
 
             function closeImageViewer() {
                 document.getElementById('imageViewerModal').style.display = 'none';
+            }
+
+            async function openSimilarBirthdays() {
+                const modal = document.getElementById('followListModal');
+                const title = document.getElementById('followListTitle');
+                const body = document.getElementById('followListBody');
+
+                modal.style.display = 'flex';
+                title.innerText = 'Similar Birthdays 🎂';
+                body.innerHTML = '<div style="padding: 20px; text-align: center;"><i class="fas fa-spinner fa-spin"></i></div>';
+
+                try {
+                    const res = await fetch('/api/profile/similar-birthdays', {
+                        headers: { 'Authorization': `Bearer ${getToken()}` }
+                    });
+                    const users = await res.json();
+
+                    if (users.length === 0) {
+                        body.innerHTML = '<div style="padding: 40px; text-align: center; color: #64748b;">No one else shares your birthday yet!</div>';
+                        return;
+                    }
+
+                    body.innerHTML = users.map(user => `
+                        <div class="birthday-list-item">
+                            <div class="birthday-user-info" onclick="window.location.href='/profile/${user.username}'">
+                                <img src="${user.avatar_url}" class="birthday-user-avatar">
+                                <div>
+                                    <h4 style="margin: 0; font-size: 14px;">${user.username}</h4>
+                                    <p style="margin: 0; font-size: 12px; color: #64748b;">${user.campus || 'Sparkler'}</p>
+                                </div>
+                            </div>
+                            <button class="wish-btn" onclick="wishHappyBirthday(this, '${user.user_id}', '${user.username}')">
+                                <i class="fas fa-gift"></i> Wish happy birthday
+                            </button>
+                        </div>
+                    `).join('');
+                } catch (err) {
+                    body.innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444;">Error loading list.</div>';
+                }
+            }
+
+            async function wishHappyBirthday(btn, userId, username) {
+                const originalText = btn.innerHTML;
+                try {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    const response = await fetch('/api/posts', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${getToken()}`
+                        },
+                        body: JSON.stringify({
+                            content: `Happy Birthday @${username}! 🎂🎉 Wishing you joy and success on your special day! #SparkleBirthday`,
+                            post_type: 'public'
+                        })
+                    });
+
+                    if (response.ok) {
+                        btn.innerHTML = '<i class="fas fa-check"></i> Sent!';
+                        btn.style.background = '#10b981';
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                            btn.style.background = '';
+                        }, 3000);
+                    } else {
+                        throw new Error('Failed to send');
+                    }
+                } catch (err) {
+                    btn.innerHTML = '<i class="fas fa-times"></i> Error';
+                    btn.style.background = '#ef4444';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                    }, 2000);
+                }
             }
 
             const _isOwnProfile = <%= isOwnProfile ? 'true' : 'false' %>;

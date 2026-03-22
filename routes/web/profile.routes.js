@@ -7,5 +7,6 @@ router.get('/profile', ejsAuthMiddleware, profileController.renderProfile);
 router.get('/profile/:username', ejsAuthMiddleware, profileController.renderProfile);
 router.get('/settings', ejsAuthMiddleware, profileController.renderSettings);
 router.get('/api/profile/saved', ejsAuthMiddleware, profileController.getSavedPosts);
+router.get('/api/profile/similar-birthdays', ejsAuthMiddleware, profileController.getSimilarBirthdays);
 
 module.exports = router;

@@ -60,6 +60,15 @@ const renderProfile = async (req, res) => {
             isOwnProfile = (currentUserId === userProfile.user_id);
         }
 
+        // Fetch partner info if relationship exists
+        if (userProfile.partner_id) {
+            const [partner] = await pool.query('SELECT name, username FROM users WHERE user_id = ?', [userProfile.partner_id]);
+            if (partner.length > 0) {
+                userProfile.partner_name = partner[0].name;
+                userProfile.partner_username = partner[0].username;
+            }
+        }
+
         userProfile.avatar_url = getSafeAvatarUrl(userProfile.avatar_url);
 
         const posts = await Post.getUserPosts(userProfile.user_id, currentUserId);
@@ -126,4 +135,35 @@ const getSavedPosts = async (req, res) => {
     }
 };
 
-module.exports = { renderProfile, renderSettings, getSavedPosts };
+const getSimilarBirthdays = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const [me] = await pool.query('SELECT birthday FROM users WHERE user_id = ?', [userId]);
+        
+        if (!me[0] || !me[0].birthday) {
+            return res.json([]);
+        }
+
+        const birthday = new Date(me[0].birthday);
+        const month = birthday.getMonth() + 1;
+        const day = birthday.getDate();
+
+        const [users] = await pool.query(
+            `SELECT user_id, username, name, avatar_url, campus, major
+             FROM users 
+             WHERE MONTH(birthday) = ? AND DAY(birthday) = ? AND user_id != ?
+             LIMIT 50`,
+            [month, day, userId]
+        );
+
+        res.json(users.map(u => ({
+            ...u,
+            avatar_url: getSafeAvatarUrl(u.avatar_url)
+        })));
+    } catch (error) {
+        logger.error('Get Similar Birthdays Error:', error);
+        res.status(500).json({ error: 'Failed to fetch similar birthdays' });
+    }
+};
+
+module.exports = { renderProfile, renderSettings, getSavedPosts, getSimilarBirthdays };

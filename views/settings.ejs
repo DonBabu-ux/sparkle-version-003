@@ -363,8 +363,12 @@
                                     <input type="text" class="form-input" id="name" value="<%= user.name %>" required>
                                 </div>
                                 <div class="form-group">
+                                    <label class="form-label">Headline</label>
+                                    <input type="text" class="form-input" id="headline" value="<%= user.headline || '' %>" placeholder="e.g. CEO @ Sparkle">
+                                </div>
+                                <div class="form-group">
                                     <label class="form-label">Bio</label>
-                                    <textarea class="form-input" id="bio" rows="3"><%= user.bio || '' %></textarea>
+                                    <textarea class="form-input" id="bio" rows="3" placeholder="Tell us about yourself... (Tip: use @username to tag someone!)"><%= user.bio || '' %></textarea>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                                     <div class="form-group">
@@ -377,6 +381,23 @@
                                         <input type="text" class="form-input" id="major"
                                             value="<%= user.major || '' %>">
                                     </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                    <div class="form-group">
+                                        <label class="form-label">Website</label>
+                                        <input type="url" class="form-input" id="website"
+                                            value="<%= user.website || '' %>" placeholder="https://example.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-input" id="phone_number"
+                                            value="<%= user.phone_number || '' %>" placeholder="+254...">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Birthday</label>
+                                    <input type="date" class="form-input" id="birthday" 
+                                        value="<%= user.birthday ? new Date(user.birthday).toISOString().split('T')[0] : '' %>">
                                 </div>
                                 <button type="submit" class="btn-save">Save Changes</button>
                             </form>
@@ -567,19 +588,44 @@
                                 </select>
                             </div>
 
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Do Not Disturb</h4>
-                                    <p>Silence notifications during these hours.</p>
-                                </div>
-                                <div style="display:flex; gap:10px; align-items:center;">
-                                    <input type="time" class="form-input"
-                                        onchange="saveSetting('dnd_start', this.value)" value="<%=user.dnd_start||''%>">
-                                    <span>to</span>
-                                    <input type="time" class="form-input" onchange="saveSetting('dnd_end', this.value)"
-                                        value="<%=user.dnd_end||''%>">
-                                </div>
-                            </div>
+                             <div class="settings-item">
+                                 <div class="item-info">
+                                     <h4>Do Not Disturb</h4>
+                                     <p>Silence notifications during these hours.</p>
+                                 </div>
+                                 <div style="display:flex; gap:10px; align-items:center;">
+                                     <input type="time" class="form-input"
+                                         onchange="saveSetting('dnd_start', this.value)" value="<%=user.dnd_start||''%>">
+                                     <span>to</span>
+                                     <input type="time" class="form-input" onchange="saveSetting('dnd_end', this.value)"
+                                         value="<%=user.dnd_end||''%>">
+                                 </div>
+                             </div>
+
+                             <h3 style="margin: 30px 0 20px; font-size: 18px;">Social Discovery & Profile Privacy</h3>
+                             <div class="settings-item">
+                                 <div class="item-info">
+                                     <h4>Show Birthday</h4>
+                                     <p>Allow others to see your birthday on your profile.</p>
+                                 </div>
+                                 <label class="switch">
+                                     <input type="checkbox" onchange="saveSetting('show_birthday', this.checked)"
+                                         <%=user.show_birthday ? 'checked' : '' %>>
+                                     <span class="slider"></span>
+                                 </label>
+                             </div>
+
+                             <div class="settings-item">
+                                 <div class="item-info">
+                                     <h4>Show Contact Information</h4>
+                                     <p>Allow others to see your email and phone number.</p>
+                                 </div>
+                                 <label class="switch">
+                                     <input type="checkbox" onchange="saveSetting('show_contact_info', this.checked)"
+                                         <%=user.show_contact_info ? 'checked' : '' %>>
+                                     <span class="slider"></span>
+                                 </label>
+                             </div>
                         </div>
 
                         <!-- Notifications Section -->
@@ -709,7 +755,11 @@
                         name: document.getElementById('name').value,
                         bio: document.getElementById('bio').value,
                         campus: document.getElementById('campus').value,
-                        major: document.getElementById('major').value
+                        major: document.getElementById('major').value,
+                        headline: document.getElementById('headline').value,
+                        website: document.getElementById('website').value,
+                        phone_number: document.getElementById('phone_number').value,
+                        birthday: document.getElementById('birthday').value
                     };
 
                     try {

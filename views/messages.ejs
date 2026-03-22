@@ -22,10 +22,10 @@
                 </div>
                 <!-- Inbox Tabs -->
                 <div class="inbox-tabs">
-                    <button class="inbox-tab active" data-tab="all">All</button>
-                    <button class="inbox-tab" data-tab="personal">General</button>
-                    <button class="inbox-tab" data-tab="marketplace">Marketplace</button>
-                    <button class="inbox-tab" data-tab="archived">Archived</button>
+                    <button class="inbox-tab active" onclick="sparkChat.switchInboxTab('all', this)">All</button>
+                    <button class="inbox-tab" onclick="sparkChat.switchInboxTab('unread', this)">Unread</button>
+                    <button class="inbox-tab" onclick="sparkChat.switchInboxTab('groups', this)">Groups</button>
+                    <button class="inbox-tab" onclick="sparkChat.switchInboxTab('archived', this)">Archived</button>
                 </div>
             </div>
 
@@ -93,7 +93,25 @@
                 </div>
                 
                 <!-- Single Horizontal Bar -->
-                <div class="wa-composer-input-wrapper" style="width:100%; border-radius:30px; display:flex; align-items:flex-end; padding:8px 12px; min-height:48px; background:#000; border:1px solid #333; box-sizing:border-box;">
+                <div class="wa-composer-input-wrapper" style="position:relative; width:100%; border-radius:30px; display:flex; align-items:flex-end; padding:8px 12px; min-height:48px; background:#000; border:1px solid #333; box-sizing:border-box;">
+                    
+                    <!-- VOICE NOTE OVERLAY (Countdown, Waveform, Actions) -->
+                    <div id="voiceNoteOverlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#000; border-radius:30px; align-items:center; padding:0 15px; z-index:10; justify-content:space-between; box-sizing:border-box;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i class="bi bi-mic-fill" style="color:#00a884; font-size:18px; animation: pulse 1s infinite alternate;"></i>
+                            <span id="vnTimer" style="color:#fff; font-size:15px; font-variant-numeric:tabular-nums;">0:00</span>
+                        </div>
+                        <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:0 10px;">
+                            <div class="vn-waveform" style="display:flex; gap:2px; height:20px; align-items:center;">
+                                <!-- Waveform bars inject dynamically through JS -->
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <i class="bi bi-trash-fill" onclick="sparkChat.cancelVoiceNote(event)" style="color:#f15c6d; font-size:20px; cursor:pointer;" title="Delete"></i>
+                            <i class="bi bi-check-circle-fill" onclick="sparkChat.confirmVoiceNote(event)" style="color:#00a884; font-size:20px; cursor:pointer;" title="Send"></i>
+                        </div>
+                    </div>
+
                     <!-- Left: Emoji -->
                     <i class="bi bi-emoji-smile" style="color:#8696a0; font-size:24px; cursor:pointer; padding-right:12px; padding-bottom:4px;" onclick="sparkChat.toggleEmojiPicker()"></i>
                     
@@ -101,15 +119,16 @@
                     <textarea id="messageInput" placeholder="Message" rows="1" style="flex:1; border:none; background:transparent; font-size:16px; resize:none; outline:none; font-family:inherit; padding:6px 0; max-height:100px; overflow-y:auto; color:#fff; line-height:22px; margin-bottom:1px;"></textarea>
                     
                     <!-- Right: Attachment -> Camera -> Send/Mic -->
-                    <div style="display:flex; align-items:center; gap:16px; padding-left:12px; padding-bottom:5px;">
+                    <div style="display:flex; align-items:center; gap:16px; padding-left:12px; padding-bottom:5px; transform:translateY(2px);">
                         <i class="bi bi-paperclip" onclick="sparkChat.toggleAttachmentMenu()" style="color:#8696a0; font-size:24px; cursor:pointer; transform:rotate(-45deg);"></i>
                         <i class="bi bi-camera" onclick="sparkChat.openAttachment('Camera')" style="color:#8696a0; font-size:24px; cursor:pointer;"></i>
                         
                         <div id="sendBtn" style="color:#00a884; font-size:24px; cursor:pointer; padding-left:2px; display:flex; align-items:center; justify-content:center; width:28px;"
                             onmousedown="if(document.getElementById('micIcon').style.display !== 'none') sparkChat.startVoiceNote();" 
                             onmouseup="if(document.getElementById('micIcon').style.display !== 'none') sparkChat.stopVoiceNote();" 
-                            ontouchstart="if(document.getElementById('micIcon').style.display !== 'none') sparkChat.startVoiceNote();" 
-                            ontouchend="if(document.getElementById('micIcon').style.display !== 'none') sparkChat.stopVoiceNote();"
+                            ontouchstart="if(document.getElementById('micIcon').style.display !== 'none') { sparkChat.startVoiceNote(); event.preventDefault(); }" 
+                            ontouchend="if(document.getElementById('micIcon').style.display !== 'none') { sparkChat.stopVoiceNote(); event.preventDefault(); }"
+                            onclick="if(document.getElementById('sendIcon').style.display !== 'none') sparkChat.submitMessageForm();"
                         >
                             <i class="bi bi-mic-fill" id="micIcon"></i>
                             <i class="bi bi-send-fill" id="sendIcon" style="display:none; transform:rotate(45deg); margin-top:-2px;"></i>
@@ -119,27 +138,31 @@
             </footer>
 
             <!-- FLOATING EMOJI PICKER -->
-            <div id="emojiPickerPanel" style="display:none; position:absolute; bottom:70px; left:15px; background:#233138; box-shadow:0 8px 30px rgba(0,0,0,0.3); border-radius:12px; z-index:9000; flex-direction:column; width:280px;">
-                <div style="display:flex; padding:8px 10px; background:#202c33; border-radius:12px 12px 0 0; gap:10px; align-items:center;">
+            <div id="emojiPickerPanel" style="display:none; position:absolute; bottom:70px; left:15px; background:#233138; box-shadow:0 8px 30px rgba(0,0,0,0.3); border-radius:12px; z-index:9000; flex-direction:column; width:300px; border:1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex; padding:8px 10px; background:#202c33; border-radius:12px 12px 0 0; gap:10px; align-items:center; border-bottom:1px solid #111b21;">
                     <i class="bi bi-search" style="color:#8696a0;"></i>
-                    <input type="text" placeholder="Search emojis" style="background:transparent; border:none; outline:none; color:#e9edef; font-size:13px; flex:1;">
+                    <input type="text" id="emojiSearchInput" placeholder="Search" style="background:transparent; border:none; outline:none; color:#e9edef; font-size:14px; flex:1;" oninput="sparkChat.handleEmojiSearch(this.value)">
                 </div>
-                <div style="display:flex; flex-wrap:wrap; padding:15px; gap:8px; max-height:220px; overflow-y:auto;">
-                    <script>
-                        const emojis = [
-                            '😂','❤️','😍','🥺','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩','🙏','👌','😊','🤦‍♂️','🤷‍♀️','💪',
-                            '😁','😆','😅','😋','😎','😘','😗','😙','😚','🙂','🤗','🤩','🤔','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱',
-                            '🧐','🤓','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾',
-                        ];
-                        document.write(emojis.map(e => `<span style="font-size:24px; cursor:pointer; transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="sparkChat.insertEmoji('${e}')">${e}</span>`).join(''));
-                    </script>
+                
+                <!-- Tab Categories -->
+                <div id="emojiPickerContent" style="padding:15px; max-height:280px; overflow-y:auto; flex:1;">
+                    <div id="emojiPickerGrid" style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <!-- Emojis/GIFs Injected Here -->
+                    </div>
                 </div>
-                <div style="display:flex; justify-content:space-around; background:#202c33; padding:8px 0; border-radius:0 0 12px 12px; border-top:1px solid #111b21;">
-                    <i class="bi bi-emoji-smile-fill" style="color:#8696a0; font-size:18px; cursor:pointer;"></i>
-                    <i class="bi bi-filetype-gif" style="color:#8696a0; font-size:18px; cursor:pointer;"></i>
-                    <i class="bi bi-person-fill" style="color:#8696a0; font-size:18px; cursor:pointer;"></i>
-                    <i class="bi bi-sticky-fill" style="color:#8696a0; font-size:18px; cursor:pointer;"></i>
+
+                <div id="emojiTabs" style="display:flex; justify-content:space-around; background:#202c33; padding:10px 0; border-radius:0 0 12px 12px; border-top:1px solid #111b21;">
+                    <i class="bi bi-emoji-smile-fill emoji-tab-icon active" onclick="sparkChat.switchEmojiTab('emoji', this)" style="color:#00a884; font-size:20px; cursor:pointer;" title="Emoji"></i>
+                    <i class="bi bi-filetype-gif emoji-tab-icon" onclick="sparkChat.switchEmojiTab('gif', this)" style="color:#8696a0; font-size:20px; cursor:pointer;" title="GIFs"></i>
+                    <i class="bi bi-person-badge emoji-tab-icon" onclick="sparkChat.switchEmojiTab('sticker', this)" style="color:#8696a0; font-size:20px; cursor:pointer;" title="Stickers"></i>
+                    <i class="bi bi-person-circle emoji-tab-icon" onclick="sparkChat.switchEmojiTab('avatar', this)" style="color:#8696a0; font-size:20px; cursor:pointer;" title="Avatars"></i>
                 </div>
+                <style>
+                    .emoji-tab-icon.active { color: #00a884 !important; }
+                    .emoji-item { font-size: 26px; cursor: pointer; transition: transform 0.1s; }
+                    .emoji-item:hover { transform: scale(1.2); }
+                    .gif-item { width: 48%; border-radius: 8px; cursor: pointer; height: 80px; object-fit: cover; }
+                </style>
             </div>
 
             <!-- FLOATING ATTACHMENT MENU (6 SQUARES 2X3) -->
@@ -176,24 +199,24 @@
             </div>
 
             <!-- MEDIA PREVIEW MODAL -->
-            <div id="mediaPreviewModal" style="display:none; position:fixed; inset:0; z-index:99999; background:#e9edef; flex-direction:column;">
-                <div style="padding:15px; background:#f0f2f5; display:flex; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-                    <i class="bi bi-x-lg" onclick="sparkChat.closeMediaPreview()" style="font-size:24px; color:#54656f; cursor:pointer; margin-right:20px;"></i>
-                    <span style="font-size:16px; color:#111b21; font-weight:600;">Preview</span>
+            <div id="mediaPreviewModal" style="display:none; position:fixed; inset:0; z-index:99999; background:#000; flex-direction:column;">
+                <div style="padding:15px; background:#111; display:flex; align-items:center; border-bottom:1px solid #222;">
+                    <i class="bi bi-x-lg" onclick="sparkChat.closeMediaPreview()" style="font-size:24px; color:#fff; cursor:pointer; margin-right:20px;"></i>
+                    <span style="font-size:16px; color:#fff; font-weight:600;">Preview</span>
                 </div>
-                <div style="flex:1; display:flex; align-items:center; justify-content:center; background:#e9edef; padding:20px;" id="mediaPreviewContent">
+                <div style="flex:1; display:flex; align-items:center; justify-content:center; background:#000; padding:20px;" id="mediaPreviewContent">
                     <!-- Image/Video goes here -->
                 </div>
-                <div style="background:#f0f2f5; padding:15px 20px; display:flex; align-items:center; gap:10px;">
+                <div style="background:#111; padding:15px 20px; display:flex; align-items:center; gap:10px; border-top:1px solid #222;">
                     <!-- Caption Input -->
-                    <div style="flex:1; background:#fff; border-radius:24px; display:flex; align-items:center; padding:5px 15px;">
-                        <textarea id="mediaCaptionInput" placeholder="Add a caption..." rows="1" style="flex:1; border:none; background:transparent; font-size:15px; resize:none; outline:none; height:24px; padding:4px 0; color:#111b21;"></textarea>
+                    <div style="flex:1; background:#202c33; border-radius:24px; display:flex; align-items:center; padding:5px 15px;">
+                        <textarea id="mediaCaptionInput" placeholder="Add a caption..." rows="1" style="flex:1; border:none; background:transparent; font-size:15px; resize:none; outline:none; height:24px; padding:4px 0; color:#e9edef;"></textarea>
                     </div>
                     
                     <!-- View Limit Toggle (Eye Cycle) -->
-                    <button id="viewPolicyToggle" onclick="sparkChat.cycleViewPolicy()" style="background:#e9edef; border:none; border-radius:20px; height:40px; width:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#54656f; font-size:18px; flex-shrink:0;">
+                    <button id="viewPolicyToggle" onclick="sparkChat.cycleViewPolicy()" style="background:#202c33; border:none; border-radius:12px; height:40px; min-width:80px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; color:#00a884; font-size:14px; font-weight:600; flex-shrink:0; border:1px solid rgba(255,255,255,0.05);">
                         <i class="bi bi-infinity" id="vpIcon"></i>
-                        <!-- Tooltip indicator removed for cleaner WhatsApp look, purely cycles the icon now -->
+                        <span id="vpLabel" style="color:#e9edef;">Keep</span>
                     </button>
                     <!-- Floating Send Button inside Preview -->
                     <button class="wa-composer-btn" onclick="sparkChat.confirmSendMedia()" style="width:48px; height:48px; border-radius:50%; background:#00a884; color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
@@ -212,16 +235,24 @@
                 <video id="cameraVideo" autoplay playsinline style="flex:1; object-fit:cover; width:100%; height:100%; background:#000;"></video>
                 
                 <div style="position:absolute; bottom:0; padding:30px 20px; width:100%; display:flex; flex-direction:column; align-items:center; background:linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:400px; margin-top:20px;">
-                        <div style="width:40px; height:40px;"><!-- Empty for alignment --></div>
+                    <!-- Camera Mode Selector -->
+                    <div style="display:flex; gap:25px; margin-bottom:25px; color:#fff; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; opacity:0.8;">
+                        <span id="modePhoto" onclick="sparkChat.switchCameraMode('photo')" style="cursor:pointer; color:#00a884; border-bottom:2px solid #00a884; padding-bottom:4px;">Photo</span>
+                        <span id="modeVideo" onclick="sparkChat.switchCameraMode('video')" style="cursor:pointer;">Video</span>
+                        <span id="modeVideoNote" onclick="sparkChat.switchCameraMode('videonote')" style="cursor:pointer;">Video Note</span>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:400px;">
+                        <div style="width:40px; height:40px;"></div><!-- Placeholder -->
                         
                         <div id="cameraCaptureBtn" 
-                             onmousedown="if(event.button===0) sparkChat.cameraCaptureStart()" 
-                             onmouseup="if(event.button===0) sparkChat.cameraCaptureEnd()" 
+                             onclick="sparkChat.cameraCaptureClick()"
+                             onmousedown="sparkChat.cameraCaptureStart()" 
+                             onmouseup="sparkChat.cameraCaptureEnd()" 
                              ontouchstart="sparkChat.cameraCaptureStart(); event.preventDefault();" 
                              ontouchend="sparkChat.cameraCaptureEnd(); event.preventDefault();"
-                             style="width:70px; height:70px; border-radius:50%; border:4px solid #fff; background:transparent; cursor:pointer; display:flex; justify-content:center; align-items:center; transition: transform 0.2s;">
-                            <div id="cameraCaptureInner" style="width:54px; height:54px; border-radius:50%; background:#fff; transition: background 0.2s, transform 0.2s;"></div>
+                             style="width:75px; height:75px; border-radius:50%; border:5px solid #fff; background:transparent; cursor:pointer; display:flex; justify-content:center; align-items:center; position:relative;">
+                             <div id="cameraCaptureInner" style="width:55px; height:55px; border-radius:50%; background:#fff; transition:all 0.2s;"></div>
                         </div>
                         
                         <i class="bi bi-arrow-repeat" onclick="sparkChat.switchCamera()" style="font-size:32px; color:#fff; cursor:pointer;"></i>
@@ -235,10 +266,10 @@
             </div>
 
             <!-- FOLLOWER SHARE MODAL -->
-            <div id="followerShareModal" style="display:none; position:fixed; inset:0; z-index:999999; background:rgba(0,0,0,0.6); flex-direction:column; justify-content:flex-end;">
-                <div style="background:#111; border-radius:24px 24px 0 0; display:flex; flex-direction:column; max-height:80vh;">
-                    <div style="padding:15px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #222;">
-                        <span style="font-size:16px; color:#fff; font-weight:600;">Share a Contact</span>
+            <div id="followerShareModal" style="display:none; position:fixed; inset:0; z-index:999999; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); flex-direction:column; justify-content:flex-end;">
+                <div style="background:#111; border-radius:24px 24px 0 0; display:flex; flex-direction:column; max-height:80vh; border-top:1px solid rgba(255,255,255,0.05);">
+                    <div style="padding:20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #222;">
+                        <span style="font-size:18px; color:#fff; font-weight:700;">Share Contact</span>
                         <i class="bi bi-x-lg" onclick="document.getElementById('followerShareModal').style.display='none'" style="font-size:24px; color:#aaa; cursor:pointer;"></i>
                     </div>
                     <div style="padding:15px; overflow-y:auto; flex:1;" id="followerShareList">
@@ -263,11 +294,11 @@
 </div>
 
 <!-- Message Action Overlay (Combined Reactions + Actions like IG/Messenger) -->
-<div class="overlay-backdrop" id="messageActionOverlay" style="display:none; position:fixed; z-index:9999; inset:0; background:rgba(0,0,0,0.4);" onclick="sparkChat.closeMessageActionMenu()">
-    <div class="message-action-modal" id="messageActionModal" style="position:absolute; z-index:9999; background:#fff; border-radius:12px; padding:8px; box-shadow:0 10px 40px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+<div class="overlay-backdrop" id="messageActionOverlay" style="display:none; position:fixed; z-index:9999; inset:0; background:rgba(0,0,0,0.6);" onclick="sparkChat.closeMessageActionMenu()">
+    <div class="message-action-modal" id="messageActionModal" style="position:absolute; z-index:9999; background:#233138; border-radius:16px; padding:10px; box-shadow:0 10px 40px rgba(0,0,0,0.4); width:240px; border:1px solid rgba(255,255,255,0.05);" onclick="event.stopPropagation()">
         
         <!-- Reactions Row -->
-        <div class="message-reactions-row">
+        <div class="message-reactions-row" style="display:flex; justify-content:space-between; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:10px;">
             <button onclick="sparkChat.selectReaction('❤️')">❤️</button>
             <button onclick="sparkChat.selectReaction('😂')">😂</button>
             <button onclick="sparkChat.selectReaction('👍')">👍</button>
@@ -276,21 +307,33 @@
             <button onclick="sparkChat.selectReaction('😡')">😡</button>
         </div>
         
-        <div class="action-drawer-options">
+        <div class="action-drawer-options" style="display:flex; flex-direction:column; gap:4px;">
+            <style>
+                .action-drawer-options .action-btn {
+                    background: transparent; border: none; outline: none; padding: 10px 14px;
+                    display: flex; align-items: center; gap: 12px; color: #e9edef; font-size: 14px;
+                    font-weight: 500; cursor: pointer; border-radius: 8px; transition: background 0.2s;
+                    text-align: left; width: 100%;
+                }
+                .action-drawer-options .action-btn:hover { background: rgba(255,255,255,0.08); }
+                .action-drawer-options .action-btn i { font-size: 18px; color: #8696a0; }
+                .action-drawer-options .action-btn.text-danger { color: #f15c6d; }
+                .action-drawer-options .action-btn.text-danger i { color: #f15c6d; }
+            </style>
             <button onclick="sparkChat.handleActionReply()" class="action-btn">
                 <i class="bi bi-reply"></i> Reply
             </button>
             <button onclick="sparkChat.handleActionEdit()" class="action-btn" id="actionDrawerEditBtn">
                 <i class="bi bi-pencil"></i> Edit Message
             </button>
+            <button onclick="sparkChat.handleActionCopy()" class="action-btn">
+                <i class="bi bi-clipboard"></i> Copy Text
+            </button>
             <button onclick="sparkChat.handleActionDeleteForMe()" class="action-btn">
-                <i class="bi bi-trash"></i> Delete for Me
+                <i class="bi bi-person-x"></i> Delete for Me
             </button>
             <button onclick="sparkChat.handleActionDeleteForEveryone()" class="action-btn text-danger" id="actionDrawerDeleteEveryoneBtn">
                 <i class="bi bi-trash-fill"></i> Unsend
-            </button>
-            <button onclick="sparkChat.closeMessageActionMenu()" class="action-btn cancel-btn">
-                Cancel
             </button>
         </div>
     </div>

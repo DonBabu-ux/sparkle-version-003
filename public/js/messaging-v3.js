@@ -29,7 +29,6 @@ class SparkleChat {
     async init() {
         this.setupSocket();
         this.bindEvents();
-        this.bindTabs();
         await this.loadInbox();
         this.checkUrlParameters();
     }
@@ -111,7 +110,6 @@ class SparkleChat {
         
         // Send Buttons
         const sendBtn = document.getElementById('sendBtn');
-        sendBtn?.addEventListener('click', () => this.submitMessageForm());
         textarea?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -191,38 +189,89 @@ class SparkleChat {
     startVoiceNote() {
         if (!this.currentChatId || this.isRecordingMedia) return;
         this.isRecordingMedia = true;
+        this.voiceDuration = 0;
         
-        const input = document.getElementById('messageInput');
-        input.placeholder = "Recording Voice Note...";
+        document.getElementById('voiceNoteOverlay').style.display = 'flex';
+        this.startVoiceTimer();
         
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            if(!this.isRecordingMedia) return; // Released too early
+            if(!this.isRecordingMedia) return; // Released too early or canceled
+            this.voiceStream = stream;
             this.voiceChunks = [];
             this.mediaRecorder = new MediaRecorder(stream);
             this.mediaRecorder.ondataavailable = e => this.voiceChunks.push(e.data);
             this.mediaRecorder.onstop = () => {
+                if(this.voiceCanceled) return;
                 const blob = new Blob(this.voiceChunks, { type: 'audio/webm' });
-                // We mock an event target to pass into the unified pipeline directly
                 this.handleMediaUpload({ target: { files: [new File([blob], 'voice_note.webm', { type: 'audio/webm' })] } });
-                stream.getTracks().forEach(track => track.stop());
             };
             this.mediaRecorder.start();
         }).catch(err => {
             console.error("Mic error:", err);
             alert("Microphone access denied or unavailable.");
-            this.isRecordingMedia = false;
+            this.cancelVoiceNote();
         });
     }
 
+    startVoiceTimer() {
+        const timerUI = document.getElementById('vnTimer');
+        const waveformBox = document.querySelector('.vn-waveform');
+        waveformBox.innerHTML = Array(15).fill('<div style="width:3px; height:10%; background:#00a884; border-radius:3px; transition:height 0.2s;"></div>').join('');
+        const bars = waveformBox.children;
+        
+        this.voiceTimerInterval = setInterval(() => {
+            this.voiceDuration++;
+            
+            for(let i=0; i<bars.length; i++) {
+                bars[i].style.height = (Math.random() * 80 + 20) + '%';
+            }
+            
+            const mins = Math.floor(this.voiceDuration / 60);
+            const secs = this.voiceDuration % 60;
+            if(timerUI) timerUI.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+            
+            // 3 Minute Max Force Stop
+            if(this.voiceDuration >= 180) {
+                this.confirmVoiceNote();
+            }
+        }, 1000);
+    }
+
     stopVoiceNote() {
+        // Exists for quick release functionality without confirm overlay if we wanted it
+        // However, user requested auto-send on release or confirm check based on workflow.
+        // We map confirmVoiceNote() to the Native mouseup check seamlessly.
+        this.confirmVoiceNote();
+    }
+    
+    confirmVoiceNote(e) {
+        if(e) e.stopPropagation();
         if(!this.isRecordingMedia) return;
         this.isRecordingMedia = false;
-        const input = document.getElementById('messageInput');
-        input.placeholder = "Message";
+        this.voiceCanceled = false;
+        
+        clearInterval(this.voiceTimerInterval);
+        document.getElementById('voiceNoteOverlay').style.display = 'none';
         
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
             this.mediaRecorder.stop();
         }
+        if(this.voiceStream) this.voiceStream.getTracks().forEach(track => track.stop());
+    }
+
+    cancelVoiceNote(e) {
+        if(e) e.stopPropagation();
+        if(!this.isRecordingMedia) return;
+        this.isRecordingMedia = false;
+        this.voiceCanceled = true;
+        
+        clearInterval(this.voiceTimerInterval);
+        document.getElementById('voiceNoteOverlay').style.display = 'none';
+        
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+        if(this.voiceStream) this.voiceStream.getTracks().forEach(track => track.stop());
     }
 
     handleMicClick() {
@@ -241,18 +290,6 @@ class SparkleChat {
             if(sendIcon) sendIcon.style.display = 'none';
             if(micIcon) micIcon.style.display = 'block';
         }
-    }
-
-    bindTabs() {
-        document.querySelectorAll('.inbox-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                e.preventDefault();
-                document.querySelectorAll('.inbox-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                this.currentTab = tab.dataset.tab || 'all';
-                this.renderInbox();
-            });
-        });
     }
 
     // --- Inbox & Conversations ---
@@ -293,11 +330,11 @@ class SparkleChat {
             list.innerHTML = `<div class="empty-state">No ${this.currentTab === 'marketplace' ? 'marketplace inquiries' : 'conversations'} yet</div>`;
             return;
         }
-
         list.innerHTML = filtered.map(conv => {
             const isOnline = conv.is_online ? 'online' : '';
             const unread = conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : '';
             const activeClass = conv.chat_id === this.currentChatId ? 'active' : '';
+            const isGroup = conv.chat_type === 'group';
             
             let lastMsg = conv.last_message || 'No messages yet';
             if (conv.last_message_type === 'image') lastMsg = '📷 Photo';
@@ -313,12 +350,18 @@ class SparkleChat {
                     </div>
                     <div class="conv-info">
                         <div class="conv-header">
-                            <span class="conv-name">${conv.partner_name} ${conv.listing_title ? `<span class="conv-listing-tag">🛍️ ${conv.listing_title}</span>` : ''}</span>
+                            <span class="conv-name">${isGroup ? `<i class="bi bi-people-fill" style="margin-right:5px; font-size:14px; opacity:0.6;"></i>` : ''}${conv.partner_name} ${conv.listing_title ? `<span class="conv-listing-tag">🛍️ ${conv.listing_title}</span>` : ''}</span>
                             <span class="conv-time">${this.formatTime(conv.last_message_at) || ''}</span>
                         </div>
                         <div class="conv-preview">
                             <span class="last-msg-text ${conv.unread_count > 0 ? 'unread' : ''}">${lastMsg}</span>
-                            ${unread}
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                ${conv.unread_count > 0 ? `<span class="conv-unread-badge">${conv.unread_count}</span>` : ''}
+                                <div class="card-actions" style="display:none; gap:10px;">
+                                    <i class="bi bi-archive" onclick="event.stopPropagation(); sparkChat.archiveConversation('${conv.chat_id}')" style="cursor:pointer; opacity:0.6;"></i>
+                                    <i class="bi bi-trash" onclick="event.stopPropagation(); sparkChat.deleteConversation('${conv.chat_id}')" style="cursor:pointer; opacity:0.6; color:#f15c6d;"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -356,13 +399,28 @@ class SparkleChat {
         }
     }
 
-    filterInbox(query) {
-        const cards = document.querySelectorAll('.conversation-card');
-        cards.forEach(card => {
-            const name = card.querySelector('.conv-name').textContent.toLowerCase();
-            const msg = card.querySelector('.last-msg-text').textContent.toLowerCase();
-            card.style.display = (name.includes(query.toLowerCase()) || msg.includes(query.toLowerCase())) ? 'flex' : 'none';
-        });
+    switchInboxTab(type, el) {
+        this.currentTab = type;
+        document.querySelectorAll('.inbox-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        this.renderInbox();
+    }
+
+    archiveConversation(chatId) {
+        if(confirm('Archive this chat?')) {
+            const card = document.querySelector(`.conversation-card[data-id="${chatId}"]`);
+            if(card) card.remove();
+            alert('Chat archived.');
+        }
+    }
+
+    deleteConversation(chatId) {
+        if(confirm('Are you sure you want to delete this conversation? This cannot be undone.')) {
+            const card = document.querySelector(`.conversation-card[data-id="${chatId}"]`);
+            if(card) card.remove();
+            // TODO: API call to delete
+            alert('Conversation deleted.');
+        }
     }
 
     // --- Chat Logic ---
@@ -474,12 +532,23 @@ class SparkleChat {
         
         if (msg.media_url) {
             if (isLimited && !isMe) {
+                const limitIcon = msg.view_policy === 'once' ? 'bi-1-circle' : 'bi-2-circle';
+                const limitText = msg.view_policy === 'once' ? 'Photo' : 'Photo (x2)';
+                
                 // Not viewed yet or partially viewed
                 mediaContent = `
                     <div class="view-limited-placeholder" onclick="window.sparkChat.openLimitedMedia('${msg.message_id}', '${msg.media_url}', '${msg.type}')" 
-                         style="background:#f1f5f9; padding:20px; border-radius:12px; cursor:pointer; text-align:center; color:#6366f1; font-weight:700; border:2px dashed #cbd5e1;">
-                        <i class="bi bi-eye-fill" style="font-size:24px; display:block; margin-bottom:6px;"></i>
-                        Tap to view (${msg.view_policy})
+                         style="background:#202c33; padding:15px; border-radius:12px; cursor:pointer; display:flex; align-items:center; color:#00a884; font-weight:600; border:1px solid #111b21;">
+                        <i class="bi ${limitIcon}" style="font-size:20px; display:inline-block; margin-right:12px; opacity:0.8;"></i>
+                        <span style="color:#e9edef;">${limitText}</span>
+                    </div>
+                `;
+            } else if (isLimited && isMe) { // Sender also sees limited wrapper matching WhatsApp context
+                const limitIcon = msg.view_policy === 'once' ? 'bi-1-circle' : 'bi-2-circle';
+                mediaContent = `
+                    <div class="view-limited-placeholder" style="background:#005c4b; padding:15px; border-radius:12px; cursor:default; display:flex; align-items:center; color:#e9edef; font-weight:600; border:1px solid #111b21;">
+                        <i class="bi ${limitIcon}" style="font-size:20px; display:inline-block; margin-right:12px; opacity:0.8;"></i>
+                        <span style="color:#e9edef;">Photo</span>
                     </div>
                 `;
             } else {
@@ -695,11 +764,11 @@ class SparkleChat {
         if(this.pendingViewPolicy === 'unlimited') {
             this.pendingViewPolicy = 'once';
             if(vpLabel) vpLabel.innerText = 'View Once';
-            vpIcon.className = 'bi bi-eye';
+            vpIcon.className = 'bi bi-1-circle';
         } else if(this.pendingViewPolicy === 'once') {
             this.pendingViewPolicy = 'twice';
             if(vpLabel) vpLabel.innerText = 'View Twice';
-            vpIcon.className = 'bi bi-eye-fill';
+            vpIcon.className = 'bi bi-2-circle';
         } else {
             this.pendingViewPolicy = 'unlimited';
             if(vpLabel) vpLabel.innerText = 'Keep';
@@ -790,21 +859,28 @@ class SparkleChat {
 
     insertEmoji(emoji) {
         const input = document.getElementById('messageInput');
-        input.value += emoji;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        input.value = text.substring(0, start) + emoji + text.substring(end);
+        input.selectionStart = input.selectionEnd = start + emoji.length;
         this.autoResizeTextarea(input);
         input.focus();
     }
 
     handleIncomingMessage(msg) {
+        if(String(msg.sender_id) === String(this.userId)) return; // Prevent double message bug safely!
+        
         const msgChatId = msg.conversation_id || msg.chat_id;
         if (this.currentChatId === msgChatId) {
             const container = document.getElementById('messagesContainer');
             container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
             this.scrollToBottom();
             this.socket.emit('mark-read', this.currentChatId);
-        } else {
-            this.loadInbox();
         }
+        
+        // Always refresh inbox to bubble current chat to top
+        this.loadInbox();
     }
 
     handleMessageSent(msg) {
@@ -964,6 +1040,106 @@ class SparkleChat {
     // ==========================================
     // V3 EXTENDED FEATURES 
     // ==========================================
+
+    switchEmojiTab(tab, el) {
+        document.querySelectorAll('.emoji-tab-icon').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        
+        const grid = document.getElementById('emojiPickerGrid');
+        grid.innerHTML = '<div class="chat-loader" style="width:100%;"><div class="spinner-pink"></div></div>';
+        
+        setTimeout(() => {
+            if(tab === 'emoji') {
+                this.renderEmojiGrid('');
+            } else if(tab === 'gif') {
+                this.renderGifGrid('');
+            } else if(tab === 'sticker') {
+                this.renderStickerGrid();
+            } else if(tab === 'avatar') {
+                this.renderAvatarGrid();
+            }
+        }, 300);
+    }
+
+    renderEmojiGrid(query) {
+        const grid = document.getElementById('emojiPickerGrid');
+        const list = [
+            '😂','❤️','😍','🥺','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩','🙏','👌','😊','🤦‍♂️','🤷‍♀️','💪',
+            '😁','😆','😅','😋','😎','😘','😗','😙','😚','🙂','🤗','🤩','🤔','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱',
+            '🧐','🤓','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾',
+            '🤲','👐','🙌','👏','🤝','👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','🤘','👌','🤌','🤏','👈','👉','👆','👇','✋','🤚','🖐','🖖','👋','🤙'
+        ];
+        const filtered = query ? list.filter(e => e.includes(query)) : list;
+        grid.innerHTML = filtered.map(e => `<span class="emoji-item" onclick="sparkChat.insertEmoji('${e}')">${e}</span>`).join('');
+    }
+
+    renderGifGrid(query) {
+        const grid = document.getElementById('emojiPickerGrid');
+        const mocks = [
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHc0Z3U4cW5xeGZwaHFxeGZwaHFxeGZwaHFxeGZwaHFxeGZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKDkDbIDJieKbVm/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHc0Z3U4cW5xeGZwaHFxeGZwaHFxeGZwaHFxeGZwaHFxeGZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41lTfuxR7N0f3OqA/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHc0Z3U4cW5xeGZwaHFxeGZwaHFxeGZwaHFxeGZwaHFxeGZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKVUn7iM8FMEU24/giphy.gif',
+            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHc0Z3U4cW5xeGZwaHFxeGZwaHFxeGZwaHFxeGZwaHFxeGZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/26AHONh79uHEUY_XG/giphy.gif'
+        ];
+        grid.innerHTML = mocks.map(g => `<img src="${g}" class="gif-item" onclick="sparkChat.sendGif('${g}')">`).join('');
+    }
+
+    renderStickerGrid() {
+        const grid = document.getElementById('emojiPickerGrid');
+        grid.innerHTML = '<div style="color:#8696a0; font-size:12px; text-align:center; width:100%; padding:20px;">Stickers mapping coming soon from Sparkle Assets.</div>';
+    }
+
+    renderAvatarGrid() {
+        const grid = document.getElementById('emojiPickerGrid');
+        grid.innerHTML = '<div style="color:#8696a0; font-size:12px; text-align:center; width:100%; padding:20px;">Personal Avatars synced from your profile.</div>';
+    }
+
+    handleEmojiSearch(val) {
+        const activeTab = document.querySelector('.emoji-tab-icon.active').title.toLowerCase();
+        if(activeTab === 'emoji') this.renderEmojiGrid(val);
+    }
+
+    insertEmoji(emoji) {
+        const input = document.getElementById('messageInput');
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        input.value = text.substring(0, start) + emoji + text.substring(end);
+        input.selectionStart = input.selectionEnd = start + emoji.length;
+        this.autoResizeTextarea(input);
+        input.focus();
+    }
+
+    sendGif(url) {
+        this.toggleEmojiPicker();
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            recipientId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
+            content: '',
+            type: 'image',
+            mediaUrl: url
+        });
+    }
+
+    handleActionCopy() {
+        const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.activeMessageId}"]`);
+        const body = msgEl?.querySelector('.msg-body')?.innerText;
+        if(body) {
+            navigator.clipboard.writeText(body).then(() => {
+                alert('Copied to clipboard!');
+                this.closeMessageActionMenu();
+            });
+        }
+    }
+
+    toggleEmojiPicker() {
+        const picker = document.getElementById('emojiPickerPanel');
+        const isHidden = picker.style.display === 'none';
+        picker.style.display = isHidden ? 'flex' : 'none';
+        if(isHidden) {
+            this.renderEmojiGrid('');
+        }
+    }
 
     bindGestures() {
         const bubbles = document.querySelectorAll('.msg-bubble');
@@ -1459,7 +1635,25 @@ class SparkleChat {
         const ui = document.getElementById('cameraInterface');
         ui.style.display = 'flex';
         this.cameraFacingMode = 'user';
+        this.cameraMode = 'photo'; // Default
         this.initCameraStream();
+    }
+
+    switchCameraMode(mode) {
+        this.cameraMode = mode;
+        const modes = ['Photo', 'Video', 'VideoNote'];
+        modes.forEach(m => {
+            const el = document.getElementById('mode' + m);
+            if(el) {
+                el.style.color = (m.toLowerCase() === mode) ? '#00a884' : '#fff';
+                el.style.borderBottom = (m.toLowerCase() === mode) ? '2px solid #00a884' : 'none';
+            }
+        });
+    }
+
+    cameraCaptureClick() {
+        // Just for capturing UI state consistency, tap handles photo
+        // Long press handles video auto-trigger in mousedown/up
     }
 
     initCameraStream() {
@@ -1493,45 +1687,60 @@ class SparkleChat {
     }
 
     cameraCaptureStart() {
+        if(this.cameraMode === 'video' || this.cameraMode === 'videonote') {
+            if(this.isRecordingCamera) {
+                this.cameraCaptureEnd();
+            } else {
+                this.startRecordingCamera();
+            }
+            return;
+        }
+
         this.cameraPressTimer = Date.now();
         const inner = document.getElementById('cameraCaptureInner');
         if(inner) inner.style.transform = 'scale(0.8)';
         
         this.cameraHoldTimeout = setTimeout(() => {
-            this.isRecordingCamera = true;
-            if(inner) {
-                inner.style.background = '#e53f77';
-                inner.style.transform = 'scale(0.5)';
-            }
-            this.cameraChunks = [];
-            this.cameraRecorder = new MediaRecorder(this.cameraStream);
-            this.cameraRecorder.ondataavailable = e => this.cameraChunks.push(e.data);
-            this.cameraRecorder.onstop = () => {
-                const blob = new Blob(this.cameraChunks, { type: 'video/webm' });
-                const file = new File([blob], 'camera_capture_' + Date.now() + '.webm', { type: 'video/webm' });
-                this.closeCamera();
-                this.handleMediaUpload({ target: { files: [file] } });
-            };
-            this.cameraRecorder.start();
+            this.startRecordingCamera();
         }, 500);
     }
 
+    startRecordingCamera() {
+        const inner = document.getElementById('cameraCaptureInner');
+        this.isRecordingCamera = true;
+        if(inner) {
+            inner.style.background = '#e53f77';
+            inner.style.transform = 'scale(0.5)';
+            inner.style.borderRadius = '8px'; // Transition to square for recording
+        }
+        this.cameraChunks = [];
+        this.cameraRecorder = new MediaRecorder(this.cameraStream);
+        this.cameraRecorder.ondataavailable = e => this.cameraChunks.push(e.data);
+        this.cameraRecorder.onstop = () => {
+            const blob = new Blob(this.cameraChunks, { type: 'video/webm' });
+            const file = new File([blob], 'camera_capture_' + Date.now() + '.webm', { type: 'video/webm' });
+            this.closeCamera();
+            this.handleMediaUpload({ target: { files: [file] } });
+        };
+        this.cameraRecorder.start();
+    }
+
     cameraCaptureEnd() {
-        // Clear timeout so we don't start recording if it was just a tap
+        if(this.cameraMode === 'video' || this.cameraMode === 'videonote') return;
+
         if(this.cameraHoldTimeout) clearTimeout(this.cameraHoldTimeout);
         
         const inner = document.getElementById('cameraCaptureInner');
         if(inner) {
             inner.style.background = '#fff';
             inner.style.transform = 'scale(1)';
+            inner.style.borderRadius = '50%';
         }
 
         const duration = Date.now() - (this.cameraPressTimer || 0);
         if(duration < 500) {
-            // Tap -> Photo
             this.captureCameraPhoto();
         } else if(this.isRecordingCamera) {
-            // Long Press -> Stop Video
             this.isRecordingCamera = false;
             if(this.cameraRecorder && this.cameraRecorder.state !== 'inactive') {
                 this.cameraRecorder.stop();

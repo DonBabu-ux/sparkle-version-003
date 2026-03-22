@@ -100,6 +100,53 @@ const notificationController = {
         }
     },
 
+    renderNotifications: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            
+            // Mark all as read when opening the page
+            await pool.query('UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0', [userId]);
+
+            const [rows] = await pool.query(`
+                SELECT n.*, u.username as actor_username, u.name as actor_name, u.avatar_url as actor_avatar
+                FROM notifications n
+                LEFT JOIN users u ON u.user_id = COALESCE(n.related_user_id, n.actor_id)
+                WHERE n.user_id = ?
+                ORDER BY n.created_at DESC
+                LIMIT 50
+            `, [userId]);
+
+            const notifications = rows.map(n => ({
+                id: n.id || n.notification_id,
+                message: n.message || n.content || n.title,
+                type: n.type,
+                is_read: !!n.is_read,
+                created_at: n.created_at,
+                related_user: n.actor_id || n.related_user_id ? {
+                    id: n.related_user_id || n.actor_id,
+                    username: n.actor_username,
+                    name: n.actor_name,
+                    avatar: n.actor_avatar
+                } : null,
+                action_url: n.action_url
+            }));
+
+            res.render('notifications', {
+                title: 'Notifications',
+                user: req.user,
+                notifications
+            });
+        } catch (error) {
+            console.error('Render Notifications Error:', error);
+            res.status(500).render('error', { 
+                title: 'Error',
+                message: 'Failed to load notifications',
+                error: error,
+                user: req.user
+             });
+        }
+    },
+
     clearNotifications: async (req, res) => {
         try {
             const userId = req.user.userId || req.user.user_id;

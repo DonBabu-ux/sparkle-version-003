@@ -215,6 +215,13 @@
         .social-btn { width: 40px; height: 40px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #475569; text-decoration: none; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .social-btn:hover { background: var(--primary); color: white; transform: translateY(-3px); }
         
+        @media (max-width: 480px) {
+            .profile-details-grid { padding: 15px; gap: 12px; }
+            .detail-content p { font-size: 13px; word-break: break-word; }
+            .detail-icon { width: 32px; height: 32px; font-size: 14px; }
+            .profile-headline { font-size: 14px; }
+        }
+        
         .birthday-badge { background: linear-gradient(135deg, #FF3D6D 0%, #FF8A00 100%); color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(255, 61, 109, 0.2); }
         .similar-birthdays-btn { background: #fee2e2; color: #ef4444; border: none; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 15px; display: flex; align-items: center; gap: 8px; transition: 0.2s; width: 100%; justify-content: center; }
         .similar-birthdays-btn:hover { background: #fecaca; transform: scale(1.02); }
@@ -367,7 +374,8 @@
                                             </div>
                                         <% } %>
 
-                                        <% if (profile.birthday && (isOwnProfile || profile.show_birthday)) { %>
+                                        <% const canSeeBirthday = profile.birthday && (isOwnProfile || profile.show_birthday == 1 || profile.show_birthday === true); %>
+                                        <% if (canSeeBirthday) { %>
                                             <div class="detail-item">
                                                 <div class="detail-icon"><i class="fas fa-birthday-cake"></i></div>
                                                 <div class="detail-content">
@@ -387,7 +395,8 @@
                                             </div>
                                         <% } %>
 
-                                        <% if (isOwnProfile || profile.show_contact_info) { %>
+                                        <% const canSeeContact = isOwnProfile || profile.show_contact_info == 1 || profile.show_contact_info === true; %>
+                                        <% if (canSeeContact) { %>
                                             <div class="detail-item">
                                                 <div class="detail-icon"><i class="fas fa-address-book"></i></div>
                                                 <div class="detail-content">

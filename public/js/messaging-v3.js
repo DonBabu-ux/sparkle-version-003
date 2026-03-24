@@ -31,6 +31,7 @@ class SparkleChat {
         this.bindEvents();
         await this.loadInbox();
         this.checkUrlParameters();
+        this.startUpdateTimeLoop();
     }
 
     async checkUrlParameters() {
@@ -334,18 +335,22 @@ class SparkleChat {
                 return !c.is_archived; 
             } else if (this.currentTab === 'archived') {
                 return c.is_archived;
-            } else {
-                return c.marketplace_listing_id === null && !c.is_archived;
+            } else if (this.currentTab === 'unread') {
+                return c.unread_count > 0 && !c.is_archived;
+            } else if (this.currentTab === 'groups') {
+                return c.chat_type === 'group' && !c.is_archived;
             }
+            return !c.is_archived;
         });
 
         if (filtered.length === 0) {
-            list.innerHTML = `<div class="empty-state">No ${this.currentTab === 'marketplace' ? 'marketplace inquiries' : 'conversations'} yet</div>`;
+            list.innerHTML = `<div class="empty-state" style="text-align:center; padding:50px 20px; color:#8696a0;">No ${this.currentTab} chats yet</div>`;
             return;
         }
+
         list.innerHTML = filtered.map(conv => {
-            const isOnline = conv.is_online ? 'online' : '';
-            const unread = conv.unread_count > 0 ? `<span class="unread-badge">${conv.unread_count}</span>` : '';
+            const isOnline = conv.is_online;
+            const unread = conv.unread_count > 0 ? `<span class="chat-unread">${conv.unread_count}</span>` : '';
             const activeClass = conv.chat_id === this.currentChatId ? 'active' : '';
             const isGroup = conv.chat_type === 'group';
             
@@ -356,32 +361,32 @@ class SparkleChat {
             if (conv.last_message_type === 'marketplace_listing') lastMsg = '🛍️ Marketplace Item';
 
             return `
-                <div class="conversation-card ${activeClass} ${conv.is_archived ? 'archived' : ''}" 
+                <div class="chat-item ${activeClass} ${conv.is_archived ? 'archived' : ''}" 
                      data-id="${conv.chat_id}"
                      onclick="window.sparkChat.openChat('${conv.chat_id}')"
                      onmousedown="window.sparkChat.startLongPress('${conv.chat_id}', event)"
                      onmouseup="window.sparkChat.endLongPress()"
                      onmouseleave="window.sparkChat.endLongPress()"
                      ontouchstart="window.sparkChat.startLongPress('${conv.chat_id}', event)"
-                     ontouchend="window.sparkChat.endLongPress()"
-                     style="position:relative; cursor:pointer; padding:12px 16px; display:flex; gap:12px; border-bottom:1px solid #111b21;">
+                     ontouchend="window.sparkChat.endLongPress()">
                     
-                    <div class="avatar-wrapper" style="position:relative; width:48px; height:48px;">
-                        <img src="${conv.partner_avatar || '/uploads/avatars/default.png'}" 
-                             style="width:48px; height:48px; border-radius:50%; object-fit:cover;">
-                        ${isOnline ? '<div class="online-status-dot active" style="position:absolute; bottom:2px; right:2px; border:2px solid #000;"></div>' : ''}
-                    </div>
+                    <img src="${conv.partner_avatar || '/uploads/avatars/default.png'}" class="chat-avatar" alt="${conv.partner_name}">
 
-                    <div class="card-body" style="flex:1; min-width:0;">
-                        <div class="card-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <span class="card-name" style="font-weight:600; font-size:16px;">${isGroup ? `<i class="bi bi-people-fill" style="margin-right:5px; font-size:14px; opacity:0.6;"></i>` : ''}${conv.partner_name}</span>
-                            <span class="card-time" style="font-size:12px; color:#8696a0;">${this.formatTime(conv.last_message_at)}</span>
+                    <div class="chat-details">
+                        <div class="chat-top">
+                            <span class="chat-name">
+                                ${isGroup ? '<i class="bi bi-people-fill" style="margin-right:5px; font-size:13px; opacity:0.7;"></i>' : ''}
+                                ${conv.partner_name}
+                            </span>
+                            <span class="chat-time" data-time="${conv.last_message_at}">${this.formatChatTime(conv.last_message_at)}</span>
                         </div>
-                        <div class="card-last-msg" style="font-size:14px; color:#8696a0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${lastMsg}
+                        <div class="chat-bottom" style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                            <span class="chat-message" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#aaa; font-size:13px;">
+                                ${lastMsg}
+                            </span>
+                            ${unread}
                         </div>
                     </div>
-                    ${unread}
                 </div>
             `;
         }).join('');
@@ -667,12 +672,9 @@ class SparkleChat {
         const statusEl = document.getElementById('bannerStatus');
         if (conv.chat_type === 'group') {
              statusEl.textContent = (conv.member_count || 'Several') + ' members';
-        } else if (conv.is_online) {
-            statusEl.textContent = 'Online';
-            statusEl.style.color = '#00a884';
         } else {
-            statusEl.textContent = conv.last_seen_at ? 'Last seen ' + this.formatTime(conv.last_seen_at) : 'Offline';
-            statusEl.style.color = '#8696a0';
+             statusEl.textContent = this.formatLastSeen(conv.last_seen_at, conv.is_online);
+             statusEl.style.color = conv.is_online ? '#00a884' : '#888';
         }
 
         // Apply disappearing messages UI if active
@@ -942,16 +944,47 @@ class SparkleChat {
             
             this.socket.emit('mark-delivered', { messageId: messageId, chatId: msgChatId });
             this.socket.emit('mark-read', this.currentChatId);
+        } else {
+            this.playNotificationSound();
         }
         
-        this.loadInbox();
+        this.updateInboxPreview(msg);
     }
 
     handleMessageSent(msg) {
         const container = document.getElementById('messagesContainer');
         container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
         this.scrollToBottom(true); // Always force scroll on own message
-        this.loadInbox();
+        this.updateInboxPreview(msg);
+    }
+
+    updateInboxPreview(message) {
+        const msgChatId = message.conversation_id || message.chat_id;
+        const convIndex = this.conversations.findIndex(c => String(c.chat_id) === String(msgChatId));
+        
+        if (convIndex > -1) {
+            const conv = this.conversations[convIndex];
+            conv.last_message = message.content;
+            conv.last_message_type = message.type;
+            conv.last_message_at = message.sent_at;
+            
+            if (this.currentChatId !== msgChatId) {
+                conv.unread_count = (conv.unread_count || 0) + 1;
+            }
+            
+            // Move to top
+            this.conversations.splice(convIndex, 1);
+            this.conversations.unshift(conv);
+            this.renderInbox();
+        } else {
+            // New conversation starter or just reload
+            this.loadInbox();
+        }
+    }
+
+    playNotificationSound() {
+        const audio = new Audio('/sounds/notification.mp3');
+        audio.play().catch(() => {});
     }
 
     // --- Presence & Status ---
@@ -2217,20 +2250,73 @@ class SparkleChat {
         }
     }
 
+    formatChatTime(dateString) {
+        if (!dateString) return '';
+        const now = new Date();
+        const msgTime = new Date(dateString);
+        if (isNaN(msgTime.getTime())) return '';
+
+        const diff = Math.floor((now - msgTime) / 1000);
+        
+        // Prevent negative values from clock drift
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+        
+        const today = now.toDateString();
+        const msgDay = msgTime.toDateString();
+
+        if (today === msgDay) {
+            return msgTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        if (msgDay === yesterday.toDateString()) return 'Yesterday';
+
+        return msgTime.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    formatLastSeen(lastSeen, isOnline) {
+        if (isOnline) return 'Online';
+        if (!lastSeen) return 'Offline';
+        const date = new Date(lastSeen);
+        if (isNaN(date.getTime())) return 'Offline';
+
+        return 'Last seen ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
     formatTime(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     formatFullDate(dateString) {
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
         const today = new Date();
         if (date.toDateString() === today.toDateString()) return 'Today';
         const yesterday = new Date(today);
         yesterday.setDate(today.getDate() - 1);
         if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
         return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    startUpdateTimeLoop() {
+        if(this.updateTimesInterval) clearInterval(this.updateTimesInterval);
+        this.updateTimesInterval = setInterval(() => {
+            this.updateChatTimes();
+        }, 1000);
+    }
+
+    updateChatTimes() {
+        document.querySelectorAll('.chat-time').forEach(el => {
+            const time = el.dataset.time;
+            if (time && time !== 'undefined' && time !== 'null') {
+                el.textContent = this.formatChatTime(time);
+            }
+        });
     }
 
     closeChat() {

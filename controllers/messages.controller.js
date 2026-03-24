@@ -1,6 +1,21 @@
 const Message = require('../models/Message');
+const GroupChat = require('../models/GroupChat');
 
 class MessageController {
+    /**
+     * Get mutual groups between user and a partner
+     */
+    async getMutualGroups(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId;
+            const { partnerId } = req.params;
+            const groups = await GroupChat.getMutualGroups(userId, partnerId);
+            res.json({ status: 'success', data: groups });
+        } catch (error) {
+            console.error('getMutualGroups Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
     /**
      * Get user's conversation list (Direct + Group)
      */

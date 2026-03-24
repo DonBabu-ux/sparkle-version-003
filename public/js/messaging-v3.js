@@ -131,6 +131,10 @@ class SparkleChat {
                 const addMenu = document.getElementById('attachmentMenu');
                 if (addMenu) addMenu.style.display = 'none';
             }
+            if (!e.target.closest('#chatActionModal') && !e.target.closest('.conversation-card')) {
+                const actionModal = document.getElementById('chatActionModal');
+                if (actionModal) actionModal.style.display = 'none';
+            }
         });
 
         // Swipe to reply
@@ -344,7 +348,10 @@ class SparkleChat {
 
             return `
                 <div class="conversation-card ${activeClass} ${conv.is_archived ? 'archived' : ''}" 
-                     onclick="window.sparkChat.openChat('${conv.chat_id}')">
+                     onclick="window.sparkChat.openChat('${conv.chat_id}')"
+                     oncontextmenu="event.preventDefault(); sparkChat.showChatActions('${conv.chat_id}', event)"
+                     ontouchstart="sparkChat.startLongPress('${conv.chat_id}', event)"
+                     ontouchend="sparkChat.endLongPress()">
                     <div class="conv-avatar-wrapper ${isOnline}">
                         <img src="${conv.partner_avatar || '/uploads/avatars/default.png'}" class="conv-avatar">
                     </div>
@@ -431,6 +438,10 @@ class SparkleChat {
         this.currentChatId = chatId;
         document.querySelector('.messaging-layout').classList.add('chat-active');
         
+        // Hide New Chat FAB when chat is open
+        const fab = document.getElementById('waFabContainer');
+        if (fab) fab.style.display = 'none';
+
         // Update UI state
         document.querySelectorAll('.conversation-card').forEach(c => c.classList.remove('active'));
         document.querySelector(`.conversation-card[data-id="${chatId}"]`)?.classList.add('active');
@@ -1832,15 +1843,281 @@ class SparkleChat {
             type: 'text',
         });
     }
-}
 
-// Mobile support helper
-function closeChat() {
-    document.querySelector('.messaging-layout').classList.remove('chat-active');
-    if (window.sparkChat) window.sparkChat.currentChatId = null;
+    // --- Chat Actions & Settings ---
+
+    toggleChatMenu() {
+        const menu = document.getElementById('chatDropdownMenu');
+        if (!menu) return;
+        const isVisible = menu.style.display === 'block';
+        menu.style.display = isVisible ? 'none' : 'block';
+        
+        // Side-effect: check if current chat is group to show group settings
+        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        const groupBtn = document.getElementById('menuGroupSettings');
+        if (groupBtn) groupBtn.style.display = conv?.is_group ? 'block' : 'none';
+    }
+
+    openChatSettings() {
+        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        if (!conv) return;
+
+        if (conv.is_group) {
+            this.handleGroupSettings();
+            return;
+        }
+
+        const modal = document.getElementById('chatSettingsModal');
+        if (!modal) return;
+
+        document.getElementById('settingsAvatar').src = conv.partner_avatar || '/uploads/avatars/default.png';
+        document.getElementById('settingsName').textContent = conv.partner_name;
+        document.getElementById('settingsStatus').textContent = conv.bio || 'Hey there! I am using Sparkle.';
+        
+        // Fetch Mutual Groups
+        const mutualList = document.getElementById('commonGroupsList');
+        if (mutualList) {
+            mutualList.innerHTML = '<div style="color:#8696a0; font-size:12px;">Loading mutual groups...</div>';
+            fetch(`/api/messages/mutual-groups/${conv.partner_id}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success' && res.data.length > 0) {
+                        mutualList.innerHTML = res.data.map(g => `
+                            <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+                                <img src="${g.photo_url || '/uploads/avatars/default.png'}" style="width:30px; height:30px; border-radius:50%;">
+                                <div style="font-size:14px;">${g.name}</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        mutualList.innerHTML = '<div style="color:#8696a0; font-size:12px;">No groups in common</div>';
+                    }
+                }).catch(() => {
+                    mutualList.innerHTML = '<div style="color:#8696a0; font-size:12px;">None</div>';
+                });
+        }
+
+        // Replace "Username" in block/delete labels
+        const blockBtn = document.getElementById('menuBlock');
+        if (blockBtn) blockBtn.textContent = `Block ${conv.partner_name}`;
+
+        modal.style.display = 'flex';
+    }
+
+    handleArchiveChat() {
+        if (!this.currentChatId) return;
+        this.socket.emit('archive_chat', { chatId: this.currentChatId });
+        this.closeChat();
+        this.loadInbox();
+    }
+
+    handleDeleteChat() {
+        if (!this.currentChatId) return;
+        if (confirm('Are you sure you want to delete this chat forever?')) {
+            this.socket.emit('delete_chat', { chatId: this.currentChatId });
+            this.closeChat();
+            this.loadInbox();
+        }
+    }
+
+    handleBlockUser() {
+        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        if (!conv) return;
+        if (confirm(`Block ${conv.partner_name}?`)) {
+            fetch('/api/users/block', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: conv.partner_id })
+            }).then(() => {
+                this.closeChat();
+                this.loadInbox();
+                alert('User blocked');
+            });
+        }
+    }
+
+    handleMuteNotifications() {
+        const chatId = this.currentChatId;
+        const isMuted = false; // logic would fetch current state
+        this.socket.emit('mute_chat', { chatId, mute: !isMuted });
+        alert('Notification settings updated');
+    }
+
+    async handleGroupSettings() {
+        const chatId = this.currentChatId;
+        const modal = document.getElementById('groupDetailsModal');
+        if (!modal) return;
+
+        try {
+            const res = await fetch(`/api/messages/group/${chatId}/details`);
+            const result = await res.json();
+            
+            if (result.status === 'success') {
+                const group = result.data;
+                document.getElementById('groupSettingsAvatar').src = group.photo_url || group.photoUrl || '/uploads/avatars/default.png';
+                document.getElementById('groupSettingsName').textContent = group.name;
+                document.getElementById('groupSettingsDesc').textContent = group.description || 'No description provided';
+                document.getElementById('groupMemberCount').textContent = `${group.members?.length || 0} members`;
+
+                const list = document.getElementById('groupMembersList');
+                list.innerHTML = group.members.map(m => `
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <img src="${m.avatar_url || '/uploads/avatars/default.png'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                        <div style="flex:1;">
+                            <div style="font-weight:600;">${m.username} ${m.user_id === this.userId ? '(You)' : ''}</div>
+                            <div style="font-size:12px; color:#8696a0;">${m.role}</div>
+                        </div>
+                        ${(group.role === 'admin' || group.role === 'creator') && m.user_id !== this.userId ? `
+                            <i class="bi bi-three-dots-vertical" style="cursor:pointer; color:#8696a0;"></i>
+                        ` : ''}
+                    </div>
+                `).join('');
+
+                modal.style.display = 'flex';
+            }
+        } catch (e) {
+            console.error('Error fetching group info:', e);
+            alert('Could not load group settings');
+        }
+    }
+
+    handleLeaveGroup() {
+        if (!this.currentChatId) return;
+        if (confirm('Are you sure you want to leave this group?')) {
+            this.socket.emit('leave_group', { chatId: this.currentChatId });
+            this.closeChat();
+            this.loadInbox();
+        }
+    }
+
+    openDisappearingMessages() {
+        document.getElementById('disappearingModal').style.display = 'flex';
+    }
+
+    setDisappearing(hours) {
+        this.socket.emit('disappearing_messages', { chatId: this.currentChatId, duration: hours });
+        document.getElementById('disappearingModal').style.display = 'none';
+        alert(`Messages will now disappear after ${hours === 0 ? 'off' : hours + ' hours'}`);
+    }
+
+    toggleChatLock() {
+        const pin = prompt('Enter a 4-digit PIN to lock this chat:');
+        if (pin && pin.length === 4) {
+            this.socket.emit('lock_chat', { chatId: this.currentChatId, pin });
+            alert('Chat locked. It will now be hidden until unlocked.');
+            this.closeChat();
+            this.loadInbox();
+        } else if (pin) {
+            alert('Invalid PIN. Must be 4 digits.');
+        }
+    }
+
+    // --- Long Press / Context Menu ---
+
+    startLongPress(chatId, e) {
+        this.longPressTimer = setTimeout(() => {
+            this.showChatActions(chatId, e);
+        }, 600);
+    }
+
+    endLongPress() {
+        clearTimeout(this.longPressTimer);
+    }
+
+    showChatActions(chatId, e) {
+        this.currentChatId = chatId; // Temporary target for actions
+        const modal = document.getElementById('chatActionModal');
+        const content = modal.querySelector('.wa-modal-content');
+        
+        modal.style.display = 'flex';
+        modal.style.background = 'rgba(0,0,0,0.1)'; // More subtle overlay
+        
+        if (e.clientX && e.clientY) {
+            content.style.position = 'absolute';
+            content.style.left = `${Math.min(e.clientX, window.innerWidth - 240)}px`;
+            content.style.top = `${Math.min(e.clientY, window.innerHeight - 200)}px`;
+        }
+    }
+
+    // --- Invite & Link ---
+
+    openInviteModal() {
+        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        if (!conv || !conv.is_group) return;
+
+        const modal = document.getElementById('inviteModal');
+        const linkText = document.getElementById('inviteLinkText');
+        const qrImg = document.getElementById('groupQR');
+
+        const inviteUrl = `${window.location.origin}/join/${conv.chat_id}`; // Simplified backend-less generation
+        linkText.textContent = inviteUrl;
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(inviteUrl)}`;
+
+        modal.style.display = 'flex';
+    }
+
+    copyInviteLink() {
+        const text = document.getElementById('inviteLinkText').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Invite link copied to clipboard');
+        });
+    }
+
+    // --- Media Visibility & Storage ---
+
+    openMediaVisibility() {
+        document.getElementById('mediaVisibilityModal').style.display = 'flex';
+    }
+
+    saveMediaVisibility() {
+        const val = document.querySelector('input[name="mediaVis"]:checked').value;
+        this.socket.emit('set_media_visibility', { chatId: this.currentChatId, visibility: val });
+        document.getElementById('mediaVisibilityModal').style.display = 'none';
+        alert('Media visibility updated');
+    }
+
+    openStorageManagement() {
+        document.getElementById('storageModal').style.display = 'flex';
+        // Mocking statistics for UX demo
+        document.getElementById('totalStorageUsed').textContent = '12.4 MB';
+        document.getElementById('storageImages').textContent = '8.2 MB';
+        document.getElementById('storageVideos').textContent = '4.1 MB';
+        document.getElementById('storageVoice').textContent = '120 KB';
+        document.getElementById('storageDocs').textContent = '28 KB';
+    }
+
+    clearChatMedia() {
+        if (confirm('Are you sure you want to delete all media files in this chat? This cannot be undone.')) {
+            this.socket.emit('clear_chat_media', { chatId: this.currentChatId });
+            alert('Storage cleared');
+            document.getElementById('storageModal').style.display = 'none';
+        }
+    }
+
+    closeChat() {
+        document.querySelector('.messaging-layout').classList.remove('chat-active');
+        this.currentChatId = null;
+        
+        // Show FAB back
+        const fab = document.getElementById('waFabContainer');
+        if (fab) fab.style.display = 'flex';
+    }
 }
 
 // Global instance
 window.addEventListener('DOMContentLoaded', () => {
     window.sparkChat = new SparkleChat();
+    
+    // Close menus on click outside
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('chatDropdownMenu');
+        if (menu && !e.target.closest('.chat-menu-wrapper')) {
+            menu.style.display = 'none';
+        }
+        document.querySelectorAll('.msg-options-menu').forEach(m => m.classList.remove('active'));
+    });
 });
+
+// Mobile support helper
+function closeChat() {
+    if (window.sparkChat) window.sparkChat.closeChat();
+}

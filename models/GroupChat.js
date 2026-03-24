@@ -59,6 +59,20 @@ class GroupChat {
     static async delete(chatId) {
         await db.query('DELETE FROM group_chats WHERE chat_id = ?', [chatId]);
     }
+
+    static async getMutualGroups(userId1, userId2) {
+        const [rows] = await db.query(`
+            SELECT gc.*
+            FROM group_chats gc
+            JOIN group_chat_members gcm1 ON gc.chat_id = gcm1.chat_id
+            JOIN group_chat_members gcm2 ON gc.chat_id = gcm2.chat_id
+            WHERE gcm1.user_id = ? 
+              AND gcm2.user_id = ?
+              AND gcm1.status != 'left'
+              AND gcm2.status != 'left'
+        `, [userId1, userId2]);
+        return rows;
+    }
 }
 
 module.exports = GroupChat;

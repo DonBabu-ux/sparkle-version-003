@@ -9,6 +9,7 @@ router.use(authMiddleware);
 router.get('/inbox', messageController.getInbox);
 router.get('/conversations', messageController.getInbox);
 router.post('/start', messageController.startConversation);
+router.get('/mutual-groups/:partnerId', messageController.getMutualGroups);
 
 // Search
 router.get('/search', messageController.searchMessages);

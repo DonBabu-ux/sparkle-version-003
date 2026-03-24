@@ -48,8 +48,8 @@
         <!-- CHAT MAIN -->
         <main class="chat-main" id="chatMain" style="display: none;">
             <header class="chat-banner" id="chatBanner">
-                <div class="chat-banner-left">
-                    <i class="bi bi-chevron-left mobile-back-btn" onclick="closeChat()"></i>
+                <div class="chat-banner-left" onclick="sparkChat.openChatSettings()" style="cursor:pointer;">
+                    <i class="bi bi-chevron-left mobile-back-btn" onclick="event.stopPropagation(); closeChat()"></i>
                     <img id="bannerAvatar" src="" class="banner-avatar">
                     <div class="banner-info">
                         <h2 id="bannerName">Loading...</h2>
@@ -415,7 +415,7 @@
 </div>
 
 <!-- WhatsApp Style FAB for Messages Page -->
-<div class="wa-fab-container">
+<div class="wa-fab-container" id="waFabContainer">
     <div class="wa-fab-menu" id="waFabMenu">
         <button class="wa-fab-item" onclick="toggleWaFab(); sparkChat.openNewChatModal(); sparkChat.switchNewChatTab('group');">
             <i class="bi bi-people-fill text-blue-500"></i>
@@ -545,6 +545,247 @@ function toggleWaFab() {
     }
 }
 </script>
+
+<!-- MODALS FOR SETTINGS & GROUPS -->
+
+<!-- Chat Settings/Profile Modal (WhatsApp Style) -->
+<div id="chatSettingsModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content full-mobile" style="background:#000; color:#fff; padding:0; max-width:500px;">
+        <header style="background:#202c33; padding:15px; display:flex; align-items:center; gap:20px;">
+            <i class="bi bi-chevron-left" onclick="document.getElementById('chatSettingsModal').style.display='none'" style="cursor:pointer; font-size:20px;"></i>
+            <span style="font-weight:600; font-size:18px;">Contact info</span>
+        </header>
+
+        <div style="flex:1; overflow-y:auto; padding-bottom:80px;">
+            <div style="display:flex; flex-direction:column; align-items:center; padding:30px 20px; background:#111b21;">
+                <img id="settingsAvatar" src="/uploads/avatars/default.png" style="width:200px; height:200px; border-radius:50%; object-fit:cover; margin-bottom:15px; border:3px solid #00a884;">
+                <h2 id="settingsName" style="margin:0; font-size:24px;">Username</h2>
+                <span id="settingsStatus" style="color:#8696a0; font-size:16px; margin-top:5px;">Hey there! I am using Sparkle.</span>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px;">
+                <div class="settings-item" onclick="sparkChat.handleMuteNotifications()" style="padding:15px 20px; display:flex; align-items:center; border-bottom:1px solid #202c33; cursor:pointer;">
+                    <i class="bi bi-bell" style="width:40px; color:#8696a0; font-size:20px;"></i>
+                    <div style="flex:1;">
+                        <div style="font-size:16px;">Mute notifications</div>
+                    </div>
+                </div>
+                <div class="settings-item" onclick="sparkChat.openDisappearingMessages()" style="padding:15px 20px; display:flex; align-items:center; border-bottom:1px solid #202c33; cursor:pointer;">
+                    <i class="bi bi-clock-history" style="width:40px; color:#8696a0; font-size:20px;"></i>
+                    <div style="flex:1;">
+                        <div style="font-size:16px;">Disappearing messages</div>
+                        <div style="font-size:13px; color:#8696a0;">Off</div>
+                    </div>
+                </div>
+                <div class="settings-item" onclick="sparkChat.toggleChatLock()" style="padding:15px 20px; display:flex; align-items:center; border-bottom:1px solid #202c33; cursor:pointer;">
+                    <i class="bi bi-lock" style="width:40px; color:#8696a0; font-size:20px;"></i>
+                    <div style="flex:1;">
+                        <div style="font-size:16px;">Chat lock</div>
+                        <div style="font-size:13px; color:#8696a0;">Lock this chat with a fingerprint or code</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px; padding:20px;">
+                <div style="color:#00a884; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:10px;">Groups in common</div>
+                <div id="commonGroupsList">
+                    <div style="color:#8696a0; font-size:12px;">None</div>
+                </div>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px; padding:20px;">
+                <div style="color:#00a884; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:10px;">End-to-end encryption</div>
+                <div style="display:flex; gap:15px;">
+                    <i class="bi bi-shield-lock" style="color:#00a884; font-size:20px;"></i>
+                    <div style="font-size:13px; color:#8696a0;">Messages and calls are end-to-end encrypted. No one outside of this chat, not even Sparkle, can read or listen to them.</div>
+                </div>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px;">
+                <div class="settings-item text-danger" onclick="sparkChat.handleBlockUser()" style="padding:15px 20px; display:flex; align-items:center; border-bottom:1px solid #202c33; cursor:pointer;">
+                    <i class="bi bi-slash-circle" style="width:40px; font-size:20px;"></i>
+                    <div style="font-size:16px;">Block Username</div>
+                </div>
+                <div class="settings-item text-danger" onclick="sparkChat.handleDeleteChat()" style="padding:15px 20px; display:flex; align-items:center; cursor:pointer;">
+                    <i class="bi bi-trash" style="width:40px; font-size:20px;"></i>
+                    <div style="font-size:16px;">Delete Chat</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disappearing Messages Modal -->
+<div id="disappearingModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content" style="background:#000; color:#fff; width:100%; max-width:350px;">
+        <h3 style="margin:0 0 15px;">Disappearing messages</h3>
+        <p style="color:#8696a0; font-size:13px;">Make messages in this chat disappear after a certain period of time.</p>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="radio" name="expiry" value="0" checked onclick="sparkChat.setDisappearing(0)"> Off
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="radio" name="expiry" value="24" onclick="sparkChat.setDisappearing(24)"> 24 hours
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="radio" name="expiry" value="168" onclick="sparkChat.setDisappearing(168)"> 7 days
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="radio" name="expiry" value="2160" onclick="sparkChat.setDisappearing(2160)"> 90 days
+            </label>
+        </div>
+        <button onclick="document.getElementById('disappearingModal').style.display='none'" 
+                style="margin-top:25px; width:100%; padding:12px; background:#00a884; border:none; border-radius:8px; color:white; font-weight:700;">Close</button>
+    </div>
+</div>
+
+<!-- Group Details Modal -->
+<div id="groupDetailsModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content full-mobile" style="background:#000; color:#fff; padding:0; max-width:500px;">
+        <header style="background:#202c33; padding:15px; display:flex; align-items:center; gap:20px;">
+            <i class="bi bi-chevron-left" onclick="document.getElementById('groupDetailsModal').style.display='none'" style="cursor:pointer; font-size:20px;"></i>
+            <span style="font-weight:600; font-size:18px;">Group info</span>
+        </header>
+
+        <div style="flex:1; overflow-y:auto; padding-bottom:80px;">
+            <div style="display:flex; flex-direction:column; align-items:center; padding:30px 20px; background:#111b21;">
+                <img id="groupSettingsAvatar" src="/uploads/avatars/default.png" style="width:200px; height:200px; border-radius:50%; object-fit:cover; margin-bottom:15px;">
+                <h2 id="groupSettingsName" style="margin:0; font-size:24px;">Group Name</h2>
+                <span id="groupSettingsDesc" style="color:#8696a0; font-size:16px; margin-top:5px; text-align:center;">Group description goes here...</span>
+            </div>
+
+            <div style="padding:15px 20px; background:#111b21; margin-top:10px;">
+                <div style="color:#00a884; font-size:14px; font-weight:600; margin-bottom:15px;" id="groupMemberCount">0 members</div>
+                <div id="groupMembersList" style="display:flex; flex-direction:column; gap:12px;">
+                    <!-- Members injected here -->
+                </div>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px;">
+                <div class="settings-item text-danger" onclick="sparkChat.handleLeaveGroup()" style="padding:15px 20px; display:flex; align-items:center; cursor:pointer;">
+                    <i class="bi bi-box-arrow-right" style="width:40px; font-size:20px;"></i>
+                    <div style="font-size:16px;">Leave group</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Group Invite Modal (QR & Link) -->
+<div id="inviteModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content" style="background:#000; color:#fff; width:100%; max-width:400px; text-align:center;">
+        <h3 style="margin:0 0 10px;">Invite via link</h3>
+        <p style="color:#8696a0; font-size:13px; margin-bottom:20px;">Share this link or QR code so friends can join your group.</p>
+        
+        <div id="qrContainer" style="background:#fff; padding:15px; border-radius:12px; display:inline-block; margin-bottom:20px;">
+            <img id="groupQR" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=example" style="width:150px; height:150px;">
+        </div>
+        
+        <div style="background:#111b21; padding:12px; border-radius:8px; display:flex; align-items:center; gap:10px; border:1px solid #202c33;">
+            <span id="inviteLinkText" style="flex:1; font-size:12px; color:#8696a0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">https://sparkle.app/join/xyz...</span>
+            <i class="bi bi-copy" onclick="sparkChat.copyInviteLink()" style="cursor:pointer; color:#00a884;"></i>
+        </div>
+        
+        <button onclick="document.getElementById('inviteModal').style.display='none'" 
+                style="margin-top:25px; width:100%; padding:12px; background:#00a884; border:none; border-radius:8px; color:white; font-weight:700;">Done</button>
+    </div>
+</div>
+
+<!-- Media Visibility Modal -->
+<div id="mediaVisibilityModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content" style="background:#000; color:#fff; width:100%; max-width:350px;">
+        <h3 style="margin:0 0 15px;">Media visibility</h3>
+        <p style="color:#8696a0; font-size:14px; margin-bottom:20px;">Show newly downloaded media from this chat in your device's gallery?</p>
+        <div style="display:flex; flex-direction:column; gap:15px; margin-top:20px;">
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <input type="radio" name="mediaVis" value="default" checked> Default (Yes)
+            </label>
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <input type="radio" name="mediaVis" value="yes"> Yes
+            </label>
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <input type="radio" name="mediaVis" value="no"> No
+            </label>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:30px;">
+            <button onclick="document.getElementById('mediaVisibilityModal').style.display='none'" style="flex:1; padding:12px; background:transparent; border:none; color:#00a884; font-weight:700;">Cancel</button>
+            <button onclick="sparkChat.saveMediaVisibility()" style="flex:1; padding:12px; background:transparent; border:none; color:#00a884; font-weight:700;">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- Storage Management Modal -->
+<div id="storageModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content full-mobile" style="background:#000; color:#fff; padding:0; max-width:500px;">
+        <header style="background:#202c33; padding:15px; display:flex; align-items:center; gap:20px;">
+            <i class="bi bi-chevron-left" onclick="document.getElementById('storageModal').style.display='none'" style="cursor:pointer; font-size:20px;"></i>
+            <span style="font-weight:600; font-size:18px;">Manage storage</span>
+        </header>
+        <div style="padding:20px; flex:1; overflow-y:auto;">
+            <div style="background:#111b21; padding:20px; border-radius:12px; text-align:center; margin-bottom:20px;">
+                <div style="font-size:28px; font-weight:700; color:#00a884;" id="totalStorageUsed">0 KB</div>
+                <div style="color:#8696a0; font-size:13px;">Used in this chat</div>
+            </div>
+            <div class="storage-breakdown" style="display:flex; flex-direction:column; gap:1px; background:#202c33; border-radius:12px; overflow:hidden;">
+                <div style="background:#111b21; padding:15px; display:flex; justify-content:space-between;">
+                    <span>Images</span> <span id="storageImages">0 B</span>
+                </div>
+                <div style="background:#111b21; padding:15px; display:flex; justify-content:space-between;">
+                    <span>Videos</span> <span id="storageVideos">0 B</span>
+                </div>
+                <div style="background:#111b21; padding:15px; display:flex; justify-content:space-between;">
+                    <span>Voice Notes</span> <span id="storageVoice">0 B</span>
+                </div>
+                <div style="background:#111b21; padding:15px; display:flex; justify-content:space-between;">
+                    <span>Documents</span> <span id="storageDocs">0 B</span>
+                </div>
+            </div>
+            <button onclick="sparkChat.clearChatMedia()" style="margin-top:30px; width:100%; padding:15px; background:rgba(239, 68, 68, 0.1); border:none; border-radius:12px; color:#ef4444; font-weight:700;">
+                <i class="bi bi-trash"></i> DELETE LARGE FILES
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Chat Actions Modal (Long Press/Right Click) -->
+<div id="chatActionModal" class="wa-modal-overlay" style="display:none; background:rgba(0,0,0,0.4);">
+    <div class="wa-modal-content" style="background:#233138; width:220px; padding:10px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+        <div class="action-item" onclick="sparkChat.handleArchiveChat()" style="padding:12px; display:flex; gap:15px; align-items:center; cursor:pointer; color:#fff;">
+            <i class="bi bi-archive-fill"></i> Archive Chat
+        </div>
+        <div class="action-item" onclick="sparkChat.handleMuteNotifications()" style="padding:12px; display:flex; gap:15px; align-items:center; cursor:pointer; color:#fff;">
+            <i class="bi bi-bell-slash-fill"></i> Mute Notifications
+        </div>
+        <div class="action-item text-danger" onclick="sparkChat.handleDeleteChat()" style="padding:12px; display:flex; gap:15px; align-items:center; cursor:pointer;">
+            <i class="bi bi-trash-fill"></i> Delete Chat
+        </div>
+        <div class="action-item text-danger" onclick="sparkChat.handleBlockUser()" style="padding:12px; display:flex; gap:15px; align-items:center; cursor:pointer;">
+            <i class="bi bi-slash-circle-fill"></i> Block User
+        </div>
+    </div>
+</div>
+
+<style>
+.action-item:hover { background: #111b21; border-radius: 8px; }
+.wa-modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.85); z-index: 10000; 
+    display: flex; justify-content: center; align-items: center; 
+}
+.wa-modal-content { 
+    background: #222; border-radius: 20px; 
+    width: 95%; max-width: 450px; 
+    max-height: 90vh; overflow-y: auto; 
+    display: flex; flex-direction: column;
+    animation: modalIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+@media (max-width: 768px) {
+    .wa-modal-content.full-mobile {
+        width: 100%; height: 100%; max-height: 100%; border-radius: 0; 
+    }
+}
+@keyframes modalIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
 
 <%- include('partials/navbar') %>
 <%- include('partials/bottom-nav') %>

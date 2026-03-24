@@ -1104,38 +1104,6 @@ class SparkleChat {
     // --- Utils ---
 
 
-    formatTime(timestamp) {
-        if (!timestamp) return '';
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = (now - date) / 1000;
-
-        if (diff < 60) return 'Just now';
-        
-        // Same day
-        if (date.toDateString() === now.toDateString()) {
-             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-        }
-        
-        // Same week
-        if (diff < 86400 * 7) {
-            return date.toLocaleDateString([], { weekday: 'short' });
-        }
-
-        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-
-    formatFullDate(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        if (date.toDateString() === now.toDateString()) return 'Today';
-        const yesterday = new Date(now);
-        yesterday.setDate(now.getDate() - 1);
-        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-        
-        return date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
-    }
-
     autoResizeTextarea(textarea) {
         textarea.style.height = 'auto';
         textarea.style.height = (textarea.scrollHeight) + 'px';

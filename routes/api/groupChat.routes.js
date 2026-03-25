@@ -16,6 +16,6 @@ router.post('/:chatId/messages', authMiddleware, groupChatController.sendGroupMe
 
 // Membership
 router.post('/:chatId/members', authMiddleware, groupChatController.addMembers);
-router.delete('/:chatId/members/me', authMiddleware, groupChatController.leaveGroupChat);         // NEW — leave group chat
+router.post('/:chatId/leave', authMiddleware, groupChatController.leaveGroupChat);         // NEW — leave group chat
 
 module.exports = router;

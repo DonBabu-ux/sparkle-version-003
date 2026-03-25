@@ -35,7 +35,7 @@ router.get('/health', async (req, res) => {
 });
 router.use('/users', userRoutes);
 router.use('/messages', messagesRoutes);
-router.use('/chats', groupChatRoutes);
+router.use('/groupChat', groupChatRoutes);
 router.use('/posts', postsRoutes);
 router.use('/stories', storiesRoutes);
 router.use('/moments', momentsRoutes);

@@ -5,6 +5,7 @@ const pool = require('../config/database');
 const logger = require('../utils/logger');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const GroupMember = require('../models/GroupMember');
 
 let io;
 
@@ -256,7 +257,7 @@ const joinUserChatRooms = async (socket) => {
     }
 };
 
-// Helper: Broadcast online status to followers
+// Helper: Broadcast online status to followers AND group peers
 const broadcastOnlineStatus = async (socket, isOnline) => {
     try {
         const [followers] = await pool.query(
@@ -264,13 +265,24 @@ const broadcastOnlineStatus = async (socket, isOnline) => {
             [socket.userId]
         );
 
-        followers.forEach(follower => {
-            socket.to(`user:${follower.follower_id}`).emit('user-status', {
-                userId: socket.userId,
-                username: socket.user.username,
-                isOnline,
-                lastSeen: isOnline ? null : new Date().toISOString()
-            });
+        // Get Group Peers
+        const groupPeers = await GroupMember.getGroupPeers(socket.userId);
+        
+        // Merge unique IDs
+        const targetIds = new Set([
+            ...followers.map(f => f.follower_id),
+            ...groupPeers
+        ]);
+
+        const statusData = {
+            userId: socket.userId,
+            username: socket.user.username,
+            isOnline,
+            lastSeen: isOnline ? null : new Date().toISOString()
+        };
+
+        targetIds.forEach(targetId => {
+            socket.to(`user:${targetId}`).emit('user-status', statusData);
         });
     } catch (error) {
         logger.error('Broadcast status error:', error);

@@ -83,7 +83,7 @@ const upload = multer({
         }
     },
     limits: { 
-        fileSize: 50 * 1024 * 1024 // 50MB total limit
+        fileSize: 3 * 1024 * 1024 // 3MB limit for profile/avatar/group icons
     }
 });
 
@@ -109,7 +109,7 @@ const marketplaceUpload = multer({
 const messageUpload = multer({
     storage: messageStorage,
     limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB limit for overall multi-media messages, logic restricted on frontend respectively
+        fileSize: 10 * 1024 * 1024 // 10MB limit (Strictly match frontend logic for videos/docs)
     }
 });
 

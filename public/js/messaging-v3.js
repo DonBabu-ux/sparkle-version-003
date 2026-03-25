@@ -24,6 +24,7 @@ class SparkleChat {
         this.currentTab = 'all';
 
         this.init();
+        this.initViewportHeight();
     }
 
     async init() {
@@ -87,6 +88,12 @@ class SparkleChat {
         this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
         this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted({ messageId: data.messageId }));
         this.socket.on('message_deleted', (messageId) => this.handleMessageDeleted({ messageId: messageId })); // View limit expired
+        this.socket.on('new_group_created', async (data) => {
+            await this.loadInbox();
+            if (data.chatId) {
+                this.socket.emit('join-chat', data.chatId);
+            }
+        });
     }
 
     bindEvents() {
@@ -643,6 +650,12 @@ class SparkleChat {
             `;
         }
 
+        if (msg.type === 'system') {
+            return `<div class="msg-bubble msg-system" data-msg-id="${msg.message_id}">
+                ${msg.content}
+            </div>`;
+        }
+
         return `
             <div class="msg-bubble ${isMe ? 'msg-sent' : 'msg-received'} ${isDeleted ? 'msg-deleted' : ''}" data-msg-id="${msg.message_id}" data-is-own="${isMe}">
                 ${msg.reply_to_message_id && !isDeleted ? `
@@ -672,6 +685,12 @@ class SparkleChat {
     updateChatHeader(chatId) {
         const conv = this.conversations.find(c => c.chat_id === chatId);
         if (!conv) return;
+
+        const headerBanner = document.getElementById('chatBanner');
+        if (headerBanner) {
+            headerBanner.style.cursor = 'pointer';
+            headerBanner.onclick = () => this.openGroupInfo();
+        }
 
         document.getElementById('bannerAvatar').src = conv.partner_avatar || '/uploads/avatars/default.png';
         document.getElementById('bannerName').textContent = conv.partner_name;
@@ -997,17 +1016,31 @@ class SparkleChat {
     // --- Presence & Status ---
 
     handleUserStatus(data) {
-        const { userId, isOnline, lastSeen } = data;
-        const conv = this.conversations.find(c => c.partner_id === userId);
+        // 1. Update global conversations list statuses
+        const conv = this.conversations.find(c => c.partner_id === data.userId && c.chat_type !== 'group');
         if (conv) {
-            conv.is_online = isOnline;
-            conv.last_seen_at = lastSeen;
-            this.renderInbox();
-            this.renderActiveFriends();
+            conv.is_online = data.isOnline;
+            conv.last_seen_at = data.lastSeen;
+            // Only update header if this is the active conversation partner
             if (this.currentChatId === conv.chat_id) {
                 this.updateChatHeader(conv.chat_id);
             }
         }
+
+        // 2. Update Group Member status if drawer is open
+        const groupInfoDrawer = document.getElementById('groupInfoDrawer');
+        if (groupInfoDrawer && groupInfoDrawer.style.display !== 'none') {
+            const memberRow = document.querySelector(`.user-search-result[onclick*="'${data.userId}'"]`);
+            if (memberRow) {
+                const statusLabel = memberRow.querySelector('div[style*="color:#888"]');
+                if (statusLabel) {
+                    statusLabel.innerHTML = data.isOnline ? '<span style="color:#00a884;">online</span>' : 'offline';
+                }
+            }
+        }
+
+        // 3. Update active friends carousel
+        this.renderActiveFriends();
     }
 
     handleReadReceipt(data) {
@@ -1276,54 +1309,95 @@ class SparkleChat {
     // ==========================================
 
     openModal(panelId) {
-        // Close any other open modals first
+        // Close everything first
         this.closeAllModals();
 
         const panel = document.getElementById(panelId);
-        const backdrop = document.getElementById('modalBackdrop');
-        if (!panel || !backdrop) return;
+        if (!panel) return;
 
-        panel.classList.remove('hidden');
+        // Show panel
         panel.style.display = 'flex';
-        backdrop.classList.remove('hidden');
-        // Add dark overlay on mobile
-        if (window.innerWidth <= 768) {
-            backdrop.classList.add('mobile-overlay');
+
+        // Create/show backdrop at body level so it covers full screen reliably
+        let backdrop = document.getElementById('modalBackdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'modalBackdrop';
+            // Use pointer-events: auto to catch clicks
+            backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:8989;background:rgba(0,0,0,0);';
+            document.body.appendChild(backdrop);
         }
+        backdrop.style.display = 'block';
+        backdrop.onclick = (e) => {
+            e.stopPropagation();
+            this.closeAllModals();
+        };
+        // Also touch support
+        backdrop.ontouchstart = (e) => {
+            e.stopPropagation();
+            this.closeAllModals();
+        };
+
+        this._activeModal = panelId;
     }
 
     closeAllModals() {
-        const backdrop = document.getElementById('modalBackdrop');
-        if (backdrop) {
-            backdrop.classList.add('hidden');
-            backdrop.classList.remove('mobile-overlay');
-        }
+        // Hide all overlay panels using inline style only
         document.querySelectorAll('.modal-overlay-target').forEach(el => {
-            el.classList.add('hidden');
             el.style.display = 'none';
         });
+
+        // Hide backdrop
+        const backdrop = document.getElementById('modalBackdrop');
+        if (backdrop) backdrop.style.display = 'none';
+
+        this._activeModal = null;
     }
 
-    toggleEmojiPicker() {
+    toggleEmojiPicker(e) {
+        if (e) e.stopPropagation();
         const picker = document.getElementById('emojiPickerPanel');
         if (!picker) return;
-        const isHidden = picker.classList.contains('hidden');
-        if (isHidden) {
+        const isVisible = picker.style.display === 'flex';
+        if (isVisible) {
+            this.closeAllModals();
+        } else {
             this.openModal('emojiPickerPanel');
             this.renderEmojiGrid('');
-        } else {
-            this.closeAllModals();
         }
     }
 
-    toggleAttachmentMenu() {
+    toggleAttachmentMenu(e) {
+        if (e) e.stopPropagation();
         const menu = document.getElementById('attachmentMenu');
         if (!menu) return;
-        const isHidden = menu.classList.contains('hidden');
-        if (isHidden) {
-            this.openModal('attachmentMenu');
-        } else {
+        const isVisible = menu.style.display === 'flex';
+        if (isVisible) {
             this.closeAllModals();
+        } else {
+            this.openModal('attachmentMenu');
+        }
+    }
+
+    // Unified Keyboard/Viewport Fix
+    initViewportHeight() {
+        const setVh = () => {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        };
+        setVh();
+        window.addEventListener('resize', setVh);
+        
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                const bottomBar = document.querySelector('.bottom-nav');
+                if (bottomBar) {
+                    // If viewport is smaller than screen (keyboard up), hide bottom nav to avoid "floating"
+                    bottomBar.style.display = window.visualViewport.height < window.innerHeight * 0.8 ? 'none' : '';
+                }
+                // Ensure composer stays above keyboard if needed, but the user wants it to NOT be obscured
+                // We'll trust the browser's scrolling for now or add explicit adjustment if needed.
+            });
         }
     }
 
@@ -1756,7 +1830,8 @@ class SparkleChat {
     }
 
     async submitCreateGroup() {
-        const name = document.getElementById('groupNameInput').value;
+        const nameInput = document.getElementById('groupNameInput');
+        const name = nameInput.value.trim();
         const fileRef = document.getElementById('groupIconInput').files[0];
 
         if (!name || this.selectedGroupUsers.length === 0) {
@@ -1766,8 +1841,15 @@ class SparkleChat {
 
         const formData = new FormData();
         formData.append('name', name);
-        formData.append('members', JSON.stringify(this.selectedGroupUsers.map(u => u.id)));
+        // Backend expects 'member_ids' as an array or JSON string depending on parser
+        formData.append('member_ids', JSON.stringify(this.selectedGroupUsers.map(u => u.id)));
         if (fileRef) formData.append('pfp', fileRef);
+
+        const btn = event?.currentTarget;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner-pink" style="width:20px;height:20px;"></div> Creating...';
+        }
 
         try {
             const res = await fetch('/api/groupChat', {
@@ -1777,21 +1859,31 @@ class SparkleChat {
             const result = await res.json();
             if (result.status === 'success') {
                 this.closeNewChatModal(true);
-                this.loadInbox().then(() => {
-                    this.openChat(result.data.chat.chat_id);
-                });
+                // Clear state
+                nameInput.value = '';
+                this.selectedGroupUsers = [];
+                
+                await this.loadInbox();
+                if (result.data.chatId) {
+                    this.openChat(result.data.chatId);
+                }
             } else {
                 alert('Group creation failed: ' + result.error);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-people-fill"></i> Create Group';
+                }
             }
         } catch (err) {
             console.error(err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-people-fill"></i> Create Group';
+            }
         }
     }
 
-    toggleAttachmentMenu() {
-        const menu = document.getElementById('attachmentMenu');
-        menu.style.display = (menu.style.display === 'none') ? 'block' : 'none';
-    }
+
 
     openAttachment(type) {
         this.toggleAttachmentMenu();
@@ -2405,6 +2497,127 @@ class SparkleChat {
         // Show FAB back
         const fab = document.getElementById('waFabContainer');
         if (fab) fab.style.display = 'flex';
+    }
+
+    // --- Group System Logic ---
+
+    async openGroupInfo() {
+        if (!this.currentChatId) return;
+        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        if (!conv) return;
+
+        // If not a group, maybe show a simplified user profile drawer? 
+        // For now, only for groups as requested.
+        if (conv.chat_type !== 'group') return;
+
+        const drawer = document.getElementById('groupInfoDrawer');
+        drawer.style.display = 'flex';
+
+        // Set initial data from local conversation
+        document.getElementById('groupInfoName').textContent = conv.partner_name;
+        document.getElementById('groupInfoPhoto').src = conv.partner_avatar || '/uploads/avatars/default.png';
+        document.getElementById('groupInfoMemberCount').textContent = conv.member_count || '...';
+        document.getElementById('groupInfoMemberLabel').textContent = (conv.member_count || '0') + ' members';
+
+        // Load full details from API
+        try {
+            const res = await fetch(`/api/groupChat/${this.currentChatId}`);
+            const result = await res.json();
+            if (result.status === 'success') {
+                const chat = result.data;
+                this.renderGroupDetailsUI(chat);
+            }
+        } catch (e) {
+            console.error('Failed to load group details:', e);
+        }
+    }
+
+    renderGroupDetailsUI(chat) {
+        document.getElementById('groupInfoCreator').textContent = chat.creator_name || 'Admin';
+        document.getElementById('groupInfoDate').textContent = new Date(chat.created_at).toLocaleDateString();
+        document.getElementById('groupInfoMemberCount').textContent = chat.members.length;
+        document.getElementById('groupInfoMemberLabel').textContent = chat.members.length + ' members';
+
+        // Check if current user is admin
+        const me = chat.members.find(m => m.user_id === this.userId);
+        const isAdmin = me && (me.role === 'admin' || me.role === 'creator');
+        document.getElementById('groupInfoPhotoEdit').style.display = isAdmin ? 'flex' : 'none';
+        document.getElementById('groupInfoAddMemberBtn').style.display = isAdmin ? 'flex' : 'none';
+
+        this.renderGroupMembers(chat.members, isAdmin);
+    }
+
+    renderGroupMembers(members, canManage) {
+        const list = document.getElementById('groupMemberList');
+        list.innerHTML = members.map(m => `
+            <div class="user-search-result" onclick="sparkChat.openMemberProfile('${m.user_id}', '${m.name}', '${m.avatar_url}', '${m.is_online ? 'Online' : 'Offline'}')" style="padding: 12px 20px;">
+                <img src="${m.avatar_url || '/uploads/avatars/default.png'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                <div class="flex-1">
+                    <div style="font-weight:600; font-size:15px;">${m.name} ${m.user_id === this.userId ? '(You)' : ''}</div>
+                    <div style="font-size:12px; color:#888;">${m.is_online ? '<span style="color:#00a884;">online</span>' : 'offline'}</div>
+                </div>
+                ${m.role === 'admin' || m.role === 'creator' ? '<span style="font-size:11px; color:#00a884; border:1px solid #00a884; padding:2px 6px; border-radius:4px; font-weight:700; text-transform:uppercase;">Group Admin</span>' : ''}
+            </div>
+        `).join('');
+    }
+
+    closeGroupInfo() {
+        const drawer = document.getElementById('groupInfoDrawer');
+        if (drawer) drawer.style.display = 'none';
+    }
+
+    async leaveGroup() {
+        if (!confirm('Are you sure you want to leave this group?')) return;
+        try {
+            const res = await fetch(`/api/groupChat/${this.currentChatId}/leave`, { method: 'POST' });
+            const result = await res.json();
+            if (result.status === 'success') {
+                this.closeGroupInfo();
+                this.closeChat();
+                await this.loadInbox();
+            }
+        } catch (e) {
+            alert('Failed to leave group');
+        }
+    }
+
+    openMemberProfile(id, name, avatar, status) {
+        document.getElementById('memberModalPfp').src = avatar || '/uploads/avatars/default.png';
+        document.getElementById('memberModalName').textContent = name;
+        document.getElementById('memberModalStatus').textContent = status;
+        document.getElementById('memberModalStatus').style.color = status === 'Online' ? '#00a884' : '#667781';
+
+        // Cache for actions
+        this._selectedMember = { id, name };
+
+        document.getElementById('memberProfileModal').style.display = 'flex';
+    }
+
+    async messageMember() {
+        if (!this._selectedMember) return;
+        document.getElementById('memberProfileModal').style.display = 'none';
+        this.closeGroupInfo();
+        
+        try {
+            const res = await fetch('/api/messages/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ partnerId: this._selectedMember.id })
+            });
+            const result = await res.json();
+            if (result.status === 'success') {
+                this.openChat(result.data.conversationId);
+            }
+        } catch (err) { console.error(err); }
+    }
+
+    openAddMemberModal() {
+        this.closeGroupInfo();
+        this.openNewChatModal();
+        this.switchNewChatTab('group');
+        // This effectively transforms the "Create Group" logic into "Add to Group" 
+        // We'll need to tweak submitCreateGroup or add a separate handle if we want real "add" logic
+        // For now, users can use the FAB. A dedicated "Add Members" endpoint is in the controller.
     }
 }
 

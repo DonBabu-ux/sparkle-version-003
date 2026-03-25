@@ -1334,3 +1334,34 @@ body.keyboard-open .messages-container {
 .hidden {
   display: none !important;
 }
+
+/* Animations */
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* System Messages */
+.msg-system {
+    align-self: center !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: #667781 !important;
+    font-size: 12.5px !important;
+    padding: 5px 12px !important;
+    border-radius: 8px !important;
+    margin: 8px 0 !important;
+    max-width: 90% !important;
+    text-align: center !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+.msg-system::before, .msg-system::after { display: none !important; }
+
+/* Safe Area Support */
+.bottom-nav, .chat-composer {
+    padding-bottom: env(safe-area-inset-bottom);
+}

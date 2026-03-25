@@ -20,7 +20,12 @@ class GroupChat {
     }
 
     static async findById(chatId) {
-        const [rows] = await db.query('SELECT * FROM group_chats WHERE chat_id = ?', [chatId]);
+        const [rows] = await db.query(`
+            SELECT gc.*, u.name as creator_name
+            FROM group_chats gc
+            LEFT JOIN users u ON gc.creator_id = u.user_id
+            WHERE gc.chat_id = ?
+        `, [chatId]);
         return rows[0];
     }
 

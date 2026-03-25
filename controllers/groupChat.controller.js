@@ -1,6 +1,7 @@
 const GroupChat = require('../models/GroupChat');
 const GroupMember = require('../models/GroupMember');
 const Message = require('../models/Message');
+const { getIO } = require('../socket');
 
 class GroupChatController {
 
@@ -17,20 +18,30 @@ class GroupChatController {
                 finalPhotoUrl = req.file.path;
             }
 
+            // Parse member_ids if it's a string (from FormData)
+            let actualMemberIds = member_ids;
+            if (typeof member_ids === 'string') {
+                try {
+                    actualMemberIds = JSON.parse(member_ids);
+                } catch (e) {
+                    actualMemberIds = [member_ids];
+                }
+            }
+
             // Create Group
             const chatId = await GroupChat.create({
                 creatorId,
                 name: name || 'Group Chat',
                 photoUrl: finalPhotoUrl,
-                settings
+                settings: settings || { allowMedia: true, allowVoice: true, allowVideo: true, allowReactions: true }
             });
 
             // Add Creator
             await GroupMember.add({ chatId, userId: creatorId, role: 'creator', status: 'active' });
 
             // Add Members
-            if (member_ids && Array.isArray(member_ids)) {
-                await GroupMember.addMany(member_ids.map(uid => ({
+            if (actualMemberIds && Array.isArray(actualMemberIds)) {
+                await GroupMember.addMany(actualMemberIds.map(uid => ({
                     chatId, userId: uid, role: 'member', status: 'active'
                 })));
             }
@@ -42,6 +53,18 @@ class GroupChatController {
                 content: 'created the group',
                 type: 'system'
             });
+
+            // --- Real-time: Notify all members to refresh their inbox ---
+            try {
+                const io = getIO();
+                // We emit to all members including the creator
+                const allUids = [creatorId, ...actualMemberIds];
+                allUids.forEach(uid => {
+                    io.to(`user:${uid}`).emit('new_group_created', { chatId });
+                });
+            } catch (ioErr) {
+                console.error('Socket notification error:', ioErr);
+            }
 
             res.status(201).json({ status: 'success', data: { chatId } });
 
@@ -90,6 +113,15 @@ class GroupChatController {
             await GroupMember.addMany(user_ids.map(uid => ({
                 chatId, userId: uid, role: 'member', status: 'active'
             })));
+
+            // --- Real-time: Notify added members ---
+            try {
+                const io = getIO();
+                user_ids.forEach(uid => {
+                    io.to(`user:${uid}`).emit('new_group_created', { chatId });
+                });
+                // Notify existing group that someone joined? (Optional system message would be better)
+            } catch (ioErr) { }
 
             res.json({ status: 'success', message: 'Members added' });
         } catch (error) {

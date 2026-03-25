@@ -58,6 +58,20 @@ class GroupMember {
         const member = await this.find(chatId, userId);
         return member && (member.role === 'admin' || member.role === 'creator');
     }
+
+    /**
+     * NEW: Get IDs of all active members who share a group with this user
+     */
+    static async getGroupPeers(userId) {
+        const [rows] = await db.query(`
+            SELECT DISTINCT user_id 
+            FROM group_chat_members 
+            WHERE chat_id IN (SELECT chat_id FROM group_chat_members WHERE user_id = ?)
+              AND user_id != ?
+              AND status != 'left'
+        `, [userId, userId]);
+        return rows.map(r => r.user_id);
+    }
 }
 
 module.exports = GroupMember;

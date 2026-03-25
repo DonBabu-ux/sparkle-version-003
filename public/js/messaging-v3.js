@@ -25,6 +25,39 @@ class SparkleChat {
 
         this.init();
         this.initViewportHeight();
+        this.setupKeyboardHandler();
+    }
+
+    setupKeyboardHandler() {
+        if (!window.visualViewport) return;
+        
+        const handleKeyboard = () => {
+            const viewport = window.visualViewport;
+            const keyboardHeight = window.innerHeight - viewport.height;
+            const composer = document.querySelector('.chat-composer');
+            const messagesContainer = document.getElementById('messagesContainer');
+
+            if (keyboardHeight > 50) { // Threshold for keyboard
+                document.body.classList.add('keyboard-open');
+                if (composer) {
+                    composer.style.bottom = `${keyboardHeight}px`;
+                }
+                if (messagesContainer) {
+                    messagesContainer.style.paddingBottom = '70px';
+                }
+            } else {
+                document.body.classList.remove('keyboard-open');
+                if (composer) {
+                    composer.style.bottom = '60px'; // Value from CSS
+                }
+                if (messagesContainer) {
+                    messagesContainer.style.paddingBottom = '120px';
+                }
+            }
+        };
+
+        window.visualViewport.addEventListener('resize', handleKeyboard);
+        window.visualViewport.addEventListener('scroll', handleKeyboard);
     }
 
     async init() {
@@ -384,6 +417,7 @@ class SparkleChat {
                             <span class="chat-name">
                                 ${isGroup ? '<i class="bi bi-people-fill" style="margin-right:5px; font-size:13px; opacity:0.7;"></i>' : ''}
                                 ${conv.partner_name}
+                                ${conv.marketplace_listing_id ? '<i class="bi bi-shop-window" style="color:#00a884; font-size:12px; margin-left:5px;" title="From Marketplace"></i>' : ''}
                             </span>
                             <span class="chat-time" data-time="${conv.last_message_at}">${this.formatChatTime(conv.last_message_at)}</span>
                         </div>
@@ -444,12 +478,52 @@ class SparkleChat {
         }
     }
 
+    async handleArchiveChat() {
+        const chatId = this.currentChatId;
+        if (!chatId) return;
+        
+        try {
+            const response = await fetch(`/api/messages/chat/${chatId}/archive`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ archived: true }) // You could toggle this if needed
+            });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                const conv = this.conversations.find(c => c.chat_id === chatId);
+                if (conv) conv.is_archived = !conv.is_archived;
+                
+                alert(result.message || 'Chat updated');
+                this.renderInbox();
+                
+                // Hide chat if we archived it and we're not in the archived tab
+                if (this.currentTab !== 'archived') {
+                    document.getElementById('chatMain').style.display = 'none';
+                    document.getElementById('chatEmptyWindow').style.display = 'flex';
+                    document.querySelector('.messaging-layout').classList.remove('chat-active');
+                }
+            }
+        } catch (err) {
+            console.error('Archive failed:', err);
+        }
+    }
+
     deleteConversation(chatId) {
         if (confirm('Are you sure you want to delete this conversation? This cannot be undone.')) {
-            const card = document.querySelector(`.conversation-card[data-id="${chatId}"]`);
-            if (card) card.remove();
-            // TODO: API call to delete
-            alert('Conversation deleted.');
+            fetch(`/api/messages/chat/${chatId}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        this.conversations = this.conversations.filter(c => c.chat_id !== chatId);
+                        this.renderInbox();
+                        if (this.currentChatId === chatId) {
+                            document.getElementById('chatMain').style.display = 'none';
+                            document.getElementById('chatEmptyWindow').style.display = 'flex';
+                            document.querySelector('.messaging-layout').classList.remove('chat-active');
+                        }
+                    }
+                });
         }
     }
 
@@ -558,6 +632,9 @@ class SparkleChat {
 
     createMessageHTML(msg) {
         const isMe = msg.sender_id === this.userId;
+        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        const isGroup = conv?.chat_type === 'group';
+
         let statusIcon = 'bi-check';
         let statusColor = '#8696a0'; // Default gray for sent
         if (msg.status === 'delivered') {
@@ -657,27 +734,35 @@ class SparkleChat {
         }
 
         return `
-            <div class="msg-bubble ${isMe ? 'msg-sent' : 'msg-received'} ${isDeleted ? 'msg-deleted' : ''}" data-msg-id="${msg.message_id}" data-is-own="${isMe}">
-                ${msg.reply_to_message_id && !isDeleted ? `
-                    <div class="reply-preview">
-                        <i class="bi bi-reply-fill"></i>
-                        <span>${msg.reply_content}</span>
+            <div class="msg-bubble-wrapper ${isMe ? 'own-msg' : 'other-msg'}" style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; gap:2px; margin-bottom:8px;">
+                ${isGroup && !isMe && !isDeleted ? `
+                    <div class="sender-info" style="display:flex; align-items:center; gap:6px; margin-bottom:2px; padding-left:12px;">
+                        <img src="${msg.sender_avatar || '/uploads/avatars/default.png'}" style="width:18px; height:18px; border-radius:50%; object-fit:cover;">
+                        <span style="font-size:11px; font-weight:700; color:#53bdeb; cursor:pointer;" onclick="window.location.href='/profile/${msg.sender_id}'">${msg.sender_name}</span>
                     </div>
                 ` : ''}
-                ${!isDeleted ? mediaContent : ''}
-                ${listingHtml && !isDeleted ? listingHtml : ''}
-                ${msg.content || isDeleted ? `<div class="msg-body" style="font-size:14px;">${isDeleted ? '🚫 This message was deleted.' : msg.content}</div>` : ''}
-                <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0; margin-top:2px;">
-                    <span>${this.formatTime(msg.sent_at)}</span>
-                    ${msg.edited_at && !isDeleted ? '<span style="font-style:italic;">(edited)</span>' : ''}
-                    ${isMe && !isDeleted ? `
-                        <span class="msg-tick">
-                            <i class="bi ${msg.is_read || msg.status === 'read' ? 'bi-check-all' : (msg.delivered ? 'bi-check-all' : 'bi-check')}" 
-                               style="color:${msg.is_read || msg.status === 'read' ? '#53bdeb' : '#8696a0'}; font-size:16px; margin-left:2px;"></i>
-                        </span>
+                <div class="msg-bubble ${isMe ? 'msg-sent' : 'msg-received'} ${isDeleted ? 'msg-deleted' : ''}" data-msg-id="${msg.message_id}" data-is-own="${isMe}">
+                    ${msg.reply_to_message_id && !isDeleted ? `
+                        <div class="reply-preview">
+                            <i class="bi bi-reply-fill"></i>
+                            <span>${msg.reply_content}</span>
+                        </div>
                     ` : ''}
+                    ${!isDeleted ? mediaContent : ''}
+                    ${listingHtml && !isDeleted ? listingHtml : ''}
+                    ${msg.content || isDeleted ? `<div class="msg-body" style="font-size:14px;">${isDeleted ? '🚫 This message was deleted.' : msg.content}</div>` : ''}
+                    <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0; margin-top:2px;">
+                        <span>${this.formatTime(msg.sent_at)}</span>
+                        ${msg.edited_at && !isDeleted ? '<span style="font-style:italic;">(edited)</span>' : ''}
+                        ${isMe && !isDeleted ? `
+                            <span class="msg-tick">
+                                <i class="bi ${msg.is_read || msg.status === 'read' ? 'bi-check-all' : (msg.delivered ? 'bi-check-all' : 'bi-check')}" 
+                                   style="color:${msg.is_read || msg.status === 'read' ? '#53bdeb' : '#8696a0'}; font-size:16px; margin-left:2px;"></i>
+                            </span>
+                        ` : ''}
+                    </div>
+                    ${reactionsHtml}
                 </div>
-                ${reactionsHtml}
             </div>
         `;
     }
@@ -708,6 +793,37 @@ class SparkleChat {
             document.getElementById('chatComposer').classList.add('disappearing-active');
         } else {
             document.getElementById('chatComposer').classList.remove('disappearing-active');
+        }
+
+        // --- Admin Restrictions ---
+        const input = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const mediaBtn = document.querySelector('.bi-image');
+        const editBtn = document.getElementById('menuGroupSettings'); // Check if this is the edit button
+        
+        const amIAdmin = conv.role === 'admin' || conv.role === 'creator';
+        
+        // Block text/media if group is "Only Admins"
+        if (conv.chat_type === 'group' && conv.only_admins_send === 1 && !amIAdmin) {
+            if (input) {
+                input.disabled = true;
+                input.placeholder = "Only admins can send messages";
+            }
+            if (sendBtn) sendBtn.style.opacity = '0.3';
+            if (mediaBtn) mediaBtn.style.pointerEvents = 'none';
+        } else {
+            if (input) {
+                input.disabled = false;
+                input.placeholder = "Type a message...";
+            }
+            if (sendBtn) sendBtn.style.opacity = '1';
+            if (mediaBtn) mediaBtn.style.pointerEvents = 'all';
+        }
+
+        // Hide/Show "Edit Info" (Group Settings)
+        if (conv.chat_type === 'group') {
+            const canEdit = conv.edit_info === 'members' || amIAdmin;
+            if (editBtn) editBtn.style.display = canEdit ? 'block' : 'none';
         }
 
         // Sync bio
@@ -2547,18 +2663,98 @@ class SparkleChat {
         this.renderGroupMembers(chat.members, isAdmin);
     }
 
+    async updateGroupPhoto(input) {
+        if (!input.files || !input.files[0] || !this.currentChatId) return;
+        
+        const formData = new FormData();
+        formData.append('pfp', input.files[0]);
+
+        try {
+            const res = await fetch(`/api/groupChat/${this.currentChatId}`, {
+                method: 'PUT',
+                body: formData
+            });
+            const result = await res.json();
+            if (result.status === 'success') {
+                await this.openGroupInfo(); // Refresh drawer
+                await this.loadInbox();      // Refresh sidebar icon
+            }
+        } catch (e) {
+            console.error('Failed to update group photo:', e);
+        }
+    }
+
     renderGroupMembers(members, canManage) {
         const list = document.getElementById('groupMemberList');
         list.innerHTML = members.map(m => `
-            <div class="user-search-result" onclick="sparkChat.openMemberProfile('${m.user_id}', '${m.name}', '${m.avatar_url}', '${m.is_online ? 'Online' : 'Offline'}')" style="padding: 12px 20px;">
-                <img src="${m.avatar_url || '/uploads/avatars/default.png'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
-                <div class="flex-1">
+            <div class="user-search-result" style="padding: 12px 20px; cursor: default;">
+                <img src="${m.avatar_url || '/uploads/avatars/default.png'}" 
+                     onclick="sparkChat.openMemberProfile('${m.user_id}', '${m.name}', '${m.avatar_url}', '${m.is_online ? 'Online' : 'Offline'}')"
+                     style="width:40px;height:40px;border-radius:50%;object-fit:cover;cursor:pointer;">
+                <div class="flex-1" onclick="sparkChat.openMemberProfile('${m.user_id}', '${m.name}', '${m.avatar_url}', '${m.is_online ? 'Online' : 'Offline'}')" style="cursor:pointer;">
                     <div style="font-weight:600; font-size:15px;">${m.name} ${m.user_id === this.userId ? '(You)' : ''}</div>
                     <div style="font-size:12px; color:#888;">${m.is_online ? '<span style="color:#00a884;">online</span>' : 'offline'}</div>
                 </div>
-                ${m.role === 'admin' || m.role === 'creator' ? '<span style="font-size:11px; color:#00a884; border:1px solid #00a884; padding:2px 6px; border-radius:4px; font-weight:700; text-transform:uppercase;">Group Admin</span>' : ''}
+                <div style="display:flex; align-items:center; gap:6px;">
+                    ${m.role === 'admin' || m.role === 'creator' ? '<span style="font-size:9px; color:#00a884; border:1px solid #00a884; padding:0px 4px; border-radius:3px; font-weight:700;">ADMIN</span>' : ''}
+                    ${canManage && m.user_id !== this.userId ? `
+                        <div class="member-admin-actions" style="display:flex; gap:4px;">
+                            ${m.role !== 'admin' && m.role !== 'creator' ? `
+                                <button onclick="sparkChat.updateMemberRole('${m.user_id}', 'admin')" 
+                                        style="background:none; border:none; color:#00a884; font-size:16px; cursor:pointer;" title="Promote to Admin">
+                                    <i class="bi bi-shield-plus"></i>
+                                </button>
+                            ` : (m.role === 'admin' ? `
+                                <button onclick="sparkChat.updateMemberRole('${m.user_id}', 'member')" 
+                                        style="background:none; border:none; color:#64748b; font-size:16px; cursor:pointer;" title="Dismiss as Admin">
+                                    <i class="bi bi-shield-slash"></i>
+                                </button>
+                            ` : '')}
+                            <button onclick="sparkChat.removeGroupMember('${m.user_id}')" 
+                                    style="background:none; border:none; color:#ea4335; font-size:16px; cursor:pointer;" title="Remove">
+                                <i class="bi bi-person-x-fill"></i>
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
         `).join('');
+    }
+
+    async updateMemberRole(userId, role) {
+        if (!confirm(`Are you sure you want to ${role === 'admin' ? 'promote' : 'dismiss'} this member?`)) return;
+        try {
+            const res = await fetch(`/api/groupChat/${this.currentChatId}/members/${userId}/role`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role })
+            });
+            const result = await res.json();
+            if (result.status === 'success') {
+                this.openGroupInfo(); // Refresh
+            } else {
+                alert(result.error || 'Failed to update role');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async removeGroupMember(userId) {
+        if (!confirm('Remove this member from group?')) return;
+        try {
+            const res = await fetch(`/api/groupChat/${this.currentChatId}/members/${userId}`, {
+                method: 'DELETE'
+            });
+            const result = await res.json();
+            if (result.status === 'success') {
+                this.openGroupInfo(); // Refresh member list
+            } else {
+                alert(result.error || 'Failed to remove member');
+            }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     closeGroupInfo() {
@@ -2582,15 +2778,21 @@ class SparkleChat {
     }
 
     openMemberProfile(id, name, avatar, status) {
+        const modal = document.getElementById('memberProfileModal');
+        if (!modal) return;
+
         document.getElementById('memberModalPfp').src = avatar || '/uploads/avatars/default.png';
         document.getElementById('memberModalName').textContent = name;
         document.getElementById('memberModalStatus').textContent = status;
-        document.getElementById('memberModalStatus').style.color = status === 'Online' ? '#00a884' : '#667781';
+        document.getElementById('memberModalStatus').style.color = status === 'Online' ? '#00a884' : '#888';
 
-        // Cache for actions
-        this._selectedMember = { id, name };
+        // Set actions visibility
+        const isMe = id === this.userId;
+        const msgBtn = document.querySelector('.member-modal-msg-btn');
+        if (msgBtn) msgBtn.style.display = isMe ? 'none' : 'block';
 
-        document.getElementById('memberProfileModal').style.display = 'flex';
+        this._selectedMember = { id, name, avatar };
+        modal.style.display = 'flex';
     }
 
     async messageMember() {

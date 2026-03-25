@@ -501,7 +501,7 @@ const initMarketplaceTables = async () => {
                 description TEXT,
                 price DECIMAL(10, 2) NOT NULL,
                 category VARCHAR(50) DEFAULT 'other',
-                \`condition\` ENUM('new', 'like_new', 'good', 'fair', 'poor') DEFAULT 'good',
+                ${'`'}condition${'`'} ENUM('new', 'like_new', 'good', 'fair', 'poor') DEFAULT 'good',
                 campus VARCHAR(100) NOT NULL,
                 location VARCHAR(255) DEFAULT NULL,
                 is_sold TINYINT(1) DEFAULT 0,

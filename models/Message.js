@@ -40,7 +40,7 @@ class Message {
     /**
      * Send message (Direct or Group)
      */
-    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null, viewPolicy = 'unlimited' }) {
+    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null, viewPolicy = 'unlimited', context = 'chat' }) {
         const messageId = crypto.randomUUID();
         let personalChatId = null;
         let groupChatId = null;
@@ -57,14 +57,17 @@ class Message {
         if (viewPolicy === 'twice') viewsAllowed = 2;
         if (viewPolicy === 'unlimited') viewsAllowed = 99999;
 
+        // Auto-infer marketplace context
+        if (context === 'chat' && marketplaceListingId) context = 'marketplace';
+
         try {
             await db.query(`
                 INSERT INTO messages (
                     message_id, chat_id, conversation_id, sender_id, content, 
                     type, media_url, reply_to_message_id, marketplace_listing_id, status, sent_at,
-                    view_policy, views_allowed
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW(), ?, ?)
-            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId, viewPolicy, viewsAllowed]);
+                    view_policy, views_allowed, context
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW(), ?, ?, ?)
+            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId, viewPolicy, viewsAllowed, context]);
 
             // Update last_message_time and clear archives for both participants in personal chats
             if (personalChatId) {
@@ -198,7 +201,10 @@ class Message {
                     IF(pc.participant1_id = ?, pc.is_archived_p1, pc.is_archived_p2) as is_archived,
                     2 as member_count,
                     pc.marketplace_listing_id,
-                    ml.title as listing_title
+                    ml.title as listing_title,
+                    'member' as role,
+                    0 as only_admins_send,
+                    'members' as edit_info
                 FROM personal_chats pc
                 JOIN users u ON (u.user_id = IF(pc.participant1_id = ?, pc.participant2_id, pc.participant1_id))
                 LEFT JOIN marketplace_listings ml ON pc.marketplace_listing_id = ml.listing_id
@@ -226,13 +232,16 @@ class Message {
                     m.sent_at as last_message_at,
                     m.sender_id as last_message_sender_id,
                     m.status as last_message_status,
-                    0 as unread_count, -- TODO: unread for groups
+                    0 as unread_count, 
                     0 as is_pinned,
                     0 as is_muted,
                     0 as is_archived,
                     (SELECT COUNT(*) FROM group_chat_members WHERE chat_id = gc.chat_id AND status != 'left') as member_count,
                     NULL as marketplace_listing_id,
-                    NULL as listing_title
+                    NULL as listing_title,
+                    gcm.role,
+                    gc.only_admins_send,
+                    gc.edit_info
                 FROM group_chats gc
                 JOIN group_chat_members gcm ON gc.chat_id = gcm.chat_id
                 LEFT JOIN messages m ON m.message_id = (
@@ -278,12 +287,18 @@ class Message {
     /**
      * Delete for everyone
      */
-    static async deleteForEveryone(messageId, userId) {
-        const [result] = await db.query(`
-            UPDATE messages 
-            SET is_deleted_for_everyone = 1, content = '[Message deleted]' 
-            WHERE message_id = ? AND sender_id = ?
-        `, [messageId, userId]);
+    static async deleteForEveryone(messageId, userId, isAdminOverride = false, adminUsername = '') {
+        let content = '[Message deleted]';
+        if (isAdminOverride && adminUsername) {
+            content = `[Message deleted by admin ${adminUsername}]`;
+        }
+
+        const query = isAdminOverride 
+            ? `UPDATE messages SET is_deleted_for_everyone = 1, content = ? WHERE message_id = ?`
+            : `UPDATE messages SET is_deleted_for_everyone = 1, content = ? WHERE message_id = ? AND sender_id = ?`;
+        
+        const params = isAdminOverride ? [content, messageId] : [content, messageId, userId];
+        const [result] = await db.query(query, params);
         return result.affectedRows > 0;
     }
 

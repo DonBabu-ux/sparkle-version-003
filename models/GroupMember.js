@@ -59,9 +59,6 @@ class GroupMember {
         return member && (member.role === 'admin' || member.role === 'creator');
     }
 
-    /**
-     * NEW: Get IDs of all active members who share a group with this user
-     */
     static async getGroupPeers(userId) {
         const [rows] = await db.query(`
             SELECT DISTINCT user_id 
@@ -71,6 +68,13 @@ class GroupMember {
               AND status != 'left'
         `, [userId, userId]);
         return rows.map(r => r.user_id);
+    }
+
+    static async updateRole(chatId, userId, role) {
+        await db.query(
+            'UPDATE group_chat_members SET role = ? WHERE chat_id = ? AND user_id = ?',
+            [role, chatId, userId]
+        );
     }
 }
 

@@ -88,6 +88,21 @@ const initializeSocket = (server) => {
             try {
                 const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited' } = data;
                 const recipientId = data.recipientId || data.partnerId;
+                let context = data.context || 'chat';
+
+                // --- Moderation & Group Access Enforcement ---
+                if (chatId) {
+                    const [groups] = await pool.query('SELECT only_admins_send FROM group_chats WHERE chat_id = ?', [chatId]);
+                    if (groups.length > 0) {
+                        const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
+                        if (groups[0].only_admins_send === 1 && !isAdmin) {
+                            return socket.emit('message-error', { error: 'Only admins can send messages' });
+                        }
+                    }
+                }
+
+                // Auto-infer marketplace context
+                if (context === 'chat' && (marketplaceListingId || data.listingId)) context = 'marketplace';
 
                 // 1. Save to DB
                 const messageId = await Message.sendMessage({
@@ -99,8 +114,9 @@ const initializeSocket = (server) => {
                     mediaUrl,
                     storyId,
                     replyToId,
-                    marketplaceListingId,
-                    viewPolicy
+                    marketplaceListingId: marketplaceListingId || data.listingId,
+                    viewPolicy,
+                    context
                 });
 
                 // Get the saved message with sender info and reply info
@@ -221,7 +237,20 @@ const initializeSocket = (server) => {
         socket.on('delete-for-everyone', async (data) => {
             const { messageId, chatId } = data;
             try {
-                const success = await Message.deleteForEveryone(messageId, socket.userId);
+                const msg = await Message.getById(messageId);
+                if (!msg) return;
+
+                let success = false;
+                if (msg.sender_id === socket.userId) {
+                    success = await Message.deleteForEveryone(messageId, socket.userId);
+                } else if (chatId) {
+                    // Check if it's a group and user is admin
+                    const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
+                    if (isAdmin) {
+                        success = await Message.deleteForEveryone(messageId, socket.userId, true, socket.user.username);
+                    }
+                }
+
                 if (success) {
                     io.to(`chat:${chatId}`).emit('message-deleted-everyone', { messageId, chatId });
                 }

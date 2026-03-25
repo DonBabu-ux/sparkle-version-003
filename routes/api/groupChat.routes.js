@@ -17,5 +17,7 @@ router.post('/:chatId/messages', authMiddleware, groupChatController.sendGroupMe
 // Membership
 router.post('/:chatId/members', authMiddleware, groupChatController.addMembers);
 router.post('/:chatId/leave', authMiddleware, groupChatController.leaveGroupChat);         // NEW — leave group chat
+router.delete('/:chatId/members/:userId', authMiddleware, groupChatController.removeMember);   // ADMIN — remove member
+router.patch('/:chatId/members/:userId/role', authMiddleware, groupChatController.updateMemberRole); // ADMIN — promote/demote member
 
 module.exports = router;

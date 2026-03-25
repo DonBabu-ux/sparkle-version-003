@@ -136,12 +136,12 @@ class GroupChatController {
             delete updates.user_id; // prevent updating unexpected fields manually if passed
 
             if (req.file && req.file.path) {
-                updates.photoUrl = req.file.path;
+                updates.photo_url = req.file.path;
             }
 
             // Verify admin status (middleware could do this, but simple check here)
             // For now assuming route protection or checking member status
-            const member = await GroupMember.getMember(chatId, req.user.user_id || req.user.userId);
+            const member = await GroupMember.find(chatId, req.user.user_id || req.user.userId);
             if (!member || member.role !== 'admin' && member.role !== 'creator') {
                 return res.status(403).json({ status: 'error', error: 'Only admins can update group settings' });
             }
@@ -200,6 +200,69 @@ class GroupChatController {
             res.status(201).json({ status: 'success', data: { messageId, chatId } });
         } catch (error) {
             console.error('Send Group Message Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async removeMember(req, res) {
+        try {
+            const { chatId, userId } = req.params;
+            const currentUserId = req.user.user_id || req.user.userId;
+
+            // Check if current user is admin
+            const isAdmin = await GroupMember.isAdmin(chatId, currentUserId);
+            if (!isAdmin) {
+                return res.status(403).json({ status: 'error', error: 'Only admins can remove members' });
+            }
+
+            // Update membership status
+            await GroupMember.updateStatus(chatId, userId, 'removed');
+
+            // Send system message (Optional: could fetch name)
+            await Message.sendMessage({
+                chatId,
+                senderId: currentUserId,
+                content: 'removed a member',
+                type: 'system'
+            });
+
+            res.json({ status: 'success', message: 'Member removed' });
+        } catch (error) {
+            console.error('Remove member error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async updateMemberRole(req, res) {
+        try {
+            const { chatId, userId } = req.params;
+            const { role } = req.body; // 'admin' or 'member'
+            const currentUserId = req.user.user_id || req.user.userId;
+
+            if (!['admin', 'member'].includes(role)) {
+                return res.status(400).json({ status: 'error', error: 'Invalid role' });
+            }
+
+            // Check if current user is admin/creator
+            const isAdmin = await GroupMember.isAdmin(chatId, currentUserId);
+            if (!isAdmin) {
+                return res.status(403).json({ status: 'error', error: 'Only admins can change roles' });
+            }
+
+            // Perform update
+            await GroupMember.updateRole(chatId, userId, role);
+
+            // Notify group
+            await Message.sendMessage({
+                chatId,
+                senderId: currentUserId,
+                content: `${role === 'admin' ? 'promoted a member to Admin' : 'demoted an Admin to member'}`,
+                type: 'system'
+            });
+
+            res.json({ status: 'success', message: `Member ${role === 'admin' ? 'promoted' : 'demoted'}` });
+        } catch (error) {
+            console.error('Update member role error:', error);
             res.status(500).json({ status: 'error', error: error.message });
         }
     }

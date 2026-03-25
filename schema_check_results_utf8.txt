@@ -1,0 +1,6 @@
+﻿--- group_chats ---
+chat_id, creator_id, name, photo_url, privacy, is_private, approval_required, allow_media, allow_voice_notes, allow_video_calls, allow_reactions, allow_message_sharing, last_message_at, created_at, updated_at, disappearing_duration, pin_locked, group_pin
+--- messages ---
+message_id, chat_id, personal_chat_id, conversation_id, chat_session_id, sender_id, club_id, recipient_id, type, content, media_url, is_anonymous, sent_at, read_at, status, reply_to_message_id, edited_at, is_deleted_for_everyone, marketplace_listing_id, view_policy, views_used, views_allowed, delivered, delivered_at
+--- personal_chats ---
+chat_id, participant1_id, participant2_id, last_message_time, created_at, marketplace_listing_id, is_archived_p1, is_archived_p2, is_muted_p1, is_muted_p2, is_pinned_p1, is_pinned_p2, p1_locked, p2_locked, p1_pin, p2_pin, disappearing_duration

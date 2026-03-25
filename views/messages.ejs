@@ -26,6 +26,7 @@
                     <button class="inbox-tab active" onclick="sparkChat.switchInboxTab('all', this)">All</button>
                     <button class="inbox-tab" onclick="sparkChat.switchInboxTab('unread', this)">Unread</button>
                     <button class="inbox-tab" onclick="sparkChat.switchInboxTab('groups', this)">Groups</button>
+                    <button class="inbox-tab" onclick="sparkChat.switchInboxTab('marketplace', this)">Marketplace</button>
                     <button class="inbox-tab" onclick="sparkChat.switchInboxTab('archived', this)">Archived</button>
                 </div>
             </div>
@@ -351,7 +352,7 @@
 </div>
 
 <!-- New Chat / Create Group Modal -->
-<div class="modal-overlay" id="newChatModalOverlay" style="display:none; z-index:1000; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:16px;" onclick="sparkChat.closeNewChatModal(false, event)">
+<div class="modal-overlay" id="newChatModalOverlay" style="display:none; z-index:11000; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:16px;" onclick="sparkChat.closeNewChatModal(false, event)">
     <div class="new-chat-modal" onclick="event.stopPropagation()" style="background:white; width:100%; max-width:480px; border-radius:24px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.2); display:flex; flex-direction:column; max-height:85vh;">
 
         <!-- Header -->
@@ -493,7 +494,7 @@
 </div>
 
 <!-- MEMBER PROFILE MODAL -->
-<div id="memberProfileModal" style="display:none; position:fixed; inset:0; z-index:11000; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; padding:15px;" onclick="this.style.display='none'">
+<div id="memberProfileModal" style="display:none; position:fixed; inset:0; z-index:11000; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:15px;" onclick="this.style.display='none'">
     <div class="member-profile-card" onclick="event.stopPropagation()" style="background:#fff; width:100%; max-width:320px; border-radius:12px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation: zoomIn 0.2s ease-out;">
         <img id="memberModalPfp" src="/uploads/avatars/default.png" style="width:100%; height:320px; object-fit:cover;">
         <div style="padding:15px;">

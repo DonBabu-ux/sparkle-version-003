@@ -14,10 +14,13 @@ router.get('/mutual-groups/:partnerId', messageController.getMutualGroups);
 // Search
 router.get('/search', messageController.searchMessages);
 
-// Messaging
+// Messaging/Chat Actions
 router.post('/send', messageController.sendMessage);
 router.post('/read/:chatId', messageController.markRead);
 router.post('/mute/:chatId', messageController.muteConversation);
+router.post('/chat/:chatId/archive', messageController.archiveConversation);
+router.post('/chat/:chatId/mute', messageController.muteConversation);
+router.delete('/chat/:chatId', messageController.deleteConversation);
 
 // Per-message actions
 router.delete('/:messageId', messageController.deleteMessage);

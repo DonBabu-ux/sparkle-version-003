@@ -184,6 +184,30 @@ class MessageController {
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
+
+    async deleteConversation(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            await Message.deleteConversation(userId, chatId);
+            res.json({ status: 'success' });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async archiveConversation(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            // Assumes client might send { archived: false } to unarchive
+            const archived = req.body.archived !== false;
+            await Message.archiveConversation(userId, chatId, archived);
+            res.json({ status: 'success' });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
 }
 
 module.exports = new MessageController();

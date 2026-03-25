@@ -359,6 +359,35 @@ class Message {
         return true;
     }
 
+    /**
+     * Archive or unarchive a conversation
+     */
+    static async archiveConversation(userId, chatId, archived = true) {
+        const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
+        if (chat.length === 0) return false;
+
+        const isP1 = chat[0].participant1_id === userId;
+        const column = isP1 ? 'is_archived_p1' : 'is_archived_p2';
+
+        await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [archived ? 1 : 0, chatId]);
+        return true;
+    }
+
+    /**
+     * Soft delete a conversation (clears history for a user)
+     */
+    static async deleteConversation(userId, chatId) {
+        const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
+        if (chat.length === 0) return false;
+
+        const [messages] = await db.query('SELECT message_id FROM messages WHERE conversation_id = ?', [chatId]);
+        if (messages.length > 0) {
+            const values = messages.map(m => `(UUID(), '${m.message_id}', '${userId}')`).join(',');
+            await db.query(`INSERT IGNORE INTO message_deletions (deletion_id, message_id, user_id) VALUES ${values}`);
+        }
+        return true;
+    }
+
     // Existing helpers
     static async getById(messageId) {
         const [rows] = await db.query('SELECT * FROM messages WHERE message_id = ?', [messageId]);

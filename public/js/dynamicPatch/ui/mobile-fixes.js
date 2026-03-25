@@ -3,7 +3,7 @@
  * Handles the keyboard/bottom-nav/chat-input stacking correctly.
  */
 
-export function initMobileFixes() {
+function initMobileFixes() {
     let initialHeight = window.innerHeight;
 
     function handleMobileLayout() {

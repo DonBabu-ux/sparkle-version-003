@@ -12,7 +12,7 @@ class SparkleChat {
         this.typingTimeout = null;
         this.isTyping = false;
         this.isLoading = false;
-        
+
         // New State for V3 Features
         this.activeMessageId = null;
         this.replyingToMessageId = null;
@@ -22,7 +22,7 @@ class SparkleChat {
         this.selectedGroupUsers = [];
         this.newChatTab = 'new';
         this.currentTab = 'all';
-        
+
         this.init();
     }
 
@@ -85,8 +85,8 @@ class SparkleChat {
         this.socket.on('user-status', (data) => this.handleUserStatus(data));
         this.socket.on('new-reaction', (data) => this.handleReaction(data));
         this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
-        this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted({messageId: data.messageId}));
-        this.socket.on('message_deleted', (messageId) => this.handleMessageDeleted({messageId: messageId})); // View limit expired
+        this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted({ messageId: data.messageId }));
+        this.socket.on('message_deleted', (messageId) => this.handleMessageDeleted({ messageId: messageId })); // View limit expired
     }
 
     bindEvents() {
@@ -108,7 +108,7 @@ class SparkleChat {
         // Chat Search
         const chatSearchInput = document.getElementById('chatMsgSearch');
         chatSearchInput?.addEventListener('input', (e) => this.handleChatSearch(e.target.value));
-        
+
         // Send Buttons
         const sendBtn = document.getElementById('sendBtn');
         textarea?.addEventListener('keypress', (e) => {
@@ -125,8 +125,8 @@ class SparkleChat {
                 if (menu) menu.style.display = 'none';
             }
             if (!e.target.closest('#pfpExpandModal')) {
-                 const modal = document.getElementById('pfpExpandModal');
-                 if(modal) modal.style.display = 'none';
+                const modal = document.getElementById('pfpExpandModal');
+                if (modal) modal.style.display = 'none';
             }
             if (!e.target.closest('#chatActionModal') && !e.target.closest('.conversation-card')) {
                 const actionModal = document.getElementById('chatActionModal');
@@ -143,7 +143,7 @@ class SparkleChat {
                 btn.style.display = isFarUp ? 'flex' : 'none';
                 if (!isFarUp) {
                     const badge = document.getElementById('newMsgBadge');
-                    if(badge) badge.style.display = 'none';
+                    if (badge) badge.style.display = 'none';
                 }
             }
         });
@@ -153,26 +153,26 @@ class SparkleChat {
         if (container) {
             container.addEventListener('touchstart', e => {
                 const bubble = e.target.closest('.msg-bubble');
-                if(bubble) {
+                if (bubble) {
                     trackSwipe.el = bubble;
                     trackSwipe.startX = e.touches[0].clientX;
                 }
-            }, {passive:true});
+            }, { passive: true });
             container.addEventListener('touchmove', e => {
-                if(!trackSwipe.el) return;
+                if (!trackSwipe.el) return;
                 trackSwipe.currentX = e.touches[0].clientX;
                 const diff = trackSwipe.currentX - trackSwipe.startX;
-                if(diff > 10 && diff < 80) {
+                if (diff > 10 && diff < 80) {
                     trackSwipe.el.style.transform = `translateX(${diff}px)`;
                     trackSwipe.el.style.transition = 'none';
                 }
-            }, {passive:true});
+            }, { passive: true });
             container.addEventListener('touchend', e => {
-                if(!trackSwipe.el) return;
+                if (!trackSwipe.el) return;
                 const diff = trackSwipe.currentX - trackSwipe.startX;
                 trackSwipe.el.style.transition = 'transform 0.2s ease';
                 trackSwipe.el.style.transform = `translateX(0px)`;
-                if(diff > 50) {
+                if (diff > 50) {
                     // Trigger reply
                     const msgId = trackSwipe.el.dataset.msgId;
                     const txt = trackSwipe.el.querySelector('.msg-body')?.innerText || 'Attachment';
@@ -199,23 +199,23 @@ class SparkleChat {
             this.sendMessage();
         }
     }
-    
+
     startVoiceNote() {
         if (!this.currentChatId || this.isRecordingMedia) return;
         this.isRecordingMedia = true;
         this.voiceDuration = 0;
-        
+
         document.getElementById('voiceNoteOverlay').style.display = 'flex';
         this.startVoiceTimer();
-        
+
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            if(!this.isRecordingMedia) return; // Released too early or canceled
+            if (!this.isRecordingMedia) return; // Released too early or canceled
             this.voiceStream = stream;
             this.voiceChunks = [];
             this.mediaRecorder = new MediaRecorder(stream);
             this.mediaRecorder.ondataavailable = e => this.voiceChunks.push(e.data);
             this.mediaRecorder.onstop = () => {
-                if(this.voiceCanceled) return;
+                if (this.voiceCanceled) return;
                 const blob = new Blob(this.voiceChunks, { type: 'audio/webm' });
                 this.handleMediaUpload({ target: { files: [new File([blob], 'voice_note.webm', { type: 'audio/webm' })] } });
             };
@@ -232,20 +232,20 @@ class SparkleChat {
         const waveformBox = document.querySelector('.vn-waveform');
         waveformBox.innerHTML = Array(15).fill('<div style="width:3px; height:10%; background:#00a884; border-radius:3px; transition:height 0.2s;"></div>').join('');
         const bars = waveformBox.children;
-        
+
         this.voiceTimerInterval = setInterval(() => {
             this.voiceDuration++;
-            
-            for(let i=0; i<bars.length; i++) {
+
+            for (let i = 0; i < bars.length; i++) {
                 bars[i].style.height = (Math.random() * 80 + 20) + '%';
             }
-            
+
             const mins = Math.floor(this.voiceDuration / 60);
             const secs = this.voiceDuration % 60;
-            if(timerUI) timerUI.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
-            
+            if (timerUI) timerUI.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+
             // 3 Minute Max Force Stop
-            if(this.voiceDuration >= 180) {
+            if (this.voiceDuration >= 180) {
                 this.confirmVoiceNote();
             }
         }, 1000);
@@ -257,35 +257,35 @@ class SparkleChat {
         // We map confirmVoiceNote() to the Native mouseup check seamlessly.
         this.confirmVoiceNote();
     }
-    
+
     confirmVoiceNote(e) {
-        if(e) e.stopPropagation();
-        if(!this.isRecordingMedia) return;
+        if (e) e.stopPropagation();
+        if (!this.isRecordingMedia) return;
         this.isRecordingMedia = false;
         this.voiceCanceled = false;
-        
+
         clearInterval(this.voiceTimerInterval);
         document.getElementById('voiceNoteOverlay').style.display = 'none';
-        
+
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
             this.mediaRecorder.stop();
         }
-        if(this.voiceStream) this.voiceStream.getTracks().forEach(track => track.stop());
+        if (this.voiceStream) this.voiceStream.getTracks().forEach(track => track.stop());
     }
 
     cancelVoiceNote(e) {
-        if(e) e.stopPropagation();
-        if(!this.isRecordingMedia) return;
+        if (e) e.stopPropagation();
+        if (!this.isRecordingMedia) return;
         this.isRecordingMedia = false;
         this.voiceCanceled = true;
-        
+
         clearInterval(this.voiceTimerInterval);
         document.getElementById('voiceNoteOverlay').style.display = 'none';
-        
+
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
             this.mediaRecorder.stop();
         }
-        if(this.voiceStream) this.voiceStream.getTracks().forEach(track => track.stop());
+        if (this.voiceStream) this.voiceStream.getTracks().forEach(track => track.stop());
     }
 
     handleMicClick() {
@@ -295,7 +295,7 @@ class SparkleChat {
     autoResizeTextarea(textarea) {
         textarea.style.height = 'auto';
         textarea.style.height = (Math.min(textarea.scrollHeight, 100)) + 'px';
-        
+
         // Permanent Send: We no longer hide/show mic/send alternately, 
         // they are both available as requested. However, we can highlight Send when typing.
         const sendBtn = document.getElementById('sendBtn');
@@ -332,7 +332,7 @@ class SparkleChat {
             if (this.currentTab === 'marketplace') {
                 return c.marketplace_listing_id !== null && !c.is_archived;
             } else if (this.currentTab === 'all') {
-                return !c.is_archived; 
+                return !c.is_archived;
             } else if (this.currentTab === 'archived') {
                 return c.is_archived;
             } else if (this.currentTab === 'unread') {
@@ -353,7 +353,7 @@ class SparkleChat {
             const unread = conv.unread_count > 0 ? `<span class="chat-unread">${conv.unread_count}</span>` : '';
             const activeClass = conv.chat_id === this.currentChatId ? 'active' : '';
             const isGroup = conv.chat_type === 'group';
-            
+
             let lastMsg = conv.last_message || 'No messages yet';
             if (conv.last_message_type === 'image') lastMsg = '📷 Photo';
             if (conv.last_message_type === 'video') lastMsg = '🎥 Video';
@@ -430,17 +430,17 @@ class SparkleChat {
     }
 
     archiveConversation(chatId) {
-        if(confirm('Archive this chat?')) {
+        if (confirm('Archive this chat?')) {
             const card = document.querySelector(`.conversation-card[data-id="${chatId}"]`);
-            if(card) card.remove();
+            if (card) card.remove();
             alert('Chat archived.');
         }
     }
 
     deleteConversation(chatId) {
-        if(confirm('Are you sure you want to delete this conversation? This cannot be undone.')) {
+        if (confirm('Are you sure you want to delete this conversation? This cannot be undone.')) {
             const card = document.querySelector(`.conversation-card[data-id="${chatId}"]`);
-            if(card) card.remove();
+            if (card) card.remove();
             // TODO: API call to delete
             alert('Conversation deleted.');
         }
@@ -450,13 +450,20 @@ class SparkleChat {
 
     async openChat(chatId) {
         if (this.currentChatId === chatId) return;
-        
+
         this.currentChatId = chatId;
         document.querySelector('.messaging-layout').classList.add('chat-active');
-        
+
         // Hide New Chat FAB when chat is open
         const fab = document.getElementById('waFabContainer');
         if (fab) fab.style.display = 'none';
+
+        // Show input bar (in case it was hidden from a previous closeChat)
+        const composer = document.querySelector('.chat-composer, footer.wa-composer');
+        if (composer) composer.style.display = '';
+
+        // Close any open modals from previous session
+        this.closeAllModals();
 
         // Update UI state
         document.querySelectorAll('.conversation-card').forEach(c => c.classList.remove('active'));
@@ -464,13 +471,13 @@ class SparkleChat {
 
         // Load messages
         await this.loadMessages(chatId);
-        
+
         // Join socket room
         this.socket.emit('join-chat', chatId);
-        
+
         // Mark as read in UI and Server
         this.socket.emit('mark-read', chatId);
-        
+
         // Refresh inbox unread counts
         const conv = this.conversations.find(c => c.chat_id === chatId);
         if (conv) conv.unread_count = 0;
@@ -484,7 +491,7 @@ class SparkleChat {
         const container = document.getElementById('messagesContainer');
         const emptyState = document.getElementById('chatEmptyWindow');
         const chatMain = document.getElementById('chatMain');
-        
+
         if (emptyState) emptyState.style.display = 'none';
         if (chatMain) chatMain.style.display = 'flex';
 
@@ -496,14 +503,14 @@ class SparkleChat {
 
         try {
             const response = await fetch(`/api/messages/chat/${chatId}`);
-            
+
             if (response.status === 429) {
                 container.innerHTML = '<div class="error-msg">Too many requests. Please wait a moment...</div>';
                 return;
             }
 
             const result = await response.json();
-            
+
             if (result.status === 'success') {
                 this.renderMessages(result.data);
                 this.updateChatHeader(chatId);
@@ -553,15 +560,15 @@ class SparkleChat {
             statusIcon = 'bi-check-all';
             statusColor = '#53bdeb'; // WhatsApp Read Blue
         }
-        
+
         let mediaContent = '';
         const isLimited = msg.view_policy && msg.view_policy !== 'unlimited';
-        
+
         if (msg.media_url) {
             if (isLimited && !isMe) {
                 const limitIcon = msg.view_policy === 'once' ? 'bi-1-circle' : 'bi-2-circle';
                 const limitText = msg.view_policy === 'once' ? 'Photo' : 'Photo (x2)';
-                
+
                 // Not viewed yet or partially viewed
                 mediaContent = `
                     <div class="view-limited-placeholder" onclick="window.sparkChat.openLimitedMedia('${msg.message_id}', '${msg.media_url}', '${msg.type}')" 
@@ -602,7 +609,7 @@ class SparkleChat {
             const reactionCounts = {};
             let reactionsArray = msg.reactions;
             if (typeof reactionsArray === 'string') {
-                try { reactionsArray = JSON.parse(reactionsArray); } catch(e){}
+                try { reactionsArray = JSON.parse(reactionsArray); } catch (e) { }
             }
             if (Array.isArray(reactionsArray)) {
                 reactionsArray.forEach(r => {
@@ -668,13 +675,13 @@ class SparkleChat {
 
         document.getElementById('bannerAvatar').src = conv.partner_avatar || '/uploads/avatars/default.png';
         document.getElementById('bannerName').textContent = conv.partner_name;
-        
+
         const statusEl = document.getElementById('bannerStatus');
         if (conv.chat_type === 'group') {
-             statusEl.textContent = (conv.member_count || 'Several') + ' members';
+            statusEl.textContent = (conv.member_count || 'Several') + ' members';
         } else {
-             statusEl.textContent = this.formatLastSeen(conv.last_seen_at, conv.is_online);
-             statusEl.style.color = conv.is_online ? '#00a884' : '#888';
+            statusEl.textContent = this.formatLastSeen(conv.last_seen_at, conv.is_online);
+            statusEl.style.color = conv.is_online ? '#00a884' : '#888';
         }
 
         // Apply disappearing messages UI if active
@@ -683,7 +690,7 @@ class SparkleChat {
         } else {
             document.getElementById('chatComposer').classList.remove('disappearing-active');
         }
-        
+
         // Sync bio
         const settingsBio = document.getElementById('settingsStatus');
         if (settingsBio) {
@@ -722,7 +729,7 @@ class SparkleChat {
         if (show) document.getElementById('chatMsgSearch').focus();
         else {
             document.getElementById('chatMsgSearch').value = '';
-            if (!skipReload) this.handleChatSearch(''); 
+            if (!skipReload) this.handleChatSearch('');
         }
     }
 
@@ -736,7 +743,7 @@ class SparkleChat {
 
         try {
             const response = await fetch(`/api/messages/search?chatId=${this.currentChatId}&q=${query}`);
-            
+
             if (response.status === 429) {
                 console.warn('Search rate limited');
                 return;
@@ -786,21 +793,21 @@ class SparkleChat {
         const viewPolicyLabel = document.getElementById('vpLabel');
         const viewPolicyIcon = document.getElementById('vpIcon');
         const captionInput = document.getElementById('mediaCaptionInput');
-        
+
         if (captionInput) captionInput.value = '';
 
         this.pendingViewPolicy = 'unlimited';
-        if(viewPolicyLabel) viewPolicyLabel.innerText = 'Keep';
-        if(viewPolicyIcon) viewPolicyIcon.className = 'bi bi-infinity';
+        if (viewPolicyLabel) viewPolicyLabel.innerText = 'Keep';
+        if (viewPolicyIcon) viewPolicyIcon.className = 'bi bi-infinity';
 
-        if(type === 'image') {
+        if (type === 'image') {
             const reader = new FileReader();
             reader.onload = (e) => {
                 previewContent.innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:80vh; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">`;
                 previewModal.style.display = 'flex';
             };
             reader.readAsDataURL(file);
-        } else if(type === 'video') {
+        } else if (type === 'video') {
             const url = URL.createObjectURL(file);
             previewContent.innerHTML = `<video src="${url}" controls autoplay loop style="max-width:100%; max-height:80vh; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); background:#000;"></video>`;
             previewModal.style.display = 'flex';
@@ -822,25 +829,25 @@ class SparkleChat {
     cycleViewPolicy() {
         const vpLabel = document.getElementById('vpLabel');
         const vpIcon = document.getElementById('vpIcon');
-        
-        if(this.pendingViewPolicy === 'unlimited') {
+
+        if (this.pendingViewPolicy === 'unlimited') {
             this.pendingViewPolicy = 'once';
-            if(vpLabel) vpLabel.innerText = 'View Once';
+            if (vpLabel) vpLabel.innerText = 'View Once';
             vpIcon.className = 'bi bi-1-circle';
-        } else if(this.pendingViewPolicy === 'once') {
+        } else if (this.pendingViewPolicy === 'once') {
             this.pendingViewPolicy = 'twice';
-            if(vpLabel) vpLabel.innerText = 'View Twice';
+            if (vpLabel) vpLabel.innerText = 'View Twice';
             vpIcon.className = 'bi bi-2-circle';
         } else {
             this.pendingViewPolicy = 'unlimited';
-            if(vpLabel) vpLabel.innerText = 'Keep';
+            if (vpLabel) vpLabel.innerText = 'Keep';
             vpIcon.className = 'bi bi-infinity';
         }
     }
 
     async confirmSendMedia() {
-        if(!this.pendingMediaParams || !this.currentChatId) return;
-        
+        if (!this.pendingMediaParams || !this.currentChatId) return;
+
         const { file, type } = this.pendingMediaParams;
         const viewPolicy = this.pendingViewPolicy || 'unlimited';
         const captionField = document.getElementById('mediaCaptionInput');
@@ -866,12 +873,12 @@ class SparkleChat {
                 body: formData
             });
             const result = await response.json();
-            
+
             document.getElementById(placeholderId)?.remove();
 
             if (result.success) {
                 const conv = this.conversations.find(c => c.chat_id == this.currentChatId);
-                
+
                 this.socket.emit('send-message', {
                     chatId: this.currentChatId,
                     recipientId: conv?.partner_id,
@@ -931,23 +938,23 @@ class SparkleChat {
     }
 
     handleIncomingMessage(msg) {
-        if(String(msg.sender_id) === String(this.userId)) return;
-        
+        if (String(msg.sender_id) === String(this.userId)) return;
+
         const messageId = msg.message_id || msg.id;
-        if(document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return;
+        if (document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return;
 
         const msgChatId = msg.conversation_id || msg.chat_id;
         if (this.currentChatId === msgChatId) {
             const container = document.getElementById('messagesContainer');
             container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
             this.scrollToBottom(false); // Only scroll if near bottom
-            
+
             this.socket.emit('mark-delivered', { messageId: messageId, chatId: msgChatId });
             this.socket.emit('mark-read', this.currentChatId);
         } else {
             this.playNotificationSound();
         }
-        
+
         this.updateInboxPreview(msg);
     }
 
@@ -961,17 +968,17 @@ class SparkleChat {
     updateInboxPreview(message) {
         const msgChatId = message.conversation_id || message.chat_id;
         const convIndex = this.conversations.findIndex(c => String(c.chat_id) === String(msgChatId));
-        
+
         if (convIndex > -1) {
             const conv = this.conversations[convIndex];
             conv.last_message = message.content;
             conv.last_message_type = message.type;
             conv.last_message_at = message.sent_at;
-            
+
             if (this.currentChatId !== msgChatId) {
                 conv.unread_count = (conv.unread_count || 0) + 1;
             }
-            
+
             // Move to top
             this.conversations.splice(convIndex, 1);
             this.conversations.unshift(conv);
@@ -984,7 +991,7 @@ class SparkleChat {
 
     playNotificationSound() {
         const audio = new Audio('/sounds/notification.mp3');
-        audio.play().catch(() => {});
+        audio.play().catch(() => { });
     }
 
     // --- Presence & Status ---
@@ -1122,18 +1129,18 @@ class SparkleChat {
     switchEmojiTab(tab, el) {
         document.querySelectorAll('.emoji-tab-icon').forEach(i => i.classList.remove('active'));
         el.classList.add('active');
-        
+
         const grid = document.getElementById('emojiPickerGrid');
         grid.innerHTML = '<div class="chat-loader" style="width:100%;"><div class="spinner-pink"></div></div>';
-        
+
         setTimeout(() => {
-            if(tab === 'emoji') {
+            if (tab === 'emoji') {
                 this.renderEmojiGrid('');
-            } else if(tab === 'gif') {
+            } else if (tab === 'gif') {
                 this.renderGifGrid('');
-            } else if(tab === 'sticker') {
+            } else if (tab === 'sticker') {
                 this.renderStickerGrid();
-            } else if(tab === 'avatar') {
+            } else if (tab === 'avatar') {
                 this.renderAvatarGrid();
             }
         }, 300);
@@ -1142,42 +1149,96 @@ class SparkleChat {
     renderEmojiGrid(query) {
         const grid = document.getElementById('emojiPickerGrid');
         const list = [
-            '😂','❤️','😍','🥺','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩','🙏','👌','😊','🤦‍♂️','🤷‍♀️','💪',
-            '😁','😆','😅','😋','😎','😘','😗','😙','😚','🙂','🤗','🤩','🤔','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱',
-            '🧐','🤓','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾',
-            '🤲','👐','🙌','👏','🤝','👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','🤘','👌','🤌','🤏','👈','👉','👆','👇','✋','🤚','🖐','🖖','👋','🤙'
+            '😂','❤️','😍','🥺','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩','🙏','👌','😊','🤦‍♂️','🤷‍♀️','💪','✨',
+            '😁','😆','😅','😋','😎','😘','😗','😙','😚','🙂','🤗','🤔','😐','😑','😶','😏','😣','😥','😮','🤐','😯','😪','😫','🥱',
+            '🧐','🤓','😈','👿','👹','👺','🤡','💩','👻','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾',
+            '🤲','👐','🙌','👏','🤝','👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','🤘','👌','🤌','🤏','👈','👉','👆','👇','✋','🤚','🖐','🖖','👋','🤙',
+            '🦷','🦴','👀','👁','👅','👄','💋','🩸','👋','🤚','🖐','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️'
         ];
-        const filtered = query ? list.filter(e => e.includes(query)) : list;
+
+        // Combine with recent emojis
+        const recents = JSON.parse(localStorage.getItem("recentEmojis")) || [];
+        const fullList = [...new Set([...recents, ...list])];
+
+        const filtered = query ? fullList.filter(e => e.includes(query)) : fullList;
         grid.innerHTML = filtered.map(e => `<span class="emoji-item" onclick="sparkChat.insertEmoji('${e}')">${e}</span>`).join('');
     }
 
     renderGifGrid(query) {
         const grid = document.getElementById('emojiPickerGrid');
         const mocks = [
-            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHc0Z3U4cW5xeGZwaHFxeGZwaHFxeGZwaHFxeGZwaHFxeGZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKDkDbIDJieKbVm/giphy.gif',
-            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHc0Z3U4cW5xeGZwaHFxeGZwaHFxeGZwaHFxeGZwaHFxeGZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41lTfuxR7N0f3OqA/giphy.gif',
-            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHc0Z3U4cW5xeGZwaHFxeGZwaHFxeGZwaHFxeGZwaHFxeGZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKVUn7iM8FMEU24/giphy.gif',
-            'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHc0Z3U4cW5xeGZwaHFxeGZwaHFxeGZwaHFxeGZwaHFxeGZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/26AHONh79uHEUY_XG/giphy.gif'
+            'https://media.giphy.com/media/3o7TKDkDbIDJieKbVm/giphy.gif',
+            'https://media.giphy.com/media/l41lTfuxR7N0f3OqA/giphy.gif',
+            'https://media.giphy.com/media/3o7TKVUn7iM8FMEU24/giphy.gif',
+            'https://media.giphy.com/media/26AHONh79uHEUY_XG/giphy.gif'
         ];
+        
+        // In a real production app, you would fetch from Giphy/Tenor here
+        // searchGiphy(query).then(data => grid.innerHTML = ...)
+        
         grid.innerHTML = mocks.map(g => `<img src="${g}" class="gif-item" onclick="sparkChat.sendGif('${g}')">`).join('');
     }
 
     renderStickerGrid() {
         const grid = document.getElementById('emojiPickerGrid');
-        grid.innerHTML = '<div style="color:#8696a0; font-size:12px; text-align:center; width:100%; padding:20px;">Stickers mapping coming soon from Sparkle Assets.</div>';
+        // Basic set of stickers (standard images/URLs)
+        const stickers = [
+            'https://ouch-cdn2.icons8.com/Psh_T2l9l9_T_y6I9_T_y6I9_T_y6I9_T_y6I/rs:fit:256:256/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvMTYv/MGFlMjFjMTQtOGYy/YS00YTMxLWFkMjgt/MDYwNWU5YTVmZGEz/LnN2Zw.png',
+            'https://ouch-cdn2.icons8.com/j1v1_T_y6I9_T_y6I9_T_y6I9_T_y6I9_T_y6I/rs:fit:256:256/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvMzgv/MDZlMjFjMTQtOGYy/YS00YTMxLWFkMjgt/MDYwNWU5YTVmZGEz/LnN2Zw.png'
+        ];
+        grid.innerHTML = stickers.map(s => `<img src="${s}" class="gif-item" style="height:auto; padding:10px;" onclick="sparkChat.sendSticker('${s}')">`).join('');
     }
 
     renderAvatarGrid() {
         const grid = document.getElementById('emojiPickerGrid');
-        grid.innerHTML = '<div style="color:#8696a0; font-size:12px; text-align:center; width:100%; padding:20px;">Personal Avatars synced from your profile.</div>';
+        // Show current user's profile card / avatar
+        const avatarUrl = this.conversations.find(c => c.chat_id === this.currentChatId)?.partner_avatar || '/uploads/avatars/default.png';
+        grid.innerHTML = `
+            <div style="width:100%; padding:15px; text-align:center;">
+                <img src="${avatarUrl}" style="width:80px; height:80px; border-radius:50%; margin-bottom:12px; border:2px solid #00a884;">
+                <div style="color:white; font-size:14px; font-weight:600;">Share Contact Card</div>
+                <button onclick="sparkChat.sendContactCard()" style="margin-top:15px; background:#00a884; color:white; border:none; padding:10px 20px; border-radius:20px; font-weight:700; cursor:pointer; width:100%;">Send Profile</button>
+            </div>
+        `;
     }
 
     handleEmojiSearch(val) {
         const activeTab = document.querySelector('.emoji-tab-icon.active').title.toLowerCase();
-        if(activeTab === 'emoji') this.renderEmojiGrid(val);
+        if (activeTab === 'emoji') this.renderEmojiGrid(val);
+        if (activeTab === 'gif') this.renderGifGrid(val);
+    }
+
+    saveRecentEmoji(emoji) {
+        let recents = JSON.parse(localStorage.getItem("recentEmojis")) || [];
+        recents = recents.filter(e => e !== emoji);
+        recents.unshift(emoji);
+        if (recents.length > 30) recents.pop();
+        localStorage.setItem("recentEmojis", JSON.stringify(recents));
+    }
+
+    sendSticker(url) {
+        this.toggleEmojiPicker();
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            partnerId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
+            content: '',
+            type: 'image',
+            mediaUrl: url
+        });
+    }
+
+    sendContactCard() {
+        this.toggleEmojiPicker();
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            partnerId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
+            content: `Contact: @${window.sparkleUser.username}`,
+            type: 'text'
+        });
     }
 
     insertEmoji(emoji) {
+        this.saveRecentEmoji(emoji);
         const input = document.getElementById('messageInput');
         const start = input.selectionStart;
         const end = input.selectionEnd;
@@ -1202,7 +1263,7 @@ class SparkleChat {
     handleActionCopy() {
         const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.activeMessageId}"]`);
         const body = msgEl?.querySelector('.msg-body')?.innerText;
-        if(body) {
+        if (body) {
             navigator.clipboard.writeText(body).then(() => {
                 alert('Copied to clipboard!');
                 this.closeMessageActionMenu();
@@ -1210,12 +1271,59 @@ class SparkleChat {
         }
     }
 
+    // ==========================================
+    // MODAL SYSTEM (WhatsApp-Style)
+    // ==========================================
+
+    openModal(panelId) {
+        // Close any other open modals first
+        this.closeAllModals();
+
+        const panel = document.getElementById(panelId);
+        const backdrop = document.getElementById('modalBackdrop');
+        if (!panel || !backdrop) return;
+
+        panel.classList.remove('hidden');
+        panel.style.display = 'flex';
+        backdrop.classList.remove('hidden');
+        // Add dark overlay on mobile
+        if (window.innerWidth <= 768) {
+            backdrop.classList.add('mobile-overlay');
+        }
+    }
+
+    closeAllModals() {
+        const backdrop = document.getElementById('modalBackdrop');
+        if (backdrop) {
+            backdrop.classList.add('hidden');
+            backdrop.classList.remove('mobile-overlay');
+        }
+        document.querySelectorAll('.modal-overlay-target').forEach(el => {
+            el.classList.add('hidden');
+            el.style.display = 'none';
+        });
+    }
+
     toggleEmojiPicker() {
         const picker = document.getElementById('emojiPickerPanel');
-        const isHidden = picker.style.display === 'none';
-        picker.style.display = isHidden ? 'flex' : 'none';
-        if(isHidden) {
+        if (!picker) return;
+        const isHidden = picker.classList.contains('hidden');
+        if (isHidden) {
+            this.openModal('emojiPickerPanel');
             this.renderEmojiGrid('');
+        } else {
+            this.closeAllModals();
+        }
+    }
+
+    toggleAttachmentMenu() {
+        const menu = document.getElementById('attachmentMenu');
+        if (!menu) return;
+        const isHidden = menu.classList.contains('hidden');
+        if (isHidden) {
+            this.openModal('attachmentMenu');
+        } else {
+            this.closeAllModals();
         }
     }
 
@@ -1279,11 +1387,11 @@ class SparkleChat {
         const screenHeight = window.innerHeight;
 
         overlay.style.display = 'flex';
-        
+
         // Initial positioning style
         modal.style.position = 'fixed';
         modal.style.margin = '0';
-        
+
         // Horizontal centering relative to bubble
         let left = rect.left + (rect.width / 2) - (160); // 160 is half of max-width 320
         if (left < 10) left = 10;
@@ -1295,7 +1403,7 @@ class SparkleChat {
         if (top < 80) {
             top = rect.bottom + 10;
         }
-        
+
         // Final sanity check for bottom boundary
         if (top + 280 > screenHeight) {
             top = screenHeight - 290;
@@ -1307,7 +1415,7 @@ class SparkleChat {
     closeMessageActionMenu() {
         // Remove highlight from all bubbles
         document.querySelectorAll('.msg-bubble.msg-active-press').forEach(el => el.classList.remove('msg-active-press'));
-        
+
         document.getElementById('messageActionOverlay').style.display = 'none';
         this.activeMessageId = null;
     }
@@ -1315,11 +1423,11 @@ class SparkleChat {
     handleActionReply() {
         this.replyingToMessageId = this.activeMessageId;
         const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.activeMessageId}"]`);
-        
+
         document.getElementById('previewLabel').textContent = 'Replying to';
         document.getElementById('previewText').textContent = msgEl.querySelector('.msg-body')?.textContent || 'Message';
         document.getElementById('messagePreviewContainer').style.display = 'flex';
-        
+
         document.getElementById('messageInput').focus();
         this.closeMessageActionMenu();
     }
@@ -1327,16 +1435,16 @@ class SparkleChat {
     handleActionEdit() {
         this.editingMessageId = this.activeMessageId;
         const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.activeMessageId}"]`);
-        
+
         document.getElementById('previewLabel').textContent = 'Editing Message';
         document.getElementById('previewText').textContent = msgEl.querySelector('.msg-body')?.textContent || '';
         document.getElementById('messagePreviewContainer').style.display = 'flex';
-        
+
         const input = document.getElementById('messageInput');
         input.value = msgEl.querySelector('.msg-body')?.textContent || '';
         input.focus();
         this.autoResizeTextarea(input);
-        
+
         this.closeMessageActionMenu();
     }
 
@@ -1344,7 +1452,7 @@ class SparkleChat {
         if (!this.editingMessageId) return;
         const input = document.getElementById('messageInput');
         const content = input.value.trim();
-        
+
         try {
             const response = await fetch(`/api/messages/${this.editingMessageId}`, {
                 method: 'PATCH',
@@ -1365,7 +1473,7 @@ class SparkleChat {
         } catch (err) {
             console.error(err);
         }
-        
+
         this.cancelReplyOrEdit();
     }
 
@@ -1379,7 +1487,7 @@ class SparkleChat {
             });
             const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${this.activeMessageId}"]`);
             if (msgEl) msgEl.remove();
-        } catch (err) {}
+        } catch (err) { }
         this.closeMessageActionMenu();
     }
 
@@ -1391,14 +1499,14 @@ class SparkleChat {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ forEveryone: true })
             });
-            this.socket.emit('delete-for-everyone', { 
-                messageId: this.activeMessageId, 
-                chatId: this.currentChatId 
+            this.socket.emit('delete-for-everyone', {
+                messageId: this.activeMessageId,
+                chatId: this.currentChatId
             });
-            
+
             // Delete locally
             this.handleMessageDeleted({ messageId: this.activeMessageId });
-        } catch (err) {}
+        } catch (err) { }
         this.closeMessageActionMenu();
     }
 
@@ -1447,7 +1555,7 @@ class SparkleChat {
             this.loadMessages(this.currentChatId); // In a real app we'd mutate DOM directly to avoid load jitter
         }
     }
-    
+
     handleReactionRemoved(data) {
         if (this.currentChatId === data.chatId) {
             this.loadMessages(this.currentChatId);
@@ -1458,7 +1566,7 @@ class SparkleChat {
     toggleChatMenu() {
         const menu = document.getElementById('chatDropdownMenu');
         menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-        
+
         const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
         if (conv) {
             document.getElementById('menuGroupSettings').style.display = conv.chat_type === 'group' ? 'block' : 'none';
@@ -1522,7 +1630,7 @@ class SparkleChat {
             </div>
         `).join('');
     }
-    
+
     closeNewChatModal(force = false) {
         if (force || event.target.id === 'newChatModalOverlay') {
             document.getElementById('newChatModalOverlay').style.display = 'none';
@@ -1606,7 +1714,7 @@ class SparkleChat {
             try {
                 const res = await fetch('/api/messages/start', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ partnerId: userId })
                 });
                 const result = await res.json();
@@ -1650,7 +1758,7 @@ class SparkleChat {
     async submitCreateGroup() {
         const name = document.getElementById('groupNameInput').value;
         const fileRef = document.getElementById('groupIconInput').files[0];
-        
+
         if (!name || this.selectedGroupUsers.length === 0) {
             alert('Please provide a group name and select at least one member!');
             return;
@@ -1688,20 +1796,20 @@ class SparkleChat {
     openAttachment(type) {
         this.toggleAttachmentMenu();
         const input = document.getElementById('mediaUpload');
-        if(type === 'Gallery' || type === 'Camera') {
-            if(type === 'Gallery') {
+        if (type === 'Gallery' || type === 'Camera') {
+            if (type === 'Gallery') {
                 input.setAttribute('accept', 'image/*,video/*');
                 input.click();
             } else {
                 this.openCameraInterface();
             }
-        } else if(type === 'Document') {
+        } else if (type === 'Document') {
             input.setAttribute('accept', '.pdf,.doc,.docx,.txt');
             input.click();
-        } else if(type === 'Audio') {
+        } else if (type === 'Audio') {
             input.setAttribute('accept', 'audio/*');
             input.click();
-        } else if(type === 'Follower') {
+        } else if (type === 'Follower') {
             this.openFollowerShareModal();
         } else {
             alert(`${type} attaching is coming soon!`);
@@ -1722,7 +1830,7 @@ class SparkleChat {
         const modes = ['Photo', 'Video', 'VideoNote'];
         modes.forEach(m => {
             const el = document.getElementById('mode' + m);
-            if(el) {
+            if (el) {
                 el.style.color = (m.toLowerCase() === mode) ? '#00a884' : '#fff';
                 el.style.borderBottom = (m.toLowerCase() === mode) ? '2px solid #00a884' : 'none';
             }
@@ -1735,7 +1843,7 @@ class SparkleChat {
     }
 
     initCameraStream() {
-        if(this.cameraStream) {
+        if (this.cameraStream) {
             this.cameraStream.getTracks().forEach(track => track.stop());
         }
         navigator.mediaDevices.getUserMedia({
@@ -1758,15 +1866,15 @@ class SparkleChat {
     closeCamera() {
         const ui = document.getElementById('cameraInterface');
         ui.style.display = 'none';
-        if(this.cameraStream) {
+        if (this.cameraStream) {
             this.cameraStream.getTracks().forEach(track => track.stop());
             this.cameraStream = null;
         }
     }
 
     cameraCaptureStart() {
-        if(this.cameraMode === 'video' || this.cameraMode === 'videonote') {
-            if(this.isRecordingCamera) {
+        if (this.cameraMode === 'video' || this.cameraMode === 'videonote') {
+            if (this.isRecordingCamera) {
                 this.cameraCaptureEnd();
             } else {
                 this.startRecordingCamera();
@@ -1776,8 +1884,8 @@ class SparkleChat {
 
         this.cameraPressTimer = Date.now();
         const inner = document.getElementById('cameraCaptureInner');
-        if(inner) inner.style.transform = 'scale(0.8)';
-        
+        if (inner) inner.style.transform = 'scale(0.8)';
+
         this.cameraHoldTimeout = setTimeout(() => {
             this.startRecordingCamera();
         }, 500);
@@ -1786,7 +1894,7 @@ class SparkleChat {
     startRecordingCamera() {
         const inner = document.getElementById('cameraCaptureInner');
         this.isRecordingCamera = true;
-        if(inner) {
+        if (inner) {
             inner.style.background = '#e53f77';
             inner.style.transform = 'scale(0.5)';
             inner.style.borderRadius = '8px'; // Transition to square for recording
@@ -1804,23 +1912,23 @@ class SparkleChat {
     }
 
     cameraCaptureEnd() {
-        if(this.cameraMode === 'video' || this.cameraMode === 'videonote') return;
+        if (this.cameraMode === 'video' || this.cameraMode === 'videonote') return;
 
-        if(this.cameraHoldTimeout) clearTimeout(this.cameraHoldTimeout);
-        
+        if (this.cameraHoldTimeout) clearTimeout(this.cameraHoldTimeout);
+
         const inner = document.getElementById('cameraCaptureInner');
-        if(inner) {
+        if (inner) {
             inner.style.background = '#fff';
             inner.style.transform = 'scale(1)';
             inner.style.borderRadius = '50%';
         }
 
         const duration = Date.now() - (this.cameraPressTimer || 0);
-        if(duration < 500) {
+        if (duration < 500) {
             this.captureCameraPhoto();
-        } else if(this.isRecordingCamera) {
+        } else if (this.isRecordingCamera) {
             this.isRecordingCamera = false;
-            if(this.cameraRecorder && this.cameraRecorder.state !== 'inactive') {
+            if (this.cameraRecorder && this.cameraRecorder.state !== 'inactive') {
                 this.cameraRecorder.stop();
             }
         }
@@ -1828,7 +1936,7 @@ class SparkleChat {
 
     captureCameraPhoto() {
         const video = document.getElementById('cameraVideo');
-        if(!video || !this.cameraStream) return;
+        if (!video || !this.cameraStream) return;
 
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
@@ -1846,14 +1954,14 @@ class SparkleChat {
     async openFollowerShareModal() {
         document.getElementById('followerShareModal').style.display = 'flex';
         const list = document.getElementById('followerShareList');
-        
+
         try {
             const res = await fetch('/api/users/active-friends');
             const data = await res.json();
-            
-            if(data && data.length > 0) {
+
+            if (data && data.length > 0) {
                 list.innerHTML = `<div style="color:#8696a0; font-size:13px; margin-bottom:10px; padding:0 10px;">Select a user to share to your chat</div>` +
-                data.map(u => `
+                    data.map(u => `
                     <div style="background:#222; padding:15px; border-radius:12px; margin-top:8px; display:flex; align-items:center; cursor:pointer;" onclick="sparkChat.shareContact('${u.id}', '${u.username}')">
                         <img src="${u.avatar_url || '/uploads/avatars/default.png'}" style="width:40px; height:40px; border-radius:50%; margin-right:15px; object-fit:cover;">
                         <div>
@@ -1865,7 +1973,7 @@ class SparkleChat {
             } else {
                 list.innerHTML = `<div style="color:#8696a0; font-size:13px; text-align:center;">No followers available to share at this moment.</div>`;
             }
-        } catch(e) {
+        } catch (e) {
             list.innerHTML = `<div style="color:red; font-size:12px;">Failed to load contacts.</div>`;
         }
     }
@@ -1887,7 +1995,7 @@ class SparkleChat {
         if (!menu) return;
         const isVisible = menu.style.display === 'block';
         menu.style.display = isVisible ? 'none' : 'block';
-        
+
         // Side-effect: check if current chat is group to show group settings
         const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
         const groupBtn = document.getElementById('menuGroupSettings');
@@ -1909,7 +2017,7 @@ class SparkleChat {
         document.getElementById('settingsAvatar').src = conv.partner_avatar || '/uploads/avatars/default.png';
         document.getElementById('settingsName').textContent = conv.partner_name;
         document.getElementById('settingsStatus').textContent = conv.bio || 'Hey there! I am using Sparkle.';
-        
+
         // Fetch Mutual Groups
         const mutualList = document.getElementById('commonGroupsList');
         if (mutualList) {
@@ -1959,10 +2067,8 @@ class SparkleChat {
         const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
         if (!conv) return;
         if (confirm(`Block ${conv.partner_name}?`)) {
-            fetch('/api/users/block', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: conv.partner_id })
+            fetch(`/api/users/block/${conv.partner_id}`, {
+                method: 'POST'
             }).then(() => {
                 this.closeChat();
                 this.loadInbox();
@@ -1986,7 +2092,7 @@ class SparkleChat {
         try {
             const res = await fetch(`/api/messages/group/${chatId}/details`);
             const result = await res.json();
-            
+
             if (result.status === 'success') {
                 const group = result.data;
                 document.getElementById('groupSettingsAvatar').src = group.photo_url || group.photoUrl || '/uploads/avatars/default.png';
@@ -2060,10 +2166,10 @@ class SparkleChat {
     }
 
     showChatActions(chatId, e) {
-        this.activeChatTarget = chatId; 
+        this.activeChatTarget = chatId;
         const modal = document.getElementById('chatActionModal');
         modal.style.display = 'flex';
-        
+
         // Vibration for tactile feedback
         if (window.navigator && window.navigator.vibrate) {
             window.navigator.vibrate(50);
@@ -2075,62 +2181,60 @@ class SparkleChat {
     async handleArchiveChat() {
         const chatId = this.activeChatTarget || this.currentChatId;
         if (!chatId) return;
-        
+
         try {
             const res = await fetch(`/api/messages/chat/${chatId}/archive`, { method: 'POST' });
             if (res.ok) {
                 this.conversations = this.conversations.filter(c => c.chat_id !== chatId);
                 this.renderInbox();
                 document.getElementById('chatActionModal').style.display = 'none';
-                if(this.currentChatId === chatId) this.closeChat();
+                if (this.currentChatId === chatId) this.closeChat();
             }
-        } catch(e) {}
+        } catch (e) { }
     }
 
     async handleMuteNotifications() {
         const chatId = this.activeChatTarget || this.currentChatId;
         if (!chatId) return;
-        
+
         try {
             const res = await fetch(`/api/messages/chat/${chatId}/mute`, { method: 'POST' });
             if (res.ok) {
                 alert('Chat muted');
                 document.getElementById('chatActionModal').style.display = 'none';
             }
-        } catch(e) {}
+        } catch (e) { }
     }
 
     async handleDeleteChat() {
         const chatId = this.activeChatTarget || this.currentChatId;
         if (!chatId || !confirm('Permanently delete this chat?')) return;
-        
+
         try {
             const res = await fetch(`/api/messages/chat/${chatId}`, { method: 'DELETE' });
             if (res.ok) {
                 this.conversations = this.conversations.filter(c => c.chat_id !== chatId);
                 this.renderInbox();
                 document.getElementById('chatActionModal').style.display = 'none';
-                if(this.currentChatId === chatId) this.closeChat();
+                if (this.currentChatId === chatId) this.closeChat();
             }
-        } catch(e) {}
+        } catch (e) { }
     }
 
     async handleBlockUser() {
         const conv = this.conversations.find(c => c.chat_id === (this.activeChatTarget || this.currentChatId));
         if (!conv || !conv.partner_id || !confirm(`Block ${conv.partner_name}?`)) return;
-        
+
         try {
-            const res = await fetch(`/api/users/block`, { 
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ targetUserId: conv.partner_id })
+            const res = await fetch(`/api/users/block/${conv.partner_id}`, {
+                method: 'POST'
             });
             if (res.ok) {
                 alert('User blocked');
                 document.getElementById('chatActionModal').style.display = 'none';
                 this.handleDeleteChat();
             }
-        } catch(e) {}
+        } catch (e) { }
     }
 
     // --- Invite & Link ---
@@ -2190,12 +2294,12 @@ class SparkleChat {
 
     expandProfilePicture() {
         const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
-        if(!conv) return;
-        
+        if (!conv) return;
+
         const modal = document.getElementById('pfpExpandModal');
         const img = document.getElementById('expandedPfp');
         const name = document.getElementById('expandedPartnerName');
-        
+
         if (modal && img && name) {
             img.src = conv.partner_avatar || '/uploads/avatars/default.png';
             name.textContent = conv.partner_name;
@@ -2206,7 +2310,7 @@ class SparkleChat {
     scrollToBottom(force = false) {
         const container = document.getElementById('messagesContainer');
         if (!container) return;
-        
+
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 400;
         if (force || isNearBottom) {
             container.scrollTop = container.scrollHeight;
@@ -2225,18 +2329,18 @@ class SparkleChat {
         if (isNaN(msgTime.getTime())) return '';
 
         const diff = Math.floor((now - msgTime) / 1000);
-        
+
         // Prevent negative values from clock drift
         if (diff < 60) return 'Just now';
         if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-        
+
         const today = now.toDateString();
         const msgDay = msgTime.toDateString();
 
         if (today === msgDay) {
             return msgTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
-        
+
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
         if (msgDay === yesterday.toDateString()) return 'Yesterday';
@@ -2272,7 +2376,7 @@ class SparkleChat {
     }
 
     startUpdateTimeLoop() {
-        if(this.updateTimesInterval) clearInterval(this.updateTimesInterval);
+        if (this.updateTimesInterval) clearInterval(this.updateTimesInterval);
         this.updateTimesInterval = setInterval(() => {
             this.updateChatTimes();
         }, 1000);
@@ -2290,7 +2394,14 @@ class SparkleChat {
     closeChat() {
         document.querySelector('.messaging-layout').classList.remove('chat-active');
         this.currentChatId = null;
-        
+
+        // Close any open modals
+        this.closeAllModals();
+
+        // Hide input bar
+        const composer = document.querySelector('.chat-composer, footer.wa-composer');
+        if (composer) composer.style.display = 'none';
+
         // Show FAB back
         const fab = document.getElementById('waFabContainer');
         if (fab) fab.style.display = 'flex';
@@ -2300,7 +2411,7 @@ class SparkleChat {
 // Global instance
 window.addEventListener('DOMContentLoaded', () => {
     window.sparkChat = new SparkleChat();
-    
+
     // Close menus on click outside
     document.addEventListener('click', (e) => {
         const menu = document.getElementById('chatDropdownMenu');
@@ -2309,6 +2420,23 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         document.querySelectorAll('.msg-options-menu').forEach(m => m.classList.remove('active'));
     });
+
+    // Mobile back button closes modals
+    window.addEventListener('popstate', () => {
+        if (window.sparkChat) window.sparkChat.closeAllModals();
+    });
+
+    // Swipe down on emoji picker to close
+    const emojiPanel = document.getElementById('emojiPickerPanel');
+    if (emojiPanel) {
+        let touchStartY = 0;
+        emojiPanel.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+        emojiPanel.addEventListener('touchmove', e => {
+            if (e.touches[0].clientY - touchStartY > 80) {
+                window.sparkChat?.closeAllModals();
+            }
+        }, { passive: true });
+    }
 });
 
 // Mobile support helper

@@ -147,8 +147,11 @@
                 </div>
             </footer>
 
+            <!-- MODAL BACKDROP -->
+            <div id="modalBackdrop" class="modal-backdrop hidden" onclick="sparkChat.closeAllModals()"></div>
+
             <!-- FLOATING EMOJI PICKER -->
-            <div id="emojiPickerPanel" style="display:none; position:absolute; bottom:70px; left:15px; background:#233138; box-shadow:0 8px 30px rgba(0,0,0,0.3); border-radius:12px; z-index:9000; flex-direction:column; width:300px; border:1px solid rgba(255,255,255,0.05);">
+            <div id="emojiPickerPanel" class="modal-overlay-target hidden" style="position:absolute; bottom:70px; left:15px; background:#233138; box-shadow:0 8px 30px rgba(0,0,0,0.3); border-radius:12px; z-index:9000; flex-direction:column; width:300px; border:1px solid rgba(255,255,255,0.05);">
                 <div style="display:flex; padding:8px 10px; background:#202c33; border-radius:12px 12px 0 0; gap:10px; align-items:center; border-bottom:1px solid #111b21;">
                     <i class="bi bi-search" style="color:#8696a0;"></i>
                     <input type="text" id="emojiSearchInput" placeholder="Search" style="background:transparent; border:none; outline:none; color:#e9edef; font-size:14px; flex:1;" oninput="sparkChat.handleEmojiSearch(this.value)">
@@ -176,7 +179,7 @@
             </div>
 
             <!-- FLOATING ATTACHMENT MENU (6 SQUARES 2X3) -->
-            <div id="attachmentMenu" style="display:none; position:absolute; bottom:70px; right:15px; background:transparent; z-index:9010; width:100%; max-width: 250px; transform-origin: bottom right; animation: scaleUp 0.15s ease-out;">
+            <div id="attachmentMenu" class="modal-overlay-target hidden" style="position:absolute; bottom:70px; right:15px; background:transparent; z-index:9010; width:100%; max-width: 250px; transform-origin: bottom right; animation: scaleUp 0.15s ease-out;">
                 <div style="background:#233138; border-radius:18px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,0.4); display:grid; grid-template-columns:1fr 1fr 1fr; gap:25px 15px;">
                     <!-- Top Row -->
                     <div onclick="sparkChat.openAttachment('Gallery')" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">

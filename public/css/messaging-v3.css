@@ -354,13 +354,18 @@
 .messages-container {
     flex: 1;
     padding: 25px;
-    padding-bottom: 150px; /* Space for nav (60px) + input (~90px) */
+    padding-bottom: 120px; /* nav (60px) + input (~60px) */
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 12px;
     background: #f0f2f5;
     position: relative;
+    transition: padding-bottom 0.25s ease;
+}
+
+body.keyboard-open .messages-container {
+    padding-bottom: 70px; /* just input area */
 }
 
 .messages-container::after {
@@ -659,17 +664,22 @@
     background: white;
     padding: 15px 25px 25px;
     border-top: 1px solid var(--border);
-    z-index: 1000;
+    z-index: 101; /* Must be above .bottom-nav (100) */
     transition: bottom 0.25s ease-out;
 }
 
 @media (max-width: 850px) {
     .chat-composer {
         position: fixed;
-        bottom: 60px; /* Sits above bottom-nav */
+        bottom: 60px; /* Standard: sits ABOVE nav */
         left: 0;
         right: 0;
         background: white;
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.02);
+    }
+    
+    body.keyboard-open .chat-composer {
+        bottom: 0; /* Keyboard slides UP the whole viewport, input sits at bottom = 0 of visual viewport */
     }
 }
 

@@ -1,21 +1,28 @@
 /**
- * Mobile Viewport Fix
- * Handles the keyboard/bottom-nav/chat-input conflict using visualViewport API.
+ * WhatsApp-style Mobile Viewport Fix
+ * Handles the keyboard/bottom-nav/chat-input stacking correctly.
  */
 
 export function initMobileFixes() {
+    let initialHeight = window.innerHeight;
+
     function handleMobileLayout() {
         const chatComposer = document.getElementById('chatComposer');
         const bottomNav = document.querySelector('.bottom-nav');
         
-        // Only run on mobile-sized screens
-        if (window.innerWidth > 1024) {
-            // Reset styles if resized back to desktop
-            if (chatComposer) chatComposer.style.bottom = '0';
-            if (bottomNav) bottomNav.style.transform = 'translateY(0)';
-            return;
-        }
+        // Detect Keyboard using innerHeight comparison
+        const handleResize = () => {
+            const currentHeight = window.innerHeight;
+            
+            // If height drops significantly, keyboard is likely open
+            if (currentHeight < initialHeight - 100) {
+                document.body.classList.add('keyboard-open');
+            } else {
+                document.body.classList.remove('keyboard-open');
+            }
+        };
 
+        // Fine-tune positioning using VisualViewport (if supported)
         const handleViewport = () => {
             if (!window.visualViewport) return;
 
@@ -23,39 +30,35 @@ export function initMobileFixes() {
             const fullHeight = window.innerHeight;
             const keyboardHeight = fullHeight - viewportHeight;
 
-            // If keyboard is open (typically > 100px)
             if (keyboardHeight > 100) {
-                // Move chat input above keyboard
-                if (chatComposer) {
-                    chatComposer.style.bottom = `${keyboardHeight + 5}px`;
-                    chatComposer.style.zIndex = '1000';
-                }
+                document.body.classList.add('keyboard-open');
                 
-                // Hide bottom navigation
-                if (bottomNav) {
-                    bottomNav.style.transform = 'translateY(100%)';
+                // Position input bar directly above the visible viewport (keyboard)
+                if (chatComposer) {
+                    // In true WhatsApp style, the visual viewport offset is what matters
+                    // When the keyboard is open, the input sits at the bottom of the visible area
+                    chatComposer.style.bottom = `${keyboardHeight}px`;
                 }
 
-                // Scroll to bottom when keyboard opens
                 if (window.sparkChat) {
                     window.sparkChat.scrollToBottom(true);
                 }
             } else {
-                // Keyboard closed
+                document.body.classList.remove('keyboard-open');
                 if (chatComposer) {
-                    // Sit above the navigation bar
+                    // Reset to sit above navigation
                     chatComposer.style.bottom = '60px';
-                }
-                if (bottomNav) {
-                    bottomNav.style.transform = 'translateY(0)';
                 }
             }
         };
 
-        window.visualViewport.addEventListener('resize', handleViewport);
-        window.visualViewport.addEventListener('scroll', handleViewport); 
+        window.addEventListener('resize', handleResize);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleViewport);
+        }
         
-        handleViewport();
+        handleResize();
+        if (window.visualViewport) handleViewport();
     }
 
     handleMobileLayout();
@@ -68,9 +71,16 @@ export function initMobileFixes() {
 
     window.addEventListener('resize', setRealVH);
     setRealVH();
+
+    // Visibility fallback (Close keyboard state on app hide)
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+            document.body.classList.remove("keyboard-open");
+        }
+    });
 }
 
-// Auto-init if not imported as module (e.g. via <script src="...">)
+// Auto-init
 if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {

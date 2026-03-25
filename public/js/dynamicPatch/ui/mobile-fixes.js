@@ -27,10 +27,7 @@ export function initMobileFixes() {
             if (keyboardHeight > 100) {
                 // Move chat input above keyboard
                 if (chatComposer) {
-                    chatComposer.style.bottom = `${keyboardHeight}px`;
-                    chatComposer.style.position = 'fixed';
-                    chatComposer.style.left = '0';
-                    chatComposer.style.right = '0';
+                    chatComposer.style.bottom = `${keyboardHeight + 5}px`;
                     chatComposer.style.zIndex = '1000';
                 }
                 
@@ -39,14 +36,15 @@ export function initMobileFixes() {
                     bottomNav.style.transform = 'translateY(100%)';
                 }
 
-                // Scroll to bottom when keyboard opens to keep context
+                // Scroll to bottom when keyboard opens
                 if (window.sparkChat) {
                     window.sparkChat.scrollToBottom(true);
                 }
             } else {
                 // Keyboard closed
                 if (chatComposer) {
-                    chatComposer.style.bottom = '0';
+                    // Sit above the navigation bar
+                    chatComposer.style.bottom = '60px';
                 }
                 if (bottomNav) {
                     bottomNav.style.transform = 'translateY(0)';
@@ -76,7 +74,6 @@ export function initMobileFixes() {
 if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-             // Check if already initialized by modular system to avoid dual-init
              if (!window.mobileFixesInit) {
                  initMobileFixes();
                  window.mobileFixesInit = true;

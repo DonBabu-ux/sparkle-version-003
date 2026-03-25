@@ -728,8 +728,34 @@ class SparkleChat {
         }
 
         if (msg.type === 'system') {
+            let displayContent = msg.content;
+            
+            // Handle Structured Admin Notifications
+            if (msg.content.startsWith('PROMOTED_TO_ADMIN:')) {
+                const [_, targetId, username] = msg.content.split(':');
+                if (targetId === this.userId) {
+                    displayContent = `<span style="font-weight:700; color:#00a884;"><i class="bi bi-patch-check-fill"></i> You are now an Admin!</span>`;
+                } else {
+                    displayContent = `<i class="bi bi-shield-check"></i> Admin promoted @${username} to Admin`;
+                }
+            } else if (msg.content.startsWith('DEMOTED_TO_MEMBER:')) {
+                const [_, targetId, username] = msg.content.split(':');
+                if (targetId === this.userId) {
+                    displayContent = `<span style="color:#ef4444;">Your Admin privileges were removed.</span>`;
+                } else {
+                    displayContent = `Admin demoted @${username} to member`;
+                }
+            } else if (msg.content.startsWith('REMOVED_FROM_GROUP:')) {
+                const [_, targetId, username] = msg.content.split(':');
+                if (targetId === this.userId) {
+                    displayContent = `<span style="color:#ef4444;">You were removed from the group.</span>`;
+                } else {
+                    displayContent = `Admin removed @${username} from the group`;
+                }
+            }
+
             return `<div class="msg-bubble msg-system" data-msg-id="${msg.message_id}">
-                ${msg.content}
+                ${displayContent}
             </div>`;
         }
 

@@ -1,5 +1,6 @@
 const GroupChat = require('../models/GroupChat');
 const GroupMember = require('../models/GroupMember');
+const User = require('../models/User');
 const Message = require('../models/Message');
 const { getIO } = require('../socket');
 
@@ -218,11 +219,15 @@ class GroupChatController {
             // Update membership status
             await GroupMember.updateStatus(chatId, userId, 'removed');
 
-            // Send system message (Optional: could fetch name)
+            // Fetch target user details
+            const targetUser = await User.findById(userId);
+            const username = targetUser ? targetUser.username : 'a member';
+
+            // Send system message
             await Message.sendMessage({
                 chatId,
                 senderId: currentUserId,
-                content: 'removed a member',
+                content: `REMOVED_FROM_GROUP:${userId}:${username}`,
                 type: 'system'
             });
 
@@ -252,11 +257,15 @@ class GroupChatController {
             // Perform update
             await GroupMember.updateRole(chatId, userId, role);
 
-            // Notify group
+            // Fetch target user details
+            const targetUser = await User.findById(userId);
+            const username = targetUser ? targetUser.username : 'a member';
+
+            // Notify group with structured message
             await Message.sendMessage({
                 chatId,
                 senderId: currentUserId,
-                content: `${role === 'admin' ? 'promoted a member to Admin' : 'demoted an Admin to member'}`,
+                content: `${role === 'admin' ? 'PROMOTED_TO_ADMIN' : 'DEMOTED_TO_MEMBER'}:${userId}:${username}`,
                 type: 'system'
             });
 

@@ -1,7 +1,8 @@
 const logger = require('./logger');
 
 // Configuration
-const RENDER_APP_URL = process.env.RENDER_APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+// Configuration
+const RENDER_APP_URL = process.env.RENDER_EXTERNAL_URL || process.env.RENDER_APP_URL || `http://localhost:${process.env.PORT || 3000}`;
 const PING_INTERVAL = 14 * 60 * 1000; // 14 minutes (Render spins down after 15 mins of inactivity)
 const ENDPOINTS = [
     '/health',
@@ -16,7 +17,8 @@ const pingEndpoint = async (endpoint) => {
         const startTime = Date.now();
         // Native fetch requires Node >= 18.0.0
         const response = await fetch(url, {
-            signal: AbortSignal.timeout(10000)
+            headers: { 'User-Agent': 'Sparkle-Keep-Alive/1.0' },
+            signal: AbortSignal.timeout(15000)
         });
         const responseTime = Date.now() - startTime;
         
@@ -30,8 +32,8 @@ const pingEndpoint = async (endpoint) => {
     } catch (error) {
         if (error.name === 'TimeoutError' || error.name === 'AbortError') {
             logger.warn(`❌ Timeout pinging ${endpoint}`);
-        } else if (error.cause?.code === 'ECONNREFUSED' || error.code === 'ECONNREFUSED') {
-            logger.warn(`❌ Connection refused for ${endpoint} - App might be waking up`);
+        } else if (error.cause?.code === 'ECONNREFUSED' || error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+            logger.warn(`❌ Connection refused for ${endpoint} - App might be waking up or local server is down`);
         } else {
             logger.error(`❌ Error pinging ${endpoint} - ${error.message}`);
         }
@@ -54,19 +56,22 @@ const keepAlive = async () => {
 
 // Start the keep-alive process
 const startKeepAlive = () => {
-    if (process.env.NODE_ENV !== 'production' && !process.env.RENDER_APP_URL) {
-        logger.info('📡 Keep-alive service disabled in development (Set RENDER_APP_URL to enable)');
+    // Run even in dev if RENDER_EXTERNAL_URL is present, or if explicitly asked
+    const isRender = !!process.env.RENDER_EXTERNAL_URL || !!process.env.RENDER_APP_URL;
+    
+    if (!isRender && process.env.NODE_ENV !== 'production') {
+        logger.info('📡 Keep-alive service disabled in local dev (Set RENDER_EXTERNAL_URL to enable)');
         return;
     }
 
-    logger.info('📡 Keep-alive service started');
+    logger.info('📡 Keep-alive service initialized');
     logger.info(`🌐 Monitoring app at: ${RENDER_APP_URL}`);
     logger.info(`⏰ Ping interval: ${PING_INTERVAL / 1000 / 60} minutes`);
     
     // Run after a short delay on start (to let server fully bind)
     setTimeout(() => {
         keepAlive().catch(err => logger.error(`Keep alive init error: ${err.message}`));
-    }, 5000);
+    }, 10000);
     
     // Then run at regular intervals
     setInterval(() => {

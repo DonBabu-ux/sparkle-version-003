@@ -1,6 +1,7 @@
 .messaging-layout {
     display: flex;
-    height: 100vh;
+    height: 100%;
+    height: calc(var(--vh, 1vh) * 100);
     background: #f8fafc;
     overflow: hidden;
     position: relative;
@@ -658,6 +659,7 @@
     padding: 15px 25px 25px;
     border-top: 1px solid var(--border);
     z-index: 10;
+    transition: bottom 0.25s ease-out;
 }
 
 .composer-top {

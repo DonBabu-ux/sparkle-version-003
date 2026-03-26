@@ -19,7 +19,7 @@ const logFormat = winston.format.combine(
 );
 
 // Determine log directory (use /tmp in serverless environments)
-const logsDir = isServerless ? '/tmp/logs' : path.join(__dirname, '../logs');
+const logsDir = isServerless ? '/tmp/logs' : path.join(__dirname, '../.logs');
 
 // Create logs directory if it doesn't exist and we're allowed to write files
 let canWriteFiles = false;

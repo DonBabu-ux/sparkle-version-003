@@ -71,55 +71,33 @@ document.addEventListener('DOMContentLoaded', function () {
             state.userData = u;
 
             try {
-                if (useSupabase) {
-                    // Use Supabase OTP flow
-                    state.otpType = u.phone ? 'phone' : 'email';
-                    state.identifier = u.phone || u.email;
+                // Direct API signup (bypassing Supabase OTP for phone/email)
+                console.log('Using direct API signup...');
 
-                    const { error } = await supabase.auth.signInWithOtp({
-                        [state.otpType]: state.identifier,
-                        options: {
-                            shouldCreateUser: true,
-                            captchaToken: null
-                        }
-                    });
+                const signupData = {
+                    name: u.name,
+                    username: u.username,
+                    email: u.email,
+                    password: u.password,
+                    campus: u.campus,
+                    major: u.major,
+                    year: u.year,
+                    phone_number: u.phone
+                };
 
-                    if (error) throw error;
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(signupData)
+                });
 
-                    // Move to Panel 5
-                    window.goToStep(5);
-                    document.getElementById('panel5-message').textContent = `Code sent to ${state.identifier}`;
-                    document.getElementById('panel5-message').className = 'auth-message success show';
+                const result = await response.json();
 
+                if (result.status === 'success') {
+                    // Success - redirect to dashboard
+                    window.location.href = '/dashboard';
                 } else {
-                    // Fallback: Use direct API signup (no OTP for local dev)
-                    console.log('Using fallback API signup...');
-
-                    const signupData = {
-                        name: u.name,
-                        username: u.username,
-                        email: u.email,
-                        password: u.password,
-                        campus: u.campus,
-                        major: u.major,
-                        year: u.year,
-                        phone_number: u.phone
-                    };
-
-                    const response = await fetch('/api/auth/signup', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(signupData)
-                    });
-
-                    const result = await response.json();
-
-                    if (result.status === 'success') {
-                        // Success - redirect to dashboard
-                        window.location.href = '/dashboard';
-                    } else {
-                        throw new Error(result.message || 'Signup failed');
-                    }
+                    throw new Error(result.message || 'Signup failed');
                 }
 
             } catch (err) {

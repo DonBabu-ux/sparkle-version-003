@@ -1,0 +1,11 @@
+{
+  "columns": [
+    "verification_id",
+    "user_id",
+    "email",
+    "code",
+    "expires_at",
+    "verified_at",
+    "created_at"
+  ]
+}

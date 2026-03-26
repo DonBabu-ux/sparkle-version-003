@@ -26,7 +26,7 @@ const getSafeMediaUrl = (url) => {
 
     if (url.includes('fbcdn.net') || url.includes('fbsbx.com')) {
         // Return a high-quality placeholder for broken media
-        return 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=60&w=800';
+        return '/uploads/defaults/no-image.png';
     }
     return url;
 };

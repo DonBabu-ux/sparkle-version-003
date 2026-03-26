@@ -27,6 +27,7 @@ const validateJWTSecret = () => {
 
 const signup = async (req, res) => {
     try {
+        validateJWTSecret();
         const { name, username, email, password, campus, major, year, phone_number } = req.body;
         // Validation
         if (!name || !username || !email || !password) {
@@ -75,7 +76,6 @@ const signup = async (req, res) => {
         }).catch(err => logger.error('Failed to send signup verification email:', err));
 
         // Generate token for immediate login (but flag as unverified)
-        validateJWTSecret();
         const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '7d' });
 
         logger.info(`New user signed up: ${username} (${email}) - ID: ${userId}`);

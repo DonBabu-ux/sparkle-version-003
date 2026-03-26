@@ -2,25 +2,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up | Sparkle</title>
     <script>
-        // Immediate Background Auth Check
-        (function () {
-            function hasToken() {
-                try {
-                    if (document.cookie.includes('sparkleToken=')) {
-                        const cookies = document.cookie.split(';');
-                        for (let cookie of cookies) {
-                            const [name, value] = cookie.trim().split('=');
-                            if (name === 'sparkleToken' && value && value !== 'undefined') return true;
-                        }
-                    }
-                    const token = localStorage.getItem('sparkleToken');
-                    return !!(token && token !== 'undefined');
-                } catch (e) { return false; }
+        // Check if we arrived here due to a server redirect and clean up the URL
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('reason')) {
+                // If there's an auth failure reason, ensure stale local session is cleared
+                localStorage.removeItem('sparkleToken');
+                localStorage.removeItem('sparkleUser');
+                // Clean the URL without reloading
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
-            if (hasToken()) {
-                window.location.replace('/dashboard');
-            }
-        })();
+        });
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>

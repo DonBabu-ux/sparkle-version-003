@@ -14,7 +14,7 @@ const getSafeMediaUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('/uploads/')) return url;
     if (url.includes('fbcdn.net') || url.includes('fbsbx.com')) {
-        return 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000';
+        return '/uploads/defaults/no-image.png';
     }
     return url;
 };

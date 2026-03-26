@@ -38,9 +38,36 @@ const ejsAuthMiddleware = async (req, res, next) => {
         'Expires': '0'
     });
 
+
+    // This is a safety net to ensure public routes are never blocked even if path normalization fails.
+    const urlCheck = req.originalUrl.toLowerCase().split('?')[0];
+    if (
+        urlCheck === '/' ||
+        urlCheck.startsWith('/login') ||
+        urlCheck.startsWith('/signup') ||
+        urlCheck.startsWith('/about') ||
+        urlCheck.startsWith('/logout') ||
+        urlCheck.startsWith('/legal') ||
+        urlCheck.startsWith('/favicon.ico') ||
+        urlCheck.startsWith('/public') ||
+        urlCheck.startsWith('/uploads')
+    ) {
+        return next();
+    }
+
+    const pathFromReq = req.path.toLowerCase().replace(/\/+$/, '') || '/';
+    const pathFromOriginal = req.originalUrl.split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
+    const publicPaths = ['/login', '/signup', '/about', '/', '/logout', '/legal', '/terms', '/privacy', '/favicon.ico'];
+
+    if (publicPaths.includes(pathFromReq) || publicPaths.includes(pathFromOriginal)) {
+        return next();
+    }
+
+    res.setHeader('X-Auth-Decision', 'No Token/Redirect');
+
     const token = req.cookies?.sparkleToken;
     if (!token) {
-        console.warn('⚠️ ejsAuthMiddleware: No token cookie found, redirecting to login');
+        console.warn(`⚠️ ejsAuthMiddleware: No token found for protected path: ${req.path} (normalized: ${pathFromReq}), redirecting to login`);
         return res.redirect('/login?reason=no_token');
     }
 

@@ -85,10 +85,10 @@ window.addEventListener('error', function (e) {
         } else if (src.includes('cloudinary.com')) {
             // Specific placeholder for Cloudinary DNS/loading issues
             e.target.style.background = '#f0f0f0';
-            e.target.src = 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000'; // Campus vibe
-            console.warn("Cloudinary image failed to load, using campus fallback");
+            e.target.src = '/uploads/defaults/no-image.png'; // Campus vibe placeholder
+            console.warn("Cloudinary image failed to load, using local fallback");
         } else {
-            e.target.src = 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1000';
+            e.target.src = '/uploads/defaults/no-image.png';
         }
     } else if (e.target.tagName === 'VIDEO') {
         if (e.target.dataset.fallbackApplied) return;

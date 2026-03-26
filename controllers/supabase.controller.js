@@ -125,8 +125,9 @@ const syncVerifiedOTP = async (req, res) => {
             isNewUser = true;
             username = (metadata?.username || value.replace(/[^a-zA-Z0-9]/g, '')) + Math.floor(Math.random() * 1000);
 
-            const dummyPassword = crypto.randomBytes(16).toString('hex');
-            const hashedPassword = await bcrypt.hash(dummyPassword, 12);
+            // Use provided password if available, otherwise dummy
+            const passwordToHash = metadata?.password || crypto.randomBytes(16).toString('hex');
+            const hashedPassword = await bcrypt.hash(passwordToHash, 12);
 
             const columns = ['user_id', 'username', 'password_hash'];
             const params = [userId, username, hashedPassword];
@@ -142,6 +143,20 @@ const syncVerifiedOTP = async (req, res) => {
             if (metadata?.name) {
                 columns.push('name');
                 params.push(metadata.name);
+            }
+
+            // Sync academic details if available in metadata
+            if (metadata?.campus) {
+                columns.push('campus');
+                params.push(metadata.campus);
+            }
+            if (metadata?.major) {
+                columns.push('major');
+                params.push(metadata.major);
+            }
+            if (metadata?.year) {
+                columns.push('year_of_study');
+                params.push(metadata.year);
             }
 
             const sql = `INSERT INTO users (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`;

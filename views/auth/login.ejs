@@ -2,31 +2,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log In | Sparkle</title>
     <script>
-        // Immediate Background Auth Check
-        (function () {
-            // If we're coming from a failed auth check, don't auto-redirect back to dashboard
+        // Check if we arrived here due to a server redirect (e.g. expired token)
+        // We clean up the URL to avoid user confusion
+        document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('reason')) {
-                console.warn('Auto-redirect suppressed: ' + urlParams.get('reason'));
-                return;
+                // Determine reason message
+                const reason = urlParams.get('reason');
+                let message = 'Please log in to continue.';
+                if (reason === 'no_token') message = 'Your session has expired. Please log in again.';
+                
+                // Show message to user
+                const el = document.getElementById('login-message');
+                if (el) {
+                    el.textContent = message;
+                    el.className = 'auth-message error show';
+                }
+                
+                // Clean the URL without causing a reload
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
-
-            function hasCookieToken() {
-                try {
-                    if (document.cookie.includes('sparkleToken=')) {
-                        const cookies = document.cookie.split(';');
-                        for (let cookie of cookies) {
-                            const [name, value] = cookie.trim().split('=');
-                            if (name === 'sparkleToken' && value && value !== 'undefined') return true;
-                        }
-                    }
-                    return false;
-                } catch (e) { return false; }
+            
+            // If user has a saved token but server redirected, clear local storage to sync state
+            if (urlParams.has('reason')) {
+                localStorage.removeItem('sparkleToken');
+                localStorage.removeItem('sparkleUser');
+            } else if (localStorage.getItem('sparkleToken')) {
+                // Only auto-redirect if there wasn't a server auth failure
+                // window.location.href = '/dashboard'; // Disabled to prevent any loop possibilities
             }
-            if (hasCookieToken()) {
-                window.location.replace('/dashboard');
-            }
-        })();
+        });
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>

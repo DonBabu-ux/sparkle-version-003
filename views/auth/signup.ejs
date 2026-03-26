@@ -164,27 +164,33 @@
         .form-panels {
             position: relative;
             flex: 1;
-            min-height: 450px;
+            /* Remove fixed min-height to allow content to dictate height */
+            min-height: 480px; 
         }
 
         .form-panel {
             position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             opacity: 0;
             transform: translateX(50px);
             pointer-events: none;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            visibility: hidden; /* Added for better accessibility/prevention of interaction */
         }
 
         .form-panel.active {
             opacity: 1;
             transform: translateX(0);
             pointer-events: all;
-            position: relative;
+            position: relative; /* This allows the parent to expand to the panel's height */
+            visibility: visible;
         }
 
         .form-panel.previous {
             transform: translateX(-50px);
+            opacity: 0;
         }
 
         .panel-header {
@@ -382,16 +388,34 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                align-items: flex-start; /* Start at top for scrolling */
+            }
+
             .auth-container {
                 flex-direction: column;
+                box-shadow: none;
+                background: transparent;
             }
 
             .visual-side {
-                padding: 40px 20px;
+                display: none; /* Hide visual-side on very small screens to focus on form */
             }
 
             .form-side {
+                background: white;
+                border-radius: 12px;
                 padding: 30px 20px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }
+
+            .progress-bar {
+                margin-bottom: 24px; scale: 0.9;
+            }
+
+            .panel-title {
+                font-size: 20px;
             }
         }
     </style>
@@ -658,9 +682,14 @@
         window.appState = {
             currentStep: 1,
             totalSteps: 5,
-            userData: {},
+            userData: JSON.parse(sessionStorage.getItem('signup_userData') || '{}'),
             isTransitioning: false
         };
+
+        function saveState() {
+            sessionStorage.setItem('signup_userData', JSON.stringify(appState.userData));
+            sessionStorage.setItem('signup_currentStep', appState.currentStep);
+        }
 
         const panels = {
             1: document.getElementById('panel-1'),
@@ -727,10 +756,31 @@
         // Helpers
         function showMessage(panelId, msg, type) {
             const el = document.getElementById(panelId + '-message');
+            if (!el) return; // Prevent errors if panel doesn't have message div
             el.textContent = msg;
             el.className = `auth-message ${type} show`;
             setTimeout(() => el.classList.remove('show'), 5000);
         }
+
+        // Restore state if available
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedStep = parseInt(sessionStorage.getItem('signup_currentStep'));
+            if (savedStep > 1 && savedStep <= 5) {
+                // Populate fields from userData
+                const u = appState.userData;
+                if (u.name) document.getElementById('full-name').value = u.name;
+                if (u.username) document.getElementById('username').value = u.username;
+                if (u.email) document.getElementById('email').value = u.email;
+                if (u.phone) document.getElementById('phone').value = u.phone;
+                if (u.campus) document.getElementById('campus').value = u.campus;
+                if (u.major) document.getElementById('major').value = u.major;
+                if (u.year) document.getElementById('year').value = u.year;
+
+                // Sync UI to step
+                appState.currentStep = 1; // Temporarily reset to allow transition
+                goToStep(savedStep);
+            }
+        });
 
         // Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
@@ -755,6 +805,7 @@
                 }
 
                 appState.userData = { ...appState.userData, name, username: user, email, password: pass, phone };
+                saveState();
                 goToStep(3);
             });
             document.getElementById('back-to-welcome').addEventListener('click', () => goToStep(1));
@@ -771,6 +822,7 @@
                 }
 
                 appState.userData = { ...appState.userData, campus, major, year };
+                saveState();
                 updateSummary();
                 goToStep(4);
             });

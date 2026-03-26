@@ -95,7 +95,7 @@ const signup = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Signup Error:', error.message);
+        console.error('Signup Error [Full]:', error);
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({
                 status: 'error',
@@ -104,7 +104,8 @@ const signup = async (req, res) => {
         }
         res.status(500).json({
             status: 'error',
-            message: 'Failed to create account'
+            message: 'Failed to create account',
+            details: error.message
         });
     }
 };
@@ -162,8 +163,8 @@ const login = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login Error:', error.message);
-        res.status(500).json({ status: 'error', message: 'Login failed' });
+        console.error('Login Error [Full]:', error);
+        res.status(500).json({ status: 'error', message: 'Login failed', details: error.message });
     }
 };
 

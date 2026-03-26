@@ -79,7 +79,8 @@ const DashboardAPI = {
         try {
             const response = await fetch(fullUrl, {
                 ...options,
-                headers
+                headers,
+                credentials: 'include'
             });
 
             const endTime = performance.now();

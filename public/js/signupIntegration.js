@@ -45,7 +45,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 if (error) throw error;
             } catch (err) {
-                alert('Google Sign-in failed: ' + err.message);
+                if (window.showMessage) window.showMessage('panel1', 'Google Sign-in failed: ' + err.message, 'error');
+                else alert('Google Sign-in failed: ' + err.message);
             }
         });
     }
@@ -57,7 +58,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (createAccountBtn) {
         createAccountBtn.onclick = async function () {
             if (!document.getElementById('terms').checked) {
-                return alert('Please agree to terms.');
+                if (window.showMessage) window.showMessage('panel4', 'Please agree to terms.', 'error');
+                else alert('Please agree to terms.');
+                return;
             }
 
             const btn = document.getElementById('create-account');
@@ -121,7 +124,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             } catch (err) {
                 console.error('Signup Error:', err);
-                alert('Signup failed: ' + err.message);
+                const msg = err.message || 'Check your details and try again.';
+                if (window.showMessage) window.showMessage('panel4', 'Signup failed: ' + msg, 'error');
+                else alert('Signup failed: ' + msg);
+                
                 btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
                 btn.disabled = false;
             }

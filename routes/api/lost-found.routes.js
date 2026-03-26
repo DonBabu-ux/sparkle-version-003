@@ -17,6 +17,7 @@ router.post('/', authMiddleware, upload.array('media', 3), lostFoundController.r
 
 // Claim an item (reporter)
 router.post('/:id/claim', authMiddleware, lostFoundController.claimItem);
+router.put('/:id/claim', authMiddleware, lostFoundController.claimItem); // DashboardAPI compatibility
 
 // Mark as returned/resolved
 router.put('/:id/status', authMiddleware, lostFoundController.markReturned);

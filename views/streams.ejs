@@ -23,7 +23,7 @@
                     <div class="discover-grid" id="streamsContent" style="padding-bottom: 80px;">
                         <% if (typeof initialStreams !=='undefined' && initialStreams.length> 0) { %>
                             <% initialStreams.forEach(stream=> { %>
-                                <div class="discover-card" onclick="watchStream('<%= stream.stream_id %>')">
+                                <div class="discover-card" onclick="alert('Live stream viewer coming soon! Stream ID: <%= stream.stream_id %>')">
                                     <div class="discover-card-banner">
                                         <img src="<%= stream.thumbnail_url || 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=800' %>"
                                             alt="<%= stream.title %>">

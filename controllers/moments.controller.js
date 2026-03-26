@@ -214,6 +214,7 @@ const renderMomentDetail = async (req, res) => {
 const getMomentsStream = async (req, res) => {
     try {
         const { page = 1, limit = 10, category, hashtag } = req.query;
+        const userIdParam = req.params.userId; // From /users/:userId/moments
         const offset = (page - 1) * limit;
 
         let query = `
@@ -247,6 +248,9 @@ const getMomentsStream = async (req, res) => {
         } else if (category && category !== 'all') {
             query += ` WHERE m.category = ?`;
             params.push(category);
+        } else if (userIdParam) {
+            query += ` WHERE m.user_id = ?`;
+            params.push(userIdParam);
         }
 
         query += ` ORDER BY m.created_at DESC LIMIT ? OFFSET ?`;

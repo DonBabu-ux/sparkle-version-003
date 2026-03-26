@@ -16,6 +16,7 @@ router.get('/search', messageController.searchMessages);
 
 // Messaging/Chat Actions
 router.post('/send', messageController.sendMessage);
+router.post('/', messageController.sendMessage); // DashboardAPI Alias
 router.post('/read/:chatId', messageController.markRead);
 router.post('/mute/:chatId', messageController.muteConversation);
 router.post('/chat/:chatId/archive', messageController.archiveConversation);

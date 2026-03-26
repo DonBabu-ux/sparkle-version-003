@@ -1,0 +1,176 @@
+SPARKLE APP - ORPHANED FRONTEND FEATURES REMOVAL LOG
+=====================================================
+Generated: 2026-03-26
+Scope: Frontend UI elements with NO working backend implementation removed.
+Rule: Messages feature left completely untouched.
+
+========================================
+SECTION 1: AUDIT METHODOLOGY
+========================================
+The following backend route files were inspected:
+  routes/web/index.js      (16 web route files registered)
+  routes/api/index.js      (20 API route files registered)
+
+The following controller files were inspected:
+  controllers/campus.controller.js  (polls, events, streams — all CONFIRMED backed)
+  controllers/social.controller.js  (connect, follow-requests — CONFIRMED backed)
+  controllers/notification.controller.js (notifications — CONFIRMED backed)
+  controllers/dashboard.controller.js  (feed, stories, posts — CONFIRMED backed)
+  controllers/marketplace.controller.js (marketplace — CONFIRMED backed)
+  controllers/user.controller.js     (profile, settings — CONFIRMED backed)
+
+The following view/partial files were inspected for orphaned UI:
+  views/partials/dashboard-modals.ejs (1781 lines — primary source of orphans)
+  views/partials/sidebar.ejs
+  views/streams.ejs
+  views/events.ejs
+  views/polls.ejs
+  views/skill-market.ejs
+
+========================================
+SECTION 2: FEATURES WITH FULL BACKENDS (KEPT)
+========================================
+The following features were confirmed to have real backend support and were NOT removed:
+
+  ✅ Create Post           → POST /api/posts (dashboard.controller)
+  ✅ Create Moment         → POST /api/moments (moments.controller)
+  ✅ Create AfterGlow      → POST /api/stories (dashboard.controller)
+  ✅ Feed / Dashboard       → GET / (dashboard.controller)
+  ✅ Messages (DM)          → /api/messages + socket.io (messages.controller)
+  ✅ Group Chat             → /api/groupChat (groupChat.controller)
+  ✅ Notifications          → /api/notifications (notification.controller)
+  ✅ Polls (create/vote)    → /api/polls (campus.controller)
+  ✅ Events (create/RSVP)   → /api/events (campus.controller)
+  ✅ Live Streams (create)  → /api/streams (campus.controller)
+  ✅ Confessions            → /api/confessions (confession.controller)
+  ✅ Lost & Found           → /api/lost-found (lostFound.controller)
+  ✅ Marketplace            → /marketplace/* (marketplace.controller)
+  ✅ Skill Market           → /api/skill-market (skillMarket.controller)
+  ✅ Groups                 → /api/groups (groups.controller)
+  ✅ Clubs                  → /api/clubs (clubs.controller)
+  ✅ Connect / Discover     → /connect (social.controller)
+  ✅ Follow Requests        → /follow-requests (social.controller)
+  ✅ Search                 → /api/search (search.controller)
+  ✅ Profile & Edit Profile → /profile, /api/users (profile/user.controller)
+  ✅ Change Password        → /api/users/me/password (user.controller)
+  ✅ Delete Account         → DELETE /api/users/me (user.controller)
+  ✅ Anonymous/Visibility   → /api/users/settings (user.controller)
+  ✅ Push Notifications     → /api/users/settings (user.controller)
+  ✅ Email Notifications    → /api/users/settings (user.controller)
+  ✅ Dark Mode toggle       → /api/users/settings (user.controller)
+  ✅ Font Size & Language   → /api/users/settings (user.controller)
+  ✅ Admin Dashboard/Logs   → /admin/* (admin.controller)
+
+========================================
+SECTION 3: FEATURES REMOVED (NO BACKEND)
+========================================
+
+--- REMOVAL #1 ---
+FILE:    views/partials/dashboard-modals.ejs
+FEATURE: "Send Reset Link to Email" button (Security tab)
+LINES:   ~1124-1126
+REASON:  Button calls alert('Password reset link sent to your email.') — a static
+         fake notification with NO API call to any backend password recovery endpoint.
+         The actual password recovery flow is handled by the email auth controller
+         but is NOT wired to this button.
+ACTION:  Button removed. Users can use the dedicated /forgot-password page instead.
+
+--- REMOVAL #2 ---
+FILE:    views/partials/dashboard-modals.ejs
+FEATURE: Two-Factor Authentication (2FA) toggle (Security tab)
+LINES:   ~1130-1148
+REASON:  Toggle input #enhanced-2fa-toggle has NO onchange handler and calls no API.
+         There is no 2FA backend route, no 2FA model, no 2FA middleware anywhere in
+         the codebase. It is a purely decorative checkbox.
+ACTION:  2FA toggle section removed entirely.
+
+--- REMOVAL #3 ---
+FILE:    views/partials/dashboard-modals.ejs
+FEATURE: Login Alerts toggle (Security tab)
+LINES:   ~1140-1148
+REASON:  Toggle input #enhanced-login-alerts has NO onchange handler. It does NOT
+         call saveAppSetting() or any API. There is no login_alerts column or
+         notification hook in the backend. Pure decoration.
+ACTION:  Login alerts toggle section removed.
+
+--- REMOVAL #4 ---
+FILE:    views/partials/dashboard-modals.ejs
+FEATURE: "Active Sessions" device management panel (Storage & Privacy tab)
+LINES:   ~1218-1240
+REASON:  The "Active Sessions" section renders a HARDCODED static string:
+         "Safari on iPhone • 3 hours ago" — this is fake UI. The removeDeviceSession()
+         and logoutAllSessions() functions call alert() only, with zero API interaction.
+         There is no sessions table, no device tracking in the backend.
+ACTION:  Entire Active Sessions panel + removeDeviceSession/logoutAllSessions
+         JS functions removed.
+
+--- REMOVAL #5 ---
+FILE:    views/partials/dashboard-modals.ejs
+FEATURE: SMS Notifications toggle (Notifications tab)
+LINES:   ~1271-1277
+REASON:  Toggle input #enhanced-sms-notify has NO onchange attribute. Even if it did,
+         there is no SMS gateway, no phone_number column, no SMS service configured
+         anywhere in the codebase. Cannot save and cannot deliver.
+ACTION:  SMS Notifications toggle section removed.
+
+--- REMOVAL #6 ---
+FILE:    views/partials/dashboard-modals.ejs  (old Settings Modal, lines 359-440)
+FEATURE: Legacy/duplicate Settings Modal (#settingsModal)
+LINES:   359-440
+REASON:  This is a legacy version of the Settings modal that was superseded by the
+         much larger Enhanced Settings Modal (#enhancedSettingsModal). The old version
+         contains logoutDevice() and logoutAllOtherDevices() stubs that call alert().
+         It is never opened from any current link or button in the UI.
+ACTION:  Entire legacy #settingsModal block removed. The logoutDevice and
+         logoutAllOtherDevices stub functions removed.
+
+--- REMOVAL #7 ---
+FILE:    views/partials/dashboard-modals.ejs
+FEATURE: "Data Collection" toggle (Storage & Privacy tab)
+LINES:   ~1207-1215
+REASON:  Toggle #enhanced-data-collection has an onchange handler wired to
+         saveAppSetting('data_collection', ...) BUT there is no data_collection
+         column in the users or user_settings tables. The key is silently ignored
+         by the backend. Misleads users into believing analytics consent is recorded.
+ACTION:  Data Collection toggle section removed.
+
+--- REMOVAL #8 ---
+FILE:    views/streams.ejs
+FEATURE: watchStream() click handler on stream cards
+LINES:   26 (onclick="watchStream(stream.stream_id)")
+REASON:  The function watchStream() is called on every stream card click, but
+         no watchStream() function is defined anywhere in dashboardAPI.js or any
+         loaded script. Clicking a stream card throws a JS ReferenceError. There is
+         no stream viewer page or route. The backend creates streams but has no
+         viewer/watch endpoint.
+ACTION:  onclick handler on stream cards changed to a simple informational alert
+         until a real viewer is built.
+
+--- REMOVAL #9 ---
+FILE:    views/partials/dashboard-modals.ejs (old #settingsModal area)
+FEATURE: requestDataDownload() function
+LINES:   437-439
+REASON:  Function shows alert('Data download request submitted...') with NO HTTP call.
+         No data export route (/api/users/me/export or similar) exists in the backend.
+ACTION:  Function and any button calling it removed.
+
+========================================
+SECTION 4: STREAMS PAGE — SPECIAL NOTE
+========================================
+The Streams page and its Go Live modal (#goLiveModal) were partially kept:
+- startLiveStream() correctly calls DashboardAPI.startStream() which has a real
+  backend endpoint (POST /api/streams via campus.controller.js). KEPT.
+- The Go Live FAB button on streams.ejs calls openGoLiveModal() which is defined
+  and connected. KEPT.
+- Only the watchStream() onclick on stream cards was patched (see Removal #8).
+
+========================================
+SECTION 5: SUMMARY OF CHANGES
+========================================
+Total orphaned features removed: 9
+Files modified: 2
+  - views/partials/dashboard-modals.ejs (Settings and Security tabs cleaned)
+  - views/streams.ejs (watchStream stub onclick patched)
+
+No routes, controllers, or database files were modified.
+Messages feature: UNTOUCHED as instructed.

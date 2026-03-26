@@ -28,4 +28,7 @@ router.post('/:id/comments', authMiddleware, momentsController.addComment);
 // User interaction
 router.post('/user/:userId/follow', authMiddleware, momentsController.followUser);
 
+// DashboardAPI Compatibility
+router.get('/users/:userId/moments', authMiddleware, momentsController.getMomentsStream); // Filter by user_id in controller
+
 module.exports = router;

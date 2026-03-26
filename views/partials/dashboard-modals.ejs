@@ -356,89 +356,7 @@ async function submitAfterglow() {
 }
 </script>
 
-<!-- Settings Modal -->
-<div class="modal" id="settingsModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <div class="modal-title">Settings & Preferences</div>
-            <button class="close-modal" id="closeSettingsModal"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body p-0">
-            <div class="settings-tabs-wrapper">
-                <button class="tab-btn active" onclick="switchSettingsTab('profileSettings')">Profile</button>
-                <button class="tab-btn" onclick="switchSettingsTab('accountSettings')">Account</button>
-                <button class="tab-btn" onclick="switchSettingsTab('prefSettings')">Preferences</button>
-                <button class="tab-btn" onclick="switchSettingsTab('privacySettings')">Privacy</button>
-            </div>
-            <div class="p-4">
-                <div id="profileSettings" class="settings-tab-content">
-                    <h3 class="mb-3 fs-6">Edit Profile</h3>
-                    <div class="form-group">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" class="form-control" id="editName"
-                            value="<%= typeof user !== 'undefined' ? user.name : '' %>">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Bio</label>
-                        <textarea class="form-control" id="editBio" rows="3"
-                            placeholder="Tell us about yourself..."><%= typeof user !== 'undefined' ? user.bio : '' %></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Campus</label>
-                        <select class="form-control" id="editCampus" name="campus">
-                            <option value="University of Nairobi" <%=typeof user !=='undefined' &&
-                                user.campus==='University of Nairobi' ? 'selected' : '' %>>University of Nairobi (UoN)
-                            </option>
-                            <option value="Kenyatta University" <%=typeof user !=='undefined' &&
-                                user.campus==='Kenyatta University' ? 'selected' : '' %>>Kenyatta University (KU)
-                            </option>
-                            <option value="JKUAT" <%=typeof user !=='undefined' &&
-                                user.campus==='Jomo Kenyatta University of Agriculture and Technology' ? 'selected' : ''
-                                %>>JKUAT
-                            </option>
-                            <!-- ... other options ... -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Major / Field of Study</label>
-                        <input type="text" class="form-control" id="editMajor"
-                            value="<%= typeof user !== 'undefined' ? user.major : '' %>"
-                            placeholder="e.g. Computer Science">
-                    </div>
-                    <button class="btn btn-primary w-100" onclick="window.saveProfileChanges()">Save Changes</button>
-                </div>
-                <!-- Other tabs simplified for brevity or refactored similarly -->
-            </div>
-        </div>
-    </div>
-</div>
-<script>
-    function switchSettingsTab(tabId) {
-        document.querySelectorAll('.settings-tab-content').forEach(el => el.style.display = 'none');
-        document.getElementById(tabId).style.display = 'block';
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.style.color = '#666';
-            btn.style.borderBottom = 'none';
-            btn.classList.remove('active');
-        });
-        event.target.style.color = 'var(--primary)';
-        event.target.style.borderBottom = '2px solid var(--primary)';
-    }
-    function logoutDevice(deviceId) {
-        if (confirm('Log out this device?')) {
-            alert('Device logged out successfully');
-        }
-    }
-    function logoutAllOtherDevices() {
-        if (confirm('Log out all other devices except this one?')) {
-            alert('All other devices logged out successfully');
-        }
-    }
-    function requestDataDownload() {
-        alert('Data download request submitted. You will receive an email with download link within 24 hours.');
-    }
-</script>
-</div>
+<!-- Legacy #settingsModal removed — superseded by #enhancedSettingsModal below -->
 
 <!-- Confessions Modal -->
 <div class="modal" id="confessionsModal">
@@ -1120,31 +1038,8 @@ async function submitAfterglow() {
                     </div>
                     <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
                     <div class="settings-section">
-                        <div style="font-weight: 600; margin-bottom: 15px;">Password Recovery</div>
-                        <button class="btn btn-outline-primary" style="font-size: 13px;"
-                            onclick="alert('Password reset link sent to your email.')">Send Reset Link to Email</button>
-                    </div>
-                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
-                    <div class="settings-section">
-                        <div style="font-weight: 600; margin-bottom: 15px;">Advanced Security</div>
-                        <div
-                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding: 10px 0;">
-                            <div>
-                                <div style="font-weight: 500;">Two-Factor Authentication</div>
-                                <div style="font-size: 12px; color: #666;">Add an extra layer of security</div>
-                            </div>
-                            <label class="switch"><input type="checkbox" id="enhanced-2fa-toggle"><span
-                                    class="slider round"></span></label>
-                        </div>
-                        <div
-                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding: 10px 0;">
-                            <div>
-                                <div style="font-weight: 500;">Login Alerts</div>
-                                <div style="font-size: 12px; color: #666;">Get notified for new logins</div>
-                            </div>
-                            <label class="switch"><input type="checkbox" id="enhanced-login-alerts" checked><span
-                                    class="slider round"></span></label>
-                        </div>
+                        <div style="font-weight: 600; margin-bottom: 15px;">Forgot Password?</div>
+                        <p style="font-size: 13px; color: #666;">To reset your password, use the <a href="/forgot-password" style="color: var(--primary);">Password Reset page</a>.</p>
                     </div>
                 </div>
                 <div id="privacy-tab" class="enhanced-settings-content" style="display: none;">
@@ -1204,40 +1099,7 @@ async function submitAfterglow() {
                         </select>
                     </div>
 
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
-                        <div>
-                            <div style="font-weight: 600;">Data Collection</div>
-                            <div style="font-size: 13px; color: #8e8e8e;">Allow analytics to improve experience</div>
-                        </div>
-                        <label class="switch"><input type="checkbox" id="enhanced-data-collection" checked><span
-                                class="slider round"></span></label>
-                    </div>
-                    <div style="border-top: 1px solid #efefef; margin: 30px 0;"></div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 15px;">Active Sessions</div>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
-                                <div>
-                                    <div style="font-weight: 500;">Current Device</div>
-                                    <div style="font-size: 12px; color: #666;">Chrome on Windows • Now</div>
-                                </div>
-                                <span style="color: #28a745; font-size: 12px;">Active</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="font-weight: 500;">Mobile Device</div>
-                                    <div style="font-size: 12px; color: #666;">Safari on iPhone • 3 hours ago</div>
-                                </div>
-                                <button class="btn btn-outline-danger btn-sm"
-                                    onclick="removeDeviceSession('mobile')">Remove</button>
-                            </div>
-                        </div>
-                        <button class="btn btn-outline-danger" style="margin-top: 15px; font-size: 14px;"
-                            onclick="logoutAllSessions()"><i class="fas fa-sign-out-alt"></i> Logout All Other
-                            Sessions</button>
-                    </div>
+
                 </div>
                 <div id="notification-tab" class="enhanced-settings-content" style="display: none;">
                     <div style="font-size: 24px; font-weight: 300; margin-bottom: 35px;">Notifications</div>
@@ -1265,16 +1127,7 @@ async function submitAfterglow() {
                             onchange="saveAppSetting('email_notifications', this.checked)"><span
                                 class="slider round"></span></label>
                     </div>
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
-                        <div>
-                            <div style="font-weight: 600;">SMS Notifications</div>
-                            <div style="font-size: 13px; color: #8e8e8e;">Receive critical alerts via text message.
-                            </div>
-                        </div>
-                        <label class="switch"><input type="checkbox" id="enhanced-sms-notify"><span
-                                class="slider round"></span></label>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -1377,16 +1230,7 @@ async function submitAfterglow() {
                 alert('Failed to update avatar: ' + (err.message || 'Unknown error'));
             }
         });
-        function removeDeviceSession(deviceId) {
-            if (confirm('Remove this device session?')) {
-                alert('Device session removed');
-            }
-        }
-        function logoutAllSessions() {
-            if (confirm('Log out all other sessions except this one?')) {
-                alert('All other sessions logged out');
-            }
-        }
+
         async function logout() {
             try {
                 document.cookie = 'sparkleToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';

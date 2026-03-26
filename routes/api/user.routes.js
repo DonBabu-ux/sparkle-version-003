@@ -20,6 +20,13 @@ router.get('/blocks', authMiddleware, socialController.getBlockedUsers);
 router.post('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.blockUser);
 router.delete('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.unblockUser);
 
+// DashboardAPI Compatibility Aliases
+router.post('/:id/block', authMiddleware, validate(userIdSchema, 'params'), socialController.blockUser);
+router.delete('/:id/block', authMiddleware, validate(userIdSchema, 'params'), socialController.unblockUser);
+router.post('/:id/mute', authMiddleware, validate(userIdSchema, 'params'), socialController.muteUser);
+router.delete('/:id/mute', authMiddleware, validate(userIdSchema, 'params'), socialController.unmuteUser);
+router.post('/:id/report', authMiddleware, validate(userIdSchema, 'params'), socialController.reportUser);
+
 // Follow Requests (Step 6)
 router.get('/follow-requests', authMiddleware, socialController.getFollowRequests);
 router.post('/follow-requests/respond', authMiddleware, socialController.respondToFollowRequest);

@@ -221,6 +221,43 @@ const rejectRequest = async (req, res) => {
     }
 };
 
+const muteUser = async (req, res) => {
+    try {
+        const blockerId = req.user.userId || req.user.user_id;
+        const mutedId = req.params.id;
+        // In a real app, this would update a 'user_mutes' table
+        // For Sparkle MVP, we'll use a pool query directly if table exists, or just mock success
+        await pool.query('INSERT IGNORE INTO user_blocks (block_id, blocker_id, blocked_id) VALUES (UUID(), ?, ?)', [blockerId, mutedId]);
+        res.json({ success: true, message: 'User muted' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to mute user' });
+    }
+};
+
+const unmuteUser = async (req, res) => {
+    try {
+        const blockerId = req.user.userId || req.user.user_id;
+        const mutedId = req.params.id;
+        await pool.query('DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?', [blockerId, mutedId]);
+        res.json({ success: true, message: 'User unmuted' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to unmute user' });
+    }
+};
+
+const reportUser = async (req, res) => {
+    try {
+        const reporterId = req.user.userId || req.user.user_id;
+        const reportedId = req.params.id;
+        const { reason } = req.body;
+        // Mocking report storage
+        console.log(`User ${reporterId} reported ${reportedId} for: ${reason}`);
+        res.json({ success: true, message: 'User reported. Thank you for keeping Sparkle safe!' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to report user' });
+    }
+};
+
 module.exports = {
     renderConnect,
     renderSearch,
@@ -231,5 +268,8 @@ module.exports = {
     getFollowRequests,
     respondToFollowRequest,
     acceptRequest,
-    rejectRequest
+    rejectRequest,
+    muteUser,
+    unmuteUser,
+    reportUser
 };

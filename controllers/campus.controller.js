@@ -397,6 +397,17 @@ const shareEvent = async (req, res) => {
     }
 };
 
+const endStream = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId || req.user.user_id;
+        await pool.query('DELETE FROM streams WHERE id = ? AND user_id = ?', [id, userId]);
+        res.json({ success: true, message: 'Stream ended' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to end stream' });
+    }
+};
+
 module.exports = {
     renderPolls,
     renderPollDetail,
@@ -415,5 +426,6 @@ module.exports = {
     followStream,
     getEventAttendees,
     sharePoll,
-    shareEvent
+    shareEvent,
+    endStream
 };

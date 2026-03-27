@@ -156,13 +156,28 @@
     .more-drawer-danger:hover { background: #fef2f2; }
 </style>
 
+<style>
+    /* ── Chat-page nav icon swap ───────────────────────────────── */
+    <% if (locals.title === 'Messages') { %>
+    .b-nav-item.home-btn  { display: none !important; }
+    .b-nav-item.chat-menu-btn { display: flex !important; }
+    <% } else { %>
+    .b-nav-item.chat-menu-btn { display: none !important; }
+    <% } %>
+</style>
+
 <div class="bottom-nav" id="bottomNav" data-expanded="false">
-    <!-- HOME: always visible, toggles the nav -->
+    <!-- HOME (global pages): always visible, expands global nav -->
     <button class="b-nav-item home-btn <%= locals.title === 'Dashboard' ? 'active' : '' %>" onclick="toggleSparkleNav()" aria-label="Home">
         <i class="fas fa-home"></i>
         <span>Home</span>
     </button>
-    <!-- These items are hidden until Home is tapped -->
+    <!-- CHAT MENU (messages page only): expands chat-local nav -->
+    <button class="b-nav-item chat-menu-btn" onclick="toggleChatNav()" aria-label="Chat Menu">
+        <i class="fas fa-comment-dots"></i>
+        <span>Menu</span>
+    </button>
+    <!-- These items are hidden until Home/Chat Menu is tapped -->
     <a href="/connect" class="b-nav-item <%= locals.title === 'Connect' ? 'active' : '' %>">
         <i class="fas fa-search"></i>
         <span>Discover</span>
@@ -179,6 +194,7 @@
         <span>More</span>
     </button>
 </div>
+
 
 <!-- More Drawer -->
 <div class="more-drawer-overlay" id="moreDrawerOverlay" onclick="closeMoreDrawer()"></div>

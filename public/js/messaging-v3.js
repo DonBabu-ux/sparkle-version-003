@@ -2513,7 +2513,13 @@ class SparkleChat {
 
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 400;
         if (force || isNearBottom) {
-            container.scrollTop = container.scrollHeight;
+            // Scroll to slightly above the absolute bottom so the last message
+            // sits clearly above the input bar and is never hidden behind it.
+            const composer = document.querySelector('.chat-composer');
+            const composerH = composer ? composer.offsetHeight : 70;
+            const targetScroll = container.scrollHeight - composerH - 8;
+            container.scrollTop = Math.max(targetScroll, container.scrollHeight - container.clientHeight);
+
             const badge = document.getElementById('newMsgBadge');
             if (badge) badge.style.display = 'none';
         } else {

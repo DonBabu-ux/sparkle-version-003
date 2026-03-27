@@ -111,20 +111,21 @@ html, body {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     padding: 10px 10px 0 10px;
-    /* bottom padding = composer height + nav height + safe buffer */
-    padding-bottom: calc(var(--composer-height) + var(--nav-height) + 20px);
+    /* bottom padding = composer height + nav height + safe buffer (40px keeps last msg above input bar) */
+    padding-bottom: calc(var(--composer-height) + var(--nav-height) + 40px);
     position: relative;
     z-index: 2;
     /* Remove any pseudo background from previous builds */
+    scroll-behavior: smooth;
 }
 
 #messagesContainer::before {
     display: none;
 }
 
-/* When keyboard is open, only need space for composer */
+/* When keyboard is open, only need space for composer (still 40px buffer) */
 body.keyboard-open #messagesContainer {
-    padding-bottom: calc(var(--composer-height) + 20px);
+    padding-bottom: calc(var(--composer-height) + 40px);
 }
 
 /* ── 10. CHAT HEADER ─────────────────────────────────────────── */
@@ -193,7 +194,7 @@ body.keyboard-open .bottom-nav {
 @media (min-width: 1025px) {
     .bottom-nav { display: none !important; }
     .chat-composer { bottom: 0 !important; }
-    #messagesContainer { padding-bottom: calc(var(--composer-height) + 20px); }
+    #messagesContainer { padding-bottom: calc(var(--composer-height) + 40px); }
 }
 
 /* ── 13. MESSAGE BUBBLES ─────────────────────────────────────── */

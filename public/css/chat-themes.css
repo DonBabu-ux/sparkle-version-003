@@ -1,4 +1,11 @@
 /* Dynamic Chat Theming Engine */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
 :root {
     /* Default Theme Variables (Classic Doodle) */
     --chat-bg-color: #0b141a;
@@ -11,9 +18,12 @@
     --chat-input-bg: #2a3942;
     --chat-header-bg: #202c33;
     --chat-header-text: #e9edef;
-    
     /* Viewport Height for Mobile Keyboard Fix */
     --vh: 1vh;
+    
+    /* Background Image Modifiers */
+    --chat-pattern-size: 400px;
+    --chat-pattern-repeat: repeat;
 }
 
 /* Base UI Adjustments for Theming */
@@ -23,23 +33,37 @@
 }
 
 #messagesContainer {
-    background-color: var(--chat-bg-color) !important;
+    background: transparent !important;
     position: relative;
     overflow-x: hidden;
-    transition: background-color 0.4s ease;
+    overflow-y: auto;
+    flex: 1;
 }
 
-#messagesContainer::before {
-    content: "";
+.chat-background {
     position: absolute;
     inset: 0;
-    background-image: var(--chat-pattern-url);
-    background-repeat: repeat;
-    background-size: 400px;
-    opacity: var(--chat-pattern-opacity);
     z-index: 0;
+    background-color: var(--chat-bg-color);
+    background-image: var(--chat-pattern-url);
+    background-repeat: var(--chat-pattern-repeat, repeat);
+    background-size: var(--chat-pattern-size, 400px);
+    background-position: center;
+    opacity: 1; /* Pattern opacity is handled by the variable */
+    transition: background 0.4s ease;
+}
+
+.chat-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.1); /* Subtle dark overlay for better text readability */
+    z-index: 1;
     pointer-events: none;
-    transition: opacity 0.4s ease;
+}
+
+/* Hide the old pseudo element */
+#messagesContainer::before {
+    display: none;
 }
 
 /* Chat Header */
@@ -87,6 +111,18 @@
 .chat-composer {
     background: var(--chat-header-bg) !important;
     border-top: 1px solid rgba(255,255,255,0.05) !important;
+    position: relative;
+    z-index: 1000;
+    padding-bottom: env(safe-area-inset-bottom, 10px);
+}
+
+/* Hidden when keyboard is open */
+.bottom-nav {
+    transition: transform 0.3s ease;
+}
+
+.bottom-nav.hidden {
+    transform: translateY(100%);
 }
 
 .wa-composer-input-wrapper {

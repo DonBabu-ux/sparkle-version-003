@@ -513,6 +513,79 @@ const chatThemes = [
         textColor: "#ffffff",
         secondaryText: "#8696a0",
         inputBg: "#252525"
+    },
+    // HERITAGE NATURE (6)
+    {
+        id: "tropical_paradise",
+        name: "Tropical Paradise",
+        category: "heritage_nature",
+        bgColor: "#0d1b2a",
+        imageBg: "/themes/tropical.png",
+        bubbleSent: "#00a884",
+        bubbleReceived: "#1e3a5f",
+        textColor: "#ffffff",
+        secondaryText: "#a0ccda",
+        inputBg: "#102336"
+    },
+    {
+        id: "forest_serenity",
+        name: "Forest Serenity",
+        category: "heritage_nature",
+        bgColor: "#0f2e14",
+        imageBg: "/themes/forest.png",
+        bubbleSent: "#2b9348",
+        bubbleReceived: "#1a4dc3",
+        textColor: "#ffffff",
+        secondaryText: "#93c7a1",
+        inputBg: "#0f2e14"
+    },
+    {
+        id: "mountain_vista",
+        name: "Mountain Vista",
+        category: "heritage_nature",
+        bgColor: "#0a192f",
+        imageBg: "/themes/mountain.png",
+        bubbleSent: "#64ffda",
+        bubbleReceived: "#112240",
+        textColor: "#ffffff",
+        secondaryText: "#8892b0",
+        inputBg: "#0a192f"
+    },
+    {
+        id: "exotic_birds",
+        name: "Exotic Birds",
+        category: "heritage_nature",
+        bgColor: "#2a0800",
+        imageBg: "/themes/birds.png",
+        bubbleSent: "#ff4d4d",
+        bubbleReceived: "#4a1500",
+        textColor: "#ffffff",
+        secondaryText: "#ffb3b3",
+        inputBg: "#2a0800"
+    },
+    {
+        id: "floral_harmony",
+        name: "Floral Harmony",
+        category: "heritage_nature",
+        bgColor: "#2b001a",
+        imageBg: "/themes/floral.png",
+        bubbleSent: "#ff66b2",
+        bubbleReceived: "#400026",
+        textColor: "#ffffff",
+        secondaryText: "#ffb3d9",
+        inputBg: "#2b001a"
+    },
+    {
+        id: "sunset_glow",
+        name: "Sunset Glow",
+        category: "heritage_nature",
+        bgColor: "#1a001a",
+        imageBg: "/themes/sunset.png",
+        bubbleSent: "#ff7b00",
+        bubbleReceived: "#330033",
+        textColor: "#ffffff",
+        secondaryText: "#ffb366",
+        inputBg: "#1a001a"
     }
 ];
 

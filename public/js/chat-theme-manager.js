@@ -96,7 +96,8 @@ class ThemeManager {
             'hard': 'Hard Themes',
             'bright': 'Bright Themes',
             'solid': 'Solid Themes',
-            'nature': 'Nature & Weather'
+            'nature': 'Nature & Weather',
+            'heritage_nature': 'Nature Heritage'
         };
 
         let html = '';
@@ -111,7 +112,7 @@ class ThemeManager {
                         ${catThemes.map(theme => `
                             <div class="theme-card ${theme.id === this.currentThemeId ? 'active' : ''}" 
                                  onclick="sparkThemes.applyTheme('${theme.id}')"
-                                 style="background-color: ${theme.bgColor.includes('gradient') ? 'transparent' : theme.bgColor}; background-image: ${theme.bgColor.includes('gradient') ? theme.bgColor : 'none'};">
+                                 style="background-color: ${theme.bgColor.includes('gradient') ? 'transparent' : theme.bgColor}; background-image: ${theme.imageBg ? `url('${theme.imageBg}')` : (theme.bgColor.includes('gradient') ? theme.bgColor : 'none')};">
                                 <div class="theme-card-preview">
                                     <div class="preview-bubble received" style="background: ${theme.bubbleReceived};"></div>
                                     <div class="preview-bubble sent" style="background: ${theme.bubbleSent};"></div>
@@ -142,8 +143,18 @@ class ThemeManager {
         root.style.setProperty('--chat-text-primary', theme.textColor);
         root.style.setProperty('--chat-text-secondary', theme.secondaryText || '#8696a0');
         root.style.setProperty('--chat-input-bg', theme.inputBg || '#2a3942');
-        root.style.setProperty('--chat-pattern-opacity', theme.patternOpacity || (theme.pattern ? 0.08 : 0));
-        root.style.setProperty('--chat-pattern-url', theme.pattern ? `url(${theme.pattern})` : 'none');
+        
+        if (theme.imageBg) {
+            root.style.setProperty('--chat-pattern-url', `url(${theme.imageBg})`);
+            root.style.setProperty('--chat-pattern-opacity', theme.patternOpacity || '1');
+            root.style.setProperty('--chat-pattern-size', 'cover');
+            root.style.setProperty('--chat-pattern-repeat', 'no-repeat');
+        } else {
+            root.style.setProperty('--chat-pattern-url', theme.pattern ? `url(${theme.pattern})` : 'none');
+            root.style.setProperty('--chat-pattern-opacity', theme.patternOpacity || (theme.pattern ? 0.08 : 0));
+            root.style.setProperty('--chat-pattern-size', '400px');
+            root.style.setProperty('--chat-pattern-repeat', 'repeat');
+        }
 
         // Dark/Light Header Logic
         const isLight = this.isColorLight(theme.bgColor);

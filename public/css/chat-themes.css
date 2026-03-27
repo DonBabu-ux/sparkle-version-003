@@ -29,9 +29,9 @@ html, body {
 
     /* Layout constants */
     --composer-height: 70px;
-    --nav-height: 60px;
-    --composer-bottom-closed: calc(var(--nav-height));   /* sits above nav */
-    --composer-bottom-open: 0px;                          /* flush with keyboard */
+    --nav-height: 0px; /* Nav removed entirely on messages page */
+    --composer-bottom-closed: 0px;
+    --composer-bottom-open: 0px;
 }
 
 /* ── 3. ROOT APP CONTAINER ───────────────────────────────────── */
@@ -66,20 +66,19 @@ html, body {
 
 /* ── 6. BACKGROUND LAYER (wallpaper) ─────────────────────────── */
 .chat-background {
-    position: absolute;
+    position: absolute; /* Using absolute inside relative #chatMain */
     inset: 0;
     z-index: 0;
     width: 100%;
     height: 100%;
     background-color: var(--chat-bg-color);
     background-image: var(--chat-pattern-url);
-    background-repeat: var(--chat-pattern-repeat, repeat);
-    background-size: var(--chat-pattern-size, 400px);
+    background-repeat: no-repeat;
+    background-size: cover;
     background-position: center;
     /* GPU compositing - prevents scroll glitch on mobile */
     transform: translateZ(0);
     will-change: transform;
-    transition: background 0.4s ease;
     pointer-events: none;
 }
 
@@ -141,7 +140,7 @@ body.keyboard-open #messagesContainer {
 /* ── 11. COMPOSER / INPUT BAR (FIXED, NEVER MOVES) ───────────── */
 .chat-composer {
     position: fixed;
-    bottom: var(--composer-bottom-closed); /* lifted above nav by default */
+    bottom: 0; /* Sits flush at the bottom */
     left: 0;
     right: 0;
     min-height: var(--composer-height);
@@ -156,9 +155,10 @@ body.keyboard-open #messagesContainer {
     transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
 }
 
-/* When keyboard opens: drop to bottom of viewport */
+/* When keyboard opens: drop to bottom of viewport and remove safe area inset gap */
 body.keyboard-open .chat-composer {
-    bottom: var(--composer-bottom-open);
+    bottom: 0;
+    padding-bottom: 0px !important; /* Removes white gap between input and keyboard */
 }
 
 /* ── 12. NAVIGATION BAR – COLLAPSED BY DEFAULT ───────────────── */

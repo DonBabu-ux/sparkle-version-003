@@ -38,18 +38,7 @@
     }
 
     /* EXTRA NAV ITEMS: hidden by default (collapsed state) */
-    .bottom-nav:not([data-expanded="true"]) .b-nav-item:not(.home-btn) {
-        opacity: 0;
-        transform: translateY(8px);
-        pointer-events: none;
-    }
-
-    /* EXPANDED state: all items visible */
-    .bottom-nav[data-expanded="true"] .b-nav-item:not(.home-btn) {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-    }
+    /* REMOVED: All nav items are now persistently visible on global tabs */
 
     /* Push content above nav on mobile — handled via #messagesContainer padding */
     @media (max-width: 1024px) {
@@ -157,32 +146,23 @@
 </style>
 
 <style>
-    /* ── Chat-page nav icon swap ───────────────────────────────── */
+    /* ── Hide bottom nav entirely on Messages page ────────────────── */
     <% if (locals.title === 'Messages') { %>
-    .b-nav-item.home-btn  { display: none !important; }
-    .b-nav-item.chat-menu-btn { display: flex !important; }
-    <% } else { %>
-    .b-nav-item.chat-menu-btn { display: none !important; }
+    .bottom-nav { display: none !important; }
     <% } %>
 </style>
 
-<div class="bottom-nav" id="bottomNav" data-expanded="false">
-    <!-- HOME (global pages): always visible, expands global nav -->
-    <button class="b-nav-item home-btn <%= locals.title === 'Dashboard' ? 'active' : '' %>" onclick="toggleSparkleNav()" aria-label="Home">
+<div class="bottom-nav" id="bottomNav">
+    <!-- HOME (global pages): always visible, takes to dashboard if clicked, or just href -->
+    <a href="/dashboard" class="b-nav-item home-btn <%= locals.title === 'Dashboard' ? 'active' : '' %>" aria-label="Home">
         <i class="fas fa-home"></i>
         <span>Home</span>
-    </button>
-    <!-- CHAT MENU (messages page only): expands chat-local nav -->
-    <button class="b-nav-item chat-menu-btn" onclick="toggleChatNav()" aria-label="Chat Menu">
-        <i class="fas fa-comment-dots"></i>
-        <span>Menu</span>
-    </button>
-    <!-- These items are hidden until Home/Chat Menu is tapped -->
+    </a>
     <a href="/connect" class="b-nav-item <%= locals.title === 'Connect' ? 'active' : '' %>">
         <i class="fas fa-search"></i>
         <span>Discover</span>
     </a>
-    <div class="b-nav-item create-action" onclick="window.location.href='/dashboard'; toggleSparkleNav();">
+    <div class="b-nav-item create-action" onclick="window.location.href='/dashboard';">
         <i class="fas fa-plus-circle"></i>
     </div>
     <a href="/moments" class="b-nav-item <%= locals.title === 'Moments' ? 'active' : '' %>">

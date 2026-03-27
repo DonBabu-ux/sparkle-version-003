@@ -128,7 +128,8 @@
                         </div>
                     </div>
 
-                    <!-- Left: Emoji -->
+                    <!-- Left: Emoji & Chat Nav Trigger -->
+                    <i class="bi bi-grid-fill" id="chatMenuTriggerBtn" style="color:#8696a0; font-size:22px; cursor:pointer; padding-right:12px; padding-bottom:4px;" onclick="toggleChatDropdown()"></i>
                     <i class="bi bi-emoji-smile" style="color:#8696a0; font-size:24px; cursor:pointer; padding-right:12px; padding-bottom:4px;" onclick="sparkChat.toggleEmojiPicker(event)"></i>
                     
                     <!-- Text Input -->
@@ -154,7 +155,45 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- CHAT-ONLY NAV DROPDOWN -->
+                <div id="chatNavDropdown" style="display:none; height:0; overflow:hidden; transition:height 0.3s cubic-bezier(0.4, 0, 0.2, 1); width:100%;">
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:15px 10px; padding:15px 10px 5px; background:transparent;">
+                        <a href="/dashboard" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-house-door-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Home</span></a>
+                        <a href="/connect" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-compass-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Discover</span></a>
+                        <a href="/moments" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-play-circle-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Moments</span></a>
+                        <a href="/marketplace" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-shop" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Market</span></a>
+                        <a href="/groups" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-people-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Groups</span></a>
+                        <a href="/notifications" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-bell-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Notify</span></a>
+                        <a href="/profile" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-person-circle" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Profile</span></a>
+                        <a href="/settings" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-gear-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Settings</span></a>
+                    </div>
+                </div>
+
             </footer>
+
+            <script>
+                // STRICTLY ISOLATED CHAT DROPDOWN TOGGLE
+                window.toggleChatDropdown = function() {
+                    const dropdown = document.getElementById('chatNavDropdown');
+                    const trigger = document.getElementById('chatMenuTriggerBtn');
+                    if(dropdown.style.display === 'none') {
+                        dropdown.style.display = 'block';
+                        // Force reflow
+                        void dropdown.offsetWidth;
+                        dropdown.style.height = '160px';
+                        trigger.style.color = '#00a884';
+                        
+                        // Push scroll upwards
+                        setTimeout(() => { if(window.sparkChat) sparkChat.scrollToBottom(true); }, 300);
+                    } else {
+                        dropdown.style.height = '0';
+                        trigger.style.color = '#8696a0';
+                        setTimeout(() => { dropdown.style.display = 'none'; }, 300);
+                    }
+                };
+            </script>
+
             </div> <!-- End chat-content wrapper -->
 
             <!-- FLOATING EMOJI PICKER -->

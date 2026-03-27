@@ -1,20 +1,10 @@
 <style>
-    /* ── Bottom Nav ─────────────────────────────────────────── */
-    .bottom-nav {
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        height: 60px;
-        background: rgba(255,255,255,0.95);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border-top: 1px solid rgba(0,0,0,0.07);
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-        z-index: 100; /* WhatsApp Style: Primary Nav remains fixed at the bottom layer */
-        padding: 0 4px;
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
-    }
+    /* ── Bottom Nav ─────────────────────────────────────── */
+    /* NOTE: position/height/z-index are set in chat-themes.css
+       These styles only control visual appearance & nav items */
+    .bottom-nav { box-sizing: border-box; }
+
+    /* NAV ITEMS - shared base */
     .b-nav-item {
         display: flex;
         flex-direction: column;
@@ -26,7 +16,7 @@
         flex: 1;
         padding: 6px 0;
         cursor: pointer;
-        transition: color 0.2s;
+        transition: color 0.2s, opacity 0.2s, transform 0.2s;
         min-width: 0;
         border: none;
         background: none;
@@ -39,9 +29,31 @@
     .b-nav-item.create-action i { color: var(--primary, #6366f1); font-size: 32px; }
     .b-nav-item.more-btn.open { color: var(--primary, #6366f1); }
 
-    /* Push content above nav */
+    /* HOME BUTTON - always visible */
+    .b-nav-item.home-btn {
+        opacity: 1 !important;
+        transform: none !important;
+        pointer-events: auto !important;
+        flex: 0 0 60px;
+    }
+
+    /* EXTRA NAV ITEMS: hidden by default (collapsed state) */
+    .bottom-nav:not([data-expanded="true"]) .b-nav-item:not(.home-btn) {
+        opacity: 0;
+        transform: translateY(8px);
+        pointer-events: none;
+    }
+
+    /* EXPANDED state: all items visible */
+    .bottom-nav[data-expanded="true"] .b-nav-item:not(.home-btn) {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    /* Push content above nav on mobile — handled via #messagesContainer padding */
     @media (max-width: 1024px) {
-        body { padding-bottom: 70px !important; }
+        body { padding-bottom: 0 !important; } /* chat-themes handles this */
     }
     @media (min-width: 1025px) {
         .bottom-nav { display: none !important; }
@@ -144,23 +156,25 @@
     .more-drawer-danger:hover { background: #fef2f2; }
 </style>
 
-<div class="bottom-nav">
-    <a href="/dashboard" class="b-nav-item <%= locals.title === 'Dashboard' ? 'active' : '' %>">
+<div class="bottom-nav" id="bottomNav" data-expanded="false">
+    <!-- HOME: always visible, toggles the nav -->
+    <button class="b-nav-item home-btn <%= locals.title === 'Dashboard' ? 'active' : '' %>" onclick="toggleSparkleNav()" aria-label="Home">
         <i class="fas fa-home"></i>
         <span>Home</span>
-    </a>
+    </button>
+    <!-- These items are hidden until Home is tapped -->
     <a href="/connect" class="b-nav-item <%= locals.title === 'Connect' ? 'active' : '' %>">
         <i class="fas fa-search"></i>
         <span>Discover</span>
     </a>
-    <div class="b-nav-item create-action" onclick="toggleQuickActions()">
+    <div class="b-nav-item create-action" onclick="window.location.href='/dashboard'; toggleSparkleNav();">
         <i class="fas fa-plus-circle"></i>
     </div>
     <a href="/moments" class="b-nav-item <%= locals.title === 'Moments' ? 'active' : '' %>">
         <i class="fas fa-play-circle"></i>
         <span>Moments</span>
     </a>
-    <button class="b-nav-item more-btn" id="moreNavBtn" onclick="toggleMoreDrawer()">
+    <button class="b-nav-item more-btn" id="moreNavBtn" onclick="toggleMoreDrawer()" aria-label="More">
         <i class="fas fa-th"></i>
         <span>More</span>
     </button>

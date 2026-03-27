@@ -350,32 +350,17 @@
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Messages Area */
+/* Messages Area — layout fully managed by chat-themes.css (#messagesContainer).
+   Only cosmetic/animation overrides belong here. */
 .messages-container {
-    flex: 1;
-    padding: 25px;
-    padding-bottom: 120px; /* Default for mobile/desktop toggle */
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    background: #f0f2f5;
-    position: relative;
-    transition: padding-bottom 0.15s ease-out; /* Match keyboard speed */
+    /* padding, overflow, flex — all owned by chat-themes.css */
 }
 
-body.keyboard-open .messages-container {
-    padding-bottom: 70px; 
-}
-
-.messages-container::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-    opacity: 0.06;
-    pointer-events: none;
-}
+/* REMOVED: ::after with WhatsApp background URL — wallpaper is now
+   handled by the .chat-background layer in chat-themes.css */
 
 .date-divider {
     align-self: center;
@@ -659,29 +644,19 @@ body.keyboard-open .messages-container {
     border: 1px solid #f1f5f9;
 }
 
-/* Input Area */
+/* Input Area — layout fully managed by chat-themes.css.
+   Only cosmetic overrides belong here. */
 .chat-composer {
-    background: white;
-    padding: 15px 25px 25px;
-    border-top: 1px solid var(--border);
-    z-index: 101; /* Must be above .bottom-nav (100) */
-    transition: bottom 0.25s ease-out;
+    /* position, bottom, z-index, min-height are in chat-themes.css */
+    transition: none; /* chat-themes.css owns the transition */
 }
 
-@media (max-width: 850px) {
+/* Desktop: no special behaviour needed */
+@media (min-width: 851px) {
     .chat-composer {
-        position: fixed;
-        bottom: 60px; /* Above nav */
-        left: 0;
-        right: 0;
-        background: white;
-        box-shadow: 0 -4px 10px rgba(0,0,0,0.02);
-        transition: bottom 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
-        z-index: 1000;
-    }
-    
-    body.keyboard-open .chat-composer {
-        bottom: 0;
+        position: relative;
+        bottom: auto;
+        box-shadow: none;
     }
 }
 

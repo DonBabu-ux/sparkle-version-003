@@ -105,6 +105,7 @@ const updateSettings = async (req, res) => {
             // appearance / localization
             'dark_mode_enabled',
             'theme',
+            'chat_theme',
             'font_size',
             'language',
 

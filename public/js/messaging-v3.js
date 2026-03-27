@@ -24,40 +24,6 @@ class SparkleChat {
         this.currentTab = 'all';
 
         this.init();
-        this.initViewportHeight();
-        this.setupKeyboardHandler();
-    }
-
-    setupKeyboardHandler() {
-        if (!window.visualViewport) return;
-        
-        const handleKeyboard = () => {
-            const viewport = window.visualViewport;
-            const keyboardHeight = window.innerHeight - viewport.height;
-            const composer = document.querySelector('.chat-composer');
-            const messagesContainer = document.getElementById('messagesContainer');
-
-            if (keyboardHeight > 50) { // Threshold for keyboard
-                document.body.classList.add('keyboard-open');
-                if (composer) {
-                    composer.style.bottom = `${keyboardHeight}px`;
-                }
-                if (messagesContainer) {
-                    messagesContainer.style.paddingBottom = '70px';
-                }
-            } else {
-                document.body.classList.remove('keyboard-open');
-                if (composer) {
-                    composer.style.bottom = '60px'; // Value from CSS
-                }
-                if (messagesContainer) {
-                    messagesContainer.style.paddingBottom = '120px';
-                }
-            }
-        };
-
-        window.visualViewport.addEventListener('resize', handleKeyboard);
-        window.visualViewport.addEventListener('scroll', handleKeyboard);
     }
 
     async init() {

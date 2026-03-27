@@ -1,7 +1,10 @@
 <%- include('partials/head', { title: 'Messages' }) %>
 
 <link rel="stylesheet" href="/css/messaging-v3.css">
-<script src="/js/dynamicPatch/ui/mobile-fixes.js"></script>
+<link rel="stylesheet" href="/css/chat-themes.css">
+<script type="module" src="/js/dynamicPatch/ui/mobile-fixes.js"></script>
+<script src="/js/themes-data.js"></script>
+<script src="/js/chat-theme-manager.js" defer></script>
 <!-- Bootstrap Icons -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
@@ -13,8 +16,8 @@
             <div class="sidebar-header">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <h1>Conversations</h1>
-                    <button class="new-chat-btn" onclick="sparkChat.openNewChatModal()" title="New Chat">
-                        <i class="bi bi-pencil-square"></i>
+                    <button class="settings-btn" onclick="openChatCustomization()" title="Chat Settings" style="background:transparent; border:none; color:#8696a0; font-size:22px; cursor:pointer;">
+                        <i class="bi bi-gear"></i>
                     </button>
                 </div>
                 <div class="search-bar-container">
@@ -64,6 +67,7 @@
                         <i class="bi bi-x-lg" onclick="sparkChat.toggleChatSearch(false)"></i>
                     </div>
                     <i class="bi bi-search" onclick="sparkChat.toggleChatSearch(true)" title="Search"></i>
+                    <i class="bi bi-gear" onclick="openChatCustomization()" title="Theme Settings"></i>
                     <i class="bi bi-telephone" title="Voice Call"></i>
                     <i class="bi bi-camera-video" title="Video Call"></i>
                     <div class="chat-menu-wrapper" style="position: relative;">

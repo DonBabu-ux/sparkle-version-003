@@ -2,6 +2,10 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
 const { JWT_SECRET } = require('../config/constants');
 
+// Memory cache to prevent constant logouts during DB instability
+const userCache = new Map();
+const CACHE_TTL = 2 * 60 * 1000; // 2 Minutes
+
 const authMiddleware = async (req, res, next) => {
     try {
         let token = null;
@@ -17,13 +21,27 @@ const authMiddleware = async (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // CHECK CACHE FIRST
+        const cached = userCache.get(decoded.userId);
+        if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+            req.user = cached.user;
+            return next();
+        }
+
+        // DB FALLBACK
         const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [decoded.userId]);
 
         if (users.length === 0) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        req.user = { ...decoded, ...users[0] };
+        const userData = { ...decoded, ...users[0] };
+        
+        // UPDATE CACHE
+        userCache.set(decoded.userId, { user: userData, timestamp: Date.now() });
+        
+        req.user = userData;
         next();
     } catch (err) {
         console.error('❌ Auth Middleware Error:', err.message);
@@ -38,8 +56,6 @@ const ejsAuthMiddleware = async (req, res, next) => {
         'Expires': '0'
     });
 
-
-    // This is a safety net to ensure public routes are never blocked even if path normalization fails.
     const urlCheck = req.originalUrl.toLowerCase().split('?')[0];
     if (
         urlCheck === '/' ||
@@ -63,24 +79,35 @@ const ejsAuthMiddleware = async (req, res, next) => {
         return next();
     }
 
-    res.setHeader('X-Auth-Decision', 'No Token/Redirect');
-
     const token = req.cookies?.sparkleToken;
     if (!token) {
-        console.warn(`⚠️ ejsAuthMiddleware: No token found for protected path: ${req.path} (normalized: ${pathFromReq}), redirecting to login`);
         return res.redirect('/login?reason=no_token');
     }
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+
+        // CHECK CACHE FIRST
+        const cached = userCache.get(decoded.userId);
+        if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+            req.user = cached.user;
+            res.locals.user = req.user;
+            return next();
+        }
+
+        // DB FALLBACK
         const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [decoded.userId]);
 
         if (users.length === 0) {
-            console.warn('⚠️ authMiddleware: User not found in DB for valid token');
             return res.redirect('/login?reason=user_not_found');
         }
 
-        req.user = { ...decoded, ...users[0] };
+        const userData = { ...decoded, ...users[0] };
+        
+        // UPDATE CACHE
+        userCache.set(decoded.userId, { user: userData, timestamp: Date.now() });
+
+        req.user = userData;
         res.locals.user = req.user;
         next();
     } catch (err) {

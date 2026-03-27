@@ -3,13 +3,16 @@
    Master Spec: Strict scroll isolation, fixed UI, keyboard-aware
    ============================================================ */
 
-/* ── 1. GLOBAL SCROLL LOCK ──────────────────────────────────── */
+/* ── 1. SCOPED SCROLL LOCK ───────────────────────────────────── */
+/* Scroll lock is applied via .messaging-page or .chat-container, 
+   NOT globally to html/body to avoid breaking other app pages. */
 html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    overflow: hidden !important;
-    touch-action: manipulation;
+    /* Default allowed, restricted by containers */
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch;
 }
 
 /* ── 2. CSS VARIABLES ────────────────────────────────────────── */

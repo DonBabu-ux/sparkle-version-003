@@ -53,6 +53,7 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-overflow-scrolling: touch;
 }
 
 h1,
@@ -69,6 +70,12 @@ h4,
 
 /* Sidebar & Layout Adjustments */
 /* Sidebar & Layout Adjustments (FIXED: Grid handles this now) */
+html, body {
+    overflow-y: auto !important;
+    height: 100%;
+    -webkit-overflow-scrolling: touch; /* Momentum scroll */
+}
+
 body {
     background-color: var(--bg-light);
     color: var(--text-light);

@@ -11,16 +11,14 @@ export function initMobileFixes() {
         const bottomNav = document.querySelector(".bottom-nav");
         const chatInput = document.querySelector(".chat-composer");
 
-        if (currentHeight < initialHeight - 100) {
+        if (currentHeight < initialHeight - 120) {
             // Keyboard is OPEN
-            if (bottomNav) bottomNav.classList.add("hidden");
-            
-            // Force input to stick to keyboard
-            if (chatInput) chatInput.style.bottom = "0px";
+            document.body.classList.add("keyboard-open");
+            if (bottomNav) bottomNav.style.display = "none";
         } else {
             // Keyboard is CLOSED
-            if (bottomNav) bottomNav.classList.remove("hidden");
-            if (chatInput) chatInput.style.bottom = "0px";
+            document.body.classList.remove("keyboard-open");
+            if (bottomNav) bottomNav.style.display = "block";
         }
     });
 }

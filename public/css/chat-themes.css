@@ -1,9 +1,19 @@
-/* Dynamic Chat Theming Engine */
+/* Dynamic Chat Theming Engine - Rigid Layout Fix */
 html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    overflow: hidden;
+    overflow: hidden !important; /* CRITICAL: Prevent body scroll */
+    touch-action: manipulation;
+}
+
+.messaging-page {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* prevents global scroll */
+    position: relative;
 }
 
 :root {
@@ -27,17 +37,34 @@ html, body {
 }
 
 /* Base UI Adjustments for Theming */
-.messaging-page {
-    height: calc(var(--vh, 1vh) * 100);
-    overflow: hidden;
+#chatMain {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden !important; /* CRITICAL: No scroll here */
+    height: 100%;
 }
 
 #messagesContainer {
-    background: transparent !important;
-    position: relative;
-    overflow-x: hidden;
-    overflow-y: auto;
     flex: 1;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px;
+    padding-bottom: 140px; /* space for input bar (65) + bottom-nav (60) */
+    position: relative;
+    z-index: 2;
+}
+
+.chat-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    touch-action: manipulation;
 }
 
 .chat-background {
@@ -107,22 +134,42 @@ html, body {
     text-align: right;
 }
 
-/* Composer / Input Area */
+/* Composer / Input Area - Fixed & Stable */
 .chat-composer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 65px;
     background: var(--chat-header-bg) !important;
     border-top: 1px solid rgba(255,255,255,0.05) !important;
-    position: relative;
-    z-index: 1000;
+    z-index: 9999; /* Highest priority */
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
     padding-bottom: env(safe-area-inset-bottom, 10px);
+    transition: transform 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
 }
 
-/* Hidden when keyboard is open */
+/* Base adjustment: when nav is present, lift the composer */
+body:not(.keyboard-open) .chat-composer {
+    transform: translateY(-60px); /* Lift above bottom-nav */
+}
+
+body.keyboard-open .chat-composer {
+    transform: translateY(0); /* Stick to bottom */
+}
+
+/* Navigation Bar - Fixed */
 .bottom-nav {
-    transition: transform 0.3s ease;
-}
-
-.bottom-nav.hidden {
-    transform: translateY(100%);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #000;
+    z-index: 900;
+    display: flex;
 }
 
 .wa-composer-input-wrapper {

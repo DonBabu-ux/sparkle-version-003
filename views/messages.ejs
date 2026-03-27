@@ -16,11 +16,50 @@
             <div class="sidebar-header">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <h1>Conversations</h1>
-                    <button class="settings-btn" onclick="openChatCustomization()" title="Chat Settings" style="background:transparent; border:none; color:#8696a0; font-size:22px; cursor:pointer;">
-                        <i class="bi bi-gear"></i>
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <!-- Global Nav Trigger for Sidebar -->
+                        <button onclick="toggleSidebarNavDropdown()" title="Menu" style="background:transparent; border:none; color:#8696a0; font-size:22px; cursor:pointer;">
+                            <i class="bi bi-grid-fill" id="sidebarMenuIcon"></i>
+                        </button>
+                        <!-- Theme Setting -->
+                        <button class="settings-btn" onclick="openChatCustomization()" title="Chat Settings" style="background:transparent; border:none; color:#8696a0; font-size:22px; cursor:pointer;">
+                            <i class="bi bi-gear"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="search-bar-container">
+
+                <!-- SIDEBAR NAV DROPDOWN -->
+                <div id="sidebarNavDropdown" style="display:none; height:0; overflow:hidden; transition:height 0.3s cubic-bezier(0.4, 0, 0.2, 1); width:100%; margin-top:10px; border-top:1px solid #f3f4f6;">
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:15px 5px; padding:15px 5px; background:white;">
+                        <a href="/dashboard" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-house-door-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Home</span></a>
+                        <a href="/connect" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-compass-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Discover</span></a>
+                        <a href="/moments" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-play-circle-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Moments</span></a>
+                        <a href="/marketplace" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-shop" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Market</span></a>
+                        <a href="/groups" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-people-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Groups</span></a>
+                        <a href="/notifications" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-bell-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Notify</span></a>
+                        <a href="/profile" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-person-circle" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Profile</span></a>
+                        <a href="/settings" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-gear-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Settings</span></a>
+                    </div>
+                </div>
+
+                <script>
+                    window.toggleSidebarNavDropdown = function() {
+                        const dropdown = document.getElementById('sidebarNavDropdown');
+                        const icon = document.getElementById('sidebarMenuIcon');
+                        if(dropdown.style.display === 'none') {
+                            dropdown.style.display = 'block';
+                            void dropdown.offsetWidth; // Reflow
+                            dropdown.style.height = '145px';
+                            icon.style.color = '#3b82f6';
+                        } else {
+                            dropdown.style.height = '0';
+                            icon.style.color = '#8696a0';
+                            setTimeout(() => { dropdown.style.display = 'none'; }, 300);
+                        }
+                    };
+                </script>
+
+                <div class="search-bar-container" style="margin-top: 15px;">
                     <i class="bi bi-search"></i>
                     <input type="text" id="sidebarSearch" class="sidebar-search" placeholder="Search chats or friends...">
                 </div>

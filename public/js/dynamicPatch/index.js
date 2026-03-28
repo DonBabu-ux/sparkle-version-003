@@ -53,9 +53,9 @@ window.sparkPost = (postId, btn) => import('./features/feed.js').then(m => m.tog
 window.toggleSpark = (postId, btn) => import('./features/feed.js').then(m => m.toggleSpark(postId, btn));
 window.savePost = (postId, btn) => import('./features/feed.js').then(m => m.savePost(postId, btn));
 window.sharePost = (postId) => import('./features/feed.js').then(m => m.sharePost(postId));
-window.addComment = (postId, input) => import('./features/feed.js').then(m => m.addComment(postId, input));
-window.toggleComments = (postId) => import('./features/feed.js').then(m => m.toggleComments(postId));
-window.scrollToComments = (postId) => import('./features/feed.js').then(m => m.scrollToComments(postId));
+window.openComments = (postId) => import('./features/feed.js').then(m => m.openComments(postId));
+window.closeComments = () => import('./features/feed.js').then(m => m.closeComments());
+window.submitComment = () => import('./features/feed.js').then(m => m.submitComment());
 window.likeComment = (commentId) => import('./features/feed.js').then(m => m.likeComment(commentId));
 window.replyToComment = (commentId) => import('./features/feed.js').then(m => m.replyToComment(commentId));
 window.openPostViewer = (postId) => import('./features/feed.js').then(m => m.openPostViewer(postId));
@@ -67,7 +67,7 @@ window.savePostFromViewer = () => import('./features/feed.js').then(m => m.saveP
 window.notInterestedFromViewer = () => import('./features/feed.js').then(m => m.notInterestedFromViewer());
 window.reportPostFromViewer = () => import('./features/feed.js').then(m => m.reportPostFromViewer());
 window.copyLinkFromViewer = () => import('./features/feed.js').then(m => m.copyLinkFromViewer());
-window.toggleCaption = (postId) => import('./features/feed.js').then(m => m.toggleCaption(postId));
+window.expandCaption = (postId, fullText) => import('./features/feed.js').then(m => m.expandCaption(postId, fullText));
 window.loadMorePosts = () => import('./features/feed.js').then(m => m.loadMorePosts());
 
 window.viewAfterglow = (story) => import('./features/stories.js').then(m => m.showAfterglowViewer(story));

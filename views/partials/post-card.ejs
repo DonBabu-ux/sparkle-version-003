@@ -5,86 +5,84 @@
   const isSparked = post.is_sparked || post.is_liked || false;
   const sparks = post.spark_count || post.sparks || 0;
   const comments = post.comment_count || post.comments || 0;
+  
+  // Truncate logic for caption
+  const MAX_CAPTION = 120;
+  const needsTruncation = post.content && post.content.length > MAX_CAPTION;
+  const displayContent = needsTruncation ? post.content.slice(0, MAX_CAPTION) : post.content;
 %>
 
-<div class="post-card" data-post-id="<%= pId %>" onclick="openPostViewer('<%= pId %>')">
+<div class="post" data-post-id="<%= pId %>">
     <div class="post-header">
-        <img src="<%= avatar %>" class="post-avatar" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
-        <div class="post-author-info">
-            <div class="post-username" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
-                <%= uname %>
-            </div>
-            <div class="post-meta">
+        <div class="avatar-wrapper <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" 
+             onclick="event.stopPropagation(); <%= post.has_story ? `openStoryViewer('${post.user_id}')` : `window.location.href='/profile/${uname}'` %>">
+            <img src="<%= avatar %>" class="avatar">
+            <% if (post.is_online) { %>
+                <span class="online-dot"></span>
+            <% } %>
+        </div>
+
+        <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
+            <div class="username"><%= uname %></div>
+            <div class="meta">
                 <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
                 <% if (post.campus) { %> • <%= post.campus %><% } %>
             </div>
         </div>
-        <button class="post-options-btn" onclick="event.stopPropagation()" aria-label="Post Options">
+
+        <button class="options-btn" onclick="event.stopPropagation()" aria-label="Post Options">
             <i class="fas fa-ellipsis-h"></i>
         </button>
     </div>
 
     <% if (post.content && post.content.trim()) { %>
-        <div class="post-caption <%= post.content.length > 150 ? 'caption-collapsed' : '' %>" id="caption-<%= pId %>">
-            <%= post.content %>
-        </div>
-        <% if (post.content.length > 150) { %>
-            <button class="read-more-btn" id="toggle-<%= pId %>" onclick="event.stopPropagation(); toggleCaption('<%= pId %>')">
-                Read more
-            </button>
-        <% } %>
-    <% } %>
-
-    <% if (post.media_url) { %>
-        <div class="post-media">
-            <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
-                <video src="<%= post.media_url %>" controls onclick="event.stopPropagation()"></video>
-            <% } else { %>
-                <img src="<%= post.media_url %>" loading="lazy">
+        <div class="caption">
+            <span class="caption-text" id="caption-<%= pId %>">
+                <%= displayContent %><%= needsTruncation ? '...' : '' %>
+            </span>
+            <% if (needsTruncation) { %>
+                <span class="see-more" onclick="event.stopPropagation(); expandCaption('<%= pId %>', `<%= post.content.replace(/`/g, '\\`').replace(/\$/g, '\\$') %>`)">
+                    See more
+                </span>
             <% } %>
         </div>
     <% } %>
 
-    <div class="post-stats">
-        <div class="stat-item" onclick="event.stopPropagation()">
-            <i class="fas fa-heart pink-yellow-spark"></i>
-            <span class="spark-count-val"><%= sparks %></span>
+    <% if (post.media_url) { %>
+        <div class="post-media" onclick="openPostViewer('<%= pId %>')">
+            <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
+                <video src="<%= post.media_url %>" controls onclick="event.stopPropagation()"></video>
+            <% } else { %>
+                <img src="<%= post.media_url %>" class="post-image" loading="lazy">
+            <% } %>
         </div>
-        <div class="stat-item" onclick="event.stopPropagation()">
-            <span class="comment-count-val" onclick="toggleComments('<%= pId %>')"><%= comments %> comments</span>
-            <span style="margin-left:8px;"><%= post.share_count || 0 %> shares</span>
-        </div>
+    <% } %>
+
+    <div class="engagement-bar">
+        <span class="spark-count"><%= sparks %> sparks</span> • 
+        <span class="comment-count" onclick="event.stopPropagation(); openComments('<%= pId %>')"><%= comments %> comments</span>
     </div>
 
-    <div class="post-actions">
-        <button class="action-button <%= isSparked ? 'active' : '' %>" onclick="event.stopPropagation(); toggleSpark('<%= pId %>', this)">
-            <i class="<%= isSparked ? 'fas fa-heart pink-yellow-spark' : 'far fa-heart' %>"></i>
+    <div class="actions">
+        <button class="action-btn like-btn <%= isSparked ? 'active' : '' %>" 
+                onclick="event.stopPropagation(); toggleSpark('<%= pId %>', this)">
+            <i class="<%= isSparked ? 'fas fa-heart' : 'far fa-heart' %>"></i>
             <span>Like</span>
         </button>
-        <button class="action-button" onclick="event.stopPropagation(); scrollToComments('<%= pId %>')">
+        <button class="action-btn comment-btn" 
+                onclick="event.stopPropagation(); openComments('<%= pId %>')">
             <i class="far fa-comment"></i>
             <span>Comment</span>
         </button>
-        <button class="action-button" onclick="event.stopPropagation(); sharePost('<%= pId %>')">
+        <button class="action-btn share-btn" 
+                onclick="event.stopPropagation(); sharePost('<%= pId %>')">
             <i class="far fa-share-square"></i>
             <span>Share</span>
         </button>
-        <button class="action-button" onclick="event.stopPropagation(); savePost('<%= pId %>', this)">
+        <button class="action-btn save-btn" 
+                onclick="event.stopPropagation(); savePost('<%= pId %>', this)">
             <i class="<%= post.is_saved ? 'fas' : 'far' %> fa-bookmark"></i>
             <span>Save</span>
         </button>
-    </div>
-
-    <div class="comment-section" id="comments-<%= pId %>" style="display: none;">
-        <div class="comment-input-area">
-            <img src="<%= (locals.user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png' %>" class="post-avatar" style="width: 32px; height: 32px;">
-            <input type="text" 
-                   class="comment-field" 
-                   placeholder="Write a comment..." 
-                   id="comment-input-<%= pId %>"
-                   onclick="event.stopPropagation()"
-                   onkeypress="if(event.key === 'Enter') { event.stopPropagation(); addComment('<%= pId %>', this); }">
-        </div>
-        <div class="comments-list" id="comments-list-<%= pId %>"></div>
     </div>
 </div>

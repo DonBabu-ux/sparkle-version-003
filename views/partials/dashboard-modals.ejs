@@ -1623,3 +1623,30 @@ async function submitAfterglow() {
         </div>
     </div>
 </div>
+
+<!-- Comment Bottom Sheet System -->
+<div class="comment-overlay" id="commentOverlay" onclick="closeComments()"></div>
+<div class="comment-sheet" id="commentSheet">
+    <div class="sheet-header">
+        <div class="sheet-title">Comments</div>
+        <button class="close-sheet" onclick="closeComments()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="comment-list" id="commentList">
+        <!-- Comments injected here via JS -->
+    </div>
+    <div class="comment-input-bar">
+        <img src="<%= (typeof user !== 'undefined' && user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png' %>" class="input-avatar">
+        <input type="text" id="commentInputField" class="comment-field" placeholder="Write a comment..." 
+               onkeypress="if(event.key === 'Enter') submitComment()">
+        <button class="send-comment-btn" onclick="submitComment()">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Floating Messaging Button -->
+<button class="floating-message-btn" onclick="window.location.href='/messages'" aria-label="Messages">
+    <i class="fas fa-comment-dots"></i>
+</button>

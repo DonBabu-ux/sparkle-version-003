@@ -81,11 +81,11 @@ export async function toggleSpark(postId, button) {
     try {
         const result = await window.DashboardAPI.sparkPost(postId);
         const icon = button.querySelector('i');
-        const countSpan = document.querySelector(`[data-post-id="${postId}"] .spark-count-val`);
+        const countSpan = document.querySelector(`[data-post-id="${postId}"] .spark-count`);
 
         if (result.action === 'sparked') {
             button.classList.add('active');
-            if (icon) icon.className = 'fas fa-heart pink-yellow-spark';
+            if (icon) icon.className = 'fas fa-heart';
             
             // Add spark animation
             button.style.transform = 'scale(1.2)';
@@ -96,25 +96,25 @@ export async function toggleSpark(postId, button) {
         }
 
         if (countSpan && typeof result.newCount !== 'undefined') {
-            countSpan.textContent = result.newCount;
+            countSpan.textContent = result.newCount + ' sparks';
         }
     } catch (error) {
         console.error('Spark error:', error);
     }
 }
 
-export function toggleCaption(postId) {
-    const caption = document.getElementById('caption-' + postId);
-    const btn = document.getElementById('toggle-' + postId);
-    if (!caption || !btn) return;
+export function expandCaption(postId, fullText) {
+    const captionText = document.getElementById('caption-' + postId);
+    if (!captionText) return;
 
-    if (caption.classList.contains('caption-collapsed')) {
-        caption.classList.remove('caption-collapsed');
-        btn.textContent = 'Read less';
-    } else {
-        caption.classList.add('caption-collapsed');
-        btn.textContent = 'Read more';
-    }
+    // Replace the truncated text + "..." with the full text
+    // The "See more" button was clicked, so we can reveal everything
+    captionText.textContent = fullText;
+    
+    // Hide the "See more" button
+    const container = captionText.closest('.caption');
+    const seeMore = container.querySelector('.see-more');
+    if (seeMore) seeMore.remove();
 }
 
 export async function sharePost(postId) {
@@ -423,93 +423,87 @@ export async function loadMorePosts() {
     }
 }
 
-export async function scrollToComments(postId) {
-    const container = document.getElementById(`comments-${postId}`);
-    if (!container) return;
+// --- NEW COMMENT BOTTOM SHEET SYSTEM ---
+let currentCommentPostId = null;
 
-    // Show comments if hidden
-    if (container.style.display === 'none') {
-        container.style.display = 'block';
-        loadComments(postId);
-    }
+export function openComments(postId) {
+    currentCommentPostId = postId;
+    const overlay = document.getElementById('commentOverlay');
+    const sheet = document.getElementById('commentSheet');
+    if (!overlay || !sheet) return;
 
-    // Scroll to the comments section
-    container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    overlay.style.display = 'block';
+    // Force reflow
+    void sheet.offsetWidth;
+    sheet.classList.add('active');
+    document.body.style.overflow = 'hidden';
 
-    // Focus the comment input
-    const input = document.getElementById(`comment-input-${postId}`);
-    if (input) {
-        setTimeout(() => input.focus(), 300);
-    }
+    loadCommentsList(postId);
 }
 
-export async function toggleComments(postId) {
-    const container = document.getElementById(`comments-${postId}`);
-    if (!container) return;
+export function closeComments() {
+    const overlay = document.getElementById('commentOverlay');
+    const sheet = document.getElementById('commentSheet');
+    if (!overlay || !sheet) return;
 
-    if (container.style.display === 'none') {
-        container.style.display = 'block';
-        loadComments(postId);
-    } else {
-        container.style.display = 'none';
-    }
+    sheet.classList.remove('active');
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }, 300);
 }
 
-export async function loadComments(postId) {
-    const container = document.getElementById(`comments-list-${postId}`);
+async function loadCommentsList(postId) {
+    const container = document.getElementById('commentList');
     if (!container) return;
 
-    container.innerHTML = '<div class="comments-loading" style="text-align: center; padding: 10px;"><i class="fas fa-spinner fa-spin"></i></div>';
+    container.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i></div>';
 
     try {
         const comments = await window.DashboardAPI.loadComments(postId);
-
-        if (!comments || comments.length === 0) {
-            container.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:13px; padding: 10px;">Be the first to comment!</div>';
-            return;
-        }
-
-        container.innerHTML = comments.map(comment => `
-            <div class="comment-item" data-comment-id="${comment.comment_id || comment.id}" style="display:flex; gap:10px; margin-bottom:12px; animation: fadeIn 0.3s ease-out;">
-                <img src="${comment.avatar_url || '/uploads/avatars/default.png'}" style="width:32px; height:32px; border-radius:10px; flex-shrink:0;">
-                <div style="flex:1;">
-                    <div style="background:rgba(0,0,0,0.03); padding:8px 12px; border-radius:12px; margin-bottom:4px;">
-                        <div style="font-weight:700; font-size:13px; color:#0f172a;">@${comment.username}</div>
-                        <div style="font-size:13px; color:#334155; line-height:1.4;">${comment.content || comment.comment_text}</div>
-                    </div>
-                    <div class="comment-actions" style="display:flex; gap:12px; padding-left:12px; font-size:12px; color:#64748b;">
-                        <button onclick="likeComment('${comment.comment_id || comment.id}')" class="like-comment-btn" style="background:none; border:none; color:inherit; cursor:pointer;">Like</button>
-                        <button onclick="replyToComment('${comment.comment_id || comment.id}')" style="background:none; border:none; color:inherit; cursor:pointer;">Reply</button>
+        if (comments && comments.length > 0) {
+            container.innerHTML = comments.map(c => `
+                <div class="comment-item">
+                    <img src="${c.avatar || '/uploads/avatars/default.png'}" class="comment-avatar">
+                    <div class="comment-body">
+                        <div class="comment-user">@${c.username}</div>
+                        <div class="comment-text">${c.content}</div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        } else {
+            container.innerHTML = '<div style="text-align:center; color:#65676b; padding: 40px;">No comments yet. Be the first to spark a conversation!</div>';
+        }
     } catch (error) {
-        console.error('Error loading comments:', error);
-        container.innerHTML = '<div style="text-align:center; color:var(--danger); font-size:12px;">Failed to load comments</div>';
+        console.error('Failed to load comments:', error);
+        container.innerHTML = '<div style="text-align:center; color:red; padding: 40px;">Failed to load comments</div>';
     }
 }
 
-export async function addComment(postId, input) {
+export async function submitComment() {
+    if (!currentCommentPostId) return;
+    const input = document.getElementById('commentInputField');
+    if (!input) return;
     const text = input.value.trim();
     if (!text) return;
 
+    const btn = document.querySelector('.send-comment-btn');
+    if (btn) btn.disabled = true;
+
     try {
-        const result = await window.DashboardAPI.postComment(postId, text);
+        await window.DashboardAPI.postComment(currentCommentPostId, text);
         input.value = '';
-
-        // Refresh comments section
-        const listContainer = document.getElementById(`comments-list-${postId}`);
-        if (listContainer) {
-            loadComments(postId);
-        }
-
-        // Update count
-        const countSpan = document.querySelector(`[data-post-id="${postId}"] .comment-count-val`);
+        loadCommentsList(currentCommentPostId);
+        
+        // Update count on post card
+        const countSpan = document.querySelector(`[data-post-id="${currentCommentPostId}"] .comment-count`);
         if (countSpan) {
-            countSpan.textContent = parseInt(countSpan.textContent) + 1;
+            const currentCount = parseInt(countSpan.textContent) || 0;
+            countSpan.textContent = (currentCount + 1) + ' comments';
         }
-    } catch (err) {
-        console.error('Comment error:', err);
+    } catch (error) {
+        console.warn('Comment post error:', error);
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }

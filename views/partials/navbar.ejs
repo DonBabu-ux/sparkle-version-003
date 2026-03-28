@@ -593,8 +593,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const actor = n.actor || n.related_user || {};
             const avatar = actor.avatar_url || actor.avatar || '/uploads/avatars/default.png';
             const name = actor.name || actor.username || 'Someone';
+            
+            // Build direct target URL with context
+            let targetUrl = n.action_url || '#';
+            if (n.post_id) {
+                const separator = targetUrl.includes('?') ? '&' : '?';
+                targetUrl += `${separator}openComments=${n.post_id}${n.comment_id ? `&targetCommentId=${n.comment_id}` : ''}`;
+            }
+
             return `
-            <a href="${n.action_url || '#'}" class="notif-row ${n.is_read ? '' : 'unread'}">
+            <a href="${targetUrl}" class="notif-row ${n.is_read ? '' : 'unread'}">
                 <img src="${avatar}" class="notif-avatar" onerror="this.src='/uploads/avatars/default.png'">
                 <div class="notif-content">
                     <p><strong>${name}</strong> ${n.content || n.message || 'interacted with you'}</p>
@@ -648,23 +656,24 @@ document.addEventListener('DOMContentLoaded', () => {
     #notificationCount { font-size: 9px; font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center; min-width: 10px; }
     
     /* Global Message FAB */
-    .global-msg-fab {
+    .message-btn {
         position: fixed;
-        bottom: 80px; /* Above mobile nav */
-        right: 20px;
+        right: 16px;
+        bottom: 90px;
         background: var(--primary-gradient, linear-gradient(135deg, #6366f1, #a855f7));
         color: white;
-        border-radius: 50px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-        z-index: 999;
+        z-index: 10;
         text-decoration: none;
         transition: all 0.3s ease;
-        padding: 15px;
+        width: 56px;
+        height: 56px;
     }
-    .global-msg-fab:hover {
+    .message-btn:hover {
         transform: translateY(-3px);
         box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
         color: white;

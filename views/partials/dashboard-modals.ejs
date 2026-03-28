@@ -1628,7 +1628,14 @@ async function submitAfterglow() {
 <div class="comment-overlay" id="commentOverlay" onclick="closeComments()"></div>
 <div class="comment-sheet" id="commentSheet">
     <div class="sheet-header">
-        <div class="sheet-title">Comments</div>
+        <div class="sheet-info">
+            <div class="sheet-title">Comments</div>
+            <div class="sheet-count" id="commentSheetCount">0 comments</div>
+        </div>
+        <div class="sheet-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="commentSearchInput" placeholder="Search comments..." oninput="filterComments(this.value)">
+        </div>
         <button class="close-sheet" onclick="closeComments()">
             <i class="fas fa-times"></i>
         </button>

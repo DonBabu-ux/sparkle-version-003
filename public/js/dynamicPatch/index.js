@@ -46,6 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initSync();
 
     console.log('✅ Sparkle Dynamic Patch Initialized successfully!');
+
+    // Handle Deep Linking (Comments/Notifications)
+    const urlParams = new URLSearchParams(window.location.search);
+    const postToOpen = urlParams.get('openComments');
+    const commentToTarget = urlParams.get('targetCommentId');
+    if (postToOpen) {
+        setTimeout(() => {
+            window.openComments(postToOpen, commentToTarget);
+        }, 1200); // Allow feed to load
+    }
 });
 
 // Port globals for compatibility with inline scripts
@@ -53,9 +63,10 @@ window.sparkPost = (postId, btn) => import('./features/feed.js').then(m => m.tog
 window.toggleSpark = (postId, btn) => import('./features/feed.js').then(m => m.toggleSpark(postId, btn));
 window.savePost = (postId, btn) => import('./features/feed.js').then(m => m.savePost(postId, btn));
 window.sharePost = (postId) => import('./features/feed.js').then(m => m.sharePost(postId));
-window.openComments = (postId) => import('./features/feed.js').then(m => m.openComments(postId));
+window.openComments = (postId, targetId) => import('./features/feed.js').then(m => m.openComments(postId, targetId));
 window.closeComments = () => import('./features/feed.js').then(m => m.closeComments());
 window.submitComment = () => import('./features/feed.js').then(m => m.submitComment());
+window.filterComments = (query) => import('./features/feed.js').then(m => m.filterComments(query));
 window.likeComment = (commentId) => import('./features/feed.js').then(m => m.likeComment(commentId));
 window.replyToComment = (commentId) => import('./features/feed.js').then(m => m.replyToComment(commentId));
 window.openPostViewer = (postId) => import('./features/feed.js').then(m => m.openPostViewer(postId));

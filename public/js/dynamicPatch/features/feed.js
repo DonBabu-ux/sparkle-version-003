@@ -32,10 +32,14 @@ export async function loadFeedPosts(options = {}) {
             render: 'true' // Request pre-rendered HTML partials
         });
 
-        if (!response) return;
+        if (!response) {
+            feedLoading = false;
+            return;
+        }
 
-        const posts = response.posts || [];
-        const htmls = response.htmls || [];
+        // Handle both object { posts, htmls } and array [posts] formats
+        const posts = Array.isArray(response) ? response : (response.posts || []);
+        const htmls = Array.isArray(response) ? [] : (response.htmls || []);
 
         if (posts.length < FEED_LIMIT) allPostsLoaded = true;
         if (isRefresh && posts.length > 0) lastSeenPostId = posts[0].post_id || posts[0].id;
@@ -51,11 +55,13 @@ export async function loadFeedPosts(options = {}) {
                 if (postEl) container.appendChild(postEl);
             });
         } else {
-            // Fallback to client-side creation if somehow htmls are missing
+            // Fallback to client-side creation via script.js global
             const fragment = document.createDocumentFragment();
             posts.forEach(post => {
-                const el = createPostElement(post);
-                fragment.appendChild(el);
+                if (typeof window.createPostElement === 'function') {
+                    const el = window.createPostElement(post);
+                    fragment.appendChild(el);
+                }
             });
             container.appendChild(fragment);
         }
@@ -152,73 +158,7 @@ export async function savePost(postId, button) {
     }
 }
 
-export async function likeComment(commentId) {
-    try {
-        // Assume API exists
-        const result = await window.DashboardAPI.likeComment(commentId);
-        // Update UI - find the comment and toggle like
-        const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
-        if (commentEl) {
-            const likeBtn = commentEl.querySelector('.like-comment-btn');
-            if (likeBtn) {
-                likeBtn.classList.toggle('liked');
-                // Update count if available
-            }
-        }
-    } catch (error) {
-        console.error('Error liking comment:', error);
-    }
-}
-
-export async function replyToComment(commentId) {
-    // Find the comment element
-    const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
-    if (!commentEl) return;
-
-    // Check if reply input already exists
-    let replyInput = commentEl.querySelector('.reply-input');
-    if (replyInput) {
-        replyInput.remove();
-        return;
-    }
-
-    // Create reply input
-    replyInput = document.createElement('div');
-    replyInput.className = 'reply-input';
-    replyInput.style = 'display: flex; gap: 10px; margin-top: 10px; margin-left: 42px;';
-    replyInput.innerHTML = `
-        <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
-        <input type="text" class="reply-input-field" placeholder="Write a reply..." style="flex: 1; padding: 6px 12px; border: 1px solid #ddd; border-radius: 20px; font-size: 14px;">
-    `;
-
-    commentEl.appendChild(replyInput);
-
-    const input = replyInput.querySelector('.reply-input-field');
-    input.focus();
-
-    input.addEventListener('keypress', async (e) => {
-        if (e.key === 'Enter' && e.target.value.trim()) {
-            try {
-                await window.DashboardAPI.replyToComment(commentId, e.target.value);
-                replyInput.remove();
-                // Reload comments
-                const postId = commentEl.closest('.post-card').dataset.postId;
-                if (postId) {
-                    loadComments(postId);
-                }
-            } catch (error) {
-                console.error('Error posting reply:', error);
-            }
-        }
-    });
-
-    // Remove on blur if empty
-    input.addEventListener('blur', () => {
-        if (!input.value.trim()) {
-            replyInput.remove();
-        }
-    });
-}
+// Consolidated Comment Actions moved to bottom system section
 
 export function closePostViewer() {
     const viewer = document.getElementById('postViewerModal');
@@ -290,8 +230,8 @@ export async function openPostViewer(postId) {
                                 <div style="font-size:13px; line-height:1.4;">${c.content}</div>
                             </div>
                             <div style="display:flex; gap:12px; padding-left:12px; font-size:12px; color:#65676b; margin-top:4px;">
-                                <span onclick="window.likeComment('${c.id}')" style="cursor:pointer; font-weight:700;">Like</span>
-                                <span onclick="window.replyToComment('${c.id}')" style="cursor:pointer; font-weight:700;">Reply</span>
+                                <span onclick="window.likeComment('${c.id}', this)" style="cursor:pointer; font-weight:700;">Like</span>
+                                <span onclick="window.replyToComment('${c.id}', '@${c.username} ')" style="cursor:pointer; font-weight:700;">Reply</span>
                             </div>
                         </div>
                     </div>
@@ -425,20 +365,20 @@ export async function loadMorePosts() {
 
 // --- NEW COMMENT BOTTOM SHEET SYSTEM ---
 let currentCommentPostId = null;
+let currentCommentsData = [];
 
-export function openComments(postId) {
+export function openComments(postId, targetCommentId = null) {
     currentCommentPostId = postId;
     const overlay = document.getElementById('commentOverlay');
     const sheet = document.getElementById('commentSheet');
     if (!overlay || !sheet) return;
 
     overlay.style.display = 'block';
-    // Force reflow
     void sheet.offsetWidth;
     sheet.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    loadCommentsList(postId);
+    loadCommentsList(postId, targetCommentId);
 }
 
 export function closeComments() {
@@ -450,10 +390,12 @@ export function closeComments() {
     setTimeout(() => {
         overlay.style.display = 'none';
         document.body.style.overflow = '';
+        currentCommentPostId = null;
+        currentCommentsData = [];
     }, 300);
 }
 
-async function loadCommentsList(postId) {
+export async function loadCommentsList(postId, targetCommentId = null) {
     const container = document.getElementById('commentList');
     if (!container) return;
 
@@ -461,16 +403,26 @@ async function loadCommentsList(postId) {
 
     try {
         const comments = await window.DashboardAPI.loadComments(postId);
-        if (comments && comments.length > 0) {
-            container.innerHTML = comments.map(c => `
-                <div class="comment-item">
-                    <img src="${c.avatar || '/uploads/avatars/default.png'}" class="comment-avatar">
-                    <div class="comment-body">
-                        <div class="comment-user">@${c.username}</div>
-                        <div class="comment-text">${c.content}</div>
-                    </div>
-                </div>
-            `).join('');
+        currentCommentsData = comments || [];
+        
+        // Update header count
+        const countHeader = document.getElementById('commentSheetCount');
+        if (countHeader) countHeader.textContent = `${currentCommentsData.length} comments`;
+
+        if (currentCommentsData.length > 0) {
+            renderComments(currentCommentsData);
+            
+            // Handle notification redirect scroll
+            if (targetCommentId) {
+                setTimeout(() => {
+                    const targetEl = document.querySelector(`[data-comment-id="${targetCommentId}"]`);
+                    if (targetEl) {
+                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        targetEl.style.background = 'rgba(233, 30, 99, 0.1)';
+                        setTimeout(() => targetEl.style.background = '', 2000);
+                    }
+                }, 500);
+            }
         } else {
             container.innerHTML = '<div style="text-align:center; color:#65676b; padding: 40px;">No comments yet. Be the first to spark a conversation!</div>';
         }
@@ -478,6 +430,71 @@ async function loadCommentsList(postId) {
         console.error('Failed to load comments:', error);
         container.innerHTML = '<div style="text-align:center; color:red; padding: 40px;">Failed to load comments</div>';
     }
+}
+
+function renderComments(comments) {
+    const container = document.getElementById('commentList');
+    if (!container) return;
+
+    container.innerHTML = comments.map(c => renderCommentItem(c)).join('');
+}
+
+function renderCommentItem(c) {
+    const isLiked = c.is_liked || false;
+    return `
+        <div class="comment-item" data-comment-id="${c.id}">
+            <img src="${c.avatar || '/uploads/avatars/default.png'}" class="comment-avatar">
+            <div class="comment-body">
+                <div class="comment-bubble">
+                    <div class="comment-user">@${c.username}</div>
+                    <div class="comment-text">${c.content}</div>
+                </div>
+                <div class="comment-meta">
+                    <span class="time">${timeAgo(c.created_at)}</span>
+                    <span class="like-btn ${isLiked ? 'liked' : ''}" onclick="window.likeComment('${c.id}', this)">
+                        ${c.like_count || 0} Likes
+                    </span>
+                    <span class="reply-trigger" onclick="window.replyToComment('${c.id}', '@${c.username} ')">Reply</span>
+                </div>
+                ${c.replies && c.replies.length > 0 ? `
+                    <div class="replies-container">
+                        ${c.replies.map(r => renderReplyItem(r)).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function renderReplyItem(r) {
+    return `
+        <div class="comment-item reply-item" data-comment-id="${r.id}" style="margin-top: 12px; transform: scale(0.95); transform-origin: left;">
+            <img src="${r.avatar || '/uploads/avatars/default.png'}" class="comment-avatar" style="width: 32px; height: 32px;">
+            <div class="comment-body">
+                <div class="comment-bubble">
+                    <div class="comment-user">@${r.username}</div>
+                    <div class="comment-text">${r.content}</div>
+                </div>
+                <div class="comment-meta">
+                    <span class="time">${timeAgo(r.created_at)}</span>
+                    <span class="like-btn" onclick="window.likeComment('${r.id}', this)">Like</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+export function filterComments(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) {
+        renderComments(currentCommentsData);
+        return;
+    }
+    const filtered = currentCommentsData.filter(c => 
+        c.content.toLowerCase().includes(q) || 
+        c.username.toLowerCase().includes(q)
+    );
+    renderComments(filtered);
 }
 
 export async function submitComment() {
@@ -505,5 +522,47 @@ export async function submitComment() {
         console.warn('Comment post error:', error);
     } finally {
         if (btn) btn.disabled = false;
+    }
+}
+
+export async function likeComment(commentId, el) {
+    try {
+        const result = await window.DashboardAPI.likeComment(commentId);
+        
+        // Handle UI update based on where it was clicked (Post Viewer or Sheet)
+        if (el) {
+            if (result.action === 'liked') {
+                el.classList.add('liked');
+                if (el.tagName === 'SPAN' && !el.classList.contains('like-btn')) {
+                    el.style.color = 'var(--accent-pink)';
+                }
+            } else {
+                el.classList.remove('liked');
+                if (el.tagName === 'SPAN' && !el.classList.contains('like-btn')) {
+                    el.style.color = '';
+                }
+            }
+            if (typeof result.newCount !== 'undefined' && el.classList.contains('like-btn')) {
+                el.textContent = `${result.newCount} Likes`;
+            }
+        }
+    } catch (err) {
+        console.error('Comment like error:', err);
+    }
+}
+
+export function replyToComment(commentId, mention) {
+    const input = document.getElementById('commentInputField');
+    if (input) {
+        // If sheet is open or we are in the sheet flow
+        input.value = mention || '';
+        input.focus();
+    } else {
+        // Post Viewer fallback
+        const viewerInput = document.getElementById('viewerCommentInput');
+        if (viewerInput) {
+            viewerInput.value = mention || '';
+            viewerInput.focus();
+        }
     }
 }

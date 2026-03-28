@@ -154,6 +154,60 @@
             cursor: not-allowed;
         }
 
+        /* CUSTOM VIDEO CONTROLS (Spec v5 - Pink Theme) */
+        .video-controls {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            display: flex;
+            gap: 40px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .video-card:hover .video-controls, .video-card:active .video-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .video-controls button {
+            background: rgba(0,0,0,0.5);
+            border: none;
+            color: #ff2d55; /* PINK THEME */
+            font-size: 24px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .video-controls button:active {
+            transform: scale(0.9);
+        }
+
+        /* Pink Progress Bar */
+        .video-progress-container {
+            position: absolute;
+            bottom: calc(75px + var(--safe-area-inset-bottom));
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255,255,255,0.2);
+            z-index: 21;
+        }
+        .video-progress-bar {
+            height: 100%;
+            background: #ff2d55;
+            width: 0%;
+        }
+
         .video-caption {
             font-size: 14px;
             line-height: 1.4;
@@ -823,10 +877,18 @@
                                  oncontextmenu="app.handleLongPress(event, '${video.moment_id}')"
                                  ontouchstart="app.handleTouchStart(event, '${video.moment_id}')"
                                  ontouchend="app.handleTouchEnd()">
-                                <video class="video-element" loop playsinline ${this.isMuted ? 'muted' : ''} autoplay preload="auto" poster="/images/video-placeholder.jpg" onerror="app.handleMediaError(this)">
-                                    <source src="${video.media_url}" type="video/mp4">
-                                </video>
-                            </div>
+                                 <video class="video-element" loop playsinline ${this.isMuted ? 'muted' : ''} autoplay preload="auto" poster="/images/video-placeholder.jpg" onerror="app.handleMediaError(this)" ontimeupdate="app.updateProgress(this)">
+                                     <source src="${video.media_url}" type="video/mp4">
+                                 </video>
+                                 <div class="video-controls">
+                                     <button class="rewind" onclick="app.seekVideo(event, -10)"><i class="fas fa-undo"></i></button>
+                                     <button class="pause" onclick="app.togglePlay(event, this)"><i class="fas fa-pause"></i></button>
+                                     <button class="forward" onclick="app.seekVideo(event, 10)"><i class="fas fa-redo"></i></button>
+                                 </div>
+                                 <div class="video-progress-container">
+                                     <div class="video-progress-bar"></div>
+                                 </div>
+                             </div>
 
                             <div class="video-info-overlay">
                                 <div class="user-info-row" onclick="app.goToProfile('${video.username}')">
@@ -969,7 +1031,7 @@
                         const isHashtag = event.target.closest('.hashtag');
 
                         if (video && !isActionBtn && !isUserRow && !isHashtag) {
-                            video.paused ? video.play() : video.pause();
+                            // Video click now handled by custom overlay or pause button
                         }
                     });
                 }
@@ -1114,6 +1176,34 @@
 
                 handleTouchEnd() {
                     clearTimeout(this.longPressTimer);
+                }
+
+                seekVideo(event, seconds) {
+                    event.stopPropagation();
+                    const video = event.target.closest('.video-card').querySelector('video');
+                    if (video) video.currentTime += seconds;
+                }
+
+                togglePlay(event, btn) {
+                    event.stopPropagation();
+                    const video = event.target.closest('.video-card').querySelector('video');
+                    if (video) {
+                        if (video.paused) {
+                            video.play();
+                            btn.innerHTML = '<i class="fas fa-pause"></i>';
+                        } else {
+                            video.pause();
+                            btn.innerHTML = '<i class="fas fa-play"></i>';
+                        }
+                    }
+                }
+
+                updateProgress(video) {
+                    const bar = video.closest('.video-wrapper').querySelector('.video-progress-bar');
+                    if (bar && video.duration) {
+                        const progress = (video.currentTime / video.duration) * 100;
+                        bar.style.width = progress + '%';
+                    }
                 }
 
                 handleMediaError(videoElement) {

@@ -179,48 +179,63 @@ function renderComments(comments) {
 }
 
 function renderCommentItem(c) {
+    if (!c) return '';
     const isLiked = c.is_liked || false;
-    const avatar = c.avatar || '/uploads/avatars/default.png';
+    const avatar = c.userId?.profilePic || c.profilePic || c.avatar || '/uploads/avatars/default.png';
+    const repliesCount = c.replies ? c.replies.length : 0;
     
     return `
         <div class="comment-item" data-comment-id="${c.id}">
             <img src="${avatar}" class="comment-avatar" onerror="this.src='/uploads/avatars/default.png'">
             <div class="comment-content">
-                <div class="comment-user">@${c.username}</div>
-                <div class="comment-text">${c.content}</div>
+                <div class="comment-user">@${c.username || (c.userId && c.userId.username) || 'sparkler'}</div>
+                <div class="comment-text">${c.content || c.text}</div>
                 <div class="comment-meta">
                     <span>${timeAgo(c.created_at)}</span>
-                    <span style="cursor:pointer;" onclick="window.replyToComment('${c.id}', '@${c.username} ')">Reply</span>
+                    <span style="cursor:pointer; color:var(--accent-pink); font-weight:600;" 
+                          onclick="window.replyToComment('${c.id}', '@${c.username || (c.userId && c.userId.username) || 'sparkler'} ')">Reply</span>
                 </div>
-                ${c.replies && c.replies.length > 0 ? `
-                    <div style="margin-top: 10px; color: var(--accent-pink); font-size: 12px; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                        View ${c.replies.length} replies
-                    </div>
-                    <div class="replies-container hidden">
-                        ${c.replies.map(r => renderReplyItem(r)).join('')}
+                
+                <!-- SPEC v5: BRANCHING TREE UI -->
+                ${repliesCount > 0 ? `
+                    <div class="replies-wrapper">
+                        <div class="view-replies-btn" onclick="this.nextElementSibling.classList.toggle('hidden');">
+                             ── View ${repliesCount} replies
+                        </div>
+                        <div class="replies-container hidden" style="margin-left: 10px; border-left: 2px solid #f0f2f5; padding-left: 10px;">
+                            ${c.replies.map(r => renderReplyItem(r)).join('')}
+                        </div>
                     </div>
                 ` : ''}
             </div>
             <button class="comment-like-btn ${isLiked ? 'liked' : ''}" onclick="window.handleCommentLike(this, '${c.id}')">
                 <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
-                <span class="count">${c.like_count || 0}</span>
+                <span class="count">${c.like_count || c.likes || 0}</span>
             </button>
         </div>
     `;
 }
 
 function renderReplyItem(r) {
-    const avatar = r.avatar || '/uploads/avatars/default.png';
+    if (!r) return '';
+    const avatar = r.userId?.profilePic || r.profilePic || r.avatar || '/uploads/avatars/default.png';
+    const isLiked = r.is_liked || false;
     return `
-        <div class="comment-item reply-item" style="margin-top: 12px; transform: scale(0.95); transform-origin: left;">
-            <img src="${avatar}" class="comment-avatar" style="width: 28px; height: 28px;" onerror="this.src='/uploads/avatars/default.png'">
+        <div class="comment-item reply-item" data-comment-id="${r.id}" style="padding: 5px 0 5px 10px;">
+            <img src="${avatar}" class="comment-avatar" style="width: 24px; height: 24px;" onerror="this.src='/uploads/avatars/default.png'">
             <div class="comment-content">
-                <div class="comment-user">@${r.username}</div>
-                <div class="comment-text">${r.content}</div>
-                <div class="comment-meta">
+                <div class="comment-user" style="font-size: 12px;">@${r.username || (r.userId && r.userId.username) || 'user'}</div>
+                <div class="comment-text" style="font-size: 12px;">${r.content || r.text}</div>
+                <div class="comment-meta" style="font-size: 11px;">
                     <span>${timeAgo(r.created_at)}</span>
+                    <span style="cursor:pointer; color:var(--accent-pink);" 
+                          onclick="window.replyToComment('${r.parentCommentId || ''}', '@${r.username} ')">Reply</span>
                 </div>
             </div>
+            <button class="comment-like-btn ${isLiked ? 'liked' : ''}" style="width: 20px; height: 20px; font-size: 10px;" onclick="window.handleCommentLike(this, '${r.id}')">
+                <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+                <span class="count">${r.like_count || r.likes || 0}</span>
+            </button>
         </div>
     `;
 }

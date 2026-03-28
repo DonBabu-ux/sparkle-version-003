@@ -1359,6 +1359,24 @@ async function submitAfterglow() {
     </div>
 </div>
 
+<!-- Tag Users Modal (Spec v5) -->
+<div class="modal premium-modal" id="tagModal" style="display:none;">
+    <div class="modal-content premium-modal-content" style="max-width:350px;">
+        <div class="modal-header premium-modal-header">
+            <div class="modal-title">Tag Followers</div>
+            <button class="close-modal premium-close-btn" onclick="document.getElementById('tagModal').style.display='none'">&times;</button>
+        </div>
+        <div class="modal-body premium-modal-body">
+            <div id="tagFollowersList" style="max-height:300px; overflow-y:auto;">
+                <!-- Followers fetched from backend -->
+            </div>
+            <div style="margin-top:15px; text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="document.getElementById('tagModal').style.display='none'">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Floating Messaging Button -->
 <button class="floating-message-btn" onclick="window.location.href='/messages'" aria-label="Messages">
     <i class="fas fa-comment-dots"></i>

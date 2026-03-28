@@ -385,8 +385,8 @@ window.createPostElement = function (post) {
 
     const username = post.isAnonymous ? 'Anonymous Student' : (post.name || post.username || post.user_name || 'Sparkler');
     
-    // BETTER AVATAR URL RESOLUTION
-    const rawAvatar = post.avatar || post.avatar_url;
+    // BETTER AVATAR URL RESOLUTION (Spec v5: Prioritize profilePic)
+    const rawAvatar = (post.userId && post.userId.profilePic) ? post.userId.profilePic : (post.avatar || post.avatar_url);
     const avatarUrl = (typeof DashboardAPI !== 'undefined' && DashboardAPI.ensureUrl) 
         ? DashboardAPI.ensureUrl(rawAvatar) 
         : (rawAvatar || '/uploads/avatars/default.png');
@@ -398,13 +398,13 @@ window.createPostElement = function (post) {
     // MANDATORY FALLBACK
     const avatarFallback = "this.onerror=null; this.src='/uploads/avatars/default.png';";
 
-    // 1. POST HEADER
+    // 1. POST HEADER (SPEC v5: Use profilePic from Cloudinary)
     const headerHtml = `
         <div class="post-header">
-            <div class="avatar-wrapper" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id}'">
+            <div class="avatar-wrapper" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id || post.userId?.id || ''}'">
                 <img src="${avatarUrl}" class="avatar" onerror="${avatarFallback}">
             </div>
-            <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id}'">
+            <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id || post.userId?.id || ''}'">
                 <div class="username">${username}</div>
                 <div class="meta">${post.campus || 'Main Campus'} • ${displayTime}</div>
             </div>
@@ -414,19 +414,40 @@ window.createPostElement = function (post) {
         </div>
     `;
 
-    // 2. CAPTION (SPEC v4: Hide if empty)
-    const captionHtml = fullCaption ? `
-        <div class="caption">${fullCaption}</div>
-    ` : '';
+    // 2. CAPTION (SPEC v5: Show 'See More' if > 120 chars)
+    let captionHtml = '';
+    if (fullCaption) {
+        if (fullCaption.length > 120) {
+            captionHtml = `
+                <div class="caption">
+                    <span id="cap-${postId}">${fullCaption.substring(0, 120)}...</span>
+                    <span class="see-more-link" style="color:var(--accent-pink); cursor:pointer; font-weight:700;" 
+                          onclick="event.stopPropagation(); document.getElementById('cap-${postId}').innerText='${fullCaption.replace(/'/g, "\\'")}'; this.remove()"> See More</span>
+                </div>
+            `;
+        } else {
+            captionHtml = `<div class="caption">${fullCaption}</div>`;
+        }
+    }
 
-    // 3. IMAGE / VIDEO
+    // 3. IMAGE / VIDEO (SPEC v5: Feed = IMAGES ONLY, Videos -> Moments Card)
     let mediaHtml = '';
     if (mediaUrl) {
-        const isVideo = mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i);
+        const isVideo = mediaUrl.match(/\.(mp4|webm|ogg|mov|m4v)$/i);
         if (isVideo) {
-            mediaHtml = `<div class="post-media"><video src="${mediaUrl}" class="post-image" controls></video></div>`;
+            mediaHtml = `
+                <div class="moments-feed-card" onclick="event.stopPropagation(); window.location.href='/moments'" style="position:relative; cursor:pointer; border-radius:12px; overflow:hidden; margin:10px; background:#000; aspect-ratio:9/16; max-height:400px; display:flex; align-items:center; justify-content:center;">
+                    <video src="${mediaUrl}" style="width:100%; height:100%; object-fit:cover; opacity:0.6;" muted playsinline></video>
+                    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; background:rgba(0,0,0,0.2);">
+                        <div style="background:var(--accent-pink); padding:4px 12px; border-radius:20px; font-weight:800; font-size:11px; margin-bottom:12px; box-shadow:0 4px 15px rgba(255,45,85,0.4);">MOMENTS</div>
+                        <i class="fas fa-play-circle" style="font-size:48px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5));"></i>
+                        <span style="font-size:13px; font-weight:700; margin-top:12px; text-shadow:0 2px 4px rgba(0,0,0,0.5);">Watch on Moments</span>
+                    </div>
+                </div>`;
         } else {
-            mediaHtml = `<img src="${mediaUrl}" class="post-image" onclick="event.stopPropagation(); window.openImageViewer('${postId}', '${mediaUrl}')">`;
+            mediaHtml = `<div class="post-media-container" style="background:#000; display:flex; align-items:center; justify-content:center; min-height:300px;">
+                            <img src="${mediaUrl}" class="post-image" style="width:100%; height:auto; object-fit:contain; max-height:80vh;" onclick="event.stopPropagation(); window.openImageViewer('${postId}', '${mediaUrl}')">
+                         </div>`;
         }
     }
 
@@ -1214,9 +1235,20 @@ window.toggleCommentLike = async function(commentId, btn) {
     }
 };
 
+window.showPostMenu = function(postId, button) {
+    if (window.showPostOptions) {
+        window.showPostOptions(postId);
+    } else {
+        console.log('Post Menu triggered for:', postId);
+        alert('Post Options coming soon!');
+    }
+};
+
 window.openImageViewer = function(postId, mediaUrl) {
     console.log('🖼️ Opening Image Viewer for:', mediaUrl);
+    window.currentOpenedPostId = postId;
     const viewer = document.getElementById('imageViewer');
+    if (viewer) viewer.setAttribute('data-post-id', postId);
     const viewerImg = document.getElementById('viewerImageSrc');
     const viewerStats = document.getElementById('viewerStats');
 
@@ -1244,13 +1276,49 @@ window.closeImageViewer = function() {
     document.body.style.overflow = 'auto';
 };
 
-window.openTagModal = function() {
-    showNotification('Tagging followers modal logic (Placeholder)', 'info');
+window.openTagModal = async function() {
+    const modal = document.getElementById('tagModal');
+    const list = document.getElementById('tagFollowersList');
+    if (!modal || !list) return;
+
+    modal.style.display = 'flex';
+    list.innerHTML = '<div style="padding:20px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading followers...</div>';
+
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('appState.currentUser')) || { id: 'me' };
+        const response = await fetch(`/api/users/${currentUser.id}/followers`);
+        const followers = await response.json();
+
+        if (followers && followers.length > 0) {
+            list.innerHTML = followers.map(f => `
+                <div class="follower-tag-item" style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #f0f0f0; cursor:pointer;" onclick="this.classList.toggle('tagged');">
+                    <img src="${f.avatar_url || f.profilePic || '/uploads/avatars/default.png'}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+                    <div style="flex:1;">
+                        <div style="font-weight:600; font-size:13px;">${f.name || f.username}</div>
+                        <div style="font-size:11px; opacity:0.6;">@${f.username}</div>
+                    </div>
+                    <div class="tagged-indicator" style="color:var(--accent-pink); display:none;"><i class="fas fa-check-circle"></i></div>
+                </div>
+            `).join('');
+        } else {
+            list.innerHTML = '<div style="padding:20px; text-align:center; opacity:0.6;">No followers to tag yet.</div>';
+        }
+    } catch (e) {
+        console.error('Tagging error:', e);
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:red;">Failed to load followers.</div>';
+    }
 };
 
 window.showViewerMenu = function() {
-    // Show a simple action sheet or list
-    alert('Options:\n- Save\n- Not Interested\n- Report Post\n- Hide Post');
+    const currentPostId = window.currentOpenedPostId || (document.getElementById('imageViewer')?.getAttribute('data-post-id'));
+    if (!currentPostId) return showNotification('No post selected.');
+
+    // Modularized menu (Spec v5)
+    if (window.showPostOptions) {
+        window.showPostOptions(currentPostId);
+    } else {
+        alert('Options:\n- Save\n- Not Interested\n- Report Post\n- Hide Post');
+    }
 };
 
 window.toggleCommentLike = function(commentId, btn) {
@@ -2589,6 +2657,7 @@ window.shareAfterglowToFriends = shareAfterglowToFriends;
 window.addConfessionMedia = addConfessionMedia;
 window.addPollOption = addPollOption;
 window.addLostFoundMedia = addLostFoundMedia;
+const addComment = (pId, text) => { if(window.submitSplitViewComment) window.submitSplitViewComment(); };
 window.sendComment = addComment;
 window.messageUser = messageUser;
 window.showNotifications = showNotificationsModal;

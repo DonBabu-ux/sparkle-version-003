@@ -2,7 +2,7 @@
 import { timeAgo } from '../core/utils.js';
 
 export function initNotifications() {
-    initRealNotifications();
+    // initRealNotifications(); // Disabling popups (Spec v5)
     initSparkleNotifications();
 }
 
@@ -30,22 +30,17 @@ function initRealNotifications() {
     const originalShowNotification = window.showNotification;
 
     window.showNotification = function (message, type = 'info', duration = 4000) {
-        // If message is an object (new premium style), handle as Sparkle Toast
-        if (typeof message === 'object') {
-            if (window.showNotificationToast) {
-                window.showNotificationToast(message);
-                return;
-            }
-            // Fallback to text
-            message = message.content || message.message || 'Notification';
+        // SPEC v5: NO AUTO POPUPS. 
+        // Only update count if notifications panel is present.
+        console.log('🔔 Notification stored (no popup):', message);
+        
+        // Update badge count
+        const badge = document.getElementById('notification-badge') || document.getElementById('navBellBadge');
+        if (badge) {
+            let count = parseInt(badge.textContent) || 0;
+            badge.textContent = ++count;
+            badge.style.display = 'flex';
         }
-
-        // Call original if it exists
-        if (typeof originalShowNotification === 'function') {
-            originalShowNotification(message, type);
-        }
-
-        showRealNotification(message, type, duration);
     };
 
     function showRealNotification(message, type = 'info', duration = 4000) {

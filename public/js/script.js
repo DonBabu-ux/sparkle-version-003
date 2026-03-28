@@ -250,16 +250,13 @@ async function loadAfterglowStories() {
     const container = document.getElementById('afterglowStories');
     if (!container) return;
 
-    // Skip if SSR content already exists
-    if (container.querySelector('.story')) {
-        console.log('✅ Stories already rendered via SSR');
-        return;
-    }
+    // Use a flag to prevent concurrent loads
+    if (container.dataset.loading === 'true') return;
+    container.dataset.loading = 'true';
 
     try {
-        container.innerHTML = '<div class="loading-shimmer" style="width: 100%; height: 80px;"></div>';
         const stories = await DashboardAPI.loadStories();
-        activeStories = stories || []; // Store globally
+        activeStories = stories || []; 
         container.innerHTML = '';
 
         if (!stories || stories.length === 0) {
@@ -276,14 +273,15 @@ async function loadAfterglowStories() {
 
         stories.forEach(story => {
             const storyEl = document.createElement('div');
-            storyEl.className = 'story-view-card'; // Changed from 'story' to match CSS
+            storyEl.className = 'story-view-card';
             storyEl.innerHTML = `
                 <div class="story-view-inner">
                     <div class="story-avatar-container">
-                        <div class="story-avatar-ring ${story.is_viewed ? 'viewed' : ''}"></div> <!-- Changed from story-ring -->
+                        <div class="story-avatar-ring ${story.is_viewed ? 'viewed' : ''}"></div>
                         <img src="${story.avatar || story.avatar_url || '/uploads/avatars/default.png'}" 
                              alt="${story.username}" 
-                             class="story-avatar ${story.is_viewed ? 'viewed' : ''}">
+                             class="story-avatar ${story.is_viewed ? 'viewed' : ''}"
+                             onerror="this.src='/uploads/avatars/default.png'">
                     </div>
                     <div class="story-username">${story.username}</div>
                 </div>
@@ -299,6 +297,8 @@ async function loadAfterglowStories() {
     } catch (error) {
         console.error('❌ Failed to load stories:', error);
         container.innerHTML = '<div style="padding: 10px; color: var(--danger); font-size: 12px;">Failed to load</div>';
+    } finally {
+        container.dataset.loading = 'false';
     }
 }
 
@@ -307,22 +307,11 @@ async function loadFeedPosts() {
     const container = document.getElementById('feed');
     if (!container) return;
 
-    // Skip if SSR content already exists and we're not forcing a refresh
-    if (container.querySelector('.post-card') && !window.forceFeedRefresh) {
-        console.log('✅ Feed already rendered via SSR');
-        return;
-    }
-
-    if (window.forceFeedRefresh) {
-        window.forceFeedRefresh = false;
-    }
+    // Use a flag to prevent concurrent loads and double render
+    if (container.dataset.loading === 'true') return;
+    container.dataset.loading = 'true';
 
     try {
-        container.innerHTML = `
-            <div class="post-card loading-shimmer" style="height: 200px; margin-bottom: 15px;"></div>
-            <div class="post-card loading-shimmer" style="height: 300px;"></div>
-        `;
-
         const posts = await DashboardAPI.loadFeed();
         container.innerHTML = '';
 
@@ -342,13 +331,21 @@ async function loadFeedPosts() {
             return;
         }
 
+        // Render once per ID using a Set to track
+        const seenIds = new Set();
         posts.forEach(post => {
+            const postId = post.post_id || post.id;
+            if (seenIds.has(postId)) return;
+            seenIds.add(postId);
+
             const postEl = window.createPostElement(post);
             container.appendChild(postEl);
         });
     } catch (error) {
         console.error('❌ Failed to load feed:', error);
         container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Failed to load feed. Please refresh.</div>';
+    } finally {
+        container.dataset.loading = 'false';
     }
 }
 
@@ -370,125 +367,98 @@ window.createPostElement = function (post) {
         return date.toLocaleDateString();
     };
 
+    const postId = post.post_id || post.id;
     const postEl = document.createElement('div');
-    postEl.className = 'post-card';
-    postEl.dataset.postId = post.post_id || post.id;
+    postEl.className = 'post';
+    postEl.dataset.postId = postId;
 
     const displayTime = (post.created_at || post.timestamp) ? timeAgo(post.created_at || post.timestamp) : 'Just now';
+    
+    // BETTER CAPTION CHECK
     let bufCaption = post.content || post.caption || '';
-    if (bufCaption === 'undefined' || bufCaption === 'null') bufCaption = '';
+    if (!bufCaption || bufCaption === 'undefined' || bufCaption === 'null') bufCaption = '';
     const fullCaption = bufCaption;
 
     const isLiked = post.isLiked || post.user_has_liked || post.is_sparked || false;
-    const isSaved = post.isSaved || post.user_has_saved || post.is_saved || false;
-
     const sparks = parseInt(post.sparks || post.spark_count || 0);
-    const comments = parseInt(post.comments || post.comment_count || 0);
+    const commentsCount = parseInt(post.comments || post.comment_count || 0);
 
     const username = post.isAnonymous ? 'Anonymous Student' : (post.name || post.username || post.user_name || 'Sparkler');
-    const avatarUrl = post.avatar || post.avatar_url || '/uploads/avatars/default.png';
-    const mediaUrl = post.media || post.media_url || null;
+    
+    // BETTER AVATAR URL RESOLUTION
+    const rawAvatar = post.avatar || post.avatar_url;
+    const avatarUrl = (typeof DashboardAPI !== 'undefined' && DashboardAPI.ensureUrl) 
+        ? DashboardAPI.ensureUrl(rawAvatar) 
+        : (rawAvatar || '/uploads/avatars/default.png');
+        
+    const mediaUrl = (typeof DashboardAPI !== 'undefined' && DashboardAPI.ensureUrl)
+        ? DashboardAPI.ensureUrl(post.media || post.media_url)
+        : (post.media || post.media_url || null);
 
-    // 1. HEADER
+    // MANDATORY FALLBACK
+    const avatarFallback = "this.onerror=null; this.src='/uploads/avatars/default.png';";
+
+    // 1. POST HEADER
     const headerHtml = `
         <div class="post-header">
-            <img src="${avatarUrl}" alt="${username}"
-                class="post-avatar" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
-            <div class="post-author-info">
-                <div class="post-username-row">
-                    <div class="post-username">@${username}</div>
-                    ${post.is_verified ? '<span style="color: #3b82f6; font-size: 12px; margin-left: 4px;"><i class="fas fa-check-circle"></i></span>' : ''}
-                </div>
-                <div class="post-meta-row">
-                    <span>${post.campus || 'Main Campus'}</span> •
-                    <span class="post-time-simple">${displayTime}</span>
-                </div>
+            <div class="avatar-wrapper" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id}'">
+                <img src="${avatarUrl}" class="avatar" onerror="${avatarFallback}">
             </div>
-            <button class="post-options-btn" onclick="event.stopPropagation(); window.showPostMenu('${post.post_id || post.id}', this)">
+            <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id}'">
+                <div class="username">${username}</div>
+                <div class="meta">${post.campus || 'Main Campus'} • ${displayTime}</div>
+            </div>
+            <button class="options-btn" onclick="event.stopPropagation(); window.showPostMenu('${postId}', this)">
                 <i class="fas fa-ellipsis-h"></i>
             </button>
         </div>
     `;
 
-    // 2. TEXT
-    const isLongText = fullCaption.length > 280;
-    const textHtml = fullCaption ? `
-        <div class="post-text-body">
-            <div class="post-caption-container">
-                <div class="post-caption-preview ${isLongText ? 'has-fade' : ''}" id="caption-${post.post_id || post.id}">
-                    ${fullCaption}
-                </div>
-                ${isLongText ? `<div class="see-more-link" onclick="window.togglePostExpansion('${post.post_id || post.id}', this)">See More</div>` : ''}
-            </div>
-        </div>
+    // 2. CAPTION (SPEC v4: Hide if empty)
+    const captionHtml = fullCaption ? `
+        <div class="caption">${fullCaption}</div>
     ` : '';
 
-    // 3. MEDIA (Full Bleed)
+    // 3. IMAGE / VIDEO
     let mediaHtml = '';
     if (mediaUrl) {
         const isVideo = mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i);
-        mediaHtml = `
-            <div class="post-media-proper">
-                ${isVideo ?
-                `<video class="media-obj-proper" src="${mediaUrl}" controls preload="metadata"></video>` :
-                `<img class="media-obj-proper" src="${mediaUrl}" alt="Post media" loading="lazy">`
-            }
-            </div>
-        `;
+        if (isVideo) {
+            mediaHtml = `<div class="post-media"><video src="${mediaUrl}" class="post-image" controls></video></div>`;
+        } else {
+            mediaHtml = `<img src="${mediaUrl}" class="post-image" onclick="event.stopPropagation(); window.openImageViewer('${postId}', '${mediaUrl}')">`;
+        }
     }
 
-    // 4. INTERACTION AREA
-    const footerAreaHtml = `
-        <div class="post-interaction-metrics">
-            <div class="metric-stat spark-stat">
-                <i class="fas fa-bolt"></i>
-                <span class="spark-count-val">${isNaN(sparks) ? 0 : sparks}</span> Sparks
-            </div>
-            <div class="metric-stat comment-stat">
-                <i class="far fa-comment"></i>
-                <span class="comment-count-val">${isNaN(comments) ? 0 : comments}</span> Comments
-            </div>
+    // 4. ENGAGEMENT SUMMARY - EDGE LEFT (SPARKS), EDGE RIGHT (COMMENTS)
+    // Applying Instagram Pink branding directly to summary icons if active
+    const engagementHtml = `
+        <div class="engagement-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px;">
+            <span class="sparks-count" style="color: ${isLiked ? 'var(--insta-pink)' : 'var(--text-muted)'}; font-weight: 700;">
+                <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> ${sparks}
+            </span>
+            <span class="comments-count" style="color: var(--text-muted); font-size: 12px; font-weight: 600;">
+                ${commentsCount} comments
+            </span>
         </div>
+    `;
 
-        <div class="post-interaction-actions">
-            <button class="action-btn-custom spark ${isLiked ? 'active' : ''}"
-                onclick="event.stopPropagation(); window.toggleSpark('${post.post_id || post.id}', this)">
-                <i class="${isLiked ? 'fas' : 'far'} fa-bolt"></i>
-                <span>Spark</span>
+    // 5. ACTIONS
+    const actionsHtml = `
+        <div class="actions">
+            <button class="action-btn ${isLiked ? 'active' : ''}" onclick="event.stopPropagation(); window.toggleSpark('${postId}', this)">
+                <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> Like
             </button>
-
-            <button class="action-btn-custom comment" onclick="event.stopPropagation(); window.location.href='/post/${post.post_id || post.id}'">
-                <i class="far fa-comment"></i>
-                <span>Comment</span>
+            <button class="action-btn" onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">
+                <i class="far fa-comment"></i> Comment
             </button>
-
-            <button class="action-btn-custom share" onclick="event.stopPropagation(); window.shareManager?.openShareSheet('post', '${post.post_id || post.id}') || showNotification('Share coming soon!', 'info')">
-                <i class="far fa-share-square"></i>
-                <span>Share</span>
-            </button>
-
-            <button class="action-btn-custom save ${isSaved ? 'active' : ''}"
-                onclick="event.stopPropagation(); window.toggleSavePost('${post.post_id || post.id}', this)">
-                <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
-                <span>Save</span>
+            <button class="action-btn" onclick="event.stopPropagation(); window.shareManager?.openShareSheet('post', '${postId}')">
+                <i class="far fa-share-square"></i> Share
             </button>
         </div>
     `;
 
-    // 5. FOOTNOTE (Quick Comment)
-    const footnoteHtml = `
-        <div class="post-footer-minimal">
-            <div class="post-comment-quick">
-                <img src="${window.appState?.currentUser?.avatar || '/uploads/avatars/default.png'}" 
-                    class="post-avatar" style="width: 32px !important; height: 32px !important;" onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
-                <input type="text" id="comment-input-${post.post_id || post.id}" class="comment-input-min" placeholder="Add a comment..."
-                    onkeypress="if(event.key === 'Enter') addComment('${post.post_id || post.id}', this)">
-            </div>
-            <div class="comments-section" id="comments-${post.post_id || post.id}" style="display: none;"></div>
-        </div>
-    `;
-
-    postEl.innerHTML = headerHtml + textHtml + mediaHtml + footerAreaHtml + footnoteHtml;
+    postEl.innerHTML = headerHtml + captionHtml + mediaHtml + engagementHtml + actionsHtml;
     return postEl;
 };
 
@@ -1039,17 +1009,33 @@ function sendMessageToUser(userId) {
 async function toggleSpark(postId, button) {
     try {
         const result = await DashboardAPI.sparkPost(postId);
-        const sparkCount = button.querySelector('.spark-count');
-        let count = parseInt(sparkCount.textContent) || 0;
+        const postEl = button.closest('.post') || button.closest('.post-card');
+        if (!postEl) return;
 
+        const engagementSummary = postEl.querySelector('.engagement-summary');
+        const icon = button.querySelector('i');
+        
         if (result.action === 'sparked') {
             button.classList.add('active');
-            sparkCount.textContent = count + 1;
-            createSparkAnimation(event.clientX || 100, event.clientY || 100);
+            if (icon) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+            }
+            if (typeof createSparkAnimation === 'function') {
+                createSparkAnimation(event.clientX || 100, event.clientY || 100);
+            }
             showNotification('Post sparked! ✨');
         } else {
             button.classList.remove('active');
-            sparkCount.textContent = Math.max(0, count - 1);
+            if (icon) {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+            }
+        }
+
+        // Update counts in engagement summary if it exists
+        if (engagementSummary) {
+            engagementSummary.innerHTML = `❤️ ${result.spark_count || result.likes || 0} • 💬 ${result.comment_count || result.comments || 0}`;
         }
     } catch (error) {
         console.error('Spark error:', error);
@@ -1057,106 +1043,226 @@ async function toggleSpark(postId, button) {
     }
 }
 
-async function showComments(postId) {
+// SPEC v3: MODES & COMMENTS ENGINE
+window.currentOpenedPostId = null;
+
+window.openCommentSplitView = async function(postId) {
+    console.log('💬 Opening Split View for post:', postId);
+    window.currentOpenedPostId = postId;
+    const splitView = document.getElementById('splitView');
+    if (!splitView) return;
+
+    // 1. Shrink image to 15% (Layout is already set in CSS)
+    const post = document.querySelector(`.post[data-postId="${postId}"], .post[data-post-id="${postId}"]`);
+    const splitViewMedia = document.getElementById('splitViewMedia');
+    if (post && splitViewMedia) {
+        const media = post.querySelector('.post-image');
+        if (media) {
+            splitViewMedia.innerHTML = media.outerHTML;
+            // Ensure videos don't autoplay or stay paused/muted in preview
+            const video = splitViewMedia.querySelector('video');
+            if (video) { video.muted = true; video.pause(); }
+        } else {
+            splitViewMedia.innerHTML = '<div style="height:100%; display:flex; align-items:center; justify-content:center; background:#eee; color:#666; font-size:12px;">No Media</div>';
+        }
+    }
+
+    // 2. Show Split View
+    splitView.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // 3. Load & Render Comments
+    window.refreshSplitViewComments(postId);
+};
+
+window.refreshSplitViewComments = async function(postId) {
+    const commentsList = document.getElementById('splitViewComments');
+    if (!commentsList) return;
+
+    commentsList.innerHTML = '<div style="padding: 40px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading comments...</div>';
+
     try {
         const comments = await DashboardAPI.loadComments(postId);
+        commentsList.innerHTML = '';
 
-        // Create comments modal
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.display = 'flex';
-        modal.id = `commentsModal-${postId}`;
+        if (!comments || comments.length === 0) {
+            commentsList.innerHTML = '<div style="padding:40px; text-align:center; color:#999; font-size: 14px;">No comments yet.</div>';
+            return;
+        }
 
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
-                <div class="modal-header">
-                    <div class="modal-title">Comments (${comments.length})</div>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 15px;">
-                    ${comments.length === 0 ? '<p style="text-align: center; color: #999;">No comments yet.</p>' :
-                comments.map(comment => `
-                        <div style="display: flex; gap: 10px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border);">
-                            <img src="${comment.avatar || '/uploads/avatars/default.png'}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" onerror="this.src='/uploads/avatars/default.png'">
-                            <div style="flex: 1;">
-                                <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
-                                    <span style="font-weight: 600; color: #333;">${comment.username || 'Sparkler'}</span>
-                                    <span style="font-size: 11px; color: #999;">${comment.timestamp}</span>
-                                </div>
-                                <div style="margin-bottom: 5px; color: #444; font-size: 14px; line-height: 1.4;">${comment.content}</div>
-                                <div style="display: flex; align-items: center; gap: 15px; font-size: 12px;">
-                                    <button class="btn" style="padding: 0; background: none; color: #666; font-size: 11px;">
-                                        <i class="far fa-heart"></i> ${comment.spark_count || 0}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <div style="padding: 15px; border-top: 1px solid var(--border);">
-                    <div class="comment-input-container">
-                        <input type="text" class="comment-input" id="commentInput-${postId}" placeholder="Add a comment...">
-                        <button class="comment-send-btn" id="sendCommentBtn-${postId}">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
+        comments.forEach(comment => {
+            const commentEl = window.renderComment(comment);
+            commentsList.appendChild(commentEl);
+        });
+    } catch (e) {
+        console.error(e);
+        commentsList.innerHTML = '<div style="padding:20px; color:var(--danger); text-align:center;">Failed to load comments</div>';
+    }
+};
+
+window.renderComment = function(comment) {
+    const commentDiv = document.createElement('div');
+    commentDiv.className = 'comment';
+    commentDiv.dataset.commentId = comment.id;
+
+    const avatarFallback = "this.onerror=null; this.src='/uploads/avatars/default.png';";
+    const avatar = comment.avatar || comment.avatar_url || '/uploads/avatars/default.png';
+
+    commentDiv.innerHTML = `
+        <img src="${avatar}" class="avatar clickable" 
+             onclick="window.location.href='/profile/${comment.user_id || comment.userId}'" 
+             onerror="${avatarFallback}">
+        <div class="comment-body">
+            <div class="comment-main">
+                <span class="username clickable" onclick="window.location.href='/profile/${comment.user_id || comment.userId}'">${comment.username || 'Sparkler'}</span>
+                <span class="comment-like" onclick="window.toggleCommentLike('${comment.id}', this)">❤️ ${comment.likes || 0}</span>
             </div>
-        `;
+            <p class="comment-text">${comment.text || comment.content}</p>
+            <div class="comment-meta">
+                <span>${comment.timestamp || 'Just now'}</span>
+                <span class="reply-btn" onclick="window.toggleReply('${comment.id}', '${comment.username}')">Reply</span>
+            </div>
+            <div class="replies" id="replies-${comment.id}"></div>
+        </div>
+    `;
 
-        document.body.appendChild(modal);
-
-        // Add event listeners
-        const input = document.getElementById(`commentInput-${postId}`);
-        const sendBtn = document.getElementById(`sendCommentBtn-${postId}`);
-
-        const performAdd = () => addComment(postId);
-
-        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') performAdd(); });
-        sendBtn.addEventListener('click', performAdd);
-
-        // Close modal
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal || e.target.classList.contains('close-modal')) {
-                document.body.removeChild(modal);
-            }
+    // SPEC v4: Render Tree Replies (Max 3 visible initially)
+    if (comment.replies && comment.replies.length > 0) {
+        const repliesContainer = commentDiv.querySelector('.replies');
+        const visibleReplies = comment.replies.slice(0, 3);
+        
+        visibleReplies.forEach(reply => {
+            const replyEl = document.createElement('div');
+            replyEl.className = 'reply';
+            const rAvatar = reply.avatar || '/uploads/avatars/default.png';
+            
+            replyEl.innerHTML = `
+                <img src="${rAvatar}" class="avatar" onerror="${avatarFallback}">
+                <div class="reply-content">
+                    <span class="username">${reply.username || 'User'}</span>
+                    <span class="reply-like" onclick="window.toggleCommentLike('${reply.id}', this)">❤️ ${reply.likes || 0}</span>
+                    <p>${reply.text || reply.content}</p>
+                </div>
+            `;
+            repliesContainer.appendChild(replyEl);
         });
 
-        input.focus();
-    } catch (error) {
-        console.error('Load comments error:', error);
-        showNotification('Failed to load comments.');
+        if (comment.replies.length > 3) {
+            const viewMore = document.createElement('div');
+            viewMore.className = 'view-more-replies';
+            viewMore.textContent = `View all ${comment.replies.length} replies`;
+            viewMore.onclick = () => { /* Logic to Expand Replies if needed */ };
+            repliesContainer.appendChild(viewMore);
+        }
     }
-}
 
-async function addComment(postId) {
-    const input = document.getElementById(`commentInput-${postId}`);
-    const content = input?.value.trim();
+    return commentDiv;
+};
 
-    if (!content) return;
+window.closeCommentSplitView = function() {
+    const splitView = document.getElementById('splitView');
+    if (splitView) splitView.classList.remove('active');
+    document.body.style.overflow = 'auto';
+    window.currentOpenedPostId = null;
+    window.currentReplyToId = null; // Clean up reply state
+};
+
+window.currentReplyToId = null;
+
+window.toggleReply = function(commentId, username) {
+    window.currentReplyToId = commentId;
+    const input = document.getElementById('splitViewInput');
+    if (!input) return;
+    
+    input.focus();
+    input.placeholder = `Replying to @${username}...`;
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+window.submitSplitViewComment = async function() {
+    const input = document.getElementById('splitViewInput');
+    const text = input.value.trim();
+    if (!text || !window.currentOpenedPostId) return;
 
     try {
-        await DashboardAPI.addComment(postId, content);
-
-        // Update comment count in feed UI
-        const commentCount = document.querySelector(`[data-post-id="${postId}"] .comment-count`);
-        if (commentCount) {
-            commentCount.textContent = (parseInt(commentCount.textContent) || 0) + 1;
-        }
-
-        // Refresh comments modal
-        const oldModal = document.getElementById(`commentsModal-${postId}`);
-        if (oldModal) {
-            document.body.removeChild(oldModal);
-            showComments(postId);
-        }
-
-        showNotification('Comment added! ✨');
-    } catch (error) {
-        console.error('Comment error:', error);
-        showNotification('Failed to add comment.');
+        // Send parentCommentId if we are in reply mode
+        await DashboardAPI.postComment(window.currentOpenedPostId, text, window.currentReplyToId);
+        
+        input.value = '';
+        input.placeholder = 'Add a comment...';
+        window.currentReplyToId = null; // Reset reply state
+        
+        window.refreshSplitViewComments(window.currentOpenedPostId);
+    } catch (e) {
+        console.error(e);
+        showNotification('Failed to post comment', 'error');
     }
-}
+};
+
+window.toggleCommentLike = async function(commentId, btn) {
+    try {
+        const result = await DashboardAPI.likeComment(commentId);
+        if (result.action === 'liked') {
+            btn.innerHTML = `❤️ ${result.likes || 0}`;
+            btn.classList.add('liked');
+        } else {
+            btn.innerHTML = `❤️ ${result.likes || 0}`;
+            btn.classList.remove('liked');
+        }
+    } catch (e) {
+        console.error('Comment like error:', e);
+    }
+};
+
+window.openImageViewer = function(postId, mediaUrl) {
+    console.log('🖼️ Opening Image Viewer for:', mediaUrl);
+    const viewer = document.getElementById('imageViewer');
+    const viewerImg = document.getElementById('viewerImageSrc');
+    const viewerStats = document.getElementById('viewerStats');
+
+    if (!viewer || !viewerImg) return;
+
+    viewerImg.src = mediaUrl;
+    viewer.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // Populate minimal stats (Heart, Comment, Share)
+    const post = document.querySelector(`.post[data-postId="${postId}"], .post[data-post-id="${postId}"]`);
+    if (post) {
+        const summary = post.querySelector('.engagement-summary')?.textContent || '❤️ 0 • 💬 0';
+        // Clean up summary string for viewer format: ❤️ 120   💬 45   🔁 10
+        const stats = summary.replace('•', '  ').trim();
+        viewerStats.innerHTML = stats + '   🔁 0';
+    } else {
+        viewerStats.innerHTML = '❤️ 0   💬 0   🔁 0';
+    }
+};
+
+window.closeImageViewer = function() {
+    const viewer = document.getElementById('imageViewer');
+    if (viewer) viewer.classList.remove('active');
+    document.body.style.overflow = 'auto';
+};
+
+window.openTagModal = function() {
+    showNotification('Tagging followers modal logic (Placeholder)', 'info');
+};
+
+window.showViewerMenu = function() {
+    // Show a simple action sheet or list
+    alert('Options:\n- Save\n- Not Interested\n- Report Post\n- Hide Post');
+};
+
+window.toggleCommentLike = function(commentId, btn) {
+    console.log('❤️ Toggling like for comment:', commentId);
+    // For demo/UI consistency, just toggle visually
+    btn.classList.toggle('active');
+};
+
+window.toggleReply = function(commentId) {
+    document.getElementById('splitViewInput').focus();
+    document.getElementById('splitViewInput').placeholder = 'Reply to comment...';
+};
 
 async function toggleSavePost(postId, button) {
     try {
@@ -2497,8 +2603,6 @@ window.openGroupChat = openGroupChat;
 window.openAnonymousChat = openAnonymousChat;
 window.manageGroup = manageGroup;
 window.toggleSpark = toggleSpark;
-window.showComments = showComments;
-window.addComment = addComment;
 window.toggleSavePost = toggleSavePost;
 window.sharePost = sharePost;
 window.viewUserProfile = viewUserProfile;
@@ -2602,6 +2706,11 @@ async function sparkAfterglow() {
         if (btn) {
             btn.style.transform = 'scale(1.3)';
             setTimeout(() => btn.style.transform = 'scale(1)', 200);
+            
+            if (typeof createSparkAnimation === 'function') {
+                const rect = btn.getBoundingClientRect();
+                createSparkAnimation(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            }
         }
 
         showToast(result.liked ? '✨ AfterGlow Sparked!' : '✨ Spark removed');

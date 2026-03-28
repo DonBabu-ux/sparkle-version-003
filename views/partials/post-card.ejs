@@ -7,82 +7,69 @@
   const comments = post.comment_count || post.comments || 0;
   
   // Truncate logic for caption
-  const MAX_CAPTION = 120;
-  const needsTruncation = post.content && post.content.length > MAX_CAPTION;
-  const displayContent = needsTruncation ? post.content.slice(0, MAX_CAPTION) : post.content;
+  const bufCaption = post.content || post.caption || '';
+  const finalCaption = (bufCaption && bufCaption !== 'undefined' && bufCaption !== 'null') ? bufCaption : '';
 %>
 
 <div class="post" data-post-id="<%= pId %>">
     <div class="post-header">
         <div class="avatar-wrapper <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" 
-             onclick="event.stopPropagation(); <%= post.has_story ? 'openStoryViewer(\'' + post.user_id + '\')' : 'window.location.href=\'/profile/' + uname + '\'' %>">
-            <img src="<%= avatar %>" class="avatar" onerror="this.src='/uploads/avatars/default.png'">
-            <% if (post.is_online) { %>
-                <span class="online-dot"></span>
-            <% } %>
+             onclick="event.stopPropagation(); <%= post.has_story ? 'openStoryViewer(\'' + (post.user_id || post.actor_id) + '\')' : 'window.location.href=\'/profile/' + uname + '\'' %>">
+            <img src="<%= avatar %>" class="avatar" onerror="this.onerror=null; this.src='/uploads/avatars/default.png'">
         </div>
 
         <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
             <div class="username"><%= uname %></div>
             <div class="meta">
-                <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
-                <% if (post.campus) { %> • <%= post.campus %><% } %>
+                <%= post.campus || 'Main Campus' %> • <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
             </div>
         </div>
 
-        <button class="options-btn" onclick="event.stopPropagation()" aria-label="Post Options">
+        <button class="options-btn" onclick="event.stopPropagation()">
             <i class="fas fa-ellipsis-h"></i>
         </button>
     </div>
 
-    <% if (post.content && post.content.trim()) { %>
+    <% if (finalCaption) { %>
         <div class="caption">
-            <span class="caption-text" id="caption-<%= pId %>">
-                <%= displayContent %><%= needsTruncation ? '...' : '' %>
-            </span>
-            <% if (needsTruncation) { %>
-                <span class="see-more" onclick="event.stopPropagation(); expandCaption('<%= pId %>', '<%= post.content.replace(/'/g, "\\'").replace(/\n/g, " ") %>')">
-                    See more
-                </span>
-            <% } %>
+            <span class="caption-text" id="caption-<%= pId %>"><%= finalCaption %></span>
         </div>
     <% } %>
 
-    <% if (post.media_url) { %>
-        <div class="post-media" onclick="openPost('<%= pId %>')">
+    <% if (post.media_url && post.media_url !== 'undefined') { %>
+        <div class="post-media">
             <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
                 <video src="<%= post.media_url %>" autoplay loop muted playsinline onclick="event.stopPropagation()"></video>
             <% } else { %>
-                <img src="<%= post.media_url %>" class="post-image" loading="lazy" onerror="this.src='/uploads/posts/default.png'">
+                <img src="<%= post.media_url %>" class="post-image" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('<%= pId %>', '<%= post.media_url %>')" onerror="this.onerror=null; this.src='/uploads/posts/default.png'">
             <% } %>
         </div>
     <% } %>
 
-    <div class="engagement-bar" onclick="openPost('<%= pId %>')">
-        <span class="spark-count"><%= sparks %> sparks</span> • 
-        <span class="comment-count"><%= comments %> comments</span>
+    <div class="engagement-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px;">
+        <span class="sparks-count" style="color: <%= isSparked ? 'var(--insta-pink)' : 'var(--text-muted)' %>; font-weight: 700;">
+            <i class="<%= isSparked ? 'fas' : 'far' %> fa-heart"></i> <%= sparks %>
+        </span>
+        <span class="comments-count" style="color: var(--text-muted); font-size: 12px; font-weight: 600;">
+            <%= comments %> comments
+        </span>
     </div>
 
-    <div class="actions">
-        <button class="action-btn like-btn <%= isSparked ? 'active' : '' %>" 
-                onclick="event.stopPropagation(); toggleSpark('<%= pId %>', this)">
-            <i class="<%= isSparked ? 'fas fa-heart' : 'far fa-heart' %>"></i>
+    <div class="actions" style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding: 4px 8px;">
+        <button class="action-btn <%= isSparked ? 'active' : '' %>" 
+                onclick="event.stopPropagation(); window.toggleSpark('<%= pId %>', this)">
+            <i class="<%= isSparked ? 'fas' : 'far' %> fa-heart"></i>
             <span>Like</span>
         </button>
-        <button class="action-btn comment-btn" 
-                onclick="event.stopPropagation(); openPost('<%= pId %>')">
+        <button class="action-btn" 
+                onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
             <i class="far fa-comment"></i>
             <span>Comment</span>
         </button>
-        <button class="action-btn share-btn" 
-                onclick="event.stopPropagation(); sharePost('<%= pId %>')">
+        <button class="action-btn" 
+                onclick="event.stopPropagation(); window.sharePost('<%= pId %>')">
             <i class="far fa-share-square"></i>
             <span>Share</span>
-        </button>
-        <button class="action-btn save-btn" 
-                onclick="event.stopPropagation(); savePost('<%= pId %>', this)">
-            <i class="<%= post.is_saved ? 'fas' : 'far' %> fa-bookmark"></i>
-            <span>Save</span>
         </button>
     </div>
 </div>

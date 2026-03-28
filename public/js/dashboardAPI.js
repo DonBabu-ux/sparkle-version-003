@@ -331,11 +331,14 @@ const DashboardAPI = {
         }
     },
 
-    async postComment(postId, text) {
+    async postComment(postId, text, parentCommentId = null) {
         try {
             const result = await this.request(`/posts/${postId}/comments`, {
                 method: 'POST',
-                body: JSON.stringify({ content: text })
+                body: JSON.stringify({ 
+                    content: text,
+                    parentCommentId: parentCommentId 
+                })
             });
             return result;
         } catch (error) {

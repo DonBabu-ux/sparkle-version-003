@@ -104,8 +104,9 @@ const sparkPost = async (req, res) => {
 
 const getComments = async (req, res) => {
     try {
+        const userId = req.user ? (req.user.userId || req.user.user_id) : null;
         const postId = req.params.id;
-        const comments = await Post.getComments(postId);
+        const comments = await Post.getComments(postId, userId);
         res.json(comments);
     } catch (error) {
         logger.error('Get comments error:', error);
@@ -220,6 +221,44 @@ const sharePost = async (req, res) => {
     }
 };
 
+const likeComment = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const commentId = req.params.id;
+
+        const result = await Post.addCommentLike(commentId, userId);
+
+        // Notify comment owner on like
+        if (result.action === 'liked') {
+            try {
+                const comment = await Post.getCommentById(commentId);
+                if (comment && comment.user_id && comment.user_id !== userId) {
+                    notificationController.createNotification({
+                        user_id: comment.user_id,
+                        actor_id: userId,
+                        type: 'mention', // Using mention as a proxy or add 'comment_like'
+                        title: 'Comment Liked',
+                        content: 'liked your comment',
+                        related_id: comment.post_id,
+                        related_type: 'post',
+                        action_url: `/posts/${comment.post_id}`
+                    }).catch(() => { });
+                }
+            } catch (_) { }
+        }
+
+        const comment = await Post.getCommentById(commentId);
+        res.json({
+            message: result.action === 'liked' ? 'Comment liked!' : 'Like removed',
+            action: result.action,
+            newCount: comment ? comment.like_count : 0
+        });
+    } catch (error) {
+        logger.error('Like comment error:', error);
+        res.status(500).json({ error: 'Failed to like comment' });
+    }
+};
+
 module.exports = {
     createPost,
     deletePost,
@@ -229,5 +268,6 @@ module.exports = {
     addComment,
     savePost,
     getLikedPosts,
-    sharePost
+    sharePost,
+    likeComment
 };

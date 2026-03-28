@@ -247,16 +247,74 @@ class Post {
     /**
      * Get post comments
      */
-    static async getComments(postId) {
-        const [comments] = await pool.query(
-            `SELECT c.*, u.username, u.name, u.avatar_url
-             FROM comments c
-             JOIN users u ON c.user_id = u.user_id
-             WHERE c.post_id = ?
-             ORDER BY c.created_at ASC`,
-            [postId]
-        );
+    static async getComments(postId, currentUserId = null) {
+        let query = `
+            SELECT c.*, u.username, u.name, u.avatar_url,
+                   (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) as like_count
+        `;
+
+        const params = [postId];
+
+        if (currentUserId) {
+            query += `, (SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.comment_id AND cl2.user_id = ?) as is_liked `;
+            params.unshift(currentUserId); // Add currentUserId for the subquery
+            // Wait, unshift puts it at the beginning. PostId is at the end.
+            // Let's reorder:
+        }
+
+        query = `
+            SELECT c.*, u.username, u.name, u.avatar_url,
+                   (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) as like_count
+                   ${currentUserId ? `, (SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.comment_id AND cl2.user_id = ?) as is_liked ` : ''}
+            FROM comments c
+            JOIN users u ON c.user_id = u.user_id
+            WHERE c.post_id = ?
+            ORDER BY c.created_at ASC
+        `;
+
+        const finalParams = currentUserId ? [currentUserId, postId] : [postId];
+
+        const [comments] = await pool.query(query, finalParams);
         return comments;
+    }
+
+    /**
+     * Get a single comment by ID
+     */
+    static async getCommentById(commentId) {
+        const [comments] = await pool.query('SELECT * FROM comments WHERE comment_id = ?', [commentId]);
+        return comments[0] || null;
+    }
+
+    /**
+     * Add like to comment
+     */
+    static async addCommentLike(commentId, userId) {
+        const likeId = crypto.randomUUID();
+        try {
+            await pool.query(
+                'INSERT INTO comment_likes (like_id, comment_id, user_id) VALUES (?, ?, ?)',
+                [likeId, commentId, userId]
+            );
+            await pool.query(
+                'UPDATE comments SET like_count = like_count + 1 WHERE comment_id = ?',
+                [commentId]
+            );
+            return { success: true, action: 'liked' };
+        } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') {
+                await pool.query(
+                    'DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?',
+                    [commentId, userId]
+                );
+                await pool.query(
+                    'UPDATE comments SET like_count = GREATEST(like_count - 1, 0) WHERE comment_id = ?',
+                    [commentId]
+                );
+                return { success: true, action: 'unliked' };
+            }
+            throw error;
+        }
     }
 
     /**

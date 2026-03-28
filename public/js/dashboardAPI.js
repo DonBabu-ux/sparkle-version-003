@@ -57,9 +57,15 @@ const DashboardAPI = {
         return this.request(endpoint, options);
     },
 
+    getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    },
+
     async request(endpoint, options = {}) {
         const startTime = performance.now();
         const token = this.getToken();
+        const csrfToken = this.getCsrfToken();
         const method = options.method || 'GET';
 
         const headers = {
@@ -72,6 +78,10 @@ const DashboardAPI = {
 
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        if (csrfToken && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase())) {
+            headers['X-CSRF-Token'] = csrfToken;
         }
 
         const fullUrl = `${this.baseUrl}${endpoint}`;
@@ -346,6 +356,18 @@ const DashboardAPI = {
             return result;
         } catch (error) {
             console.error('Failed to delete comment:', error);
+            throw error;
+        }
+    },
+
+    async likeComment(commentId) {
+        try {
+            const result = await this.request(`/comments/${commentId}/like`, {
+                method: 'POST'
+            });
+            return result;
+        } catch (error) {
+            console.error('Failed to like comment:', error);
             throw error;
         }
     },

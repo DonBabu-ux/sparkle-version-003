@@ -293,6 +293,35 @@ const initStorySharesTable = async () => {
     }
 };
 
+const initCommentLikesTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS comment_likes (
+                like_id CHAR(36) NOT NULL PRIMARY KEY,
+                comment_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_comment_like (comment_id, user_id),
+                FOREIGN KEY (comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        
+        // Also ensure like_count exists on comments
+        try {
+            await pool.query('ALTER TABLE comments ADD COLUMN like_count INT DEFAULT 0');
+            logger.debug('✅ Added like_count column to comments table');
+        } catch (e) {
+            if (e.code !== 'ER_DUP_FIELDNAME') throw e;
+        }
+
+        logger.debug('✅ Comment likes table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init comment likes table:', err.message);
+        throw err;
+    }
+};
+
 const initPersonalChatsTable = async () => {
     try {
         await pool.query(`
@@ -722,6 +751,7 @@ const initDB = async () => {
             await initStoriesTable();
             await initStoryLikesTable();
             await initStorySharesTable();
+            await initCommentLikesTable();
             await initPersonalChatsTable();
             await initLostFoundTable();
             await initSkillMarketTable();

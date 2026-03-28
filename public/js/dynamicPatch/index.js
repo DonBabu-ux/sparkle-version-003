@@ -63,11 +63,14 @@ window.sparkPost = (postId, btn) => import('./features/feed.js').then(m => m.tog
 window.toggleSpark = (postId, btn) => import('./features/feed.js').then(m => m.toggleSpark(postId, btn));
 window.savePost = (postId, btn) => import('./features/feed.js').then(m => m.savePost(postId, btn));
 window.sharePost = (postId) => import('./features/feed.js').then(m => m.sharePost(postId));
-window.openComments = (postId, targetId) => import('./features/feed.js').then(m => m.openComments(postId, targetId));
-window.closeComments = () => import('./features/feed.js').then(m => m.closeComments());
+window.openComments = (postId, targetId) => import('./features/feed.js').then(m => m.openPost(postId, targetId));
+window.openPost = (postId, targetId) => import('./features/feed.js').then(m => m.openPost(postId, targetId));
+window.closeComments = () => import('./features/feed.js').then(m => m.closePostView());
+window.closePostView = () => import('./features/feed.js').then(m => m.closePostView());
 window.submitComment = () => import('./features/feed.js').then(m => m.submitComment());
 window.filterComments = (query) => import('./features/feed.js').then(m => m.filterComments(query));
-window.likeComment = (commentId) => import('./features/feed.js').then(m => m.likeComment(commentId));
+window.handleCommentLike = (btn, commentId) => import('./features/feed.js').then(m => m.handleCommentLike(btn, commentId));
+window.likeComment = (commentId, btn) => import('./features/feed.js').then(m => m.handleCommentLike(btn, commentId));
 window.replyToComment = (commentId) => import('./features/feed.js').then(m => m.replyToComment(commentId));
 window.openPostViewer = (postId) => import('./features/feed.js').then(m => m.openPostViewer(postId));
 window.closePostViewer = () => import('./features/feed.js').then(m => m.closePostViewer());

@@ -15,8 +15,8 @@
 <div class="post" data-post-id="<%= pId %>">
     <div class="post-header">
         <div class="avatar-wrapper <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" 
-             onclick="event.stopPropagation(); <%= post.has_story ? `openStoryViewer('${post.user_id}')` : `window.location.href='/profile/${uname}'` %>">
-            <img src="<%= avatar %>" class="avatar">
+             onclick="event.stopPropagation(); <%= post.has_story ? 'openStoryViewer(\'' + post.user_id + '\')' : 'window.location.href=\'/profile/' + uname + '\'' %>">
+            <img src="<%= avatar %>" class="avatar" onerror="this.src='/uploads/avatars/default.png'">
             <% if (post.is_online) { %>
                 <span class="online-dot"></span>
             <% } %>
@@ -41,7 +41,7 @@
                 <%= displayContent %><%= needsTruncation ? '...' : '' %>
             </span>
             <% if (needsTruncation) { %>
-                <span class="see-more" onclick="event.stopPropagation(); expandCaption('<%= pId %>', `<%= post.content.replace(/`/g, '\\`').replace(/\$/g, '\\$') %>`)">
+                <span class="see-more" onclick="event.stopPropagation(); expandCaption('<%= pId %>', '<%= post.content.replace(/'/g, "\\'").replace(/\n/g, " ") %>')">
                     See more
                 </span>
             <% } %>
@@ -49,18 +49,18 @@
     <% } %>
 
     <% if (post.media_url) { %>
-        <div class="post-media" onclick="openPostViewer('<%= pId %>')">
+        <div class="post-media" onclick="openPost('<%= pId %>')">
             <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
-                <video src="<%= post.media_url %>" controls onclick="event.stopPropagation()"></video>
+                <video src="<%= post.media_url %>" autoplay loop muted playsinline onclick="event.stopPropagation()"></video>
             <% } else { %>
-                <img src="<%= post.media_url %>" class="post-image" loading="lazy">
+                <img src="<%= post.media_url %>" class="post-image" loading="lazy" onerror="this.src='/uploads/posts/default.png'">
             <% } %>
         </div>
     <% } %>
 
-    <div class="engagement-bar">
+    <div class="engagement-bar" onclick="openPost('<%= pId %>')">
         <span class="spark-count"><%= sparks %> sparks</span> • 
-        <span class="comment-count" onclick="event.stopPropagation(); openComments('<%= pId %>')"><%= comments %> comments</span>
+        <span class="comment-count"><%= comments %> comments</span>
     </div>
 
     <div class="actions">
@@ -70,7 +70,7 @@
             <span>Like</span>
         </button>
         <button class="action-btn comment-btn" 
-                onclick="event.stopPropagation(); openComments('<%= pId %>')">
+                onclick="event.stopPropagation(); openPost('<%= pId %>')">
             <i class="far fa-comment"></i>
             <span>Comment</span>
         </button>

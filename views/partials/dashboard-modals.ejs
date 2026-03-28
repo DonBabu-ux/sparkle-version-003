@@ -1624,32 +1624,34 @@ async function submitAfterglow() {
     </div>
 </div>
 
-<!-- Comment Bottom Sheet System -->
-<div class="comment-overlay" id="commentOverlay" onclick="closeComments()"></div>
-<div class="comment-sheet" id="commentSheet">
-    <div class="sheet-header">
-        <div class="sheet-info">
-            <div class="sheet-title">Comments</div>
-            <div class="sheet-count" id="commentSheetCount">0 comments</div>
-        </div>
-        <div class="sheet-search">
-            <i class="fas fa-search"></i>
-            <input type="text" id="commentSearchInput" placeholder="Search comments..." oninput="filterComments(this.value)">
-        </div>
-        <button class="close-sheet" onclick="closeComments()">
-            <i class="fas fa-times"></i>
-        </button>
+<!-- TikTok-style Post & Comment System (PATCH v2) -->
+<div class="post-view" id="postViewContainer">
+    <button class="close-post-view" onclick="closePostView()">
+        <i class="fas fa-times"></i>
+    </button>
+    
+    <div class="post-preview" id="postPreview">
+        <!-- Injected via JS -->
     </div>
-    <div class="comment-list" id="commentList">
-        <!-- Comments injected here via JS -->
-    </div>
-    <div class="comment-input-bar">
-        <img src="<%= (typeof user !== 'undefined' && user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png' %>" class="input-avatar">
-        <input type="text" id="commentInputField" class="comment-field" placeholder="Write a comment..." 
-               onkeypress="if(event.key === 'Enter') submitComment()">
-        <button class="send-comment-btn" onclick="submitComment()">
-            <i class="fas fa-paper-plane"></i>
-        </button>
+
+    <div class="comment-section">
+        <div class="section-header">
+            <span id="commentSheetCount" style="font-weight: 800; font-size: 16px;">0 comments</span>
+        </div>
+        
+        <div class="comment-list" id="commentList">
+            <!-- Comments injected via JS -->
+        </div>
+
+        <div class="comment-input-area">
+            <img src="<%= (typeof user !== 'undefined' && user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png' %>" class="comment-avatar" id="sheetUserAvatar">
+            <input type="text" id="commentInputField" class="comment-field" placeholder="Add a comment..." 
+                   onkeypress="if(event.key === 'Enter') submitComment()"
+                   style="flex: 1; border: none; background: #f0f2f5; padding: 10px 15px; border-radius: 20px; outline: none;">
+            <button class="send-comment-btn" onclick="submitComment()" style="background: none; border: none; color: var(--accent-pink); font-size: 18px;">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
     </div>
 </div>
 

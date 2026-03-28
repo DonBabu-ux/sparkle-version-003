@@ -43,6 +43,11 @@ router.use('/upload', uploadRoutes);
 router.use('/share', shareRoutes);
 router.use('/notifications', notificationsRoutes);
 
+// Direct comment access for DashboardAPI compatibility
+const postController = require('../../controllers/post.controller');
+const { authMiddleware } = require('../../middleware/auth.middleware');
+router.post('/comments/:id/like', authMiddleware, postController.likeComment);
+
 // Mount feature routes directly at the root of /api to match dashboardAPI.js hardcoded paths
 router.use('/', campusRoutes);
 router.use('/', marketplaceRoutes);

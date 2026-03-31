@@ -546,16 +546,30 @@
                     <% } %>
 
                     <!-- Profile Highlights -->
-                    <div class="profile-highlights" id="dynamicHighlightsList" style="margin: 20px 10px; display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none;">
+                    <div style="margin: 20px 10px; display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; align-items: flex-start;" class="profile-highlights" id="dynamicHighlightsList">
                         <style>.profile-highlights::-webkit-scrollbar { display: none; }</style>
+
+                        <!-- Always-visible Add Highlight Button (own profile only) -->
                         <% if (isOwnProfile) { %>
-                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="document.getElementById('highlightCreateModal').style.display='flex'">
-                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #64748b; margin: 0 auto; background: white;">
+                        <div id="addHighlightBtn" style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="document.getElementById('highlightCreateModal').style.display='flex'" title="Create Highlight">
+                            <div style="
+                                width: 68px; height: 68px; border-radius: 50%;
+                                border: 2px dashed #cbd5e1;
+                                display: flex; align-items: center; justify-content: center;
+                                font-size: 26px; color: #94a3b8;
+                                margin: 0 auto; background: #f8fafc;
+                                transition: all 0.2s;
+                            "
+                            onmouseenter="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)'; this.style.background='#ede9fe';"
+                            onmouseleave="this.style.borderColor='#cbd5e1'; this.style.color='#94a3b8'; this.style.background='#f8fafc';">
                                 <i class="fas fa-plus"></i>
                             </div>
-                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">New</div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-top: 6px;">New</div>
                         </div>
                         <% } %>
+
+                        <!-- Dynamic highlights injected here -->
+                        <div id="highlightsDynamicItems" style="display: contents;"></div>
                     </div>
 
                     <!-- Content Tabs -->
@@ -1156,11 +1170,49 @@
             </div>
         </div>
 
+        <!-- Highlight Viewer Modal -->
+        <div id="highlightViewerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; flex-direction:column; align-items:center; justify-content:center;">
+            <button onclick="closeHighlightViewer()" style="position:absolute; top:20px; right:20px; background:none; border:none; color:white; font-size:30px; cursor:pointer;"><i class="fas fa-times"></i></button>
+            <div id="highlightViewerTitle" style="position:absolute; top:20px; left:20px; color:white; font-weight:700; font-size:18px;"></div>
+            <div style="width:100%; max-width:400px; height:80vh; display:flex; align-items:center; justify-content:center; position:relative;">
+                <div id="highlightViewerMedia" style="width:100%; height:100%; max-height:800px; border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center;"></div>
+            </div>
+        </div>
+
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const profileId = '<%= profile.user_id %>';
+                const _isOwnProfile = '<%= isOwnProfile %>' === 'true';
                 const container = document.getElementById('dynamicHighlightsList');
                 let pendingUpload = null;
+
+                // SAFETY NET: If the + button is missing (EJS type mismatch), inject it via JS
+                if (_isOwnProfile && !document.getElementById('addHighlightBtn')) {
+                    const modal = document.getElementById('highlightCreateModal');
+                    if (modal && container) {
+                        const addBtn = document.createElement('div');
+                        addBtn.id = 'addHighlightBtn';
+                        addBtn.style.cssText = 'flex-shrink: 0; text-align: center; cursor: pointer;';
+                        addBtn.title = 'Create Highlight';
+                        addBtn.onclick = () => modal.style.display = 'flex';
+                        addBtn.innerHTML = `
+                            <div style="
+                                width: 68px; height: 68px; border-radius: 50%;
+                                border: 2px dashed #cbd5e1;
+                                display: flex; align-items: center; justify-content: center;
+                                font-size: 26px; color: #94a3b8;
+                                margin: 0 auto; background: #f8fafc;
+                                transition: all 0.2s;
+                            "
+                            onmouseenter="this.style.borderColor='#6366f1'; this.style.color='#6366f1'; this.style.background='#ede9fe';"
+                            onmouseleave="this.style.borderColor='#cbd5e1'; this.style.color='#94a3b8'; this.style.background='#f8fafc';">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: #64748b; margin-top: 6px;">New</div>
+                        `;
+                        container.insertBefore(addBtn, container.firstChild);
+                    }
+                }
 
                 // Load highlights from storage
                 function getHighlights() {
@@ -1174,30 +1226,30 @@
 
                 function renderHighlights() {
                     const h = getHighlights();
-                    // Keep the "New" button but remove injected highlights
-                    const highlightsMap = h.map((item, idx) => `
-                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="alert('Viewing highlight: ${item.title}')">
-                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #e2e8f0; padding: 2px; margin: 0 auto;">
-                                <img src="${item.coverImage}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f1f5f9;">
+
+                    // Target ONLY the dynamic items container — never touch the + button
+                    const itemsContainer = document.getElementById('highlightsDynamicItems');
+                    if (!itemsContainer) return;
+
+                    if (h.length === 0) {
+                        itemsContainer.innerHTML = '';
+                        return;
+                    }
+
+                    itemsContainer.innerHTML = h.map((item, idx) => `
+                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="openHighlightViewer(${idx})">
+                            <div style="
+                                width: 68px; height: 68px; border-radius: 50%;
+                                background: linear-gradient(45deg, #f472b6, #a855f7, #6366f1);
+                                padding: 3px; margin: 0 auto;
+                                display: flex; align-items: center; justify-content: center;
+                                box-shadow: 0 0 10px rgba(168,85,247,0.35);
+                            ">
+                                <img src="${item.coverImage}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid white; background: #fff;">
                             </div>
-                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">${item.title || 'Highlight'}</div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.title || 'Highlight'}</div>
                         </div>
                     `).join('');
-
-                    // Just inject after the "New" button
-                    const newBtnHTML = _isOwnProfile ? `
-                        <style>.profile-highlights::-webkit-scrollbar { display: none; }</style>
-                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="document.getElementById('highlightCreateModal').style.display='flex'">
-                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #64748b; margin: 0 auto; background: white;">
-                                <i class="fas fa-plus"></i>
-                            </div>
-                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">New</div>
-                        </div>
-                    ` : `<style>.profile-highlights::-webkit-scrollbar { display: none; }</style>`;
-                    
-                    if (container) {
-                        container.innerHTML = newBtnHTML + highlightsMap;
-                    }
                 }
 
                 // Handle file upload selection
@@ -1248,9 +1300,36 @@
 
                 // Initial render
                 if (container) renderHighlights();
+
+                // Highlight Viewer functions
+                window.openHighlightViewer = function(idx) {
+                    const h = getHighlights();
+                    if (!h[idx] || !h[idx].items || h[idx].items.length === 0) return;
+                    
+                    const modal = document.getElementById('highlightViewerModal');
+                    const titleEl = document.getElementById('highlightViewerTitle');
+                    const mediaEl = document.getElementById('highlightViewerMedia');
+                    
+                    const item = h[idx].items[0]; // Currently supporting 1 item per direct upload
+                    titleEl.innerText = h[idx].title || 'Highlight';
+                    
+                    if (item.type === 'video') {
+                        mediaEl.innerHTML = `<video src="${item.url}" controls autoplay style="width:100%; height:100%; object-fit:contain;"></video>`;
+                    } else {
+                        mediaEl.innerHTML = `<img src="${item.url}" style="width:100%; height:100%; object-fit:contain;">`;
+                    }
+                    
+                    modal.style.display = 'flex';
+                };
+
+                window.closeHighlightViewer = function() {
+                    const modal = document.getElementById('highlightViewerModal');
+                    const mediaEl = document.getElementById('highlightViewerMedia');
+                    mediaEl.innerHTML = ''; // Clear to stop video
+                    modal.style.display = 'none';
+                };
             });
         </script>
 
         </body>
-
         </html>

@@ -56,6 +56,15 @@
         .sidebar-column {
             display: none;
         }
+        .flex-row {
+            flex-direction: column;
+            gap: 24px;
+        }
+        .glass-panel {
+            width: 100%;
+            min-width: 100% !important;
+            box-sizing: border-box;
+        }
     }
 
     .pro-header {
@@ -225,30 +234,7 @@
         transform: translateY(-2px);
     }
 
-    .graph-placeholder {
-        height: 200px;
-        background: rgba(255,255,255,0.4);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        font-weight: 600;
-        border: 1px dashed #cbd5e1;
-        position: relative;
-        overflow: hidden;
-    }
-
-    /* Simple CSS graph lines */
-    .graph-line {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 60%;
-        background: linear-gradient(to top, rgba(99, 102, 241, 0.2), transparent);
-        clip-path: polygon(0 100%, 0 40%, 20% 60%, 40% 30%, 60% 50%, 80% 10%, 100% 40%, 100% 100%);
-    }
+    /* Graph Removed */
 
 </style>
 
@@ -288,6 +274,47 @@
                     <div class="title">Interactions <i class="fas fa-heart text-red-500"></i></div>
                     <div class="value"><%= stats.likesRecv + stats.commentsRecv %></div>
                     <div class="trend"><i class="fas fa-arrow-up"></i> +12.4%</div>
+                </div>
+            </div>
+
+            <div class="flex-row" style="flex-wrap: wrap; margin-bottom: 24px;">
+                <div class="glass-panel flex-1">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 class="section-title" style="margin: 0;">Insights Graph</h2>
+                        <select style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; outline: none; font-weight: 600; color: var(--text-main);">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                        </select>
+                    </div>
+                    <div style="height: 250px; background: white; border-radius: 16px; padding: 15px; position: relative; margin-top: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; align-items: center; justify-content: center;">
+                        <canvas id="insightsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-panel" style="flex: 1; background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,240,245,0.8) 100%); position: relative; overflow: hidden; min-width: 300px;">
+                    <i class="fas fa-bullhorn" style="position: absolute; right: -20px; top: -20px; font-size: 150px; opacity: 0.05; transform: rotate(-15deg);"></i>
+                    <h2 class="section-title" style="margin-top: 0;">Ads & Monetization</h2>
+                    <p style="color: var(--text-muted); font-weight: 600; font-size: 14px; margin-bottom: 20px;">
+                        Reach more students across the Sparkle network. Turn your best performing posts into ads.
+                    </p>
+                    
+                    <div style="background: white; padding: 15px; border-radius: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Available Balance</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #10b981;">KES 0.00</div>
+                        </div>
+                        <button style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">
+                            + Add Funds
+                        </button>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-create-ad" style="flex: 1;" onclick="openCreateAdModal()">Create Ad</button>
+                        <button class="btn-create-ad" style="flex: 1; background: var(--primary-gradient);" onclick="openBoostPostModal()">Boost Post</button>
+                    </div>
+                    <div style="text-align: center; margin-top: 15px; font-size: 12px; font-weight: 700; color: var(--text-muted);">
+                        Monetization Features Active
+                    </div>
                 </div>
             </div>
 
@@ -346,48 +373,6 @@
                 </div>
             </div>
 
-            <div class="flex-row" style="flex-wrap: wrap;">
-                <div class="glass-panel flex-1">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 class="section-title" style="margin: 0;">Insights Graph</h2>
-                        <select style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; outline: none; font-weight: 600; color: var(--text-main);">
-                            <option>Last 7 Days</option>
-                            <option>Last 30 Days</option>
-                        </select>
-                    </div>
-                    <div class="graph-placeholder">
-                        <div class="graph-line"></div>
-                        <span style="z-index: 10;">Visual Graph Simulation</span>
-                    </div>
-                </div>
-
-                <div class="glass-panel" style="flex: 1; background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,240,245,0.8) 100%); position: relative; overflow: hidden;">
-                    <i class="fas fa-bullhorn" style="position: absolute; right: -20px; top: -20px; font-size: 150px; opacity: 0.05; transform: rotate(-15deg);"></i>
-                    <h2 class="section-title" style="margin-top: 0;">Ads & Monetization</h2>
-                    <p style="color: var(--text-muted); font-weight: 600; font-size: 14px; margin-bottom: 20px;">
-                        Reach more students across the Sparkle network. Turn your best performing posts into ads.
-                    </p>
-                    
-                    <div style="background: white; padding: 15px; border-radius: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
-                        <div>
-                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Available Balance</div>
-                            <div style="font-size: 24px; font-weight: 800; color: #10b981;">KES 0.00</div>
-                        </div>
-                        <button style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">
-                            + Add Funds
-                        </button>
-                    </div>
-
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn-create-ad" style="flex: 1;" onclick="openCreateAdModal()">Create Ad</button>
-                        <button class="btn-create-ad" style="flex: 1; background: var(--primary-gradient);" onclick="openBoostPostModal()">Boost Post</button>
-                    </div>
-                    <div style="text-align: center; margin-top: 15px; font-size: 12px; font-weight: 700; color: var(--text-muted);">
-                        Monetization Features Active
-                    </div>
-                </div>
-            </div>
-
         </main>
     </div>
 </div>
@@ -411,12 +396,51 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ctx = document.getElementById('insightsChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Today'],
+                    datasets: [{
+                        label: 'Profile Views',
+                        data: [12, 19, 15, 25, 22, 30, Number('<%= stats.profileViews %>') || 40],
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Interactions',
+                        data: [5, 8, 12, 10, 15, 18, Number('<%= stats.likesRecv %>') + Number('<%= stats.commentsRecv %>') || 20],
+                        borderColor: '#a855f7',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        borderDash: [5, 5]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    });
+
     function openCreateAdModal() {
         document.getElementById('adModal').style.display = 'flex';
     }
     function openBoostPostModal() {
-        // Just mock
         alert("Select a post to boost from your profile!");
         window.location.href = '/profile';
     }

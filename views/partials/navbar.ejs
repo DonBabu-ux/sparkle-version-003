@@ -87,6 +87,10 @@
                     <div class="item-icon"><i class="fas fa-user-circle"></i></div>
                     <div class="item-label">My Profile</div>
                 </a>
+                <a href="/follow-requests" class="dropdown-menu-item" style="color: var(--accent);">
+                    <div class="item-icon"><i class="fas fa-user-plus"></i></div>
+                    <div class="item-label">Follow Requests</div>
+                </a>
                 <a href="/dashboard/professional" class="dropdown-menu-item">
                     <div class="item-icon"><i class="fas fa-chart-line" style="color: var(--accent);"></i></div>
                     <div class="item-label">Professional Dashboard</div>
@@ -282,6 +286,9 @@
         z-index: 1000;
         border: 1px solid rgba(0,0,0,0.05);
         animation: dropdownSlide 0.3s ease;
+        max-height: 70vh;
+        overflow-y: auto;
+        scrollbar-width: thin;
     }
 
     @keyframes dropdownSlide {

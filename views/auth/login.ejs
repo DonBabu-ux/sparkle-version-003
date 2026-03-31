@@ -6,6 +6,43 @@
         // We clean up the URL to avoid user confusion
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
+            const isAddAccount = urlParams.has('add_account');
+
+            // ── MULTI-ACCOUNT: Save current session BEFORE clearing it ──────────
+            // When adding a new account, back up Account A into sparkleAccounts
+            // so we can switch back to it later.
+            (function backupCurrentSession() {
+                try {
+                    const token = localStorage.getItem('sparkleToken');
+                    const userJson = localStorage.getItem('sparkleUser');
+                    if (!token || !userJson) return;
+
+                    const user = JSON.parse(userJson);
+                    const userId = user.user_id || user.id;
+                    if (!userId) return;
+
+                    const accounts = JSON.parse(localStorage.getItem('sparkleAccounts') || '[]');
+                    const existingIdx = accounts.findIndex(a => String(a.userId) === String(userId));
+                    const acctObj = {
+                        userId: userId,
+                        username: user.username,
+                        avatar: user.avatar_url || '/uploads/avatars/default.png',
+                        token: token
+                    };
+
+                    if (existingIdx >= 0) {
+                        accounts[existingIdx] = acctObj; // refresh token
+                    } else {
+                        accounts.push(acctObj);
+                    }
+                    localStorage.setItem('sparkleAccounts', JSON.stringify(accounts));
+                    console.log('[MultiAccount] Backed up current session before login. Accounts:', accounts.map(a => a.username));
+                } catch (e) {
+                    console.warn('[MultiAccount] Failed to back up session:', e);
+                }
+            })();
+            // ────────────────────────────────────────────────────────────────────
+
             if (urlParams.has('reason')) {
                 // Determine reason message
                 const reason = urlParams.get('reason');
@@ -27,9 +64,18 @@
             if (urlParams.has('reason')) {
                 localStorage.removeItem('sparkleToken');
                 localStorage.removeItem('sparkleUser');
-            } else if (localStorage.getItem('sparkleToken')) {
-                // Only auto-redirect if there wasn't a server auth failure
+            } else if (!isAddAccount && localStorage.getItem('sparkleToken')) {
+                // Only auto-redirect if there wasn't a server auth failure and not adding an account
                 // window.location.href = '/dashboard'; // Disabled to prevent any loop possibilities
+            }
+
+            // Show banner when adding a new account
+            if (isAddAccount) {
+                const el = document.getElementById('login-message');
+                if (el) {
+                    el.textContent = 'Log into another account. Your current account is saved.';
+                    el.className = 'auth-message success show';
+                }
             }
         });
     </script>

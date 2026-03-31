@@ -330,6 +330,30 @@ const AuthAPI = {
                 sessionStart: new Date().toISOString()
             }));
 
+            // ── MULTI-ACCOUNT: Register this account in sparkleAccounts ──────────
+            try {
+                const userId = user.user_id || user.id;
+                if (userId) {
+                    const accounts = JSON.parse(localStorage.getItem('sparkleAccounts') || '[]');
+                    const existingIdx = accounts.findIndex(a => String(a.userId) === String(userId));
+                    const acctObj = {
+                        userId: userId,
+                        username: user.username,
+                        avatar: user.avatar_url || '/uploads/avatars/default.png',
+                        token: token
+                    };
+                    if (existingIdx >= 0) {
+                        accounts[existingIdx] = acctObj;
+                    } else {
+                        accounts.push(acctObj);
+                    }
+                    localStorage.setItem('sparkleAccounts', JSON.stringify(accounts));
+                }
+            } catch (e) {
+                console.warn('[MultiAccount] Failed to register account in accounts list:', e);
+            }
+            // ─────────────────────────────────────────────────────────────────────
+
             // Dispatch event for other parts of the app
             window.dispatchEvent(new CustomEvent('authChange', {
                 detail: { isLoggedIn: true, user }

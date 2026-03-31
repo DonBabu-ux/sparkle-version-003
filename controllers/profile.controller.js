@@ -58,7 +58,7 @@ const renderProfile = async (req, res) => {
                 return res.status(404).render('error', { error: 'User not found' });
             }
 
-            isOwnProfile = (currentUserId === userProfile.user_id);
+            isOwnProfile = (Number(currentUserId) === Number(userProfile.user_id));
         }
 
         // Fetch partner info if relationship exists

@@ -454,11 +454,23 @@
         },
         async switchAccount(userId) {
             const accounts = this.getAccounts();
-            const targetAccount = accounts.find(a => a.userId === userId || a.userId === Number(userId));
-            if (!targetAccount) return;
+            const targetAccount = accounts.find(a => String(a.userId) === String(userId));
+            if (!targetAccount) {
+                console.warn('[MultiAccount] switchAccount: no account found for userId:', userId);
+                return;
+            }
+
+            // Check if already on this account
+            const currentToken = localStorage.getItem('sparkleToken');
+            if (currentToken === targetAccount.token) {
+                console.log('[MultiAccount] Already on account:', targetAccount.username);
+                return;
+            }
+
+            console.log('[MultiAccount] Switching to account:', targetAccount.username);
 
             try {
-                // Set cookie on server
+                // Tell server to set the cookie  
                 const res = await fetch('/api/auth/switch-account', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -466,18 +478,35 @@
                 });
 
                 if (res.ok) {
-                    // Pre-fill localStorage so the app loads quickly
+                    // Save current session BEFORE switching (keeps Account A alive)
+                    this.syncCurrentSession();
+
+                    // Update localStorage to the target account so app rehydrates correctly
                     localStorage.setItem('sparkleToken', targetAccount.token);
-                    // Fetch profile to set latest user details? Just reload is reliable.
+
+                    // Rebuild a minimal sparkleUser object from stored data
+                    // The full profile will be fetched from server after reload
+                    const rebuiltUser = {
+                        user_id: targetAccount.userId,
+                        id: targetAccount.userId,
+                        username: targetAccount.username,
+                        avatar_url: targetAccount.avatar,
+                        loggedIn: true
+                    };
+                    localStorage.setItem('sparkleUser', JSON.stringify(rebuiltUser));
+
+                    console.log('[MultiAccount] Switched successfully. Reloading for user:', targetAccount.username);
                     window.location.reload();
                 } else {
-                    alert('Session expired. Please log in again.');
-                    // Remove from array
-                    this.saveAccounts(accounts.filter(a => a.userId !== userId));
+                    const errData = await res.json().catch(() => ({}));
+                    console.warn('[MultiAccount] Server rejected switch:', errData.message);
+                    alert('Session expired for @' + targetAccount.username + '. Please log in again.');
+                    // Remove stale account from list
+                    this.saveAccounts(accounts.filter(a => String(a.userId) !== String(userId)));
                     this.renderAccounts();
                 }
             } catch (e) {
-                console.error(e);
+                console.error('[MultiAccount] switchAccount error:', e);
             }
         },
         addNewAccount() {

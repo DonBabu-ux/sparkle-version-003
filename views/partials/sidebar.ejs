@@ -439,6 +439,20 @@
                 `).join('');
                 mobContainer.innerHTML = mobHtml;
             }
+
+            const navbarContainer = document.getElementById('navbar-account-switcher');
+            if (navbarContainer) {
+                const navHtml = accounts.map(acct => `
+                    <a href="javascript:void(0)" class="dropdown-menu-item" onclick="authMultiAccounts.switchAccount('${acct.userId}');" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <img src="${acct.avatar}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                            <span style="font-weight: ${acct.userId === currentId ? '700' : '500'}; color: var(--text-main);">@${acct.username}</span>
+                        </div>
+                        ${acct.userId === currentId ? '<i class="fas fa-check-circle" style="color: var(--accent); font-size: 14px;"></i>' : ''}
+                    </a>
+                `).join('');
+                navbarContainer.innerHTML = navHtml;
+            }
         },
         async switchAccount(userId) {
             const accounts = this.getAccounts();

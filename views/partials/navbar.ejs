@@ -87,6 +87,19 @@
                     <div class="item-icon"><i class="fas fa-user-circle"></i></div>
                     <div class="item-label">My Profile</div>
                 </a>
+                <a href="/dashboard/professional" class="dropdown-menu-item">
+                    <div class="item-icon"><i class="fas fa-chart-line" style="color: var(--accent);"></i></div>
+                    <div class="item-label">Professional Dashboard</div>
+                </a>
+                <a href="javascript:void(0)" class="dropdown-menu-item" onclick="if(window.authMultiAccounts) authMultiAccounts.addNewAccount()">
+                    <div class="item-icon"><i class="fas fa-plus-circle" style="color: var(--accent);"></i></div>
+                    <div class="item-label">Add Account</div>
+                </a>
+                
+                <div class="dropdown-divider"></div>
+                <div id="navbar-account-switcher" style="max-height: 200px; overflow-y: auto;"></div>
+                <div class="dropdown-divider"></div>
+
                 <a href="/settings" class="dropdown-menu-item">
                     <div class="item-icon"><i class="fas fa-cog"></i></div>
                     <div class="item-label">Settings & Privacy</div>

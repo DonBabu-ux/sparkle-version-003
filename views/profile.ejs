@@ -346,13 +346,29 @@
                                             <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--primary);">Personal details</h3>
                                         </div>
 
-                                        <% if (profile.campus) { %>
+                                        <% if (profile.campus || profile.major || profile.year_of_study || profile.academic_year) { %>
                                             <div class="detail-item">
-                                                <div class="detail-icon"><i class="fas fa-graduation-cap"></i></div>
+                                                <div class="detail-icon"><i class="fas fa-info-circle"></i></div>
                                                 <div class="detail-content">
-                                                    <h4>Education</h4>
-                                                    <p><%= profile.campus %> <%= profile.year_of_study ? `(${profile.year_of_study})` : '' %></p>
-                                                    <% if (profile.major) { %><p style="font-size: 12px; color: #64748b;"><%= profile.major %></p><% } %>
+                                                    <h4>About</h4>
+                                                    <p>
+                                                        <% 
+                                                            let aboutParts = [];
+                                                            if (profile.major) aboutParts.push(profile.major);
+                                                            let expLvl = profile.year_of_study || profile.academic_year;
+                                                            if (expLvl) aboutParts.push(expLvl);
+                                                        %>
+                                                        <%= aboutParts.length > 0 ? aboutParts.join(' • ') : (profile.campus || 'No details provided') %>
+                                                    </p>
+                                                    <% if (profile.major && profile.campus) { %><p style="font-size: 12px; color: #64748b;"><%= profile.campus %></p><% } %>
+                                                </div>
+                                            </div>
+                                        <% } else { %>
+                                            <div class="detail-item">
+                                                <div class="detail-icon"><i class="fas fa-info-circle"></i></div>
+                                                <div class="detail-content">
+                                                    <h4>About</h4>
+                                                    <p>No details provided</p>
                                                 </div>
                                             </div>
                                         <% } %>
@@ -511,7 +527,7 @@
                     <div class="profile-highlights" style="margin: 20px 10px; display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none;">
                         <style>.profile-highlights::-webkit-scrollbar { display: none; }</style>
                         <% if (isOwnProfile) { %>
-                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="alert('Select past stories to add to a new Highlight!')">
+                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="document.getElementById('highlightCreateModal').style.display='flex'">
                             <div style="width: 64px; height: 64px; border-radius: 50%; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #64748b; margin: 0 auto; background: white;">
                                 <i class="fas fa-plus"></i>
                             </div>
@@ -914,49 +930,115 @@
 
                 if (tabName === 'activity') {
                     postsGrid.innerHTML = `
-                        <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 15px; margin-bottom: 50px;">
-                            <div style="padding: 24px; border-radius: 16px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                        <div class="activity-container" style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 15px; margin-bottom: 50px;">
+                            <div class="activity-header-card" style="padding: 24px; border-radius: 16px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
                                 <h3 style="margin:0 0 5px 0; font-size: 18px; font-weight: 800;">Your Activity</h3>
                                 <p style="color: #64748b; font-size: 14px; margin: 0 0 20px 0;">Manage your content and interactions across Sparkle.</p>
                                 
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
-                                    <div style="padding: 20px; border-radius: 16px; background: #f8fafc; cursor: pointer; display: flex; align-items: flex-start; gap: 15px; border: 1px solid transparent; transition: all 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='transparent'" onclick="window.location.href='/dashboard/professional'">
-                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                            <i class="fas fa-chart-line" style="font-size: 18px; color: var(--accent);"></i>
+                                <style>
+                                    .activity-grid {
+                                        display: grid;
+                                        gap: 15px;
+                                        grid-template-columns: 1fr; /* Mobile default */
+                                        width: 100%;
+                                        max-width: 100%;
+                                    }
+                                    @media (min-width: 600px) {
+                                        .activity-grid { grid-template-columns: repeat(2, 1fr); }
+                                    }
+                                    @media (min-width: 900px) {
+                                        .activity-grid { grid-template-columns: repeat(3, 1fr); }
+                                    }
+                                    .activity-card {
+                                        padding: 16px;
+                                        border-radius: 16px;
+                                        background: #f8fafc;
+                                        cursor: pointer;
+                                        display: flex;
+                                        flex-direction: column;
+                                        gap: 12px;
+                                        border: 1px solid transparent;
+                                        transition: all 0.2s;
+                                        height: 100%;
+                                    }
+                                    .activity-card:hover { transform: translateY(-2px); }
+                                    .activity-card-icon {
+                                        width: 44px;
+                                        height: 44px;
+                                        border-radius: 12px;
+                                        background: white;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+                                    }
+                                    .activity-card-text {
+                                        flex: 1;
+                                    }
+                                </style>
+
+                                <div class="activity-grid">
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#f472b6'" onmouseleave="this.style.borderColor='transparent'" onclick="document.querySelector('.tab').click()">
+                                        <div class="activity-card-icon"><i class="fas fa-images" style="font-size: 20px; color: #f472b6;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Photos & Videos</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Manage your visual posts</div>
                                         </div>
-                                        <div>
-                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Professional Dashboard</div>
-                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Analytics, reach & monetization tools</div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#a855f7'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-play-circle" style="font-size: 20px; color: #a855f7;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Stories</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review past Afterglows</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#60a5fa'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-heart" style="font-size: 20px; color: #60a5fa;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Interactions</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review your likes and sparks</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#3b82f6'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-comment-dots" style="font-size: 20px; color: #3b82f6;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Comments</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Your comments on posts</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#0ea5e9'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-reply" style="font-size: 20px; color: #0ea5e9;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Replies</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Your replies in threads</div>
                                         </div>
                                     </div>
                                     
-                                    <div style="padding: 20px; border-radius: 16px; background: #f8fafc; cursor: pointer; display: flex; align-items: flex-start; gap: 15px; border: 1px solid transparent; transition: all 0.2s;" onmouseenter="this.style.borderColor='#f472b6'" onmouseleave="this.style.borderColor='transparent'" onclick="document.querySelector('.tab').click()">
-                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                            <i class="fas fa-images" style="font-size: 18px; color: #f472b6;"></i>
-                                        </div>
-                                        <div>
-                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Photos & Videos</div>
-                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Manage your visual posts and media</div>
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#eab308'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-star" style="font-size: 20px; color: #eab308;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Reviews</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Reviews on marketplace & skills</div>
                                         </div>
                                     </div>
 
-                                    <div style="padding: 20px; border-radius: 16px; background: #f8fafc; cursor: pointer; display: flex; align-items: flex-start; gap: 15px; border: 1px solid transparent; transition: all 0.2s;" onmouseenter="this.style.borderColor='#60a5fa'" onmouseleave="this.style.borderColor='transparent'">
-                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                            <i class="fas fa-comment-dots" style="font-size: 18px; color: #60a5fa;"></i>
-                                        </div>
-                                        <div>
-                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Interactions</div>
-                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review your comments, likes, and replies</div>
-                                        </div>
-                                    </div>
-
-                                    <div style="padding: 20px; border-radius: 16px; background: #f8fafc; cursor: pointer; display: flex; align-items: flex-start; gap: 15px; border: 1px solid transparent; transition: all 0.2s;" onmouseenter="this.style.borderColor='#10b981'" onmouseleave="this.style.borderColor='transparent'">
-                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                            <i class="fas fa-history" style="font-size: 18px; color: #10b981;"></i>
-                                        </div>
-                                        <div>
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#10b981'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-history" style="font-size: 20px; color: #10b981;"></i></div>
+                                        <div class="activity-card-text">
                                             <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Account History</div>
-                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review profile changes and past reviews</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review profile changes</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='transparent'" onclick="window.location.href='/dashboard/professional'">
+                                        <div class="activity-card-icon"><i class="fas fa-chart-line" style="font-size: 20px; color: var(--accent);"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Professional Dashboard</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Full analytics and insights</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1035,6 +1117,29 @@
                 }
             });
         </script>
+
+        <!-- Highlight Create Modal -->
+        <div id="highlightCreateModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+            <div style="background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; font-weight: 800; font-size: 18px;">Create Highlight</h3>
+                    <button onclick="document.getElementById('highlightCreateModal').style.display='none'" style="background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer;">&times;</button>
+                </div>
+                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Highlights live permanently on your profile and don't expire.</p>
+                
+                <input type="text" placeholder="Highlight Title (e.g., Campus Vibes)" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-weight: 600;">
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn" style="background: #f1f5f9; color: var(--text-main); border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-upload"></i> Upload Photo/Video
+                    </button>
+                    <button class="btn" style="background: var(--primary-gradient, linear-gradient(135deg, #6366f1, #a855f7)); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-history"></i> Choose from Stories
+                    </button>
+                </div>
+            </div>
+        </div>
+
         </body>
 
         </html>

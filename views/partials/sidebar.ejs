@@ -88,14 +88,10 @@
                 <i class="fas fa-ellipsis-h"></i>
                 <span>More</span>
             </div>
-            <div class="hub-dropdown up">
+            <div class="hub-dropdown up" style="max-height: 60vh; overflow-y: auto; scrollbar-width: thin;">
                 <a href="/groups" class="hub-sub-item">
                     <i class="fas fa-users"></i>
                     <span>Groups</span>
-                </a>
-                <a href="/polls" class="hub-sub-item">
-                    <i class="fas fa-poll-h"></i>
-                    <span>Polls</span>
                 </a>
                 <a href="/polls" class="hub-sub-item">
                     <i class="fas fa-poll-h"></i>
@@ -316,8 +312,10 @@
     }
 
     .hamburger-section.collapsible.active .collapsible-content {
-        max-height: 500px;
+        max-height: 60vh;
         margin-top: 10px;
+        overflow-y: auto;
+        scrollbar-width: thin;
     }
 
     .hamburger-section.collapsible.active .toggle-chevron {

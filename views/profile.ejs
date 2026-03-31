@@ -1,6 +1,28 @@
 <%- include('partials/head', { title: title }) %>
 
-    <style>
+    <style>        /* Typography & Layout Hardenings */
+        body { margin: 0; padding: 0; padding-bottom: 70px; background: #fafafa; overflow-x: hidden; }
+        .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .text-wrap { word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; }
+        
+        /* Mobile Profile Overrides */
+        @media (max-width: 768px) {
+            .profile-container { grid-template-columns: 1fr; padding-top: 60px; overflow-x: hidden; }
+            .profile-sidebar { position: static; height: auto; border-radius: 0; border: none; box-shadow: none; border-bottom: 1px solid #f1f5f9; padding: 20px 15px; }
+            .profile-main { margin-left: 0; }
+            
+            /* Avatar adjustment */
+            .profile-avatar-container { margin-top: -60px; text-align: center; }
+            .profile-avatar-container img { width: 100px; height: 100px; border-width: 4px; }
+            
+            /* Text wrapping for links and bio */
+            .profile-website { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .profile-bio-text { word-wrap: break-word; overflow-wrap: break-word; }
+            
+            /* Remove margins from stat boxes */
+            .profile-stats { justify-content: center; gap: 20px; }
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -524,7 +546,7 @@
                     <% } %>
 
                     <!-- Profile Highlights -->
-                    <div class="profile-highlights" style="margin: 20px 10px; display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none;">
+                    <div class="profile-highlights" id="dynamicHighlightsList" style="margin: 20px 10px; display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none;">
                         <style>.profile-highlights::-webkit-scrollbar { display: none; }</style>
                         <% if (isOwnProfile) { %>
                         <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="document.getElementById('highlightCreateModal').style.display='flex'">
@@ -534,19 +556,6 @@
                             <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">New</div>
                         </div>
                         <% } %>
-                        <!-- Mock Highlights to simulate the feature -->
-                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="alert('Viewing highlight: Campus Days')">
-                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #e2e8f0; padding: 2px; margin: 0 auto;">
-                                <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=100&q=80" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                            </div>
-                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">Campus</div>
-                        </div>
-                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="alert('Viewing highlight: Dev Life')">
-                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #e2e8f0; padding: 2px; margin: 0 auto;">
-                                <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=100&q=80" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                            </div>
-                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">Dev Vibes</div>
-                        </div>
                     </div>
 
                     <!-- Content Tabs -->
@@ -1127,18 +1136,120 @@
                 </div>
                 <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Highlights live permanently on your profile and don't expire.</p>
                 
-                <input type="text" placeholder="Highlight Title (e.g., Campus Vibes)" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-weight: 600;">
+                <input type="text" id="highlightTitleInput" placeholder="Highlight Title (e.g., Campus Vibes)" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-weight: 600;">
                 
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <button class="btn" style="background: #f1f5f9; color: var(--text-main); border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <!-- Direct Upload Option -->
+                    <label class="btn" style="background: #f1f5f9; color: var(--text-main); border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin: 0;">
                         <i class="fas fa-upload"></i> Upload Photo/Video
-                    </button>
-                    <button class="btn" style="background: var(--primary-gradient, linear-gradient(135deg, #6366f1, #a855f7)); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <input type="file" id="highlightDirectUpload" accept="image/*,video/*" style="display: none;">
+                    </label>
+
+                    <button class="btn" onclick="alert('Choose from stories feature in development.')" style="background: var(--primary-gradient, linear-gradient(135deg, #6366f1, #a855f7)); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
                         <i class="fas fa-history"></i> Choose from Stories
+                    </button>
+                    
+                    <button class="btn" id="saveHighlightBtn" style="background: #10b981; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
+                        <i class="fas fa-save"></i> Save Highlight
                     </button>
                 </div>
             </div>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const profileId = '<%= profile.user_id %>';
+                const container = document.getElementById('dynamicHighlightsList');
+                let pendingUpload = null;
+
+                // Load highlights from storage
+                function getHighlights() {
+                    try { return JSON.parse(localStorage.getItem('sparkle_highlights_' + profileId) || '[]'); }
+                    catch(e) { return []; }
+                }
+
+                function saveHighlights(h) {
+                    localStorage.setItem('sparkle_highlights_' + profileId, JSON.stringify(h));
+                }
+
+                function renderHighlights() {
+                    const h = getHighlights();
+                    // Keep the "New" button but remove injected highlights
+                    const highlightsMap = h.map((item, idx) => `
+                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="alert('Viewing highlight: ${item.title}')">
+                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #e2e8f0; padding: 2px; margin: 0 auto;">
+                                <img src="${item.coverImage}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f1f5f9;">
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">${item.title || 'Highlight'}</div>
+                        </div>
+                    `).join('');
+
+                    // Just inject after the "New" button
+                    const newBtnHTML = _isOwnProfile ? `
+                        <style>.profile-highlights::-webkit-scrollbar { display: none; }</style>
+                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="document.getElementById('highlightCreateModal').style.display='flex'">
+                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #64748b; margin: 0 auto; background: white;">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">New</div>
+                        </div>
+                    ` : `<style>.profile-highlights::-webkit-scrollbar { display: none; }</style>`;
+                    
+                    if (container) {
+                        container.innerHTML = newBtnHTML + highlightsMap;
+                    }
+                }
+
+                // Handle file upload selection
+                document.getElementById('highlightDirectUpload')?.addEventListener('change', function(e) {
+                    if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            pendingUpload = {
+                                type: file.type.startsWith('video/') ? 'video' : 'image',
+                                url: evt.target.result,
+                                createdAt: new Date().toISOString()
+                            };
+                            document.getElementById('saveHighlightBtn').style.display = 'flex';
+                            document.querySelector('label[for="highlightDirectUpload"]')?.closest('.btn').setAttribute('style', 'background:#e2e8f0; color:#1e293b; border:1px solid #cbd5e1; padding:12px; border-radius:12px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                // Attach Save behavior
+                document.getElementById('saveHighlightBtn')?.addEventListener('click', () => {
+                    const tInput = document.getElementById('highlightTitleInput').value.trim();
+                    const title = tInput || 'New Highlight';
+                    
+                    if (!pendingUpload) { alert('Select media first'); return; }
+
+                    const items = [pendingUpload];
+                    const newHighlight = {
+                        title: title,
+                        coverImage: pendingUpload.url,
+                        items: items
+                    };
+
+                    const current = getHighlights();
+                    current.unshift(newHighlight);
+                    saveHighlights(current);
+                    
+                    // Reset 
+                    document.getElementById('highlightTitleInput').value = '';
+                    document.getElementById('highlightDirectUpload').value = '';
+                    pendingUpload = null;
+                    document.getElementById('saveHighlightBtn').style.display = 'none';
+                    document.getElementById('highlightCreateModal').style.display = 'none';
+                    
+                    renderHighlights();
+                });
+
+                // Initial render
+                if (container) renderHighlights();
+            });
+        </script>
 
         </body>
 

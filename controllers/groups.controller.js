@@ -162,17 +162,30 @@ const getGroupPostsAPI = async (req, res) => {
 const renderGroups = async (req, res) => {
     try {
         const userId = req.user ? req.user.user_id : null;
-        const groups = await Group.getAll(userId);
+        const filter = req.query.filter || 'all';
+        let groups = await Group.getAll(userId);
+
+        // Apply filter on the result set
+        if (filter === 'my' && userId) {
+            groups = groups.filter(g => g.user_membership_status === 'active');
+        } else if (filter === 'managed' && userId) {
+            groups = groups.filter(g =>
+                g.user_membership_status === 'active' &&
+                (g.user_role === 'admin' || g.user_role === 'owner' || g.user_role === 'moderator')
+            );
+        }
+
         res.render('groups', {
             title: 'Groups',
             initialGroups: groups || [],
-            activeFilter: req.query.filter || 'all',
+            activeFilter: filter,
             user: req.user,
             csrfToken: req.csrfToken ? req.csrfToken() : null
         });
     } catch (error) {
         logger.error('Render Groups Error:', error);
         res.render('groups', { title: 'Groups', initialGroups: [], activeFilter: 'all' });
+
     }
 };
 

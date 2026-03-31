@@ -23,15 +23,15 @@
         <div class="proto-container">
             <!-- Header Section -->
             <div class="discovery-header">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
-                    <h1 style="font-weight:900; margin:0;">Discover Communities</h1>
-                    <button class="btn-sparkle" style="flex:none; padding:12px 25px;" onclick="openCreateGroupModal()">
+                <div class="discovery-header-row">
+                    <h1>Discover Communities</h1>
+                    <button class="btn-sparkle" style="flex:none; padding:12px 22px;" onclick="openCreateGroupModal()">
                         <i class="fas fa-plus"></i> Create Group
                     </button>
                 </div>
-                
+
                 <input type="text" class="search-bar-glass" id="groupSearch" placeholder="Search groups by name or topic...">
-                
+
                 <div class="tab-group">
                     <a href="/groups" class="tab-btn <%= !activeFilter || activeFilter === 'all' ? 'active' : '' %>">All Groups</a>
                     <a href="/groups?filter=my" class="tab-btn <%= activeFilter === 'my' ? 'active' : '' %>">My Groups</a>
@@ -67,6 +67,11 @@
                             </div>
                         </div>
                     <% }) %>
+                    <div id="searchEmptyState" style="display:none; grid-column:1/-1; text-align:center; padding:80px 0; color:#64748b;">
+                        <i class="fas fa-search" style="font-size:48px; opacity:0.2; margin-bottom:20px;"></i>
+                        <h3>No groups match your search.</h3>
+                        <p>Try a different keyword or explore all communities.</p>
+                    </div>
                 <% } else { %>
                     <div style="grid-column: 1/-1; text-align:center; padding:100px; color:#64748b;">
                         <i class="fas fa-users-slash fa-4x" style="opacity:0.2; margin-bottom:20px;"></i>
@@ -124,6 +129,27 @@
 
     <script src="/js/dashboardAPI.js"></script>
     <script>
+        // Live search filter
+        const searchInput = document.getElementById('groupSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const q = this.value.toLowerCase().trim();
+                const cards = document.querySelectorAll('.group-discovery-card');
+                let visible = 0;
+                cards.forEach(function(card) {
+                    const name = (card.querySelector('.card-name') || {}).textContent || '';
+                    const desc = (card.querySelector('.card-bio') || {}).textContent || '';
+                    const cat  = (card.querySelector('.card-category') || {}).textContent || '';
+                    const match = !q || name.toLowerCase().includes(q) || desc.toLowerCase().includes(q) || cat.toLowerCase().includes(q);
+                    card.parentElement.style.display = match ? '' : 'none';
+                    if (match) visible++;
+                });
+                // Show empty state if nothing visible
+                var empty = document.getElementById('searchEmptyState');
+                if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+            });
+        }
+
         function openCreateGroupModal() {
             document.getElementById('createGroupModalWrapper').style.display = 'flex';
         }

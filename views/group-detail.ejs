@@ -63,7 +63,7 @@
         <div class="glass-card group-header-view">
             <div class="card-cover view-cover">
                 <img src="<%= group.cover_image || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1200&q=80' %>" id="coverDisplay">
-                <% if(userRole === 'admin') { %>
+                <% if(userRole === 'admin' || userRole === 'owner' || userRole === 'moderator') { %>
                     <div class="admin-edit-overlay" onclick="triggerEdit('cover')">
                         <i class="fas fa-camera"></i>
                     </div>
@@ -76,7 +76,7 @@
             <div class="view-content-header">
                 <div class="view-icon" style="position:relative;">
                     <img src="<%= group.icon_url || '/uploads/avatars/default.png' %>" id="iconDisplay">
-                    <% if(userRole === 'admin') { %>
+                    <% if(userRole === 'admin' || userRole === 'owner' || userRole === 'moderator') { %>
                         <div class="admin-edit-overlay" onclick="triggerEdit('icon')">
                             <i class="fas fa-pencil-alt"></i>
                         </div>
@@ -104,10 +104,10 @@
                 
                 <div class="view-actions">
                     <button class="btn-sparkle secondary" onclick="openInviteModal()"><i class="fas fa-user-plus"></i> Invite</button>
-                    <% if (userRole === 'admin' || userRole === 'moderator') { %>
-                        <button class="btn-sparkle" onclick="showAdminTools()"><i class="fas fa-cog"></i> Admin Panel</button>
+                    <% if (userRole === 'admin' || userRole === 'moderator' || userRole === 'owner') { %>
+                        <button class="btn-sparkle" onclick="showAdminTools('general')"><i class="fas fa-cog"></i> Admin Panel</button>
                     <% } else if (memberStatus === 'active') { %>
-                        <button class="btn-sparkle secondary" disabled><i class="fas fa-check"></i> Member</button>
+                        <button class="btn-sparkle secondary" onclick="showAdminTools('general')"><i class="fas fa-cog"></i> Group Settings</button>
                     <% } else if (memberStatus === 'pending') { %>
                         <button class="btn-sparkle secondary" disabled><i class="fas fa-clock"></i> Requested</button>
                     <% } else { %>
@@ -122,12 +122,14 @@
                             <div class="dropdown-item"><i class="fas fa-flag"></i> Report Activity</div>
                             <% if (userRole === 'admin' || userRole === 'owner') { %>
                                 <div style="border-top:1px solid rgba(0,0,0,0.05); margin:5px 0;"></div>
-                                <div class="dropdown-item" onclick="showAdminTools()"><i class="fas fa-cog"></i> Admin Dashboard</div>
-                                <div class="dropdown-item" style="color:#ef4444;" onclick="deleteGroup()"><i class="fas fa-trash-alt"></i> Delete Community</div>
+                                <div class="dropdown-item" onclick="showAdminTools('general')"><i class="fas fa-cog"></i> Group Settings</div>
+                                <% if (userRole === 'owner') { %>
+                                    <div class="dropdown-item" style="color:#ef4444;" onclick="alert('Delete Group functionality requires developer confirmation.')"><i class="fas fa-trash-alt"></i> Delete Community</div>
+                                <% } %>
                             <% } %>
                             <% if (memberStatus === 'active' && userRole !== 'owner') { %>
                                 <div style="border-top:1px solid rgba(0,0,0,0.05); margin:5px 0;"></div>
-                                <div class="dropdown-item" style="color:#ef4444;" onclick="leaveGroup()"><i class="fas fa-sign-out-alt"></i> Leave Community</div>
+                                <div class="dropdown-item" style="color:#ef4444;" onclick="alert('Leave group logic coming soon.')"><i class="fas fa-sign-out-alt"></i> Leave Community</div>
                             <% } %>
                         </div>
                     </div>
@@ -223,7 +225,7 @@
                                     <div class="comp-foot" style="margin-top:20px; border-top:1px solid #f1f5f9; padding-top:12px;">
                                         <div class="post-action"><i class="far fa-heart"></i> Like</div>
                                         <div class="post-action" onclick="toggleComments('<%= post.post_id %>')"><i class="far fa-comment"></i> Comment</div>
-                                        <% if (userRole === 'admin' || userRole === 'moderator') { %>
+                                        <% if (userRole === 'admin' || userRole === 'moderator' || userRole === 'owner') { %>
                                             <div class="post-action" style="color:#ef4444; margin-left:auto;" onclick="deletePost('<%= post.post_id %>')"><i class="far fa-trash-alt"></i></div>
                                         <% } %>
                                     </div>
@@ -251,11 +253,22 @@
     <div class="proto-modal" id="adminModal">
         <div class="glass-card p-modal-content" style="max-width: 800px; height: 600px;">
             <div class="p-modal-inner">
-                <div class="p-modal-sidebar">
-                    <div class="m-tab active" data-tab="requests" onclick="switchAdminTab('requests')"><i class="fas fa-user-clock"></i> Pending Requests</div>
-                    <div class="m-tab" data-tab="members" onclick="switchAdminTab('members')"><i class="fas fa-users-cog"></i> Manage Members</div>
-                    <div class="m-tab" data-tab="settings" onclick="switchAdminTab('settings')"><i class="fas fa-tools"></i> Group Settings</div>
-                    <div style="margin-top:auto; padding:20px;">
+                <div class="p-modal-sidebar" style="width:240px; border-right:1px solid #f1f5f9; display:flex; flex-direction:column; background:rgba(255,255,255,0.2);">
+                    <div style="padding:20px 20px 10px; font-weight:900; color:#1e293b; font-size:13px; text-transform:uppercase; letter-spacing:1px; opacity:0.6;">Settings</div>
+                    <div class="m-tab active" data-tab="general" onclick="switchAdminTab('general')"><i class="fas fa-sliders-h"></i> General</div>
+                    <div class="m-tab" data-tab="notifications" onclick="switchAdminTab('notifications')"><i class="fas fa-bell"></i> Notifications</div>
+                    <% if (userRole === 'admin' || userRole === 'moderator' || userRole === 'owner') { %>
+                        <div style="padding:24px 20px 10px; font-weight:900; color:#1e293b; font-size:13px; text-transform:uppercase; letter-spacing:1px; opacity:0.6;">Admin Controls</div>
+                        <div class="m-tab" data-tab="members" onclick="switchAdminTab('members')"><i class="fas fa-users-cog"></i> Mod Members</div>
+                        <div class="m-tab" data-tab="requests" onclick="switchAdminTab('requests')"><i class="fas fa-user-clock"></i> Join Requests</div>
+                        <div class="m-tab" data-tab="content" onclick="switchAdminTab('content')"><i class="fas fa-shield-alt"></i> Security & Posts</div>
+                    <% } %>
+                    <% if (memberStatus === 'active' && userRole !== 'owner') { %>
+                        <div style="margin-top:auto; padding:20px 20px 0;">
+                            <button class="btn-sparkle secondary" style="width:100%; color:#ef4444; border-color:#fee2e2; background:#fef2f2;" onclick="alert('Leave group logic coming soon.')"><i class="fas fa-sign-out-alt"></i> Leave Group</button>
+                        </div>
+                    <% } %>
+                    <div style="margin-top:<%= userRole === 'owner' ? 'auto' : '10px' %>; padding:20px;">
                         <button class="btn-sparkle secondary close-modal" style="width:100%;"><i class="fas fa-times"></i> Close Panel</button>
                     </div>
                 </div>
@@ -401,49 +414,75 @@
         function sendInvites() { alert('Invites sent successfully!'); document.getElementById('inviteModal').style.display = 'none'; }
 
         // ADMIN TOOLS
-        function showAdminTools(tab = 'requests') {
+        function showAdminTools(tab) {
+            tab = tab || 'general';
             document.getElementById('adminModal').style.display = 'flex';
             switchAdminTab(tab);
         }
 
         async function switchAdminTab(tab) {
-            document.querySelectorAll('.m-tab').forEach(el => el.classList.remove('active'));
-            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-            
-            const body = document.getElementById('adminBody');
-            if(tab === 'requests') {
-                body.innerHTML = '<h3>Pending Join Requests</h3><div id="reqList">Loading...</div>';
+            document.querySelectorAll('.m-tab').forEach(function(el) { el.classList.remove('active'); });
+            var activeNav = document.querySelector('[data-tab="' + tab + '"]');
+            if (activeNav) activeNav.classList.add('active');
+
+            var body = document.getElementById('adminBody');
+            var isAdmin = '<%= userRole %>' === 'admin' || '<%= userRole %>' === 'moderator' || '<%= userRole %>' === 'owner';
+            var groupDesc = <%- JSON.stringify(group.description || '') %>;
+            var groupName = <%- JSON.stringify(group.name || '') %>;
+            var allowPosts = '<%= group.allow_posts ? "checked" : "" %>';
+
+            if (tab === 'requests' && isAdmin) {
+                body.innerHTML = '<h3>Pending Join Requests</h3><div id="reqList" style="margin-top:15px;">Loading...</div>';
                 loadRequests();
-            } else if(tab === 'members') {
-                body.innerHTML = '<h3>Manage Community Members</h3><div id="manageMembersList">Fetching members...</div>';
+            } else if (tab === 'members' && isAdmin) {
+                body.innerHTML = '<h3>Manage Community Members</h3><div id="manageMembersList" style="margin-top:15px;">Fetching members...</div>';
                 loadManageMembers();
-            } else if(tab === 'settings') {
-                body.innerHTML = `
-                    <h3>Group Settings</h3>
-                    <div style="margin-top:20px; display:flex; flex-direction:column; gap:20px;">
-                        <div>
-                            <label style="display:block; font-weight:800; font-size:12px; margin-bottom:8px;">Group Name</label>
-                            <input type="text" id="editName" class="glass-input" value="<%= group.name %>" style="width:100%; border:1px solid #f1f5f9; padding:12px; border-radius:10px;">
-                        </div>
-                        <div>
-                            <label style="display:block; font-weight:800; font-size:12px; margin-bottom:8px;">Description</label>
-                            <textarea id="editDesc" class="glass-input" style="width:100%; border:1px solid #f1f5f9; padding:12px; border-radius:10px; height:100px;"><%= group.description %></textarea>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:15px; border-radius:12px;">
-                            <div>
-                                <strong style="display:block; font-size:14px;">Community Participation</strong>
-                                <span style="font-size:12px; color:#64748b;">Allow any member to create posts</span>
-                            </div>
-                            <label class="switch-proto">
-                                <input type="checkbox" id="editAllowPosts" <%= group.allow_posts ? 'checked' : '' %>>
-                                <span class="slider-proto"></span>
-                            </label>
-                        </div>
-                        <div>
-                            <button class="btn-sparkle" style="width:100%; padding:15px;" onclick="saveSettings()">Save Configuration</button>
-                        </div>
-                    </div>
-                `;
+            } else if (tab === 'content' && isAdmin) {
+                body.innerHTML =
+                    '<h3>Content Moderation</h3>' +
+                    '<p class="hint-text" style="font-size:14px;margin-bottom:20px;">Manage what your community can post and engage with.</p>' +
+                    '<div style="background:#f8fafc;padding:20px;border-radius:14px;display:flex;justify-content:space-between;align-items:center;">' +
+                        '<div>' +
+                            '<strong style="display:block;font-size:15px;">Allow Community Posts</strong>' +
+                            '<span style="font-size:12px;color:#64748b;">Let members create their own content</span>' +
+                        '</div>' +
+                        '<label class="switch-proto"><input type="checkbox" id="editAllowPosts" ' + allowPosts + ' onchange="saveSettings()"><span class="slider-proto"></span></label>' +
+                    '</div>';
+            } else if (tab === 'general') {
+                if (isAdmin) {
+                    body.innerHTML =
+                        '<h3>General Settings</h3>' +
+                        '<div style="margin-top:20px;display:flex;flex-direction:column;gap:20px;">' +
+                            '<div>' +
+                                '<label style="display:block;font-weight:800;font-size:12px;margin-bottom:8px;color:#64748b;">Group Name</label>' +
+                                '<input type="text" id="editName" class="glass-input" value="' + groupName + '" style="width:100%;border:1px solid #e2e8f0;padding:15px;border-radius:12px;">' +
+                            '</div>' +
+                            '<div>' +
+                                '<label style="display:block;font-weight:800;font-size:12px;margin-bottom:8px;color:#64748b;">Description</label>' +
+                                '<textarea id="editDesc" class="glass-input" style="width:100%;border:1px solid #e2e8f0;padding:15px;border-radius:12px;height:100px;resize:none;">' + groupDesc + '</textarea>' +
+                            '</div>' +
+                            '<div><button class="btn-sparkle" style="width:100%;padding:15px;" onclick="saveSettings()">Save Configuration</button></div>' +
+                        '</div>';
+                } else {
+                    body.innerHTML =
+                        '<h3>Personal Group Settings</h3>' +
+                        '<div class="glass-card" style="margin-top:20px;padding:25px;border:1px solid #f1f5f9;">' +
+                            '<strong style="font-size:16px;">Community Context:</strong>' +
+                            '<p style="color:#64748b;font-size:14px;line-height:1.6;margin-top:10px;">' + groupDesc + '</p>' +
+                        '</div>' +
+                        '<p class="hint-text" style="margin-top:20px;text-align:center;">Only administrators can modify community details.</p>';
+                }
+            } else if (tab === 'notifications') {
+                body.innerHTML =
+                    '<h3>Notification Preferences</h3>' +
+                    '<p class="hint-text" style="font-size:14px;margin-bottom:20px;">Choose what you want to be notified about in this group.</p>' +
+                    '<div style="background:#f8fafc;padding:20px;border-radius:14px;display:flex;justify-content:space-between;align-items:center;">' +
+                        '<div>' +
+                            '<strong style="display:block;font-size:15px;">All New Posts</strong>' +
+                            '<span style="font-size:12px;color:#64748b;">Get pinged for every post</span>' +
+                        '</div>' +
+                        '<label class="switch-proto"><input type="checkbox" checked><span class="slider-proto"></span></label>' +
+                    '</div>';
             }
         }
 
@@ -508,25 +547,29 @@
         }
 
         async function saveSettings() {
-            const nameEl = document.getElementById('editName');
-            const descEl = document.getElementById('editDesc');
-            const allowPostsEl = document.getElementById('editAllowPosts');
-            
-            if (!nameEl || !descEl) return;
+            const payload = {};
 
-            const payload = {
-                name: nameEl.value,
-                description: descEl.value,
-                allow_posts: allowPostsEl && allowPostsEl.checked ? 1 : 0,
-                category: document.getElementById('editCategory') ? document.getElementById('editCategory').value : '<%= group.category %>'
-            };
+            const nameEl = document.getElementById('editName');
+            if (nameEl) payload.name = nameEl.value;
+
+            const descEl = document.getElementById('editDesc');
+            if (descEl) payload.description = descEl.value;
+
+            const allowPostsEl = document.getElementById('editAllowPosts');
+            if (allowPostsEl) payload.allow_posts = allowPostsEl.checked ? 1 : 0;
+
+            const categoryEl = document.getElementById('editCategory');
+            if (categoryEl) payload.category = categoryEl.value;
+
+            if (Object.keys(payload).length === 0) return;
+
             try {
                 const res = await DashboardAPI.request('/groups/' + gid + '/update', {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
                 if (res.success) location.reload();
-            } catch (e) { alert('Update failed'); }
+            } catch (e) { alert('Update failed: ' + e.message); }
         }
 
         async function actionReq(rid, action) {
@@ -600,9 +643,29 @@
 
         function shareGroup() {
             const url = window.location.href;
-            navigator.clipboard.writeText(url).then(() => {
-                alert('Group link copied to clipboard!');
-            });
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Group link copied to clipboard!');
+                }).catch(() => alert('Link: ' + url));
+            } else {
+                alert('Link: ' + url);
+            }
+        }
+
+        async function deleteGroup() {
+            if (!confirm('Are you sure you want to permanently delete this group? This cannot be undone.')) return;
+            try {
+                const res = await DashboardAPI.request('/groups/' + gid, { method: 'DELETE' });
+                if (res.success) window.location.href = '/groups';
+            } catch (e) { alert('Could not delete group. Please try again.'); }
+        }
+
+        async function leaveGroup() {
+            if (!confirm('Are you sure you want to leave this group?')) return;
+            try {
+                const res = await DashboardAPI.request('/groups/' + gid + '/leave', { method: 'POST' });
+                if (res.success) window.location.href = '/groups';
+            } catch (e) { alert('Could not leave group. Please try again.'); }
         }
 
         // Close on outside click

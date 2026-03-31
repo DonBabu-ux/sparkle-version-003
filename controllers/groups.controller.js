@@ -203,6 +203,41 @@ const joinGroup = async (req, res) => {
     }
 };
 
+const leaveGroup = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const groupId = req.params.id;
+
+        const member = await Group.getMember(groupId, userId);
+        if (!member) return res.status(400).json({ error: 'You are not a member of this group' });
+        if (member.role === 'owner') return res.status(403).json({ error: 'Owners cannot leave. Transfer ownership first.' });
+
+        await Group.removeMember(groupId, userId);
+        res.json({ success: true, message: 'Left group successfully' });
+    } catch (error) {
+        logger.error('Leave Group Error:', error);
+        res.status(500).json({ error: 'Failed to leave group' });
+    }
+};
+
+const deleteGroupAPI = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const userId = req.user.user_id;
+
+        const member = await Group.getMember(groupId, userId);
+        if (!member || member.role !== 'owner') {
+            return res.status(403).json({ error: 'Only the group owner can delete this community' });
+        }
+
+        await Group.deleteGroup(groupId);
+        res.json({ success: true, message: 'Group deleted successfully' });
+    } catch (error) {
+        logger.error('Delete Group Error:', error);
+        res.status(500).json({ error: 'Failed to delete group' });
+    }
+};
+
 const createGroup = async (req, res) => {
     try {
         const { name, campus, description, is_public, category } = req.body;
@@ -345,6 +380,8 @@ module.exports = {
     createGroupPost,
     getGroupPostsAPI,
     joinGroup,
+    leaveGroup,
+    deleteGroupAPI,
     getGroupsAPI,
     getPendingRequestsAPI,
     approveRequestAPI,

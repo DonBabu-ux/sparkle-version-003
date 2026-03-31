@@ -29,6 +29,8 @@ router.post('/requests/:requestId/reject', authMiddleware, groupsController.reje
 
 // Common utilities
 router.post('/:id/join', authMiddleware, groupsController.joinGroup);
+router.post('/:id/leave', authMiddleware, groupsController.leaveGroup);
+router.delete('/:id', authMiddleware, groupsController.deleteGroupAPI);
 router.post('/:id/update', authMiddleware, upload.fields([{ name: 'icon', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), groupsController.updateGroupAPI);
 router.get('/:id/members', authMiddleware, groupsController.getMembersDetailedAPI);
 router.post('/:id/users/:userId/remove', authMiddleware, groupsController.removeMemberAPI);

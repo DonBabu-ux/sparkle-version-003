@@ -266,6 +266,17 @@ class Group {
         await pool.query('DELETE FROM group_posts WHERE post_id = ?', [postId]);
         return true;
     }
+
+    /**
+     * Delete an entire group (owner only — cascades posts, members, requests)
+     */
+    static async deleteGroup(groupId) {
+        await pool.query('DELETE FROM group_posts WHERE group_id = ?', [groupId]);
+        await pool.query('DELETE FROM group_members WHERE group_id = ?', [groupId]);
+        await pool.query('DELETE FROM group_requests WHERE group_id = ?', [groupId]);
+        await pool.query('DELETE FROM groups WHERE group_id = ?', [groupId]);
+        return true;
+    }
 }
 
 module.exports = Group;

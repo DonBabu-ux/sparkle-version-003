@@ -3,20 +3,36 @@ const router = express.Router();
 const groupsController = require('../../controllers/groups.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { upload } = require('../../middleware/upload.middleware');
+const { csrfProtection } = require('../../middleware/security.middleware');
 
-// Existing
-router.get('/campus', authMiddleware, groupsController.getCampusGroups);
+// Apply CSRF protection to all state-changing routes
+router.use(csrfProtection);
+
+// Match spec: GET /api/groups
+router.get('/', authMiddleware, groupsController.getGroupsAPI);
+
+// Match spec: POST /api/groups
 router.post('/', authMiddleware, upload.single('pfp'), groupsController.createGroup);
-router.post('/:id/join', authMiddleware, groupsController.joinGroup);
-router.delete('/:id/leave', authMiddleware, groupsController.leaveGroup);          // NEW
-router.put('/:id', authMiddleware, upload.single('pfp'), groupsController.updateGroup);
-router.post('/:id/posts', authMiddleware, groupsController.createGroupPost);
 
-// Members
-router.get('/:id/members', authMiddleware, groupsController.getGroupMembers);                       // NEW
-router.get('/:id/requests', authMiddleware, groupsController.getPendingRequests);                   // NEW
-router.post('/:id/members/:userId/approve', authMiddleware, groupsController.approveRequest);       // NEW
-router.put('/:id/members/:userId/promote', authMiddleware, groupsController.promoteAdmin);          // NEW
-router.delete('/:id/members/:userId', authMiddleware, groupsController.removeMemberByAdmin);        // NEW
+// Match spec: POST /api/groups/:id/post
+router.post('/:id/post', authMiddleware, groupsController.createGroupPost);
+
+// Match spec: GET /api/groups/:id/posts?page=1
+router.get('/:id/posts', authMiddleware, groupsController.getGroupPostsAPI);
+
+// Matching spec: GET /api/groups/:id/requests (Private admin API)
+router.get('/:id/requests', authMiddleware, groupsController.getPendingRequestsAPI);
+
+// Matching spec: POST /api/groups/requests/:requestId/approve
+router.post('/requests/:requestId/approve', authMiddleware, groupsController.approveRequestAPI);
+router.post('/requests/:requestId/reject', authMiddleware, groupsController.rejectRequestAPI);
+
+// Common utilities
+router.post('/:id/join', authMiddleware, groupsController.joinGroup);
+router.post('/:id/update', authMiddleware, upload.fields([{ name: 'icon', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), groupsController.updateGroupAPI);
+router.get('/:id/members', authMiddleware, groupsController.getMembersDetailedAPI);
+router.post('/:id/users/:userId/remove', authMiddleware, groupsController.removeMemberAPI);
+router.post('/:id/users/:userId/promote', authMiddleware, groupsController.promoteMemberAPI);
+router.delete('/:id/posts/:postId', authMiddleware, groupsController.deletePostAPI);
 
 module.exports = router;

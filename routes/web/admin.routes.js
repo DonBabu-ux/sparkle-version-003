@@ -14,8 +14,7 @@ const {
 } = require('../../controllers/admin.controller');
 
 // All admin routes require authentication and admin privileges
-router.use(ejsAuthMiddleware);
-router.use(adminMiddleware);
+router.use('/admin', ejsAuthMiddleware, adminMiddleware);
 
 // Dashboard
 router.get('/admin', getDashboardStats);

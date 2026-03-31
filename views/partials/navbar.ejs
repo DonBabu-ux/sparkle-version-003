@@ -42,6 +42,7 @@
         <!-- Desktop-only nav links -->
         <div class="nav-actions-group" style="display: flex; align-items: center; gap: 8px;">
             <a href="/dashboard" class="action-btn-circle" title="Home Feed"><i class="fas fa-home"></i></a>
+            <a href="/groups" class="action-btn-circle" title="Groups"><i class="fas fa-users"></i></a>
             <a href="/messages" class="action-btn-circle" title="Messages"><i class="fas fa-comment-dots"></i></a>
             <a href="/moments" class="action-btn-circle" title="Moments"><i class="fas fa-play-circle"></i></a>
         </div>
@@ -148,8 +149,8 @@
             }, 280);
         });
     });
-    var TC = {user:'#6366f1',post:'#10b981',group:'#f59e0b',moment:'#ec4899',marketplace:'#3b82f6',club:'#8b5cf6'};
-    var TI = {user:'user-circle',post:'file-alt',group:'users',moment:'play-circle',marketplace:'tag',club:'shield-alt'};
+    var TC = {user:'#6366f1',post:'#10b981',group:'#f59e0b',moment:'#ec4899',marketplace:'#3b82f6'};
+    var TI = {user:'user-circle',post:'file-alt',group:'users',moment:'play-circle',marketplace:'tag'};
     function _renderMob(grouped, el){
         var entries = Object.entries(grouped).filter(function(e){ return e[1] && e[1].length; });
         if (!entries.length){ el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No results found</div>'; return; }
@@ -507,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const TYPE_ICONS = { user: 'user-circle', post: 'file-alt', group: 'users', moment: 'play-circle', marketplace: 'tag', club: 'shield-alt' };
-    const TYPE_COLORS = { user: '#6366f1', post: '#10b981', group: '#f59e0b', moment: '#ec4899', marketplace: '#3b82f6', club: '#8b5cf6' };
+    const TYPE_COLORS = { user: '#6366f1', post: '#10b981', group: '#f59e0b', moment: '#ec4899', marketplace: '#3b82f6' };
 
     function renderGroupedResults(grouped) {
         const container = document.getElementById('suggestionsContainer');
@@ -540,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
             post: `/post/${id}`, 
             marketplace_item: `/marketplace/item/${id}`, // Now uses the new /item/ alias
             group: `/groups/${id}`, 
-            club: `/clubs/${id}`, 
             moment: `/moments` 
         };
         

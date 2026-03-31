@@ -146,6 +146,31 @@ app.use((err, req, res, next) => {
 // =============================================
 
 // Create HTTP server and attach Socket.IO
+// CSRF and General Error Handler
+app.use((err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        logger.error('❌ CSRF Validation Error:', {
+            url: req.url,
+            method: req.method,
+            ip: req.ip,
+            token_in_header: req.headers['x-csrf-token'] ? 'Present' : 'Missing',
+            token_in_body: req.body?._csrf ? 'Present' : 'Missing'
+        });
+        return res.status(403).json({
+            success: false,
+            message: 'Invalid security token (CSRF)',
+            error: 'invalid csrf token'
+        });
+    }
+    
+    logger.error('🔥 Server Error:', err);
+    res.status(err.status || 500).json({
+        success: false,
+        message: 'Internal Server Error',
+        error: process.env.NODE_ENV === 'production' ? null : err.message
+    });
+});
+
 const server = createServer(app);
 initializeSocket(server);
 

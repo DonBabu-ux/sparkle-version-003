@@ -964,7 +964,7 @@ const DashboardAPI = {
     async loadGroups(campus) {
         try {
             const params = campus ? `?campus=${campus}` : '';
-            const groups = await this.request(`/groups/campus${params}`);
+            const groups = await this.request(`/groups${params}`);
             return groups.map(group => ({
                 ...group,
                 id: group.group_id || group.id,
@@ -978,17 +978,22 @@ const DashboardAPI = {
 
     async createGroup(groupData) {
         try {
-            const result = await this.request('/groups', {
-                method: 'POST',
-                body: JSON.stringify({
-                    name: groupData.name,
-                    description: groupData.description,
-                    category: groupData.category || 'general',
-                    icon_url: groupData.icon_url || null,
-                    campus: groupData.campus || localStorage.getItem('sparkleUserCampus') || JSON.parse(localStorage.getItem('sparkleUser') || '{}').campus || 'Sparkle Central'
-                })
-            });
-            return result;
+            let options;
+            if (groupData instanceof FormData) {
+                options = { method: 'POST', body: groupData };
+            } else {
+                options = {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: groupData.name,
+                        description: groupData.description,
+                        category: groupData.category || 'general',
+                        icon_url: groupData.icon_url || null,
+                        campus: groupData.campus || localStorage.getItem('sparkleUserCampus') || JSON.parse(localStorage.getItem('sparkleUser') || '{}').campus || 'Sparkle Central'
+                    })
+                };
+            }
+            return await this.request('/groups', options);
         } catch (error) {
             console.error('Failed to create group:', error);
             throw error;
@@ -997,12 +1002,33 @@ const DashboardAPI = {
 
     async joinGroup(groupId) {
         try {
-            const result = await this.request(`/groups/${groupId}/join`, {
-                method: 'POST'
+            return await this.request(`/groups/${groupId}/join`, { method: 'POST' });
+        } catch (error) {
+            console.error('Failed to join group:', error);
+            throw error;
+        }
+    },
+
+    async loadGroupPosts(groupId, page = 1) {
+        try {
+            const result = await this.request(`/groups/${groupId}/posts?page=${page}`);
+            return result.posts || [];
+        } catch (error) {
+            console.error('Failed to load group posts:', error);
+            return [];
+        }
+    },
+
+    async createGroupPost(groupId, content, image = null, video = null) {
+        try {
+            // Support simple objects or FormData if we expand to file uploads later
+            const result = await this.request(`/groups/${groupId}/post`, {
+                method: 'POST',
+                body: JSON.stringify({ content, image, video })
             });
             return result;
         } catch (error) {
-            console.error('Failed to join group:', error);
+            console.error('Failed to create group post:', error);
             throw error;
         }
     },
@@ -1537,27 +1563,6 @@ const DashboardAPI = {
         return null;
     },
 
-    // === Group API ===
-    async loadGroups() {
-        try {
-            const res = await this.fetchWithAuth('/chats');
-            if (res && Array.isArray(res)) {
-                return res.filter(c => c.is_group);
-            }
-            return [];
-        } catch (e) {
-            console.error('loadGroups failed', e);
-            return [];
-        }
-    },
-
-    async joinGroup(groupId) {
-        return this.fetchWithAuth(`/chats/${groupId}/join`, { method: 'POST' });
-    },
-
-    async loadGroupFeed() {
-        return [];
-    },
 
     // ============ SEARCH ============
     async search(query, type = 'all') {
@@ -1600,7 +1605,8 @@ const DashboardAPI = {
         try {
             return await this.request('/search/history', { method: 'DELETE' });
         } catch (error) { /* silence */ }
-    }
+    },
+
 };
 
 // Make it globally available

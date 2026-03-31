@@ -11,8 +11,6 @@ const campusRoutes = require('./campus.routes');
 const groupsRoutes = require('./groups.routes');
 const marketplaceRoutes = require('./marketplace.routes');
 const confessionRoutes = require('./confession.routes');
-const clubsRoutes = require('./clubs.routes');
-const lostFoundRoutes = require('./lost-found.routes');
 const skillMarketRoutes = require('./skill-market.routes');
 
 const uploadRoutes = require('./upload.routes');
@@ -53,8 +51,6 @@ router.use('/', campusRoutes);
 router.use('/', marketplaceRoutes);
 router.use('/groups', groupsRoutes);
 router.use('/confessions', confessionRoutes);
-router.use('/clubs', clubsRoutes);
-router.use('/lost-found', lostFoundRoutes);
 router.use('/skill-market', skillMarketRoutes);
 router.use('/search', require('./search.routes'));
 router.use('/realtime', require('./realtime.routes'));

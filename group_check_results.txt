@@ -1,0 +1,64 @@
+--- Table: groups ---
+group_id (char(36)), name (varchar(255)), description (text), category (varchar(100)), icon_url (text), cover_image (text), campus (varchar(255)), is_public (tinyint(1)), requires_approval (tinyint(1)), creator_id (char(36)), created_at (timestamp)
+--- Table: group_members ---
+id (int(11)), group_id (char(36)), user_id (char(36)), role (enum('member','admin','founder')), status (enum('active','pending','blocked')), created_at (timestamp)
+--- Table: group_posts ---
+post_id (char(36)), group_id (char(36)), user_id (char(36)), content (text), image_url (text), video_url (text), created_at (timestamp)
+--- Table: join_requests ---
+id (int(11)), group_id (char(36)), user_id (char(36)), status (enum('pending','approved','rejected')), created_at (timestamp)
+
+--- Sample Groups ---
+[
+  {
+    "group_id": "31a524fd-ddbe-4cc1-ab4d-86360c2ab908",
+    "name": "BIT 110",
+    "description": "test",
+    "category": "study",
+    "icon_url": "/uploads/groups/default.png",
+    "cover_image": null,
+    "campus": "جامعة كاراتينا",
+    "is_public": 1,
+    "requires_approval": 0,
+    "creator_id": "175a02d1-4707-44cd-a559-13a99cd5c8fe",
+    "created_at": "2026-03-31T13:42:06.000Z"
+  },
+  {
+    "group_id": "45ebbc13-8b19-4dd7-83bd-0b9c3186fc7f",
+    "name": "Main Campus Lounge",
+    "description": "The official social hub for everyone.",
+    "category": "social",
+    "icon_url": null,
+    "cover_image": null,
+    "campus": null,
+    "is_public": 1,
+    "requires_approval": 0,
+    "creator_id": null,
+    "created_at": "2026-03-31T13:36:31.000Z"
+  },
+  {
+    "group_id": "8fddbeaf-b269-40a5-9f5b-ec2778d2993f",
+    "name": "Study Buddies UoN",
+    "description": "Find partners for exams and projects.",
+    "category": "academic",
+    "icon_url": null,
+    "cover_image": null,
+    "campus": null,
+    "is_public": 1,
+    "requires_approval": 0,
+    "creator_id": null,
+    "created_at": "2026-03-31T13:36:32.000Z"
+  },
+  {
+    "group_id": "e11233d2-a153-4c28-a26c-4d31724a1ba3",
+    "name": "Sparkle Sports Connect",
+    "description": "Coordinate games and training sessions.",
+    "category": "sports",
+    "icon_url": null,
+    "cover_image": null,
+    "campus": null,
+    "is_public": 1,
+    "requires_approval": 0,
+    "creator_id": null,
+    "created_at": "2026-03-31T13:36:32.000Z"
+  }
+]

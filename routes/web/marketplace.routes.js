@@ -4,11 +4,8 @@ const marketplaceController = require('../../controllers/marketplace.controller'
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { csrfProtection } = require('../../middleware/security.middleware');
 
-// Apply CSRF protection to all routes
-router.use(csrfProtection);
-
 // Main marketplace page (public)
-router.get('/marketplace', marketplaceController.renderMarketplace);
+router.get('/marketplace', csrfProtection, marketplaceController.renderMarketplace);
 
 // Single listing page (public)
 router.get('/marketplace/listings/:id', marketplaceController.renderListingDetail);

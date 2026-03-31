@@ -3,256 +3,268 @@ const crypto = require('crypto');
 
 class Group {
     /**
-     * Get all groups with member count
-     */
-    static async getAll() {
-        const [groups] = await pool.query(
-            `SELECT g.*, u.name as creator_name,
-                    (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id AND status = 'active') as member_count
-             FROM groups g 
-             JOIN users u ON g.creator_id = u.user_id 
-             ORDER BY g.created_at DESC LIMIT 50`
-        );
-        return groups;
-    }
-
-    /**
      * Get group by ID
      */
-    static async findById(groupId) {
-        const [groups] = await pool.query(
-            'SELECT * FROM groups WHERE group_id = ?',
-            [groupId]
+    static async findById(id) {
+        const [rows] = await pool.query(
+            `SELECT g.*, 
+                    (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id) as member_count
+             FROM groups g 
+             WHERE g.group_id = ?`,
+            [id]
         );
-        return groups[0] || null;
+        return rows[0] || null;
     }
 
     /**
-     * Get group posts
+     * Get all groups
      */
-    static async getPosts(groupId) {
-        const [posts] = await pool.query(
-            `SELECT p.*, u.name as user_name, u.avatar_url
-             FROM posts p 
-             JOIN users u ON p.user_id = u.user_id 
-             WHERE p.group_id = ? 
-             ORDER BY p.created_at DESC LIMIT 50`,
-            [groupId]
-        );
-        return posts;
+    static async getAll(userId = null) {
+        let query = `
+            SELECT g.*, 
+                   (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id) as member_count
+        `;
+
+        const params = [];
+        if (userId) {
+            query += `, 
+                (SELECT status FROM group_members WHERE group_id = g.group_id AND user_id = ?) as user_membership_status,
+                (SELECT status FROM group_requests WHERE group_id = g.group_id AND user_id = ? AND status = 'pending' LIMIT 1) as user_request_status
+            `;
+            params.push(userId, userId);
+        }
+
+        query += ` FROM groups g ORDER BY g.created_at DESC`;
+
+        const [rows] = await pool.query(query, params);
+        return rows;
     }
 
     /**
-     * Create new group
+     * Get group members count
      */
-    static async create(creatorId, groupData) {
+    static async getMembersCount(groupId) {
+        const [rows] = await pool.query(
+            'SELECT COUNT(*) as count FROM group_members WHERE group_id = ?',
+            [groupId]
+        );
+        return rows[0].count;
+    }
+
+    /**
+     * Get group members
+     */
+    static async getMembers(groupId) {
+        const [rows] = await pool.query(
+            `SELECT gm.*, u.username, u.avatar_url as avatar, u.name
+             FROM group_members gm
+             JOIN users u ON gm.user_id = u.user_id
+             WHERE gm.group_id = ?`,
+            [groupId]
+        );
+        return rows;
+    }
+
+    static async getAdmins(groupId) {
+        const [rows] = await pool.query(
+            `SELECT gm.*, u.username, u.avatar_url as avatar, u.name
+             FROM group_members gm
+             JOIN users u ON gm.user_id = u.user_id
+             WHERE gm.group_id = ? AND gm.role IN ('admin', 'moderator')`,
+            [groupId]
+        );
+        return rows;
+    }
+
+    /**
+     * Check membership
+     */
+    static async getMember(groupId, userId) {
+        const [rows] = await pool.query(
+            'SELECT * FROM group_members WHERE group_id = ? AND user_id = ?',
+            [groupId, userId]
+        );
+        return rows[0] || null;
+    }
+
+    /**
+     * Create group
+     */
+    static async create(name, icon_url, campus, is_public, description = '', category = 'general', creatorId = null) {
         const groupId = crypto.randomUUID();
-        const slug = groupData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-
+        const requiresApproval = is_public ? 0 : 1;
         await pool.query(
-            `INSERT INTO groups (group_id, creator_id, name, slug, description, campus, category, is_public, banner_url, icon_url) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                groupId,
-                creatorId,
-                groupData.name,
-                slug,
-                groupData.description || null,
-                groupData.campus,
-                groupData.category || null,
-                groupData.is_public !== false ? 1 : 0,
-                groupData.banner_url || null,
-                groupData.icon_url || null
-            ]
+            `INSERT INTO groups (group_id, name, icon_url, campus, is_public, requires_approval, description, category, creator_id) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [groupId, name, icon_url, campus, is_public ? 1 : 0, requiresApproval, description, category, creatorId]
         );
-
-        // Add creator as admin
-        await this.addMember(groupId, creatorId, 'admin');
         return groupId;
     }
 
     /**
-     * Get member status
-     */
-    static async getMember(groupId, userId) {
-        const [members] = await pool.query(
-            'SELECT * FROM group_members WHERE group_id = ? AND user_id = ?',
-            [groupId, userId]
-        );
-        return members[0] || null;
-    }
-
-    /**
-     * Add member to group
+     * Add member
      */
     static async addMember(groupId, userId, role = 'member', status = 'active') {
-        // Check if already exists
-        const existing = await this.getMember(groupId, userId);
-        if (existing) {
-            if (existing.status !== status) {
-                await pool.query(
-                    'UPDATE group_members SET status = ? WHERE membership_id = ?',
-                    [status, existing.membership_id]
-                );
-            }
-            return existing.membership_id;
-        }
-
-        const membershipId = crypto.randomUUID();
-        await pool.query(
-            'INSERT INTO group_members (membership_id, group_id, user_id, role, status) VALUES (?, ?, ?, ?, ?)',
-            [membershipId, groupId, userId, role, status]
+        const [result] = await pool.query(
+            'INSERT INTO group_members (group_id, user_id, role, status) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = ?',
+            [groupId, userId, role, status, status]
         );
-        return membershipId;
+        return result.insertId;
     }
 
     /**
-     * Remove member from group
+     * Join Requests
      */
-    static async removeMember(groupId, userId) {
+    static async createJoinRequest(groupId, userId) {
         const [result] = await pool.query(
-            'DELETE FROM group_members WHERE group_id = ? AND user_id = ?',
+            'INSERT INTO group_requests (group_id, user_id) VALUES (?, ?)',
             [groupId, userId]
         );
-        return result.affectedRows > 0;
+        return result.insertId;
     }
 
-    /**
-     * Search groups
-     */
-    static async search(searchParams) {
-        let query = 'SELECT g.*, (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.group_id AND gm.status = "active") as member_count FROM groups g WHERE 1=1';
-        const params = [];
-
-        if (searchParams.campus) {
-            query += ' AND g.campus = ?';
-            params.push(searchParams.campus);
-        }
-
-        if (searchParams.category) {
-            query += ' AND g.category = ?';
-            params.push(searchParams.category);
-        }
-
-        if (searchParams.query) {
-            query += ' AND (g.name LIKE ? OR g.description LIKE ?)';
-            params.push(`%${searchParams.query}%`, `%${searchParams.query}%`);
-        }
-
-        query += ' ORDER BY g.created_at DESC';
-
-        const [groups] = await pool.query(query, params);
-        return groups;
-    }
-
-    /**
-     * Get groups where user is a member
-     */
-    static async getUserGroups(userId) {
-        const [groups] = await pool.query(
-            `SELECT g.*, u.name as creator_name,
-                    (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id AND status = 'active') as member_count,
-                    gm.status as user_status, gm.role as user_role
-             FROM groups g 
-             JOIN users u ON g.creator_id = u.user_id 
-             JOIN group_members gm ON g.group_id = gm.group_id
-             WHERE gm.user_id = ? AND gm.status = 'active'
-             ORDER BY g.created_at DESC`,
-            [userId]
+    static async findRequest(groupId, userId) {
+        const [rows] = await pool.query(
+            "SELECT * FROM group_requests WHERE group_id = ? AND user_id = ? AND status = 'pending'",
+            [groupId, userId]
         );
-        return groups;
+        return rows[0] || null;
     }
 
     /**
-     * Get groups managed by user (admin or creator)
+     * Group Post Logic
      */
-    static async getManagedGroups(userId) {
-        const [groups] = await pool.query(
-            `SELECT g.*, u.name as creator_name,
-                    (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id AND status = 'active') as member_count,
-                    gm.status as user_status, gm.role as user_role
-             FROM groups g 
-             JOIN users u ON g.creator_id = u.user_id 
-             JOIN group_members gm ON g.group_id = gm.group_id
-             WHERE gm.user_id = ? AND (gm.role = 'admin' OR gm.role = 'creator') AND gm.status = 'active'
-             ORDER BY g.created_at DESC`,
-            [userId]
+    static async createPost(groupId, userId, content, image = null, video = null) {
+        const postId = crypto.randomUUID();
+        await pool.query(
+            'INSERT INTO group_posts (post_id, group_id, user_id, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)',
+            [postId, groupId, userId, content, image, video]
         );
-        return groups;
+        return postId;
     }
 
+    static async getPosts(groupId, limit = 10, offset = 0) {
+        const [rows] = await pool.query(
+            `SELECT gp.*, u.username, u.avatar_url AS avatar, g.name AS group_name, g.icon_url AS group_icon
+             FROM group_posts gp
+             JOIN users u ON gp.user_id = u.user_id
+             JOIN groups g ON gp.group_id = g.group_id
+             WHERE gp.group_id = ?
+             ORDER BY gp.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [groupId, limit, offset]
+        );
+        return rows;
+    }
     /**
-     * Update group details
+     * Admin Management
      */
-    static async update(groupId, updates) {
-        const fields = [];
-        const values = [];
+    static async getPendingRequests(groupId) {
+        const [rows] = await pool.query(
+            `SELECT gr.*, u.username, u.name, u.avatar_url as avatar
+             FROM group_requests gr
+             JOIN users u ON gr.user_id = u.user_id
+             WHERE gr.group_id = ? AND gr.status = 'pending'`,
+            [groupId]
+        );
+        return rows;
+    }
 
-        Object.keys(updates).forEach(key => {
-            // Whitelist fields to allow update
-            if (['name', 'description', 'icon_url', 'banner_url', 'category', 'privacy'].includes(key)) {
-                fields.push(`${key} = ?`);
-                values.push(updates[key]);
-            }
-        });
+    static async approveRequest(requestId) {
+        const [rows] = await pool.query('SELECT * FROM group_requests WHERE id = ?', [requestId]);
+        if (rows.length === 0) return false;
+        
+        const { group_id, user_id } = rows[0];
+        
+        await pool.query("UPDATE group_requests SET status = 'approved' WHERE id = ?", [requestId]);
+        await this.addMember(group_id, user_id, 'member', 'active');
+        return true;
+    }
 
-        if (fields.length === 0) return false;
+    static async rejectRequest(requestId) {
+        await pool.query("UPDATE group_requests SET status = 'rejected' WHERE id = ?", [requestId]);
+        return true;
+    }
 
-        values.push(groupId);
-        await pool.query(`UPDATE groups SET ${fields.join(', ')} WHERE group_id = ?`, values);
+    static async removeMember(groupId, userId) {
+        await pool.query('DELETE FROM group_members WHERE group_id = ? AND user_id = ?', [groupId, userId]);
+        return true;
+    }
+
+    static async updateMemberRole(groupId, userId, role) {
+        await pool.query('UPDATE group_members SET role = ? WHERE group_id = ? AND user_id = ?', [role, groupId, userId]);
         return true;
     }
 
     /**
-     * Approve a pending join request
+     * Get member preview (up to 3, prioritized by followed users)
      */
-    static async approveRequest(groupId, userId) {
-        const [result] = await pool.query(
-            'UPDATE group_members SET status = "active" WHERE group_id = ? AND user_id = ? AND status = "pending"',
-            [groupId, userId]
-        );
-        return result.affectedRows > 0;
+    static async getMemberPreview(groupId, currentUserId = null) {
+        let query = `
+            SELECT u.user_id, u.username, u.avatar_url as avatar, u.name
+            FROM group_members gm
+            JOIN users u ON gm.user_id = u.user_id
+            WHERE gm.group_id = ? AND gm.status = 'active'
+        `;
+        
+        const params = [groupId];
+        
+        if (currentUserId) {
+            query += ` ORDER BY (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) DESC, gm.created_at ASC `;
+            params.push(currentUserId);
+        } else {
+            query += ` ORDER BY gm.created_at ASC `;
+        }
+        
+        query += ` LIMIT 3 `;
+        
+        const [rows] = await pool.query(query, params);
+        return rows;
     }
 
     /**
-     * Get all active members of a group with user info
+     * Get all members with detailed info for the members tab
      */
-    static async getMembers(groupId) {
-        const [members] = await pool.query(
-            `SELECT gm.*, u.user_id, u.name, u.username, u.avatar_url, u.campus
-             FROM group_members gm
-             JOIN users u ON gm.user_id = u.user_id
-             WHERE gm.group_id = ? AND gm.status = 'active'
-             ORDER BY FIELD(gm.role, 'admin', 'creator', 'moderator', 'member'), gm.created_at`,
-            [groupId]
-        );
-        return members;
+    static async getMembersDetailed(groupId, currentUserId = null) {
+        let query = `
+            SELECT u.user_id, u.username, u.name, u.avatar_url as avatar, gm.role, gm.status,
+                   (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+                   (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id AND following_id = ?) as follows_me
+            FROM group_members gm
+            JOIN users u ON gm.user_id = u.user_id
+            WHERE gm.group_id = ? AND gm.status = 'active'
+            ORDER BY gm.role = 'admin' DESC, gm.role = 'moderator' DESC, gm.created_at ASC
+        `;
+        
+        const [rows] = await pool.query(query, [currentUserId, currentUserId, groupId]);
+        return rows;
     }
 
     /**
-     * Get pending join requests for a group
+     * Update group settings
      */
-    static async getPendingRequests(groupId) {
-        const [members] = await pool.query(
-            `SELECT gm.*, u.user_id, u.name, u.username, u.avatar_url
-             FROM group_members gm
-             JOIN users u ON gm.user_id = u.user_id
-             WHERE gm.group_id = ? AND gm.status = 'pending'
-             ORDER BY gm.created_at DESC`,
-            [groupId]
-        );
-        return members;
+    static async update(groupId, data) {
+        const allowedFields = ['name', 'description', 'icon_url', 'cover_image', 'is_public', 'category', 'requires_approval', 'allow_posts'];
+        const updates = [];
+        const params = [];
+        
+        for (const [key, value] of Object.entries(data)) {
+            if (allowedFields.includes(key)) {
+                updates.push(`${key} = ?`);
+                params.push(value);
+            }
+        }
+        
+        if (updates.length === 0) return true;
+        
+        params.push(groupId);
+        await pool.query(`UPDATE groups SET ${updates.join(', ')} WHERE group_id = ?`, params);
+        return true;
     }
 
-    /**
-     * Update member role (promote/demote)
-     */
-    static async updateMemberRole(groupId, userId, role) {
-        const [result] = await pool.query(
-            'UPDATE group_members SET role = ? WHERE group_id = ? AND user_id = ? AND status = "active"',
-            [role, groupId, userId]
-        );
-        return result.affectedRows > 0;
+    static async deletePost(postId) {
+        await pool.query('DELETE FROM group_posts WHERE post_id = ?', [postId]);
+        return true;
     }
 }
 

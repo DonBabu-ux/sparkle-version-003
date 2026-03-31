@@ -2868,6 +2868,25 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.currentUser = user;
         }
     }
+
+    // Global Modal Close Listeners (Sparkle Standard)
+    document.addEventListener('click', (e) => {
+        // Handle .close-modal buttons
+        if (e.target.classList.contains('close-modal') || e.target.closest('.close-modal')) {
+            const btn = e.target.classList.contains('close-modal') ? e.target : e.target.closest('.close-modal');
+            const modal = btn.closest('.modal') || btn.closest('[id$="Modal"]');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+        
+        // Handle Backdrop clicks
+        if (e.target.classList.contains('modal')) {
+            e.target.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
 });
 // Global Group Functions for Sidebar
 window.createGroup = function () {

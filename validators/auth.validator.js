@@ -5,10 +5,10 @@ const signupSchema = Joi.object({
     username: Joi.string().pattern(/^[a-zA-Z0-9._]+$/).min(3).max(30).required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
-    campus: Joi.string().optional(),
-    major: Joi.string().optional(),
-    year: Joi.string().optional(),
-    phone_number: Joi.string().pattern(/^\+[1-9]\d{1,14}$/).optional() // E.164 format
+    campus: Joi.string().allow('', null).optional(),
+    major: Joi.string().allow('', null).optional(),
+    year: Joi.string().allow('', null).optional(),
+    phone_number: Joi.string().pattern(/^\+[1-9]\d{1,14}$/).allow('', null).optional() // E.164 format
 });
 
 const loginSchema = Joi.object({

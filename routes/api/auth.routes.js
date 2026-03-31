@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/auth.controller');
 const supabaseController = require('../../controllers/supabase.controller');
@@ -44,5 +44,6 @@ router.post('/otp/verify/sync', supabaseController.syncVerifiedOTP);
 
 // Token Validation
 router.get('/validate', authMiddleware, authController.validateToken);
+router.post('/switch-account', authController.switchAccount);
 
 module.exports = router;

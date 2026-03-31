@@ -540,47 +540,62 @@
 
                     <div id="panel3-message" class="auth-message"></div>
 
-                    <div class="auth-form-group">
-                        <label class="auth-label" for="campus">Campus/University</label>
-                        <select id="campus" class="auth-select" required>
-                            <option value="">Select your campus</option>
-                            <option value="Karatina University">KARU</option>
-                            <option value="Chuka University">Chuka University</option>
-                            <option value="Dedan Kimathi University">DeKuT</option>
-                            <option value="Mount Kenya University">MKU</option>
-                            <option value="Murang'a University">MUT</option>
-                            <option value="Pwani University">Pwani University</option>
-                            <option value="Mount Media University">M.M.U</option>
-                            <option value="University of Nairobi">UoN</option>
-                            <option value="Other">Other University</option>
-                        </select>
+                    <div class="auth-form-group" style="margin-bottom: 20px;">
+                        <label class="auth-label">Affiliation Type <span style="color:#8E8E8E; font-weight:normal;">(Optional)</span></label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="University"> University / School</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="Company"> Company / Workplace</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="Business"> Business / Brand</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="Community"> Community / Organization</label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="None" checked> None</label>
+                        </div>
+                        
+                        <div id="university-select-container" style="display: none;">
+                            <select id="campus-select" class="auth-select">
+                                <option value="">Select your university</option>
+                                <option value="Karatina University">KARU</option>
+                                <option value="Chuka University">Chuka University</option>
+                                <option value="Dedan Kimathi University">DeKuT</option>
+                                <option value="Mount Kenya University">MKU</option>
+                                <option value="Murang'a University">MUT</option>
+                                <option value="Pwani University">Pwani University</option>
+                                <option value="Mount Media University">M.M.U</option>
+                                <option value="University of Nairobi">UoN</option>
+                            </select>
+                        </div>
+
+                        <div id="other-affiliation-container" style="display: none;">
+                            <input type="text" id="campus-input" class="auth-input" placeholder="Enter your affiliation">
+                        </div>
                     </div>
 
                     <div class="auth-form-group">
-                        <label class="auth-label" for="major">Major/Field of Study</label>
-                        <select id="major" class="auth-select" required>
-                            <option value="">Select your major</option>
-                            <option value="Computer Science">Computer Science</option>
-                            <option value="Business Administration">Business Administration</option>
-                            <option value="Medicine">Medicine</option>
+                        <label class="auth-label" for="major">Interests / Industry <span style="color:#8E8E8E; font-weight:normal;">(Optional)</span></label>
+                        <select id="major" class="auth-select">
+                            <option value="">Select your primary interest</option>
+                            <option value="Computer Science">Computer Science & IT</option>
+                            <option value="Business Administration">Business & Entrepreneurship</option>
+                            <option value="Medicine">Healthcare & Medicine</option>
                             <option value="Engineering">Engineering</option>
-                            <option value="Arts & Humanities">Arts & Humanities</option>
-                            <option value="Law">Law</option>
+                            <option value="Arts & Humanities">Arts, Design & Humanities</option>
+                            <option value="Law">Law & Policy</option>
                             <option value="Social Sciences">Social Sciences</option>
                             <option value="Natural Sciences">Natural Sciences</option>
-                            <option value="Undeclared">Undeclared</option>
+                            <option value="General Explorer">General Explorer</option>
+                            <option value="Undeclared">Other/Undeclared</option>
                         </select>
                     </div>
 
                     <div class="auth-form-group">
-                        <label class="auth-label" for="year">Academic Year</label>
-                        <select id="year" class="auth-select" required>
-                            <option value="">Select your year</option>
-                            <option value="Freshman">Freshman</option>
-                            <option value="Sophomore">Second Year</option>
-                            <option value="Junior">Third Year</option>
-                            <option value="Senior">Fourth Year</option>
-                            <option value="Graduate">Graduate Student</option>
+                        <label class="auth-label" for="year">Experience Level <span style="color:#8E8E8E; font-weight:normal;">(Optional)</span></label>
+                        <select id="year" class="auth-select">
+                            <option value="">Select experience level</option>
+                            <option value="Beginner/Freshman">Beginner / Freshman</option>
+                            <option value="Junior/Student">Junior / Ongoing Student</option>
+                            <option value="Senior">Senior / Final Year</option>
+                            <option value="Graduate">Graduate / Entry-Level</option>
+                            <option value="Professional">Experienced Professional</option>
+                            <option value="Expert">Expert / Lead</option>
                         </select>
                     </div>
 
@@ -764,7 +779,6 @@
                 if (u.username) document.getElementById('username').value = u.username;
                 if (u.email) document.getElementById('email').value = u.email;
                 if (u.phone) document.getElementById('phone').value = u.phone;
-                if (u.campus) document.getElementById('campus').value = u.campus;
                 if (u.major) document.getElementById('major').value = u.major;
                 if (u.year) document.getElementById('year').value = u.year;
 
@@ -802,16 +816,39 @@
             });
             document.getElementById('back-to-welcome').addEventListener('click', () => goToStep(1));
 
+            const affiliationRadios = document.querySelectorAll('input[name="affiliation_type"]');
+            affiliationRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const val = e.target.value;
+                    const uniContainer = document.getElementById('university-select-container');
+                    const otherContainer = document.getElementById('other-affiliation-container');
+                    if (val === 'University') {
+                        uniContainer.style.display = 'block';
+                        otherContainer.style.display = 'none';
+                    } else if (val === 'None') {
+                        uniContainer.style.display = 'none';
+                        otherContainer.style.display = 'none';
+                    } else {
+                        uniContainer.style.display = 'none';
+                        otherContainer.style.display = 'block';
+                    }
+                });
+            });
+
             // Step 3
             document.getElementById('next-to-final').addEventListener('click', () => {
-                const campus = document.getElementById('campus').value;
+                const affiliationType = document.querySelector('input[name="affiliation_type"]:checked').value;
+                let campus = '';
+                if (affiliationType === 'University') {
+                    campus = document.getElementById('campus-select').value;
+                } else if (affiliationType !== 'None') {
+                    campus = document.getElementById('campus-input').value;
+                }
                 const major = document.getElementById('major').value;
                 const year = document.getElementById('year').value;
 
-                if (!campus || !major || !year) {
-                    showMessage('panel3', 'Please select all academic details.', 'error');
-                    return;
-                }
+                // Fields are now optional
+
 
                 appState.userData = { ...appState.userData, campus, major, year };
                 saveState();
@@ -832,7 +869,7 @@
                 <div style="color: #8E8E8E;">Username:</div><div>@${u.username}</div>
                 <div style="color: #8E8E8E;">Email:</div><div>${u.email}</div>
                 <div style="color: #8E8E8E;">Phone:</div><div>${u.phone || 'Not provided'}</div>
-                <div style="color: #8E8E8E;">Campus:</div><div>${u.campus}</div>
+                <div style="color: #8E8E8E;">Affiliation:</div><div>${u.campus || 'None selected'}</div>
             `;
         }
     </script>

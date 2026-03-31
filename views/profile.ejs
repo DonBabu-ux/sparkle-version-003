@@ -507,6 +507,32 @@
                     </div>
                     <% } %>
 
+                    <!-- Profile Highlights -->
+                    <div class="profile-highlights" style="margin: 20px 10px; display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none;">
+                        <style>.profile-highlights::-webkit-scrollbar { display: none; }</style>
+                        <% if (isOwnProfile) { %>
+                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="alert('Select past stories to add to a new Highlight!')">
+                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #64748b; margin: 0 auto; background: white;">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">New</div>
+                        </div>
+                        <% } %>
+                        <!-- Mock Highlights to simulate the feature -->
+                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="alert('Viewing highlight: Campus Days')">
+                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #e2e8f0; padding: 2px; margin: 0 auto;">
+                                <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=100&q=80" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">Campus</div>
+                        </div>
+                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="alert('Viewing highlight: Dev Life')">
+                            <div style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #e2e8f0; padding: 2px; margin: 0 auto;">
+                                <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=100&q=80" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px;">Dev Vibes</div>
+                        </div>
+                    </div>
+
                     <!-- Content Tabs -->
                     <div class="profile-tabs">
                         <div class="tab active" onclick="switchTab(event, 'posts')">
@@ -518,6 +544,9 @@
                         </div>
                         <div class="tab" onclick="switchTab(event, 'saved')">
                             <i class="fas fa-bookmark"></i> SAVED
+                        </div>
+                        <div class="tab" id="activityTab" onclick="switchTab(event, 'activity')">
+                            <i class="fas fa-history"></i> ACTIVITY
                         </div>
                         <% } %>
                     </div>
@@ -872,8 +901,8 @@
                     return;
                 }
 
-                // Guard: Liked/Saved are only accessible to the profile owner
-                if (!_isOwnProfile && (tabName === 'sparks' || tabName === 'saved')) {
+                // Guard: Liked/Saved/Activity are only accessible to the profile owner
+                if (!_isOwnProfile && (tabName === 'sparks' || tabName === 'saved' || tabName === 'activity')) {
                     postsGrid.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-lock"></i></div><h3>Private</h3><p>This content is only visible to the account owner.</p></div>`;
                     return;
                 }
@@ -881,6 +910,60 @@
                 // Save original HTML if not already saved
                 if (!window.originalPostsHTML) {
                     window.originalPostsHTML = postsGrid.innerHTML;
+                }
+
+                if (tabName === 'activity') {
+                    postsGrid.innerHTML = `
+                        <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 15px; margin-bottom: 50px;">
+                            <div style="padding: 24px; border-radius: 16px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                                <h3 style="margin:0 0 5px 0; font-size: 18px; font-weight: 800;">Your Activity</h3>
+                                <p style="color: #64748b; font-size: 14px; margin: 0 0 20px 0;">Manage your content and interactions across Sparkle.</p>
+                                
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                                    <div style="padding: 20px; border-radius: 16px; background: #f8fafc; cursor: pointer; display: flex; align-items: flex-start; gap: 15px; border: 1px solid transparent; transition: all 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='transparent'" onclick="window.location.href='/dashboard/professional'">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                                            <i class="fas fa-chart-line" style="font-size: 18px; color: var(--accent);"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Professional Dashboard</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Analytics, reach & monetization tools</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="padding: 20px; border-radius: 16px; background: #f8fafc; cursor: pointer; display: flex; align-items: flex-start; gap: 15px; border: 1px solid transparent; transition: all 0.2s;" onmouseenter="this.style.borderColor='#f472b6'" onmouseleave="this.style.borderColor='transparent'" onclick="document.querySelector('.tab').click()">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                                            <i class="fas fa-images" style="font-size: 18px; color: #f472b6;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Photos & Videos</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Manage your visual posts and media</div>
+                                        </div>
+                                    </div>
+
+                                    <div style="padding: 20px; border-radius: 16px; background: #f8fafc; cursor: pointer; display: flex; align-items: flex-start; gap: 15px; border: 1px solid transparent; transition: all 0.2s;" onmouseenter="this.style.borderColor='#60a5fa'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                                            <i class="fas fa-comment-dots" style="font-size: 18px; color: #60a5fa;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Interactions</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review your comments, likes, and replies</div>
+                                        </div>
+                                    </div>
+
+                                    <div style="padding: 20px; border-radius: 16px; background: #f8fafc; cursor: pointer; display: flex; align-items: flex-start; gap: 15px; border: 1px solid transparent; transition: all 0.2s;" onmouseenter="this.style.borderColor='#10b981'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                                            <i class="fas fa-history" style="font-size: 18px; color: #10b981;"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Account History</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review profile changes and past reviews</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
                 }
 
                 // Show loading
@@ -941,6 +1024,16 @@
                     </div>`;
                 }
             }
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('tab') === 'activity' && document.getElementById('activityTab')) {
+                    setTimeout(() => {
+                        document.getElementById('activityTab').click();
+                    }, 100);
+                }
+            });
         </script>
         </body>
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../../controllers/dashboard.controller');
+const professionalController = require('../../controllers/professional.controller');
 const { ejsAuthMiddleware } = require('../../middleware/auth.middleware');
 const { upload } = require('../../middleware/upload.middleware');
 
@@ -10,6 +11,7 @@ router.use(ejsAuthMiddleware);
 // ============ MAIN DASHBOARD PAGE ============
 router.get('/', dashboardController.renderDashboard.bind(dashboardController));
 router.get('/dashboard', dashboardController.renderDashboard.bind(dashboardController));
+router.get('/dashboard/professional', professionalController.renderProfessionalDashboard.bind(professionalController));
 
 // ============ API ENDPOINTS FOR DYNAMIC UPDATES ============
 router.get('/api/dashboard/stories', dashboardController.getStoriesAPI.bind(dashboardController));

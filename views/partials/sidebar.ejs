@@ -105,10 +105,28 @@
                     <i class="fas fa-calendar-alt"></i>
                     <span>Events</span>
                 </a>
+                <a href="/dashboard/professional" class="hub-sub-item">
+                    <i class="fas fa-chart-line" style="color: var(--accent);"></i>
+                    <span>Professional Dashboard</span>
+                </a>
+                <a href="/profile?tab=activity" class="hub-sub-item">
+                    <i class="fas fa-history"></i>
+                    <span>Your Activity</span>
+                </a>
                 <a href="/settings" class="hub-sub-item">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
                 </a>
+                <div class="hub-divider"></div>
+
+                <!-- Multi-Account Section Desktop -->
+                <div id="desktop-account-switcher" style="padding: 5px 15px; display: flex; flex-direction: column; gap: 8px;">
+                </div>
+                <button class="hub-sub-item" onclick="authMultiAccounts.addNewAccount()" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: var(--text-main);">
+                    <i class="fas fa-plus-circle" style="color: var(--accent);"></i>
+                    <span>Add Account</span>
+                </button>
+
                 <div class="hub-divider"></div>
                 <a href="/logout" class="hub-sub-item logout">
                     <i class="fas fa-sign-out-alt"></i>
@@ -237,10 +255,27 @@
                 <i class="fas fa-calendar-alt"></i>
                 <span>Events</span>
             </div>
+            <div class="hamburger-item" onclick="window.location.href='/dashboard/professional'; hideHamburger();">
+                <i class="fas fa-chart-line" style="color: var(--accent);"></i>
+                <span>Professional Dashboard</span>
+            </div>
+            <div class="hamburger-item" onclick="window.location.href='/profile?tab=activity'; hideHamburger();">
+                <i class="fas fa-history"></i>
+                <span>Your Activity</span>
+            </div>
             <div class="hamburger-item" onclick="window.location.href='/settings'; hideHamburger();">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </div>
+            
+            <div style="height: 1px; background: #eee; margin: 10px 0;"></div>
+            <div id="mobile-account-switcher"></div>
+            <div class="hamburger-item" onclick="authMultiAccounts.addNewAccount(); hideHamburger();">
+                <i class="fas fa-plus-circle" style="color: var(--accent);"></i>
+                <span>Add Account</span>
+            </div>
+            <div style="height: 1px; background: #eee; margin: 10px 0;"></div>
+
             <div class="hamburger-item logout" onclick="window.location.href='/logout'; hideHamburger();">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
@@ -330,4 +365,115 @@
 
     // Close on overlay click
     document.getElementById('hamburgerOverlay')?.addEventListener('click', hideHamburger);
+
+    // Multi-Account Logic
+    const authMultiAccounts = {
+        getAccounts() {
+            try {
+                const accounts = localStorage.getItem('sparkleAccounts');
+                return accounts ? JSON.parse(accounts) : [];
+            } catch (e) {
+                return [];
+            }
+        },
+        saveAccounts(accounts) {
+            localStorage.setItem('sparkleAccounts', JSON.stringify(accounts));
+        },
+        getCurrentSession() {
+            try {
+                const userJson = localStorage.getItem('sparkleUser');
+                const token = localStorage.getItem('sparkleToken');
+                if (userJson && token) {
+                    return { user: JSON.parse(userJson), token };
+                }
+            } catch (e) {}
+            return null;
+        },
+        syncCurrentSession() {
+            const current = this.getCurrentSession();
+            if (!current) return;
+            let accounts = this.getAccounts();
+            
+            const existingIndex = accounts.findIndex(a => a.userId === current.user.id || a.userId === current.user.user_id);
+            const acctObj = {
+                userId: current.user.id || current.user.user_id,
+                username: current.user.username,
+                avatar: current.user.avatar_url || '/uploads/avatars/default.png',
+                token: current.token
+            };
+
+            if (existingIndex >= 0) {
+                accounts[existingIndex] = acctObj;
+            } else {
+                accounts.push(acctObj);
+            }
+            this.saveAccounts(accounts);
+        },
+        renderAccounts() {
+            this.syncCurrentSession();
+            const accounts = this.getAccounts();
+            const current = this.getCurrentSession();
+            const currentId = current ? (current.user.id || current.user.user_id) : null;
+
+            const html = accounts.map(acct => `
+                <div onclick="authMultiAccounts.switchAccount('${acct.userId}')" style="display: flex; align-items: center; justify-content: space-between; padding: 8px; cursor: pointer; border-radius: 8px; background: ${acct.userId === currentId ? 'rgba(0,0,0,0.05)' : 'transparent'};">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="${acct.avatar}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                        <span style="font-size: 13px; font-weight: ${acct.userId === currentId ? '700' : '500'}; color: var(--text-main);">@${acct.username}</span>
+                    </div>
+                    ${acct.userId === currentId ? '<i class="fas fa-check-circle" style="color: var(--accent); font-size: 12px;"></i>' : ''}
+                </div>
+            `).join('');
+
+            const deskContainer = document.getElementById('desktop-account-switcher');
+            if (deskContainer) deskContainer.innerHTML = html;
+
+            const mobContainer = document.getElementById('mobile-account-switcher');
+            if (mobContainer) {
+                const mobHtml = accounts.map(acct => `
+                    <div class="hamburger-item" onclick="authMultiAccounts.switchAccount('${acct.userId}'); hideHamburger();">
+                        <img src="${acct.avatar}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; margin-right: 15px;">
+                        <span style="font-weight: ${acct.userId === currentId ? '700' : '500'}; color: var(--text-main);">@${acct.username}</span>
+                        ${acct.userId === currentId ? '<i class="fas fa-check-circle" style="color: var(--accent); font-size: 14px; margin-left: auto;"></i>' : ''}
+                    </div>
+                `).join('');
+                mobContainer.innerHTML = mobHtml;
+            }
+        },
+        async switchAccount(userId) {
+            const accounts = this.getAccounts();
+            const targetAccount = accounts.find(a => a.userId === userId || a.userId === Number(userId));
+            if (!targetAccount) return;
+
+            try {
+                // Set cookie on server
+                const res = await fetch('/api/auth/switch-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: targetAccount.token })
+                });
+
+                if (res.ok) {
+                    // Pre-fill localStorage so the app loads quickly
+                    localStorage.setItem('sparkleToken', targetAccount.token);
+                    // Fetch profile to set latest user details? Just reload is reliable.
+                    window.location.reload();
+                } else {
+                    alert('Session expired. Please log in again.');
+                    // Remove from array
+                    this.saveAccounts(accounts.filter(a => a.userId !== userId));
+                    this.renderAccounts();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        addNewAccount() {
+            window.location.href = '/login?add_account=true';
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        authMultiAccounts.renderAccounts();
+    });
 </script>

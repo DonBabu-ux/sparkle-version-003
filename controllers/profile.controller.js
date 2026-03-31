@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Post = require('../models/Post');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const { formatUserDisplay } = require('../helpers/userFormat.helper');
 
 // Helper to sanitize avatars - prioritizes internal uploads and whitelisted CDNs
 const getSafeAvatarUrl = (url) => {
@@ -89,10 +90,12 @@ const renderProfile = async (req, res) => {
             mutualConnections = await User.getMutualConnections(currentUserId, userProfile.user_id);
         }
 
+        const displayProfile = formatUserDisplay(userProfile);
+
         res.render('profile', {
-            title: isOwnProfile ? 'My Profile' : `${userProfile.name}'s Profile`,
+            title: isOwnProfile ? 'My Profile' : `${displayProfile.name}'s Profile`,
             user: req.user, // for nav
-            profile: userProfile,
+            profile: displayProfile,
             posts: sanitizedPosts || [],
             mutualConnections,
             activeFriends: activeFriends.map(u => ({ ...u, avatar_url: getSafeAvatarUrl(u.avatar_url) })),

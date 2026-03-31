@@ -106,30 +106,67 @@ class DashboardController {
     }
 
     async getFeedData(userId, page = 1, limit = 10) {
-        const offset = (page - 1) * limit;
+        // Check following count
+        const [followingResult] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [userId]);
+        const followsCount = followingResult[0].count;
 
-        const [posts] = await pool.query(`
-            SELECT 
-                p.*,
-                u.username,
-                u.name as user_name,
-                u.avatar_url,
-                u.campus,
-                u.major,
-                CASE WHEN s.user_id IS NOT NULL THEN 1 ELSE 0 END as is_sparked,
-                CASE WHEN sp.user_id IS NOT NULL THEN 1 ELSE 0 END as is_saved,
-                (SELECT COUNT(*) FROM comments WHERE post_id = p.post_id) as comment_count,
-                (SELECT COUNT(*) FROM sparks WHERE post_id = p.post_id) as spark_count
+        const baseSelect = `
+            SELECT p.*, u.username, u.name as user_name, u.avatar_url, u.campus, u.major,
+            CASE WHEN s.user_id IS NOT NULL THEN 1 ELSE 0 END as is_sparked,
+            CASE WHEN sp.user_id IS NOT NULL THEN 1 ELSE 0 END as is_saved,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.post_id) as comment_count,
+            (SELECT COUNT(*) FROM sparks WHERE post_id = p.post_id) as spark_count,
+            (
+                ((SELECT COUNT(*) FROM sparks WHERE post_id = p.post_id) + (SELECT COUNT(*) FROM comments WHERE post_id = p.post_id)) * 4.0 +
+                (CASE WHEN DATEDIFF(NOW(), p.created_at) < 1 THEN 30.0 ELSE (30.0 / (DATEDIFF(NOW(), p.created_at) + 1)) END) +
+                (RAND() * 30.0)
+            ) as rec_score
             FROM posts p
             JOIN users u ON p.user_id = u.user_id
             LEFT JOIN sparks s ON p.post_id = s.post_id AND s.user_id = ?
             LEFT JOIN bookmarks sp ON p.post_id = sp.post_id AND sp.user_id = ?
-            WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
-            ORDER BY p.created_at DESC
-            LIMIT ? OFFSET ?
-        `, [userId, userId, limit, offset]);
+        `;
 
-        return posts;
+        if (followsCount === 0) {
+            // Show random + trending
+            const offset = (page - 1) * limit;
+            const [posts] = await pool.query(`
+                ${baseSelect}
+                ORDER BY rec_score DESC
+                LIMIT ? OFFSET ?
+            `, [userId, userId, limit, offset]);
+            return posts;
+        } else {
+            // 70% following, 30% recommended
+            const limitFollowing = Math.ceil(limit * 0.7);
+            const limitRec = limit - limitFollowing;
+            const offsetFollowing = (page - 1) * limitFollowing;
+            const offsetRec = (page - 1) * limitRec;
+
+            const [followingPosts] = await pool.query(`
+                ${baseSelect}
+                WHERE p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR p.user_id = ?
+                ORDER BY p.created_at DESC
+                LIMIT ? OFFSET ?
+            `, [userId, userId, userId, userId, limitFollowing, offsetFollowing]);
+
+            const [recPosts] = await pool.query(`
+                ${baseSelect}
+                WHERE p.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?) AND p.user_id != ?
+                ORDER BY rec_score DESC
+                LIMIT ? OFFSET ?
+            `, [userId, userId, userId, userId, limitRec, offsetRec]);
+
+            // Combine and sort by date or mix them. Mixing interweaves them nicely.
+            let combined = [];
+            let i = 0, j = 0;
+            while (i < followingPosts.length || j < recPosts.length) {
+                if (i < followingPosts.length) combined.push(followingPosts[i++]);
+                if (i < followingPosts.length) combined.push(followingPosts[i++]);
+                if (j < recPosts.length) combined.push(recPosts[j++]);
+            }
+            return combined;
+        }
     }
 
     async getNotificationData(userId) {

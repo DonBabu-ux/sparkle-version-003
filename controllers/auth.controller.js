@@ -51,7 +51,7 @@ const signup = async (req, res) => {
 
         await query(
             'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, name, username, email, hashedPassword, campus, major, year, phone_number]
+            [userId, name, username, email, hashedPassword, campus || null, major || null, year || null, phone_number || null]
         );
 
         // --- NEW: Generate email verification code ---
@@ -339,4 +339,33 @@ const validateToken = (req, res) => {
     res.json({ status: 'success', valid: true, user: req.user });
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken };
+const switchAccount = async (req, res) => {
+    try {
+        const { token } = req.body;
+        if (!token) {
+            return res.status(400).json({ error: 'Token is required' });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const [users] = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [decoded.userId]);
+
+        if (users.length === 0) {
+            return res.status(401).json({ status: 'error', message: 'User not found' });
+        }
+
+        res.cookie('sparkleToken', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/'
+        });
+
+        res.json({ status: 'success', message: 'Account switched successfully' });
+    } catch (error) {
+        console.error('Switch Account Error:', error.message);
+        res.status(401).json({ status: 'error', message: 'Invalid or expired token' });
+    }
+};
+
+module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount };

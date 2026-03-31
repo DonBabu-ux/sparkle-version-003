@@ -29,23 +29,40 @@ const renderConnect = async (req, res) => {
         // 2. Active Friends
         const activeFriends = await User.getActiveFriends(currentUserId, 15);
 
-        // 3. Suggested Users (Ranked)
+        // 3. For You (Scored Recommendations)
         let suggestionQuery = `
             SELECT u.*, 
             (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
             (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
             (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
-            (SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id) as mutual_connections
+            (SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id) as mutual_connections,
+            (
+                (CASE WHEN u.major = ? AND u.major IS NOT NULL AND u.major != '' THEN 40 ELSE 0 END) +
+                ((SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id) * 5) +
+                (CASE WHEN u.campus = ? AND u.campus IS NOT NULL AND u.campus != '' THEN 20 ELSE 0 END) +
+                (CASE WHEN u.year_of_study = ? AND u.year_of_study IS NOT NULL AND u.year_of_study != '' THEN 10 ELSE 0 END) +
+                (RAND() * 15) +
+                (CASE WHEN ? != 'all' AND u.campus = ? THEN 100 ELSE 0 END) +
+                (CASE WHEN ? != 'all' AND u.major = ? THEN 100 ELSE 0 END) +
+                (CASE WHEN ? != 'all' AND u.year_of_study = ? THEN 100 ELSE 0 END)
+            ) as match_score
             FROM users u 
             WHERE u.user_id != ? 
             AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
         
-        const suggestionParams = [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId];
+        const safeCampusFilter = (campus && campus !== 'all') ? campus : 'all';
+        const safeMajorFilter = (major && major !== 'all') ? major : 'all';
+        const safeYearFilter = (year && year !== 'all') ? year : 'all';
 
-        // Apply filters if present
-        if (campus && campus !== 'all') { suggestionQuery += ' AND u.campus = ?'; suggestionParams.push(campus); }
-        if (major && major !== 'all') { suggestionQuery += ' AND u.major = ?'; suggestionParams.push(major); }
-        if (year && year !== 'all') { suggestionQuery += ' AND u.year_of_study = ?'; suggestionParams.push(year); }
+        const suggestionParams = [
+            currentUserId, currentUserId, currentUserId,
+            currentUser.major || '', currentUserId, currentUser.campus || '', currentUser.year_of_study || '',
+            safeCampusFilter, safeCampusFilter,
+            safeMajorFilter, safeMajorFilter,
+            safeYearFilter, safeYearFilter,
+            currentUserId, currentUserId
+        ];
+
         if (search) { 
             suggestionQuery += ' AND (u.name LIKE ? OR u.username LIKE ?)'; 
             const s = `%${search}%`; 
@@ -53,30 +70,50 @@ const renderConnect = async (req, res) => {
         }
 
         suggestionQuery += `
-            ORDER BY 
-                CASE WHEN u.major = ? THEN 0 ELSE 1 END,
-                CASE WHEN u.year_of_study = ? THEN 0 ELSE 1 END,
-                CASE WHEN u.campus = ? THEN 0 ELSE 1 END,
-                followers_count DESC
-            LIMIT 20`;
-        suggestionParams.push(currentUser.major, currentUser.year_of_study, currentUser.campus);
+            ORDER BY match_score DESC
+            LIMIT 30`;
 
         const [suggestedUsers] = await pool.query(suggestionQuery, suggestionParams);
 
-        // 4. Developers / Creators
-        const [creators] = await pool.query(`
+        // 4. Trending People
+        const [trendingUsers] = await pool.query(`
             SELECT u.*, 
+            (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
             (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
             (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status
             FROM users u 
             WHERE u.user_id != ? 
-            AND (u.bio LIKE '%developer%' OR u.bio LIKE '%creator%' OR u.username IN ('sparkle', 'admin', 'donbabu'))
-            LIMIT 10`, [currentUserId, currentUserId, currentUserId]);
+            AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
+            ORDER BY RAND() * followers_count DESC
+            LIMIT 10`, [currentUserId, currentUserId, currentUserId, currentUserId]);
 
-        // 5. People You Follow
+        // 5. Same Affiliation
+        const [sameAffiliation] = currentUser.campus ? await pool.query(`
+            SELECT u.*, 
+            (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+            (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status
+            FROM users u 
+            WHERE u.user_id != ? AND u.campus = ?
+            AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
+            ORDER BY RAND()
+            LIMIT 10`, [currentUserId, currentUserId, currentUserId, currentUser.campus, currentUserId]) : [[]];
+
+        // 6. Similar Interests
+        const [similarInterests] = currentUser.major ? await pool.query(`
+            SELECT u.*, 
+            (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+            (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status
+            FROM users u 
+            WHERE u.user_id != ? AND u.major = ?
+            AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
+            ORDER BY RAND()
+            LIMIT 10`, [currentUserId, currentUserId, currentUserId, currentUser.major, currentUserId]) : [[]];
+
+        // 7. People You Follow
         const followingUsers = await User.getFollowingDetailed(currentUserId, currentUserId);
 
-        // helper to map users
         const mapUser = (u) => ({
             ...u,
             id: u.user_id,
@@ -89,10 +126,12 @@ const renderConnect = async (req, res) => {
         res.render('connect', { 
             title: 'Connect', 
             user: { ...currentUser, userId: currentUserId },
-            activeFriends: activeFriends.map(mapUser),
-            suggestedUsers: suggestedUsers.map(mapUser),
-            creators: creators.map(mapUser),
-            followingUsers: followingUsers.map(mapUser),
+            activeFriends: activeFriends ? activeFriends.map(mapUser) : [],
+            suggestedUsers: suggestedUsers ? suggestedUsers.map(mapUser) : [],
+            trendingUsers: trendingUsers ? trendingUsers.map(mapUser) : [],
+            sameAffiliation: sameAffiliation ? sameAffiliation.map(mapUser) : [],
+            similarInterests: similarInterests ? similarInterests.map(mapUser) : [],
+            followingUsers: followingUsers ? followingUsers.map(mapUser) : [],
             filters: { campus, major, year, search } 
         });
     } catch (error) {

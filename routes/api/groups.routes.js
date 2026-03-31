@@ -15,7 +15,7 @@ router.get('/', authMiddleware, groupsController.getGroupsAPI);
 router.post('/', authMiddleware, upload.single('pfp'), groupsController.createGroup);
 
 // Match spec: POST /api/groups/:id/post
-router.post('/:id/post', authMiddleware, groupsController.createGroupPost);
+router.post('/:id/post', authMiddleware, upload.single('image'), groupsController.createGroupPost);
 
 // Match spec: GET /api/groups/:id/posts?page=1
 router.get('/:id/posts', authMiddleware, groupsController.getGroupPostsAPI);

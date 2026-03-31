@@ -62,14 +62,14 @@ const updateGroupAPI = async (req, res) => {
         const userId = req.user.user_id;
 
         const member = await Group.getMember(groupId, userId);
-        if (!member || (member.role !== 'admin' && member.role !== 'moderator')) {
+        if (!member || (member.role !== 'admin' && member.role !== 'moderator' && member.role !== 'owner')) {
             return res.status(403).json({ error: 'Permission denied' });
         }
 
         const updateData = { ...req.body };
         if (req.files) {
-            if (req.files.icon) updateData.icon_url = '/uploads/groups/' + req.files.icon[0].filename;
-            if (req.files.cover) updateData.cover_image = '/uploads/groups/' + req.files.cover[0].filename;
+            if (req.files.icon) updateData.icon_url = req.files.icon[0].path;
+            if (req.files.cover) updateData.cover_image = req.files.cover[0].path;
         }
 
         await Group.update(groupId, updateData);
@@ -101,7 +101,13 @@ const createGroupPost = async (req, res) => {
     try {
         const groupId = req.params.id;
         const userId = req.user.user_id;
-        const { content, image, video } = req.body;
+        let content = req.body.content;
+        let image = req.body.image;
+        let video = req.body.video;
+
+        if (req.file) {
+            image = req.file.path; // Cloudinary secure_url
+        }
 
         if (!content) {
             return res.status(400).json({ error: 'Content is required' });

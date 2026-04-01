@@ -118,7 +118,18 @@ class Post {
      */
     static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, randomSeed = 0, excludeIds = []) {
         const [followCount] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [currentUserId]);
-        const isNewUser = (followCount[0].count === 0);
+        
+        // Fetch top 20 recent hashtags from user's posts to use in discovery scoring
+        // This avoids MariaDB's limitation with LIMIT in subqueries
+        const [recentTags] = await pool.query(`
+            SELECT DISTINCT tag FROM post_hashtags ph2 
+            JOIN posts p2 ON ph2.post_id = p2.post_id 
+            WHERE p2.user_id = ? 
+            ORDER BY p2.created_at DESC LIMIT 20
+        `, [currentUserId]);
+        
+        const tags = recentTags.map(t => t.tag);
+        const tagFilter = tags.length > 0 ? `AND ph.tag IN (${tags.map(() => '?').join(',')})` : 'AND 1=0';
 
         const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
         const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
@@ -142,12 +153,8 @@ class Post {
                         (p.spark_count * 0.2) + 
                         (p.comment_count * 0.3) + 
                         (p.share_count * 0.4) +
-                        (SELECT COUNT(*) * 0.5 FROM post_hashtags ph 
-                         WHERE ph.post_id = p.post_id AND ph.tag IN (
-                             SELECT tag FROM post_hashtags ph2 
-                             JOIN posts p2 ON ph2.post_id = p2.post_id 
-                             WHERE p2.user_id = ? ORDER BY p2.created_at DESC LIMIT 20
-                         ))
+                        COALESCE((SELECT COUNT(*) * 0.5 FROM post_hashtags ph 
+                         WHERE ph.post_id = p.post_id ${tagFilter}), 0)
                     ) as discovery_score
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
@@ -167,8 +174,9 @@ class Post {
              LIMIT ? OFFSET ?`;
 
         const queryParams = [
-            currentUserId, currentUserId, currentUserId, currentUserId, 
-            affiliation, currentUserId, affiliation, affiliation,
+            currentUserId, currentUserId, currentUserId, currentUserId, affiliation,
+            ...tags,
+            affiliation, affiliation,
             ...excluded,
             currentUserId, currentUserId, currentUserId, currentUserId,
             limit, offset

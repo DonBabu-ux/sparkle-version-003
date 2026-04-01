@@ -84,33 +84,35 @@ const renderDashboard = async (req, res) => {
 
 const getFeedPosts = async (req, res) => {
     try {
-        const affiliation = req.user.affiliation || req.user.campus || 'all';
+        const affiliation = req.query.affiliation || (req.user ? req.user.campus : 'all');
+        const currentUserId = req.user.userId || req.user.user_id;
         const page = parseInt(req.query.page) || 1;
-        const limit = Math.min(parseInt(req.query.limit) || 20, 100); // cap
+        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
         const offset = (page - 1) * limit;
 
-        const currentUserId = req.user.userId || req.user.user_id;
-        const randomSeed = getSeedFromDevice(req);
-        
-        // Fetch posts - the model now returns 'priority' based on follow status
-        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, randomSeed);
-        
-        // Interleave logic: Since SQL priority sorts them into blocks, 
-        // we can shuffle the array slightly to interleave discovery posts into the followed ones
-        // but for a true 60/40 split we trust the model's priority-based retrieval.
-        
-        const sanitizedPosts = posts.map(post => ({
+        // Part 1 & 5: Seeded Randomness and Anti-Repetition
+        const seed = req.query.seed || getSeedFromDevice(req);
+        const recentlySeen = req.query.recentlySeen || '';
+        const excludeIds = typeof recentlySeen === 'string' && recentlySeen ? recentlySeen.split(',') : [];
+
+        // Fetch using the enhanced weighted algorithm
+        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, seed, excludeIds);
+
+        // Sanitize and format for response
+        const sanitizedPosts = (posts || []).map(post => ({
             ...post,
             media_url: getSafeMediaUrl(post.media_url),
-            avatar_url: getSafeAvatarUrl(post.avatar_url)
+            avatar_url: getSafeAvatarUrl(post.avatar_url),
+            timestamp: post.created_at, // for consistency
+            is_discovery: !post.is_followed && post.user_id !== currentUserId
         }));
 
         if (req.query.render === 'true') {
             const renderedPosts = await Promise.all(sanitizedPosts.map(post => {
-                return new Promise((resolve, reject) => {
+                return new Promise((resolve) => {
                     res.render('partials/post-card', { post, user: req.user }, (err, html) => {
                         if (err) {
-                            logger.error('Error rendering post-card partial:', err);
+                            logger.error('Error rendering post-card:', err);
                             resolve(`<div class="error">Error rendering post</div>`);
                         } else {
                             resolve(html);
@@ -123,7 +125,7 @@ const getFeedPosts = async (req, res) => {
 
         res.json(sanitizedPosts);
     } catch (error) {
-        logger.error('Get Feed Posts Error:', error);
+        logger.error('Get Enhanced Feed Error:', error);
         res.status(500).json({ error: 'Failed to fetch feed' });
     }
 };

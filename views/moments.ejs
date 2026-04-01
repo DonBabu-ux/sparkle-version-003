@@ -755,6 +755,14 @@
         .comment-item {
             display: flex;
             gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .comment-item.comment-reply {
+            margin-left: 48px;
+            padding-left: 12px;
+            border-left: 2px solid rgba(255, 61, 109, 0.2);
+            margin-top: 12px;
         }
 
         .comment-avatar {
@@ -762,31 +770,93 @@
             height: 36px;
             border-radius: 50%;
             flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comment-reply .comment-avatar {
+            width: 28px;
+            height: 28px;
         }
 
         .comment-content {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .comment-author {
             font-size: 13px;
             font-weight: 700;
-            color: rgba(255,255,255,0.9);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .comment-like-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .comment-like-btn.active {
+            color: var(--accent-pink);
         }
 
         .comment-text {
             font-size: 14px;
-            color: #fff;
+            color: rgba(255, 255, 255, 0.95);
             line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .comment-reply .comment-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .comment-footer {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 4px;
         }
 
         .comment-date {
             font-size: 11px;
-            color: rgba(255,255,255,0.4);
-            margin-top: 4px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .reply-button {
+            background: none;
+            border: none;
+            color: var(--accent-pink);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 0;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .reply-button:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .replies-container {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .comment-input-area {
@@ -979,6 +1049,7 @@
                     this.longPressTimer = null;
                     this.observer = null;
                     this.searchHistory = this.loadSearchHistory();
+                    this.seenIds = JSON.parse(localStorage.getItem('momentsSeenIds') || '[]'); // Part 5: Anti-Repetition
                     this.api = new MomentsAPI(INITIAL_DATA.user?.user_id);
 
                     this.init();
@@ -1155,6 +1226,13 @@
                             if (!video) return;
 
                             if (entry.isIntersecting) {
+                                // Part 5: Track Seen ID for anti-repetition
+                                const id = entry.target.dataset.id;
+                                if (id && !this.seenIds.includes(id)) {
+                                    this.seenIds.push(id);
+                                    if (this.seenIds.length > 50) this.seenIds.shift();
+                                    localStorage.setItem('momentsSeenIds', JSON.stringify(this.seenIds));
+                                }
                                 video.play().catch(() => { });
                             } else {
                                 video.pause();
@@ -1571,16 +1649,58 @@
                         return;
                     }
 
-                    list.innerHTML = comments.map(comment => `
-                        <div class="comment-item">
-                            <img src="${comment.avatar_url || '/uploads/avatars/default.png'}" class="comment-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                    const renderSingleComment = (c, isReply = false, parentUsername = null) => `
+                        <div class="comment-item ${isReply ? 'comment-reply' : ''}" id="comment-${c.comment_id || c.id}">
+                            <img src="${c.avatar_url || '/uploads/avatars/default.png'}" class="comment-avatar" onerror="this.src='/uploads/avatars/default.png'">
                             <div class="comment-content">
-                                <div class="comment-author">@${comment.username}</div>
-                                <div class="comment-text">${this.escapeHtml(comment.content)}</div>
-                                <div class="comment-date">${new Date(comment.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                                <div class="comment-header">
+                                    <div class="comment-author">@${c.username}</div>
+                                    <div class="comment-like-btn ${c.is_liked ? 'active' : ''}" onclick="app.likeComment('${c.comment_id || c.id}', this)">
+                                        <i class="${c.is_liked ? 'fas' : 'far'} fa-heart"></i>
+                                        <span>${c.like_count || 0}</span>
+                                    </div>
+                                </div>
+                                ${isReply && parentUsername ? `<div style="font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 2px;">Replying to <span style="color: var(--accent-pink);">@${parentUsername}</span></div>` : ''}
+                                <div class="comment-text">${this.escapeHtml(c.content || c.text)}</div>
+                                <div class="comment-footer">
+                                    <span class="comment-date">${new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <button class="reply-button" onclick="app.toggleReply('${c.comment_id || c.id}', '${c.username}')">Reply</button>
+                                </div>
+                                ${c.replies && c.replies.length > 0 ? `<div class="replies-container">${c.replies.map(r => renderSingleComment(r, true, c.username)).join('')}</div>` : ''}
                             </div>
                         </div>
-                    `).join('');
+                    `;
+
+                    list.innerHTML = comments.map(c => renderSingleComment(c)).join('');
+                }
+
+                toggleReply(commentId, username) {
+                    this.currentReplyToId = commentId;
+                    const input = document.getElementById('commentInput');
+                    input.placeholder = `Replying to @${username}...`;
+                    input.focus();
+                }
+
+                async likeComment(commentId, btn) {
+                    try {
+                        const response = await this.api.request(`/comment/${commentId}/like`, { method: 'POST' });
+                        if (response.success) {
+                            const icon = btn.querySelector('i');
+                            const span = btn.querySelector('span');
+                            if (response.action === 'liked') {
+                                btn.classList.add('active');
+                                icon.classList.remove('far');
+                                icon.classList.add('fas');
+                            } else {
+                                btn.classList.remove('active');
+                                icon.classList.remove('fas');
+                                icon.classList.add('far');
+                            }
+                            span.textContent = response.likes;
+                        }
+                    } catch (err) {
+                        console.error('Like error:', err);
+                    }
                 }
 
                 async submitComment(e) {
@@ -1595,8 +1715,10 @@
                     input.placeholder = 'Posting...';
 
                     try {
-                        const response = await this.api.postComment(this.currentVideoId, content);
+                        const response = await this.api.postComment(this.currentVideoId, content, this.currentReplyToId);
                         if (response.status === 'success') {
+                            this.currentReplyToId = null;
+                            input.placeholder = 'Add a comment...';
                             // Fetch all comments again to refresh list or just prepend
                             const commentsResponse = await this.api.getComments(this.currentVideoId);
                             this.renderComments(commentsResponse.comments);
@@ -1632,7 +1754,8 @@
                         const response = await this.api.getStream({
                             category: this.currentCategory,
                             page: this.currentPage,
-                            limit: 10
+                            limit: 10,
+                            recentlySeen: this.seenIds.join(',')
                         });
 
                         if (response.moments?.length) {

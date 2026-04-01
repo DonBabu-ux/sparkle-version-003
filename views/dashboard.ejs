@@ -548,6 +548,39 @@
                             <% } %>
                         </div>
                     </div>
+
+                    <!-- NEW: Trending Pulse -->
+                    <div class="trending-pulse-card glass" style="margin-top: 20px; padding: 20px; border-radius: 25px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                            <div style="width: 8px; height: 8px; background: #6366f1; border-radius: 50%; box-shadow: 0 0 10px #6366f1; animation: pulse 2s infinite;"></div>
+                            <h4 style="font-weight: 800; font-size: 15px; margin: 0; color: var(--text-main); letter-spacing: -0.5px;">Trending Pulse</h4>
+                        </div>
+                        <div class="trending-tags" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <% if (typeof trendingHashtags !== 'undefined' && trendingHashtags && trendingHashtags.length > 0) { %>
+                                <% trendingHashtags.forEach(tag => { %>
+                                    <a href="/dashboard/hashtag/<%= tag.tag %>" class="trending-tag-item" style="padding: 6px 14px; background: rgba(99, 102, 241, 0.08); color: #6366f1; border-radius: 12px; font-size: 12px; font-weight: 700; text-decoration: none; transition: all 0.2s;">
+                                        #<%= tag.tag %>
+                                        <span style="opacity: 0.6; margin-left: 2px;"><%= tag.count %></span>
+                                    </a>
+                                <% }); %>
+                            <% } else { %>
+                                <p style="font-size: 12px; color: var(--text-muted);">Stay tuned for trends...</p>
+                            <% } %>
+                        </div>
+                        <style>
+                            .trending-tag-item:hover {
+                                background: #6366f1 !important;
+                                color: white !important;
+                                transform: translateY(-2px);
+                                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+                            }
+                            @keyframes pulse {
+                                0% { opacity: 0.5; transform: scale(1); }
+                                50% { opacity: 1; transform: scale(1.2); }
+                                100% { opacity: 0.5; transform: scale(1); }
+                            }
+                        </style>
+                    </div>
                 </aside>
             </div>
         </div>

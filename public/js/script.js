@@ -39,7 +39,8 @@ window.appState = {
     userPosts: [],
     postComments: {},
     momentLikes: new Set(),
-    sparkAnimationQueue: []
+    sparkAnimationQueue: [],
+    seenPostIds: JSON.parse(localStorage.getItem('seenPostIds') || '[]') // Part 5: Anti-Repetition
 };
 const appState = window.appState; // Maintain local reference for script.js
 
@@ -312,7 +313,9 @@ async function loadFeedPosts() {
     container.dataset.loading = 'true';
 
     try {
-        const posts = await DashboardAPI.loadFeed();
+        const posts = await DashboardAPI.loadFeed({
+            recentlySeen: appState.seenPostIds.join(',')
+        });
         container.innerHTML = '';
 
         if (!posts || posts.length === 0) {
@@ -341,12 +344,34 @@ async function loadFeedPosts() {
             const postEl = window.createPostElement(post);
             container.appendChild(postEl);
         });
+
+        // Part 5: Track Seen Posts
+        initFeedObserver();
     } catch (error) {
         console.error('❌ Failed to load feed:', error);
         container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Failed to load feed. Please refresh.</div>';
     } finally {
         container.dataset.loading = 'false';
     }
+}
+
+// Anti-Repetition Observer
+function initFeedObserver() {
+    const options = { threshold: 0.5 };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const postId = entry.target.dataset.postId;
+                if (postId && !appState.seenPostIds.includes(postId)) {
+                    appState.seenPostIds.push(postId);
+                    if (appState.seenPostIds.length > 50) appState.seenPostIds.shift();
+                    localStorage.setItem('seenPostIds', JSON.stringify(appState.seenPostIds));
+                }
+            }
+        });
+    }, options);
+
+    document.querySelectorAll('.post').forEach(post => observer.observe(post));
 }
 
 // Global function to create a post element (used by dynamicPatch.js)
@@ -1121,60 +1146,44 @@ window.refreshSplitViewComments = async function(postId) {
     }
 };
 
-window.renderComment = function(comment) {
+window.renderComment = function(comment, isReply = false, parentUsername = null) {
     const commentDiv = document.createElement('div');
-    commentDiv.className = 'comment';
-    commentDiv.dataset.commentId = comment.id;
+    commentDiv.className = isReply ? 'reply' : 'comment';
+    commentDiv.dataset.commentId = comment.id || comment.comment_id;
 
     const avatarFallback = "this.onerror=null; this.src='/uploads/avatars/default.png';";
     const avatar = comment.avatar || comment.avatar_url || '/uploads/avatars/default.png';
+    const userId = comment.user_id || comment.userId;
+    const commentId = comment.id || comment.comment_id;
 
     commentDiv.innerHTML = `
         <img src="${avatar}" class="avatar clickable" 
-             onclick="window.location.href='/profile/${comment.user_id || comment.userId}'" 
+             onclick="window.location.href='/profile/${userId}'" 
              onerror="${avatarFallback}">
         <div class="comment-body">
             <div class="comment-main">
-                <span class="username clickable" onclick="window.location.href='/profile/${comment.user_id || comment.userId}'">${comment.username || 'Sparkler'}</span>
-                <span class="comment-like" onclick="window.toggleCommentLike('${comment.id}', this)">❤️ ${comment.likes || 0}</span>
+                <span class="username clickable" onclick="window.location.href='/profile/${userId}'">@${comment.username || 'Sparkler'}</span>
+                <span class="comment-like ${comment.is_liked ? 'liked' : ''}" onclick="window.toggleCommentLike('${commentId}', this)">
+                    ${comment.is_liked ? '❤️' : '🤍'} ${comment.likes || comment.like_count || 0}
+                </span>
             </div>
+            ${isReply && parentUsername ? `<div style="font-size: 11px; opacity: 0.6; margin-bottom: 2px;">Replying to <span style="color: var(--accent-pink);">@${parentUsername}</span></div>` : ''}
             <p class="comment-text">${comment.text || comment.content}</p>
             <div class="comment-meta">
-                <span>${comment.timestamp || 'Just now'}</span>
-                <span class="reply-btn" onclick="window.toggleReply('${comment.id}', '${comment.username}')">Reply</span>
+                <span>${comment.timestamp || (comment.created_at ? new Date(comment.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Just now')}</span>
+                <span class="reply-btn" onclick="window.toggleReply('${commentId}', '${comment.username}')">Reply</span>
             </div>
-            <div class="replies" id="replies-${comment.id}"></div>
+            <div class="replies" id="replies-${commentId}"></div>
         </div>
     `;
 
-    // SPEC v4: Render Tree Replies (Max 3 visible initially)
+    // Recursive rendering for replies
     if (comment.replies && comment.replies.length > 0) {
         const repliesContainer = commentDiv.querySelector('.replies');
-        const visibleReplies = comment.replies.slice(0, 3);
-        
-        visibleReplies.forEach(reply => {
-            const replyEl = document.createElement('div');
-            replyEl.className = 'reply';
-            const rAvatar = reply.avatar || '/uploads/avatars/default.png';
-            
-            replyEl.innerHTML = `
-                <img src="${rAvatar}" class="avatar" onerror="${avatarFallback}">
-                <div class="reply-content">
-                    <span class="username">${reply.username || 'User'}</span>
-                    <span class="reply-like" onclick="window.toggleCommentLike('${reply.id}', this)">❤️ ${reply.likes || 0}</span>
-                    <p>${reply.text || reply.content}</p>
-                </div>
-            `;
+        comment.replies.forEach(reply => {
+            const replyEl = window.renderComment(reply, true, comment.username);
             repliesContainer.appendChild(replyEl);
         });
-
-        if (comment.replies.length > 3) {
-            const viewMore = document.createElement('div');
-            viewMore.className = 'view-more-replies';
-            viewMore.textContent = `View all ${comment.replies.length} replies`;
-            viewMore.onclick = () => { /* Logic to Expand Replies if needed */ };
-            repliesContainer.appendChild(viewMore);
-        }
     }
 
     return commentDiv;

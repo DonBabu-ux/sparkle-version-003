@@ -395,6 +395,7 @@ const DashboardAPI = {
             if (params.page) qs.set('page', params.page);
             if (params.limit) qs.set('limit', params.limit);
             if (params.render) qs.set('render', params.render);
+            if (params.recentlySeen) qs.set('recentlySeen', params.recentlySeen);
             if ([...qs].length) endpoint += `?${qs.toString()}`;
 
             const response = await this.request(endpoint);
@@ -691,9 +692,10 @@ const DashboardAPI = {
     },
 
     // ============ MOMENTS ============
-    async loadMoments() {
+    async loadMoments(params = {}) {
         try {
-            const moments = await this.request('/moments/stream');
+            const qs = new URLSearchParams(params).toString();
+            const moments = await this.request(`/moments/stream${qs ? '?' + qs : ''}`);
             return moments.map(moment => ({
                 id: moment.moment_id,
                 userId: moment.user_id,

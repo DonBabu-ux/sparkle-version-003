@@ -39,6 +39,12 @@ const createPost = async (req, res) => {
         };
 
         const postId = await Post.create(userId, postData);
+        
+        // Handle mentions asynchronously to avoid blocking the response
+        Post.extractAndHandleMentions(postId, req.body.content, userId).catch(err => {
+            logger.error('Background mention processing error:', err);
+        });
+
         res.status(201).json({
             message: 'Post created successfully',
             post_id: postId
@@ -140,13 +146,13 @@ const addComment = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
         const postId = req.params.id;
-        const content = req.body.content;
+        const { content, parentId } = req.body;
 
         if (!postId || !content || content.trim() === '') {
             return res.status(400).json({ error: 'Post ID and content are required' });
         }
 
-        const commentId = await Post.addComment(postId, userId, content);
+        const commentId = await Post.addComment(postId, userId, content, parentId);
 
         // Notify post owner of comment
         try {
@@ -281,5 +287,23 @@ module.exports = {
     savePost,
     getLikedPosts,
     sharePost,
-    likeComment
+    likeComment,
+    getCommentReplies: async (req, res) => {
+        try {
+            const userId = req.user ? (req.user.userId || req.user.user_id) : null;
+            const replies = await Post.getCommentReplies(req.params.id, userId);
+            res.json(replies);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed' });
+        }
+    },
+    getPostsByHashtag: async (req, res) => {
+        try {
+            const userId = req.user ? (req.user.userId || req.user.user_id) : null;
+            const posts = await Post.getPostsByHashtag(req.params.tag, userId);
+            res.json(posts);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed' });
+        }
+    }
 };

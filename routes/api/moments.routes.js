@@ -24,6 +24,7 @@ router.get('/:id/share-data', authMiddleware, momentsController.getShareData);
 // Comment endpoints
 router.get('/:id/comments', authMiddleware, momentsController.getComments);
 router.post('/:id/comments', authMiddleware, momentsController.addComment);
+router.post('/comment/:id/like', authMiddleware, momentsController.likeComment);
 
 // User interaction
 router.post('/user/:userId/follow', authMiddleware, momentsController.followUser);

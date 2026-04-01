@@ -428,10 +428,26 @@ const getSuggestions = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
         const currentUserId = req.user.userId || req.user.user_id;
-        const suggestions = await User.getSuggestions(currentUserId, limit);
-        res.json(suggestions);
+        
+        // Device/User specific seed for variety on refresh (Part 1 & 4)
+        const hourlySeed = Math.floor(Date.now() / (1000 * 60 * 60));
+        const seed = currentUserId.split('-')[0]; // Use first part of UUID as deterministic seed
+
+        const suggestions = await User.getSuggestions(currentUserId, limit, seed + hourlySeed);
+        
+        const sanitizedSuggestions = suggestions.map(u => ({
+            ...u,
+            id: u.user_id,
+            avatar: u.avatar_url || '/uploads/avatars/default.png',
+            profile_picture: u.avatar_url || '/uploads/avatars/default.png',
+            affiliation: u.affiliation || u.campus,
+            interests: u.interests || u.major,
+            experience_level: u.experience_level || u.year_of_study
+        }));
+
+        res.json(sanitizedSuggestions);
     } catch (error) {
-        logger.error('Get suggestions error:', error);
+        logger.error('Get Probabilistic Suggestions Error:', error);
         res.status(500).json({ error: 'Failed to get suggestions' });
     }
 };

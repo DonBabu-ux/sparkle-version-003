@@ -17,6 +17,27 @@ const ensureMomentTables = async () => {
             )
         `);
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS moment_comments (
+                comment_id CHAR(36) PRIMARY KEY,
+                moment_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                parent_comment_id CHAR(36) DEFAULT NULL,
+                content TEXT NOT NULL,
+                like_count INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_mc_moment (moment_id),
+                INDEX idx_mc_parent (parent_comment_id)
+            )
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS moment_comment_likes (
+                comment_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (comment_id, user_id)
+            )
+        `);
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS saved_moments (
                 moment_id CHAR(36) NOT NULL,
                 user_id CHAR(36) NOT NULL,
@@ -46,20 +67,33 @@ let columnsEnsured = false;
 
 const ensureMomentColumns = async () => {
     if (columnsEnsured) return;
-    const columnsToAdd = [
+    
+    // Check 'moments' table
+    const momentsCols = [
         { name: 'like_count', def: 'INT DEFAULT 0' },
         { name: 'comment_count', def: 'INT DEFAULT 0' },
         { name: 'share_count', def: 'INT DEFAULT 0' },
         { name: 'category', def: 'VARCHAR(50) DEFAULT NULL' }
     ];
-    for (const col of columnsToAdd) {
+    for (const col of momentsCols) {
         try {
             await pool.query(`ALTER TABLE moments ADD COLUMN ${col.name} ${col.def}`);
             logger.info(`Added column moments.${col.name}`);
-        } catch (e) {
-            // Column already exists — that's fine
-        }
+        } catch (e) { /* ignore if already exists */ }
     }
+
+    // Check 'moment_comments' table
+    const commentCols = [
+        { name: 'parent_comment_id', def: 'CHAR(36) DEFAULT NULL' },
+        { name: 'like_count', def: 'INT DEFAULT 0' }
+    ];
+    for (const col of commentCols) {
+        try {
+            await pool.query(`ALTER TABLE moment_comments ADD COLUMN ${col.name} ${col.def}`);
+            logger.info(`Added column moment_comments.${col.name}`);
+        } catch (e) { /* ignore if already exists */ }
+    }
+
     columnsEnsured = true;
 };
 
@@ -213,72 +247,91 @@ const renderMomentDetail = async (req, res) => {
 
 const getMomentsStream = async (req, res) => {
     try {
-        const { page = 1, limit = 10, category, hashtag } = req.query;
-        const userIdParam = req.params.userId; // From /users/:userId/moments
+        const { page = 1, limit = 10, category, hashtag, recentlySeen } = req.query;
+        const currentUserId = req.user.user_id;
         const offset = (page - 1) * limit;
 
-        let query = `
+        // Recently seen IDs to exclude (last 50 items from local cache)
+        const excludeIds = Array.isArray(recentlySeen) ? recentlySeen : (recentlySeen ? recentlySeen.split(',') : []);
+
+        // 1. Fetch Base Pool (Up to 100 items for scoring)
+        let poolQuery = `
             SELECT 
                 m.*,
-                u.username,
-                u.name as user_name,
-                u.avatar_url,
-                m.like_count as likes,
-                m.comment_count as comments,
+                u.username, u.name as user_name, u.avatar_url,
+                m.like_count as likes, m.comment_count as comments, m.share_count as shares,
                 (SELECT COUNT(*) FROM moment_likes WHERE moment_id = m.moment_id AND user_id = ?) as is_liked,
-                (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved
+                (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved,
+                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following,
+                -- Interaction Boost: Did someone I follow like this?
+                (SELECT COUNT(*) FROM moment_likes ml 
+                 JOIN follows f ON ml.user_id = f.following_id 
+                 WHERE ml.moment_id = m.moment_id AND f.follower_id = ?) as friend_interaction_count
             FROM moments m
             JOIN users u ON m.user_id = u.user_id
         `;
 
-        const params = [req.user.user_id, req.user.user_id];
+        const params = [currentUserId, currentUserId, currentUserId, currentUserId];
 
+        const whereClauses = [];
         if (hashtag) {
-            query = `
-                SELECT m.*, u.username, u.name as user_name, u.avatar_url,
-                       m.like_count as likes, m.comment_count as comments,
-                       (SELECT COUNT(*) FROM moment_likes WHERE moment_id = m.moment_id AND user_id = ?) as is_liked,
-                       (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved
-                FROM moments m
-                JOIN users u ON m.user_id = u.user_id
-                JOIN moment_hashtags h ON m.moment_id = h.moment_id
-                WHERE h.hashtag = ?
-            `;
-            params.push(req.user.user_id, req.user.user_id, hashtag);
+            whereClauses.push(`m.moment_id IN (SELECT moment_id FROM moment_hashtags WHERE hashtag = ?)`);
+            params.push(hashtag);
         } else if (category && category !== 'all') {
-            query += ` WHERE m.category = ?`;
+            whereClauses.push(`m.category = ?`);
             params.push(category);
-        } else if (userIdParam) {
-            query += ` WHERE m.user_id = ?`;
-            params.push(userIdParam);
         }
 
-        query += ` ORDER BY m.created_at DESC LIMIT ? OFFSET ?`;
-        params.push(parseInt(limit), parseInt(offset));
-
-        const [moments] = await pool.query(query, params);
-
-        // Get total count for pagination
-        let countQuery = 'SELECT COUNT(*) as total FROM moments';
-        if (category && category !== 'all') {
-            countQuery += ' WHERE category = ?';
+        if (excludeIds.length > 0) {
+            whereClauses.push(`m.moment_id NOT IN (${excludeIds.map(() => '?').join(',')})`);
+            params.push(...excludeIds);
         }
-        const [totalResult] = await pool.query(
-            countQuery,
-            category && category !== 'all' ? [category] : []
-        );
+
+        if (whereClauses.length > 0) {
+            poolQuery += ` WHERE ` + whereClauses.join(' AND ');
+        }
+
+        // Limit the pool for performance (constrained by Part 7)
+        poolQuery += ` ORDER BY m.created_at DESC LIMIT 100`;
+
+        const [momentsPool] = await pool.query(poolQuery, params);
+
+        // 2. Probabilistic Ranking (Part 2 & 3)
+        // Deterministic-per-session random factor using userId + hourly window
+        const hourlySeed = Math.floor(Date.now() / (1000 * 60 * 60));
+        
+        const scoredMoments = momentsPool.map(m => {
+            // Simple pseudo-random using seed
+            const seedStr = `${m.moment_id}${currentUserId}${hourlySeed}`;
+            let hash = 0;
+            for (let i = 0; i < seedStr.length; i++) hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
+            const randomFactor = Math.abs(hash % 1000) / 1000;
+
+            const engagementBoost = (m.likes * 0.2) + (m.comments * 0.3) + (m.shares * 0.4);
+            const relationshipBoost = (m.is_following ? 0.5 : 0) + (m.friend_interaction_count * 0.6);
+            
+            return {
+                ...m,
+                discovery_score: randomFactor + engagementBoost + relationshipBoost
+            };
+        });
+
+        // 3. Sort and Paginate
+        const sortedMoments = scoredMoments.sort((a, b) => b.discovery_score - a.discovery_score);
+        const paginatedMoments = sortedMoments.slice(offset, offset + parseInt(limit));
 
         res.json({
-            moments,
+            moments: paginatedMoments,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
-                total: totalResult[0].total,
-                pages: Math.ceil(totalResult[0].total / limit)
+                total: sortedMoments.length,
+                pages: Math.ceil(sortedMoments.length / limit)
             }
         });
+
     } catch (error) {
-        logger.error('Stream Error:', error);
+        logger.error('Probabilistic Stream Error:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -367,8 +420,9 @@ const createMoment = async (req, res) => {
         const momentId = require('crypto').randomUUID();
         const media_type = req.file ? req.file.mimetype.split('/')[0] : 'video';
 
-        // Extract hashtags from caption
-        const hashtags = caption ? (caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
+        // Extract hashtags (Max 5)
+        const tags = caption ? (caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
+        const hashtags = [...new Set(tags.map(t => t.toLowerCase()))].slice(0, 5);
 
         // Start transaction
         const connection = await pool.getConnection();
@@ -451,16 +505,19 @@ const saveMoment = async (req, res) => {
 const addComment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { comment } = req.body;
+        const { comment, parentId } = req.body;
         const userId = req.user.user_id;
 
         const commentId = require('crypto').randomUUID();
 
+        // Safe the parentId (use NULL if empty string)
+        const pid = parentId || null;
+
         await pool.query(
             `INSERT INTO moment_comments 
-            (comment_id, moment_id, user_id, content) 
-            VALUES (?, ?, ?, ?)`,
-            [commentId, id, userId, comment]
+            (comment_id, moment_id, user_id, content, parent_comment_id) 
+            VALUES (?, ?, ?, ?, ?)`,
+            [commentId, id, userId, comment, pid]
         );
 
         await pool.query(
@@ -477,7 +534,7 @@ const addComment = async (req, res) => {
             [commentId]
         );
 
-        // Create notification
+        // Create notification for moment owner
         const [moment] = await pool.query(
             'SELECT user_id FROM moments WHERE moment_id = ?',
             [id]
@@ -489,6 +546,19 @@ const addComment = async (req, res) => {
                 VALUES (UUID(), ?, 'comment', 'New Comment', 'Someone commented on your moment.', ?, 'moment', ?, CONCAT('/moments/', ?))`,
                 [moment[0].user_id, id, userId, id]
             );
+        }
+
+        // Create notification for parent comment owner if it's a reply
+        if (pid) {
+            const [parent] = await pool.query('SELECT user_id FROM moment_comments WHERE comment_id = ?', [pid]);
+            if (parent[0] && parent[0].user_id !== userId && parent[0].user_id !== moment[0]?.user_id) {
+                await pool.query(
+                    `INSERT INTO notifications 
+                    (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url) 
+                    VALUES (UUID(), ?, 'reply', 'New Reply', 'Someone replied to your comment.', ?, 'moment_comment', ?, CONCAT('/moments/', ?))`,
+                    [parent[0].user_id, pid, userId, id]
+                );
+            }
         }
 
         res.status(201).json({
@@ -504,35 +574,74 @@ const addComment = async (req, res) => {
 const getComments = async (req, res) => {
     try {
         const { id } = req.params;
-        const { page = 1, limit = 20 } = req.query;
-        const offset = (page - 1) * limit;
+        const currentUserId = req.user.user_id;
 
-        const [comments] = await pool.query(
-            `SELECT c.*, u.username, u.avatar_url 
+        // Fetch all comments for this moment and tree-ify them
+        const [allComments] = await pool.query(
+            `SELECT c.*, u.username, u.avatar_url,
+                    (SELECT COUNT(*) FROM moment_comment_likes mcl WHERE mcl.comment_id = c.comment_id AND mcl.user_id = ?) as is_liked
             FROM moment_comments c 
             JOIN users u ON c.user_id = u.user_id 
             WHERE c.moment_id = ? 
-            ORDER BY c.created_at DESC 
-            LIMIT ? OFFSET ?`,
-            [id, parseInt(limit), parseInt(offset)]
+            ORDER BY c.created_at ASC`,
+            [currentUserId, id]
         );
 
-        const [totalResult] = await pool.query(
-            'SELECT COUNT(*) as total FROM moment_comments WHERE moment_id = ?',
-            [id]
-        );
+        // Simple tree-ification
+        const commentMap = {};
+        const roots = [];
+
+        allComments.forEach(c => {
+            c.replies = [];
+            commentMap[c.comment_id] = c;
+        });
+
+        allComments.forEach(c => {
+            if (c.parent_comment_id && commentMap[c.parent_comment_id]) {
+                commentMap[c.parent_comment_id].replies.push(c);
+            } else {
+                roots.push(c);
+            }
+        });
 
         res.json({
-            comments,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total: totalResult[0].total,
-                pages: Math.ceil(totalResult[0].total / limit)
-            }
+            status: 'success',
+            comments: roots.reverse() // Newest on top
         });
     } catch (error) {
         logger.error('Get Comments Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const likeComment = async (req, res) => {
+    try {
+        const { id } = req.params; // comment_id
+        const userId = req.user.user_id;
+
+        const [existing] = await pool.query(
+            'SELECT * FROM moment_comment_likes WHERE comment_id = ? AND user_id = ?',
+            [id, userId]
+        );
+
+        let action = '';
+        if (existing.length > 0) {
+            await pool.query('DELETE FROM moment_comment_likes WHERE comment_id = ? AND user_id = ?', [id, userId]);
+            await pool.query('UPDATE moment_comments SET like_count = GREATEST(like_count - 1, 0) WHERE comment_id = ?', [id]);
+            action = 'unliked';
+        } else {
+            await pool.query('INSERT INTO moment_comment_likes (comment_id, user_id) VALUES (?, ?)', [id, userId]);
+            await pool.query('UPDATE moment_comments SET like_count = like_count + 1 WHERE comment_id = ?', [id]);
+            action = 'liked';
+        }
+
+        const [updated] = await pool.query('SELECT like_count FROM moment_comments WHERE comment_id = ?', [id]);
+        res.json({ 
+            success: true, 
+            action, 
+            likes: updated[0]?.like_count || 0 
+        });
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
@@ -630,5 +739,6 @@ module.exports = {
     getComments,
     followUser,
     trackShare,
-    getShareData
+    getShareData,
+    likeComment
 };

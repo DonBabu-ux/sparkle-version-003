@@ -8,7 +8,8 @@ class DashboardController {
             const userId = req.user.user_id || req.user.userId;
 
             // Fetch all dashboard data in parallel with robust error handling
-            const [stories, feed, notifications, suggestions] = await Promise.all([
+            const Post = require('../models/Post');
+            const [stories, feed, notifications, suggestions, trendingHashtags] = await Promise.all([
                 this.getStoriesData(userId).catch(err => {
                     logger.error('Dashboard Stories Fetch Error:', err);
                     return [];
@@ -24,6 +25,10 @@ class DashboardController {
                 this.getSuggestionsData(userId).catch(err => {
                     logger.error('Dashboard Suggestions Fetch Error:', err);
                     return [];
+                }),
+                Post.getTrendingHashtags(8).catch(err => {
+                    logger.error('Dashboard Trending Fetch Error:', err);
+                    return [];
                 })
             ]);
 
@@ -34,6 +39,7 @@ class DashboardController {
                 feed: feed || [],
                 notifications: notifications || [],
                 suggestions: (suggestions || []).filter(Boolean), // safety filter
+                trendingHashtags: trendingHashtags || [],
                 layout: 'layouts/main'
             });
         } catch (error) {
@@ -42,6 +48,28 @@ class DashboardController {
                 message: 'Failed to load dashboard',
                 error: process.env.NODE_ENV === 'development' ? error : {}
             });
+        }
+    }
+
+    async renderHashtagFeed(req, res) {
+        try {
+            const { tag } = req.params;
+            const currentUserId = req.user.user_id || req.user.userId;
+            
+            // Get posts for this hashtag
+            const Post = require('../models/Post');
+            const posts = await Post.getPostsByHashtag(tag, currentUserId);
+
+            res.render('hashtag', {
+                title: `#${tag} - Sparkle`,
+                tag: tag,
+                user: req.user,
+                posts: posts || [],
+                layout: 'layouts/main'
+            });
+        } catch (error) {
+            logger.error('Hashtag Feed render error:', error);
+            res.redirect('/dashboard');
         }
     }
 

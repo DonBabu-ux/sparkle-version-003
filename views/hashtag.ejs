@@ -1,0 +1,174 @@
+<%- include('partials/head', { title: '#' + tag + ' - Sparkle Discover' }) %>
+
+<div class="hashtag-container">
+    <div class="hashtag-header">
+        <div class="hashtag-info">
+            <div class="hashtag-icon">
+                <i class="fas fa-hashtag"></i>
+            </div>
+            <div class="hashtag-text">
+                <h1><%= tag %></h1>
+                <p class="post-count"><%= posts.length %> active posts</p>
+            </div>
+        </div>
+        <div class="hashtag-actions">
+            <button class="btn-discover" onclick="window.location.href='/dashboard'">
+                <i class="fas fa-compass"></i> Discover More
+            </button>
+        </div>
+    </div>
+
+    <div class="hashtag-feed" id="hashtagFeed">
+        <% if (posts && posts.length > 0) { %>
+            <% posts.forEach(post => { %>
+                <%- include('partials/post-card', { post: post, user: user }) %>
+            <% }); %>
+        <% } else { %>
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <h3>No posts yet for #<%= tag %></h3>
+                <p>Be the first to spark a conversation with this tag!</p>
+                <button class="btn-create" onclick="openCreateModal()">
+                    Create Post
+                </button>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<style>
+    .hashtag-container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 20px 15px 100px;
+    }
+
+    .hashtag-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        background: var(--card-bg, #fff);
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .hashtag-info {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .hashtag-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #6e8efb, #a777e3);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        box-shadow: 0 8px 20px rgba(110, 142, 251, 0.3);
+    }
+
+    .hashtag-text h1 {
+        font-size: 28px;
+        font-weight: 800;
+        margin: 0;
+        color: var(--text-color, #333);
+        letter-spacing: -0.5px;
+    }
+
+    .post-count {
+        margin: 5px 0 0;
+        color: #888;
+        font-size: 14px;
+    }
+
+    .btn-discover {
+        background: rgba(0,0,0,0.05);
+        border: none;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        color: #555;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-discover:hover {
+        background: rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+
+    .hashtag-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: transparent;
+    }
+
+    .empty-state i {
+        font-size: 60px;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        font-size: 20px;
+        color: #555;
+        margin-bottom: 10px;
+    }
+
+    .empty-state p {
+        color: #999;
+        margin-bottom: 25px;
+    }
+
+    .btn-create {
+        background: #000;
+        color: #fff;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 30px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-create:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    /* Dark Mode Overrides */
+    [data-theme="dark"] .hashtag-header {
+        background: #1a1a1a;
+        border-color: #333;
+    }
+    [data-theme="dark"] .hashtag-text h1 {
+        color: #fff;
+    }
+    [data-theme="dark"] .btn-discover {
+        background: #333;
+        color: #ccc;
+    }
+    [data-theme="dark"] .btn-create {
+        background: #fff;
+        color: #000;
+    }
+</style>
+
+<%- include('partials/dashboard-modals') %>
+<%- include('partials/scripts') %>

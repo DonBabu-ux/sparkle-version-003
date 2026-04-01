@@ -48,11 +48,11 @@ class Post {
     static async extractAndSaveTags(postId, content, actorId) {
         if (!content) return;
 
-        // Hashtags
+        // Hashtags (Max 5)
         const hashtags = content.match(/#(\w+)/g);
         if (hashtags) {
-            for (let tag of hashtags) {
-                const cleanTag = tag.substring(1).toLowerCase();
+            const uniqueTags = [...new Set(hashtags.map(t => t.substring(1).toLowerCase()))].slice(0, 5);
+            for (let cleanTag of uniqueTags) {
                 await pool.query(
                     'INSERT IGNORE INTO post_hashtags (post_id, tag) VALUES (?, ?)',
                     [postId, cleanTag]
@@ -108,60 +108,73 @@ class Post {
     /**
      * Get feed posts with hybrid algorithm:
      * - 60% Followed content + 40% Discovery content
-     * - Random posts for new users
-     * - Device-level randomness (using randomSeed)
+     * - Randomized with seed + recentlySeen exclusion
      * @param {string} affiliation
      * @param {string} currentUserId
      * @param {number} limit
      * @param {number} offset
-     * @param {number} randomSeed - Seed for device-level randomness
+     * @param {number} randomSeed
+     * @param {string|string[]} excludeIds
      */
-    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, randomSeed = 0) {
-        // First determine if we show hybrid or full random (new users)
+    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, randomSeed = 0, excludeIds = []) {
         const [followCount] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [currentUserId]);
         const isNewUser = (followCount[0].count === 0);
 
-        // Algorithm logic:
-        // We use a UNION to mix followed posts and random public posts.
-        // We assign a weight/boost to prioritize followed content but interleave random ones.
-        
-        const [posts] = await pool.query(
-            `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+        const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
+        const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
+
+        const query = `
+            SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                     u.campus as user_affiliation, u.major as user_interests,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
-                    -- Check if followed by current user
                     EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
-                    -- Check if liked by current user
                     EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
-                    -- Weight for hybrid algorithm
-                    CASE 
-                        WHEN p.user_id = ? THEN 4 -- My own posts
-                        WHEN p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) THEN 3 -- Followed posts
-                        WHEN p.campus = ? THEN 2 -- Same affiliation
-                        ELSE 1 -- Random discovery posts 
-                    END as priority
+                    (
+                        CASE 
+                            WHEN p.user_id = ? THEN 8.0 
+                            WHEN p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) THEN 5.0
+                            WHEN p.campus = ? THEN 3.0
+                            ELSE 1.0 
+                        END +
+                        (p.spark_count * 0.2) + 
+                        (p.comment_count * 0.3) + 
+                        (p.share_count * 0.4) +
+                        (SELECT COUNT(*) * 0.5 FROM post_hashtags ph 
+                         WHERE ph.post_id = p.post_id AND ph.tag IN (
+                             SELECT tag FROM post_hashtags ph2 
+                             JOIN posts p2 ON ph2.post_id = p2.post_id 
+                             WHERE p2.user_id = ? ORDER BY p2.created_at DESC LIMIT 20
+                         ))
+                    ) as discovery_score
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
              WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+                ${excludeFilter}
                AND NOT EXISTS (
                    SELECT 1 FROM user_blocks 
                    WHERE (blocker_id = ? AND blocked_id = p.user_id)
                        OR (blocker_id = p.user_id AND blocked_id = ?)
                )
-               -- If not followed, only show public non-private accounts or accounts that follow us
                AND (
                    p.user_id = ? 
                    OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
                    OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
                )
-             ORDER BY 
-                ${isNewUser ? `RAND(${randomSeed})` : `priority DESC, p.created_at DESC, RAND(${randomSeed})`}
-             LIMIT ? OFFSET ?`,
-            [currentUserId, currentUserId, currentUserId, currentUserId, affiliation, affiliation, affiliation, currentUserId, currentUserId, currentUserId, currentUserId, limit, offset]
-        );
+             ORDER BY discovery_score DESC, RAND(${randomSeed})
+             LIMIT ? OFFSET ?`;
+
+        const queryParams = [
+            currentUserId, currentUserId, currentUserId, currentUserId, 
+            affiliation, currentUserId, affiliation, affiliation,
+            ...excluded,
+            currentUserId, currentUserId, currentUserId, currentUserId,
+            limit, offset
+        ];
+
+        const [posts] = await pool.query(query, queryParams);
         return posts;
     }
 
@@ -290,7 +303,27 @@ class Post {
         const finalParams = currentUserId ? [currentUserId, postId] : [postId];
 
         const [comments] = await pool.query(query, finalParams);
-        return comments;
+        
+        // Return structured comments (Top level only for main request)
+        return comments.filter(c => !c.parent_comment_id);
+    }
+
+    /**
+     * Get replies for a specific comment
+     */
+    static async getCommentReplies(commentId, currentUserId = null) {
+        const query = `
+            SELECT c.*, u.username, u.name, u.avatar_url,
+                   (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) as like_count
+                   ${currentUserId ? `, (SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.comment_id AND cl2.user_id = ?) as is_liked ` : ''}
+            FROM comments c
+            JOIN users u ON c.user_id = u.user_id
+            WHERE c.parent_comment_id = ?
+            ORDER BY c.created_at ASC
+        `;
+        const params = currentUserId ? [currentUserId, commentId] : [commentId];
+        const [replies] = await pool.query(query, params);
+        return replies;
     }
 
     /**
@@ -335,11 +368,11 @@ class Post {
     /**
      * Add comment to post
      */
-    static async addComment(postId, userId, content) {
+    static async addComment(postId, userId, content, parentId = null) {
         const commentId = crypto.randomUUID();
         await pool.query(
-            'INSERT INTO comments (comment_id, post_id, user_id, content) VALUES (?, ?, ?, ?)',
-            [commentId, postId, userId, content]
+            'INSERT INTO comments (comment_id, post_id, user_id, content, parent_comment_id) VALUES (?, ?, ?, ?, ?)',
+            [commentId, postId, userId, content, parentId]
         );
         await pool.query(
             'UPDATE posts SET comment_count = comment_count + 1 WHERE post_id = ?',
@@ -347,6 +380,28 @@ class Post {
         );
 
         return commentId;
+    }
+
+    /**
+     * Get posts by hashtag
+     */
+    static async getPostsByHashtag(tag, currentUserId, limit = 20) {
+        const [posts] = await pool.query(
+            `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                    EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked
+             FROM posts p 
+             JOIN users u ON p.user_id = u.user_id 
+             JOIN post_hashtags ph ON p.post_id = ph.post_id
+             WHERE ph.tag = ?
+             ORDER BY p.created_at DESC 
+             LIMIT ?`,
+            [currentUserId, tag.toLowerCase().replace('#', ''), limit]
+        );
+        return posts;
     }
 
     /**
@@ -420,6 +475,47 @@ class Post {
         );
 
         return true;
+    }
+
+    static async getTrendingHashtags(limit = 10) {
+        const query = `
+            SELECT ph.tag, COUNT(*) as count
+            FROM post_hashtags ph
+            JOIN posts p ON ph.post_id = p.post_id
+            WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY ph.tag
+            ORDER BY count DESC
+            LIMIT ?
+        `;
+        const [rows] = await pool.query(query, [limit]);
+        return rows;
+    }
+
+    static async extractAndHandleMentions(postId, content, actorId) {
+        if (!content) return;
+        const mentions = content.match(/@(\w+)/g);
+        if (!mentions) return;
+
+        const usernames = [...new Set(mentions.map(m => m.substring(1)))];
+        for (const username of usernames) {
+            try {
+                const [user] = await pool.query('SELECT user_id FROM users WHERE username = ?', [username]);
+                if (user.length > 0 && user[0].user_id !== actorId) {
+                    await require('../controllers/notification.controller').createNotification({
+                        user_id: user[0].user_id,
+                        type: 'mention',
+                        title: 'New Mention',
+                        content: 'mentioned you in a post',
+                        actor_id: actorId,
+                        related_id: postId,
+                        related_type: 'post',
+                        action_url: `/post/${postId}`
+                    }, pool);
+                }
+            } catch (err) {
+                logger.error('Mention handling error:', err);
+            }
+        }
     }
 }
 

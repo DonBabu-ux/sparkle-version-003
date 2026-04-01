@@ -42,7 +42,9 @@
 
     <% if (finalCaption) { %>
         <div class="caption">
-            <span class="caption-text" id="caption-<%= pId %>"><%= finalCaption %></span>
+            <span class="caption-text" id="caption-<%= pId %>">
+                <%- finalCaption.replace(/#(\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag-link" onclick="event.stopPropagation()">#$1</a>') %>
+            </span>
         </div>
     <% } %>
 

@@ -17,6 +17,7 @@ router.get('/dashboard/professional', professionalController.renderProfessionalD
 router.get('/api/dashboard/stories', dashboardController.getStoriesAPI.bind(dashboardController));
 router.get('/api/dashboard/feed', dashboardController.getFeedAPI.bind(dashboardController));
 router.get('/api/dashboard/notifications', dashboardController.getNotificationsAPI.bind(dashboardController));
+router.get('/dashboard/hashtag/:tag', dashboardController.renderHashtagFeed.bind(dashboardController));
 
 // ============ INTERACTION ENDPOINTS (Now handled by API routes) ============
 // Handled by c:\Users\ADMIN\Documents\prooooojects\sparkle-version-003\routes\api\posts.routes.js

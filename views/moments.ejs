@@ -43,10 +43,20 @@
             position: relative;
             height: 100vh;
             width: 100%;
-            max-width: 480px;
+            max-width: 100vw; /* EDGE TO EDGE */
             margin: 0 auto;
             background: var(--bg-primary);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 600px) {
+            .app-container {
+                max-width: 450px;
+                border-left: 1px solid var(--glass-border);
+                border-right: 1px solid var(--glass-border);
+            }
         }
 
         /* Main Feed - Vertical Scroller */
@@ -691,6 +701,155 @@
             font-size: 14px;
             font-weight: 500;
         }
+        /* COMMENTS DRAWER - PREMIUM SLIDING DRAWER */
+        .comments-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translate(-50%, 100%);
+            width: 100%;
+            max-width: 450px;
+            height: 75vh;
+            background: #121212;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            border: 1px solid var(--glass-border);
+            border-bottom: none;
+        }
+
+        .comments-drawer.open {
+            transform: translate(-50%, 0);
+        }
+
+        .drawer-header {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .drawer-handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            margin: 0 auto 8px;
+        }
+
+        .comments-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scrollbar-width: thin;
+        }
+
+        .comment-item {
+            display: flex;
+            gap: 12px;
+        }
+
+        .comment-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .comment-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .comment-author {
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .comment-text {
+            font-size: 14px;
+            color: #fff;
+            line-height: 1.4;
+        }
+
+        .comment-date {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+        }
+
+        .comment-input-area {
+            padding: 16px;
+            padding-bottom: max(16px, calc(var(--safe-area-inset-bottom) + 8px));
+            background: #1a1a1a;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .comment-input-area input {
+            flex: 1;
+            background: #2a2a2a;
+            border: 1px solid transparent;
+            border-radius: 25px;
+            padding: 12px 18px;
+            color: #fff;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .comment-input-area input:focus {
+            border-color: var(--accent-pink);
+        }
+
+        .comment-send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-pink);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .comment-send-btn:active {
+            transform: scale(0.9);
+        }
+        
+        .overlay-dim {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 90;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .overlay-dim.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
     </style>
 
     <div class="app-container">
@@ -759,6 +918,27 @@
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
+        </div>
+
+        <!-- Comments Drawer -->
+        <div class="overlay-dim" id="commentsOverlay"></div>
+        <div class="comments-drawer" id="commentsDrawer">
+            <div class="drawer-header">
+                <div style="flex: 1"></div>
+                <h4 style="flex: 2; text-align: center;">Comments</h4>
+                <div style="flex: 1; text-align: right;">
+                    <i class="fas fa-times" id="closeComments" style="cursor: pointer; padding: 8px;"></i>
+                </div>
+            </div>
+            <div class="comments-list" id="commentsList">
+                <!-- Comments will be dynamic -->
+            </div>
+            <form class="comment-input-area" id="commentForm">
+                <input type="text" id="commentInput" placeholder="Add a comment..." autocomplete="off">
+                <button type="submit" class="comment-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
         </div>
 
         <!-- Long Press Menu -->
@@ -1019,6 +1199,13 @@
 
                     // Close menu
                     document.getElementById('closeMenu').addEventListener('click', () => this.hideLongPressMenu());
+
+                    // Comments close
+                    document.getElementById('closeComments').addEventListener('click', () => this.hideComments());
+                    document.getElementById('commentsOverlay').addEventListener('click', () => this.hideComments());
+
+                    // Comment form
+                    document.getElementById('commentForm').addEventListener('submit', (e) => this.submitComment(e));
 
                     // Video click handling
                     document.addEventListener('click', (event) => {
@@ -1357,13 +1544,82 @@
                 }
 
                 async openComments(videoId) {
+                    this.currentVideoId = videoId;
+                    const drawer = document.getElementById('commentsDrawer');
+                    const overlay = document.getElementById('commentsOverlay');
+                    const list = document.getElementById('commentsList');
+
+                    drawer.classList.add('open');
+                    overlay.classList.add('active');
+                    list.innerHTML = `<div style="text-align:center; padding: 40px;"><div class="loading-spinner" style="margin: 0 auto;"></div></div>`;
+
                     try {
-                        const comments = await this.api.getComments(videoId);
-                        // Implement comments modal
-                        this.showToast('Comments feature coming soon!');
+                        const response = await this.api.getComments(videoId);
+                        this.renderComments(response.comments || []);
                     } catch (error) {
-                        this.showToast('Failed to load comments');
+                        list.innerHTML = `<div style="text-align:center; padding: 40px; color: rgba(255,255,255,0.5);">Failed to load comments</div>`;
                     }
+                }
+
+                renderComments(comments) {
+                    const list = document.getElementById('commentsList');
+                    if (!comments || comments.length === 0) {
+                        list.innerHTML = `<div style="text-align:center; padding: 60px 40px; color: rgba(255,255,255,0.4);">
+                            <i class="far fa-comment-dots" style="font-size: 40px; margin-bottom: 12px; display: block;"></i>
+                            No comments yet. Be the first to share your thoughts!
+                        </div>`;
+                        return;
+                    }
+
+                    list.innerHTML = comments.map(comment => `
+                        <div class="comment-item">
+                            <img src="${comment.avatar_url || '/uploads/avatars/default.png'}" class="comment-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                            <div class="comment-content">
+                                <div class="comment-author">@${comment.username}</div>
+                                <div class="comment-text">${this.escapeHtml(comment.content)}</div>
+                                <div class="comment-date">${new Date(comment.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                async submitComment(e) {
+                    e.preventDefault();
+                    const input = document.getElementById('commentInput');
+                    const content = input.value.trim();
+                    if (!content || !this.currentVideoId) return;
+
+                    const originalPlaceholder = input.placeholder;
+                    input.value = '';
+                    input.disabled = true;
+                    input.placeholder = 'Posting...';
+
+                    try {
+                        const response = await this.api.postComment(this.currentVideoId, content);
+                        if (response.status === 'success') {
+                            // Fetch all comments again to refresh list or just prepend
+                            const commentsResponse = await this.api.getComments(this.currentVideoId);
+                            this.renderComments(commentsResponse.comments);
+                            
+                            // Update count in UI
+                            const countSpan = document.querySelector(`[data-id="${this.currentVideoId}"] [onclick*="openComments"] .action-count`);
+                            if (countSpan) {
+                                let count = parseInt(countSpan.textContent) || 0;
+                                countSpan.textContent = this.formatCount(count + 1);
+                            }
+                        }
+                    } catch (error) {
+                        this.showToast('Failed to post comment');
+                        input.value = content;
+                    } finally {
+                        input.disabled = false;
+                        input.placeholder = originalPlaceholder;
+                    }
+                }
+
+                hideComments() {
+                    document.getElementById('commentsDrawer').classList.remove('open');
+                    document.getElementById('commentsOverlay').classList.remove('active');
                 }
 
                 async loadMore() {
@@ -1446,6 +1702,13 @@
 
                 getComments(id, page = 1) {
                     return this.request(`/${id}/comments?page=${page}`);
+                }
+
+                postComment(id, content) {
+                    return this.request(`/${id}/comments`, {
+                        method: 'POST',
+                        body: JSON.stringify({ comment: content })
+                    });
                 }
             }
 

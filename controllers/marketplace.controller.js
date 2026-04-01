@@ -35,9 +35,11 @@ const normalizeUser = (user) => {
         normalized.user_id = normalized.id;
     }
 
-    // Ensure campus exists
-    if (!normalized.campus) {
-        normalized.campus = 'main_campus';
+    // Ensure affiliation exists
+    if (!normalized.affiliation && !normalized.campus) {
+        normalized.affiliation = normalized.campus = 'all';
+    } else if (!normalized.affiliation) {
+        normalized.affiliation = normalized.campus;
     }
 
     // Ensure name exists
@@ -57,9 +59,11 @@ const normalizeUser = (user) => {
 const renderMarketplace = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
+        const affiliation = req.query.affiliation || req.query.campus || user?.affiliation || user?.campus || 'all';
         const filters = {
             category: req.query.category || 'all',
-            campus: req.query.campus || user?.campus || 'all',
+            affiliation: affiliation,
+            campus: affiliation, // For model compatibility
             sort: req.query.sort || 'newest',
             minPrice: req.query.minPrice,
             maxPrice: req.query.maxPrice,
@@ -85,7 +89,7 @@ const renderMarketplace = async (req, res) => {
         }
 
         try {
-            recommendedListings = await Marketplace.getRecommendations(user?.user_id || null, user?.campus || 'main_campus', 6);
+            recommendedListings = await Marketplace.getRecommendations(user?.user_id || null, affiliation, 6);
         } catch (recError) {
             logger.warn('Error getting recommendations:', recError.message);
         }
@@ -105,7 +109,7 @@ const renderMarketplace = async (req, res) => {
             recommendedListings: recommendedListings || [],
             user: user,
             counts: counts,
-            campus: user?.campus || 'main_campus',
+            affiliation: affiliation,
             filters: filters
         });
     } catch (error) {
@@ -272,10 +276,12 @@ const renderWishlist = async (req, res) => {
 const getListings = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
+        const affiliation = req.query.affiliation || req.query.campus || user?.affiliation || user?.campus || 'all';
         const filters = {
             ...req.query,
             currentUserId: user?.user_id,
-            campus: req.query.campus || user?.campus || 'all'
+            affiliation: affiliation,
+            campus: affiliation
         };
 
         const result = await Marketplace.getListings(filters);

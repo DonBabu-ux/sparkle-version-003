@@ -25,9 +25,19 @@
             </div>
         </div>
 
-        <button class="options-btn" onclick="event.stopPropagation()">
-            <i class="fas fa-ellipsis-h"></i>
-        </button>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+            <% if (post.user_id && post.user_id != user.user_id && !post.is_followed) { %>
+                <button class="follow-btn-mini" 
+                        onclick="event.stopPropagation(); window.toggleFollow('<%= post.user_id %>', this)"
+                        style="background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 4px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                    Follow
+                </button>
+            <% } %>
+
+            <button class="options-btn" onclick="event.stopPropagation()">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+        </div>
     </div>
 
     <% if (finalCaption) { %>

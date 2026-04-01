@@ -311,8 +311,20 @@ const DashboardAPI = {
     // ============ COMMENTS ============
     async loadComments(postId) {
         try {
-            const comments = await this.request(`/posts/${postId}/comments`);
+            const response = await this.request(`/posts/${postId}/comments`);
+            
+            // Handle different possible response formats
+            let comments = [];
+            if (Array.isArray(response)) {
+                comments = response;
+            } else if (response && Array.isArray(response.comments)) {
+                comments = response.comments;
+            } else if (response && response.data && Array.isArray(response.data)) {
+                comments = response.data;
+            }
+
             return comments.map(comment => {
+                if (!comment) return null;
                 const username = comment.username || comment.user_name || 'Sparkler';
                 const content = comment.content || comment.text || '';
                 return {
@@ -324,7 +336,7 @@ const DashboardAPI = {
                     content: content,
                     timestamp: this.formatTimestamp(comment.created_at || comment.timestamp)
                 };
-            });
+            }).filter(Boolean);
         } catch (error) {
             console.error('Failed to load comments:', error);
             return [];

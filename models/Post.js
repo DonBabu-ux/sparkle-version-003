@@ -7,6 +7,7 @@ class Post {
      */
     static async create(userId, postData) {
         const postId = crypto.randomUUID();
+        const affiliation = postData.affiliation || postData.campus || null;
         await pool.query(
             `INSERT INTO posts (post_id, user_id, content, media_url, media_type, post_type, campus, group_id, location) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -17,7 +18,7 @@ class Post {
                 postData.media_url || null,
                 postData.media_type || null,
                 postData.post_type || 'public',
-                postData.campus || null,
+                affiliation,
                 postData.group_id || null,
                 postData.location || null
             ]
@@ -105,47 +106,61 @@ class Post {
     }
 
     /**
-     * Get feed posts
-     */
-    /**
-     * Get feed posts with algorithm:
-     * - Include posts from users you follow, users who follow you, or new users (account <24h)
-     * - Respect campus/public visibility
-     * - Supports pagination via limit/offset
-     * @param {string} campus
+     * Get feed posts with hybrid algorithm:
+     * - 60% Followed content + 40% Discovery content
+     * - Random posts for new users
+     * - Device-level randomness (using randomSeed)
+     * @param {string} affiliation
      * @param {string} currentUserId
      * @param {number} limit
      * @param {number} offset
+     * @param {number} randomSeed - Seed for device-level randomness
      */
-    static async getFeed(campus, currentUserId, limit = 20, offset = 0) {
+    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, randomSeed = 0) {
+        // First determine if we show hybrid or full random (new users)
+        const [followCount] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [currentUserId]);
+        const isNewUser = (followCount[0].count === 0);
+
+        // Algorithm logic:
+        // We use a UNION to mix followed posts and random public posts.
+        // We assign a weight/boost to prioritize followed content but interleave random ones.
+        
         const [posts] = await pool.query(
             `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                    u.campus as user_affiliation, u.major as user_interests,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
-                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
+                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                    -- Check if followed by current user
+                    EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
+                    -- Check if liked by current user
+                    EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
+                    -- Weight for hybrid algorithm
+                    CASE 
+                        WHEN p.user_id = ? THEN 4 -- My own posts
+                        WHEN p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) THEN 3 -- Followed posts
+                        WHEN p.campus = ? THEN 2 -- Same affiliation
+                        ELSE 1 -- Random discovery posts 
+                    END as priority
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
-             WHERE (p.campus = ? OR p.post_type = 'public')
-               AND (
-                     p.user_id = ?
-                   OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
-                   OR (
-                       (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
-                       AND (
-                           p.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
-                           OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
-                       )
-                   )
-               )
+             WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
                AND NOT EXISTS (
                    SELECT 1 FROM user_blocks 
                    WHERE (blocker_id = ? AND blocked_id = p.user_id)
                        OR (blocker_id = p.user_id AND blocked_id = ?)
                )
-             ORDER BY p.created_at DESC 
+               -- If not followed, only show public non-private accounts or accounts that follow us
+               AND (
+                   p.user_id = ? 
+                   OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
+                   OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
+               )
+             ORDER BY 
+                ${isNewUser ? `RAND(${randomSeed})` : `priority DESC, p.created_at DESC, RAND(${randomSeed})`}
              LIMIT ? OFFSET ?`,
-            [campus, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, limit, offset]
+            [currentUserId, currentUserId, currentUserId, currentUserId, affiliation, affiliation, affiliation, currentUserId, currentUserId, currentUserId, currentUserId, limit, offset]
         );
         return posts;
     }

@@ -33,7 +33,7 @@ const createPost = async (req, res) => {
             media_type: mainMediaType,
             media: media, // Full array for model
             post_type: req.body.post_type || 'public',
-            campus: req.body.campus,
+            affiliation: req.body.affiliation || req.body.campus || req.user.campus,
             group_id: req.body.group_id,
             location: req.body.location
         };
@@ -106,17 +106,25 @@ const getComments = async (req, res) => {
     try {
         const userId = req.user ? (req.user.userId || req.user.user_id) : null;
         const postId = req.params.id;
+        
+        if (!postId) {
+            return res.status(400).json({ error: 'Post ID is required' });
+        }
+
         const comments = await Post.getComments(postId, userId);
-        res.json(comments);
+        res.json(comments || []);
     } catch (error) {
         logger.error('Get comments error:', error);
-        res.status(500).json({ error: 'Failed to get comments' });
+        res.status(500).json({ error: 'Failed to get comments', comments: [] });
     }
 };
 
 const getPost = async (req, res) => {
     try {
         const postId = req.params.id;
+        if (!postId) {
+            return res.status(400).json({ error: 'Post ID is required' });
+        }
         const post = await Post.findById(postId);
         if (!post) {
             return res.status(404).json({ error: 'Post not found' });
@@ -133,6 +141,10 @@ const addComment = async (req, res) => {
         const userId = req.user.userId || req.user.user_id;
         const postId = req.params.id;
         const content = req.body.content;
+
+        if (!postId || !content || content.trim() === '') {
+            return res.status(400).json({ error: 'Post ID and content are required' });
+        }
 
         const commentId = await Post.addComment(postId, userId, content);
 

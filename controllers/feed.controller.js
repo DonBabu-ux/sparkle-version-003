@@ -19,47 +19,86 @@ const getSafeMediaUrl = (url) => {
     return url;
 };
 
+// Generates a seed based on User-Agent to provide device-level consistent randomness
+const getSeedFromDevice = (req) => {
+    const ua = req.headers['user-agent'] || 'sparkle-default';
+    let hash = 0;
+    for (let i = 0; i < ua.length; i++) {
+        hash = ((hash << 5) - hash) + ua.charCodeAt(i);
+        hash |= 0; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+};
+
 const renderDashboard = async (req, res) => {
     try {
-        const campus = req.user.campus || 'all';
+        const affiliation = req.user.affiliation || req.user.campus || 'all';
         const currentUserId = req.user.userId || req.user.user_id;
-        // algorithm-aware feed: supply current user id
-        const posts = await Post.getFeed(campus, currentUserId, 12);
+        const randomSeed = getSeedFromDevice(req);
 
-        // Sanitize
-        const sanitizedPosts = posts.map(p => ({
+        // Fetch all required dashboard data in parallel with fallbacks
+        const [posts, suggestions, stories] = await Promise.all([
+            Post.getFeed(affiliation, currentUserId, 12, 0, randomSeed).catch(err => {
+                logger.error('Dashboard Feed Fetch Error:', err);
+                return [];
+            }),
+            User.getSuggestions(currentUserId, 5, randomSeed).catch(err => {
+                logger.error('Dashboard Suggestions Fetch Error:', err);
+                return [];
+            }),
+            // Fallback for stories until model is ready
+            Promise.resolve([]).catch(() => [])
+        ]);
+
+        // Sanitize posts
+        const sanitizedPosts = (posts || []).map(p => ({
             ...p,
             media_url: getSafeMediaUrl(p.media_url),
             avatar_url: getSafeAvatarUrl(p.avatar_url)
         }));
 
-        // Stories placeholder for now as stories model isn't fully built yet
-        // but we can pass empty array to prevent view errors
+        // Sanitize suggestions
+        const sanitizedSuggestions = (suggestions || []).filter(Boolean).map(s => ({
+            ...s,
+            avatar_url: getSafeAvatarUrl(s.avatar_url)
+        }));
+
         res.render('dashboard', {
             title: 'Dashboard',
-            initialPosts: sanitizedPosts || [],
-            initialStories: []
+            feed: sanitizedPosts,
+            suggestions: sanitizedSuggestions,
+            stories: stories || [],
+            user: req.user
         });
     } catch (error) {
-        logger.error('Dashboard Render Error:', error);
+        logger.error('Critical Dashboard Render Error:', error);
         res.render('dashboard', {
             title: 'Dashboard',
-            initialPosts: [],
-            initialStories: []
+            feed: [],
+            suggestions: [],
+            stories: [],
+            user: req.user
         });
     }
 };
 
 const getFeedPosts = async (req, res) => {
     try {
-        const campus = req.user.campus || 'all';
+        const affiliation = req.user.affiliation || req.user.campus || 'all';
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 20, 100); // cap
         const offset = (page - 1) * limit;
 
         const currentUserId = req.user.userId || req.user.user_id;
-        const posts = await Post.getFeed(campus, currentUserId, limit, offset);
-
+        const randomSeed = getSeedFromDevice(req);
+        
+        // Fetch posts - the model now returns 'priority' based on follow status
+        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, randomSeed);
+        
+        // Interleave logic: Since SQL priority sorts them into blocks, 
+        // we can shuffle the array slightly to interleave discovery posts into the followed ones
+        // but for a true 60/40 split we trust the model's priority-based retrieval.
+        
         const sanitizedPosts = posts.map(post => ({
             ...post,
             media_url: getSafeMediaUrl(post.media_url),

@@ -457,8 +457,8 @@ const addComment = async (req, res) => {
         const commentId = require('crypto').randomUUID();
 
         await pool.query(
-            `INSERT INTO comments 
-            (comment_id, moment_id, user_id, comment) 
+            `INSERT INTO moment_comments 
+            (comment_id, moment_id, user_id, content) 
             VALUES (?, ?, ?, ?)`,
             [commentId, id, userId, comment]
         );
@@ -471,7 +471,7 @@ const addComment = async (req, res) => {
         // Get comment with user details
         const [newComment] = await pool.query(
             `SELECT c.*, u.username, u.avatar_url 
-            FROM comments c 
+            FROM moment_comments c 
             JOIN users u ON c.user_id = u.user_id 
             WHERE c.comment_id = ?`,
             [commentId]
@@ -509,7 +509,7 @@ const getComments = async (req, res) => {
 
         const [comments] = await pool.query(
             `SELECT c.*, u.username, u.avatar_url 
-            FROM comments c 
+            FROM moment_comments c 
             JOIN users u ON c.user_id = u.user_id 
             WHERE c.moment_id = ? 
             ORDER BY c.created_at DESC 
@@ -518,7 +518,7 @@ const getComments = async (req, res) => {
         );
 
         const [totalResult] = await pool.query(
-            'SELECT COUNT(*) as total FROM comments WHERE moment_id = ?',
+            'SELECT COUNT(*) as total FROM moment_comments WHERE moment_id = ?',
             [id]
         );
 

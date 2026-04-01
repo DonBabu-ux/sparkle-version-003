@@ -281,11 +281,56 @@
                 align-items: center;
                 gap: 5px;
             }
+
+            .feed-mode-container {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 100;
+                display: flex;
+                gap: 10px;
+                background: rgba(0, 0, 0, 0.4);
+                padding: 5px;
+                border-radius: 50px;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .feed-toggle {
+                padding: 8px 20px;
+                border-radius: 50px;
+                text-decoration: none;
+                font-size: 14px;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.6);
+                transition: all 0.3s;
+            }
+
+            .feed-toggle.active {
+                background: var(--primary);
+                color: white;
+            }
+
+            .feed-toggle:hover:not(.active) {
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+            }
         </style>
 
     <%- include('partials/sidebar') %>
 
         <div class="main-content">
+            <!-- Feed Mode Toggle (Batch 3) -->
+            <div class="feed-mode-container">
+                <a href="/confessions?feed=recent" class="feed-toggle <%= !isRandom ? 'active' : '' %>">
+                    Recent
+                </a>
+                <a href="/confessions?feed=random" class="feed-toggle <%= isRandom ? 'active' : '' %>">
+                    Discover
+                </a>
+            </div>
+
             <div class="stories-container" id="storiesContainer">
                 <% if (confessions && confessions.length> 0) { %>
                     <% confessions.forEach(confession=> { %>
@@ -302,20 +347,29 @@
                                         onclick="react('<%= confession.confession_id %>', 'heart', this)">
                                         <i class="fas fa-heart"></i>
                                         <span class="reaction-count">
-                                            <%= confession.rating_count || 0 %>
+                                            <%= confession.heart_count || 0 %>
                                         </span>
                                     </button>
                                     <button class="reaction-btn"
                                         onclick="react('<%= confession.confession_id %>', 'fire', this)">
                                         <i class="fas fa-fire"></i>
+                                        <span class="reaction-count">
+                                            <%= confession.fire_count || 0 %>
+                                        </span>
                                     </button>
                                     <button class="reaction-btn"
                                         onclick="react('<%= confession.confession_id %>', 'laugh', this)">
                                         <i class="fas fa-laugh-squint"></i>
+                                        <span class="reaction-count">
+                                            <%= confession.smile_count || 0 %>
+                                        </span>
                                     </button>
                                     <button class="reaction-btn"
                                         onclick="react('<%= confession.confession_id %>', 'downvote', this)">
                                         <i class="fas fa-thumbs-down"></i>
+                                        <span class="reaction-count">
+                                            <%= confession.downvote_count || 0 %>
+                                        </span>
                                     </button>
                                 </div>
 

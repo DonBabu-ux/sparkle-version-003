@@ -4,16 +4,28 @@ const logger = require('../utils/logger');
 // Web Routes
 const renderConfessions = async (req, res) => {
     try {
-        const campus = req.user.campus || 'all';
-        const confessions = await Confession.getRecent(campus);
+        const isRandom = req.query.feed === 'random';
+        const affiliation = 'all'; // Default to global as requested
+        
+        // Batch 3: High-entropy randomness for "Each load different"
+        const randomSeed = Math.floor(Math.random() * 1000000) + Date.now();
+
+        let confessions;
+        if (isRandom) {
+            confessions = await Confession.getFeed(affiliation, 20, randomSeed);
+        } else {
+            confessions = await Confession.getRecent(affiliation, 20);
+        }
+
         res.render('confessions', {
-            title: 'Campus Confessions',
+            title: 'Community Confessions',
             confessions: confessions || [],
-            user: req.user
+            user: req.user,
+            isRandom
         });
     } catch (error) {
         logger.error('Render Confessions Error:', error);
-        res.render('confessions', { title: 'Campus Confessions', confessions: [], user: req.user });
+        res.render('confessions', { title: 'Community Confessions', confessions: [], user: req.user, filter: 'all', isRandom: false });
     }
 };
 
@@ -21,7 +33,7 @@ const renderConfessions = async (req, res) => {
 const createConfession = async (req, res) => {
     try {
         const { content, category } = req.body;
-        const campus = req.user.campus;
+        const affiliation = req.user.campus;
 
         if (!content) return res.status(400).json({ error: 'Content is required' });
 
@@ -30,10 +42,11 @@ const createConfession = async (req, res) => {
         const hasBadWords = badWords.some(word => content.toLowerCase().includes(word));
 
         if (hasBadWords) {
-            return res.status(400).json({ error: 'Your confession matches our negative content filter. Please be kind!' });
+            return res.status(400).json({ error: 'Your confession matches our community guidelines. Please be kind!' });
         }
 
-        const id = await Confession.create(content, campus, category);
+        const userId = req.user.user_id || req.user.userId;
+        const id = await Confession.create(userId, content, affiliation, category);
         res.status(201).json({ message: 'Confession submitted anonymously', id });
     } catch (error) {
         logger.error('Create Confession Error:', error);
@@ -48,6 +61,20 @@ const reactToConfession = async (req, res) => {
         const userId = req.user.user_id || req.user.userId;
 
         await Confession.addReaction(id, userId, type);
+
+        // Batch 3: Anonymous Notifications
+        const confession = await Confession.findById(id);
+        if (confession && confession.user_id && confession.user_id !== userId) {
+            const notificationController = require('./notification.controller');
+            await notificationController.createInternalNotification(
+                confession.user_id,
+                'anonymous',
+                'reaction',
+                `Someone reacted "${type}" to your anonymous confession!`,
+                `/confessions?id=${id}`
+            );
+        }
+
         res.json({ message: 'Reaction recorded' });
     } catch (error) {
         logger.error('React Confession Error:', error);
@@ -82,6 +109,20 @@ const commentAnonymously = async (req, res) => {
         if (!content || !content.trim()) return res.status(400).json({ error: 'Comment cannot be empty' });
 
         const commentId = await Confession.addComment(id, userId, content.trim());
+
+        // Batch 3: Anonymous Notifications
+        const confession = await Confession.findById(id);
+        if (confession && confession.user_id && confession.user_id !== userId) {
+            const notificationController = require('./notification.controller');
+            await notificationController.createInternalNotification(
+                confession.user_id,
+                'anonymous',
+                'comment',
+                `Someone commented on your anonymous confession!`,
+                `/confessions?id=${id}`
+            );
+        }
+
         res.status(201).json({ message: 'Comment posted anonymously', comment_id: commentId });
     } catch (error) {
         logger.error('Anonymous Comment Error:', error);
@@ -101,14 +142,14 @@ const getComments = async (req, res) => {
     }
 };
 
-// Get confessions filtered by campus
-const getConfessionsByCampus = async (req, res) => {
+// Get confessions filtered by affiliation
+const getConfessionsByAffiliation = async (req, res) => {
     try {
-        const campus = req.params.campus || req.query.campus || 'all';
-        const confessions = await Confession.getRecent(campus);
+        const affiliation = req.params.campus || req.query.campus || 'all';
+        const confessions = await Confession.getRecent(affiliation);
         res.json({ status: 'success', data: confessions });
     } catch (error) {
-        logger.error('Get Confessions By Campus Error:', error);
+        logger.error('Get Confessions By Affiliation Error:', error);
         res.status(500).json({ error: 'Failed to filter confessions' });
     }
 };
@@ -120,5 +161,5 @@ module.exports = {
     reportConfession,
     commentAnonymously,
     getComments,
-    getConfessionsByCampus
+    getConfessionsByAffiliation
 };

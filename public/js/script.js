@@ -2913,6 +2913,40 @@ window.loadGroupFeed = async function () {
     if (container) container.innerHTML = '<p style="padding:20px;">Group Feed feature coming soon!</p>';
 };
 
+// Toggle Follow logic for global use (e.g. Feed, Connect, Profile)
+window.toggleFollow = async function (userId, button) {
+    if (!userId || userId === 'undefined') return;
+    if (button.disabled) return;
+
+    const isFollowing = button.textContent.trim().toLowerCase() === 'following' || button.classList.contains('active');
+    button.disabled = true;
+
+    try {
+        if (isFollowing) {
+            await DashboardAPI.unfollowUser(userId);
+            button.textContent = 'Follow';
+            button.classList.remove('btn-secondary');
+            button.classList.add('btn-primary');
+            button.style.color = 'var(--accent)';
+            button.style.borderColor = 'var(--accent)';
+            button.style.background = 'none';
+        } else {
+            await DashboardAPI.followUser(userId);
+            button.textContent = 'Following';
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-secondary');
+            button.style.color = 'white';
+            button.style.borderColor = 'var(--accent)';
+            button.style.background = 'var(--accent)';
+        }
+    } catch (error) {
+        console.error('❌ Toggle Follow Error:', error);
+        // Toast or simple notification could go here
+    } finally {
+        button.disabled = false;
+    }
+};
+
 // Handle URL params for actions (e.g. redirect from Create Group)
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);

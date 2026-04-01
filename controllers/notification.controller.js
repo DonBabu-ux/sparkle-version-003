@@ -304,6 +304,49 @@ const notificationController = {
             // Non-blocking error
             return null;
         }
+    },
+    
+    // Create an internal/system notification (for Batch 3 anonymous features)
+    createInternalNotification: async (userId, type, category, message, actionUrl = null) => {
+        try {
+            const notificationId = uuidv4();
+            await pool.query(`
+                INSERT INTO notifications (
+                    notification_id, user_id, type, title, content, 
+                    related_type, action_url, is_read
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+            `, [
+                notificationId,
+                userId,
+                type,
+                category,
+                message,
+                'confession', // fixed related type for now
+                actionUrl
+            ]);
+
+            // Emit real-time socket notification
+            const emitter = getEmitter();
+            if (emitter) {
+                emitter(userId, {
+                    notification_id: notificationId,
+                    id: notificationId,
+                    type: type,
+                    title: category,
+                    content: message,
+                    action_url: actionUrl,
+                    actor_id: null,
+                    actor_name: 'Sparkle',
+                    actor_avatar: '/uploads/avatars/default.png',
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                });
+            }
+            return notificationId;
+        } catch (error) {
+            console.error('Error creating internal notification:', error);
+            return null;
+        }
     }
 };
 

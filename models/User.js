@@ -5,6 +5,35 @@ class User {
     static pool = pool;
 
     /**
+     * Derives a user's type based on their affiliation and interests
+     * for dynamic profile rendering.
+     */
+    static deriveUserType(user) {
+        const affiliation = (user.affiliation || user.campus || '').toLowerCase();
+        const interests = (user.interests || user.major || '').toLowerCase();
+
+        if (affiliation.includes('university') || affiliation.includes('college') || affiliation.includes('campus') || affiliation.includes('uni')) {
+            return 'Academic';
+        } else if (affiliation.includes('inc') || affiliation.includes('corp') || affiliation.includes('tech') || affiliation.includes('systems')) {
+            return 'Professional';
+        } else if (interests.includes('software') || interests.includes('engineering') || interests.includes('design')) {
+            return 'Creator';
+        }
+        return 'Member';
+    }
+
+    /**
+     * Helper to map legacy database columns to generalized concepts
+     */
+    static mapGeneralizedFields(user) {
+        if (!user) return;
+        user.affiliation = user.affiliation || user.campus;
+        user.interests = user.interests || user.major;
+        user.experience_level = user.experience_level || user.year_of_study;
+        return user;
+    }
+
+    /**
      * Find user by ID
      */
     static async findById(userId) {
@@ -19,7 +48,12 @@ class User {
              WHERE u.user_id = ?`,
             [userId]
         );
-        return users[0] || null;
+        const user = users[0] || null;
+        if (user) {
+            user.userType = this.deriveUserType(user);
+            this.mapGeneralizedFields(user);
+        }
+        return user;
     }
 
     /**
@@ -30,7 +64,12 @@ class User {
             'SELECT * FROM users WHERE username = ?',
             [username]
         );
-        return users[0] || null;
+        const user = users[0] || null;
+        if (user) {
+            user.userType = this.deriveUserType(user);
+            this.mapGeneralizedFields(user);
+        }
+        return user;
     }
 
     /**
@@ -58,8 +97,8 @@ class User {
                 userData.username,
                 userData.email,
                 userData.password_hash,
-                userData.campus || null,
-                userData.major || null,
+                userData.affiliation || userData.campus || null,
+                userData.interests || userData.major || null,
                 userData.avatar_url || '/uploads/avatars/default.png'
             ]
         );
@@ -135,19 +174,22 @@ class User {
             params.push(`%${query}%`, `%${query}%`);
         }
 
-        if (filters.campus && filters.campus !== 'all') {
+        const affiliation = filters.affiliation || filters.campus;
+        if (affiliation && affiliation !== 'all') {
             sql += ` AND u.campus = ?`;
-            params.push(filters.campus);
+            params.push(affiliation);
         }
 
-        if (filters.major && filters.major !== 'all') {
+        const interests = filters.interests || filters.major;
+        if (interests && interests !== 'all') {
             sql += ` AND u.major = ?`;
-            params.push(filters.major);
+            params.push(interests);
         }
 
-        if (filters.year && filters.year !== 'all') {
+        const expLevel = filters.experience_level || filters.year;
+        if (expLevel && expLevel !== 'all') {
             sql += ` AND u.year_of_study = ?`;
-            params.push(filters.year);
+            params.push(expLevel);
         }
 
         if (filters.relationship === 'following') {
@@ -221,39 +263,45 @@ class User {
 
     /**
      * Fetch a small set of users that the current user isn't already following.
-     * Used for profile suggestions on the feed or moments pages.
+     * Uses a weighted matching algorithm for discovery.
      */
-    static async getSuggestions(currentUserId, limit = 5) {
+    static async getSuggestions(currentUserId, limit = 5, seed = null) {
         // Fetch current user details for ranking
         const [me] = await pool.query('SELECT major, year_of_study, campus FROM users WHERE user_id = ?', [currentUserId]);
         if (!me[0]) return [];
 
+        const sqlSeed = seed ? `(${seed})` : '()';
+
+        // Weighted Discovery Algorithm:
+        // - Interests (Major) Match: 40 points
+        // - Affiliation (Campus) Match: 30 points
+        // - Experience Level (Year) Match: 20 points
+        // - Random Noise: 0-25 points (ensure variety)
+        
         const [users] = await pool.query(
             `
             SELECT 
-                u.user_id,
-                u.username,
-                u.name,
-                u.avatar_url,
-                u.major,
-                u.campus,
-                (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count
+                u.*,
+                (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count,
+                (
+                    (CASE WHEN u.major = ? THEN 40 ELSE 0 END) +
+                    (CASE WHEN u.campus = ? THEN 30 ELSE 0 END) +
+                    (CASE WHEN u.year_of_study = ? THEN 20 ELSE 0 END) +
+                    (RAND${sqlSeed} * 25)
+                ) as discovery_score
             FROM users u
             WHERE u.user_id != ? 
             AND u.user_id NOT IN (
                 SELECT following_id FROM follows WHERE follower_id = ?
             )
-            ORDER BY 
-                CASE WHEN u.major = ? THEN 0 ELSE 1 END,
-                CASE WHEN u.year_of_study = ? THEN 0 ELSE 1 END,
-                CASE WHEN u.campus = ? THEN 0 ELSE 1 END,
-                follower_count DESC,
-                RAND()
+            ORDER BY discovery_score DESC
             LIMIT ?
         `,
-            [currentUserId, currentUserId, me[0].major, me[0].year_of_study, me[0].campus, limit]
+            [me[0].major, me[0].campus, me[0].year_of_study, currentUserId, currentUserId, limit]
         );
-        return users;
+        
+        // Map fields for application layer consistency
+        return users.map(u => this.mapGeneralizedFields(u));
     }
 
     /**
@@ -271,7 +319,12 @@ class User {
              WHERE u.username = ?`,
             [currentUserId, currentUserId, username]
         );
-        return users[0] || null;
+        const user = users[0] || null;
+        if (user) {
+            user.userType = this.deriveUserType(user);
+            this.mapGeneralizedFields(user);
+        }
+        return user;
     }
 
     /**

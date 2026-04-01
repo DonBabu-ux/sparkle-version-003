@@ -7,25 +7,37 @@ class DashboardController {
         try {
             const userId = req.user.user_id || req.user.userId;
 
-            // Fetch all dashboard data in parallel
+            // Fetch all dashboard data in parallel with robust error handling
             const [stories, feed, notifications, suggestions] = await Promise.all([
-                this.getStoriesData(userId),
-                this.getFeedData(userId),
-                this.getNotificationData(userId),
-                this.getSuggestionsData(userId)
+                this.getStoriesData(userId).catch(err => {
+                    logger.error('Dashboard Stories Fetch Error:', err);
+                    return [];
+                }),
+                this.getFeedData(userId).catch(err => {
+                    logger.error('Dashboard Feed Fetch Error:', err);
+                    return [];
+                }),
+                this.getNotificationData(userId).catch(err => {
+                    logger.error('Dashboard Notifications Fetch Error:', err);
+                    return [];
+                }),
+                this.getSuggestionsData(userId).catch(err => {
+                    logger.error('Dashboard Suggestions Fetch Error:', err);
+                    return [];
+                })
             ]);
 
             res.render('dashboard', {
                 title: 'Dashboard - Sparkle',
                 user: req.user,
-                stories,
-                feed,
-                notifications,
-                suggestions,
+                stories: stories || [],
+                feed: feed || [],
+                notifications: notifications || [],
+                suggestions: (suggestions || []).filter(Boolean), // safety filter
                 layout: 'layouts/main'
             });
         } catch (error) {
-            logger.error('Dashboard render error:', error);
+            logger.error('Critical Dashboard render error:', error);
             res.status(500).render('error', {
                 message: 'Failed to load dashboard',
                 error: process.env.NODE_ENV === 'development' ? error : {}

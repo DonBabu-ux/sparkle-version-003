@@ -3,9 +3,9 @@ const router = express.Router();
 const confessionController = require('../../controllers/confession.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 
-// Public — browse confessions (optionally by campus)
-router.get('/', confessionController.getConfessionsByCampus);                                   // campus filter via ?campus=X
-router.get('/campus/:campus', confessionController.getConfessionsByCampus);                     // NEW — explicit campus filter
+// Public — browse confessions (optionally by affiliation)
+router.get('/', confessionController.getConfessionsByAffiliation);                                   // affiliation filter via ?campus=X
+router.get('/community/:campus', confessionController.getConfessionsByAffiliation);                  // NEW — explicit affiliation filter
 
 // Protected
 router.post('/', authMiddleware, confessionController.createConfession);                         // Post anonymous confession

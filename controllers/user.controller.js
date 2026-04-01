@@ -23,10 +23,14 @@ const searchUsers = async (req, res) => {
         const query = req.query.q || '';
         const currentUserId = req.user.userId || req.user.user_id;
         const filters = {
-            campus: req.query.campus,
-            major: req.query.major,
-            year: req.query.year,
-            relationship: req.query.relationship
+            campus: req.query.affiliation || req.query.campus,
+            major: req.query.interests || req.query.major,
+            year: req.query.experience_level || req.query.year,
+            relationship: req.query.relationship,
+            // also keep the properties named as expected by the model just in case
+            affiliation: req.query.affiliation || req.query.campus,
+            interests: req.query.interests || req.query.major,
+            experience_level: req.query.experience_level || req.query.year
         };
 
         const users = await User.search(query, currentUserId, filters);
@@ -34,7 +38,10 @@ const searchUsers = async (req, res) => {
         const sanitizedUsers = users.map(u => ({
             ...u,
             id: u.user_id,
-            avatar: u.avatar_url || '/uploads/avatars/default.png'
+            avatar: u.avatar_url || '/uploads/avatars/default.png',
+            affiliation: u.affiliation || u.campus,
+            interests: u.interests || u.major,
+            experience_level: u.experience_level || u.year_of_study
         }));
 
         res.json(sanitizedUsers);
@@ -378,6 +385,10 @@ const getUserProfile = async (req, res) => {
             posts: user.posts_count || 0, // compatibility
             campus: user.campus,
             major: user.major,
+            affiliation: user.affiliation || user.campus,
+            interests: user.interests || user.major,
+            experience_level: user.experience_level || user.year_of_study,
+            userType: user.userType,
             is_followed_by_me: !!user.is_followed_by_me,
             is_requested_by_me: !!user.is_requested_by_me
         };
@@ -435,6 +446,7 @@ const getActiveFriends = async (req, res) => {
             name: u.name,
             avatar_url: u.avatar_url || '/uploads/avatars/default.png',
             campus: u.campus,
+            affiliation: u.affiliation || u.campus,
             is_online: u.is_online
         })));
     } catch (error) {

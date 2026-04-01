@@ -10,7 +10,7 @@ const pool = mysql.createPool({
 
     // Production optimizations
     waitForConnections: true,
-    connectionLimit: 5,
+    connectionLimit: 10,
     queueLimit: 0,
     connectTimeout: 60000,
 
@@ -22,7 +22,7 @@ const pool = mysql.createPool({
     // Performance & Resilience
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
-    idleTimeout: 60000, // Recycle idle connections
+    idleTimeout: 30000, // Faster recycling of idle connections for low-limit DBs
 
     // Timezone
     timezone: 'Z' // UTC

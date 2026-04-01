@@ -368,21 +368,20 @@
                                             <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--primary);">Personal details</h3>
                                         </div>
 
-                                        <% if (profile.campus || profile.major || profile.year_of_study || profile.academic_year) { %>
+                                        <% if (profile.affiliation || profile.interests || profile.experience_level) { %>
                                             <div class="detail-item">
                                                 <div class="detail-icon"><i class="fas fa-info-circle"></i></div>
                                                 <div class="detail-content">
-                                                    <h4>About</h4>
+                                                    <h4>Professional Info</h4>
                                                     <p>
                                                         <% 
                                                             let aboutParts = [];
-                                                            if (profile.major) aboutParts.push(profile.major);
-                                                            let expLvl = profile.year_of_study || profile.academic_year;
-                                                            if (expLvl) aboutParts.push(expLvl);
+                                                            if (profile.interests) aboutParts.push(profile.interests);
+                                                            if (profile.experience_level) aboutParts.push(profile.experience_level);
                                                         %>
-                                                        <%= aboutParts.length > 0 ? aboutParts.join(' • ') : (profile.campus || 'No details provided') %>
+                                                        <%= aboutParts.length > 0 ? aboutParts.join(' • ') : (profile.affiliation || 'No details provided') %>
                                                     </p>
-                                                    <% if (profile.major && profile.campus) { %><p style="font-size: 12px; color: #64748b;"><%= profile.campus %></p><% } %>
+                                                    <% if (profile.interests && profile.affiliation) { %><p style="font-size: 12px; color: #64748b;"><%= profile.affiliation %></p><% } %>
                                                 </div>
                                             </div>
                                         <% } else { %>

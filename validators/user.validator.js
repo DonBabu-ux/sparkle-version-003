@@ -46,7 +46,15 @@ const updatePasswordSchema = Joi.object({
  * Search validation
  */
 const searchSchema = Joi.object({
-    q: Joi.string().max(100).allow('').optional()
+    q: Joi.string().max(100).allow('').optional(),
+    campus: Joi.string().max(100).allow('').optional(),
+    major: Joi.string().max(100).allow('').optional(),
+    year: Joi.string().max(100).allow('').optional(),
+    relationship: Joi.string().valid('all', 'following', 'not_following').optional(),
+    // Generalized names support
+    affiliation: Joi.string().max(100).allow('').optional(),
+    interests: Joi.string().max(100).allow('').optional(),
+    experience_level: Joi.string().max(100).allow('').optional()
 });
 
 /**

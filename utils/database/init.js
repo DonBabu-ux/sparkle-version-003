@@ -199,6 +199,26 @@ const initMomentsTable = async () => {
     }
 };
 
+const initMomentCommentsTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS moment_comments (
+                comment_id CHAR(36) PRIMARY KEY,
+                moment_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (moment_id) REFERENCES moments(moment_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        `);
+        logger.debug('✅ Moment comments table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init moment comments table:', err.message);
+        throw err;
+    }
+};
+
 const initGroupsTable = async () => {
     try {
         // Harmonize existing groups table structure
@@ -721,6 +741,75 @@ const initMarketplaceTables = async () => {
     }
 };
 
+const initConfessionTables = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS confessions (
+                confession_id   CHAR(36) PRIMARY KEY,
+                user_id         CHAR(36) NOT NULL,
+                content         TEXT NOT NULL,
+                campus          VARCHAR(100) NOT NULL,
+                category        VARCHAR(50) DEFAULT 'general',
+                heart_count     INT DEFAULT 0,
+                fire_count      INT DEFAULT 0,
+                smile_count     INT DEFAULT 0,
+                downvote_count  INT DEFAULT 0,
+                rating_count    INT DEFAULT 0,
+                is_approved     TINYINT(1) DEFAULT 1,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // Migration: Add user_id and count columns if they don't exist
+        const [cols] = await pool.query("SHOW COLUMNS FROM confessions");
+        const colNames = cols.map(c => c.Field);
+        
+        if (!colNames.includes('user_id')) {
+            await pool.query('ALTER TABLE confessions ADD COLUMN user_id CHAR(36) NULL AFTER confession_id');
+            logger.info('Added user_id to confessions table');
+        }
+        
+        const counts = ['heart_count', 'fire_count', 'smile_count', 'downvote_count'];
+        for (const count of counts) {
+            if (!colNames.includes(count)) {
+                await pool.query(`ALTER TABLE confessions ADD COLUMN ${count} INT DEFAULT 0`);
+                logger.info(`Added ${count} to confessions table`);
+            }
+        }
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS confession_reactions (
+                reaction_id     CHAR(36) PRIMARY KEY,
+                confession_id   CHAR(36) NOT NULL,
+                user_id         CHAR(36) NOT NULL,
+                reaction_type   ENUM('heart', 'fire', 'laugh', 'downvote', 'smile', 'upvote') NOT NULL,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_confession_reaction (user_id, confession_id),
+                FOREIGN KEY (confession_id) REFERENCES confessions(confession_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS confession_comments (
+                comment_id      CHAR(36) PRIMARY KEY,
+                confession_id   CHAR(36) NOT NULL,
+                user_id         CHAR(36) NOT NULL,
+                content         TEXT NOT NULL,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (confession_id) REFERENCES confessions(confession_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        logger.debug('✅ Confessions tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init Confessions tables:', err.message);
+        throw err;
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -739,29 +828,29 @@ const initDB = async () => {
 
     logger.debug('✅ Database connection successful');
 
-    // Initialize tables with retry logic
-    try {
-        await retryWithBackoff(async () => {
-            await repairUsersTable();
-            await initNotificationsTable();
-            await initUserInteractionsTables();
-            await initMomentsTable();
-            await initGroupsTable();
-            await initMessagesTable();
-            await initStoriesTable();
-            await initStoryLikesTable();
-            await initStorySharesTable();
-            await initCommentLikesTable();
-            await initPersonalChatsTable();
-            await initLostFoundTable();
-            await initSkillMarketTable();
-            await initMarketplaceTables();
-        });
-        logger.debug('✅ Database initialization complete');
-    } catch (err) {
-        logger.error('❌ Database initialization failed after retries:', err.message);
-        logger.warn('⚠️  Server will continue running but database operations may fail');
-    }
+    // Initialize tables with retry logic (Batch 3 Priority)
+    await retryWithBackoff(async () => {
+        // Priority for current feature batch
+        try { await initConfessionTables(); } catch (e) { logger.error('Confessions Init Error:', e.message); }
+        
+        try { await repairUsersTable(); } catch (e) { logger.warn('Users repair failed:', e.message); }
+        try { await initNotificationsTable(); } catch (e) { logger.warn('Notifications init failed:', e.message); }
+        try { await initUserInteractionsTables(); } catch (e) { logger.warn('Interactions init failed:', e.message); }
+        try { await initMomentsTable(); } catch (e) { logger.warn('Moments init failed:', e.message); }
+        try { await initMomentCommentsTable(); } catch (e) { logger.warn('Moment comments init failed:', e.message); }
+        try { await initGroupsTable(); } catch (e) { logger.warn('Groups init failed:', e.message); }
+        try { await initMessagesTable(); } catch (e) { logger.warn('Messages init failed:', e.message); }
+        try { await initStoriesTable(); } catch (e) { logger.warn('Stories init failed:', e.message); }
+        try { await initStoryLikesTable(); } catch (e) { logger.warn('Story likes init failed:', e.message); }
+        try { await initStorySharesTable(); } catch (e) { logger.warn('Story shares init failed:', e.message); }
+        try { await initCommentLikesTable(); } catch (e) { logger.warn('Comment likes init failed:', e.message); }
+        try { await initPersonalChatsTable(); } catch (e) { logger.warn('Personal chats init failed:', e.message); }
+        try { await initLostFoundTable(); } catch (e) { logger.warn('LostFound init failed:', e.message); }
+        try { await initSkillMarketTable(); } catch (e) { logger.warn('SkillMarket init failed:', e.message); }
+        try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }
+    });
+    
+    logger.debug('✅ Database initialization process complete');
 };
 
 module.exports = { initDB };

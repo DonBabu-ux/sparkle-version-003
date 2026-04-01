@@ -22,6 +22,20 @@ const renderConnect = async (req, res) => {
         const currentUserId = req.user.userId || req.user.user_id;
         const { campus, major, year, search } = req.query;
 
+        // Device-level randomness seed (same logic as Batch 1)
+        const getSeedFromDevice = (req) => {
+            const ua = req.headers['user-agent'] || 'sparkle-default';
+            let hash = 0;
+            for (let i = 0; i < ua.length; i++) {
+                hash = ((hash << 5) - hash) + ua.charCodeAt(i);
+                hash |= 0;
+            }
+            // Add a "refresh session" component - rotate every hour
+            const hourlySeed = Math.floor(Date.now() / (1000 * 60 * 60));
+            return Math.abs(hash + hourlySeed);
+        };
+        const randomSeed = getSeedFromDevice(req);
+
         // 1. Fetch current user to get their major/campus/year for suggestions ranking
         const currentUser = await User.findById(currentUserId);
         if (!currentUser) throw new Error('User not found');
@@ -29,7 +43,7 @@ const renderConnect = async (req, res) => {
         // 2. Active Friends
         const activeFriends = await User.getActiveFriends(currentUserId, 15);
 
-        // 3. For You (Scored Recommendations)
+        // 3. For You (Scored Recommendations with high entropy)
         let suggestionQuery = `
             SELECT u.*, 
             (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
@@ -37,11 +51,11 @@ const renderConnect = async (req, res) => {
             (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
             (SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id) as mutual_connections,
             (
-                (CASE WHEN u.major = ? AND u.major IS NOT NULL AND u.major != '' THEN 40 ELSE 0 END) +
-                ((SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id) * 5) +
+                (CASE WHEN u.major = ? AND u.major IS NOT NULL AND u.major != '' THEN 30 ELSE 0 END) +
+                ((SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id) * 8) +
                 (CASE WHEN u.campus = ? AND u.campus IS NOT NULL AND u.campus != '' THEN 20 ELSE 0 END) +
                 (CASE WHEN u.year_of_study = ? AND u.year_of_study IS NOT NULL AND u.year_of_study != '' THEN 10 ELSE 0 END) +
-                (RAND() * 15) +
+                (RAND(${randomSeed}) * 40) +
                 (CASE WHEN ? != 'all' AND u.campus = ? THEN 100 ELSE 0 END) +
                 (CASE WHEN ? != 'all' AND u.major = ? THEN 100 ELSE 0 END) +
                 (CASE WHEN ? != 'all' AND u.year_of_study = ? THEN 100 ELSE 0 END)
@@ -75,7 +89,7 @@ const renderConnect = async (req, res) => {
 
         const [suggestedUsers] = await pool.query(suggestionQuery, suggestionParams);
 
-        // 4. Trending People
+        // 4. Trending People (Rotation Logic: Base on followers but shuffle with seed)
         const [trendingUsers] = await pool.query(`
             SELECT u.*, 
             (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
@@ -84,10 +98,10 @@ const renderConnect = async (req, res) => {
             FROM users u 
             WHERE u.user_id != ? 
             AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
-            ORDER BY RAND() * followers_count DESC
+            ORDER BY (followers_count * 0.7) + (RAND(${randomSeed}) * 100) DESC
             LIMIT 10`, [currentUserId, currentUserId, currentUserId, currentUserId]);
 
-        // 5. Same Affiliation
+        // 5. Same Affiliation (Randomized within group)
         const [sameAffiliation] = currentUser.campus ? await pool.query(`
             SELECT u.*, 
             (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
@@ -96,10 +110,10 @@ const renderConnect = async (req, res) => {
             FROM users u 
             WHERE u.user_id != ? AND u.campus = ?
             AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
-            ORDER BY RAND()
+            ORDER BY RAND(${randomSeed})
             LIMIT 10`, [currentUserId, currentUserId, currentUserId, currentUser.campus, currentUserId]) : [[]];
 
-        // 6. Similar Interests
+        // 6. Similar Interests (Randomized within group)
         const [similarInterests] = currentUser.major ? await pool.query(`
             SELECT u.*, 
             (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
@@ -108,7 +122,7 @@ const renderConnect = async (req, res) => {
             FROM users u 
             WHERE u.user_id != ? AND u.major = ?
             AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
-            ORDER BY RAND()
+            ORDER BY RAND(${randomSeed})
             LIMIT 10`, [currentUserId, currentUserId, currentUserId, currentUser.major, currentUserId]) : [[]];
 
         // 7. People You Follow
@@ -120,7 +134,7 @@ const renderConnect = async (req, res) => {
             avatar_url: getSafeAvatarUrl(u.avatar_url),
             is_followed: !!u.is_followed,
             request_status: u.request_status,
-            is_developer: u.bio ? (u.bio.toLowerCase().includes('developer') || u.bio.toLowerCase().includes('creator')) : false
+            is_developer: u.bio ? (u.bio.toLowerCase().includes('developer') || u.bio.toLowerCase().includes('creator') || (u.username && ['sparkle', 'admin', 'donbabu'].includes(u.username.toLowerCase()))) : false
         });
 
         res.render('connect', { 

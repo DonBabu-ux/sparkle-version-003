@@ -2,13 +2,13 @@ const pool = require('../config/database');
 
 const renderPolls = async (req, res) => {
     try {
-        const { campus } = req.query;
+        const affiliation = req.query.affiliation || req.query.campus;
         let query = 'SELECT p.*, u.username, u.name as creator_name FROM polls p JOIN users u ON p.creator_id = u.user_id WHERE (p.expires_at IS NULL OR p.expires_at > NOW())';
-        if (campus && campus !== 'all') query += ' AND p.campus = ?';
-        const [polls] = await pool.query(query + ' ORDER BY p.created_at DESC', campus && campus !== 'all' ? [campus] : []);
-        res.render('polls', { title: 'Campus Polls', initialPolls: polls });
+        if (affiliation && affiliation !== 'all') query += ' AND p.campus = ?';
+        const [polls] = await pool.query(query + ' ORDER BY p.created_at DESC', affiliation && affiliation !== 'all' ? [affiliation] : []);
+        res.render('polls', { title: 'Community Polls', initialPolls: polls });
     } catch (error) {
-        res.render('polls', { title: 'Campus Polls', initialPolls: [] });
+        res.render('polls', { title: 'Community Polls', initialPolls: [] });
     }
 };
 
@@ -27,9 +27,9 @@ const renderPollDetail = async (req, res) => {
 const renderEvents = async (req, res) => {
     try {
         const [events] = await pool.query('SELECT e.*, u.username FROM campus_events e JOIN users u ON e.creator_id = u.user_id WHERE e.is_public = TRUE ORDER BY e.start_time ASC');
-        res.render('events', { title: 'Campus Events', initialEvents: events });
+        res.render('events', { title: 'Community Events', initialEvents: events });
     } catch (error) {
-        res.render('events', { title: 'Campus Events', initialEvents: [] });
+        res.render('events', { title: 'Community Events', initialEvents: [] });
     }
 };
 
@@ -44,12 +44,12 @@ const renderStreams = async (req, res) => {
 
 const getPolls = async (req, res) => {
     try {
-        const { campus } = req.query;
+        const affiliation = req.query.affiliation || req.query.campus;
         let query = 'SELECT p.*, u.username, u.name as creator_name FROM polls p JOIN users u ON p.creator_id = u.user_id WHERE (p.expires_at IS NULL OR p.expires_at > NOW())';
         const params = [];
-        if (campus && campus !== 'all') {
+        if (affiliation && affiliation !== 'all') {
             query += ' AND p.campus = ?';
-            params.push(campus);
+            params.push(affiliation);
         }
         const [polls] = await pool.query(query + ' ORDER BY p.created_at DESC', params);
         res.json(polls);
@@ -60,12 +60,12 @@ const getPolls = async (req, res) => {
 
 const getEvents = async (req, res) => {
     try {
-        const { campus } = req.query;
+        const affiliation = req.query.affiliation || req.query.campus;
         let query = 'SELECT e.*, u.username FROM campus_events e JOIN users u ON e.creator_id = u.user_id WHERE e.is_public = TRUE';
         const params = [];
-        if (campus && campus !== 'all') {
+        if (affiliation && affiliation !== 'all') {
             query += ' AND e.campus = ?';
-            params.push(campus);
+            params.push(affiliation);
         }
         const [events] = await pool.query(query + ' ORDER BY e.start_time ASC', params);
         res.json(events);
@@ -92,12 +92,12 @@ const getSafeMediaUrl = (url) => {
 
 const getStreams = async (req, res) => {
     try {
-        const { campus } = req.query;
+        const affiliation = req.query.affiliation || req.query.campus;
         let query = 'SELECT s.*, u.username, u.avatar_url FROM live_streams s JOIN users u ON s.streamer_id = u.user_id WHERE s.status = "live"';
         const params = [];
-        if (campus && campus !== 'all') {
+        if (affiliation && affiliation !== 'all') {
             query += ' AND s.campus = ?';
-            params.push(campus);
+            params.push(affiliation);
         }
         const [streams] = await pool.query(query + ' ORDER BY s.viewer_count DESC', params);
 

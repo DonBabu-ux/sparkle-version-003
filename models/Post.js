@@ -107,8 +107,12 @@ class Post {
 
     /**
      * Get feed posts with hybrid algorithm:
-     * - 60% Followed content + 40% Discovery content
-     * - Randomized with seed + recentlySeen exclusion
+     * - IF algorithmEnabled is false (Default):
+     *     - Following-first basic feed (Chronological)
+     *     - Fallback to global discovery if following is empty
+     * - IF algorithmEnabled is true:
+     *     - Weighted scoring + Randomization
+     * 
      * @param {string} affiliation
      * @param {string} currentUserId
      * @param {number} limit
@@ -117,10 +121,57 @@ class Post {
      * @param {string|string[]} excludeIds
      */
     static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, randomSeed = 0, excludeIds = []) {
-        const [followCount] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [currentUserId]);
-        
+        const algorithmEnabled = false; // DISABLED until platform scales as requested
+
+        if (!algorithmEnabled) {
+            // --- BASIC STABLE FEED LOGIC (UNIFIED CHRONOLOGICAL) ---
+            try {
+                // Fetch unified feed: Followed posts + Public posts, sorted by newest
+                const feedQuery = `
+                    SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                           u.campus as user_affiliation, u.major as user_interests,
+                           (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                           (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                           (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                            FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                           EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
+                           EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
+                           0 as discovery_score
+                    FROM posts p 
+                    JOIN users u ON p.user_id = u.user_id 
+                    WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+                      AND NOT EXISTS (
+                          SELECT 1 FROM user_blocks 
+                          WHERE (blocker_id = ? AND blocked_id = p.user_id)
+                              OR (blocker_id = p.user_id AND blocked_id = ?)
+                      )
+                      AND (
+                          p.user_id = ? 
+                          OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
+                          OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
+                      )
+                    ORDER BY p.created_at DESC
+                    LIMIT ? OFFSET ?`;
+
+                const feedParams = [
+                    currentUserId, currentUserId, // 1, 2 (is_followed, is_sparked)
+                    affiliation, affiliation,       // 3, 4 (campus, 'all')
+                    currentUserId, currentUserId, // 5, 6 (blocker, blocked)
+                    currentUserId, currentUserId, // 7, 8 (owner, following)
+                    limit, offset                  // 9, 10 (limit, offset)
+                ];
+
+                const [posts] = await pool.query(feedQuery, feedParams);
+                return posts;
+
+            } catch (err) {
+                console.error('Basic Feed Error:', err);
+                return [];
+            }
+        }
+
+        // --- OLD ALGORITHM LAYER (Stashed/Disabled) ---
         // Fetch top 20 recent hashtags from user's posts to use in discovery scoring
-        // This avoids MariaDB's limitation with LIMIT in subqueries
         const [recentTags] = await pool.query(`
             SELECT DISTINCT tag FROM post_hashtags ph2 
             JOIN posts p2 ON ph2.post_id = p2.post_id 

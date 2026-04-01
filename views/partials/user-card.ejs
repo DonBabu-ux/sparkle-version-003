@@ -14,13 +14,14 @@
         <% } %>
     </div>
 
-    <div class="discover-name">
+    <div class="discover-name" style="display: flex; align-items: center; justify-content: center; gap: 4px;">
         <%= u.username %>
+        <%- include('verified-badge', { id: u.user_id }) %>
         <% if (u.is_new_user) { %>
             <span class="discover-new-badge">NEW</span>
         <% } %>
         <% if (u.is_developer) { %>
-            <i class="fas fa-check-circle" style="color: var(--accent); font-size: 12px; margin-left: 4px;" title="Sparkle Developer"></i>
+            <i class="fas fa-check-circle" style="color: var(--accent); font-size: 12px;" title="Sparkle Developer"></i>
         <% } %>
     </div>
 

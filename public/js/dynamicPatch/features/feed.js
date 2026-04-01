@@ -178,17 +178,33 @@ function renderComments(comments) {
     container.innerHTML = comments.map(c => renderCommentItem(c)).join('');
 }
 
+function getVerifiedBadge(userId) {
+    const verifiedUsers = ["175a02d1-4707-44cd-a559-13a99cd5c8fe"];
+    if (verifiedUsers.includes(userId)) {
+        return `
+            <span class="verified-badge" title="Verified Account">
+                <i class="fas fa-check"></i>
+            </span>
+        `;
+    }
+    return '';
+}
+
 function renderCommentItem(c) {
     if (!c) return '';
     const isLiked = c.is_liked || false;
     const avatar = c.userId?.profilePic || c.profilePic || c.avatar || '/uploads/avatars/default.png';
     const repliesCount = c.replies ? c.replies.length : 0;
+    const userId = c.user_id || (c.userId && (c.userId.id || c.userId));
     
     return `
         <div class="comment-item" data-comment-id="${c.id}">
             <img src="${avatar}" class="comment-avatar" onerror="this.src='/uploads/avatars/default.png'">
             <div class="comment-content">
-                <div class="comment-user">@${c.username || (c.userId && c.userId.username) || 'sparkler'}</div>
+                <div class="comment-user" style="display: flex; align-items: center; gap: 4px;">
+                    @${c.username || (c.userId && c.userId.username) || 'sparkler'}
+                    ${getVerifiedBadge(userId)}
+                </div>
                 <div class="comment-text">${c.content || c.text}</div>
                 <div class="comment-meta">
                     <span>${timeAgo(c.created_at)}</span>
@@ -200,7 +216,7 @@ function renderCommentItem(c) {
                 ${repliesCount > 0 ? `
                     <div class="replies-wrapper">
                         <div class="view-replies-btn" onclick="this.nextElementSibling.classList.toggle('hidden');">
-                             ── View ${repliesCount} replies
+                            ── View ${repliesCount} replies
                         </div>
                         <div class="replies-container hidden" style="margin-left: 10px; border-left: 2px solid #f0f2f5; padding-left: 10px;">
                             ${c.replies.map(r => renderReplyItem(r)).join('')}
@@ -220,11 +236,16 @@ function renderReplyItem(r) {
     if (!r) return '';
     const avatar = r.userId?.profilePic || r.profilePic || r.avatar || '/uploads/avatars/default.png';
     const isLiked = r.is_liked || false;
+    const userId = r.user_id || (r.userId && (r.userId.id || r.userId));
+
     return `
         <div class="comment-item reply-item" data-comment-id="${r.id}" style="padding: 5px 0 5px 10px;">
             <img src="${avatar}" class="comment-avatar" style="width: 24px; height: 24px;" onerror="this.src='/uploads/avatars/default.png'">
             <div class="comment-content">
-                <div class="comment-user" style="font-size: 12px;">@${r.username || (r.userId && r.userId.username) || 'user'}</div>
+                <div class="comment-user" style="font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                    @${r.username || (r.userId && r.userId.username) || 'user'}
+                    ${getVerifiedBadge(userId)}
+                </div>
                 <div class="comment-text" style="font-size: 12px;">${r.content || r.text}</div>
                 <div class="comment-meta" style="font-size: 11px;">
                     <span>${timeAgo(r.created_at)}</span>

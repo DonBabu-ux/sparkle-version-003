@@ -600,8 +600,19 @@ window.createUserCard = function (user) {
             ` : ''}
         </div>
 
-        <div style="font-weight: 600; font-size: 14px; color: var(--text-color); margin-bottom: 4px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div style="font-weight: 600; font-size: 14px; color: var(--text-color); margin-bottom: 4px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 4px;">
             ${user.username}
+            ${(() => {
+                const verifiedUsers = ["175a02d1-4707-44cd-a559-13a99cd5c8fe"];
+                if (verifiedUsers.includes(user.user_id || user.id)) {
+                    return `
+                        <span class="verified-badge" title="Verified Account">
+                            <i class="fas fa-check"></i>
+                        </span>
+                    `;
+                }
+                return '';
+            })()}
         </div>
         <div style="font-size: 12px; color: #8e8e8e; margin-bottom: 20px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             ${user.name}
@@ -779,7 +790,20 @@ async function loadMessages(type) {
                     </div>
                     <div style="flex: 1;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <div style="font-weight: 600;">${msg.name || msg.username}</div>
+                            <div style="font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                                ${msg.name || msg.username}
+                                ${(() => {
+                                    const verifiedUsers = ["175a02d1-4707-44cd-a559-13a99cd5c8fe"];
+                                    if (verifiedUsers.includes(msg.user_id || msg.id)) {
+                                        return `
+                                            <span class="verified-badge" title="Verified Account">
+                                                <i class="fas fa-check"></i>
+                                            </span>
+                                        `;
+                                    }
+                                    return '';
+                                })()}
+                            </div>
                             <div style="font-size: 12px; color: #999;">${DashboardAPI.formatTimestamp(msg.last_message_time)}</div>
                         </div>
                         <div style="font-size: 13px; color: #666; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">

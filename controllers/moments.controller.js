@@ -56,8 +56,27 @@ const ensureMomentTables = async () => {
                 INDEX idx_mh_hashtag (hashtag)
             )
         `);
-        tablesEnsured = true;
-        logger.info('Moment tables verified/created');
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS user_interests (
+                        user_id CHAR(36) NOT NULL,
+                        category VARCHAR(50) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (user_id, category)
+                    )
+                `);
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS search_history (
+                        id CHAR(36) NOT NULL,
+                        user_id CHAR(36) NOT NULL,
+                        query VARCHAR(255) NOT NULL,
+                        searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY unique_user_query (user_id, query),
+                        INDEX idx_sh_user (user_id)
+                    )
+                `);
+                tablesEnsured = true;
+                logger.info('Moment tables and extensions verified/created');
     } catch (e) {
         logger.warn('Could not ensure moment tables: ' + e.message);
     }
@@ -93,6 +112,11 @@ const ensureMomentColumns = async () => {
             logger.info(`Added column moment_comments.${col.name}`);
         } catch (e) { /* ignore if already exists */ }
     }
+
+    try {
+        await pool.query('ALTER TABLE clubs ADD COLUMN is_public TINYINT(1) DEFAULT 1');
+        logger.info('Added column clubs.is_public');
+    } catch (e) { /* ignore if already exists */ }
 
     columnsEnsured = true;
 };
@@ -247,6 +271,9 @@ const renderMomentDetail = async (req, res) => {
 
 const getMomentsStream = async (req, res) => {
     try {
+        await ensureMomentTables();
+        await ensureMomentColumns();
+        
         const { page = 1, limit = 10, category, hashtag, recentlySeen } = req.query;
         const currentUserId = req.user.user_id;
         const offset = (page - 1) * limit;
@@ -263,10 +290,11 @@ const getMomentsStream = async (req, res) => {
                 (SELECT COUNT(*) FROM moment_likes WHERE moment_id = m.moment_id AND user_id = ?) as is_liked,
                 (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved,
                 (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following,
-                -- Interaction Boost: Did someone I follow like this?
-                (SELECT COUNT(*) FROM moment_likes ml 
-                 JOIN follows f ON ml.user_id = f.following_id 
-                 WHERE ml.moment_id = m.moment_id AND f.follower_id = ?) as friend_interaction_count
+                (SELECT COUNT(*) FROM moments m2 WHERE m2.moment_id = m.moment_id AND EXISTS (
+                    SELECT 1 FROM moment_likes ml 
+                    JOIN follows f ON ml.user_id = f.following_id 
+                    WHERE ml.moment_id = m.moment_id AND f.follower_id = ?
+                )) as friend_interaction_count
             FROM moments m
             JOIN users u ON m.user_id = u.user_id
         `;

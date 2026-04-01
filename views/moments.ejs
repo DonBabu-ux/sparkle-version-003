@@ -1147,7 +1147,10 @@
                                         <img src="${video.avatar_url || '/images/default-avatar.jpg'}" alt="${video.username}" loading="lazy" onerror="this.src='/uploads/avatars/default.png'">
                                     </div>
                                     <div class="user-details">
-                                        <span class="username">@${video.username}</span>
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                            <span class="username">@${video.username}</span>
+                                            ${this.getVerifiedBadge(video.user_id)}
+                                        </div>
                                         <button class="follow-btn ${video.is_following ? 'following' : ''}" 
                                                 onclick="app.toggleFollow(event, '${video.user_id}', this)"
                                                 ${video.user_id === INITIAL_DATA.user?.user_id ? 'disabled' : ''}>
@@ -1188,6 +1191,18 @@
                             </div>
                         </div>
                     `;
+                }
+
+                getVerifiedBadge(userId) {
+                    const verifiedUsers = ["175a02d1-4707-44cd-a559-13a99cd5c8fe"];
+                    if (verifiedUsers.includes(userId)) {
+                        return `
+                            <span class="verified-badge" title="Verified Account">
+                                <i class="fas fa-check"></i>
+                            </span>
+                        `;
+                    }
+                    return '';
                 }
 
                 escapeHtml(text) {
@@ -1490,15 +1505,15 @@
                     const menuItems = document.getElementById('menuItems');
 
                     const items = [
-                        { icon: 'flag', label: 'Report', action: () => this.reportVideo(videoId) },
-                        { icon: 'share', label: 'Share', action: () => this.shareVideo(videoId) },
-                        { icon: 'download', label: 'Download', action: () => this.downloadVideo(videoId) },
-                        { icon: 'eye-slash', label: 'Not interested', action: () => this.hideVideo(videoId) },
-                        { icon: 'link', label: 'Copy link', action: () => this.copyLink(videoId) }
+                        { icon: 'flag', label: 'Report', methodName: 'reportVideo' },
+                        { icon: 'share', label: 'Share', methodName: 'shareVideo' },
+                        { icon: 'download', label: 'Download', methodName: 'downloadVideo' },
+                        { icon: 'eye-slash', label: 'Not interested', methodName: 'hideVideo' },
+                        { icon: 'link', label: 'Copy link', methodName: 'copyLink' }
                     ];
 
                     menuItems.innerHTML = items.map(item => `
-                        <div class="menu-item" onclick="app.${item.action.name}('${videoId}')" style="display:flex; align-items:center; gap: 15px; padding: 15px 0; cursor: pointer; color: white;">
+                        <div class="menu-item" onclick="app.${item.methodName}('${videoId}')" style="display:flex; align-items:center; gap: 15px; padding: 15px 0; cursor: pointer; color: white;">
                             <div class="menu-icon" style="width: 24px; text-align: center;"><i class="fas fa-${item.icon}"></i></div>
                             <span class="menu-label" style="font-size: 16px;">${item.label}</span>
                         </div>

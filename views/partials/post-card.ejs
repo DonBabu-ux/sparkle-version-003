@@ -19,7 +19,10 @@
         </div>
 
         <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
-            <div class="username"><%= uname %></div>
+            <div class="username">
+                <%= uname %>
+                <%- include('verified-badge', { id: post.user_id || post.actor_id }) %>
+            </div>
             <div class="meta">
                 <%= post.campus || 'Main Campus' %> • <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
             </div>

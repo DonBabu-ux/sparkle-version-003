@@ -278,10 +278,7 @@
                                 <div class="profile-info-header">
                                     <h1>
                                         <%= profile.username %>
-                                            <% if (profile.is_verified) { %>
-                                                <i class="fas fa-check-circle"
-                                                    style="color: var(--primary, #FF3D6D); font-size: 20px;"></i>
-                                                <% } %>
+                                        <%- include('partials/verified-badge', { id: profile.user_id }) %>
                                     </h1>
 
                                     <!-- Action Buttons -->

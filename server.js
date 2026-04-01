@@ -31,6 +31,8 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(sanitizeInput);
 
+const { isVerified } = require('./utils/user-helpers');
+
 // Make Firebase/Supabase config and user available to all views
 app.use((req, res, next) => {
     res.locals.firebaseConfig = firebaseConfig;
@@ -39,6 +41,7 @@ app.use((req, res, next) => {
         key: process.env.SUPABASE_ANON_KEY || ''
     };
     res.locals.user = req.user || null;
+    res.locals.isVerified = isVerified;
     next();
 });
 

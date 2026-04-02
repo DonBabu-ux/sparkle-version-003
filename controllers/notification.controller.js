@@ -222,6 +222,40 @@ const notificationController = {
             // Don't notify users about their own actions
             if (data.user_id === data.actor_id) return null;
 
+            // 0. Fetch user preferences (DND and type toggles)
+            const [[userPrefs]] = await connection.query(
+                `SELECT dnd_enabled, dnd_start_time, dnd_end_time, push_notifications_enabled,
+                 notifications_likes, notifications_comments, notifications_follows, notifications_messages
+                 FROM users WHERE user_id = ?`,
+                [data.user_id]
+            );
+
+            if (userPrefs) {
+                // Check Type Toggles (Total suppression if off)
+                if ((data.type === 'spark' || data.type === 'like' || data.type === 'spark_post') && userPrefs.notifications_likes === 0) return null;
+                if ((data.type === 'comment' || data.type === 'reply') && userPrefs.notifications_comments === 0) return null;
+                if (data.type === 'follow' && userPrefs.notifications_follows === 0) return null;
+                if (data.type === 'message' && userPrefs.notifications_messages === 0) return null;
+
+                // Check DND (Total suppression)
+                if (userPrefs.dnd_enabled === 1) {
+                    const now = new Date();
+                    const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                    const startRaw = (userPrefs.dnd_start_time || '22:00').toString();
+                    const endRaw = (userPrefs.dnd_end_time || '07:00').toString();
+                    const start = startRaw.length > 5 ? startRaw.substring(0, 5) : startRaw;
+                    const end = endRaw.length > 5 ? endRaw.substring(0, 5) : endRaw;
+                    
+                    let isDndActive = false;
+                    if (start <= end) {
+                        isDndActive = currentTime >= start && currentTime <= end;
+                    } else {
+                        isDndActive = currentTime >= start || currentTime <= end;
+                    }
+                    if (isDndActive) return null;
+                }
+            }
+
             const notificationId = uuidv4();
             await connection.query(`
                 INSERT INTO notifications (
@@ -271,7 +305,11 @@ const notificationController = {
             
             // Send web push notification
             try {
-                if (process.env.VAPID_PUBLIC_KEY) {
+                // Check if user has push enabled globally
+                const [[pPrefs]] = await connection.query('SELECT push_notifications_enabled FROM users WHERE user_id = ?', [data.user_id]);
+                const pushEnabled = pPrefs ? pPrefs.push_notifications_enabled !== 0 : true;
+
+                if (process.env.VAPID_PUBLIC_KEY && pushEnabled) {
                     const [subs] = await connection.query('SELECT * FROM push_subscriptions WHERE user_id = ?', [data.user_id]);
                     const payload = JSON.stringify({
                         title: data.title || 'Sparkle Notification',

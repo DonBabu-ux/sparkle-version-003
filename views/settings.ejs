@@ -1,949 +1,307 @@
 <%- include('partials/head', { title: 'Settings | Sparkle' }) %>
     <style>
         :root {
-            --pink-light: #fff0f5;
-            --pink-primary: #ff6b8b;
-            --pink-dark: #ff3d6d;
+            --pink-light: #fff0f5; --pink-primary: #ff6b8b; --pink-dark: #ff3d6d;
+            --bg-main: #f8fafc; --card-white: #ffffff;
+            --text-main: #1e293b; --text-muted: #64748b;
+            --border: #e2e8f0; --font-base: 14px;
+            --success: #10b981; --danger: #ef4444;
+            --header-height: 70px; --tabs-height: 60px;
         }
+        body.dark-mode { --bg-main: #0f172a; --card-white: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8; --border: #334155; }
+        body { background: var(--bg-main); color: var(--text-main); font-size: var(--font-base); min-height: 100vh; margin: 0; overflow-x: hidden; }
 
-        .settings-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+        .settings-top-bar { position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); background: var(--card-white); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 1000; }
+        .settings-top-bar .logo { font-size: 22px; font-weight: 800; color: var(--pink-primary); }
 
-        .settings-layout {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            gap: 20px;
-        }
+        .settings-tabs-wrapper { position: fixed; top: var(--header-height); left: 0; right: 0; height: var(--tabs-height); background: var(--card-white); border-bottom: 1px solid var(--border); z-index: 999; display: flex; align-items: center; overflow-x: auto; scrollbar-width: none; }
+        .settings-tabs-wrapper::-webkit-scrollbar { display: none; }
+        .settings-tabs { display: flex; padding: 0 16px; gap: 12px; min-width: max-content; }
+        .tab-item { padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+        .tab-item.active { background: var(--pink-primary); color: white; box-shadow: 0 4px 10px rgba(255, 107, 139, 0.2); }
 
-        /* Sidebar Styles */
-        .settings-sidebar {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            padding: 20px;
-            height: fit-content;
-            border: 1px solid var(--border);
-        }
+        .settings-main { margin-top: calc(var(--header-height) + var(--tabs-height) + 24px); max-width: 800px; margin-left: auto; margin-right: auto; padding: 0 20px 180px 20px; }
+        .settings-card { background: var(--card-white); border-radius: 24px; border: 1px solid var(--border); padding: 40px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
+        .settings-section { display: none; animation: fadeIn 0.4s ease; }
+        .settings-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .settings-nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 15px;
-            border-radius: 12px;
-            margin-bottom: 5px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #64748b;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            font-size: 15px;
-            font-weight: 500;
-        }
+        .section-title { font-size: 28px; font-weight: 800; margin: 0 0 8px 0; }
+        .section-desc { color: var(--text-muted); font-size: 15px; margin: 0 0 32px 0; }
+        .group-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 20px; display: block; }
 
-        .settings-nav-item:hover {
-            background: #f8fafc;
-            color: var(--pink-dark);
-        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+        .input { width: 100%; padding: 14px 18px; border: 1.5px solid var(--border); border-radius: 16px; background: transparent; color: inherit; font-size: 15px; box-sizing: border-box; }
+        .input:focus { outline: none; border-color: var(--pink-primary); box-shadow: 0 0 0 4px var(--pink-light); }
+        .input:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .settings-nav-item.active {
-            background: var(--pink-light);
-            color: var(--pink-dark);
-            font-weight: 600;
-        }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #cbd5e1; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background: var(--pink-primary); }
+        input:checked + .slider:before { transform: translateX(24px); }
 
-        .settings-nav-item.logout {
-            color: #ef4444;
-            margin-top: 20px;
-            border-top: 1px solid var(--border);
-            padding-top: 20px;
-            border-radius: 0;
-        }
+        .btn { padding: 14px 28px; border-radius: 16px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-pink { background: var(--pink-primary); color: white; }
+        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-main); }
 
-        .settings-nav-item.logout:hover {
-            background: #fef2f2;
-        }
-
-        /* Content Area */
-        .settings-content {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            padding: 30px;
-            border: 1px solid var(--border);
-            min-height: 500px;
-        }
-
-        .settings-section {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .settings-section.active {
-            display: block;
-        }
-
-        .settings-header {
-            margin-bottom: 30px;
-            border-bottom: 1px solid #f1f5f9;
-            padding-bottom: 20px;
-        }
-
-        .settings-header h2 {
-            font-size: 24px;
-            color: #1e293b;
-            margin-bottom: 5px;
-        }
-
-        .settings-header p {
-            color: #64748b;
-        }
-
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #334155;
-            font-size: 14px;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--pink-primary);
-        }
-
-        .btn-save {
-            background: var(--pink-primary);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-save:hover {
-            background: var(--pink-dark);
-        }
-
-        /* Avatar Upload */
-        .profile-upload {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .current-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .upload-btn {
-            background: white;
-            border: 1px solid #e2e8f0;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        /* Toggles */
-        .settings-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .settings-item:last-child {
-            border-bottom: none;
-        }
-
-        .item-info h4 {
-            margin: 0 0 4px 0;
-            font-size: 15px;
-        }
-
-        .item-info p {
-            margin: 0;
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 26px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #cbd5e1;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked+.slider {
-            background-color: var(--pink-primary);
-        }
-
-        input:checked+.slider:before {
-            transform: translateX(24px);
-        }
+        .hidden-box { display: none; }
+        .visible-box { display: block; }
 
         @media (max-width: 768px) {
-            .settings-container {
-                padding: 15px;
-                padding-bottom: 80px;
-                padding-top: 70px;
-            }
-
-            .settings-layout {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
-            .settings-sidebar {
-                display: flex;
-                overflow-x: auto;
-                gap: 10px;
-                padding: 10px;
-                scrollbar-width: none;
-                -ms-overflow-style: none;
-            }
-
-            .settings-sidebar::-webkit-scrollbar {
-                display: none;
-            }
-
-            .settings-nav-item {
-                white-space: nowrap;
-                width: auto;
-                padding: 8px 16px;
-                margin-bottom: 0;
-                flex-shrink: 0;
-            }
-
-            .settings-nav-item.logout {
-                margin-top: 0;
-                border-top: none;
-                padding-top: 8px;
-            }
-
-            .settings-content {
-                padding: 20px;
-            }
-
-            .settings-header h2 {
-                font-size: 20px;
-            }
-
-            .profile-upload {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
+            .form-row { grid-template-columns: 1fr; gap: 0; }
+            .settings-card { padding: 24px; border-radius: 0; border-left: none; border-right: none; }
+            .settings-main { padding: 0 0 200px 0; }
         }
     </style>
 
     <%- include('partials/sidebar') %>
-        <%- include('partials/bottom-nav') %>
+    <%- include('partials/bottom-nav') %>
 
-            <div class="header glass">
-                <div class="logo">Settings</div>
+    <div class="settings-top-bar">
+        <div class="logo">Settings</div>
+        <button class="btn btn-outline" style="padding:8px 16px; font-size:13px;" onclick="handleLogout()">Logout</button>
+    </div>
+
+    <div class="settings-tabs-wrapper">
+        <div class="settings-tabs">
+            <div class="tab-item active" onclick="switchTab('profile', this)"><i class="fas fa-user-edit"></i> Edit Profile</div>
+            <div class="tab-item" onclick="switchTab('account', this)"><i class="fas fa-shield-alt"></i> Security</div>
+            <div class="tab-item" onclick="switchTab('privacy', this)"><i class="fas fa-eye-slash"></i> Privacy</div>
+            <div class="tab-item" onclick="switchTab('messaging', this)"><i class="fas fa-comments"></i> Messaging</div>
+            <div class="tab-item" onclick="switchTab('notifications', this)"><i class="fas fa-bell"></i> Alerts</div>
+            <div class="tab-item" onclick="switchTab('dnd', this)"><i class="fas fa-moon"></i> Quiet</div>
+            <div class="tab-item" onclick="switchTab('appearance', this)"><i class="fas fa-palette"></i> Display</div>
+        </div>
+    </div>
+
+    <div class="settings-main">
+        <div class="settings-card">
+            <!-- 1. PROFILE -->
+            <div id="profile" class="settings-section active">
+                <h2 class="section-title">Edit Profile</h2>
+                <div style="display:flex; align-items:center; gap:20px; margin-bottom:30px;">
+                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--pink-primary);" id="prevAv" alt="Avatar">
+                    <div style="flex:1;">
+                        <input type="text" class="input" id="avUrlIn" placeholder="Image URL..." style="margin-bottom:8px;">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="fetchAv()">Fetch URL</button>
+                            <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="document.getElementById('fileAv').click()">Upload</button>
+                            <input type="file" id="fileAv" hidden onchange="upAv(event)">
+                        </div>
+                    </div>
+                </div>
+                <form id="pForm">
+                    <div class="form-row">
+                        <div><label class="label">Full Name</label><input type="text" name="name" class="input" value="<%= user.name %>"></div>
+                        <div><label class="label">Username</label><input type="text" name="username" class="input" value="<%= user.username %>"></div>
+                    </div>
+                    <div style="margin-bottom:20px;"><label class="label">Headline</label><input type="text" name="headline" class="input" value="<%= user.headline || '' %>"></div>
+                    <div style="margin-bottom:20px;"><label class="label">Bio</label><textarea name="bio" class="input" rows="2"><%= user.bio || '' %></textarea></div>
+                    <div class="form-row">
+                        <div><label class="label">Campus</label><input type="text" name="campus" class="input" value="<%= user.campus || user.affiliation || '' %>"></div>
+                        <div><label class="label">Major</label><input type="text" name="major" class="input" value="<%= user.major || user.interests || '' %>"></div>
+                    </div>
+                    <div style="margin-bottom:20px;"><label class="label">Website</label><input type="text" name="website" class="input" value="<%= user.website || '' %>"></div>
+                    <div class="form-row">
+                        <div><label class="label">Phone</label><input type="text" name="phone_number" class="input" value="<%= user.phone_number || '' %>"></div>
+                        <div><label class="label">Birthday</label><input type="date" name="birthday" class="input" value="<%= user.birthday ? new Date(user.birthday).toISOString().substring(0,10) : '' %>"></div>
+                    </div>
+                    <button type="submit" class="btn btn-pink" style="width:100%;">Save Profile Changes</button>
+                </form>
             </div>
 
-            <div class="container settings-container">
-                <div class="settings-layout">
-                    <!-- Navigation -->
-                    <div class="settings-sidebar glass">
-                        <button class="settings-nav-item active" onclick="showSection('profile', this)">
-                            <i class="fas fa-user-circle"></i> Edit Profile
-                        </button>
-                        <button class="settings-nav-item" onclick="showSection('account', this)">
-                            <i class="fas fa-lock"></i> Account & Security
-                        </button>
-                        <button class="settings-nav-item" onclick="showSection('appearance', this)">
-                            <i class="fas fa-paint-brush"></i> Appearance
-                        </button>
-                        <button class="settings-nav-item" onclick="showSection('privacy', this)">
-                            <i class="fas fa-shield-alt"></i> Privacy
-                        </button>
-                        <button class="settings-nav-item" onclick="showSection('notifications', this)">
-                            <i class="fas fa-bell"></i> Notifications
-                        </button>
-                        <button class="settings-nav-item logout" onclick="handleLogout()">
-                            <i class="fas fa-sign-out-alt"></i> Log Out
-                        </button>
+            <!-- 2. SECURITY -->
+            <div id="account" class="settings-section">
+                <h2 class="section-title">Security & Protection</h2>
+                <div style="margin-bottom:30px;"><label class="label">Email (Read Only)</label><input type="email" class="input" value="<%= user.email %>" disabled></div>
+                <div style="background:var(--pink-light); padding:20px; border-radius:20px; margin-bottom:30px; border:1px solid var(--pink-primary);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div><h4 style="margin:0;">6-Digit 2FA PIN</h4><p style="margin:0; font-size:12px; color:var(--text-muted);">Highly recommended.</p></div>
+                        <label class="switch"><input type="checkbox" onchange="toggle2F(this.checked)" <%= user.two_factor_enabled ? 'checked' : '' %>><span class="slider"></span></label>
                     </div>
-
-                    <!-- Content -->
-                    <div class="settings-content glass">
-
-                        <!-- Profile Section -->
-                        <div id="profile" class="settings-section active">
-                            <div class="settings-header">
-                                <h2>Edit Profile</h2>
-                                <p>Customize how you appear to others on Sparkle.</p>
-                            </div>
-
-                            <div class="profile-upload">
-                                <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
-                                    class="current-avatar" id="avatarPreview">
-                                <div>
-                                    <button class="upload-btn"
-                                        onclick="document.getElementById('avatarInput').click()">Change Photo</button>
-                                    <input type="file" id="avatarInput" hidden accept="image/*"
-                                        onchange="handleAvatarUpload(event)">
-
-                                    <div style="margin-top: 15px; display: flex; gap: 8px;">
-                                        <input type="url" id="avatarUrlInput" class="form-input"
-                                            placeholder="https://example.com/image.jpg"
-                                            style="padding: 8px; font-size: 13px;">
-                                        <button class="upload-btn" onclick="handleAvatarUrlUpload()">Fetch URL</button>
-                                    </div>
-
-                                    <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Recommended: Square
-                                        JPG, PNG</p>
-                                </div>
-                            </div>
-
-                            <form id="profileForm">
-                                <div class="form-group">
-                                    <label class="form-label">Full Name</label>
-                                    <input type="text" class="form-input" id="name" value="<%= user.name %>" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Headline</label>
-                                    <input type="text" class="form-input" id="headline" value="<%= user.headline || '' %>" placeholder="e.g. CEO @ Sparkle">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Bio</label>
-                                    <textarea class="form-input" id="bio" rows="3" placeholder="Tell us about yourself... (Tip: use @username to tag someone!)"><%= user.bio || '' %></textarea>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                    <div class="form-group">
-                                        <label class="form-label">Campus</label>
-                                        <input type="text" class="form-input" id="campus"
-                                            value="<%= user.campus || '' %>">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Major</label>
-                                        <input type="text" class="form-input" id="major"
-                                            value="<%= user.major || '' %>">
-                                    </div>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                    <div class="form-group">
-                                        <label class="form-label">Website</label>
-                                        <input type="url" class="form-input" id="website"
-                                            value="<%= user.website || '' %>" placeholder="https://example.com">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Phone Number</label>
-                                        <input type="tel" class="form-input" id="phone_number"
-                                            value="<%= user.phone_number || '' %>" placeholder="+254...">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Birthday</label>
-                                    <input type="date" class="form-input" id="birthday" 
-                                        value="<%= user.birthday ? new Date(user.birthday).toISOString().split('T')[0] : '' %>">
-                                </div>
-                                <button type="submit" class="btn-save">Save Changes</button>
-                            </form>
-                        </div>
-
-                        <!-- Account Section -->
-                        <div id="account" class="settings-section">
-                            <div class="settings-header">
-                                <h2>Account & Security</h2>
-                                <p>Manage your login details and account security.</p>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Email Address</label>
-                                <input type="email" class="form-input" value="<%= user.email %>" disabled
-                                    style="background: #f1f5f9;">
-                            </div>
-
-                            <h3 style="margin: 30px 0 20px; font-size: 18px;">Change Password</h3>
-                            <form id="passwordForm">
-                                <div class="form-group">
-                                    <label class="form-label">Current Password</label>
-                                    <input type="password" class="form-input" id="currentPass" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">New Password</label>
-                                    <input type="password" class="form-input" id="newPass" required>
-                                </div>
-                                <button type="submit" class="btn-save">Update Password</button>
-                            </form>
-
-                            <h3 style="margin: 30px 0 20px; font-size: 18px;">Two-Factor Authentication</h3>
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Enable 2FA</h4>
-                                    <p>Add an extra layer of security to your account.</p>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" id="2faToggle" onchange="handleToggle2FA(this.checked)"
-                                        <%=user.two_factor_enabled ? 'checked' : '' %>>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <h3 style="margin: 30px 0 20px; font-size: 18px;">Data & Privacy</h3>
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Export Your Data</h4>
-                                    <p>Download a copy of your posts, messages, and profile data.</p>
-                                </div>
-                                <button class="upload-btn" onclick="handleExportData()">Export (JSON)</button>
-                            </div>
-
-                            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
-                                <h3 style="color: #ef4444; font-size: 16px; margin-bottom: 10px;">Danger Zone</h3>
-                                <button class="settings-nav-item logout" onclick="handleDeleteAccount()"
-                                    style="margin-top: 0; width: auto; color: #ef4444;">
-                                    <i class="fas fa-trash"></i> Delete Account
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Appearance Section -->
-                        <div id="appearance" class="settings-section">
-                            <div class="settings-header">
-                                <h2>Appearance & Language</h2>
-                                <p>Choose how Sparkle looks and feels for you.</p>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Dark Mode</h4>
-                                    <p>Enable dark theme for the interface.</p>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" onchange="saveSetting('dark_mode_enabled', this.checked)"
-                                        <%=user.dark_mode_enabled ? 'checked' : '' %>>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Font Size</label>
-                                <select class="form-input" onchange="saveSetting('font_size', this.value)">
-                                    <option value="small" <%=user.font_size==='small' ? 'selected' : '' %>>Small
-                                    </option>
-                                    <option value="medium" <%=user.font_size==='medium' ? 'selected' : '' %>>Medium
-                                    </option>
-                                    <option value="large" <%=user.font_size==='large' ? 'selected' : '' %>>Large
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Language</label>
-                                <select class="form-input" onchange="saveSetting('language', this.value)">
-                                    <option value="en" <%=user.language==='en' ? 'selected' : '' %>>English</option>
-                                    <option value="es" <%=user.language==='es' ? 'selected' : '' %>>Español</option>
-                                    <option value="fr" <%=user.language==='fr' ? 'selected' : '' %>>Français</option>
-                                    <!-- add more languages as needed -->
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Privacy Section -->
-                        <div id="privacy" class="settings-section">
-                            <div class="settings-header">
-                                <h2>Privacy Settings</h2>
-                                <p>Control who can see your profile and activity.</p>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Private Account</h4>
-                                    <p>When your account is private, only people you approve can see your photos and videos.</p>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" onchange="saveSetting('is_private', this.checked)"
-                                        <%=user.is_private ? 'checked' : '' %>>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Anonymous Mode</h4>
-                                    <p>Hide your identity when posting by default.</p>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" onchange="saveSetting('anonymous_enabled', this.checked)"
-                                        <%=user.anonymous_enabled ? 'checked' : '' %>>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Profile Visibility</h4>
-                                    <p>Make your profile visible only to campus members.</p>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox"
-                                        onchange="saveSetting('profile_visibility', this.checked ? 'campus' : 'public')"
-                                        <%=user.profile_visibility==='campus' ? 'checked' : '' %>>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Activity Status</h4>
-                                    <p>Show when you are active on Sparkle.</p>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" onchange="saveSetting('is_online', this.checked)"
-                                        <%=user.is_online !==false ? 'checked' : '' %>>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Last Seen</h4>
-                                    <p>Control who can see when you were last active.</p>
-                                </div>
-                                <select class="form-input" onchange="saveSetting('last_seen_privacy', this.value)">
-                                    <option value="everyone" <%=user.last_seen_privacy==='everyone' ? 'selected' : '' %>
-                                        >Everyone</option>
-                                    <option value="followers" <%=user.last_seen_privacy==='followers' ? 'selected' : ''
-                                        %>>Followers</option>
-                                    <option value="no_one" <%=user.last_seen_privacy==='no_one' ? 'selected' : '' %>>No
-                                        one</option>
-                                </select>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Messaging Privacy</h4>
-                                    <p>Choose who can send you direct messages.</p>
-                                </div>
-                                <select class="form-input" onchange="saveSetting('message_privacy', this.value)">
-                                    <option value="everyone" <%=user.message_privacy==='everyone' ? 'selected' : '' %>
-                                        >Everyone</option>
-                                    <option value="followers" <%=user.message_privacy==='followers' ? 'selected' : '' %>
-                                        >Followers</option>
-                                    <option value="no_one" <%=user.message_privacy==='no_one' ? 'selected' : '' %>>No
-                                        one</option>
-                                </select>
-                            </div>
-
-                             <div class="settings-item">
-                                 <div class="item-info">
-                                     <h4>Do Not Disturb</h4>
-                                     <p>Silence notifications during these hours.</p>
-                                 </div>
-                                 <div style="display:flex; gap:10px; align-items:center;">
-                                     <input type="time" class="form-input"
-                                         onchange="saveSetting('dnd_start', this.value)" value="<%=user.dnd_start||''%>">
-                                     <span>to</span>
-                                     <input type="time" class="form-input" onchange="saveSetting('dnd_end', this.value)"
-                                         value="<%=user.dnd_end||''%>">
-                                 </div>
-                             </div>
-
-                             <h3 style="margin: 30px 0 20px; font-size: 18px;">Social Discovery & Profile Privacy</h3>
-                             <div class="settings-item">
-                                 <div class="item-info">
-                                     <h4>Show Birthday</h4>
-                                     <p>Allow others to see your birthday on your profile.</p>
-                                 </div>
-                                 <label class="switch">
-                                     <input type="checkbox" onchange="saveSetting('show_birthday', this.checked)"
-                                         <%=user.show_birthday ? 'checked' : '' %>>
-                                     <span class="slider"></span>
-                                 </label>
-                             </div>
-
-                             <div class="settings-item">
-                                 <div class="item-info">
-                                     <h4>Show Contact Information</h4>
-                                     <p>Allow others to see your email and phone number.</p>
-                                 </div>
-                                 <label class="switch">
-                                     <input type="checkbox" onchange="saveSetting('show_contact_info', this.checked)"
-                                         <%=user.show_contact_info ? 'checked' : '' %>>
-                                     <span class="slider"></span>
-                                 </label>
-                             </div>
-                        </div>
-
-                        <!-- Notifications Section -->
-                        <div id="notifications" class="settings-section">
-                            <div class="settings-header">
-                                <h2>Notifications</h2>
-                                <p>Manage how you want to be notified.</p>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Push Notifications</h4>
-                                    <p>Receive notifications on your device.</p>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" onchange="saveSetting('push_notifications', this.checked)"
-                                        <%=user.push_notifications ? 'checked' : '' %>>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="settings-item">
-                                <div class="item-info">
-                                    <h4>Email Notifications</h4>
-                                    <p>Receive updates and digests via email.</p>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" onchange="saveSetting('email_notifications', this.checked)"
-                                        <%=user.email_notifications ? 'checked' : '' %>>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
+                    <div id="pBox" class="<%= user.two_factor_enabled ? 'visible-box' : 'hidden-box' %>" style="margin-top:20px;">
+                        <input type="password" maxlength="6" class="input" id="p1" placeholder="New PIN" style="margin-bottom:10px;">
+                        <input type="password" maxlength="6" class="input" id="p2" placeholder="Confirm PIN">
+                        <button class="btn btn-pink" style="width:100%; margin-top:10px;" onclick="saveP()">Apply PIN</button>
                     </div>
+                </div>
+                <div style="margin-bottom:30px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex:1;"><label class="label">Security Token</label><input type="text" class="input" id="sToken" value="<%= user.security_token || 'None' %>" disabled style="font-family:monospace;"></div>
+                        <button class="btn btn-outline" style="margin-top:24px; margin-left:10px;" onclick="regTok()">Regenerate</button>
+                    </div>
+                </div>
+                <div style="margin-bottom:30px;">
+                    <span class="group-label">Update Password</span>
+                    <input type="password" id="oldP" class="input" placeholder="Current Password" style="margin-bottom:10px;">
+                    <input type="password" id="newP" class="input" placeholder="New Password" style="margin-bottom:10px;">
+                    <input type="password" id="conP" class="input" placeholder="Confirm New Password">
+                    <button class="btn btn-pink" style="width:100%; margin-top:10px;" onclick="savePass()">Update Password</button>
+                </div>
+                <div style="margin-bottom:30px;">
+                    <span class="group-label">Global Access</span>
+                    <p style="font-size:13px;">Active on <b id="sCount">...</b> devices.</p>
+                    <div id="sList"></div>
+                    <button class="btn btn-outline" style="width:100%; color:var(--danger);" onclick="outAll()">Logout Other Devices</button>
                 </div>
             </div>
 
-            <script src="/js/apiClient.js"></script>
-            <script>
-                // Navigation
-                function showSection(sectionId, btn) {
-                    document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
+            <!-- 3. PRIVACY -->
+            <div id="privacy" class="settings-section">
+                <h2 class="section-title">Privacy Control</h2>
+                <% [{k:'is_private', l:'Private Profile'}, {k:'anonymous_mode_enabled', l:'Ghost Mode'}, {k:'show_contact_info', l:'Show Contact Info'}, {k:'show_birthday', l:'Show Birthday'}].forEach(i => { %>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 0; border-bottom:1px solid var(--border);">
+                        <h4><%= i.l %></h4>
+                        <label class="switch"><input type="checkbox" onchange="sS('<%= i.k %>', this.checked)" <%= user[i.k] ? 'checked' : '' %>><span class="slider"></span></label>
+                    </div>
+                <% }) %>
+                <div style="margin-top:20px;">
+                    <label class="label">Presence Visibility</label>
+                    <select class="input" onchange="sS('last_seen_visibility', this.value)">
+                        <option value="Everyone" <%= user.last_seen_visibility === 'Everyone' ? 'selected' : '' %>>Everyone</option>
+                        <option value="Followers" <%= user.last_seen_visibility === 'Followers' ? 'selected' : '' %>>Followers Only</option>
+                        <option value="No One" <%= user.last_seen_visibility === 'No One' ? 'selected' : '' %>>No One</option>
+                    </select>
+                </div>
+            </div>
 
-                    document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
-                    document.getElementById(sectionId).classList.add('active');
-                }
+            <!-- 4. MESSAGING -->
+            <div id="messaging" class="settings-section">
+                <h2 class="section-title">Messaging</h2>
+                <div style="margin-top:20px;">
+                    <label class="label">Who can message you?</label>
+                    <select class="input" onchange="sS('message_privacy', this.value)">
+                        <option value="Everyone" <%= user.message_privacy === 'Everyone' ? 'selected' : '' %>>Everyone</option>
+                        <option value="Followers" <%= user.message_privacy === 'Followers' ? 'selected' : '' %>>Followers Only</option>
+                        <option value="No One" <%= user.message_privacy === 'No One' ? 'selected' : '' %>>No One</option>
+                    </select>
+                </div>
+            </div>
 
-                // Avatar Upload
-                async function handleAvatarUpload(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
+            <!-- 5. NOTIFICATIONS -->
+            <div id="notifications" class="settings-section">
+                <h2 class="section-title">Notifications</h2>
+                <% ['push_notifications_enabled', 'email_notifications_enabled', 'notifications_likes', 'notifications_comments', 'notifications_follows'].forEach(k => { %>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 0; border-bottom:1px solid var(--border);">
+                        <h4><%= k.replace(/_/g, ' ').toUpperCase() %></h4>
+                        <label class="switch"><input type="checkbox" onchange="sS('<%= k %>', this.checked)" <%= user[k] ? 'checked' : '' %>><span class="slider"></span></label>
+                    </div>
+                <% }) %>
+            </div>
 
-                    // Preview
-                    const reader = new FileReader();
-                    reader.onload = e => document.getElementById('avatarPreview').src = e.target.result;
-                    reader.readAsDataURL(file);
+            <!-- 6. DND -->
+            <div id="dnd" class="settings-section">
+                <h2 class="section-title">Do Not Disturb</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h4>Enable Quiet Mode</h4><label class="switch"><input type="checkbox" onchange="sS('dnd_enabled', this.checked)" <%= user.dnd_enabled ? 'checked' : '' %>><span class="slider"></span></label></div>
+                <div class="form-row">
+                    <div><label class="label">Quiet Start</label><input type="time" class="input" value="<%= user.dnd_start_time || '22:00' %>" onchange="sS('dnd_start_time', this.value)"></div>
+                    <div><label class="label">Quiet End</label><input type="time" class="input" value="<%= user.dnd_end_time || '07:00' %>" onchange="sS('dnd_end_time', this.value)"></div>
+                </div>
+            </div>
 
-                    // Upload
-                    const formData = new FormData();
-                    formData.append('avatar', file);
+            <!-- 7. APPEARANCE -->
+            <div id="appearance" class="settings-section">
+                <h2 class="section-title">Display & Appearance</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><h4>Dark Mode</h4><label class="switch"><input type="checkbox" onchange="upApp('theme', this.checked ? 'dark' : 'light')" <%= user.theme === 'dark' ? 'checked' : '' %>><span class="slider"></span></label></div>
+                <div style="margin-bottom:20px;">
+                    <label class="label">Font Scale</label>
+                    <select class="input" onchange="upApp('font_size', this.value)">
+                        <option value="small" <%= user.font_size === 'small' ? 'selected' : '' %>>Compact</option>
+                        <option value="medium" <%= user.font_size === 'medium' ? 'selected' : '' %>>Normal</option>
+                        <option value="large" <%= user.font_size === 'large' ? 'selected' : '' %>>Large</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    try {
-                        const res = await fetch('/api/users/avatar', {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${getCookie('sparkleToken')}` },
-                            body: formData
-                        });
+    <script>
+        function switchTab(id, btn) {
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (id === 'account') loadS();
+        }
 
-                        if (res.ok) {
-                            // Success
-                        } else {
-                            alert('Failed to upload avatar');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Error uploading avatar');
-                    }
-                }
+        async function sS(k, v) { 
+            const val = typeof v === 'boolean' ? (v ? 1 : 0) : v;
+            await fetch('/api/users/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [k]: val }) });
+        }
 
-                // Avatar by URL
-                async function handleAvatarUrlUpload() {
-                    const avatarUrl = document.getElementById('avatarUrlInput').value;
-                    if (!avatarUrl) return alert('Please enter a URL');
+        window.upApp = (k, v) => {
+            if (k === 'theme') document.body.classList.toggle('dark-mode', v === 'dark');
+            else if (k === 'font_size') { document.body.classList.remove('font-small', 'font-medium', 'font-large'); document.body.classList.add(`font-${v}`); }
+            sS(k, v);
+        };
 
-                    const btn = event.target;
-                    const originalText = btn.innerText;
-                    btn.innerText = 'Fetching...';
-                    btn.disabled = true;
+        function toggle2F(e) { 
+            const box = document.getElementById('pBox');
+            if (e) { box.classList.remove('hidden-box'); box.classList.add('visible-box'); }
+            else { box.classList.remove('visible-box'); box.classList.add('hidden-box'); sS('two_factor_enabled', 0); }
+        }
+        async function saveP() {
+            const pin = document.getElementById('p1').value;
+            if (pin !== document.getElementById('p2').value) return alert('No match');
+            if (pin.length !== 6) return alert('PIN must be 6 digits');
+            const res = await fetch('/api/users/2fa/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: true, pin }) });
+            if (res.ok) alert('Set!');
+        }
 
-                    try {
-                        const res = await fetch('/api/users/avatar', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${getCookie('sparkleToken')}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ avatar_url: avatarUrl })
-                        });
+        async function regTok() {
+            const res = await fetch('/api/users/security/token', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) { document.getElementById('sToken').value = data.token; alert('New Token!'); }
+        }
 
-                        if (res.ok) {
-                            const data = await res.json();
-                            document.getElementById('avatarPreview').src = data.avatar_url;
-                            alert('Avatar updated!');
-                        } else {
-                            alert('Failed to update avatar from URL');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Error fetching avatar');
-                    } finally {
-                        btn.innerText = originalText;
-                        btn.disabled = false;
-                    }
-                }
+        async function loadS() {
+            const res = await fetch('/api/users/sessions');
+            const data = await res.json();
+            document.getElementById('sCount').innerText = data.length;
+            document.getElementById('sList').innerHTML = data.map(s => `
+                <div style="display:flex; justify-content:space-between; padding:10px; background:rgba(0,0,0,0.02); border-radius:12px; margin-bottom:8px; font-size:12px;">
+                    <div><b>${s.device_name ? s.device_name.split(' ')[0] : 'Device'}</b><br>${s.ip_address}</div>
+                    <button onclick="revS('${s.session_id}')" style="background:none; border:none; color:var(--danger); font-weight:700; cursor:pointer;">Revoke</button>
+                </div>
+            `).join('');
+        }
+        async function revS(id) { await fetch(`/api/users/sessions/${id}`, { method: 'DELETE' }); loadS(); }
+        async function outAll() { await fetch('/api/users/sessions/logout-all', { method: 'POST' }); location.reload(); }
 
-                // Profile Update
-                document.getElementById('profileForm').addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const btn = e.target.querySelector('button');
-                    const originalText = btn.innerText;
-                    btn.innerText = 'Saving...';
-                    btn.disabled = true;
+        async function fetchAv() {
+            const url = document.getElementById('avUrlIn').value;
+            if (!url) return;
+            const res = await fetch('/api/users/avatar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatar_url: url }) });
+            const data = await res.json();
+            if (res.ok) { document.getElementById('prevAv').src = data.avatar_url; }
+        }
 
-                    const data = {
-                        name: document.getElementById('name').value,
-                        bio: document.getElementById('bio').value,
-                        campus: document.getElementById('campus').value,
-                        major: document.getElementById('major').value,
-                        headline: document.getElementById('headline').value,
-                        website: document.getElementById('website').value,
-                        phone_number: document.getElementById('phone_number').value,
-                        birthday: document.getElementById('birthday').value
-                    };
+        async function upAv(e) {
+            const fd = new FormData(); fd.append('avatar', e.target.files[0]);
+            const res = await fetch('/api/users/avatar', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (res.ok) document.getElementById('prevAv').src = data.avatar_url;
+        }
 
-                    try {
-                        const res = await fetch('/api/users/profile', {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${getCookie('sparkleToken')}`
-                            },
-                            body: JSON.stringify(data)
-                        });
+        document.getElementById('pForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.target));
+            const res = await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if (res.ok) alert('Saved!');
+        };
 
-                        if (res.ok) {
-                            alert('Profile updated!');
-                        } else {
-                            alert('Failed to update profile');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Error updating profile');
-                    } finally {
-                        btn.innerText = originalText;
-                        btn.disabled = false;
-                    }
-                });
+        async function savePass() {
+            const p1 = document.getElementById('newP').value;
+            if (p1 !== document.getElementById('conP').value) return alert('Passwords match');
+            const res = await fetch('/api/users/password', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: document.getElementById('oldP').value, newPassword: p1 }) });
+            if (res.ok) alert('Security Updated!');
+        }
 
-                // Password Update
-                document.getElementById('passwordForm').addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const currentPassword = document.getElementById('currentPass').value;
-                    const newPassword = document.getElementById('newPass').value;
-
-                    try {
-                        const res = await fetch('/api/users/password', {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${getCookie('sparkleToken')}`
-                            },
-                            body: JSON.stringify({ currentPassword, newPassword })
-                        });
-
-                        if (res.ok) {
-                            alert('Password updated successfully');
-                            e.target.reset();
-                        } else {
-                            const data = await res.json();
-                            alert(data.error || 'Failed to update password');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Error updating password');
-                    }
-                });
-
-                // Settings Update (Privacy/Notifications)
-                async function saveSetting(key, value) {
-                    try {
-                        const res = await fetch('/api/users/settings', {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${getCookie('sparkleToken')}`
-                            },
-                            body: JSON.stringify({ [key]: value })
-                        });
-
-                        if (!res.ok) {
-                            const data = await res.json();
-                            throw new Error(data.error);
-                        }
-                        console.log('Setting saved:', key, value);
-                    } catch (err) {
-                        console.error(err);
-                        alert('Failed to save setting');
-                        // Revert toggle if needed (complex without state management)
-                    }
-                }
-
-                // Logout
-                function handleLogout() {
-                    if (confirm('Are you sure you want to log out?')) {
-                        document.cookie = "sparkleToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                        localStorage.removeItem('sparkleToken');
-                        localStorage.removeItem('currentUser');
-                        localStorage.removeItem('sparkleUser');
-                        window.location.href = '/login';
-                    }
-                }
-
-                // Delete Account
-                async function handleDeleteAccount() {
-                    const confirmed = prompt('Type "DELETE" to confirm account deletion. This cannot be undone.');
-                    if (confirmed === 'DELETE') {
-                        try {
-                            const res = await fetch('/api/users/me', {
-                                method: 'DELETE',
-                                headers: { 'Authorization': `Bearer ${getCookie('sparkleToken')}` }
-                            });
-
-                            if (res.ok) {
-                                alert('Account deleted.');
-                                window.location.href = '/login';
-                            } else {
-                                alert('Failed to delete account');
-                            }
-                        } catch (err) {
-                            console.error(err);
-                            alert('Error deleting account');
-                        }
-                    }
-                }
-
-                // Two-Factor Authentication
-                async function handleToggle2FA(enabled) {
-                    try {
-                        const res = await fetch('/api/users/2fa/toggle', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${getCookie('sparkleToken')}`
-                            },
-                            body: JSON.stringify({ enabled })
-                        });
-                        const data = await res.json();
-                        if (res.ok) {
-                            alert(data.message);
-                        } else {
-                            alert(data.error || 'Failed to toggle 2FA');
-                            document.getElementById('2faToggle').checked = !enabled;
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Error toggling 2FA');
-                        document.getElementById('2faToggle').checked = !enabled;
-                    }
-                }
-
-                // Data Export
-                async function handleExportData() {
-                    const btn = event.target;
-                    const originalText = btn.innerText;
-                    btn.innerText = 'Preparing...';
-                    btn.disabled = true;
-
-                    try {
-                        const res = await fetch('/api/users/export-data', {
-                            headers: { 'Authorization': `Bearer ${getCookie('sparkleToken')}` }
-                        });
-
-                        if (!res.ok) throw new Error('Export failed');
-
-                        const blob = await res.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `sparkle_data_${Date.now()}.json`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-                        alert('Data export complete!');
-                    } catch (err) {
-                        console.error(err);
-                        alert('Error exporting data: ' + err.message);
-                    } finally {
-                        btn.innerText = originalText;
-                        btn.disabled = false;
-                    }
-                }
-
-                function getCookie(name) {
-                    const value = `; ${document.cookie}`;
-                    const parts = value.split(`; ${name}=`);
-                    let token = null;
-                    if (parts.length === 2) token = parts.pop().split(';').shift();
-
-                    // Fallback to localStorage if cookie is missing
-                    if (!token && name === 'sparkleToken') {
-                        token = localStorage.getItem('sparkleToken');
-                    }
-                    return token;
-                }
-            </script>
-            </body>
-
-            </html>
+        function handleLogout() { location.href = '/auth/logout'; }
+    </script>
+</body>
+</html>

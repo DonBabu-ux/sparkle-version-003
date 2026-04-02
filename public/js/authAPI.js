@@ -58,8 +58,9 @@ const AuthAPI = {
             throw error;
         }
 
-        // For login/signup, ensure we have token and user
+        // For login/signup, ensure we have token and user (unless 2FA is required)
         if (response.url.includes('/login') || response.url.includes('/signup')) {
+            if (data.status === 'twofa_required') return data;
             if (!data.token || !data.user) {
                 throw new Error('Invalid server response: missing token or user data');
             }
@@ -99,11 +100,8 @@ const AuthAPI = {
             // Validate response
             const validatedData = this._validateResponse(response, data);
 
-            // Save session
-            this.setSession(validatedData.token, validatedData.user);
-
             const responseTime = Date.now() - startTime;
-            console.log(`✅ Login successful in ${responseTime}ms`);
+            console.log(`✅ Login response in ${responseTime}ms - Status: ${validatedData.status}`);
             console.groupEnd();
 
             return validatedData;
@@ -202,6 +200,33 @@ const AuthAPI = {
 
             console.groupEnd();
             throw enhancedError;
+        }
+    },
+
+    /**
+     * Verify 2FA PIN
+     */
+    async verify2FA(userId, pin) {
+        try {
+            const response = await this._fetchWithRetry(`${this.baseUrl}/verify-2fa`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ userId, pin })
+            });
+
+            const data = await response.json();
+            const validatedData = this._validateResponse(response, data);
+
+            // Save session upon successful verification
+            this.setSession(validatedData.token, validatedData.user);
+
+            return validatedData;
+        } catch (error) {
+            console.error('❌ 2FA Verification failed:', error.message);
+            throw error;
         }
     },
 

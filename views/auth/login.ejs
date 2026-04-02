@@ -370,6 +370,47 @@
                 font-size: 24px;
             }
         }
+
+        /* 2FA PIN Styles */
+        .twofa-section {
+            display: none;
+            text-align: center;
+        }
+
+        .twofa-section.active {
+            display: block;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .pin-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 30px 0;
+        }
+
+        .pin-input-field {
+            width: 45px;
+            height: 55px;
+            border: 2px solid #DBDBDB;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: 700;
+            text-align: center;
+            color: #262626;
+            transition: all 0.2s;
+        }
+
+        .pin-input-field:focus {
+            border-color: #FF3D6D;
+            box-shadow: 0 0 0 4px rgba(255, 61, 109, 0.1);
+            outline: none;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 
     <div class="auth-container">
@@ -431,6 +472,30 @@
                 </button>
 
             </form>
+
+            <div id="twofaSection" class="twofa-section">
+                <div class="panel-header">
+                    <h1 class="panel-title">Security Check</h1>
+                    <p class="panel-subtitle">Enter the 2FA PIN for <span id="twofaEmail" style="font-weight: 600; color: #262626;"></span></p>
+                </div>
+
+                <div class="pin-container" id="pinContainer">
+                    <input type="text" maxlength="1" class="pin-input-field" data-index="1">
+                    <input type="text" maxlength="1" class="pin-input-field" data-index="2">
+                    <input type="text" maxlength="1" class="pin-input-field" data-index="3">
+                    <input type="text" maxlength="1" class="pin-input-field" data-index="4">
+                    <input type="text" maxlength="1" class="pin-input-field" data-index="5">
+                    <input type="text" maxlength="1" class="pin-input-field" data-index="6">
+                </div>
+
+                <button type="button" class="btn-auth-primary" id="verifyPinBtn">
+                    Verify & Log In
+                </button>
+
+                <p class="auth-link" style="margin-top: 25px;">
+                    <a href="javascript:void(0)" id="backToLogin">Back to Login</a>
+                </p>
+            </div>
 
             <div class="auth-divider"><span>OR</span></div>
 
@@ -547,9 +612,21 @@
                 loginBtn.disabled = true;
 
                 try {
-                    // Call Backend API
-                    // 'username' here can be email or username (handled by controller)
                     const data = await AuthAPI.login(emailInput, password);
+
+                    if (data.status === 'twofa_required') {
+                        // Switch to 2FA View
+                        window.twofaUserId = data.userId;
+                        document.getElementById('loginForm').style.display = 'none';
+                        document.querySelector('.social-login').style.display = 'none';
+                        document.querySelector('.auth-divider').style.display = 'none';
+                        document.getElementById('twofaEmail').textContent = data.email;
+                        document.getElementById('twofaSection').classList.add('active');
+                        
+                        // Focus first field
+                        setTimeout(() => document.querySelector('.pin-input-field').focus(), 100);
+                        return;
+                    }
 
                     if (document.getElementById('remember-me').checked) {
                         localStorage.setItem('sparkleUserEmail', emailInput);
@@ -569,6 +646,52 @@
                     loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
                     loginBtn.disabled = false;
                 }
+            });
+
+            // 2FA PIN Input Interactivity
+            const pinInputs = document.querySelectorAll('.pin-input-field');
+            pinInputs.forEach((input, index) => {
+                input.addEventListener('keyup', (e) => {
+                    if (e.key >= 0 && e.key <= 9) {
+                        if (index < pinInputs.length - 1) pinInputs[index + 1].focus();
+                    } else if (e.key === 'Backspace') {
+                        if (index > 0) pinInputs[index - 1].focus();
+                    }
+                });
+            });
+
+            document.getElementById('verifyPinBtn').addEventListener('click', async () => {
+                const pin = Array.from(pinInputs).map(input => input.value).join('');
+                if (pin.length < 4) {
+                    alert('Please enter your full PIN');
+                    return;
+                }
+
+                const btn = document.getElementById('verifyPinBtn');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+                btn.disabled = true;
+
+                try {
+                    await AuthAPI.verify2FA(window.twofaUserId, pin);
+                    showMessage('Verification successful! Redirecting...', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 1000);
+                } catch (err) {
+                    alert(err.message || 'Invalid PIN');
+                    btn.innerHTML = 'Verify & Log In';
+                    btn.disabled = false;
+                    // Clear inputs on failure
+                    pinInputs.forEach(i => i.value = '');
+                    pinInputs[0].focus();
+                }
+            });
+
+            document.getElementById('backToLogin').addEventListener('click', () => {
+                document.getElementById('twofaSection').classList.remove('active');
+                document.getElementById('loginForm').style.display = 'block';
+                document.querySelector('.social-login').style.display = 'block';
+                document.querySelector('.auth-divider').style.display = 'block';
+                document.getElementById('login-submit').disabled = false;
+                document.getElementById('login-submit').innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
             });
 
             function showMessage(message, type) {

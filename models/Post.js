@@ -93,7 +93,10 @@ class Post {
      */
     static async findById(postId) {
         const [posts] = await pool.query(
-            `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+            `SELECT p.*, 
+                    CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
+                    CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
+                    CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
@@ -128,7 +131,10 @@ class Post {
             try {
                 // Fetch unified feed: Followed posts + Public posts, sorted by newest
                 const feedQuery = `
-                    SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                    SELECT p.*, 
+                           CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
+                           CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
+                           CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
                            u.campus as user_affiliation, u.major as user_interests,
                            (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                            (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
@@ -242,7 +248,11 @@ class Post {
      */
     static async getGroupFeed(userId, limit = 50) {
         const [posts] = await pool.query(
-            `SELECT p.*, u.username, u.name as user_name, u.avatar_url, g.name as group_name, g.icon_url as group_icon,
+            `SELECT p.*, 
+                    CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
+                    CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
+                    CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
+                    g.name as group_name, g.icon_url as group_icon,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
              FROM posts p 
@@ -350,7 +360,10 @@ class Post {
         }
 
         query = `
-            SELECT c.*, u.username, u.name, u.avatar_url,
+            SELECT c.*, 
+                   CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
+                   CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as name,
+                   CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
                    (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) as like_count
                    ${currentUserId ? `, (SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.comment_id AND cl2.user_id = ?) as is_liked ` : ''}
             FROM comments c

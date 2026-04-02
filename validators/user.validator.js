@@ -5,7 +5,8 @@ const Joi = require('joi');
  */
 const registerSchema = Joi.object({
     name: Joi.string().min(2).max(100).required(),
-    username: Joi.string().alphanum().min(3).max(30).required(),
+    username: Joi.string().pattern(/^[a-zA-Z0-9._]+$/).min(3).max(30).required()
+        .messages({ 'string.pattern.base': 'Username can only contain letters, numbers, underscores and dots.' }),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).max(100).required(),
     campus: Joi.string().max(100).optional(),
@@ -25,6 +26,8 @@ const loginSchema = Joi.object({
  */
 const updateProfileSchema = Joi.object({
     name: Joi.string().min(2).max(100).optional(),
+    username: Joi.string().pattern(/^[a-zA-Z0-9._]+$/).min(3).max(30).optional()
+        .messages({ 'string.pattern.base': 'Username can only contain letters, numbers, underscores and dots.' }),
     bio: Joi.string().max(500).allow('').optional(),
     major: Joi.string().max(100).allow('').optional(),
     campus: Joi.string().max(100).allow('').optional(),

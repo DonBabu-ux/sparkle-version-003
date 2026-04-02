@@ -33,6 +33,40 @@ app.use(sanitizeInput);
 
 const { isVerified } = require('./utils/user-helpers');
 
+// Multi-language Translation Helper
+const translations = {
+    en: {
+        settings: "Settings",
+        appearance: "Appearance & Language",
+        dark_mode: "Dark Mode",
+        font_size: "Font Size",
+        language: "Language",
+        save: "Save Changes",
+        danger_zone: "Danger Zone",
+        delete_account: "Delete Account"
+    },
+    sw: {
+        settings: "Mipangilio",
+        appearance: "Mwonekano na Lugha",
+        dark_mode: "Modi ya Giza",
+        font_size: "Ukubwa wa Maandishi",
+        language: "Lugha",
+        save: "Hifadhi Mabadiliko",
+        danger_zone: "Eneo la Hatari",
+        delete_account: "Futa Akaunti"
+    },
+    fr: {
+        settings: "Paramètres",
+        appearance: "Apparence et Langue",
+        dark_mode: "Mode Sombre",
+        font_size: "Taille de la Police",
+        language: "Langue",
+        save: "Enregistrer",
+        danger_zone: "Zone de Danger",
+        delete_account: "Supprimer le compte"
+    }
+};
+
 // Make Firebase/Supabase config and user available to all views
 app.use((req, res, next) => {
     res.locals.firebaseConfig = firebaseConfig;
@@ -42,6 +76,13 @@ app.use((req, res, next) => {
     };
     res.locals.user = req.user || null;
     res.locals.isVerified = isVerified;
+    
+    // Translation helper
+    res.locals.t = (key) => {
+        const lang = (res.locals.user && res.locals.user.language) || 'en';
+        return (translations[lang] && translations[lang][key]) || (translations['en'][key] || key);
+    };
+    
     next();
 });
 

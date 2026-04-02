@@ -37,6 +37,12 @@ router.put('/settings', authMiddleware, userController.updateSettings);
 router.get('/export-data', authMiddleware, userController.exportUserData);
 router.post('/2fa/toggle', authMiddleware, userController.toggleTwoFactor);
 
+// Session Management
+router.get('/sessions', authMiddleware, userController.getActiveSessions);
+router.delete('/sessions/:sessionId', authMiddleware, userController.revokeSession);
+router.post('/security/token', authMiddleware, userController.generateSecurityToken);
+router.post('/sessions/logout-all', authMiddleware, userController.logoutAllDevices);
+
 router.put('/profile', authMiddleware, validate(updateProfileSchema), userController.updateProfile);
 router.post('/avatar', authMiddleware, upload.single('avatar'), userController.uploadAvatar);
 router.put('/password', authMiddleware, validate(updatePasswordSchema), userController.updatePassword);

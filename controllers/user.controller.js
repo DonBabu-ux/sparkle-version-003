@@ -67,8 +67,18 @@ const searchFollowingUsers = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
+
+        // check if username is being changed and if it is taken
+        if (req.body.username) {
+            const existingUser = await User.findByUsername(req.body.username);
+            if (existingUser && existingUser.user_id !== userId) {
+                return res.status(409).json({ error: 'Username already taken' });
+            }
+        }
+
         const updates = {
             name: req.body.name,
+            username: req.body.username,
             bio: req.body.bio,
             major: req.body.major,
             campus: req.body.campus,
@@ -81,6 +91,9 @@ const updateProfile = async (req, res) => {
         await User.update(userId, updates);
         res.json({ message: 'Profile updated successfully' });
     } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Username or email already taken' });
+        }
         logger.error('Update profile error:', error);
         res.status(500).json({ error: 'Failed to update profile' });
     }
@@ -95,29 +108,35 @@ const updateSettings = async (req, res) => {
         const allowedSettings = [
             // privacy / visibility
             'is_private',
-            'anonymous_enabled',
+            'anonymous_mode_enabled',
             'profile_visibility',
-            'is_online',
-            'last_seen_privacy',
+            'last_seen_visibility',
             'message_privacy',
+            'activity_status_enabled',
             'show_contact_info',
             'show_birthday',
 
             // notifications
-            'push_notifications',
-            'email_notifications',
-            'dnd_start',
-            'dnd_end',
+            'push_notifications_enabled',
+            'email_notifications_enabled',
+            'notifications_likes',
+            'notifications_comments',
+            'notifications_follows',
+            'notifications_messages',
+
+            // DND
+            'dnd_enabled',
+            'dnd_start_time',
+            'dnd_end_time',
 
             // appearance / localization
-            'dark_mode_enabled',
             'theme',
-            'chat_theme',
             'font_size',
             'language',
 
             // account
-            // note: account_status is intentionally not exposed here; admin-only
+            'two_factor_enabled',
+            'security_token'
         ];
 
         for (const key of Object.keys(req.body)) {
@@ -200,12 +219,73 @@ const updatePassword = async (req, res) => {
 const deleteAccount = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        // In a real app, we might check for sub-items or soft-delete
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ error: 'Password required to delete account' });
+        }
+
+        const user = await User.findById(userId);
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Incorrect password' });
+        }
+
         await User.delete(userId);
+        
+        res.clearCookie('sparkleToken');
         res.json({ message: 'Account deleted successfully' });
     } catch (error) {
         logger.error('Delete account error:', error);
         res.status(500).json({ error: 'Failed to delete account' });
+    }
+};
+
+const getActiveSessions = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const [sessions] = await User.pool.query(
+            'SELECT session_id, device_name, ip_address, last_active, created_at FROM user_sessions WHERE user_id = ? ORDER BY last_active DESC',
+            [userId]
+        );
+        res.json(sessions);
+    } catch (error) {
+        logger.error('Get active sessions error:', error);
+        res.status(500).json({ error: 'Failed to fetch sessions' });
+    }
+};
+
+const revokeSession = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { sessionId } = req.params;
+        await User.pool.query(
+            'DELETE FROM user_sessions WHERE session_id = ? AND user_id = ?',
+            [sessionId, userId]
+        );
+        res.json({ success: true, message: 'Session revoked' });
+    } catch (error) {
+        logger.error('Revoke session error:', error);
+        res.status(500).json({ error: 'Failed to revoke session' });
+    }
+};
+
+const logoutAllDevices = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        
+        // 1. Invalidate current JWTs by incrementing version
+        await User.pool.query('UPDATE users SET token_version = token_version + 1 WHERE user_id = ?', [userId]);
+        
+        // 2. Clear known sessions
+        await User.pool.query('DELETE FROM user_sessions WHERE user_id = ?', [userId]);
+        
+        res.clearCookie('sparkleToken');
+        res.json({ success: true, message: 'Logged out from all devices' });
+    } catch (error) {
+        logger.error('Logout all devices error:', error);
+        res.status(500).json({ error: 'Failed to logout from all devices' });
     }
 };
 
@@ -246,20 +326,45 @@ const exportUserData = async (req, res) => {
 const toggleTwoFactor = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        const { enabled } = req.body;
+        const { enabled, pin } = req.body;
 
-        // Foundation for 2FA: in a real app, generate secret/QR here
-        // For now, we update a flag in the settings
-        await User.updateSettings(userId, { two_factor_enabled: enabled ? 1 : 0 });
+        if (enabled) {
+            if (!pin || pin.length !== 6) {
+                return res.status(400).json({ error: 'PIN must be strictly 6 digits for production security' });
+            }
+            
+            const hashedPin = await bcrypt.hash(pin.toString(), 10);
+            await User.updateSettings(userId, { 
+                two_factor_enabled: 1,
+                two_factor_pin: hashedPin
+            });
+        } else {
+            await User.updateSettings(userId, { 
+                two_factor_enabled: 0,
+                two_factor_pin: null 
+            });
+        }
 
         res.json({
             success: true,
-            message: `Two-factor authentication ${enabled ? 'enabled' : 'disabled'} successfully.`,
+            message: `Static 6-digit PIN 2FA ${enabled ? 'enabled' : 'disabled'} successfully.`,
             two_factor_enabled: enabled
         });
     } catch (error) {
         logger.error('Toggle 2FA error:', error);
         res.status(500).json({ error: 'Failed to update 2FA settings' });
+    }
+};
+
+const generateSecurityToken = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const token = require('crypto').randomBytes(32).toString('hex');
+        await User.updateSettings(userId, { security_token: token });
+        res.json({ success: true, token });
+    } catch (error) {
+        logger.error('Generate security token error:', error);
+        res.status(500).json({ error: 'Failed to generate token' });
     }
 };
 
@@ -489,5 +594,9 @@ module.exports = {
     updateSettings,
     exportUserData,
     toggleTwoFactor,
-    getActiveFriends
+    getActiveFriends,
+    getActiveSessions,
+    revokeSession,
+    logoutAllDevices,
+    generateSecurityToken
 };

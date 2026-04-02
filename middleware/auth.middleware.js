@@ -25,8 +25,12 @@ const authMiddleware = async (req, res, next) => {
         // CHECK CACHE FIRST
         const cached = userCache.get(decoded.userId);
         if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-            req.user = cached.user;
-            return next();
+            // Verify token version matches if it's in the decoded payload
+            // (Note: older tokens might not have it, so we rely on DB fallback if version mismatch is suspected)
+            if (decoded.tokenVersion === cached.user.token_version) {
+                req.user = cached.user;
+                return next();
+            }
         }
 
         // DB FALLBACK
@@ -36,7 +40,14 @@ const authMiddleware = async (req, res, next) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const userData = { ...decoded, ...users[0] };
+        const user = users[0];
+
+        // GLOBAL LOGOUT CHECK (Token Versioning)
+        if (decoded.tokenVersion !== undefined && decoded.tokenVersion < user.token_version) {
+            return res.status(401).json({ error: 'Session expired: Global logout performed' });
+        }
+
+        const userData = { ...decoded, ...user };
         
         // UPDATE CACHE
         userCache.set(decoded.userId, { user: userData, timestamp: Date.now() });
@@ -102,7 +113,15 @@ const ejsAuthMiddleware = async (req, res, next) => {
             return res.redirect('/login?reason=user_not_found');
         }
 
-        const userData = { ...decoded, ...users[0] };
+        const user = users[0];
+
+        // GLOBAL LOGOUT CHECK
+        if (decoded.tokenVersion !== undefined && decoded.tokenVersion < user.token_version) {
+            res.clearCookie('sparkleToken');
+            return res.redirect('/login?reason=session_expired');
+        }
+
+        const userData = { ...decoded, ...user };
         
         // UPDATE CACHE
         userCache.set(decoded.userId, { user: userData, timestamp: Date.now() });

@@ -56,5 +56,5 @@
     <%- include('styles') %>
 </head>
 
-<body>
+<body class="<%= locals.user && locals.user.theme === 'dark' ? 'dark-mode' : '' %> font-<%= locals.user && locals.user.font_size ? locals.user.font_size : 'medium' %>">
     <%- include('loading-bar') %>

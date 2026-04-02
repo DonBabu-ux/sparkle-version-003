@@ -75,8 +75,13 @@ const signup = async (req, res) => {
             }
         }).catch(err => logger.error('Failed to send signup verification email:', err));
 
-        // Generate token for immediate login (but flag as unverified)
-        const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '7d' });
+        // Generate token for immediate login
+        const token = jwt.sign({ 
+            userId, 
+            email, 
+            username, 
+            tokenVersion: 0 
+        }, JWT_SECRET, { expiresIn: '7d' });
 
         logger.info(`New user signed up: ${username} (${email}) - ID: ${userId}`);
 
@@ -138,7 +143,32 @@ const login = async (req, res) => {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({ userId: user.user_id, email: user.email, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+        // --- NEW: Check for 2FA ---
+        if (user.two_factor_enabled && user.two_factor_pin) {
+            return res.json({
+                status: 'twofa_required',
+                message: 'Two-factor authentication required',
+                userId: user.user_id,
+                email: user.email // for identification in PIN UI
+            });
+        }
+
+        const token = jwt.sign({ 
+            userId: user.user_id, 
+            email: user.email, 
+            username: user.username,
+            tokenVersion: user.token_version || 0
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        // CREATE SESSION RECORD
+        const sessionId = crypto.randomBytes(16).toString('hex');
+        const userAgent = req.headers['user-agent'] || 'Unknown Device';
+        const ip = req.ip || req.connection.remoteAddress;
+
+        await query(
+            'INSERT INTO user_sessions (session_id, user_id, device_name, ip_address) VALUES (?, ?, ?, ?)',
+            [sessionId, user.user_id, userAgent, ip]
+        );
 
         res.cookie('sparkleToken', token, {
             httpOnly: true,
@@ -151,6 +181,7 @@ const login = async (req, res) => {
         res.json({
             status: 'success',
             token,
+            sessionId,
             user: {
                 id: user.user_id,
                 name: user.name,
@@ -165,6 +196,76 @@ const login = async (req, res) => {
     } catch (error) {
         console.error('Login Error [Full]:', error);
         res.status(500).json({ status: 'error', message: 'Login failed', details: error.message });
+    }
+};
+
+const verify2FA = async (req, res) => {
+    try {
+        const { userId, pin } = req.body;
+        if (!userId || !pin) {
+            return res.status(400).json({ status: 'error', message: 'User ID and PIN are required' });
+        }
+
+        const [users] = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+
+        const user = users[0];
+        if (!user.two_factor_pin) {
+            return res.status(400).json({ status: 'error', message: '2FA not correctly configured' });
+        }
+
+        const pinMatch = await bcrypt.compare(pin.toString(), user.two_factor_pin);
+        if (!pinMatch) {
+            return res.status(401).json({ status: 'error', message: 'Invalid 2FA PIN' });
+        }
+
+        // PIN correct, issue token
+        validateJWTSecret();
+        const token = jwt.sign({ 
+            userId: user.user_id, 
+            email: user.email, 
+            username: user.username,
+            tokenVersion: user.token_version || 0
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        // CREATE SESSION RECORD
+        const sessionId = crypto.randomBytes(16).toString('hex');
+        const userAgent = req.headers['user-agent'] || 'Unknown Device';
+        const ip = req.ip || req.connection.remoteAddress;
+
+        await query(
+            'INSERT INTO user_sessions (session_id, user_id, device_name, ip_address) VALUES (?, ?, ?, ?)',
+            [sessionId, user.user_id, userAgent, ip]
+        );
+
+        res.cookie('sparkleToken', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/'
+        });
+
+        res.json({
+            status: 'success',
+            token,
+            sessionId,
+            user: {
+                id: user.user_id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                email_verified: user.email_verified === 1,
+                phone_verified: user.phone_verified === 1,
+                avatar_url: getSafeAvatarUrl(user.avatar_url),
+                loggedIn: true
+            }
+        });
+    } catch (error) {
+        logger.error('Verify 2FA Error:', error);
+        res.status(500).json({ status: 'error', message: 'PIN verification failed' });
     }
 };
 
@@ -368,4 +469,4 @@ const switchAccount = async (req, res) => {
     }
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount };
+module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA };

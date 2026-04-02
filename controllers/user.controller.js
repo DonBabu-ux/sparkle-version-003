@@ -132,11 +132,14 @@ const updateSettings = async (req, res) => {
             // appearance / localization
             'theme',
             'font_size',
+            'font_scale',
             'language',
 
             // account
             'two_factor_enabled',
-            'security_token'
+            'security_token',
+            'dm_permission',
+            'last_seen'
         ];
 
         for (const key of Object.keys(req.body)) {

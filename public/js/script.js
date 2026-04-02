@@ -380,16 +380,16 @@ window.createPostElement = function (post) {
     const timeAgo = (dateStr) => {
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return 'Recently';
-        const now = new Date();
-        const seconds = Math.floor((now - date) / 1000);
-        if (seconds < 60) return 'Just now';
-        const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes}m ago`;
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h ago`;
+        const secs = Math.floor((new Date() - date) / 1000);
+        if (secs < 60) return 'Just now';
+        const mins = Math.floor(secs / 60);
+        if (mins < 60) return `${mins}m`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `${hours}h`;
         const days = Math.floor(hours / 24);
-        if (days < 7) return `${days}d ago`;
-        return date.toLocaleDateString();
+        if (days < 7) return `${days}d`;
+        if (days < 365) return `${Math.floor(days / 7)}w`;
+        return `${Math.floor(days / 365)}y`;
     };
 
     const postId = post.post_id || post.id;
@@ -430,29 +430,30 @@ window.createPostElement = function (post) {
                 <img src="${avatarUrl}" class="avatar" onerror="${avatarFallback}">
             </div>
             <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id || post.userId?.id || ''}'">
-                <div class="username">${username}</div>
-                <div class="meta">${post.campus || 'Main Campus'} • ${displayTime}</div>
+                <div class="username" style="color:#262626; font-weight:600;">${username}</div>
+                ${(post.campus && post.campus !== 'undefined') ? `<div class="meta" style="color:#8e8e8e; font-size:11px;">${post.campus}</div>` : ''}
             </div>
-            <button class="options-btn" onclick="event.stopPropagation(); window.showPostMenu('${postId}', this)">
+            <button class="options-btn" style="background:none; border:none; color:#262626; cursor:pointer;" onclick="event.stopPropagation(); window.showPostMenu('${postId}', this)">
                 <i class="fas fa-ellipsis-h"></i>
             </button>
         </div>
     `;
 
-    // 2. CAPTION (SPEC v5: Show 'See More' if > 120 chars)
+    // 5. CAPTION (SPEC v5: Show 'See More' if > 100 chars)
     let captionHtml = '';
     if (fullCaption) {
-        if (fullCaption.length > 120) {
-            captionHtml = `
-                <div class="caption">
-                    <span id="cap-${postId}">${fullCaption.substring(0, 120)}...</span>
-                    <span class="see-more-link" style="color:var(--accent-pink); cursor:pointer; font-weight:700;" 
-                          onclick="event.stopPropagation(); document.getElementById('cap-${postId}').innerText='${fullCaption.replace(/'/g, "\\'")}'; this.remove()"> See More</span>
-                </div>
+        const safeCaps = fullCaption.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" style="color:var(--insta-blue); text-decoration:none;" onclick="event.stopPropagation()">#$1</a>');
+        captionHtml = `<div class="post-caption-wrap caption"><span style="font-weight: 600; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id || post.userId?.id || ''}'">${username}</span> `;
+        if (fullCaption.length > 100) {
+            captionHtml += `
+                <span class="short-text">${safeCaps.substring(0, 100)}</span>
+                <span class="full-text hidden">${safeCaps}</span>
+                <span class="toggle-text" style="color: #888; cursor: pointer; font-weight: 500;" onclick="event.stopPropagation(); const p=this.parentElement; p.querySelector('.short-text').classList.toggle('hidden'); p.querySelector('.full-text').classList.toggle('hidden'); this.textContent = this.textContent === '... more' ? ' less' : '... more';">... more</span>
             `;
         } else {
-            captionHtml = `<div class="caption">${fullCaption}</div>`;
+            captionHtml += `<span class="short-text">${safeCaps}</span>`;
         }
+        captionHtml += `</div>`;
     }
 
     // 3. IMAGE / VIDEO (SPEC v5: Feed = IMAGES ONLY, Videos -> Moments Card)
@@ -470,41 +471,46 @@ window.createPostElement = function (post) {
                     </div>
                 </div>`;
         } else {
-            mediaHtml = `<div class="post-media-container" style="background:#000; display:flex; align-items:center; justify-content:center; min-height:300px;">
-                            <img src="${mediaUrl}" class="post-image" style="width:100%; height:auto; object-fit:contain; max-height:80vh;" onclick="event.stopPropagation(); window.openImageViewer('${postId}', '${mediaUrl}')">
+            mediaHtml = `<div class="post-media-container" ondblclick="event.stopPropagation(); const btn = this.closest('.post').querySelector('.like-btn'); if(btn && !btn.classList.contains('active')) btn.click();" style="background:#000; display:flex; align-items:center; justify-content:center;">
+                            <img src="${mediaUrl}" class="post-image" style="width:100%; height:auto; object-fit:contain;" onclick="event.stopPropagation(); window.openImageViewer('${postId}', '${mediaUrl}')">
                          </div>`;
         }
     }
 
-    // 4. ENGAGEMENT SUMMARY - EDGE LEFT (SPARKS), EDGE RIGHT (COMMENTS)
-    // Applying Instagram Pink branding directly to summary icons if active
-    const engagementHtml = `
-        <div class="engagement-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px;">
-            <span class="sparks-count" style="color: ${isLiked ? 'var(--insta-pink)' : 'var(--text-muted)'}; font-weight: 700;">
-                <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> ${sparks}
-            </span>
-            <span class="comments-count" style="color: var(--text-muted); font-size: 12px; font-weight: 600;">
-                ${commentsCount} comments
-            </span>
-        </div>
-    `;
+    // 4. ENGAGEMENT SUMMARY - Standard Likes
+    let likesHtml = `<div class="post-likes">`;
+    likesHtml += `${sparks} likes`;
+    likesHtml += `</div>`;
 
-    // 5. ACTIONS
+    // 6. COMMENTS + TIMESTAMP
+    let footerHtml = '';
+    if (commentsCount > 0) {
+        footerHtml += `<div class="post-view-comments" onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">View all ${commentsCount} comments</div>`;
+    }
+    footerHtml += `<div class="post-timestamp">${displayTime}</div>`;
+
     const actionsHtml = `
-        <div class="actions">
-            <button class="action-btn ${isLiked ? 'active' : ''}" onclick="event.stopPropagation(); window.toggleSpark('${postId}', this)">
-                <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> Like
-            </button>
-            <button class="action-btn" onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">
-                <i class="far fa-comment"></i> Comment
-            </button>
-            <button class="action-btn" onclick="event.stopPropagation(); window.shareManager?.openShareSheet('post', '${postId}')">
-                <i class="far fa-share-square"></i> Share
-            </button>
+        <div class="post-actions dark">
+            <div class="left-actions">
+                <button class="icon-btn like-btn ${isLiked ? 'active' : ''}" onclick="event.stopPropagation(); window.toggleSpark('${postId}', this)">
+                    <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+                </button>
+                <button class="icon-btn comment-btn" onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">
+                    <i class="far fa-comment"></i>
+                </button>
+                <button class="icon-btn share-btn" onclick="event.stopPropagation(); window.sharePost('${postId}')">
+                    <i class="far fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="right-actions">
+                <button class="icon-btn save-btn" onclick="event.stopPropagation(); this.classList.toggle('active'); const i = this.querySelector('i'); i.classList.toggle('far'); i.classList.toggle('fas');">
+                    <i class="far fa-bookmark"></i>
+                </button>
+            </div>
         </div>
     `;
 
-    postEl.innerHTML = headerHtml + captionHtml + mediaHtml + engagementHtml + actionsHtml;
+    postEl.innerHTML = headerHtml + mediaHtml + '<div class="post-bottom-container">' + actionsHtml + likesHtml + captionHtml + footerHtml + '</div>';
     return postEl;
 };
 
@@ -1270,10 +1276,9 @@ window.toggleCommentLike = async function(commentId, btn) {
 
 window.showPostMenu = function(postId, button) {
     if (window.showPostOptions) {
-        window.showPostOptions(postId);
+        window.showPostOptions(postId, button);
     } else {
         console.log('Post Menu triggered for:', postId);
-        alert('Post Options coming soon!');
     }
 };
 

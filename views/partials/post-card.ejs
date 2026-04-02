@@ -14,77 +14,77 @@
 <div class="post" data-post-id="<%= pId %>">
     <div class="post-header">
         <div class="avatar-wrapper <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" 
+             style="cursor: pointer;"
              onclick="event.stopPropagation(); <%= post.has_story ? 'openStoryViewer(\'' + (post.user_id || post.actor_id) + '\')' : 'window.location.href=\'/profile/' + uname + '\'' %>">
-            <img src="<%= avatar %>" class="avatar" onerror="this.onerror=null; this.src='/uploads/avatars/default.png'">
+            <img src="<%= avatar %>" class="post-avatar" style="background: #eee;" onerror="this.onerror=null; this.src='/uploads/avatars/default.png'">
         </div>
 
-        <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
-            <div class="username">
-                <%= uname %>
+        <div class="user-info" style="cursor: pointer; display: flex; flex-direction: column;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <a href="/profile/<%= uname %>" class="post-username">
+                    <%= uname %>
+                </a>
                 <%- include('verified-badge', { id: post.user_id || post.actor_id }) %>
             </div>
-            <div class="meta">
-                <%= post.campus || 'Main Campus' %> • <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
-            </div>
+            <% if (post.campus && post.campus !== 'undefined') { %>
+                <div style="font-size: 11px; color: var(--text-main);"><%= post.campus %></div>
+            <% } %>
         </div>
 
         <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-            <% if (post.user_id && post.user_id != user.user_id && !post.is_followed) { %>
-                <button class="follow-btn-mini" 
-                        onclick="event.stopPropagation(); window.toggleFollow('<%= post.user_id %>', this)"
-                        style="background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 4px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                    Follow
-                </button>
-            <% } %>
-
-            <button class="options-btn" onclick="event.stopPropagation()">
+            <button class="options-btn" style="background:none; border:none; color: var(--text-main); font-size: 14px; cursor: pointer; padding: 8px;" onclick="event.stopPropagation()">
                 <i class="fas fa-ellipsis-h"></i>
             </button>
         </div>
     </div>
 
-    <% if (finalCaption) { %>
-        <div class="caption">
-            <span class="caption-text" id="caption-<%= pId %>">
-                <%- finalCaption.replace(/#(\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag-link" onclick="event.stopPropagation()">#$1</a>') %>
-            </span>
-        </div>
-    <% } %>
-
     <% if (post.media_url && post.media_url !== 'undefined') { %>
-        <div class="post-media">
+        <div class="post-media-container" ondblclick="event.stopPropagation(); window.toggleSpark('<%= pId %>', this)">
             <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
                 <video src="<%= post.media_url %>" autoplay loop muted playsinline onclick="event.stopPropagation()"></video>
             <% } else { %>
-                <img src="<%= post.media_url %>" class="post-image" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('<%= pId %>', '<%= post.media_url %>')" onerror="this.onerror=null; this.src='/uploads/posts/default.png'">
+                <img src="<%= post.media_url %>" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('<%= pId %>', '<%= post.media_url %>')" onerror="this.onerror=null; this.src='/uploads/posts/default.png'">
             <% } %>
         </div>
     <% } %>
 
-    <div class="engagement-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px;">
-        <span class="sparks-count" style="color: <%= isSparked ? 'var(--insta-pink)' : 'var(--text-muted)' %>; font-weight: 700;">
-            <i class="<%= isSparked ? 'fas' : 'far' %> fa-heart"></i> <%= sparks %>
-        </span>
-        <span class="comments-count" style="color: var(--text-muted); font-size: 12px; font-weight: 600;">
-            <%= comments %> comments
-        </span>
+    <div class="post-actions">
+        <div class="post-actions-left">
+            <button class="post-action-btn <%= isSparked ? 'active' : '' %>" onclick="event.stopPropagation(); window.toggleSpark('<%= pId %>', this)">
+                <i class="<%= isSparked ? 'fas' : 'far' %> fa-heart"></i>
+            </button>
+            <button class="post-action-btn" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
+                <i class="far fa-comment"></i>
+            </button>
+            <button class="post-action-btn" onclick="event.stopPropagation(); window.sharePost('<%= pId %>')">
+                <i class="far fa-paper-plane"></i>
+            </button>
+        </div>
+        <button class="post-action-btn post-bookmark" onclick="event.stopPropagation(); this.classList.toggle('active'); const i = this.querySelector('i'); i.classList.toggle('far'); i.classList.toggle('fas');">
+            <i class="far fa-bookmark"></i>
+        </button>
     </div>
 
-    <div class="actions" style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding: 4px 8px;">
-        <button class="action-btn <%= isSparked ? 'active' : '' %>" 
-                onclick="event.stopPropagation(); window.toggleSpark('<%= pId %>', this)">
-            <i class="<%= isSparked ? 'fas' : 'far' %> fa-heart"></i>
-            <span>Like</span>
-        </button>
-        <button class="action-btn" 
-                onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
-            <i class="far fa-comment"></i>
-            <span>Comment</span>
-        </button>
-        <button class="action-btn" 
-                onclick="event.stopPropagation(); window.sharePost('<%= pId %>')">
-            <i class="far fa-share-square"></i>
-            <span>Share</span>
-        </button>
+    <div class="post-likes">
+        <%= sparks %> likes
+    </div>
+
+    <% if (finalCaption) { %>
+        <div class="post-caption-wrap">
+            <span style="font-weight: 600; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'"><%= uname %></span>
+            <span class="caption-text" id="caption-<%= pId %>">
+                <%- finalCaption.replace(/#(\w+)/g, '<a href="/dashboard/hashtag/$1" style="color:var(--insta-blue); text-decoration:none;" onclick="event.stopPropagation()">#$1</a>') %>
+            </span>
+        </div>
+    <% } %>
+
+    <% if (comments > 0) { %>
+        <div class="post-view-comments" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
+            View all <%= comments %> comments
+        </div>
+    <% } %>
+
+    <div class="post-timestamp">
+        <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
     </div>
 </div>

@@ -58,17 +58,14 @@ export async function loadAfterglowStories(options = {}) {
         // 1. Add Create Story card
         const currentUserData = window.currentUser || JSON.parse(localStorage.getItem('currentUser') || '{}');
         const createCard = document.createElement('div');
-        createCard.className = 'story-create-card';
+        createCard.className = 'story-upload-btn';
         createCard.onclick = () => window.showCreateOptions ? window.showCreateOptions() : uploadAfterglowMedia();
         createCard.innerHTML = `
-            <div class="story-create-content">
-                <div class="story-create-top">
-                    <img src="${currentUserData.avatar_url || currentUserData.avatar || '/uploads/avatars/default.png'}" 
-                         style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; object-fit: cover;">
-                </div>
-                <div class="story-plus-btn"><i class="fas fa-plus"></i></div>
-                <div class="story-create-bottom">Post Glow</div>
+            <div class="story-upload-avatar-wrapper">
+                <img src="${currentUserData.avatar_url || currentUserData.avatar || '/uploads/avatars/default.png'}" class="story-upload-avatar" style="background:#eee;" onerror="this.src='/uploads/avatars/default.png'">
+                <div class="story-upload-plus"><i class="fas fa-plus"></i></div>
             </div>
+            <div class="story-upload-text">Afterglow</div>
         `;
         fragment.appendChild(createCard);
 
@@ -76,28 +73,20 @@ export async function loadAfterglowStories(options = {}) {
         if (groups && groups.length > 0) {
             groups.forEach((group) => {
                 const storyEl = document.createElement('div');
-                storyEl.className = 'story-view-card';
+                storyEl.className = 'fb-story-card';
                 storyEl.dataset.userId = group.user_id;
 
                 // Use the first story's data for the thumbnail
                 const firstStory = group.stories[0];
                 storyEl.dataset.secondsLeft = firstStory?.secondsLeft || 0;
 
-                const hasUnviewed = group.stories.some(s => !viewedStories[s.story_id || s.id]);
-                const ringColor = hasUnviewed ? '#ff3b6d' : '#e2e8f0';
-
                 storyEl.innerHTML = `
-                    <div class="story-media-container" style="position:relative; width:100%; height:100%;">
-                        <img src="${firstStory?.media_url || group.avatar_url || '/uploads/avatars/default.png'}" 
-                             class="story-media-bg" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:brightness(0.75);">
-                        <div class="story-overlay-gradient" style="position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.4), transparent);"></div>
-                        <div class="story-avatar-badge" style="position:absolute; top:8px; left:8px; width:36px; height:36px; border-radius:50%; border:2px solid ${ringColor}; padding:2px; background:white; z-index:3;">
-                            <img src="${group.avatar_url || '/uploads/avatars/default.png'}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
-                        </div>
-                        <div class="story-username-label" style="position:absolute; bottom:10px; left:8px; right:8px; color:white; font-size:11px; font-weight:700; z-index:3; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
-                            ${group.username || 'Sparkler'}
-                        </div>
-                    </div>
+                    <img src="${firstStory?.media_url || group.avatar_url || '/uploads/avatars/default.png'}" 
+                         class="fb-story-media" style="background:#eee;" onerror="this.onerror=null; this.src='/uploads/avatars/default.png';">
+                    <div class="fb-story-overlay"></div>
+                    ${group.stories.length > 1 ? `<div class="story-multi-badge-fb">${group.stories.length}</div>` : ''}
+                    <img src="${group.avatar_url || '/uploads/avatars/default.png'}" class="fb-story-avatar" style="background:#eee;" onerror="this.onerror=null; this.src='/uploads/avatars/default.png'">
+                    <div class="fb-story-name">${group.username || 'Sparkler'}</div>
                 `;
 
                 storyEl.onclick = () => {

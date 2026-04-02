@@ -1,376 +1,357 @@
 <%- include('partials/head', { title: 'Dashboard' }) %>
 
     <style>
-        /* ============ PREMIUM DESIGN SYSTEM ============ */
+        /* ============ PREMIUM HYBRID UI DESIGN SYSTEM ============ */
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.4);
-            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            --pink-gradient: linear-gradient(135deg, #f472b6 0%, #db2777 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(0, 0, 0, 0.05);
+            --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --primary-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
             --card-bg: #ffffff;
-            --body-bg: #f8fafc;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --accent: #6366f1;
+            --body-bg: #fafafa;
+            --text-main: #262626;
+            --text-muted: #8e8e8e;
+            --insta-blue: #0095f6;
+            --border-color: #dbdbdb;
         }
 
         body {
-            background-color: var(--bg-light);
-            background-image:
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(255, 61, 109, 0.05) 0, transparent 50%);
-            color: var(--text-light);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--body-bg);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
             opacity: 0;
             animation: pageFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         @keyframes pageFadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        /* Glassmorphism Utility */
         .glass {
             background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow);
-        }
-
-        .container {
-            max-width: 600px !important;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* AfterGlow Stories Overhaul */
-        .afterglow-section {
-            padding: 24px 0 10px;
-            margin-bottom: 5px;
-            background: rgba(255, 255, 255, 0.4);
-            border-radius: 32px;
-            margin: 0 10px 20px 10px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .afterglow-title {
-            display: flex;
-            align-items: center;
-            padding: 0 24px;
-            margin-bottom: 16px;
-            font-size: 19px;
-            font-weight: 800;
-            color: #1e293b;
-        }
-
-        .stories-container {
-            display: flex;
-            gap: 12px;
-            padding: 4px 24px 20px;
-            overflow-x: auto;
-            scrollbar-width: none;
-            justify-content: flex-start;
-            -ms-overflow-style: none;
-        }
-
-        .stories-container::-webkit-scrollbar {
-            display: none;
-        }
-
-        .story-create-card,
-        .story-view-card {
-            flex-shrink: 0;
-            width: 105px;
-            height: 160px;
-            border-radius: 22px;
-            overflow: hidden;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .story-create-card:hover,
-        .story-view-card:hover {
-            transform: scale(1.04) translateY(-4px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .story-media-bg {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: brightness(0.85);
-            z-index: 1;
-        }
-
-        .story-overlay-gradient {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 40%, rgba(0, 0, 0, 0.2) 100%);
-            z-index: 2;
-        }
-
-        .story-avatar-badge {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            border: 2px solid var(--accent);
-            padding: 2px;
-            background: white;
-            z-index: 3;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .story-avatar-badge img {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .story-username-label {
-            position: absolute;
-            bottom: 12px;
-            left: 10px;
-            right: 10px;
-            color: white;
-            font-size: 11px;
-            font-weight: 700;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            z-index: 3;
-        }
-
-        .story-multi-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(4px);
-            color: white;
-            padding: 2px 6px;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            font-size: 10px;
-            font-weight: 800;
-            z-index: 3;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
-        .story-create-content {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            z-index: 3;
-            position: relative;
-        }
-
-        .story-create-top {
-            height: 65%;
-            background: #f8fafc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .story-create-bottom {
-            height: 35%;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding-top: 5px;
-            font-size: 11px;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .story-plus-btn {
-            position: absolute;
-            top: 65%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 30px;
-            height: 30px;
-            background: var(--primary-gradient);
-            border-radius: 50%;
-            border: 3px solid white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-            box-shadow: 0 4px 10px rgba(255, 61, 109, 0.3);
-        }
-
-        .vanish-timer {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            background: rgba(0, 0, 0, 0.04);
-            padding: 4px 12px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        @media (max-width: 768px) {
-            .afterglow-title {
-                padding: 0 24px;
-            }
-
-            .stories-container {
-                padding: 4px 24px 20px;
-            }
-
-            .story-create-card,
-            .story-view-card {
-                width: 95px;
-                height: 145px;
-            }
-
-            .container {
-                padding: 75px 15px 100px 15px;
-            }
-        }
-
-        .story-view-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .story-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 10px;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
-            color: white;
-            font-size: 11px;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .posts-feed {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .media-error-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: rgba(20, 20, 20, 0.9);
-            color: rgba(255, 255, 255, 0.5);
-            z-index: 5;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .media-error-overlay i {
-            font-size: 30px;
-            color: var(--accent-pink, #FF3D6D);
-            margin-bottom: 8px;
-            opacity: 0.7;
-        }
-
-        /* Create Post Box Styles */
-        .create-post-box {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 16px;
-            margin-bottom: 5px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+        /* 🔷 2. COMPOSER (Compact Card) */
+        .composer-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             cursor: pointer;
-            transition: all 0.3s ease;
         }
-        .create-post-box:hover {
-            background: rgba(255, 255, 255, 0.9);
-            transform: translateY(-2px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
-        }
-        .cp-top {
+
+        .composer-top {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 12px;
         }
-        .cp-avatar {
-            width: 42px;
-            height: 42px;
+
+        .composer-avatar {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid white;
         }
-        .cp-placeholder {
+
+        .composer-input {
             flex: 1;
-            background: #f8fafc;
-            padding: 10px 18px;
-            border-radius: 25px;
-            color: #64748b;
+            background: #f0f2f5;
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: var(--text-muted);
             font-size: 14px;
-            font-weight: 500;
+            border: none;
+            text-align: left;
         }
-        .cp-divider {
-            height: 1px;
-            background: #f1f5f9;
-            margin: 0 -16px 12px;
-        }
-        .cp-actions {
+
+        .composer-actions {
             display: flex;
             justify-content: space-around;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 8px;
         }
-        .cp-action {
+
+        .composer-action {
             display: flex;
             align-items: center;
             gap: 8px;
             font-size: 13px;
             font-weight: 600;
-            color: #475569;
-            padding: 8px 16px;
-            border-radius: 10px;
+            color: #65676b;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
             transition: background 0.2s;
         }
-        .cp-action:hover {
-            background: #f1f5f9;
-        }
-        .cp-action i {
-            font-size: 16px;
+
+        .composer-action:hover { background: #f0f2f5; }
+
+        /* 🔷 3. STORIES ROW (Facebook Style) */
+        .stories-section {
+            margin-bottom: 12px;
         }
 
+        .stories-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 0 12px;
+            scrollbar-width: none;
+        }
+
+        .stories-container::-webkit-scrollbar { display: none; }
+
+        /* Story Upload Button (Insta Style) */
+        .story-upload-btn {
+            flex: 0 0 110px;
+            height: 170px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .story-upload-avatar-wrapper {
+            position: relative;
+            padding: 3px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            width: 66px;
+            height: 66px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .story-upload-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            object-fit: cover;
+        }
+
+        .story-upload-plus {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: var(--insta-blue);
+            color: #fff;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            border: 2px solid #fff;
+        }
+
+        .story-upload-text {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Facebook Style Cards */
+        .fb-story-card {
+            flex: 0 0 110px;
+            height: 170px;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .fb-story-card:hover { transform: scale(1.02); }
+
+        .fb-story-media {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.9);
+        }
+
+        .fb-story-avatar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 3px solid var(--insta-blue);
+            padding: 2px;
+            background: #fff;
+            z-index: 2;
+        }
+
+        .fb-story-name {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            z-index: 2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .fb-story-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.5), transparent 40%);
+            z-index: 1;
+        }
+
+        .story-multi-badge-fb {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            z-index: 3;
+        }
+
+        /* 🔷 5. POSTS FEED (Instagram Style) */
+        .feed-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .post {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .post-header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .post-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .post-username {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .post-media-container {
+            width: 100%;
+            background: #fafafa;
+            position: relative;
+        }
+
+        .post-media-container img, 
+        .post-media-container video {
+            width: 100%;
+            display: block;
+        }
+
+        .post-actions {
+            padding: 12px 16px 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .post-actions-left {
+            display: flex;
+            gap: 16px;
+        }
+
+        .post-action-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 24px;
+            color: #262626;
+            transition: transform 0.1s;
+        }
+
+        .post-action-btn:active { transform: scale(1.1); }
+        .post-action-btn.active { color: #ed4956; }
+
+        .post-bookmark.active { color: #262626; }
+
+        .post-likes {
+            padding: 0 16px 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .post-caption-wrap {
+            padding: 0 16px 8px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .post-view-comments {
+            padding: 0 16px 4px;
+            color: var(--text-muted);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .post-timestamp {
+            padding: 0 16px 16px;
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+
+        /* 🔷 Layout Grid */
         .dashboard-layout {
             display: grid;
-            grid-template-columns: 260px 1fr 320px;
-            gap: 25px;
-            max-width: 1440px;
+            grid-template-columns: 240px 1fr 300px;
+            gap: 28px;
+            max-width: 1100px;
             margin: 0 auto;
             padding: 85px 20px 40px;
         }
@@ -388,7 +369,6 @@
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 20px;
         }
 
         .suggestions-column {
@@ -397,7 +377,7 @@
             height: fit-content;
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 1100px) {
             .dashboard-layout {
                 grid-template-columns: 240px 1fr;
             }
@@ -406,16 +386,15 @@
             }
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 850px) {
             .dashboard-layout {
                 grid-template-columns: 1fr;
-                padding-top: 80px;
+                padding-top: 70px;
             }
             .sidebar-column {
                 display: none;
             }
         }
-
         /* Override restrictive container */
         .container {
             max-width: 100% !important;
@@ -436,60 +415,45 @@
 
                 <!-- Center Column: Feed -->
                 <main class="main-feed-column">
-                    <!-- Premium Create Post Box -->
-                    <div class="create-post-box glass" onclick="openCreateModal()">
-                        <div class="cp-top">
-                            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="cp-avatar">
-                            <div class="cp-placeholder">What's on your mind, <%= user.name.split(' ')[0] %>?</div>
+                    <!-- 🔷 PREMIUM COMPOSER -->
+                    <div class="composer-card" onclick="openCreateModal()">
+                        <div class="composer-top">
+                            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="composer-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
+                            <div class="composer-input">What's on your mind?</div>
                         </div>
-                        <div class="cp-divider"></div>
-                        <div class="cp-actions">
-                            <div class="cp-action"><i class="fas fa-image" style="color: #4CAF50;"></i> Photo</div>
-                            <div class="cp-action"><i class="fas fa-video" style="color: #f44336;"></i> Video</div>
-                            <div class="cp-action"><i class="fas fa-laugh" style="color: #FFC107;"></i> Feeling</div>
+                        <div class="composer-actions">
+                            <div class="composer-action"><i class="fas fa-image" style="color: #4CAF50;"></i> Photo</div>
+                            <div class="composer-action"><i class="fas fa-video" style="color: #f44336;"></i> Video</div>
+                            <div class="composer-action"><i class="fas fa-laugh" style="color: #FFC107;"></i> Feeling</div>
                         </div>
                     </div>
 
-                    <!-- Premium AfterGlow Stories Section -->
-                    <div class="afterglow-section" style="margin-bottom: 5px;">
-                        <div class="afterglow-title">
-                            <span style="background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-size: 20px; font-weight: 800;">AfterGlow🌟</span>
-                            <span class="vanish-timer" id="vanishTimer" style="margin-left: auto;">
-                                <i class="fas fa-history" style="color: var(--accent)"></i> 24h till vanish 
-                            </span>
-                        </div>
-
+                    <!-- 🔷 STORIES ROW (Facebook Style) -->
+                    <div class="stories-section">
                         <div class="stories-container" id="afterglowStories">
-                            <!-- Create Story Card -->
-                            <div class="story-create-card" onclick="openAfterglowModal()">
-                                <div class="story-create-content">
-                                    <div class="story-create-top">
-                                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>"
-                                            style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                                    </div>
-                                    <div class="story-plus-btn">
-                                        <i class="fas fa-plus"></i>
-                                    </div>
-                                    <div class="story-create-bottom">Create Story</div>
+                            <!-- Instagram Style Custom Upload Button -->
+                            <div class="story-upload-btn" onclick="openAfterglowModal()">
+                                <div class="story-upload-avatar-wrapper">
+                                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="story-upload-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
+                                    <div class="story-upload-plus"><i class="fas fa-plus"></i></div>
                                 </div>
+                                <div class="story-upload-text">Afterglow</div>
                             </div>
 
                             <!-- Server Stories -->
                             <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
                                 <% stories.forEach(storyGroup=> { %>
                                     <% const firstStory=storyGroup.stories[0]; %>
-                                        <div class="story-view-card" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
-                                            <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
-                                                class="story-media-bg" onerror="this.src='/uploads/avatars/default.png';">
-                                            <div class="story-overlay-gradient"></div>
-                                            <% if (storyGroup.stories.length> 1) { %>
-                                                <div class="story-multi-badge"><%= storyGroup.stories.length %></div>
-                                            <% } %>
-                                            <div class="story-avatar-badge">
-                                                <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>">
-                                            </div>
-                                            <div class="story-username-label"><%= storyGroup.username %></div>
-                                        </div>
+                                    <div class="fb-story-card" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
+                                        <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
+                                            class="fb-story-media" onerror="this.src='/uploads/avatars/default.png';">
+                                        <div class="fb-story-overlay"></div>
+                                        <% if (storyGroup.stories.length> 1) { %>
+                                            <div class="story-multi-badge-fb"><%= storyGroup.stories.length %></div>
+                                        <% } %>
+                                        <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>" class="fb-story-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
+                                        <div class="fb-story-name"><%= storyGroup.username %></div>
+                                    </div>
                                 <% }); %>
                             <% } %>
                         </div>

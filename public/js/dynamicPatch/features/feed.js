@@ -12,7 +12,13 @@ let currentCommentsData = [];
 const FEED_LIMIT = 12;
 
 export function initFeed() {
-    loadFeedPosts({ refresh: true });
+    const container = document.getElementById('feed');
+    // If SSR rendered posts, we don't immediately wipe and refresh (Fixes 3-Phase UI Bug)
+    if (container && container.children.length > 0 && container.querySelector('.post')) {
+        feedPage = 2; // Next page logic
+    } else {
+        loadFeedPosts({ refresh: true });
+    }
     setupScrollListener();
 }
 

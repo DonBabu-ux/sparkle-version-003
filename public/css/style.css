@@ -473,8 +473,62 @@ body {
 /* Main Content */
 .container {
     padding: 15px;
+    padding-left: 16px;
+    padding-right: 16px;
     max-width: 680px;
     margin: 0 auto;
+    display: block;
+    width: 100%;
+    overflow: visible;
+}
+.profile-container {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    margin-top: 60px;
+    padding: 16px;
+    display: block; /* CRITICAL */
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+.profile-details {
+    text-align: left;
+    align-items: flex-start;
+    width: 100%;
+}
+.bio {
+    margin-top: 8px;
+    line-height: 1.4;
+    text-align: left;
+}
+.profile-link {
+    margin-top: 6px;
+    color: #FF3D6D; /* Sparkle pink */
+    font-weight: 500;
+    text-align: left;
+}
+.profile-header-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    width: 100%;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+.profile-header-text .username {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 2px;
+}
+.profile-header-text .headline {
+    font-size: 20px;
+    font-weight: 700;
+    color: #000;
+    margin: 0;
 }
 
 .header {
@@ -1742,8 +1796,15 @@ body {
     box-shadow: var(--shadow);
     border: 1px solid var(--border);
     padding: 20px;
-    text-align: center;
+    text-align: left;
     margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.profile-header-card {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .profile-avatar {
@@ -1780,9 +1841,10 @@ body {
 
 .profile-stats {
     display: flex;
-    justify-content: center;
-    gap: 30px;
+    justify-content: space-around;
+    width: 100%;
     margin-bottom: 20px;
+    box-sizing: border-box;
 }
 
 .stat {
@@ -2129,17 +2191,23 @@ input:checked+.toggle-slider:before {
 .profile-info-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: #666;
-    background: white;
-    padding: 10px;
-    border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    gap: 8px;
+    margin-top: 6px;
+    background: transparent;
+    padding: 0;
+    border: none;
+    border-radius: 0;
 }
 
 .profile-info-item i {
-    color: var(--primary);
+    color: #e91e63; /* Sparkle pink */
+    font-size: 16px;
+    width: 20px; /* Optional: keeping alignment consistent across mixed icons */
+    text-align: center;
+}
+
+.profile-info-item span {
+    color: #333;
     font-size: 14px;
 }
 

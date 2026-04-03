@@ -90,6 +90,8 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             padding: 20px 0;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* Image Viewer Modal */
@@ -304,29 +306,30 @@
                         </div>
 
                         <!-- Identity Block (Name, Bio, Links) -->
-                        <div class="profile-bio" style="margin-bottom: 20px;">
-                            <h1 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 4px;">
-                                <%= profile.name || profile.username %>
+                        <div class="profile-header-text">
+                            <span class="username">
+                                @<%= profile.username %>
                                 <%- include('partials/verified-badge', { id: profile.user_id }) %>
-                            </h1>
-                            <div style="font-size: 14px; font-weight: 500; color: #64748b; margin-bottom: 8px;">@<%= profile.username %></div>
+                            </span>
                             
                             <% if (profile.headline) { %>
-                                <div class="profile-headline" style="font-weight: 600; color: #334155; font-size: 14px; margin-bottom: 4px;"><%= profile.headline %></div>
+                                <h1 class="headline"><%= profile.headline %></h1>
+                            <% } else { %>
+                                <h1 class="headline"><%= profile.name || profile.username %></h1>
                             <% } %>
+                        </div>
 
                             <% if (profile.bio) { %>
-                                <div class="profile-bio-text" style="font-size: 14px; color: #1e293b; line-height: 1.4; margin-bottom: 8px; white-space: pre-wrap;">
+                                <div class="bio">
                                     <%- profile.bio.replace(/@(\w+)/g, '<a href="/profile/$1" style="color: var(--primary); text-decoration: none; font-weight: 600;">@$1</a>') %>
                                 </div>
                             <% } %>
 
                             <% if (profile.website) { %>
-                                <a href="https://<%= profile.website.replace('https://', '').replace('http://', '') %>" target="_blank" class="profile-website" style="color: #0284c7; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 4px; font-size: 14px; margin-bottom: 8px;">
+                                <a href="https://<%= profile.website.replace('https://', '').replace('http://', '') %>" target="_blank" class="profile-link" style="text-decoration: none; display: flex; align-items: center; gap: 4px; font-size: 14px; margin-bottom: 8px;">
                                     <i class="fas fa-link"></i> <%= profile.website.replace('https://', '').replace('http://', '') %>
                                 </a>
                             <% } %>
-                        </div>
 
                         <!-- Actions Layer -->
                         <div class="profile-actions-grid" style="display: flex; gap: 8px; margin-bottom: 20px;">
@@ -355,10 +358,10 @@
                         </div>
 
                         <!-- Structured Details Layer -->
-                        <div class="profile-details-mini" style="font-size: 13px; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                        <div class="profile-details">
                             <% if (profile.affiliation || profile.interests || profile.experience_level) { %>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <i class="fas fa-graduation-cap" style="color: #94a3b8; width: 16px; text-align: center;"></i>
+                                <div class="profile-info-item">
+                                    <i class="fas fa-graduation-cap"></i>
                                     <span>
                                         <% 
                                             let eduParts = [];
@@ -369,8 +372,8 @@
                                     </span>
                                 </div>
                                 <% if (profile.affiliation && eduParts.length > 0) { %>
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <i class="fas fa-university" style="color: #94a3b8; width: 16px; text-align: center;"></i>
+                                    <div class="profile-info-item">
+                                        <i class="fas fa-university"></i>
                                         <span><%= profile.affiliation %></span>
                                     </div>
                                 <% } %>
@@ -378,16 +381,16 @@
 
                             <% const canSeeBirthday = profile.birthday && (isOwnProfile || profile.show_birthday == 1 || profile.show_birthday === true); %>
                             <% if (canSeeBirthday) { %>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <i class="fas fa-birthday-cake" style="color: #94a3b8; width: 16px; text-align: center;"></i>
+                                <div class="profile-info-item">
+                                    <i class="fas fa-birthday-cake"></i>
                                     <span><%= new Date(profile.birthday).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) %></span>
                                 </div>
                             <% } %>
 
                             <% const canSeeContact = isOwnProfile || profile.show_contact_info == 1 || profile.show_contact_info === true; %>
                             <% if (canSeeContact) { %>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <i class="fas fa-envelope" style="color: #94a3b8; width: 16px; text-align: center;"></i>
+                                <div class="profile-info-item">
+                                    <i class="fas fa-envelope"></i>
                                     <span><%= profile.email %></span>
                                 </div>
                             <% } %>

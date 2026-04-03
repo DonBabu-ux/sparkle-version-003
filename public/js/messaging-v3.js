@@ -38,10 +38,27 @@ class SparkleChat {
         const urlParams = new URLSearchParams(window.location.search);
         const chatId = urlParams.get('chat');
         const userId = urlParams.get('user');
+        const messagePayload = urlParams.get('message');
+        
+        const applyPreFill = () => {
+            if (messagePayload) {
+                setTimeout(() => {
+                    const input = document.getElementById('messageInput');
+                    if (input) {
+                        input.value = messagePayload;
+                        if (typeof this.autoResizeTextarea === 'function') {
+                            this.autoResizeTextarea(input);
+                        }
+                        input.focus();
+                    }
+                }, 400);
+            }
+        };
 
         if (chatId) {
             console.log('🔗 Deep-link: Opening chat ID', chatId);
-            this.openChat(chatId);
+            await this.openChat(chatId);
+            applyPreFill();
         } else if (userId) {
             console.log('🔗 Deep-link: Initializing chat with user', userId);
             try {
@@ -50,7 +67,19 @@ class SparkleChat {
                 const response = await fetch(`/api/messages/chat/${userId}`);
                 const result = await response.json();
                 if (result.status === 'success' && result.chatId) {
-                    this.openChat(result.chatId);
+                    await this.openChat(result.chatId);
+                    applyPreFill();
+                } else if (messagePayload) {
+                    const startRes = await fetch('/api/messages/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ partnerId: userId })
+                    });
+                    const startResult = await startRes.json();
+                    if (startResult.status === 'success') {
+                        await this.openChat(startResult.data.conversationId);
+                        applyPreFill();
+                    }
                 }
             } catch (err) {
                 console.error('Deep-link failed:', err);

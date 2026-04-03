@@ -669,7 +669,130 @@ class SparkleChat {
         container.innerHTML = html;
         this.scrollToBottom();
         this.bindGestures();
+        // Async: inject OG link previews for any link-only messages
+        this.injectLinkPreviews(messages);
     }
+
+    // ── Link & Content Rendering Engine ──────────────────────────
+
+    /** Turn raw URLs in a string into clickable <a> tags */
+    linkify(text) {
+        if (!text || typeof text !== 'string') return text || '';
+        return text.replace(
+            /(https?:\/\/[^\s<>"]+)/g,
+            '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#53bdeb;text-decoration:underline;word-break:break-all;">$1</a>'
+        );
+    }
+
+    /**
+     * Render the text body of a message intelligently:
+     *  - marketplace_inquiry JSON → already handled before this is called, so skip
+     *  - media + link  → media shown above; text linkified below
+     *  - link only      → linkified text + a placeholder div for the async OG preview
+     *  - plain text     → linkified (links become clickable)
+     */
+    renderMsgBody(msg) {
+        if (!msg.content) return '';
+
+        // Skip: marketplace inquiry JSON is handled upstream
+        if (msg.content.startsWith('{"type":"marketplace_inquiry"')) return '';
+
+        const text = msg.content;
+        const linkRe = /https?:\/\/[^\s<>"]+/g;
+        const links = text.match(linkRe) || [];
+        const hasMedia = !!msg.media_url;
+        const msgId = msg.message_id || msg.id || (Date.now() + Math.random()).toString(36);
+
+        // Pure link message (entire text is a single URL, no other words before/after)
+        const isPureLink = links.length === 1 && text.trim() === links[0].trim();
+
+        // Build the text part (always linkified)
+        const bodyHtml = `<div class="msg-body" style="font-size:14px; white-space:pre-wrap; word-break:break-word;">${this.linkify(text)}</div>`;
+
+        // For pure-link messages with no media, add an async preview placeholder
+        if (isPureLink && !hasMedia && links.length > 0) {
+            return bodyHtml + `<div id="lp-${msgId}" data-preview-url="${links[0]}" class="link-preview-slot"></div>`;
+        }
+
+        // For messages with multiple links or mixed content – just linkify
+        // If it has media AND links, add a CTA button row at the bottom (like the prompt example)
+        if (hasMedia && links.length > 0) {
+            const btnHtml = links.map(link => `
+                <a href="${link}" target="_blank" rel="noopener noreferrer" 
+                   style="display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; 
+                          padding:8px; background:rgba(83,189,235,0.1); border-radius:10px; 
+                          text-decoration:none; color:#53bdeb; font-size:12px; font-weight:700;">
+                    <i class="bi bi-link-45deg"></i> Open Link
+                </a>
+            `).join('');
+            return bodyHtml + `<div class="media-link-actions">${btnHtml}</div>`;
+        }
+
+        return bodyHtml;
+    }
+
+    /**
+     * After rendering a batch of messages, find any link-preview placeholders
+     * and asynchronously fetch + inject OG previews.
+     */
+    injectLinkPreviews(messages) {
+        if (!messages || !Array.isArray(messages)) {
+            // Single message path: scan the DOM for unfilled slots
+            document.querySelectorAll('.link-preview-slot[data-preview-url]').forEach(slot => {
+                if (!slot._previewFetched) {
+                    slot._previewFetched = true;
+                    this._fetchAndFillPreview(slot);
+                }
+            });
+            return;
+        }
+        // Batch path: wait a tick so the DOM is populated first
+        requestAnimationFrame(() => {
+            document.querySelectorAll('.link-preview-slot[data-preview-url]').forEach(slot => {
+                if (!slot._previewFetched) {
+                    slot._previewFetched = true;
+                    this._fetchAndFillPreview(slot);
+                }
+            });
+        });
+    }
+
+    async _fetchAndFillPreview(slot) {
+        const url = slot.dataset.previewUrl;
+        if (!url) return;
+        try {
+            const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+            const data = await res.json();
+            if (!data.success || (!data.title && !data.image)) return;
+
+            // Determine if dark or light bubble context
+            const bubble = slot.closest('.msg-sent, .msg-received');
+            const isDark = bubble?.classList.contains('msg-sent');
+            const bg = isDark ? '#1a1a2e' : '#fff';
+            const textColor = isDark ? '#e0e0e0' : '#1a1a2e';
+            const border = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
+
+            slot.innerHTML = `
+                <div class="link-preview-card-wrapper" style="margin-top:8px;">
+                    <a href="${url}" target="_blank" rel="noopener noreferrer" class="link-preview-card">
+                        ${data.image ? `
+                            <div class="preview-img-container">
+                                <img src="${data.image}" onerror="this.parentElement.style.display='none'">
+                            </div>` : ''}
+                        <div class="preview-content">
+                            ${data.title ? `<div class="preview-title" title="${data.title}">${data.title}</div>` : ''}
+                            ${data.description ? `<div class="preview-description">${data.description}</div>` : ''}
+                            <div class="preview-site-info">
+                                <i class="bi bi-link-45deg"></i>
+                                ${data.siteName || new URL(url).hostname.replace('www.','')}
+                            </div>
+                        </div>
+                    </a>
+                </div>`;
+        } catch (e) { /* Fail silently — link stays clickable as text */ }
+    }
+
+    // ─────────────────────────────────────────────────────────────
 
     createMessageHTML(msg) {
         const isMe = msg.sender_id === this.userId;
@@ -861,7 +984,7 @@ class SparkleChat {
                     ` : ''}
                     ${!isDeleted ? mediaContent : ''}
                     ${listingHtml && !isDeleted ? listingHtml : ''}
-                    ${msg.content || isDeleted ? `<div class="msg-body" style="font-size:14px;">${isDeleted ? '🚫 This message was deleted.' : msg.content}</div>` : ''}
+                    ${isDeleted ? '<div class="msg-body" style="font-size:14px;">\uD83D\uDEAB This message was deleted.</div>' : this.renderMsgBody(msg)}
                     <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0; margin-top:2px;">
                         <span>${this.formatTime(msg.sent_at)}</span>
                         ${msg.edited_at && !isDeleted ? '<span style="font-style:italic;">(edited)</span>' : ''}
@@ -1197,6 +1320,8 @@ class SparkleChat {
             const container = document.getElementById('messagesContainer');
             container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
             this.scrollToBottom(false);
+            // Async: scan for and inject link previews if this msg contains links
+            this.injectLinkPreviews(msg);
 
             this.socket.emit('mark-delivered', { messageId: messageId, chatId: msgChatId });
             this.socket.emit('mark-read', this.currentChatId);
@@ -1225,6 +1350,8 @@ class SparkleChat {
         container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
         this.scrollToBottom(true);
         this.updateInboxPreview(msg);
+        // Async: scan for and inject link previews if this msg contains links
+        this.injectLinkPreviews(msg);
     }
 
     updateInboxPreview(message) {

@@ -1342,3 +1342,115 @@
 .bottom-nav, .chat-composer {
     padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* ── Link Preview & Rich Media Engine ── */
+.link-preview-slot {
+    min-height: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+}
+
+.link-preview-slot:not(:empty) {
+    margin-top: 10px;
+}
+
+.link-preview-card {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    max-width: 280px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: block;
+    text-decoration: none !important;
+}
+
+.msg-sent .link-preview-card {
+    background: rgba(26, 26, 46, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.link-preview-card:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 8px 25px rgba(255, 61, 109, 0.15);
+}
+
+.preview-img-container {
+    width: 100%;
+    height: 148px;
+    background: #f1f5f9;
+    position: relative;
+    overflow: hidden;
+}
+
+.preview-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.link-preview-card:hover .preview-img-container img {
+    transform: scale(1.08);
+}
+
+.preview-content {
+    padding: 10px 12px 12px;
+}
+
+.preview-title {
+    font-weight: 700;
+    font-size: 13.5px;
+    margin-bottom: 4px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.msg-sent .preview-title { color: #ffffff; }
+.msg-received .preview-title { color: #1e293b; }
+
+.preview-description {
+    font-size: 11.5px;
+    color: #888;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.msg-sent .preview-description { color: #94bcce; }
+
+.preview-site-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #ff3d6d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.msg-body a {
+    color: #3b82f6;
+    text-decoration: underline;
+    transition: opacity 0.2s;
+}
+
+.msg-body a:hover {
+    opacity: 0.8;
+}
+
+.msg-sent .msg-body a {
+    color: #ffffff;
+    text-decoration-color: rgba(255,255,255,0.4);
+}

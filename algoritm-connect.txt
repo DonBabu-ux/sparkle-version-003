@@ -1,0 +1,43 @@
+# SPARKLE CONNECT RECOMMENDATION ALGORITHM
+
+The Sparkle Connect page uses a multi-layered recommendation system driven by a blend of proximity, popularity, and session-based entropy.
+
+## 1. SESSION-BASED ENTROPY (The "Sparkle Seed")
+To ensure the feed feels fresh but consistent, the algorithm generates a "randomSeed" based on:
+- **Device Identity:** Hashed `User-Agent` string.
+- **Time Rotation:** Rotates every hour (`Math.floor(Date.now() / 3600000)`).
+This ensures users on different devices see slightly different feeds, and the feed refreshes hourly to prevent stagnation.
+
+## 2. THE SCORING ENGINE (Suggested For You)
+The core "For You" tab calculates a `match_score` for every potential connection in the database:
+
+| Category | Weighting |
+| :--- | :--- |
+| Explicit Filter Match (Chip Selected) | +100.0 pts |
+| Major/Academic Interest Match | +30.0 pts |
+| Same Campus/Affiliation | +20.0 pts |
+| Mutual Connections | +8.0 pts per mutual |
+| Same Academic Level (Year) | +10.0 pts |
+| Session Entropy (Randomness) | +0.0 to +40.0 pts |
+
+**Logic Flow:**
+1. Filter out already followed users and blocked accounts.
+2. Calculate proximity scores (Major, Campus, Mutuals).
+3. Inject randomness (0-40) to allow "discovery" of users outside the immediate circle.
+4. If a UI chip (e.g., "Campus") is clicked, the specific category receives a massive boost (+100) to refine suggestions.
+
+## 3. TRENDING ALGORITHM
+Trending users are not just based on raw follower counts. The algorithm uses a "Popularity + Velocity" approach:
+- **Formula:** `(FollowerCount * 0.7) + (SessionEntropy * 100)`
+This allows "rising stars" with fewer followers but high session engagement to appear alongside top-tier influencers.
+
+## 4. SIMILARITY CLUSTERS
+- **Similar Interests:** A randomized slice of users with the same `major` as the current user.
+- **Same Affiliation:** A randomized slice of users with the same `campus`.
+These clusters use `RAND(randomSeed)` to ensure a high-entropy shuffle that changes hourly.
+
+## 5. UI DEDUPLICATION
+The frontend (EJS/JS) maintains a `seenIds` Set to ensure a "Clean Vertical Feed" rule: each user profile appears only once per tab view, even if they qualify for multiple segments (e.g., both Trending and Same Campus).
+
+---
+*Algorithm defined in controllers/social.controller.js*

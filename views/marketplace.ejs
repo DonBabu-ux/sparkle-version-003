@@ -1456,10 +1456,10 @@
         }
 
         // Render listings
-        function renderListings(listings) {
+        function renderListings(listingsRaw) {
             const container = document.getElementById('productsContainer');
             
-            if (!listings || listings.length === 0) {
+            if (!listingsRaw || listingsRaw.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-store-slash"></i>
@@ -1472,6 +1472,9 @@
                 `;
                 return;
             }
+
+            // Remove duplicate data
+            const listings = [...new Map(listingsRaw.map(l => [l.listing_id, l])).values()];
 
             // Register listings in map for safe onclick lookup
             listings.forEach(l => { listingsMap[l.listing_id] = l; });
@@ -1547,7 +1550,7 @@
                     
                     <div class="product-info">
                         <div class="product-price">KES ${formattedPrice}</div>
-                        <div class="product-title">${escapeHtml(listing.title)}</div>
+                        <div class="product-title" style="color: #ff4da6; font-weight: 500;">${escapeHtml(listing.title)}</div>
                         <div class="product-description">${escapeHtml((listing.description || '').substring(0, 80))}...</div>
                         <div class="product-meta">
                             <span><i class="fas fa-box"></i> ${conditionText}</span>
@@ -1557,11 +1560,8 @@
                     </div>
                     
                     <div class="order-buttons">
-                        <button class="btn-order" onclick="event.stopPropagation(); openOrderModal('${lid}')">
-                            <i class="fas fa-shopping-cart"></i> Order
-                        </button>
-                        <button class="btn-chat" onclick="event.stopPropagation(); startChat('${lid}')">
-                            <i class="fas fa-comment"></i> Chat
+                        <button class="cta-btn btn-order" onclick="event.stopPropagation(); startChat('${lid}')" style="width: 100%; background: #ff4da6; box-shadow: 0 4px 15px rgba(255, 77, 166, 0.2);">
+                            Is this still available?
                         </button>
                     </div>
                 </div>
@@ -1804,8 +1804,11 @@
         function startChat(listingId) {
             const listing = listingsMap[listingId];
             if (!listing) { window.location.href = '/messages'; return; }
-            const msg = encodeURIComponent(`Hi! I'm interested in your listing: "${listing.title}". Is it still available?`);
-            openMessenger(listing.seller_id, listingId);
+            
+            const host = window.location.origin;
+            const message = `Hi, is this still available?\n\n📦 Item: ${listing.title}\n💰 Price: KES ${new Intl.NumberFormat('en-KE').format(listing.price)}\n🔗 Link: ${host}/marketplace/listings/${listingId}\n🖼 Image: ${listing.image_url || listing.media_url || '/images/default-listing.jpg'}`;
+            
+            window.location.href = `/messages/?user=${listing.seller_id}&message=${encodeURIComponent(message)}`;
         }
 
         async function toggleWishlist(listingId) {

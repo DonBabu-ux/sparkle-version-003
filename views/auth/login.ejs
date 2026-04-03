@@ -651,11 +651,20 @@
             // 2FA PIN Input Interactivity
             const pinInputs = document.querySelectorAll('.pin-input-field');
             pinInputs.forEach((input, index) => {
-                input.addEventListener('keyup', (e) => {
-                    if (e.key >= 0 && e.key <= 9) {
-                        if (index < pinInputs.length - 1) pinInputs[index + 1].focus();
-                    } else if (e.key === 'Backspace') {
-                        if (index > 0) pinInputs[index - 1].focus();
+                // Handle forward navigation on typing
+                input.addEventListener('input', (e) => {
+                    // Only allow numbers
+                    input.value = input.value.replace(/[^0-9]/g, '');
+                    
+                    if (input.value && index < pinInputs.length - 1) {
+                        pinInputs[index + 1].focus();
+                    }
+                });
+
+                // Handle backward navigation on Backspace
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !input.value && index > 0) {
+                        pinInputs[index - 1].focus();
                     }
                 });
             });

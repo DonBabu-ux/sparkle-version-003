@@ -1802,9 +1802,16 @@
             if (!listing) { window.location.href = '/messages'; return; }
             
             const host = window.location.origin;
-            const message = `Hi, is this still available?\n\n📦 Item: ${listing.title}\n💰 Price: KES ${new Intl.NumberFormat('en-KE').format(listing.price)}\n🔗 Link: ${host}/marketplace/listings/${listingId}\n🖼 Image: ${listing.image_url || listing.media_url || '/images/default-listing.jpg'}`;
+            const mktPayload = {
+                title: listing.title,
+                price: `KES ${new Intl.NumberFormat('en-KE').format(listing.price)}`,
+                image: listing.image_url || (listing.media && listing.media[0]?.media_url) || '/images/default-listing.jpg',
+                link: `${host}/marketplace/listings/${listingId}`
+            };
             
-            window.location.href = `/messages/?user=${listing.seller_id}&message=${encodeURIComponent(message)}`;
+            // Base64-encode structured payload so chat page renders it as a rich product card
+            const mktEncoded = btoa(encodeURIComponent(JSON.stringify(mktPayload)));
+            window.location.href = `/messages/?user=${listing.seller_id}&mkt=${mktEncoded}`;
         }
 
         async function toggleWishlist(listingId) {

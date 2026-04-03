@@ -39,9 +39,23 @@ class SparkleChat {
         const chatId = urlParams.get('chat');
         const userId = urlParams.get('user');
         const messagePayload = urlParams.get('message');
-        
-        const applyPreFill = () => {
-            if (messagePayload) {
+        const mktParam = urlParams.get('mkt');
+
+        // Decode structured marketplace payload if present
+        let marketplaceData = null;
+        if (mktParam) {
+            try {
+                marketplaceData = JSON.parse(decodeURIComponent(atob(mktParam)));
+            } catch (e) {
+                console.warn('Failed to decode mkt param:', e);
+            }
+        }
+
+        const applyPreFill = (chatIdOpened) => {
+            if (marketplaceData) {
+                // Send as a rich structured card after a short render delay
+                setTimeout(() => this.sendMarketplaceCard(marketplaceData), 600);
+            } else if (messagePayload) {
                 setTimeout(() => {
                     const input = document.getElementById('messageInput');
                     if (input) {
@@ -55,36 +69,68 @@ class SparkleChat {
             }
         };
 
-        if (chatId) {
-            console.log('🔗 Deep-link: Opening chat ID', chatId);
-            await this.openChat(chatId);
-            applyPreFill();
-        } else if (userId) {
-            console.log('🔗 Deep-link: Initializing chat with user', userId);
+        const openChatForUser = async (uid) => {
             try {
-                // Try to get existing chat first by just calling openChat with userId
-                // The backend model fix now handles userId as input to getMessages
-                const response = await fetch(`/api/messages/chat/${userId}`);
+                const response = await fetch(`/api/messages/chat/${uid}`);
                 const result = await response.json();
                 if (result.status === 'success' && result.chatId) {
                     await this.openChat(result.chatId);
-                    applyPreFill();
-                } else if (messagePayload) {
-                    const startRes = await fetch('/api/messages/start', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ partnerId: userId })
-                    });
-                    const startResult = await startRes.json();
-                    if (startResult.status === 'success') {
-                        await this.openChat(startResult.data.conversationId);
-                        applyPreFill();
-                    }
+                    return result.chatId;
+                }
+                // No existing conversation – create one
+                const startRes = await fetch('/api/messages/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ partnerId: uid })
+                });
+                const startResult = await startRes.json();
+                if (startResult.status === 'success') {
+                    await this.openChat(startResult.data.conversationId);
+                    return startResult.data.conversationId;
                 }
             } catch (err) {
                 console.error('Deep-link failed:', err);
             }
+            return null;
+        };
+
+        if (chatId) {
+            console.log('\uD83D\uDD17 Deep-link: Opening chat ID', chatId);
+            await this.openChat(chatId);
+            applyPreFill(chatId);
+        } else if (userId) {
+            console.log('\uD83D\uDD17 Deep-link: Initializing chat with user', userId);
+            const resolvedId = await openChatForUser(userId);
+            if (resolvedId) applyPreFill(resolvedId);
         }
+    }
+
+    sendMarketplaceCard(data) {
+        if (!this.currentChatId || !data) return;
+        const conv = this.conversations.find(c => c.chat_id == this.currentChatId);
+        const recipientId = conv?.partner_id;
+        // Use seller name from payload or chat partner; keep greeting clean (no user name suffix to avoid emoji encoding issues)
+        const sellerName = data.sellerName || conv?.partner_name || 'there';
+
+        // 1. Send warm greeting text first (like WhatsApp flow)
+        const greeting = `Hi ${sellerName}, is this still available? 😊`;
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            recipientId,
+            content: greeting,
+            type: 'text'
+        });
+
+        // 2. After a short delay, send the rich product card as a text msg
+        //    (type stored in content JSON so it works regardless of DB ENUM constraints)
+        setTimeout(() => {
+            this.socket.emit('send-message', {
+                chatId: this.currentChatId,
+                recipientId,
+                content: JSON.stringify({ type: 'marketplace_inquiry', payload: data }),
+                type: 'text'   // Use 'text' so the DB accepts it; type is embedded in the JSON
+            });
+        }, 300);
     }
 
     setupSocket() {
@@ -705,7 +751,7 @@ class SparkleChat {
 
         const isDeleted = msg.is_deleted_for_everyone === 1;
 
-        // Marketplace Listing Card
+        // Marketplace Listing Card (from product detail page links)
         let listingHtml = '';
         if (msg.type === 'marketplace_listing' && msg.marketplace_listing_id) {
             listingHtml = `
@@ -720,6 +766,50 @@ class SparkleChat {
                     </div>
                 </div>
             `;
+        }
+
+        // Rich Marketplace Inquiry Card (from "Is this still available?" CTA)
+        // Check msg.type OR detect from content JSON (fallback for DBs with strict ENUM)
+        const isMarketplaceCard = msg.type === 'marketplace_inquiry' ||
+            (typeof msg.content === 'string' && msg.content.startsWith('{"type":"marketplace_inquiry"'));
+
+        if (isMarketplaceCard) {
+            let mktData = null;
+            try {
+                const parsed = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
+                if (parsed && parsed.type === 'marketplace_inquiry') mktData = parsed.payload;
+            } catch (e) {}
+
+            if (mktData) {
+                const isMe = msg.sender_id === this.userId;
+                return `
+                    <div class="msg-bubble-wrapper ${isMe ? 'own-msg' : 'other-msg'}" style="display:flex; flex-direction:column; align-items:${isMe ? 'flex-end' : 'flex-start'}; gap:2px; margin-bottom:12px;">
+                        <div class="mkt-inquiry-card" onclick="window.open('${mktData.link}', '_blank')" style="cursor:pointer; width:260px; border-radius:16px; overflow:hidden; background:${isMe ? '#1a1a2e' : '#fff'}; box-shadow:0 4px 20px rgba(0,0,0,0.18); border:1px solid ${isMe ? 'rgba(255,77,166,0.3)' : 'rgba(0,0,0,0.08)'}; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                            <div style="position:relative; width:100%; height:180px; overflow:hidden; background:#111;">
+                                <img src="${mktData.image || '/images/default-listing.jpg'}" alt="${mktData.title || 'Item'}" onerror="this.src='/images/default-listing.jpg'" style="width:100%; height:100%; object-fit:cover; display:block;">
+                                <div style="position:absolute; top:10px; left:10px; background:rgba(255,77,166,0.9); color:#fff; font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; letter-spacing:0.5px;">MARKETPLACE</div>
+                            </div>
+                            <div style="padding:12px 14px 14px;">
+                                <div style="font-size:18px; font-weight:800; color:${isMe ? '#ff4da6' : '#ff4da6'}; margin-bottom:4px;">💰 ${mktData.price || 'Contact seller'}</div>
+                                <div style="font-size:13px; font-weight:600; color:${isMe ? '#e0e0e0' : '#1a1a2e'}; line-height:1.4; margin-bottom:10px;">${mktData.title || 'Marketplace Item'}</div>
+                                <div style="display:flex; align-items:center; gap:6px; background:${isMe ? 'rgba(255,77,166,0.15)' : 'rgba(255,77,166,0.08)'}; border-radius:8px; padding:8px 10px;">
+                                    <i class="bi bi-shop" style="color:#ff4da6; font-size:14px;"></i>
+                                    <span style="font-size:12px; font-weight:700; color:#ff4da6;">View Listing →</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="font-size:10px; color:#8696a0; padding: 0 4px; margin-top:2px;">Is this still available?</div>
+                        <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0;">
+                            <span>${this.formatTime(msg.sent_at)}</span>
+                            ${isMe ? `
+                                <span class="msg-tick">
+                                    <i class="bi ${msg.is_read || msg.status === 'read' ? 'bi-check-all' : (msg.delivered ? 'bi-check-all' : 'bi-check')}"
+                                       style="color:${msg.is_read || msg.status === 'read' ? '#53bdeb' : '#8696a0'}; font-size:16px;"></i>
+                                </span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         if (msg.type === 'system') {
@@ -1094,16 +1184,19 @@ class SparkleChat {
     }
 
     handleIncomingMessage(msg) {
+        // Deduplicate: ignore messages sent by this user (server echoes new-message to sender too)
         if (String(msg.sender_id) === String(this.userId)) return;
 
         const messageId = msg.message_id || msg.id;
+        if (!messageId) return;
+        if (this._renderedIds?.has(messageId)) return;
         if (document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return;
 
         const msgChatId = msg.conversation_id || msg.chat_id;
         if (this.currentChatId === msgChatId) {
             const container = document.getElementById('messagesContainer');
             container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
-            this.scrollToBottom(false); // Only scroll if near bottom
+            this.scrollToBottom(false);
 
             this.socket.emit('mark-delivered', { messageId: messageId, chatId: msgChatId });
             this.socket.emit('mark-read', this.currentChatId);
@@ -1115,9 +1208,22 @@ class SparkleChat {
     }
 
     handleMessageSent(msg) {
+        const messageId = msg.message_id || msg.id;
+        // Deduplicate: the server emits both 'new-message' and 'message-sent' to sender
+        if (!this._renderedIds) this._renderedIds = new Set();
+        if (messageId && this._renderedIds.has(messageId)) return;
+        if (messageId && document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return;
+
+        if (messageId) this._renderedIds.add(messageId);
+        // Auto-prune to avoid memory leak (keep last 200)
+        if (this._renderedIds.size > 200) {
+            const first = this._renderedIds.values().next().value;
+            this._renderedIds.delete(first);
+        }
+
         const container = document.getElementById('messagesContainer');
         container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
-        this.scrollToBottom(true); // Always force scroll on own message
+        this.scrollToBottom(true);
         this.updateInboxPreview(msg);
     }
 

@@ -17,6 +17,7 @@ const uploadRoutes = require('./upload.routes');
 const shareRoutes = require('./share.routes');
 const groupChatRoutes = require('./groupChat.routes');
 const notificationsRoutes = require('./notifications.routes');
+const linkPreviewRoutes = require('./link-preview.routes');
 
 const pool = require('../../config/database');
 
@@ -55,5 +56,6 @@ router.use('/skill-market', skillMarketRoutes);
 router.use('/search', require('./search.routes'));
 router.use('/realtime', require('./realtime.routes'));
 router.use('/support', require('./support.routes'));
+router.use('/link-preview', linkPreviewRoutes);
 
 module.exports = router;

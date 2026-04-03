@@ -1,4 +1,15 @@
 <%- include('../partials/head', { title: listing.title }) %>
+<!-- OpenGraph / Social Preview Tags -->
+<meta property="og:type"        content="product" />
+<meta property="og:title"       content="<%= listing.title %> – KES <%= parseFloat(listing.price).toLocaleString('en-KE') %>" />
+<meta property="og:description" content="<%= (listing.description || '').substring(0, 160) %> · For sale on Sparkle Marketplace" />
+<meta property="og:image"       content="<%= listing.image_url || (listing.media && listing.media[0] && listing.media[0].media_url) || '' %>" />
+<meta property="og:url"         content="<%= `${process?.env?.BASE_URL || ''}/marketplace/listings/${listing.listing_id}` %>" />
+<meta property="og:site_name"   content="Sparkle Marketplace" />
+<meta name="twitter:card"       content="summary_large_image" />
+<meta name="twitter:title"      content="<%= listing.title %>" />
+<meta name="twitter:description" content="KES <%= parseFloat(listing.price).toLocaleString('en-KE') %> · Sparkle Marketplace" />
+<meta name="twitter:image"      content="<%= listing.image_url || (listing.media && listing.media[0] && listing.media[0].media_url) || '' %>" />
 <link rel="stylesheet" href="/css/marketplace.css">
 
 <body class="marketplace-page">
@@ -184,9 +195,18 @@
             }
         });
 
-        function contactSeller(sellerId, listingId, listingTitle = 'this item') {
-            const message = encodeURIComponent(`Hi! I'm interested in your listing: "${listingTitle}". Is it still available?`);
-            window.location.href = `/messages?user=${sellerId}&text=${message}&listing=${listingId}`;
+        function contactSeller(sellerId, listingId, listingTitle) {
+            const host = window.location.origin;
+            const sellerName = document.querySelector('.seller-details h5')?.textContent?.trim() || 'there';
+            const mktPayload = {
+                title: listingTitle || document.querySelector('.listing-info h1')?.textContent?.trim() || 'Item',
+                price: document.querySelector('.price-tag')?.textContent?.trim() || '',
+                image: '<%= listing.image_url || (listing.media && listing.media[0] && listing.media[0].media_url) || "/images/default-listing.jpg" %>',
+                link:  `${host}/marketplace/listings/${listingId}`,
+                sellerName
+            };
+            const mktEncoded = btoa(encodeURIComponent(JSON.stringify(mktPayload)));
+            window.location.href = `/messages/?user=${sellerId}&mkt=${mktEncoded}`;
         }
 
         async function toggleDetailLike(id) {

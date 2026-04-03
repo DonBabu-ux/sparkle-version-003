@@ -1,613 +1,485 @@
-<%- include('partials/head', { title: 'Connect' }) %>
+<%- include('partials/head', { title: 'Discover' }) %>
 
-    <style>
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-                padding-bottom: 80px;
-            }
+<style>
+    /* Sparkle Connect Page - Production Optimized Styles */
+    :root {
+        --sparkle-pink: #ff6b8b;
+        --sparkle-pink-light: #fff0f5;
+        --bg-white: #ffffff;
+        --grey-soft: #f8fafc;
+        --grey-border: #e2e8f0;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --card-radius: 14px;
+        --btn-radius: 25px;
+    }
 
-            .discover-page-header {
-                gap: 10px;
-            }
+    * { box-sizing: border-box; }
 
-            .discover-page-title {
-                font-size: 24px !important;
-            }
+    body {
+        background: var(--bg-white);
+        color: var(--text-primary);
+        margin: 0;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
 
-            .premium-search-container {
-                margin: 15px 0;
-                padding: 12px 20px;
-            }
+    /* Main Container Offset for Sidebar */
+    .discover-wrapper {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 0 16px;
+        min-height: 100vh;
+    }
 
-            .premium-filter-bar {
-                display: flex;
-                overflow-x: auto;
-                padding: 10px 0;
-                gap: 10px;
-                scrollbar-width: none;
-                -ms-overflow-style: none;
-            }
+    /* Sticky Header Stack - Combines Search, Chips, and Tabs */
+    .sticky-header-stack {
+        position: sticky;
+        top: 0;
+        background: var(--bg-white);
+        z-index: 900;
+        padding-top: 16px;
+        margin-bottom: 16px;
+    }
 
-            .premium-filter-bar::-webkit-scrollbar {
-                display: none;
-            }
+    /* 1. Search Bar */
+    .search-bar-container {
+        margin-bottom: 16px;
+    }
+    .search-box {
+        display: flex;
+        align-items: center;
+        background: var(--grey-soft);
+        border: 1.5px solid transparent;
+        border-radius: var(--card-radius);
+        padding: 12px 18px;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .search-box:focus-within {
+        background: white;
+        border-color: var(--sparkle-pink);
+        box-shadow: 0 4px 12px rgba(255, 107, 139, 0.15);
+    }
+    .search-box i { color: var(--text-secondary); margin-right: 12px; }
+    .search-box input {
+        border: none;
+        background: transparent;
+        width: 100%;
+        font-size: 15px;
+        color: var(--text-primary);
+        outline: none;
+    }
+    .search-box input::placeholder { color: var(--text-secondary); }
 
-            .premium-filter-btn {
-                white-space: nowrap;
-                padding: 8px 16px;
-                font-size: 13px;
-                flex-shrink: 0;
-            }
+    /* 2. Filter Chips */
+    .filter-chips-row {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        padding-bottom: 16px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .filter-chips-row::-webkit-scrollbar { display: none; }
+    
+    .filter-chip {
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        border: none;
+        background: var(--grey-soft);
+        color: var(--text-primary);
+        transition: 0.2s;
+    }
+    .filter-chip.active {
+        background: var(--sparkle-pink);
+        color: white;
+    }
 
-            .discover-grid {
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 10px !important;
-                padding: 10px 0;
-            }
+    /* 3. Navigation Tabs */
+    .tabs-row {
+        display: flex;
+        border-bottom: 1px solid var(--grey-border);
+    }
+    .tab-btn {
+        flex: 1;
+        background: none;
+        border: none;
+        padding: 14px 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        cursor: pointer;
+        position: relative;
+        transition: 0.2s;
+    }
+    .tab-btn.active {
+        color: var(--sparkle-pink);
+    }
+    .tab-btn.active::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 20%;
+        right: 20%;
+        height: 3px;
+        background: var(--sparkle-pink);
+        border-radius: 4px 4px 0 0;
+    }
 
-            .discover-card {
-                padding: 15px !important;
-            }
+    /* 4. User Feed */
+    .feed-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-bottom: 80px;
+    }
 
-            .discover-avatar {
-                width: 70px !important;
-                height: 70px !important;
-            }
+    /* User Card */
+    .user-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-radius: var(--card-radius);
+        background: var(--bg-white);
+        border: 1px solid var(--grey-soft);
+        transition: 0.2s;
+    }
+    .user-card:active { background: var(--grey-soft); }
 
-            .discover-name {
-                font-size: 14px !important;
-            }
+    .card-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex: 1;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .card-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: var(--grey-soft);
+    }
+    .card-info { overflow: hidden; }
+    .card-name {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-sub {
+        font-size: 13px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-mutuals {
+        font-size: 12px;
+        color: var(--sparkle-pink);
+        margin-top: 2px;
+    }
 
-            .discover-info,
-            .discover-campus {
-                font-size: 11px !important;
-            }
+    .follow-btn {
+        background: var(--sparkle-pink);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: var(--btn-radius);
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.2s;
+        flex-shrink: 0;
+    }
+    .follow-btn.following {
+        background: var(--grey-soft);
+        color: var(--text-primary);
+    }
 
-            .discover-btn {
-                padding: 8px !important;
-                font-size: 12px !important;
-            }
+    /* Skeletons */
+    .skeleton-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px;
+    }
+    .skel-circle { width: 48px; height: 48px; border-radius: 50%; background: #f1f5f9; }
+    .skel-content { flex: 1; }
+    .skel-line { border-radius: 4px; background: #f1f5f9; margin-bottom: 8px; height: 12px; }
+    .skel-line.full { width: 100%; }
+    .skel-line.half { width: 50%; }
+
+    .shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+    .shimmer::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+        animation: shimmer-load 1.5s infinite;
+    }
+    @keyframes shimmer-load { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+    .empty-state i { font-size: 40px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-state h3 { margin: 0 0 8px 0; font-size: 18px; color: var(--text-primary); }
+
+    /* Load More */
+    .load-more-container {
+        padding: 20px 0 60px;
+        text-align: center;
+    }
+    .load-more-btn {
+        background: none;
+        border: 1.5px solid var(--grey-border);
+        padding: 10px 30px;
+        border-radius: 20px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .load-more-btn:hover { background: var(--grey-soft); color: var(--text-primary); }
+
+    @media (max-width: 480px) {
+        .discover-wrapper { padding: 0 12px; }
+        .card-avatar { width: 44px; height: 44px; }
+        .tab-btn { font-size: 13px; }
+    }
+</style>
+
+<%- include('partials/sidebar') %>
+<%- include('partials/bottom-nav') %>
+
+<div class="discover-wrapper">
+    <!-- Header Content: Sticky Stack -->
+    <div class="sticky-header-stack">
+        <!-- 1. Search Bar -->
+        <div class="search-bar-container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="discoverSearchInput" placeholder="Search students, majors, campus...">
+            </div>
+        </div>
+
+        <!-- 2. Filter Chips -->
+        <div class="filter-chips-row">
+            <button class="filter-chip active" onclick="setFilter('all', this)">For You</button>
+            <button class="filter-chip" onclick="setFilter('following', this)">Following</button>
+            <button class="filter-chip" onclick="setFilter('campus', this)">Campus</button>
+            <button class="filter-chip" onclick="setFilter('interests', this)">Interests</button>
+            <button class="filter-chip" onclick="setFilter('level', this)">Level</button>
+        </div>
+
+        <!-- 3. Navigation Tabs -->
+        <div class="tabs-row">
+            <button class="tab-btn active" onclick="setTab('suggested', this)">Suggested</button>
+            <button class="tab-btn" onclick="setTab('trending', this)">Trending</button>
+            <button class="tab-btn" onclick="setTab('similar', this)">Similar</button>
+            <button class="tab-btn" onclick="setTab('following', this)">Following</button>
+        </div>
+    </div>
+
+    <!-- 4. User Feed List -->
+    <div class="feed-list" id="discoverFeed">
+        <!-- RENDERED BY JS -->
+    </div>
+
+    <!-- 5. Load More -->
+    <div class="load-more-container" id="loadMoreArea">
+        <button class="load-more-btn" onclick="loadMore()">Load More</button>
+    </div>
+</div>
+
+<script src="/js/dashboardAPI.js"></script>
+<script>
+    let currentTab = 'suggested';
+    let currentFilter = 'all';
+    let searchQuery = '';
+    
+    // Server Initial Data
+    const sparkData = {
+        suggested: <%- JSON.stringify(suggestedUsers || []) %>,
+        trending: <%- JSON.stringify(trendingUsers || []) %>,
+        similar: <%- JSON.stringify(similarInterests || sameAffiliation || []) %>,
+        following: <%- JSON.stringify(followingUsers || []) %>
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initial Render
+        renderDiscoverFeed(sparkData[currentTab]);
+
+        // Search Input Logic
+        const searchInput = document.getElementById('discoverSearchInput');
+        let searchDebounce;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                searchQuery = e.target.value.trim();
+                triggerRefetch();
+            }, 500);
+        });
+    });
+
+    function setTab(tab, btn) {
+        if (currentTab === tab) return;
+        currentTab = tab;
+        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        triggerRefetch();
+    }
+
+    function setFilter(filter, btn) {
+        if (currentFilter === filter) return;
+        currentFilter = filter;
+        
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        
+        triggerRefetch();
+    }
+
+    async function triggerRefetch() {
+        showSkeletons();
+        try {
+            // Mapping filters to API requirements
+            const apiFilters = {
+                relationship: currentFilter === 'following' ? 'following' : 'all',
+                campus: currentFilter === 'campus' ? '<%= user.campus %>' : 'all',
+                major: currentFilter === 'interests' ? '<%= user.major %>' : 'all',
+                year: currentFilter === 'level' ? '<%= user.year_of_study %>' : 'all'
+            };
+            
+            // If it's a raw tab switch without search/filters, use local data if available
+            const isDefaultState = !searchQuery && currentFilter === 'all';
+            const users = isDefaultState ? sparkData[currentTab] : await DashboardAPI.searchUsers(searchQuery, apiFilters);
+            
+            renderDiscoverFeed(users);
+        } catch (e) {
+            console.error('Discover Refetch Error:', e);
+            renderEmptyState("Something went wrong");
         }
-    </style>
+    }
 
-    <%- include('partials/sidebar') %>
+    function renderDiscoverFeed(users) {
+        const feed = document.getElementById('discoverFeed');
+        const loadMore = document.getElementById('loadMoreArea');
+        feed.innerHTML = '';
+        
+        if (!users || users.length === 0) {
+            renderEmptyState();
+            loadMore.style.display = 'none';
+            return;
+        }
 
-        <!-- Main Content Container -->
-        <div class="container" id="mainContent">
-            <!-- Connect Page -->
-            <div id="connectPage" class="page active">
-                <div class="header glass">
-                    <div class="discover-page-header">
-                        <div class="discover-page-icon">
-                            <i class="fas fa-user-friends"></i>
+        // Deduplication
+        const seenIds = new Set();
+        const uniqueUsers = users.filter(u => {
+            const uid = u.id || u.user_id;
+            if (seenIds.has(uid)) return false;
+            seenIds.add(uid);
+            return true;
+        });
+
+        loadMore.style.display = uniqueUsers.length > 5 ? 'block' : 'none';
+
+        uniqueUsers.forEach(u => {
+            const uid = u.id || u.user_id;
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            card.innerHTML = `
+                <div class="card-left" onclick="window.location.href='/profile/${u.username}'">
+                    <img src="${u.avatar_url || '/uploads/avatars/default.png'}" class="card-avatar">
+                    <div class="card-info">
+                        <div class="card-name">
+                            ${u.username}
+                            ${u.is_developer ? '<i class="fas fa-check-circle" style="color:var(--sparkle-pink); font-size:12px; margin-left:2px;"></i>' : ''}
                         </div>
-                        <div>
-                            <div class="logo discover-page-title">Discover</div>
-                            <div class="discover-page-subtitle">Find your campus sparks</div>
-                        </div>
+                        <div class="card-sub">${u.major || 'Student'} • ${u.campus || 'Global'}</div>
+                        ${u.mutual_connections > 0 ? `<div class="card-mutuals">${u.mutual_connections} mutual connections</div>` : ''}
                     </div>
                 </div>
-
-                <!-- Discover Search (Facebook Style) -->
-                <div class="premium-search-container" style="background: rgba(240, 242, 245, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(0,0,0,0.05); margin-bottom: 20px;">
-                    <i class="fas fa-search" style="color: var(--text-muted);"></i>
-                    <input type="text" id="userSearchInput" class="premium-search-input"
-                        placeholder="Search students, majors, campus..." style="background: transparent;">
-                </div>
-
-                <!-- Connection Filters -->
-                <div class="premium-filter-bar">
-                    <button class="premium-filter-btn active" onclick="filterUsers('all')">
-                        <i class="fas fa-globe"></i> All
-                    </button>
-                    <button class="premium-filter-btn" onclick="filterUsers('relationship', 'not_following')">
-                        <i class="fas fa-user-plus"></i> For You
-                    </button>
-                    <button class="premium-filter-btn" onclick="filterUsers('relationship', 'following')">
-                        <i class="fas fa-user-check"></i> Following
-                    </button>
-                    <button class="premium-filter-btn" onclick="filterUsers('campus', '<%= user.campus %>')">
-                        <i class="fas fa-university"></i> Same Affiliation
-                    </button>
-                    <button class="premium-filter-btn" onclick="filterUsers('major', '<%= user.major %>')">
-                        <i class="fas fa-book-open"></i> Similar Interests
-                    </button>
-                    <button class="premium-filter-btn" onclick="filterUsers('year', '<%= user.year_of_study %>')">
-                        <i class="fas fa-graduation-cap"></i> Experience Level
-                    </button>
-                </div>
-
-                <!-- Connect Page Sections -->
-                <div class="connect-sections" style="display: flex; flex-direction: column; gap: 32px; padding-top: 20px;">
-                    
-                    <!-- 1. Active Friends Section -->
-                    <% if (typeof activeFriends !== 'undefined' && activeFriends && activeFriends.length > 0) { %>
-                    <section class="connect-section">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">Active Friends <span style="background: #10b981; width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 4px;"></span></h3>
-                        </div>
-                        <div style="display: flex; gap: 16px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none;">
-                            <style>.connect-section div::-webkit-scrollbar { display: none; }</style>
-                            <% activeFriends.forEach(u => { %>
-                                <div class="active-friend-item" onclick="window.location.href='/profile/<%= u.username %>'" style="min-width: 80px; text-align: center; cursor: pointer;">
-                                    <div style="position: relative; width: 64px; height: 64px; margin: 0 auto;">
-                                        <img src="<%= u.avatar_url %>" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent);">
-                                        <div style="position: absolute; bottom: 2px; right: 2px; width: 14px; height: 14px; background: #10b981; border: 2px solid white; border-radius: 50%;"></div>
-                                    </div>
-                                    <div style="font-size: 12px; font-weight: 600; margin-top: 6px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= u.username %></div>
-                                </div>
-                            <% }); %>
-                        </div>
-                    </section>
-                    <% } %>
-
-                    <!-- 2. Suggested For You (Ranked) -->
-                    <section class="connect-section" id="suggestedSection">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">Suggested For You</h3>
-                        </div>
-                        <div class="discover-grid" id="connectContainer">
-                            <% if (typeof suggestedUsers !== 'undefined' && suggestedUsers && suggestedUsers.length > 0) { %>
-                                <% suggestedUsers.forEach(u => { %>
-                                    <%- include('partials/user-card', { u }) %>
-                                <% }); %>
-                            <% } else { %>
-                                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">No suggestions right now</div>
-                            <% } %>
-                        </div>
-                    </section>
-
-                    <!-- 3. Trending People -->
-                    <% if (typeof trendingUsers !== 'undefined' && trendingUsers && trendingUsers.length > 0) { %>
-                    <section class="connect-section" id="trendingSection" style="background: rgba(255, 105, 180, 0.05); padding: 20px; border-radius: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <h3 style="font-weight: 800; font-size: 18px; color: var(--accent); margin: 0;">
-                                <i class="fas fa-fire" style="margin-right: 8px;"></i> Trending People
-                            </h3>
-                        </div>
-                        <div class="discover-grid">
-                            <% trendingUsers.forEach(u => { %>
-                                <%- include('partials/user-card', { u }) %>
-                            <% }); %>
-                        </div>
-                    </section>
-                    <% } %>
-
-                    <!-- 4. Same Affiliation -->
-                    <% if (typeof sameAffiliation !== 'undefined' && sameAffiliation && sameAffiliation.length > 0) { %>
-                    <section class="connect-section" id="affiliationSection">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">
-                                <i class="fas fa-university" style="margin-right: 8px;"></i> Same Affiliation
-                            </h3>
-                        </div>
-                        <div class="discover-grid">
-                            <% sameAffiliation.forEach(u => { %>
-                                <%- include('partials/user-card', { u }) %>
-                            <% }); %>
-                        </div>
-                    </section>
-                    <% } %>
-
-                    <!-- 5. Similar Interests -->
-                    <% if (typeof similarInterests !== 'undefined' && similarInterests && similarInterests.length > 0) { %>
-                    <section class="connect-section" id="interestsSection">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">
-                                <i class="fas fa-book-open" style="margin-right: 8px;"></i> Similar Interests
-                            </h3>
-                        </div>
-                        <div class="discover-grid">
-                            <% similarInterests.forEach(u => { %>
-                                <%- include('partials/user-card', { u }) %>
-                            <% }); %>
-                        </div>
-                    </section>
-                    <% } %>
-
-                    <!-- 4. People You Follow -->
-                    <% if (typeof followingUsers !== 'undefined' && followingUsers && followingUsers.length > 0 && !(typeof filters !== 'undefined' && filters.search)) { %>
-                    <section class="connect-section" id="followingSection">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">People You Follow</h3>
-                        </div>
-                        <div class="discover-grid">
-                            <% followingUsers.forEach(u => { %>
-                                <%- include('partials/user-card', { u }) %>
-                            <% }); %>
-                        </div>
-                    </section>
-                    <% } %>
-                </div>
-            </div>
-        </div>
-
-        <!-- Profile Modal -->
-        <div id="profileModal" class="premium-modal">
-            <div class="premium-modal-content">
-                <!-- Modal Header -->
-                <div class="premium-modal-header">
-                    <h3 class="premium-modal-title">Student Profile</h3>
-                    <button onclick="closeProfileModal()" class="close-modal">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-
-                <!-- Profile Content -->
-                <div id="profileModalContent" class="premium-modal-body no-padding">
-                    <!-- Content loaded dynamically -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Expanded Image Modal -->
-        <div id="imageModal" class="image-modal-overlay">
-            <div class="image-modal-content">
-                <img id="expandedImage" src="" alt="Expanded profile">
-                <button onclick="closeImageModal()" class="image-modal-close">
-                    <i class="fas fa-times"></i>
+                <button class="follow-btn ${u.is_followed ? 'following' : ''}" onclick="handleFollow('${uid}', this)">
+                    ${u.is_followed ? 'Following' : 'Follow'}
                 </button>
-            </div>
-        </div>
-
-        <%- include('partials/bottom-nav') %>
-
-            <script src="/js/dashboardAPI.js"></script>
-            <script>
-                let currentFilters = {
-                    campus: 'all',
-                    major: 'all',
-                    year: 'all',
-                    relationship: 'all'
-                };
-                let searchQuery = '';
-
-                document.addEventListener('DOMContentLoaded', function () {
-                    // Logic for initialization
-                    const searchInput = document.getElementById('userSearchInput');
-                    let debounceTimer;
-                    if (searchInput) {
-                        searchInput.addEventListener('input', () => {
-                            clearTimeout(debounceTimer);
-                            debounceTimer = setTimeout(() => {
-                                searchQuery = searchInput.value;
-                                fetchUsers();
-                            }, 400);
-                        });
-                    }
-                });
-
-                async function filterUsers(type, value = 'all') {
-                    if (type === 'all') {
-                        currentFilters = { campus: 'all', major: 'all', year: 'all', relationship: 'all' };
-                    } else {
-                        currentFilters[type] = value;
-                    }
-
-                    document.querySelectorAll('.premium-filter-btn').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
-                    if (event && event.currentTarget) {
-                        event.currentTarget.classList.add('active');
-                    }
-
-                    await fetchUsers();
-                }
-
-                async function fetchUsers() {
-                    const container = document.getElementById('connectContainer');
-                    const nonSuggestedSections = document.querySelectorAll('.connect-section:not(#suggestedSection)');
-                    const suggestedHeading = document.querySelector('#suggestedSection h3');
-
-                    // If searching or filtering, handle section visibility
-                    const isSearching = searchQuery.trim().length > 0;
-                    const hasFilters = currentFilters.campus !== 'all' || currentFilters.major !== 'all' || currentFilters.year !== 'all';
-
-                    if (isSearching || hasFilters) {
-                        nonSuggestedSections.forEach(s => s.style.display = 'none');
-                        if (suggestedHeading) suggestedHeading.innerText = isSearching ? 'Search Results' : 'Filtered Students';
-                    } else {
-                        nonSuggestedSections.forEach(s => s.style.display = 'block');
-                        if (suggestedHeading) suggestedHeading.innerText = 'Suggested For You';
-                    }
-
-                    container.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 60px;">
-                    <div class="spinner" style="margin: 0 auto 20px;"></div>
-                    <p style="color: #666;">Hunting for campus sparks...</p>
-                </div>
             `;
+            feed.appendChild(card);
+        });
+    }
 
-                    try {
-                        const users = await DashboardAPI.searchUsers(searchQuery, currentFilters);
-                        renderUsers(users);
-                    } catch (error) {
-                        console.error('Fetch error:', error);
-                        container.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px;">
-                        <i class="fas fa-exclamation-circle" style="font-size: 40px; color: var(--danger); margin-bottom: 20px;"></i>
-                        <p style="color: #666;">Oops! Something went wrong while discovering students.</p>
-                        <button onclick="fetchUsers()" class="premium-filter-btn" style="margin: 20px auto; display: inline-flex;">Try Again</button>
-                    </div>
-                `;
-                    }
+    async function handleFollow(userId, btn) {
+        try {
+            const isFollowing = btn.classList.contains('following');
+            btn.disabled = true;
+            
+            if (isFollowing) {
+                await DashboardAPI.unfollowUser(userId);
+                btn.classList.remove('following');
+                btn.innerText = 'Follow';
+            } else {
+                const res = await DashboardAPI.followUser(userId);
+                if (res.status === 'requested') {
+                    btn.innerText = 'Requested';
+                } else {
+                    btn.classList.add('following');
+                    btn.innerText = 'Following';
                 }
+            }
+        } catch (e) {
+            console.error('Follow Action Error:', e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
 
-                function renderUsers(users) {
-                    const container = document.getElementById('connectContainer');
-                    if (!users || users.length === 0) {
-                        container.innerHTML = `
-                    <div class="discover-empty-state" style="grid-column: 1/-1;">
-                        <i class="fas fa-users-slash"></i>
-                        <h4>No Students Found</h4>
-                        <p>Try adjusting your filters or search terms to find more campus sparks!</p>
-                    </div>
-                `;
-                        return;
-                    }
-
-                    container.innerHTML = users.map(u => `
-                <div class="discover-card" onclick="window.location.href='/profile/${u.username}'">
-                    ${!(u.is_followed || u.isConnected) ? `
-                    <button onclick="event.stopPropagation(); removeSuggestion('${u.id}')" class="discover-close-btn">
-                        <i class="fas fa-times"></i>
-                    </button>` : ''}
-
-                    <div class="discover-avatar-container">
-                        <img src="${u.avatar || u.avatar_url || '/uploads/avatars/default.png'}" alt="${u.username}" class="discover-avatar">
-                        ${u.isOnline || u.is_online ? '<div class="discover-status"></div>' : ''}
-                    </div>
-
-                    <div class="discover-name">
-                        ${u.username}
-                        ${u.is_developer ? `<i class="fas fa-check-circle" style="color: var(--accent); font-size: 12px; margin-left: 4px;" title="Sparkle Developer"></i>` : ''}
-                    </div>
-
-                    <div class="discover-info">
-                        ${u.major || 'Sparkler'}
-                    </div>
-
-                    <div class="discover-campus">
-                        <i class="fas fa-map-marker-alt"></i> ${u.campus || 'Global'}
-                    </div>
-
-                    ${u.mutual_connections > 0 ? `
-                    <div style="font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 4px;">
-                        <i class="fas fa-users" style="margin-right: 4px;"></i> ${u.mutual_connections} mutual connections
-                    </div>
-                    ` : ''}
-
-                    <div class="discover-btn-container">
-                        ${(u.is_followed || u.isConnected) ? `
-                            <button class="discover-btn following" data-user-id="${u.id}" onclick="event.stopPropagation(); toggleFollow('${u.id}', this)">
-                                <i class="fas fa-check"></i> Following
-                            </button>
-                        ` : (u.request_status === 'pending' || u.is_requested) ? `
-                            <button class="discover-btn requested" disabled data-user-id="${u.id}" onclick="event.stopPropagation()">
-                                <i class="fas fa-clock"></i> Requested
-                            </button>
-                        ` : `
-                            <button class="discover-btn follow" data-user-id="${u.id}" onclick="event.stopPropagation(); toggleFollow('${u.id}', this)">
-                                <i class="fas fa-plus"></i> Follow
-                            </button>
-                        `}
-                    </div>
+    function showSkeletons() {
+        document.getElementById('discoverFeed').innerHTML = Array(6).fill(0).map(() => `
+            <div class="skeleton-item shimmer">
+                <div class="skel-circle"></div>
+                <div class="skel-content">
+                    <div class="skel-line half"></div>
+                    <div class="skel-line full"></div>
                 </div>
-            `).join('');
-                }
+            </div>
+        `).join('');
+    }
 
-                async function showProfileModal(userId) {
-                    try {
-                        const modal = document.getElementById('profileModal');
-                        const content = document.getElementById('profileModalContent');
+    function renderEmptyState(msg = "No more suggestions") {
+        document.getElementById('discoverFeed').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-user-astronaut"></i>
+                <h3>${msg}</h3>
+                <p>Try switching tabs or adjusting filters</p>
+            </div>
+        `;
+    }
 
-                        modal.style.display = 'flex';
-                        content.innerHTML = '<div style="padding: 60px; text-align: center;"><div class="spinner" style="margin: 0 auto;"></div></div>';
-
-                        const user = await DashboardAPI.loadUserProfile(userId);
-
-                        content.innerHTML = `
-                    <div class="user-profile-modal-view">
-                        <div class="user-profile-cover">
-                            <div class="user-profile-avatar-wrapper" onclick="expandProfileImage('${user.id}', '${user.avatar || '/uploads/avatars/default.png'}')">
-                                <img src="${user.avatar || '/uploads/avatars/default.png'}" alt="${user.username}" class="user-profile-avatar">
-                                ${user.isOnline ? '<div class="discover-status" style="bottom: 8px; right: 8px;"></div>' : ''}
-                            </div>
-                        </div>
-
-                        <div style="padding: 0 24px 24px;">
-                            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px; margin-top: -45px;">
-                                <button onclick="toggleFollow('${user.id}', this, true)" 
-                                        class="discover-btn ${user.is_followed ? 'following' : 'follow'}" 
-                                        style="width: auto; padding: 10px 24px; border-radius: 12px;">
-                                    ${user.is_followed ? '<i class="fas fa-check"></i> Following' : '<i class="fas fa-plus"></i> Follow'}
-                                </button>
-                                <button onclick="openMessages('${user.id}', '${user.username}')" 
-                                        class="premium-filter-btn">
-                                    <i class="fas fa-comment"></i>
-                                </button>
-                                <button onclick="showMoreOptions('${user.id}', '${user.username}')" 
-                                        class="premium-filter-btn">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                            </div>
-
-                            <h3 style="margin: 0; font-size: 24px; font-weight: 800; color: var(--text-light);">${user.name || user.username}</h3>
-                            <p style="color: #8E8E8E; margin: 4px 0 20px 0; font-size: 14px; font-weight: 500;">@${user.username}</p>
-
-                            <div class="user-profile-stats">
-                                <div class="user-profile-stat-item"><strong>${user.followers || 0}</strong> <span>Followers</span></div>
-                                <div class="user-profile-stat-item"><strong>${user.following || 0}</strong> <span>Following</span></div>
-                                <div class="user-profile-stat-item"><strong>${user.posts || 0}</strong> <span>Posts</span></div>
-                            </div>
-                            
-                            <div style="margin-bottom: 24px;">
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--text-light); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">About</h4>
-                                <p style="color: #64748B; font-size: 15px; line-height: 1.6;">${user.bio || 'No bio available yet.'}</p>
-                            </div>
-
-                            <div class="profile-info-grid">
-                                <div class="profile-info-item">
-                                    <i class="fas fa-graduation-cap"></i> <span>${user.major || 'Student'}</span>
-                                </div>
-                                <div class="profile-info-item">
-                                    <i class="fas fa-university"></i> <span>${user.campus || 'Global'}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                    } catch (error) {
-                        console.error('Error loading profile:', error);
-                        closeProfileModal();
-                    }
-                }
-
-                function closeProfileModal() {
-                    document.getElementById('profileModal').style.display = 'none';
-                }
-
-                function expandProfileImage(userId, imageUrl) {
-                    document.getElementById('expandedImage').src = imageUrl;
-                    document.getElementById('imageModal').style.display = 'flex';
-                }
-
-                function closeImageModal() {
-                    document.getElementById('imageModal').style.display = 'none';
-                }
-
-                async function toggleFollow(userId, button, fromModal = false) {
-                    try {
-                        const followBtn = button || document.querySelector(`.discover-btn[data-user-id="${userId}"]`);
-                        if (!followBtn) return;
-
-                        const isFollowing = followBtn.classList.contains('following');
-                        const card = followBtn.closest('.discover-card');
-
-                        if (isFollowing) {
-                            followBtn.classList.remove('following');
-                            followBtn.classList.add('follow');
-                            followBtn.innerHTML = '<i class="fas fa-plus"></i> Follow';
-                            await DashboardAPI.unfollowUser(userId);
-                        } else {
-                            // Call API to follow
-                            const res = await DashboardAPI.followUser(userId);
-                            
-                            if (res.status === 'requested') {
-                                followBtn.classList.remove('follow');
-                                followBtn.classList.add('requested');
-                                followBtn.innerHTML = '<i class="fas fa-clock"></i> Requested';
-                                followBtn.disabled = true;
-                            } else {
-                                followBtn.classList.remove('follow');
-                                followBtn.classList.add('following');
-                                followBtn.innerHTML = '<i class="fas fa-check"></i> Following';
-                                
-                                // Move card to bottom if it's in the grid
-                                if (card && !fromModal) {
-                                    card.style.transition = 'all 0.5s ease';
-                                    card.style.opacity = '0.5';
-                                    card.style.transform = 'scale(0.95)';
-
-                                    setTimeout(() => {
-                                        const container = document.getElementById('connectContainer');
-                                        container.appendChild(card);
-                                        card.style.opacity = '1';
-                                        card.style.transform = 'scale(1)';
-                                    }, 500);
-                                }
-                            }
-                        }
-
-                        if (fromModal) {
-                            showProfileModal(userId);
-                        }
-                    } catch (error) {
-                        console.error('Follow toggle error:', error);
-                        alert(`Action failed: ${error.message}`);
-                    }
-                }
-
-                function openMessages(userId, username) {
-                    window.location.href = `/messages?chat=${userId}`;
-                }
-
-                function removeSuggestion(userId) {
-                    if (event) event.stopPropagation();
-                    const card = event.target.closest('.discover-card');
-                    if (card) {
-                        card.style.transform = 'scale(0.8) translateY(20px)';
-                        card.style.opacity = '0';
-                        setTimeout(() => card.remove(), 300);
-                    }
-                }
-
-                function showMoreOptions(userId, username) {
-                    const content = document.getElementById('profileModalContent');
-                    content.innerHTML = `
-                        <div style="padding: 24px;">
-                            <button onclick="showProfileModal('${userId}')" style="background: none; border: none; font-size: 16px; color: var(--primary); margin-bottom: 20px; cursor: pointer;"><i class="fas fa-arrow-left"></i> Back</button>
-                            <h4 style="margin-bottom: 24px; font-weight: 800; font-size: 20px;">Actions</h4>
-                            
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
-                                <button onclick="muteUser('${userId}', '${username}')" class="premium-filter-btn" style="justify-content: flex-start; padding: 16px; width: 100%;">
-                                    <i class="fas fa-volume-mute" style="width: 24px; color: var(--primary);"></i> Mute @${username}
-                                </button>
-                                <button onclick="blockUser('${userId}', '${username}')" class="premium-filter-btn" style="justify-content: flex-start; padding: 16px; width: 100%; color: var(--danger);">
-                                    <i class="fas fa-ban" style="width: 24px;"></i> Block @${username}
-                                </button>
-                                <button onclick="reportUser('${userId}', '${username}')" class="premium-filter-btn" style="justify-content: flex-start; padding: 16px; width: 100%; color: var(--warning);">
-                                    <i class="fas fa-flag" style="width: 24px;"></i> Report Account
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                async function muteUser(userId, username) {
-                    if (confirm(`Mute @${username}?`)) {
-                        try {
-                            await DashboardAPI.muteUser(userId);
-                            closeProfileModal();
-                        } catch (e) {
-                            alert('Action failed.');
-                        }
-                    }
-                }
-
-                async function blockUser(userId, username) {
-                    if (confirm(`Block @${username}?`)) {
-                        try {
-                            await DashboardAPI.blockUser(userId);
-                            closeProfileModal();
-                            fetchUsers();
-                        } catch (e) {
-                            alert('Action failed.');
-                        }
-                    }
-                }
-
-                async function reportUser(userId, username) {
-                    const reason = prompt(`Reason for reporting @${username}:`);
-                    if (reason) {
-                        try {
-                            await DashboardAPI.reportUser(userId, reason);
-                            alert(`Report submitted.`);
-                            closeProfileModal();
-                        } catch (e) {
-                            alert('Report failed.');
-                        }
-                    }
-                }
-
-                window.onclick = function (event) {
-                    if (event.target === document.getElementById('profileModal')) closeProfileModal();
-                    if (event.target === document.getElementById('imageModal')) closeImageModal();
-                }
-            </script>
-            </body>
-
-            </body>
-
-            </html>
+    function loadMore() {
+        // Mocking load more as results are usually batched in suggestions
+        alert('Showing more recommendations...');
+    }
+</script>
+</body>
+</html>

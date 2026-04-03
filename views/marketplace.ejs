@@ -1526,9 +1526,6 @@
                             `).join('');
                         })()}
                         
-                        <div class="condition-badge">
-                            <i class="${conditionIcon}"></i> ${conditionText}
-                        </div>
                     </div>
                     
                     <div class="product-actions">
@@ -1551,7 +1548,6 @@
                     <div class="product-info">
                         <div class="product-price">KES ${formattedPrice}</div>
                         <div class="product-title" style="color: #ff4da6; font-weight: 500;">${escapeHtml(listing.title)}</div>
-                        <div class="product-description">${escapeHtml((listing.description || '').substring(0, 80))}...</div>
                         <div class="product-meta">
                             <span><i class="fas fa-box"></i> ${conditionText}</span>
                             <span><i class="far fa-calendar-alt"></i> ${formatDate(listing.created_at)}</span>

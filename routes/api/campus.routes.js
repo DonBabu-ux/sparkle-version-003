@@ -21,6 +21,9 @@ router.post('/events/checkin', authMiddleware, campusController.checkInEvent);  
 router.delete('/events/:id', authMiddleware, campusController.deleteEvent);                    // Admin/Creator Delete
 router.patch('/events/:id/status', authMiddleware, campusController.updateEventStatus);         // Admin/Creator Update Status
 router.post('/events/rsvp/approve', authMiddleware, campusController.approveRSVP);              // Admin/Creator Approve/Reject
+router.patch('/events/:id', authMiddleware, campusController.updateEvent);                      // NEW - Edit event
+router.get('/events/:id/analytics', authMiddleware, campusController.getEventAnalytics);        // NEW - View stats
+router.post('/events/:id/notify', authMiddleware, campusController.notifyAttendees);           // NEW - Send announcement
 
 // ---- Streams (Live Text Updates) ----
 router.get('/streams', campusController.getStreams);                                            // Browse live streams

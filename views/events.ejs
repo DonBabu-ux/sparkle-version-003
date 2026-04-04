@@ -160,6 +160,57 @@
                 margin-bottom: 10px;
             }
             .stats-item i { color: var(--accent); }
+
+            /* Hamburger Admin Menu Styling */
+            .admin-menu-trigger {
+                background: none;
+                border: none;
+                color: var(--text-muted);
+                cursor: pointer;
+                padding: 8px;
+                border-radius: 50%;
+                transition: 0.2s;
+                position: relative;
+            }
+            .admin-menu-trigger:hover {
+                background: rgba(0,0,0,0.05);
+                color: var(--text-main);
+            }
+            .admin-dropdown {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                border: 1px solid rgba(0,0,0,0.05);
+                min-width: 160px;
+                z-index: 100;
+                display: none;
+                overflow: hidden;
+            }
+            .admin-dropdown.active {
+                display: block;
+                animation: slideDown 0.2s ease-out;
+            }
+            @keyframes slideDown {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .admin-dropdown-item {
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 13px;
+                color: var(--text-main);
+                text-decoration: none;
+                transition: 0.2s;
+            }
+            .admin-dropdown-item:hover {
+                background: #f8fafc;
+                color: var(--primary);
+            }
         </style>
         <%- include('partials/sidebar') %>
         <div class="container" id="mainContent">
@@ -193,7 +244,25 @@
                                             <span style="font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;"><%= event.username %></span>
                                             <span class="badge" style="width: fit-content; padding: 2px 8px; font-size: 10px;"><%= event.campus || 'Campus Wide' %></span>
                                         </div>
-                                        <span class="live-dot" title="Live Event Updates Active"></span>
+                                        <div style="display: flex; align-items: flex-start; gap: 8px;">
+                                            <span class="live-dot" title="Live Event Updates Active"></span>
+                                            
+                                            <% if (user && (event.creator_id === user.user_id || event.creator_id === user.userId)) { %>
+                                                <div style="position: relative;">
+                                                    <button class="admin-menu-trigger" onclick="toggleAdminDropdown('<%= event.event_id %>')" aria-label="Admin Options">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <div class="admin-dropdown" id="admin-dropdown-<%= event.event_id %>">
+                                                        <a href="/events/admin?id=<%= event.event_id %>" class="admin-dropdown-item">
+                                                            <i class="fas fa-tasks"></i> Manage Event
+                                                        </a>
+                                                        <a href="#" class="admin-dropdown-item" onclick="sendAnnouncement('<%= event.event_id %>')">
+                                                            <i class="fas fa-bullhorn"></i> Send Blast
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            <% } %>
+                                        </div>
                                     </div>
 
                                     <h3 style="font-size: 18px; margin: 5px 0;"><%= event.title %></h3>
@@ -399,6 +468,20 @@
                 } catch (e) {
                     console.error("Attendee load error", e);
                 }
+            }
+            function toggleAdminDropdown(eventId) {
+                document.querySelectorAll('.admin-dropdown').forEach(d => {
+                    if (d.id !== 'admin-dropdown-' + eventId) d.classList.remove('active');
+                });
+                const dropdown = document.getElementById('admin-dropdown-' + eventId);
+                if (dropdown) dropdown.classList.toggle('active');
+                const closeHandler = (e) => {
+                    if (!e.target.closest('.admin-menu-trigger')) {
+                        dropdown.classList.remove('active');
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                setTimeout(() => document.addEventListener('click', closeHandler), 0);
             }
         </script>
     </body>

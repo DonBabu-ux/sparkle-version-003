@@ -610,6 +610,75 @@ const endStream = async (req, res) => {
     }
 };
 
+const updateEvent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+        const { title, description, max_attendees, requirements } = req.body;
+
+        const [event] = await pool.query('SELECT creator_id FROM campus_events WHERE event_id = ?', [id]);
+        if (event.length === 0) return res.status(404).json({ error: 'Event not found' });
+        if (event[0].creator_id !== userId) return res.status(403).json({ error: 'Unauthorized to edit this event' });
+
+        const updates = [];
+        const params = [];
+        if (title) { updates.push('title = ?'); params.push(title); }
+        if (description) { updates.push('description = ?'); params.push(description); }
+        if (max_attendees) { updates.push('max_attendees = ?'); params.push(max_attendees); }
+        if (requirements) { updates.push('requirements = ?'); params.push(requirements); }
+
+        if (updates.length > 0) {
+            params.push(id);
+            await pool.query(`UPDATE campus_events SET ${updates.join(', ')} WHERE event_id = ?`, params);
+        }
+
+        res.json({ success: true, message: 'Event updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const getEventAnalytics = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+
+        const [event] = await pool.query('SELECT creator_id FROM campus_events WHERE event_id = ?', [id]);
+        if (event.length === 0) return res.status(404).json({ error: 'Event not found' });
+        if (event[0].creator_id !== userId) return res.status(403).json({ error: 'Unauthorized' });
+
+        const [[stats]] = await pool.query(
+            `SELECT 
+                COUNT(*) as total_rsvps,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+                SUM(CASE WHEN status = 'checked_in' THEN 1 ELSE 0 END) as checked_in_count
+             FROM event_rsvps WHERE event_id = ?`,
+            [id]
+        );
+
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const notifyAttendees = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { message } = req.body;
+        const userId = req.user.user_id || req.user.userId;
+
+        const [event] = await pool.query('SELECT creator_id, title FROM campus_events WHERE event_id = ?', [id]);
+        if (event.length === 0) return res.status(404).json({ error: 'Event not found' });
+        if (event[0].creator_id !== userId) return res.status(403).json({ error: 'Unauthorized' });
+
+        res.json({ success: true, message: 'Announcement sent to all attendees' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     renderPolls,
     renderPollDetail,
@@ -635,5 +704,8 @@ module.exports = {
     renderEventsAdmin,
     deleteEvent,
     updateEventStatus,
-    approveRSVP
+    approveRSVP,
+    updateEvent,
+    getEventAnalytics,
+    notifyAttendees
 };

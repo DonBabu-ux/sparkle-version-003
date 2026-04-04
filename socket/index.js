@@ -201,6 +201,38 @@ const initializeSocket = (server) => {
             }
         });
 
+        // Mark messages as delivered (client emits when they receive a message)
+        socket.on('mark-delivered', async (data) => {
+            try {
+                const { messageId, chatId } = data;
+                if (!chatId) return;
+
+                // Only mark delivered for messages NOT sent by this user
+                await pool.query(
+                    `UPDATE messages SET status = 'delivered'
+                     WHERE (conversation_id = ? OR chat_id = ?)
+                       AND sender_id != ?
+                       AND status = 'sent'`,
+                    [chatId, chatId, socket.userId]
+                );
+
+                // Notify the sender their message was delivered
+                socket.to(`chat:${chatId}`).emit('messages-delivered', {
+                    chatId,
+                    messageId,
+                    userId: socket.userId,
+                    deliveredAt: new Date().toISOString()
+                });
+            } catch (error) {
+                logger.error('Mark delivered error:', error);
+            }
+        });
+
+        // Custom heartbeat ping-pong (supplements socket.io's built-in ping)
+        socket.on('sparkle-ping', () => {
+            socket.emit('sparkle-pong', { ts: Date.now() });
+        });
+
         // Add Reaction
         socket.on('add-reaction', async (data) => {
             const { messageId, chatId, emoji } = data;

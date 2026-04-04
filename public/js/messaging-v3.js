@@ -134,38 +134,136 @@ class SparkleChat {
     }
 
     setupSocket() {
+        // ─── Message Queue for offline resilience ───────────────────────────
+        this._msgQueue = this._msgQueue || [];
+        this._reconnectAttempts = 0;
+        this._maxReconnectDelay = 30000;
+
         // Re-use connection if possible, otherwise init
         this.socket = window.socket || io({
-            auth: {
-                token: this.getCookie('sparkleToken')
-            }
+            auth: { token: this.getCookie('sparkleToken') },
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 10000,
+            timeout: 20000
         });
 
         window.socket = this.socket;
 
+        // ─── Connection Events ───────────────────────────────────────────────
         this.socket.on('connect', () => {
-            console.log('🔌 Connected to Sparkle Real-time');
+            console.log('🔌 Sparkle: Socket connected', this.socket.id);
+            this._reconnectAttempts = 0;
+            this._drainMessageQueue();
+
+            // Re-join current chat room on reconnect
+            if (this.currentChatId) {
+                this.socket.emit('join-chat', this.currentChatId);
+            }
         });
 
-        // Original socket events, some might be redundant with the new init() bindings
-        // Keeping them here for now, assuming the new init() bindings are the primary ones.
-        // The instruction implies the new init() replaces the event binding logic.
-        // For now, I'll assume the new init() event bindings are the source of truth.
-        // The original setupSocket() event bindings are now effectively superseded by the new init() bindings.
-        // To avoid duplicate listeners, I'll comment out the original ones here.
+        this.socket.on('disconnect', (reason) => {
+            console.warn('🔌 Sparkle: Socket disconnected –', reason);
+            this._stopHeartbeat();
+
+            // Attempt manual reconnect for transport-close cases
+            if (reason === 'transport close' || reason === 'transport error') {
+                this._scheduleReconnect();
+            }
+        });
+
+        this.socket.on('reconnect', (attempt) => {
+            console.log(`🔌 Sparkle: Reconnected after ${attempt} attempt(s)`);
+            this._startHeartbeat();
+        });
+
+        this.socket.on('connect_error', (err) => {
+            console.warn('🔌 Sparkle: Connection error –', err.message);
+        });
+
+        // Custom server-side pong response
+        this.socket.on('sparkle-pong', () => {
+            this._lastPong = Date.now();
+        });
+
+        // ─── Chat / Messaging Events ────────────────────────────────────────
         this.socket.on('new-message', (message) => this.handleIncomingMessage(message));
         this.socket.on('message-sent', (message) => this.handleMessageSent(message));
         this.socket.on('user-typing', (data) => this.handleTypingIndicator(data));
         this.socket.on('messages-read', (data) => this.handleReadReceipt(data));
+        this.socket.on('messages-delivered', (data) => this.handleMessageDelivered(data));
         this.socket.on('user-status', (data) => this.handleUserStatus(data));
         this.socket.on('new-reaction', (data) => this.handleReaction(data));
         this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
         this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted({ messageId: data.messageId }));
-        this.socket.on('message_deleted', (messageId) => this.handleMessageDeleted({ messageId: messageId })); // View limit expired
+        this.socket.on('message_deleted', (messageId) => this.handleMessageDeleted({ messageId }));
         this.socket.on('new_group_created', async (data) => {
             await this.loadInbox();
-            if (data.chatId) {
-                this.socket.emit('join-chat', data.chatId);
+            if (data.chatId) this.socket.emit('join-chat', data.chatId);
+        });
+
+        // ─── Start heartbeat ─────────────────────────────────────────────────
+        this._startHeartbeat();
+    }
+
+    // ─── Heartbeat: Custom ping every 25s ────────────────────────────────────
+    _startHeartbeat() {
+        this._stopHeartbeat();
+        this._heartbeatInterval = setInterval(() => {
+            if (!this.socket || !this.socket.connected) return;
+            this._lastPing = Date.now();
+            this.socket.emit('sparkle-ping');
+
+            // If no pong in 10s, force reconnect
+            setTimeout(() => {
+                if (this._lastPong < this._lastPing - 9500) {
+                    console.warn('🔌 Sparkle: Heartbeat timeout — forcing reconnect');
+                    this.socket.disconnect();
+                    this.socket.connect();
+                }
+            }, 10000);
+        }, 25000);
+    }
+
+    _stopHeartbeat() {
+        if (this._heartbeatInterval) {
+            clearInterval(this._heartbeatInterval);
+            this._heartbeatInterval = null;
+        }
+    }
+
+    // ─── Reconnect with exponential backoff ───────────────────────────────────
+    _scheduleReconnect() {
+        this._reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(2, this._reconnectAttempts), this._maxReconnectDelay);
+        console.log(`🔌 Sparkle: Scheduling reconnect in ${delay}ms (attempt ${this._reconnectAttempts})`);
+        setTimeout(() => {
+            if (this.socket && !this.socket.connected) {
+                this.socket.connect();
+            }
+        }, delay);
+    }
+
+    // ─── Message Queue: queue when offline, drain when reconnected ────────────
+    _safeEmit(event, data) {
+        if (this.socket && this.socket.connected) {
+            this.socket.emit(event, data);
+        } else {
+            console.warn('🔌 Sparkle: Offline — queuing message for retry');
+            this._msgQueue.push({ event, data, ts: Date.now() });
+        }
+    }
+
+    _drainMessageQueue() {
+        if (!this._msgQueue || this._msgQueue.length === 0) return;
+        console.log(`🔌 Sparkle: Draining ${this._msgQueue.length} queued message(s)`);
+        const queue = [...this._msgQueue];
+        this._msgQueue = [];
+        queue.forEach(({ event, data }) => {
+            // Only retry send-message events (status events can be skipped)
+            if (event === 'send-message') {
+                this.socket.emit(event, data);
             }
         });
     }
@@ -1283,7 +1381,8 @@ class SparkleChat {
             marketplaceListingId: conv?.marketplace_listing_id
         };
 
-        this.socket.emit('send-message', data);
+        // Use _safeEmit so messages are queued if socket is temporarily offline
+        this._safeEmit('send-message', data);
         input.value = '';
         this.autoResizeTextarea(input);
         this.stopTyping();
@@ -2790,10 +2889,15 @@ class SparkleChat {
         }
     }
 
+
     formatChatTime(dateString) {
         if (!dateString) return '';
+        // Normalize MySQL datetime strings ("2026-04-04 15:30:00" → ISO)
+        const normalized = typeof dateString === 'string'
+            ? dateString.replace(' ', 'T')
+            : dateString;
         const now = new Date();
-        const msgTime = new Date(dateString);
+        const msgTime = new Date(normalized);
         if (isNaN(msgTime.getTime())) return '';
 
         const diff = Math.floor((now - msgTime) / 1000);
@@ -2819,15 +2923,20 @@ class SparkleChat {
     formatLastSeen(lastSeen, isOnline) {
         if (isOnline) return 'Online';
         if (!lastSeen) return 'Offline';
-        const date = new Date(lastSeen);
+        // Normalize MySQL datetime strings
+        const normalized = typeof lastSeen === 'string' ? lastSeen.replace(' ', 'T') : lastSeen;
+        const date = new Date(normalized);
         if (isNaN(date.getTime())) return 'Offline';
-
         return 'Last seen ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     formatTime(dateString) {
         if (!dateString) return '';
-        const date = new Date(dateString);
+        // Normalize MySQL datetime strings (no 'T' separator)
+        const normalized = typeof dateString === 'string'
+            ? dateString.replace(' ', 'T')
+            : dateString;
+        const date = new Date(normalized);
         if (isNaN(date.getTime())) return '';
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }

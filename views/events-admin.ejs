@@ -1,147 +1,125 @@
 <%- include('partials/head', { title: 'Admin Event Dashboard' }) %>
 
-<style>
-    .admin-panel {
-        max-width: 900px;
-        margin: 20px auto;
-        padding: 30px;
-        background: rgba(255, 255, 255, 0.9);
-        border-radius: 16px;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-    }
-    .admin-panel h2 {
-        font-weight: 800;
-        margin-top: 0;
-        margin-bottom: 25px;
-        color: var(--text-main);
-    }
-    .form-group {
-        margin-bottom: 15px;
-    }
-    .form-group input, .form-group textarea, .form-group select {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        font-family: inherit;
-        background: #f8fafc;
-    }
-    .form-group input:focus, .form-group textarea:focus {
-        outline: none;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-    select {
-        cursor: pointer;
-    }
-    button[type="submit"] {
-        padding: 12px 24px;
-        background: var(--primary-gradient);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 700;
-        cursor: pointer;
-        font-size: 16px;
-    }
-    .analytics-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 15px;
-        margin-top: 30px;
-    }
-    .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-    }
-    .stat-card h4 { margin: 0 0 10px 0; font-size: 16px; color: var(--text-main); }
-    .stat-card p { margin: 0; color: var(--text-secondary); font-size: 14px; }
-    
-    #scanner-container {
-        margin-top: 30px;
-        padding: 20px;
-        background: #fff;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        text-align: center;
-    }
-    #scanner {
-        width: 100%;
-        max-width: 500px;
-        margin: 0 auto;
-        border-radius: 12px;
-        overflow: hidden;
-    }
-</style>
-
-<%- include('partials/sidebar') %>
-<div class="container" id="mainContent">
-    <div class="page active">
-        <div class="header glass" style="margin-bottom: 20px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <button class="hamburger-btn" onclick="window.location.href='/events'" style="background:none;border:none;font-size:20px;cursor:pointer;">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="logo-text">Events Admin Dashboard</div>
-            </div>
+<div class="container admin-scroll-container" style="max-width: 1200px; margin: 20px auto; padding: 0 15px 120px; min-height: 100vh;">
+    <!-- Header Section -->
+    <div class="glass admin-header" style="padding: 20px; border-radius: 20px; margin-bottom: 25px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px;">
+        <div style="flex: 1; min-width: 200px;">
+            <h1 style="font-size: 24px; font-weight: 800; margin: 0; background: var(--instagram-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                Event Control Center
+            </h1>
+            <p style="margin: 3px 0 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Manage campus life & attendance</p>
         </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button onclick="window.location.href='/events'" class="glass" style="padding: 8px 15px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <i class="fas fa-eye"></i> Public View
+            </button>
+            <button id="startScanBtn" class="glass" style="padding: 8px 15px; border-radius: 10px; font-size: 13px; font-weight: 600; background: var(--success); color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <i class="fas fa-qrcode"></i> Entry Check-In
+            </button>
+        </div>
+    </div>
 
-        <div class="admin-panel">
-            <h2>Create New Event</h2>
-            <form id="createEventForm">
-                <div class="form-group">
-                    <input type="text" name="title" placeholder="Event Title" required />
-                </div>
-                <div class="form-group">
-                    <textarea name="description" placeholder="Event Description" rows="3" required></textarea>
-                </div>
-                <div style="display: flex; gap: 15px;">
-                    <div class="form-group" style="flex: 1;">
-                        <input type="text" name="location" placeholder="Location" required />
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <select name="campus" required>
-                            <option value="" disabled selected>Select Campus</option>
-                            <option value="Main Campus">Main Campus</option>
-                            <option value="North Campus">North Campus</option>
-                            <option value="Virtual">Virtual</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 15px;">
-                    <div class="form-group" style="flex: 1;">
-                        <input type="datetime-local" name="event_date" required />
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <input type="number" name="capacity" placeholder="Capacity (0 for unlimited)" required />
-                    </div>
-                </div>
-                <button type="submit">Create Event</button>
-            </form>
+    <!-- Scanner Section (Hidden by default) -->
+    <div id="scannerSection" class="glass" style="display: none; padding: 20px; border-radius: 24px; margin-bottom: 30px; text-align: center; border: 2px solid var(--success);">
+         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;"><i class="fas fa-camera"></i> Live Entrance Scanner</h3>
+            <button onclick="stopScanner()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 20px;"><i class="fas fa-times-circle"></i></button>
+         </div>
+         <div id="qr-reader" style="width: 100%; max-width: 500px; margin: 0 auto; border-radius: 16px; overflow: hidden;"></div>
+         <p style="margin-top: 15px; color: var(--text-muted);">Point camera at student's Entry Pass QR</p>
+    </div>
 
-            <h2 style="margin-top: 40px;">QR Check-In Scanner <button onclick="startScanner()" style="font-size:12px; padding:6px 12px; border-radius:6px; background:#10b981; color:#fff; border:none; cursor:pointer; margin-left: 10px;">Start Scanner</button></h2>
-            <div id="scanner-container">
-                <div id="scanner"></div>
-                <p style="margin-top: 10px; color: var(--text-muted); font-size: 14px;">Point camera at an attendee's Entry Pass QR Code</p>
-            </div>
+    <div style="display: grid; grid-template-columns: 1fr 350px; gap: 30px;">
+        <!-- Left: Event List & Management -->
+        <div class="event-management-area">
+            <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-tasks" style="color: var(--primary);"></i> Active Management
+            </h3>
 
-            <h2 style="margin-top: 40px;">Live Event Analytics</h2>
-            <div class="analytics-grid">
-                <% if(initialEvents && initialEvents.length > 0) { %>
+            <% if(initialEvents && initialEvents.length > 0) { %>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
                     <% initialEvents.forEach(e => { %>
-                        <div class="stat-card">
-                            <h4><%= e.title %></h4>
-                            <p>Campus: <%= e.campus %></p>
-                            <p>RSVPs: <strong><%= e.total_reservations %></strong> / <%= e.max_attendees > 0 ? e.max_attendees : 'Unlimited' %></p>
-                            <p>Checked In: <strong><%= e.total_attended %></strong></p>
+                        <div class="glass" style="padding: 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                    <span class="badge" style="background: <%= e.is_public ? 'var(--success)' : 'var(--warning)' %>; color: white;">
+                                        <%= e.is_public ? 'LIVE' : 'PAUSED' %>
+                                    </span>
+                                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;"><%= e.campus %></span>
+                                </div>
+                                <h4 style="margin: 0; font-size: 18px;"><%= e.title %></h4>
+                                <div style="margin-top: 8px; display: flex; gap: 20px;">
+                                    <div style="font-size: 13px;">
+                                        <i class="fas fa-users" style="color: var(--accent);"></i> 
+                                        <strong><%= e.total_reservations %></strong> RSVPs
+                                    </div>
+                                    <div style="font-size: 13px;">
+                                        <i class="fas fa-user-check" style="color: var(--success);"></i> 
+                                        <strong><%= e.total_attended %></strong> Present
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="toggleEventStatus('<%= e.event_id %>', <%= e.is_public %>)" class="action-icon" title="<%= e.is_public ? 'Pause Event' : 'Resume Event' %>" style="width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.05); border: none; cursor: pointer;">
+                                    <i class="fas <%= e.is_public ? 'fa-pause' : 'fa-play' %>"></i>
+                                </button>
+                                <button onclick="deleteEvent('<%= e.event_id %>')" class="action-icon" title="Terminate Event" style="width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.1); color: var(--danger); border: none; cursor: pointer;">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
                         </div>
                     <% }) %>
-                <% } else { %>
-                    <p style="color:var(--text-muted)">No active events found.</p>
-                <% } %>
+                </div>
+            <% } else { %>
+                <div class="glass" style="padding: 60px; border-radius: 24px; text-align: center; color: var(--text-muted);">
+                    <i class="fas fa-calendar-plus" style="font-size: 40px; margin-bottom: 15px; opacity: 0.3;"></i>
+                    <p>No managed events yet. Create one to get started!</p>
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Right: Creation Form -->
+        <div class="creation-area">
+            <div class="glass" style="padding: 25px; border-radius: 24px; position: sticky; top: 20px;">
+                <h3 style="margin-top: 0; margin-bottom: 20px;"><i class="fas fa-plus-circle" style="color: var(--primary);"></i> Host New Event</h3>
+                
+                <form id="createEventForm">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase;">Event Title</label>
+                        <input type="text" name="title" placeholder="What's happening?" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.5);" required />
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase;">Location / Venue</label>
+                        <input type="text" name="location" placeholder="Campus Hall, Virtual link, etc." style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.5);" required />
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                         <div>
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase;">Date & Time</label>
+                            <input type="datetime-local" name="event_date" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.5);" required />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase;">Capacity</label>
+                            <input type="number" name="capacity" value="0" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.5);" required />
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase;">Campus</label>
+                        <select name="campus" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.5);" required>
+                            <option value="<%= user.campus || 'Main Campus' %>"><%= user.campus || 'Main Campus' %></option>
+                            <option value="North Campus">North Campus</option>
+                            <option value="South Campus">South Campus</option>
+                            <option value="Virtual">Virtual / Remote</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" style="width: 100%; padding: 15px; border-radius: 16px; background: var(--instagram-gradient); color: white; border: none; font-weight: 800; font-size: 16px; cursor: pointer; box-shadow: 0 4px 15px rgba(225, 48, 108, 0.3);">
+                        Push Live
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -149,12 +127,60 @@
 
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
+    const token = localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0];
+    
+    // --- Lifecycle Handlers ---
+
+    async function toggleEventStatus(eventId, currentStatus) {
+        try {
+            const res = await fetch(`/api/events/${eventId}/status`, {
+                method: 'PATCH',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ is_public: !currentStatus })
+            });
+            if (res.ok) location.reload();
+        } catch(e) {
+            Swal.fire('Error', 'Failed to update event status', 'error');
+        }
+    }
+
+    async function deleteEvent(eventId) {
+        const result = await Swal.fire({
+            title: 'Terminate Event?',
+            text: "This will permanently remove the event and all RSVPs.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Yes, terminate'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`/api/events/${eventId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    Swal.fire('Deleted!', 'Event has been removed.', 'success').then(() => location.reload());
+                }
+            } catch(e) {
+                Swal.fire('Error', 'Failed to delete event', 'error');
+            }
+        }
+    }
+
+    // --- Creation Handler ---
+
     document.getElementById('createEventForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const data = {
             title: e.target.title.value,
-            description: e.target.description.value,
+            description: "Managed by Sparkle Admin",
             location: e.target.location.value,
             campus: e.target.campus.value,
             start_time: e.target.event_date.value,
@@ -164,7 +190,6 @@
         };
 
         try {
-            const token = localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0];
             const res = await fetch('/api/events', {
                 method: 'POST',
                 headers: {
@@ -174,33 +199,41 @@
                 body: JSON.stringify(data)
             });
 
-            if (!res.ok) throw new Error(await res.text());
+            if (!res.ok) throw new Error('API Error');
             
-            Swal.fire('Success', 'Event created successfully!', 'success').then(() => {
-                location.reload();
-            });
+            Swal.fire({
+                title: 'Live!',
+                text: 'Your event is now visible to the campus.',
+                icon: 'success',
+                confirmButtonText: 'Great'
+            }).then(() => location.reload());
         } catch (err) {
-            Swal.fire('Error', err.message, 'error');
+            Swal.fire('Error', 'Could not broadcast event', 'error');
         }
     });
 
+    // --- Scanner Logic ---
     let html5QrCode;
+
+    document.getElementById('startScanBtn').addEventListener('click', () => {
+        const section = document.getElementById('scannerSection');
+        section.style.display = 'block';
+        section.scrollIntoView({ behavior: 'smooth' });
+        startScanner();
+    });
 
     function startScanner() {
         if (html5QrCode) return;
-        html5QrCode = new Html5Qrcode("scanner");
+        html5QrCode = new Html5Qrcode("qr-reader");
 
         html5QrCode.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: 250 },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
             async (decodedText) => {
                 try {
-                    // Try to parse QR code JSON {userId, eventId}
                     const data = JSON.parse(decodedText);
                     if (data.userId && data.eventId) {
-                        html5QrCode.pause(); // stop scanning momentarily
-                        
-                        const token = localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0];
+                        html5QrCode.pause(true);
                         const res = await fetch('/api/events/checkin', {
                             method: 'POST',
                             headers: {
@@ -210,27 +243,93 @@
                             body: JSON.stringify(data)
                         });
 
-                        const result = await res.json();
                         if (res.ok) {
-                            Swal.fire('Checked In!', 'User has successfully entered.', 'success').then(() => html5QrCode.resume());
+                            Swal.fire({ 
+                                title: 'Welcome!', 
+                                text: 'Attendance recorded successfully.', 
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => html5QrCode.resume());
                         } else {
-                            Swal.fire('Failed', result.error || 'Already checked in', 'error').then(() => html5QrCode.resume());
+                            const err = await res.json();
+                            Swal.fire('Check-In Failed', err.error || 'Invalid ticket', 'error').then(() => html5QrCode.resume());
                         }
                     }
-                } catch(e) {
-                    console.error('Invalid QR Format');
-                }
+                } catch(e) { console.error('QR Parsing Failed'); }
             },
-            (errorMessage) => {
-                // parse error, ignore as it scans continuously
-            }
-        ).catch(err => {
-            console.log("Scanner start failed", err);
-            Swal.fire('Scanner Error', 'Could not access camera', 'error');
-        });
+            () => {}
+        );
     }
 
-    // Stop scanner when leaving page if needed
+    function stopScanner() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode = null;
+                document.getElementById('scannerSection').style.display = 'none';
+            });
+        }
+    }
 </script>
+<style>
+    /* Mobile Responsiveness & Filter Fix */
+    @media (max-width: 768px) {
+        .container {
+            padding: 10px !important;
+            margin-top: 10px !important;
+            height: auto !important;
+            overflow-y: visible !important;
+        }
+        .glass {
+            padding: 15px !important;
+            border-radius: 16px !important;
+        }
+        h1 { font-size: 22px !important; }
+        
+        /* Grid Adjustments */
+        div[style*="grid-template-columns"] {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+        }
+        
+        /* Form & Input Adjustments */
+        div[style*="display: grid; grid-template-columns: 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+        
+        /* Management Card Adjustments */
+        .event-management-area .glass {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 15px;
+        }
+        
+        .event-management-area div[style*="display: flex; gap: 8px;"] {
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        /* Ensure form doesn't get cut off */
+        .creation-area .glass {
+            position: relative !important;
+            top: 0 !important;
+        }
+        
+        /* Action buttons text hidden to save space */
+        .action-icon span { display: none; }
+    }
+
+    /* Global Scroll Fix for Dashboard */
+    html, body {
+        height: 100%;
+        overflow-y: auto !important;
+    }
+    .container {
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+</style>
+
+<%- include('partials/bottom-nav') %>
 </body>
 </html>

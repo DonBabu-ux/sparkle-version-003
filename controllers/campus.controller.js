@@ -31,13 +31,14 @@ const renderEvents = async (req, res) => {
         const userId = req.user.user_id || req.user.userId;
         const [events] = await pool.query(`
             SELECT e.*, u.username,
-            (SELECT status FROM event_rsvps WHERE event_id = e.event_id AND user_id = ?) as user_status
+            (SELECT status FROM event_rsvps WHERE event_id = e.event_id AND user_id = ?) as user_status,
+            (e.creator_id = ?) as is_creator
             FROM campus_events e 
             JOIN users u ON e.creator_id = u.user_id 
             WHERE e.is_public = TRUE 
             ORDER BY e.start_time ASC
-        `, [userId]);
-        res.render('events', { title: 'Campus Events', initialEvents: events });
+        `, [userId, userId]);
+        res.render('events', { title: 'Campus Events', initialEvents: events, currentUser: req.user });
     } catch (error) {
         res.render('events', { title: 'Campus Events', initialEvents: [] });
     }
@@ -45,18 +46,21 @@ const renderEvents = async (req, res) => {
 
 const renderEventsAdmin = async (req, res) => {
     try {
-        if (req.user.userType !== 'admin') {
-            return res.redirect('/events'); // simplistic role check
-        }
+        const userId = req.user.user_id || req.user.userId;
+
+        // Fetch events created by this user
         const [events] = await pool.query(`
-            SELECT e.title, e.event_id, e.campus, e.start_time, e.max_attendees,
+            SELECT e.title, e.event_id, e.campus, e.start_time, e.max_attendees, e.is_public,
             (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'going') as total_reservations,
             (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'attended') as total_attended
             FROM campus_events e 
+            WHERE e.creator_id = ?
             ORDER BY e.start_time DESC
-        `);
-        res.render('events-admin', { title: 'Events Admin Dashboard', initialEvents: events });
+        `, [userId]);
+
+        res.render('events-admin', { title: 'Manage My Events', initialEvents: events });
     } catch (error) {
+        console.error('Events Admin Render Error:', error);
         res.redirect('/events');
     }
 };
@@ -216,22 +220,76 @@ const generateEventQR = async (req, res) => {
 
 const checkInEvent = async (req, res) => {
     try {
-        // userId and eventId decoded from QR code scanner
         const { userId, eventId } = req.body;
-        
-        // Only event creator or admins should be able to trigger this in a real system,
-        // but sticking to the user's requested endpoint logic.
-        const [result] = await pool.query(
-            "UPDATE event_rsvps SET status='attended' WHERE user_id=? AND event_id=?", 
-            [userId, eventId]
-        );
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Reservation not found or already checked in' });
+        const currentUserId = req.user.user_id || req.user.userId;
+        const userRole = req.user.user_role || req.user.userType;
+
+        // Verify that the person checking in is an admin or the event creator
+        const [event] = await pool.query('SELECT creator_id FROM campus_events WHERE event_id = ?', [eventId]);
+        if (event.length === 0) return res.status(404).json({ error: 'Event not found' });
+
+        if (userRole !== 'admin' && event[0].creator_id !== currentUserId) {
+            return res.status(403).json({ error: 'Unauthorized to check-in attendees' });
         }
 
+        const [result] = await pool.query(
+            "UPDATE event_rsvps SET status='attended' WHERE user_id=? AND event_id=?",
+            [userId, eventId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Reservation not found' });
+        }
+
+        // Send real-time check-in notification to the dashboard
+        try {
+            const io = getIO();
+            io.emit('event_update', { eventId, type: 'checkin', userId });
+        } catch (e) {}
+
         res.json({ status: 'success', message: 'Check-in successful' });
-    } catch(err) {
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const deleteEvent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+        const userRole = req.user.user_role || req.user.userType;
+
+        const [event] = await pool.query('SELECT creator_id FROM campus_events WHERE event_id = ?', [id]);
+        if (event.length === 0) return res.status(404).json({ error: 'Event not found' });
+
+        if (userRole !== 'admin' && event[0].creator_id !== userId) {
+            return res.status(403).json({ error: 'Unauthorized to delete this event' });
+        }
+
+        await pool.query('DELETE FROM campus_events WHERE event_id = ?', [id]);
+        res.json({ status: 'success', message: 'Event deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const updateEventStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_public } = req.body;
+        const userId = req.user.user_id || req.user.userId;
+        const userRole = req.user.user_role || req.user.userType;
+
+        const [event] = await pool.query('SELECT creator_id FROM campus_events WHERE event_id = ?', [id]);
+        if (event.length === 0) return res.status(404).json({ error: 'Event not found' });
+
+        if (userRole !== 'admin' && event[0].creator_id !== userId) {
+            return res.status(403).json({ error: 'Unauthorized to update this event' });
+        }
+
+        await pool.query('UPDATE campus_events SET is_public = ? WHERE event_id = ?', [is_public ? 1 : 0, id]);
+        res.json({ status: 'success', message: 'Event status updated' });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
@@ -518,5 +576,7 @@ module.exports = {
     endStream,
     generateEventQR,
     checkInEvent,
-    renderEventsAdmin
+    renderEventsAdmin,
+    deleteEvent,
+    updateEventStatus
 };

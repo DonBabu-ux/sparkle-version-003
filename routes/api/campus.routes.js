@@ -18,6 +18,8 @@ router.get('/events/:id/attendees', authMiddleware, campusController.getEventAtt
 router.get('/events/:id/share', campusController.shareEvent);                                   // NEW — share event link
 router.get('/events/:id/qr', authMiddleware, campusController.generateEventQR);                 // Generate QR
 router.post('/events/checkin', authMiddleware, campusController.checkInEvent);                  // Check-In user
+router.delete('/events/:id', authMiddleware, campusController.deleteEvent);                    // Admin/Creator Delete
+router.patch('/events/:id/status', authMiddleware, campusController.updateEventStatus);         // Admin/Creator Update Status
 
 // ---- Streams (Live Text Updates) ----
 router.get('/streams', campusController.getStreams);                                            // Browse live streams

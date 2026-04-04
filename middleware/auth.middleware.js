@@ -41,13 +41,12 @@ const authMiddleware = async (req, res, next) => {
         }
 
         const user = users[0];
+        const userData = { ...decoded, ...user, userType: user.user_role }; 
 
         // GLOBAL LOGOUT CHECK (Token Versioning)
         if (decoded.tokenVersion !== undefined && decoded.tokenVersion < user.token_version) {
             return res.status(401).json({ error: 'Session expired: Global logout performed' });
         }
-
-        const userData = { ...decoded, ...user };
         
         // UPDATE CACHE
         userCache.set(decoded.userId, { user: userData, timestamp: Date.now() });
@@ -114,14 +113,7 @@ const ejsAuthMiddleware = async (req, res, next) => {
         }
 
         const user = users[0];
-
-        // GLOBAL LOGOUT CHECK
-        if (decoded.tokenVersion !== undefined && decoded.tokenVersion < user.token_version) {
-            res.clearCookie('sparkleToken');
-            return res.redirect('/login?reason=session_expired');
-        }
-
-        const userData = { ...decoded, ...user };
+        const userData = { ...decoded, ...user, userType: user.user_role }; 
         
         // UPDATE CACHE
         userCache.set(decoded.userId, { user: userData, timestamp: Date.now() });

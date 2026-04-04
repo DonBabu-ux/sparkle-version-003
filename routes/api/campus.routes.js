@@ -16,6 +16,8 @@ router.post('/events', authMiddleware, campusController.createEvent);           
 router.post('/events/:id/rsvp', authMiddleware, campusController.rsvpEvent);                   // RSVP
 router.get('/events/:id/attendees', authMiddleware, campusController.getEventAttendees);        // NEW — view attendees
 router.get('/events/:id/share', campusController.shareEvent);                                   // NEW — share event link
+router.get('/events/:id/qr', authMiddleware, campusController.generateEventQR);                 // Generate QR
+router.post('/events/checkin', authMiddleware, campusController.checkInEvent);                  // Check-In user
 
 // ---- Streams (Live Text Updates) ----
 router.get('/streams', campusController.getStreams);                                            // Browse live streams

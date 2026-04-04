@@ -1,0 +1,236 @@
+<%- include('partials/head', { title: 'Admin Event Dashboard' }) %>
+
+<style>
+    .admin-panel {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 16px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .admin-panel h2 {
+        font-weight: 800;
+        margin-top: 0;
+        margin-bottom: 25px;
+        color: var(--text-main);
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group input, .form-group textarea, .form-group select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-family: inherit;
+        background: #f8fafc;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    select {
+        cursor: pointer;
+    }
+    button[type="submit"] {
+        padding: 12px 24px;
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 15px;
+        margin-top: 30px;
+    }
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    .stat-card h4 { margin: 0 0 10px 0; font-size: 16px; color: var(--text-main); }
+    .stat-card p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+    
+    #scanner-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        text-align: center;
+    }
+    #scanner {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+</style>
+
+<%- include('partials/sidebar') %>
+<div class="container" id="mainContent">
+    <div class="page active">
+        <div class="header glass" style="margin-bottom: 20px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="hamburger-btn" onclick="window.location.href='/events'" style="background:none;border:none;font-size:20px;cursor:pointer;">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="logo-text">Events Admin Dashboard</div>
+            </div>
+        </div>
+
+        <div class="admin-panel">
+            <h2>Create New Event</h2>
+            <form id="createEventForm">
+                <div class="form-group">
+                    <input type="text" name="title" placeholder="Event Title" required />
+                </div>
+                <div class="form-group">
+                    <textarea name="description" placeholder="Event Description" rows="3" required></textarea>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <input type="text" name="location" placeholder="Location" required />
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <select name="campus" required>
+                            <option value="" disabled selected>Select Campus</option>
+                            <option value="Main Campus">Main Campus</option>
+                            <option value="North Campus">North Campus</option>
+                            <option value="Virtual">Virtual</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <input type="datetime-local" name="event_date" required />
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <input type="number" name="capacity" placeholder="Capacity (0 for unlimited)" required />
+                    </div>
+                </div>
+                <button type="submit">Create Event</button>
+            </form>
+
+            <h2 style="margin-top: 40px;">QR Check-In Scanner <button onclick="startScanner()" style="font-size:12px; padding:6px 12px; border-radius:6px; background:#10b981; color:#fff; border:none; cursor:pointer; margin-left: 10px;">Start Scanner</button></h2>
+            <div id="scanner-container">
+                <div id="scanner"></div>
+                <p style="margin-top: 10px; color: var(--text-muted); font-size: 14px;">Point camera at an attendee's Entry Pass QR Code</p>
+            </div>
+
+            <h2 style="margin-top: 40px;">Live Event Analytics</h2>
+            <div class="analytics-grid">
+                <% if(initialEvents && initialEvents.length > 0) { %>
+                    <% initialEvents.forEach(e => { %>
+                        <div class="stat-card">
+                            <h4><%= e.title %></h4>
+                            <p>Campus: <%= e.campus %></p>
+                            <p>RSVPs: <strong><%= e.total_reservations %></strong> / <%= e.max_attendees > 0 ? e.max_attendees : 'Unlimited' %></p>
+                            <p>Checked In: <strong><%= e.total_attended %></strong></p>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <p style="color:var(--text-muted)">No active events found.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            title: e.target.title.value,
+            description: e.target.description.value,
+            location: e.target.location.value,
+            campus: e.target.campus.value,
+            start_time: e.target.event_date.value,
+            max_attendees: parseInt(e.target.capacity.value, 10),
+            is_public: true,
+            event_type: 'campus_event'
+        };
+
+        try {
+            const token = localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0];
+            const res = await fetch('/api/events', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+            
+            Swal.fire('Success', 'Event created successfully!', 'success').then(() => {
+                location.reload();
+            });
+        } catch (err) {
+            Swal.fire('Error', err.message, 'error');
+        }
+    });
+
+    let html5QrCode;
+
+    function startScanner() {
+        if (html5QrCode) return;
+        html5QrCode = new Html5Qrcode("scanner");
+
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            async (decodedText) => {
+                try {
+                    // Try to parse QR code JSON {userId, eventId}
+                    const data = JSON.parse(decodedText);
+                    if (data.userId && data.eventId) {
+                        html5QrCode.pause(); // stop scanning momentarily
+                        
+                        const token = localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0];
+                        const res = await fetch('/api/events/checkin', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify(data)
+                        });
+
+                        const result = await res.json();
+                        if (res.ok) {
+                            Swal.fire('Checked In!', 'User has successfully entered.', 'success').then(() => html5QrCode.resume());
+                        } else {
+                            Swal.fire('Failed', result.error || 'Already checked in', 'error').then(() => html5QrCode.resume());
+                        }
+                    }
+                } catch(e) {
+                    console.error('Invalid QR Format');
+                }
+            },
+            (errorMessage) => {
+                // parse error, ignore as it scans continuously
+            }
+        ).catch(err => {
+            console.log("Scanner start failed", err);
+            Swal.fire('Scanner Error', 'Could not access camera', 'error');
+        });
+    }
+
+    // Stop scanner when leaving page if needed
+</script>
+</body>
+</html>

@@ -40,6 +40,14 @@
     "Extra": ""
   },
   {
+    "Field": "marketplace_listing_id",
+    "Type": "char(36)",
+    "Null": "YES",
+    "Key": "MUL",
+    "Default": null,
+    "Extra": ""
+  },
+  {
     "Field": "is_archived_p1",
     "Type": "tinyint(1)",
     "Null": "YES",
@@ -82,6 +90,46 @@
   {
     "Field": "is_pinned_p2",
     "Type": "tinyint(1)",
+    "Null": "YES",
+    "Key": "",
+    "Default": "0",
+    "Extra": ""
+  },
+  {
+    "Field": "p1_locked",
+    "Type": "tinyint(1)",
+    "Null": "YES",
+    "Key": "",
+    "Default": "0",
+    "Extra": ""
+  },
+  {
+    "Field": "p2_locked",
+    "Type": "tinyint(1)",
+    "Null": "YES",
+    "Key": "",
+    "Default": "0",
+    "Extra": ""
+  },
+  {
+    "Field": "p1_pin",
+    "Type": "varchar(20)",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "p2_pin",
+    "Type": "varchar(20)",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "disappearing_duration",
+    "Type": "int(11)",
     "Null": "YES",
     "Key": "",
     "Default": "0",

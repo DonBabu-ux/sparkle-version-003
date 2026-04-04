@@ -6,6 +6,7 @@ const { ejsAuthMiddleware } = require('../../middleware/auth.middleware');
 router.get('/polls', ejsAuthMiddleware, campusController.renderPolls);
 router.get('/polls/:id', ejsAuthMiddleware, campusController.renderPollDetail);
 router.get('/events', ejsAuthMiddleware, campusController.renderEvents);
+router.get('/events/admin', ejsAuthMiddleware, campusController.renderEventsAdmin);
 router.get('/streams', ejsAuthMiddleware, campusController.renderStreams);
 
 module.exports = router;

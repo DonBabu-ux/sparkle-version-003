@@ -100,6 +100,15 @@ export function showCreateOptions() {
                     </div>
                     <div style="font-weight: 700; font-size: 14px; color: #7b1fa2; margin-bottom: 4px;">AfterGlow</div>
                 </div>
+                <div id="newEventOption" class="create-option-card" style="
+                    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+                    padding: 20px 10px; border-radius: 16px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                ">
+                    <div style="width: 50px; height: 50px; background: #4caf50; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 22px;">
+                        <i class="fas fa-calendar-plus"></i>
+                    </div>
+                    <div style="font-weight: 700; font-size: 14px; color: #2e7d32; margin-bottom: 4px;">Event</div>
+                </div>
             </div>
             <button class="btn btn-block" style="background: none; color: #666; padding: 15px; border: none; font-size: 15px; cursor: pointer; border-top: 1px solid #eee;" id="cancelCreate">Cancel</button>
         </div>
@@ -120,6 +129,16 @@ export function showCreateOptions() {
     modal.querySelector('#newAfterglowOption').onclick = () => {
         modal.remove();
         if (window.uploadAfterglowMedia) window.uploadAfterglowMedia();
+    };
+
+    modal.querySelector('#newEventOption').onclick = () => {
+        modal.remove();
+        if (typeof showModal === 'function') {
+            showModal('event');
+        } else {
+            const evModal = document.getElementById('eventModal');
+            if (evModal) evModal.style.display = 'flex';
+        }
     };
 
     modal.querySelector('#cancelCreate').onclick = () => modal.remove();

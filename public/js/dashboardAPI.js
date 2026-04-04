@@ -141,6 +141,12 @@ const DashboardAPI = {
             console.error(`   Duration: ${duration}ms`);
             console.error(`   Error Message: ${error.message}`);
             console.error(`   Error Stack:`, error.stack);
+            
+            // Helpful for debugging in production browser console
+            if (window.showNotification) {
+                window.showNotification('API Error: ' + error.message, 'error');
+            }
+            
             console.error(`   Has Token: ${!!token}`);
             throw error;
         }
@@ -1352,6 +1358,31 @@ const DashboardAPI = {
             return await this.request(`/stories/${storyId}`, { method: 'DELETE' });
         } catch (error) {
             console.error(`Failed to delete story ${storyId}:`, error);
+            throw error;
+        }
+    },
+
+    // ============ CAMPUS EVENTS ============
+    async createEvent(eventData) {
+        try {
+            console.log('📡 DashboardAPI: Creating Event...', eventData);
+            const result = await this.request('/events', {
+                method: 'POST',
+                body: JSON.stringify({
+                    title: eventData.title,
+                    description: eventData.description,
+                    location: eventData.location,
+                    start_time: eventData.start_time,
+                    max_attendees: eventData.max_attendees || 0,
+                    campus: eventData.campus || 'Main Campus',
+                    is_public: eventData.is_public !== undefined ? eventData.is_public : true,
+                    event_type: eventData.event_type || 'meetup'
+                })
+            });
+            console.log('✅ Event Created:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Failed to create event:', error);
             throw error;
         }
     },

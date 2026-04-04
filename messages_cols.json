@@ -16,6 +16,14 @@
     "Extra": ""
   },
   {
+    "Field": "personal_chat_id",
+    "Type": "char(36)",
+    "Null": "YES",
+    "Key": "MUL",
+    "Default": null,
+    "Extra": ""
+  },
+  {
     "Field": "conversation_id",
     "Type": "char(36)",
     "Null": "YES",
@@ -57,10 +65,18 @@
   },
   {
     "Field": "type",
-    "Type": "enum('text','image','video','voice_note','post_share','system','call')",
+    "Type": "enum('text','image','video','voice_note','post_share','system','call','marketplace_listing','story_reply','audio','document')",
     "Null": "YES",
     "Key": "",
     "Default": "text",
+    "Extra": ""
+  },
+  {
+    "Field": "context",
+    "Type": "enum('chat','marketplace')",
+    "Null": "YES",
+    "Key": "",
+    "Default": "chat",
     "Extra": ""
   },
   {
@@ -133,6 +149,54 @@
     "Null": "YES",
     "Key": "",
     "Default": "0",
+    "Extra": ""
+  },
+  {
+    "Field": "marketplace_listing_id",
+    "Type": "char(36)",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "view_policy",
+    "Type": "enum('once','twice','unlimited')",
+    "Null": "YES",
+    "Key": "",
+    "Default": "unlimited",
+    "Extra": ""
+  },
+  {
+    "Field": "views_used",
+    "Type": "int(11)",
+    "Null": "YES",
+    "Key": "",
+    "Default": "0",
+    "Extra": ""
+  },
+  {
+    "Field": "views_allowed",
+    "Type": "int(11)",
+    "Null": "YES",
+    "Key": "",
+    "Default": "1",
+    "Extra": ""
+  },
+  {
+    "Field": "delivered",
+    "Type": "tinyint(1)",
+    "Null": "YES",
+    "Key": "",
+    "Default": "0",
+    "Extra": ""
+  },
+  {
+    "Field": "delivered_at",
+    "Type": "timestamp",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
     "Extra": ""
   }
 ]

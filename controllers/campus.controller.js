@@ -1,4 +1,6 @@
 const pool = require('../config/database');
+const QRCode = require('qrcode');
+const { getIO } = require('../socket');
 
 const renderPolls = async (req, res) => {
     try {
@@ -26,10 +28,36 @@ const renderPollDetail = async (req, res) => {
 
 const renderEvents = async (req, res) => {
     try {
-        const [events] = await pool.query('SELECT e.*, u.username FROM campus_events e JOIN users u ON e.creator_id = u.user_id WHERE e.is_public = TRUE ORDER BY e.start_time ASC');
-        res.render('events', { title: 'Community Events', initialEvents: events });
+        const userId = req.user.user_id || req.user.userId;
+        const [events] = await pool.query(`
+            SELECT e.*, u.username,
+            (SELECT status FROM event_rsvps WHERE event_id = e.event_id AND user_id = ?) as user_status
+            FROM campus_events e 
+            JOIN users u ON e.creator_id = u.user_id 
+            WHERE e.is_public = TRUE 
+            ORDER BY e.start_time ASC
+        `, [userId]);
+        res.render('events', { title: 'Campus Events', initialEvents: events });
     } catch (error) {
-        res.render('events', { title: 'Community Events', initialEvents: [] });
+        res.render('events', { title: 'Campus Events', initialEvents: [] });
+    }
+};
+
+const renderEventsAdmin = async (req, res) => {
+    try {
+        if (req.user.userType !== 'admin') {
+            return res.redirect('/events'); // simplistic role check
+        }
+        const [events] = await pool.query(`
+            SELECT e.title, e.event_id, e.campus, e.start_time, e.max_attendees,
+            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'going') as total_reservations,
+            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'attended') as total_attended
+            FROM campus_events e 
+            ORDER BY e.start_time DESC
+        `);
+        res.render('events-admin', { title: 'Events Admin Dashboard', initialEvents: events });
+    } catch (error) {
+        res.redirect('/events');
     }
 };
 
@@ -115,13 +143,13 @@ const getStreams = async (req, res) => {
 
 const createEvent = async (req, res) => {
     try {
-        const { title, description, event_type, location, campus, start_time, end_time, is_public } = req.body;
+        const { title, description, event_type, location, campus, start_time, end_time, is_public, max_attendees } = req.body;
         const creator_id = req.user.user_id || req.user.userId;
         const event_id = require('crypto').randomUUID();
 
         await pool.query(
-            'INSERT INTO campus_events (event_id, creator_id, title, description, event_type, location, campus, start_time, end_time, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [event_id, creator_id, title, description, event_type, location, campus, start_time, end_time, is_public ? 1 : 0]
+            'INSERT INTO campus_events (event_id, creator_id, title, description, event_type, location, campus, start_time, end_time, is_public, max_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [event_id, creator_id, title, description, event_type, location, campus, start_time, end_time, is_public ? 1 : 0, max_attendees || 0]
         );
 
         res.status(201).json({ message: 'Event created', event_id });
@@ -137,14 +165,74 @@ const rsvpEvent = async (req, res) => {
         const user_id = req.user.user_id || req.user.userId;
         const rsvp_id = require('crypto').randomUUID();
 
+        // Check if event is full before reserving if max_attendees > 0
+        if (status === 'going') {
+            const [events] = await pool.query('SELECT total_rsvps, max_attendees FROM campus_events WHERE event_id = ?', [id]);
+            if (events.length > 0 && events[0].max_attendees > 0 && events[0].total_rsvps >= events[0].max_attendees) {
+                return res.status(400).json({ error: 'Event is fully booked' });
+            }
+        }
+
         await pool.query(
             'INSERT INTO event_rsvps (rsvp_id, event_id, user_id, event_type, status) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
             [rsvp_id, id, user_id, 'campus_event', status]
         );
 
+        // Update total_rsvps cache on the event
+        await pool.query(`
+            UPDATE campus_events 
+            SET total_rsvps = (SELECT COUNT(*) FROM event_rsvps WHERE event_id = ? AND status = 'going')
+            WHERE event_id = ?
+        `, [id, id]);
+
+        // Real-time Live Update broadcast
+        try {
+            const io = getIO();
+            io.emit('event_updated', { eventId: id });
+        } catch(ioErr) {
+            console.error('Socket emission failed in rsvpEvent:', ioErr);
+        }
+
         res.json({ message: 'RSVP updated' });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+const generateEventQR = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        const eventId = req.params.id;
+
+        const data = JSON.stringify({ userId, eventId });
+        const qr = await QRCode.toDataURL(data);
+        
+        // Return a simple HTML view or JSON with QR base64
+        res.json({ status: 'success', qr });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const checkInEvent = async (req, res) => {
+    try {
+        // userId and eventId decoded from QR code scanner
+        const { userId, eventId } = req.body;
+        
+        // Only event creator or admins should be able to trigger this in a real system,
+        // but sticking to the user's requested endpoint logic.
+        const [result] = await pool.query(
+            "UPDATE event_rsvps SET status='attended' WHERE user_id=? AND event_id=?", 
+            [userId, eventId]
+        );
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Reservation not found or already checked in' });
+        }
+
+        res.json({ status: 'success', message: 'Check-in successful' });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
     }
 };
 
@@ -427,5 +515,8 @@ module.exports = {
     getEventAttendees,
     sharePoll,
     shareEvent,
-    endStream
+    endStream,
+    generateEventQR,
+    checkInEvent,
+    renderEventsAdmin
 };

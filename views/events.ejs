@@ -175,15 +175,12 @@
 
                 <div class="premium-tabs" style="margin-bottom: 20px; display: flex; justify-content: flex-start; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;">
                     <style>.premium-tabs::-webkit-scrollbar { display: none; }</style>
-                    <button class="premium-tab-btn active" style="flex-shrink: 0;" onclick="window.location.href='/events?campus=all'">All</button>
+                    <button class="premium-tab-btn <%= (typeof activeFilter !== 'undefined' && activeFilter === 'all') ? 'active' : '' %>" style="flex-shrink: 0;" onclick="window.location.href='/events?campus=all&filter=all'">All</button>
                     <% if (user && user.campus) { %>
-                        <button class="premium-tab-btn" style="flex-shrink: 0;" onclick="window.location.href='/events?campus=<%= user.campus %>'">My Campus</button>
+                        <button class="premium-tab-btn <%= (typeof activeFilter !== 'undefined' && activeFilter === 'campus') ? 'active' : '' %>" style="flex-shrink: 0;" onclick="window.location.href='/events?campus=<%= user.campus %>&filter=campus'">My Campus</button>
                     <% } %>
+                    <button class="premium-tab-btn <%= (typeof activeFilter !== 'undefined' && activeFilter === 'managed') ? 'active' : '' %>" style="flex-shrink: 0; background: var(--instagram-gradient); color: white; border: none;" onclick="window.location.href='/events?filter=managed'">My Managed</button>
                     <button class="premium-tab-btn" style="flex-shrink: 0;" onclick="alert('Trending events coming soon!')">Trending</button>
-                    <% const isCreator = typeof initialEvents !=='undefined' && initialEvents.some(e => e.is_creator); %>
-                    <% if (isCreator) { %>
-                        <button class="premium-tab-btn" style="flex-shrink: 0; background:var(--accent); color:#fff; border:none;" onclick="window.location.href='/events/admin'">Manage Events</button>
-                    <% } %>
                 </div>
 
                 <div class="event-container">

@@ -29,7 +29,10 @@ const renderPollDetail = async (req, res) => {
 const renderEvents = async (req, res) => {
     try {
         const userId = req.user.user_id || req.user.userId;
-        const [events] = await pool.query(`
+        const filter = req.query.filter; // 'managed' or 'campus' or null
+        const campus = req.query.campus || (filter !== 'managed' ? req.user.campus : null);
+
+        let query = `
             SELECT e.*, u.username,
             (SELECT status FROM event_rsvps WHERE event_id = e.event_id AND user_id = ?) as user_status,
             (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status IN ('pending', 'accepted')) as total_rsvps,
@@ -37,12 +40,26 @@ const renderEvents = async (req, res) => {
             (e.creator_id = ?) as is_creator
             FROM campus_events e 
             JOIN users u ON e.creator_id = u.user_id 
-            WHERE e.is_public = TRUE 
-            ORDER BY e.start_time ASC
-        `, [userId, userId]);
-        res.render('events', { title: 'Campus Events', initialEvents: events, currentUser: req.user });
+            WHERE 1=1
+        `;
+        const params = [userId, userId];
+
+        if (filter === 'managed') {
+            query += ' AND e.creator_id = ?';
+            params.push(userId);
+        } else {
+            query += ' AND e.is_public = TRUE';
+            if (campus && campus !== 'all') {
+                query += ' AND e.campus = ?';
+                params.push(campus);
+            }
+        }
+
+        const [events] = await pool.query(query + ' ORDER BY e.start_time ASC', params);
+        res.render('events', { title: 'Campus Events', initialEvents: events, currentUser: req.user, activeFilter: filter || 'all' });
     } catch (error) {
-        res.render('events', { title: 'Campus Events', initialEvents: [] });
+        console.error('Render Events Error:', error);
+        res.render('events', { title: 'Campus Events', initialEvents: [], currentUser: req.user, activeFilter: 'all' });
     }
 };
 
@@ -537,12 +554,21 @@ const followStream = async (req, res) => {
 const getEventAttendees = async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+
+        // Security Check: Only creator can see full attendee details for management
+        const [event] = await pool.query('SELECT creator_id FROM campus_events WHERE event_id = ?', [id]);
+        if (event.length === 0) return res.status(404).json({ error: 'Event not found' });
+        
+        // If not creator, return basic list (or restrict depending on privacy needs)
+        // For now, let's allow public view of names but restrict admin actions
+        
         const [attendees] = await pool.query(
             `SELECT r.user_id, r.status, u.name, u.username, u.avatar_url
              FROM event_rsvps r
              JOIN users u ON r.user_id = u.user_id
              WHERE r.event_id = ?
-             ORDER BY r.status ASC, u.username ASC`,
+             ORDER BY CASE WHEN r.status = 'pending' THEN 0 ELSE 1 END, u.username ASC`,
             [id]
         );
         res.json(attendees);

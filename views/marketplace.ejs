@@ -1428,13 +1428,34 @@
                     <i class="fas fa-share-alt"></i>
                     <span>Share Listing</span>
                 </div>
+                
+                <!-- Seller Only Options -->
+                <div class="option-item" id="optionBoost" style="display: none;">
+                    <i class="fas fa-rocket" style="color: #f59e0b;"></i>
+                    <span>Boost / Promote Listing</span>
+                </div>
+                <div class="option-item" id="optionSold" style="display: none;">
+                    <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                    <span>Mark as Sold</span>
+                </div>
+                
                 <div class="option-item" id="optionReport">
                     <i class="fas fa-exclamation-triangle"></i>
                     <span>Report Listing</span>
                 </div>
+                <div class="option-item" id="optionEvents">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Listing Events</span>
+                </div>
                 <div class="option-item danger" id="optionHide">
                     <i class="fas fa-eye-slash"></i>
                     <span>Hide Listing</span>
+                </div>
+                
+                <!-- Delete Listing (Seller Only) -->
+                <div class="option-item danger" id="optionDelete" style="display: none;">
+                    <i class="fas fa-trash-alt"></i>
+                    <span>Delete Listing</span>
                 </div>
             </div>
         </div>
@@ -2093,6 +2114,18 @@
             const listing = listingsMap[listingId];
             if (!listing) return;
 
+            // Determine if current user is the owner
+            const currentUserId = currentUser ? (currentUser.user_id || currentUser.id) : null;
+            const isOwner = currentUserId && listing.seller_id === currentUserId;
+
+            // Toggle visibility based on ownership
+            document.getElementById('optionReport').style.display = isOwner ? 'none' : 'flex';
+            document.getElementById('optionHide').style.display = isOwner ? 'none' : 'flex';
+            
+            document.getElementById('optionBoost').style.display = isOwner ? 'flex' : 'none';
+            document.getElementById('optionSold').style.display = (isOwner && !listing.is_sold) ? 'flex' : 'none';
+            document.getElementById('optionDelete').style.display = isOwner ? 'flex' : 'none';
+
             // Setup option handlers
             document.getElementById('optionViewProfile').onclick = () => {
                 closeOptionsModal();
@@ -2117,9 +2150,34 @@
                 openReportModal(listingId);
             };
 
+            document.getElementById('optionEvents').onclick = () => {
+                closeOptionsModal();
+                window.location.href = `/events/?listing=${listingId}`;
+            };
+
             document.getElementById('optionHide').onclick = () => {
                 closeOptionsModal();
                 hideListing(listingId);
+            };
+
+            // Seller Action Handlers
+            document.getElementById('optionBoost').onclick = () => {
+                closeOptionsModal();
+                boostListing(listingId);
+            };
+
+            document.getElementById('optionSold').onclick = () => {
+                closeOptionsModal();
+                if (confirm('Are you sure you want to mark this item as sold?')) {
+                    markAsSold(listingId);
+                }
+            };
+
+            document.getElementById('optionDelete').onclick = () => {
+                closeOptionsModal();
+                if (confirm('Are you sure you want to delete this listing permanently? This action cannot be undone.')) {
+                    deleteListing(listingId);
+                }
             };
 
             document.getElementById('optionsModal').style.display = 'flex';
@@ -2128,6 +2186,19 @@
         function closeOptionsModal() {
             document.getElementById('optionsModal').style.display = 'none';
         }
+
+        // Close options modal when clicking outside
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('optionsModal');
+            if (event.target === modal) {
+                closeOptionsModal();
+            }
+            // Also for other modals if they don't have it
+            const reportModal = document.getElementById('reportModal');
+            if (event.target === reportModal) {
+                closeReportModal();
+            }
+        });
 
         function shareListing(listingId) {
             const listing = listingsMap[listingId];
@@ -2195,6 +2266,71 @@
                     card.remove();
                     showToast('Listing hidden from your view');
                 }, 300);
+            }
+        }
+
+        async function markAsSold(listingId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}/sold`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Item marked as sold!', 'success');
+                    // Update local map and visual
+                    if (listingsMap[listingId]) listingsMap[listingId].is_sold = 1;
+                    fetchListings(); // Refresh UI
+                } else {
+                    showToast(result.error || 'Failed to update item');
+                }
+            } catch (err) {
+                showToast('Network error occurred');
+            }
+        }
+
+        async function boostListing(listingId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}/boost`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Listing boosted successfully! 🚀', 'success');
+                    fetchTrending(); // Refresh trending section
+                } else {
+                    showToast(result.error || 'Failed to boost listing');
+                }
+            } catch (err) {
+                showToast('Boost failed. Try again later.');
+            }
+        }
+
+        async function deleteListing(listingId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Listing deleted successfully', 'success');
+                    hideListing(listingId); // Remove from view
+                } else {
+                    showToast(result.error || 'Failed to delete listing');
+                }
+            } catch (err) {
+                showToast('Deletion failed');
             }
         }
 

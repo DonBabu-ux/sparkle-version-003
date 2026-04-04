@@ -25,11 +25,15 @@ const authMiddleware = async (req, res, next) => {
         // CHECK CACHE FIRST
         const cached = userCache.get(decoded.userId);
         if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-            // Verify token version matches if it's in the decoded payload
-            // (Note: older tokens might not have it, so we rely on DB fallback if version mismatch is suspected)
-            if (decoded.tokenVersion === cached.user.token_version) {
-                req.user = cached.user;
-                return next();
+            // STALENESS CHECK: Ensure the cached user matches the current token's user
+            if (cached.user.user_id === decoded.userId || cached.user.userId === decoded.userId) {
+                if (decoded.tokenVersion === cached.user.token_version) {
+                    req.user = cached.user;
+                    return next();
+                }
+            } else {
+                // Identity mismatch in cache (likely switched accounts quickly)
+                userCache.delete(decoded.userId);
             }
         }
 
@@ -100,9 +104,14 @@ const ejsAuthMiddleware = async (req, res, next) => {
         // CHECK CACHE FIRST
         const cached = userCache.get(decoded.userId);
         if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-            req.user = cached.user;
-            res.locals.user = req.user;
-            return next();
+            // STALENESS CHECK: Ensure the cached user matches the current token's user
+            if (cached.user.user_id === decoded.userId || cached.user.userId === decoded.userId) {
+                req.user = cached.user;
+                res.locals.user = req.user;
+                return next();
+            } else {
+                userCache.delete(decoded.userId);
+            }
         }
 
         // DB FALLBACK

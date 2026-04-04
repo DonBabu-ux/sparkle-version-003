@@ -247,7 +247,7 @@
                                         <div style="display: flex; align-items: flex-start; gap: 8px;">
                                             <span class="live-dot" title="Live Event Updates Active"></span>
                                             
-                                            <% if (user && (event.creator_id === user.user_id || event.creator_id === user.userId)) { %>
+                                            <% if (event.is_creator) { %>
                                                 <div style="position: relative;">
                                                     <button class="admin-menu-trigger" onclick="toggleAdminDropdown('<%= event.event_id %>')" aria-label="Admin Options">
                                                         <i class="fas fa-ellipsis-v"></i>

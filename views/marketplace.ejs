@@ -678,37 +678,121 @@
             gap: 0.25rem;
         }
 
-        .product-actions {
-            padding: 0.75rem 1rem;
-            display: flex;
-            gap: 1rem;
-            border-bottom: 1px solid #e4e6eb;
-        }
-
-        .action-btn {
+        .save-overlay-mini {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem;
-            border-radius: 8px;
+            justify-content: center;
+            z-index: 20;
             cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             transition: all 0.2s;
             color: #65676b;
-            background: none;
-            border: none;
-            font-size: 0.9rem;
         }
 
-        .action-btn:hover {
-            background: #f0f2f5;
-        }
-
-        .action-btn.liked {
-            color: #ef4444;
-        }
+        .save-overlay-mini:hover { transform: scale(1.1); background: white; }
+        .save-overlay-mini.active { color: #f02849; }
+        .save-overlay-mini i { font-size: 16px; }
 
         .product-info {
-            padding: 1rem;
+            padding: 0.75rem 0.75rem 0.5rem;
+            background: white;
+        }
+
+        /* 🚀 NEW ACTION BAR & STATUS */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: #fff;
+            border: 1px solid #e4e6eb;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #65676b;
+            margin-top: 4px;
+        }
+
+        .action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-top: 1px solid #f0f2f5;
+            gap: 4px;
+        }
+
+        .action-btn-main {
+            flex: 1;
+            height: 34px;
+            border-radius: 6px;
+            border: none;
+            background: #e4e6eb;
+            color: #050505;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn-main:hover { background: #d8dadf; }
+        .action-btn-main.primary { background: #1877f2; color: white; }
+        .action-btn-main.primary:hover { background: #166fe5; }
+
+        .action-btn-circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: #f0f2f5;
+            color: #050505;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .action-btn-circle:hover { background: #e4e6eb; }
+
+        /* 💬 REFINED QUICK INQUIRY */
+        .quick-inquiry-card {
+            margin: 0 12px 12px;
+            padding: 10px;
+            background: #f0f2f5;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .quick-inquiry-card:hover { background: #e4e6eb; }
+
+        .inquiry-placeholder {
+            font-size: 0.9rem;
+            color: #65676b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inquiry-send-icon {
+            color: #1877f2;
+            font-size: 1.1rem;
         }
 
         .product-price {
@@ -724,29 +808,7 @@
             margin-bottom: 0.5rem;
         }
 
-        .product-description {
-            font-size: 0.875rem;
-            color: #65676b;
-            margin-bottom: 0.75rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
 
-        .product-meta {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.75rem;
-            color: #65676b;
-        }
-
-        .order-buttons {
-            padding: 0.75rem 1rem 1rem;
-            display: flex;
-            gap: 0.75rem;
-        }
 
         .btn-order {
             flex: 1;
@@ -1489,13 +1551,29 @@
 
         // Render individual product card
         function renderProductCard(listing) {
+            const lid = listing.listing_id;
             const sellerInitial = listing.seller_name ? listing.seller_name.charAt(0).toUpperCase() : '?';
             const conditionIcon = getConditionIcon(listing.condition);
             const conditionText = formatCondition(listing.condition);
-            const sellerRating = listing.seller_rating ? listing.seller_rating.toFixed(1) : 'New';
             const formattedPrice = new Intl.NumberFormat('en-KE').format(listing.price);
-            const lid = listing.listing_id; // short alias for attribute embedding
+            const humanDate = formatHumanDate(listing.created_at, listing.affiliation || listing.campus || 'Main Campus');
+            const isSaved = listing.is_wishlisted || listing.is_favorited;
+
+            // Pre-calculate media HTML to avoid complex IIFE inside template literal
+            let mediaHtml = '';
+            const media = (listing.media && listing.media.length > 0) ? listing.media : [{ media_url: listing.image_url || '/images/default-listing.jpg' }];
+            const displayMedia = media.slice(0, 4);
+            const moreCount = media.length - 4;
             
+            mediaHtml = displayMedia.map((m, idx) => `
+                <div class="media-item" onclick="openLightbox('${lid}', ${idx}, event)">
+                    <img src="${m.media_url}" alt="${escapeHtml(listing.title)}" onerror="this.src='/images/default-listing.jpg'">
+                    ${idx === 3 && moreCount > 0 ? `<div class="more-overlay">+${moreCount}</div>` : ''}
+                </div>
+            `).join('');
+
+            const mediaGridClass = listing.media && listing.media.length > 0 ? 'grid-' + (listing.media.length > 4 ? 'more' : listing.media.length) : 'grid-1';
+
             return `
                 <div class="product-card" onclick="viewListing('${lid}')">
                     <div class="product-header">
@@ -1512,53 +1590,42 @@
                         </div>
                     </div>
                     
-                    <div class="product-media ${listing.media && listing.media.length > 0 ? 'grid-' + (listing.media.length > 4 ? 'more' : listing.media.length) : 'grid-1'}">
-                        ${(() => {
-                            const media = listing.media && listing.media.length > 0 ? listing.media : [{ media_url: listing.image_url || '/images/default-listing.jpg' }];
-                            const displayMedia = media.slice(0, 4);
-                            const moreCount = media.length - 4;
-                            
-                            return displayMedia.map((m, idx) => `
-                                <div class="media-item" onclick="openLightbox('${lid}', ${idx}, event)">
-                                    <img src="${m.media_url}" alt="${escapeHtml(listing.title)}" onerror="this.src='/images/default-listing.jpg'">
-                                    ${idx === 3 && moreCount > 0 ? `<div class="more-overlay">+${moreCount}</div>` : ''}
-                                </div>
-                            `).join('');
-                        })()}
+                    <div class="product-media ${mediaGridClass}">
+                        ${mediaHtml}
+                    </div>
+                    
+                    <div class="product-info" style="padding: 12px 12px 8px;">
+                        <div class="product-price" style="font-size: 1.15rem; color: #1c1e21; margin: 0; font-weight: 700;">KES ${formattedPrice}</div>
+                        <div class="product-title" style="font-size: 0.95rem; color: #1c1e21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">${escapeHtml(listing.title)}</div>
                         
-                    </div>
-                    
-                    <div class="product-actions">
-                        <button class="action-btn like-btn" onclick="toggleLike('${lid}', event)" title="Spark this item">
-                            <i class="${listing.is_favorited ? 'fas' : 'far'} fa-heart" style="${listing.is_favorited ? 'color: #ef4444;' : ''}"></i> 
-                            <span id="like-${lid}">${listing.likes_count || 0}</span>
-                        </button>
-                        <button class="action-btn wishlist-btn" onclick="toggleWishlist('${lid}', event)" title="Add to Wishlist">
-                            <i class="${listing.is_wishlisted ? 'fas' : 'far'} fa-bookmark" style="${listing.is_wishlisted ? 'color: #6366f1;' : ''}"></i>
-                        </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); shareListing('${lid}')">
-                            <i class="far fa-share-square"></i>
-                        </button>
-                        <div style="flex: 1;"></div>
-                        <div class="rating-display" style="font-size: 0.8rem; color: #fbbf24;">
-                            <i class="fas fa-star"></i> ${sellerRating}
+                        <div class="status-badge">
+                            <i class="${conditionIcon}"></i> ${conditionText}
                         </div>
+                        
+                        <div class="product-location" style="font-size: 0.8rem; color: #65676b; margin-top: 6px;">${humanDate}</div>
                     </div>
-                    
-                    <div class="product-info">
-                        <div class="product-price">KES ${formattedPrice}</div>
-                        <div class="product-title" style="color: #ff4da6; font-weight: 500;">${escapeHtml(listing.title)}</div>
-                        <div class="product-meta">
-                            <span><i class="fas fa-box"></i> ${conditionText}</span>
-                            <span><i class="far fa-calendar-alt"></i> ${formatDate(listing.created_at)}</span>
-                            <span><i class="fas fa-map-marker-alt"></i> ${listing.affiliation || listing.campus || 'Community'}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="order-buttons">
-                        <button class="cta-btn btn-order" onclick="event.stopPropagation(); startChat('${lid}')" style="width: 100%; background: #ff4da6; box-shadow: 0 4px 15px rgba(255, 77, 166, 0.2);">
-                            Is this still available?
+
+                    <div class="action-bar">
+                        <button class="action-btn-main primary" onclick="event.stopPropagation(); startChat('${lid}')">
+                            <i class="fas fa-comment"></i> Message
                         </button>
+                        <button class="action-btn-circle" onclick="event.stopPropagation(); toggleWishlist('${lid}', event)" title="Save listing">
+                            <i class="${isSaved ? 'fas' : 'far'} fa-heart" ${isSaved ? 'style="color: #f02849;"' : ''}></i>
+                        </button>
+                        <button class="action-btn-circle" onclick="event.stopPropagation(); shareListing('${lid}')" title="Share">
+                            <i class="fas fa-share"></i>
+                        </button>
+                        <button class="action-btn-circle" onclick="event.stopPropagation(); showOptions('${lid}')">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+
+                    <div class="quick-inquiry-card" onclick="event.stopPropagation(); sendQuickMessage('${lid}')">
+                        <div class="inquiry-placeholder">
+                            <i class="fab fa-facebook-messenger" style="color: #0084FF;"></i>
+                            <span>Is this still available? 😊</span>
+                        </div>
+                        <i class="fas fa-paper-plane inquiry-send-icon"></i>
                     </div>
                 </div>
             `;
@@ -1568,7 +1635,10 @@
             const icons = {
                 'new': 'fas fa-box',
                 'like_new': 'fas fa-star',
+                'used_like_new': 'fas fa-star',
                 'good': 'fas fa-thumbs-up',
+                'used_good': 'fas fa-thumbs-up',
+                'refurbished': 'fas fa-wrench',
                 'fair': 'fas fa-hand-peace'
             };
             return icons[condition] || 'fas fa-tag';
@@ -1576,12 +1646,31 @@
 
         function formatCondition(condition) {
             const formats = {
-                'new': 'Brand New',
-                'like_new': 'Like New',
-                'good': 'Good',
+                'new': 'New',
+                'like_new': 'Used - Like New',
+                'used_like_new': 'Used - Like New',
+                'good': 'Used - Good',
+                'used_good': 'Used - Good',
+                'refurbished': 'Refurbished',
                 'fair': 'Fair'
             };
             return formats[condition] || condition;
+        }
+
+        function formatHumanDate(dateString, location) {
+            if (!dateString) return `Listed in ${location}`;
+            const date = new Date(dateString);
+            const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const weekday = weekdays[date.getDay()];
+            
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            let timeStr = `on ${weekday}`;
+            if (diffDays === 0) timeStr = 'Today';
+            if (diffDays === 1) timeStr = 'Yesterday';
+            
+            return `Listed ${timeStr} in ${location}`;
         }
 
         function formatDate(dateString) {
@@ -1789,6 +1878,30 @@
                 credentials: 'include'
             }).catch(() => {});
             window.location.href = `/marketplace/listings/${listingId}`;
+        }
+
+        async function sendQuickMessage(listingId) {
+            const listing = listingsMap[listingId];
+            if (!listing) return;
+            
+            const text = "Is this still available?";
+            
+            // Show optimistic feedback
+            showToast("Opening chat...");
+
+            // Prepare rich card payload for chat
+            const host = window.location.origin;
+            const mktPayload = {
+                title: listing.title,
+                price: `KES ${new Intl.NumberFormat('en-KE').format(listing.price)}`,
+                image: listing.image_url || (listing.media && listing.media[0]?.media_url) || '/images/default-listing.jpg',
+                link: `${host}/marketplace/listings/${listingId}`,
+                initialMessage: text
+            };
+            
+            // Encode and navigate to chat
+            const mktEncoded = btoa(encodeURIComponent(JSON.stringify(mktPayload)));
+            window.location.href = `/messages/?user=${listing.seller_id}&mkt=${mktEncoded}&autoSend=true`;
         }
 
         function openMessenger(userId, listingId = null) {

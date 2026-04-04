@@ -492,20 +492,24 @@ class Marketplace {
 
                 // 2. Calculate user preferences
                 const categoryPrefs = {};
-                const pricePrefs = { min: Infinity, max: 0, avg: 0 };
+                const pricePrefs = { min: 0, max: 0, avg: 0, count: 0 };
                 const conditionPrefs = {};
 
                 userInteractions.forEach(item => {
-                    // Category preferences
-                    categoryPrefs[item.category] = (categoryPrefs[item.category] || 0) + 1;
+                    const price = parseFloat(item.price);
+                    if (!isNaN(price)) {
+                        // Category preferences
+                        categoryPrefs[item.category] = (categoryPrefs[item.category] || 0) + 1;
 
-                    // Price preferences
-                    pricePrefs.min = Math.min(pricePrefs.min, item.price);
-                    pricePrefs.max = Math.max(pricePrefs.max, item.price);
-                    pricePrefs.avg = pricePrefs.avg ? (pricePrefs.avg + item.price) / 2 : item.price;
+                        // Price preferences
+                        pricePrefs.min = pricePrefs.count === 0 ? price : Math.min(pricePrefs.min, price);
+                        pricePrefs.max = pricePrefs.count === 0 ? price : Math.max(pricePrefs.max, price);
+                        pricePrefs.avg = (pricePrefs.avg * pricePrefs.count + price) / (pricePrefs.count + 1);
+                        pricePrefs.count++;
 
-                    // Condition preferences
-                    conditionPrefs[item.condition] = (conditionPrefs[item.condition] || 0) + 1;
+                        // Condition preferences
+                        conditionPrefs[item.condition] = (conditionPrefs[item.condition] || 0) + 1;
+                    }
                 });
 
                 // 3. Find most preferred categories
@@ -513,6 +517,15 @@ class Marketplace {
                     .sort(([,a], [,b]) => b - a)
                     .slice(0, 3)
                     .map(([cat]) => cat);
+
+                // Safe price range fallbacks
+                const safeAvg = isNaN(pricePrefs.avg) || pricePrefs.avg === 0 ? 500 : pricePrefs.avg;
+                const minRange = Math.max(0, safeAvg * 0.5);
+                const maxRange = safeAvg * 2.0;
+
+                // Most preferred condition fallback
+                const topConditionEntry = Object.entries(conditionPrefs).sort(([,a], [,b]) => b - a)[0];
+                const topCondition = topConditionEntry ? topConditionEntry[0] : 'good';
 
                 // 4. Build recommendation query with scoring
                 let query = `
@@ -548,9 +561,9 @@ class Marketplace {
 
                 const params = [
                     ...topCategories,
-                    Math.max(0, pricePrefs.avg * 0.7), // 70% of avg price
-                    pricePrefs.avg * 1.3, // 130% of avg price
-                    Object.keys(conditionPrefs).sort((a,b) => conditionPrefs[b] - conditionPrefs[a])[0] || 'good',
+                    minRange,
+                    maxRange,
+                    topCondition,
                     userId,
                     campus,
                     limit
@@ -572,14 +585,13 @@ class Marketplace {
                     WHERE ml.is_sold = FALSE
                     AND (ml.campus = ? OR ml.campus = 'main_campus')
                     ${userId ? 'AND ml.seller_id != ?' : ''}
-                    AND ml.listing_id NOT IN (${recommendations.map(() => '?').join(',') || 'NULL'})
+                    AND ml.listing_id NOT IN (${recommendations.map(r => `'${r.listing_id}'`).join(',') || "'NULL'"})
                     ORDER BY ml.view_count DESC, ml.created_at DESC
                     LIMIT ?
                 `;
 
                 const params = [campus];
                 if (userId) params.push(userId);
-                params.push(...recommendations.map(r => r.listing_id));
                 params.push(fallbackLimit);
 
                 const [fallback] = await pool.query(fallbackQuery, params);

@@ -32,6 +32,8 @@ const renderEvents = async (req, res) => {
         const [events] = await pool.query(`
             SELECT e.*, u.username,
             (SELECT status FROM event_rsvps WHERE event_id = e.event_id AND user_id = ?) as user_status,
+            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status IN ('pending', 'accepted')) as total_rsvps,
+            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'attended') as total_attended,
             (e.creator_id = ?) as is_creator
             FROM campus_events e 
             JOIN users u ON e.creator_id = u.user_id 
@@ -50,8 +52,8 @@ const renderEventsAdmin = async (req, res) => {
 
         // Fetch events created by this user
         const [events] = await pool.query(`
-            SELECT e.title, e.event_id, e.campus, e.start_time, e.max_attendees, e.is_public,
-            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'going') as total_reservations,
+            SELECT e.*,
+            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status IN ('pending', 'accepted')) as total_reservations,
             (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'attended') as total_attended
             FROM campus_events e 
             WHERE e.creator_id = ?
@@ -147,13 +149,13 @@ const getStreams = async (req, res) => {
 
 const createEvent = async (req, res) => {
     try {
-        const { title, description, event_type, location, campus, start_time, end_time, is_public, max_attendees } = req.body;
+        const { title, description, event_type, location, campus, start_time, end_time, is_public, max_attendees, requirements } = req.body;
         const creator_id = req.user.user_id || req.user.userId;
         const event_id = require('crypto').randomUUID();
 
         await pool.query(
-            'INSERT INTO campus_events (event_id, creator_id, title, description, event_type, location, campus, start_time, end_time, is_public, max_attendees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [event_id, creator_id, title, description, event_type, location, campus, start_time, end_time, is_public ? 1 : 0, max_attendees || 0]
+            'INSERT INTO campus_events (event_id, creator_id, title, description, event_type, location, campus, start_time, end_time, is_public, max_attendees, requirements) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [event_id, creator_id, title, description, event_type, location, campus, start_time, end_time, is_public ? 1 : 0, max_attendees || 0, requirements || '']
         );
 
         res.status(201).json({ message: 'Event created', event_id });
@@ -165,27 +167,32 @@ const createEvent = async (req, res) => {
 const rsvpEvent = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status } = req.body; // status: 'pending' or 'not_going'
         const user_id = req.user.user_id || req.user.userId;
         const rsvp_id = require('crypto').randomUUID();
 
         // Check if event is full before reserving if max_attendees > 0
-        if (status === 'going') {
+        if (status === 'pending') {
             const [events] = await pool.query('SELECT total_rsvps, max_attendees FROM campus_events WHERE event_id = ?', [id]);
             if (events.length > 0 && events[0].max_attendees > 0 && events[0].total_rsvps >= events[0].max_attendees) {
                 return res.status(400).json({ error: 'Event is fully booked' });
             }
         }
 
-        await pool.query(
-            'INSERT INTO event_rsvps (rsvp_id, event_id, user_id, event_type, status) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
-            [rsvp_id, id, user_id, 'campus_event', status]
-        );
+        if (status === 'not_going') {
+            await pool.query('DELETE FROM event_rsvps WHERE user_id = ? AND event_id = ?', [user_id, id]);
+        } else {
+            // New RSVPs start as 'pending'
+            await pool.query(
+                'INSERT INTO event_rsvps (rsvp_id, event_id, user_id, event_type, status) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status)',
+                [rsvp_id, id, user_id, 'campus_event', status]
+            );
+        }
 
-        // Update total_rsvps cache on the event
+        // Update total_rsvps cache on the event (Only counting accepted/confirmed if necessary, but here we count all 'pending' + 'accepted')
         await pool.query(`
             UPDATE campus_events 
-            SET total_rsvps = (SELECT COUNT(*) FROM event_rsvps WHERE event_id = ? AND status = 'going')
+            SET total_rsvps = (SELECT COUNT(*) FROM event_rsvps WHERE event_id = ? AND status IN ('pending', 'accepted', 'going'))
             WHERE event_id = ?
         `, [id, id]);
 
@@ -193,13 +200,35 @@ const rsvpEvent = async (req, res) => {
         try {
             const io = getIO();
             io.emit('event_updated', { eventId: id });
-        } catch(ioErr) {
-            console.error('Socket emission failed in rsvpEvent:', ioErr);
-        }
+        } catch(ioErr) {}
 
         res.json({ message: 'RSVP updated' });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+const approveRSVP = async (req, res) => {
+    try {
+        const { eventId, userId, status } = req.body; // status: 'accepted' or 'rejected'
+        const currentUserId = req.user.user_id || req.user.userId;
+
+        const [event] = await pool.query('SELECT creator_id FROM campus_events WHERE event_id = ?', [eventId]);
+        if (event.length === 0) return res.status(404).json({ error: 'Event not found' });
+        if (event[0].creator_id !== currentUserId) return res.status(403).json({ error: 'Only event creator can approve RSVPs' });
+
+        await pool.query('UPDATE event_rsvps SET status = ? WHERE event_id = ? AND user_id = ?', [status, eventId, userId]);
+
+        // Notify user via Socket
+        try {
+            const io = getIO();
+            io.to(`user:${userId}`).emit('event_rsvp_status', { eventId, status });
+            io.emit('event_updated', { eventId }); // Update live stats for everyone
+        } catch (e) {}
+
+        res.json({ status: 'success', message: `RSVP ${status}` });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 };
 
@@ -232,14 +261,16 @@ const checkInEvent = async (req, res) => {
             return res.status(403).json({ error: 'Unauthorized to check-in attendees' });
         }
 
+        // ONLY ACCEPTED users can attend
+        const [rsvp] = await pool.query("SELECT status FROM event_rsvps WHERE user_id=? AND event_id=?", [userId, eventId]);
+        if (rsvp.length === 0 || rsvp[0].status !== 'accepted') {
+            return res.status(400).json({ error: 'Access denied: Entry only for accepted RSVPs' });
+        }
+
         const [result] = await pool.query(
             "UPDATE event_rsvps SET status='attended' WHERE user_id=? AND event_id=?",
             [userId, eventId]
         );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Reservation not found' });
-        }
 
         // Send real-time check-in notification to the dashboard
         try {
@@ -503,7 +534,6 @@ const followStream = async (req, res) => {
     }
 };
 
-// Get event attendees
 const getEventAttendees = async (req, res) => {
     try {
         const { id } = req.params;
@@ -511,11 +541,11 @@ const getEventAttendees = async (req, res) => {
             `SELECT r.user_id, r.status, u.name, u.username, u.avatar_url
              FROM event_rsvps r
              JOIN users u ON r.user_id = u.user_id
-             WHERE r.event_id = ? AND r.status = 'going'
-             ORDER BY r.created_at ASC`,
+             WHERE r.event_id = ?
+             ORDER BY r.status ASC, u.username ASC`,
             [id]
         );
-        res.json({ status: 'success', data: attendees });
+        res.json(attendees);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -578,5 +608,6 @@ module.exports = {
     checkInEvent,
     renderEventsAdmin,
     deleteEvent,
-    updateEventStatus
+    updateEventStatus,
+    approveRSVP
 };

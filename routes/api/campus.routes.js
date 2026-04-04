@@ -20,6 +20,7 @@ router.get('/events/:id/qr', authMiddleware, campusController.generateEventQR); 
 router.post('/events/checkin', authMiddleware, campusController.checkInEvent);                  // Check-In user
 router.delete('/events/:id', authMiddleware, campusController.deleteEvent);                    // Admin/Creator Delete
 router.patch('/events/:id/status', authMiddleware, campusController.updateEventStatus);         // Admin/Creator Update Status
+router.post('/events/rsvp/approve', authMiddleware, campusController.approveRSVP);              // Admin/Creator Approve/Reject
 
 // ---- Streams (Live Text Updates) ----
 router.get('/streams', campusController.getStreams);                                            // Browse live streams

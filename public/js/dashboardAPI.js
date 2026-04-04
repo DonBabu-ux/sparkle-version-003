@@ -1374,6 +1374,7 @@ const DashboardAPI = {
                     location: eventData.location,
                     start_time: eventData.start_time,
                     max_attendees: eventData.max_attendees || 0,
+                    requirements: eventData.requirements || '',
                     campus: eventData.campus || 'Main Campus',
                     is_public: eventData.is_public !== undefined ? eventData.is_public : true,
                     event_type: eventData.event_type || 'meetup'
@@ -1383,6 +1384,18 @@ const DashboardAPI = {
             return result;
         } catch (error) {
             console.error('❌ Failed to create event:', error);
+            throw error;
+        }
+    },
+
+    async approveRSVP(eventId, userId, status) {
+        try {
+            return await this.request('/events/rsvp/approve', {
+                method: 'POST',
+                body: JSON.stringify({ eventId, userId, status })
+            });
+        } catch (error) {
+            console.error('Failed to update RSVP status:', error);
             throw error;
         }
     },

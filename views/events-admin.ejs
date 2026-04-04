@@ -39,34 +39,59 @@
             <% if(initialEvents && initialEvents.length > 0) { %>
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <% initialEvents.forEach(e => { %>
-                        <div class="glass" style="padding: 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center;">
-                            <div style="flex: 1;">
-                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                                    <span class="badge" style="background: <%= e.is_public ? 'var(--success)' : 'var(--warning)' %>; color: white;">
-                                        <%= e.is_public ? 'LIVE' : 'PAUSED' %>
-                                    </span>
-                                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;"><%= e.campus %></span>
+                        <div class="event-mgmt-card glass" id="mgmt-card-<%= e.event_id %>" style="padding: 20px; border-radius: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                        <span class="badge" style="background: <%= e.is_public ? 'var(--success)' : 'var(--warning)' %>; color: white;">
+                                            <%= e.is_public ? 'LIVE' : 'PAUSED' %>
+                                        </span>
+                                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;"><%= e.campus %></span>
+                                    </div>
+                                    <h4 style="margin: 0; font-size: 18px;"><%= e.title %></h4>
                                 </div>
-                                <h4 style="margin: 0; font-size: 18px;"><%= e.title %></h4>
-                                <div style="margin-top: 8px; display: flex; gap: 20px;">
-                                    <div style="font-size: 13px;">
-                                        <i class="fas fa-users" style="color: var(--accent);"></i> 
-                                        <strong><%= e.total_reservations %></strong> RSVPs
-                                    </div>
-                                    <div style="font-size: 13px;">
-                                        <i class="fas fa-user-check" style="color: var(--success);"></i> 
-                                        <strong><%= e.total_attended %></strong> Present
-                                    </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button onclick="toggleEventStatus('<%= e.event_id %>', <%= e.is_public %>)" class="action-icon" title="<%= e.is_public ? 'Pause' : 'Resume' %>" style="width: 36px; height: 36px; border-radius: 10px; background: rgba(0,0,0,0.05); border: none; cursor: pointer;"><i class="fas <%= e.is_public ? 'fa-pause' : 'fa-play' %>"></i></button>
+                                    <button onclick="deleteEvent('<%= e.event_id %>')" class="action-icon" style="width: 36px; height: 36px; border-radius: 10px; background: rgba(239,68,68,0.1); color: var(--danger); border: none; cursor: pointer;"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </div>
+                            
+                            <!-- Attendance Stats -->
+                            <div onclick="loadAttendees('<%= e.event_id %>')" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; background: rgba(0,0,0,0.02); padding: 12px; border-radius: 12px; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='rgba(0,0,0,0.02)'">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 18px; font-weight: 800;"><%= e.total_reservations %></div>
+                                    <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted);">RSVPs</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 18px; font-weight: 800; color: var(--success);"><%= e.total_attended %></div>
+                                    <div style="font-size: 10px; text-transform: uppercase; color: var(--text-muted);">Present</div>
                                 </div>
                             </div>
 
-                            <div style="display: flex; gap: 8px;">
-                                <button onclick="toggleEventStatus('<%= e.event_id %>', <%= e.is_public %>)" class="action-icon" title="<%= e.is_public ? 'Pause Event' : 'Resume Event' %>" style="width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.05); border: none; cursor: pointer;">
-                                    <i class="fas <%= e.is_public ? 'fa-pause' : 'fa-play' %>"></i>
+                            <!-- Progress Bar -->
+                            <% if (e.max_attendees > 0) { 
+                                let prog = (e.total_reservations / e.max_attendees) * 100;
+                            %>
+                            <div style="margin-bottom: 15px;">
+                                <div style="height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                                    <div style="width: <%= Math.min(prog, 100) %>%; height: 100%; background: var(--instagram-gradient); transition: 0.5s;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; font-weight: 700; color: var(--text-muted);">
+                                    <span>CAPACITY: <%= e.max_attendees %></span>
+                                    <span><%= Math.max(0, e.max_attendees - e.total_reservations) %> SPOTS LEFT</span>
+                                </div>
+                            </div>
+                            <% } %>
+
+                            <!-- Attendee Approval Area -->
+                            <div class="attendee-management">
+                                <h5 style="margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase;">Approval Queue</h5>
+                                <button onclick="loadAttendees('<%= e.event_id %>')" class="btn" style="width: 100%; padding: 8px; font-size: 12px; background: #f1f5f9; border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">
+                                    <i class="fas fa-user-clock"></i> Review Requests
                                 </button>
-                                <button onclick="deleteEvent('<%= e.event_id %>')" class="action-icon" title="Terminate Event" style="width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.1); color: var(--danger); border: none; cursor: pointer;">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                                <div id="attendee-list-<%= e.event_id %>" style="display: none; margin-top: 15px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                                    <!-- Populated via loadAttendees() -->
+                                </div>
                             </div>
                         </div>
                     <% }) %>
@@ -107,9 +132,14 @@
                     </div>
 
                     <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase;">Requirements (One per line)</label>
+                        <textarea name="requirements" placeholder="- Laptop required&#10;- Basic JS knowledge" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.5); min-height: 80px;"></textarea>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
                         <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase;">Campus</label>
                         <select name="campus" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.5);" required>
-                            <option value="<%= user.campus || 'Main Campus' %>"><%= user.campus || 'Main Campus' %></option>
+                            <option value="<%= (user && user.campus) ? user.campus : 'Main Campus' %>"><%= (user && user.campus) ? user.campus : 'Main Campus' %></option>
                             <option value="North Campus">North Campus</option>
                             <option value="South Campus">South Campus</option>
                             <option value="Virtual">Virtual / Remote</option>
@@ -185,6 +215,7 @@
             campus: e.target.campus.value,
             start_time: e.target.event_date.value,
             max_attendees: parseInt(e.target.capacity.value, 10),
+            requirements: e.target.requirements.value,
             is_public: true,
             event_type: 'campus_event'
         };
@@ -268,6 +299,72 @@
                 html5QrCode = null;
                 document.getElementById('scannerSection').style.display = 'none';
             });
+        }
+    }
+
+    // --- Attendee Approval Logic ---
+    async function loadAttendees(eventId) {
+        const listDiv = document.getElementById(`attendee-list-${eventId}`);
+        if (listDiv.style.display === 'block') {
+            listDiv.style.display = 'none';
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/events/${eventId}/attendees`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const attendees = await res.json();
+            
+            listDiv.innerHTML = attendees.length > 0 ? '' : '<p style="font-size: 11px; text-align: center;">No RSVP requests yet.</p>';
+            
+            attendees.forEach(a => {
+                const item = document.createElement('div');
+                item.className = 'glass';
+                item.style.padding = '10px';
+                item.style.borderRadius = '10px';
+                item.style.marginBottom = '8px';
+                item.style.display = 'flex';
+                item.style.justifyContent = 'space-between';
+                item.style.alignItems = 'center';
+                item.style.border = '1px solid rgba(0,0,0,0.05)';
+
+                let actions = '';
+                if (a.status === 'pending') {
+                    actions = `
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="processRSVP('${eventId}', '${a.user_id}', 'accepted')" style="background: var(--success); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer;"><i class="fas fa-check"></i></button>
+                            <button onclick="processRSVP('${eventId}', '${a.user_id}', 'rejected')" style="background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer;"><i class="fas fa-times"></i></button>
+                        </div>
+                    `;
+                } else {
+                    const icon = a.status === 'accepted' ? 'fa-check-circle' : (a.status === 'rejected' ? 'fa-times-circle' : 'fa-star');
+                    const color = a.status === 'accepted' ? 'var(--success)' : (a.status === 'rejected' ? 'var(--danger)' : 'var(--accent)');
+                    actions = `<span style="font-size: 11px; font-weight: 700; color: ${color};"><i class="fas ${icon}"></i> ${a.status.toUpperCase()}</span>`;
+                }
+
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="${a.avatar_url || '/uploads/avatars/default.png'}" style="width: 24px; height: 24px; border-radius: 50%;">
+                        <div style="font-size: 12px; font-weight: 700;">${a.username}</div>
+                    </div>
+                    ${actions}
+                `;
+                listDiv.appendChild(item);
+            });
+            
+            listDiv.style.display = 'block';
+        } catch(err) {
+            console.error('Failed to load attendees', err);
+        }
+    }
+
+    async function processRSVP(eventId, userId, status) {
+        try {
+            await DashboardAPI.approveRSVP(eventId, userId, status);
+            loadAttendees(eventId); // Refresh list
+        } catch(err) {
+            Swal.fire('Error', 'Failed to process RSVP', 'error');
         }
     }
 </script>

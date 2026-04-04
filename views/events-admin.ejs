@@ -642,22 +642,72 @@
     .attendee-popout::-webkit-scrollbar { width: 4px; }
     .attendee-popout::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-    /* Mobile Responsiveness */
-    @media (max-width: 992px) {
-        .admin-layout { grid-template-columns: 1fr; }
-        .sidebar-column { order: -1; } /* Form on top for mobile */
-        .sticky-form { position: relative !important; top: 0 !important; margin-bottom: 30px; }
+    /* Mobile Responsiveness & Polishing */
+    @media (max-width: 1024px) {
+        .admin-layout { 
+            grid-template-columns: 1fr !important; 
+            gap: 20px !important;
+        }
+        .sidebar-column { 
+            order: -1; /* Creation form first on mobile */
+        }
+        .sticky-form { 
+            position: relative !important; 
+            top: 0 !important; 
+            margin-bottom: 25px;
+            padding: 20px !important;
+        }
+        .container.admin-scroll-container {
+            padding: 10px 10px 100px !important;
+            margin: 10px auto !important;
+        }
     }
 
-    @media (max-width: 600px) {
-        .mgmt-stats-grid { grid-template-columns: 1fr; }
-        .mgmt-stats-grid div { border-right: none !important; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 10px 0; }
-        .action-grid { grid-template-columns: 1fr; }
-        .admin-header { flex-direction: column; text-align: center; }
+    @media (max-width: 640px) {
+        .admin-header {
+            flex-direction: column;
+            text-align: center;
+            padding: 15px !important;
+            gap: 15px;
+        }
+        .admin-header div {
+            width: 100%;
+            justify-content: center;
+        }
+        .admin-header h1 {
+            font-size: 20px !important;
+        }
+        .mgmt-stats-grid { 
+            grid-template-columns: 1fr !important; 
+            gap: 10px !important;
+        }
+        .mgmt-stats-grid div { 
+            border-right: none !important; 
+            border-bottom: 1px solid rgba(0,0,0,0.05); 
+            padding: 12px 0 !important; 
+        }
+        .mgmt-stats-grid div:last-child {
+            border-bottom: none;
+        }
+        .action-grid { 
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+        }
+        .event-mgmt-card {
+            padding: 15px !important;
+            border-radius: 20px !important;
+        }
+        .stats-overview {
+            width: 100%;
+            justify-content: center;
+        }
     }
 
-    /* Global Scroll Fix */
-    body { overflow-y: scroll !important; }
+    /* Global Scroll & Nav Fix */
+    body { 
+        overflow-x: hidden;
+        background: #f8fafc;
+    }
 </style>
 
 <%- include('partials/bottom-nav') %>

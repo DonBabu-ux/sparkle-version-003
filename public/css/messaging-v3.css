@@ -1653,3 +1653,6 @@
     font-size: 12px;
     color: #e9edef;
 }
+
+.icon-btn, .attach-item, .emoji-tab-icon { cursor: pointer !important; pointer-events: auto !important; z-index: 99999; }
+.emoji-picker-panel * { pointer-events: auto; }

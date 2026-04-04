@@ -83,6 +83,7 @@ app.use((req, res, next) => {
         return (translations[lang] && translations[lang][key]) || (translations['en'][key] || key);
     };
     
+    res.locals.giphyKey = process.env.GIPHY_API_KEY || '';
     next();
 });
 

@@ -139,6 +139,12 @@ class SparkleChat {
         this._msgQueue = this._msgQueue || [];
         this._reconnectAttempts = 0;
         this._maxReconnectDelay = 30000;
+        this._currentPickerTab = 'emoji'; 
+        this._gifSearchTimer = null;      
+        this._stickerSearchTimer = null;  
+
+        // Get key from secure config
+        this._giphyApiKey = (window.sparkConfig && window.sparkConfig.giphyKey) || 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
 
         // Re-use connection if possible, otherwise init
         this.socket = window.socket || io({
@@ -957,8 +963,8 @@ class SparkleChat {
                     </div>
                 `;
             } else {
-                if (msg.type === 'image' || msg.media_url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
-                    mediaContent = `<img src="${msg.media_url}" class="msg-media-img" loading="lazy" onclick="window.open('${msg.media_url}')" style="max-width:80%; border-radius:12px;">`;
+                if (msg.type === 'image' || msg.type === 'gif' || msg.type === 'sticker' || msg.media_url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+                    mediaContent = `<img src="${msg.media_url}" class="msg-media-img" loading="lazy" onclick="window.open('${msg.media_url}')" style="${msg.type === 'sticker' ? 'max-width:120px; background:transparent;' : 'max-width:80%;'} border-radius:12px;">`;
                 } else if (msg.type === 'video' || msg.media_url.match(/\.(mp4|webm|mov)$/i)) {
                     mediaContent = `<video src="${msg.media_url}" class="msg-media-video" controls preload="none" style="max-width:80%; border-radius:12px; max-height:250px; background:#000;"></video>`;
                 } else if (msg.type === 'audio' || msg.type === 'voice_note' || msg.media_url.match(/\.(mp3|wav|ogg|webm)$/i)) {
@@ -986,6 +992,74 @@ class SparkleChat {
                         </a>
                     `;
                 }
+            }
+        }
+
+        // Rich Contact Card
+        if (msg.type === 'contact') {
+            let contactData = null;
+            try {
+                contactData = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
+            } catch (e) { }
+
+            if (contactData && contactData.userId) {
+                return `
+                    <div class="msg-bubble-wrapper ${isMe ? 'own-msg' : 'other-msg'}" style="display:flex; flex-direction:column; align-items:${isMe ? 'flex-end' : 'flex-start'}; gap:2px; margin-bottom:12px;">
+                        <div class="contact-card" onclick="window.location.href='/profile/${contactData.userId}'" style="display:flex; gap:10px; padding:15px; border-radius:12px; background:${isMe ? '#005c4b' : '#202c33'}; cursor:pointer; width:220px; align-items:center; transition: background 0.2s;">
+                            <img src="${contactData.avatar}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                            <div style="flex:1;">
+                                <div style="color:#e9edef; font-weight:600; font-size:15px; margin-top:-2px;">${contactData.username}</div>
+                                <div style="color:#8696a0; font-size:12px;">Tap to view profile</div>
+                            </div>
+                            <i class="bi bi-person-fill" style="color:#8696a0; font-size:20px;"></i>
+                        </div>
+                        <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0;">
+                            <span>${this.formatTime(msg.sent_at)}</span>
+                            ${isMe ? `
+                                <span class="msg-tick">
+                                    <i class="bi ${msg.is_read || msg.status === 'read' ? 'bi-check-all' : (msg.delivered ? 'bi-check-all' : 'bi-check')}"
+                                       style="color:${msg.is_read || msg.status === 'read' ? '#53bdeb' : '#8696a0'}; font-size:16px;"></i>
+                                </span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Location Map Preview
+        if (msg.type === 'location') {
+            let locData = null;
+            try {
+                locData = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
+            } catch (e) { }
+
+            if (locData && locData.lat !== undefined && locData.lng !== undefined) {
+                const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${locData.lat},${locData.lng}&zoom=15&size=300x200&maptype=roadmap&markers=color:red%7C${locData.lat},${locData.lng}&key=YOUR_ACTUAL_API_KEY_HERE`;
+                const gmapsLink = `https://www.google.com/maps/search/?api=1&query=${locData.lat},${locData.lng}`;
+                return `
+                    <div class="msg-bubble-wrapper ${isMe ? 'own-msg' : 'other-msg'}" style="display:flex; flex-direction:column; align-items:${isMe ? 'flex-end' : 'flex-start'}; gap:2px; margin-bottom:12px;">
+                        <div class="location-card" onclick="window.open('${gmapsLink}')" style="border-radius:12px; overflow:hidden; background:${isMe ? '#005c4b' : '#202c33'}; cursor:pointer; width:260px; border:1px solid rgba(255,255,255,0.1);">
+                            <div style="width:100%; height:150px; background:#111; display:flex; align-items:center; justify-content:center; color:#8696a0;">
+                                <i class="bi bi-map-fill" style="font-size:32px; color:#53bdeb; margin-right:10px;"></i> Location preview
+                            </div>
+                            <div style="padding:10px; display:flex; align-items:center;">
+                                <div style="flex:1;">
+                                    <div style="color:#e9edef; font-weight:600; font-size:14px;">Live Location</div>
+                                    <div style="color:#8696a0; font-size:12px;">Tap to view in Maps</div>
+                                </div>
+                                <i class="bi bi-geo-alt-fill" style="color:#00a884; font-size:20px;"></i>
+                            </div>
+                        </div>
+                        <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0;">
+                            <span>${this.formatTime(msg.sent_at)}</span>
+                            ${isMe ? `
+                                <span class="msg-tick">
+                                    <i class="bi ${msg.is_read || msg.status === 'read' ? 'bi-check-all' : (msg.delivered ? 'bi-check-all' : 'bi-check')}"
+                                       style="color:${msg.is_read || msg.status === 'read' ? '#53bdeb' : '#8696a0'}; font-size:16px;"></i>
+                                </span>` : ''}
+                        </div>
+                    </div>
+                `;
             }
         }
 
@@ -1429,15 +1503,38 @@ class SparkleChat {
         this.cancelReplyOrEdit();
     }
 
-    toggleEmojiPicker() {
+    toggleEmojiPicker(e, startTab) {
+        if (e && e.stopPropagation) e.stopPropagation();
         const picker = document.getElementById('emojiPickerPanel');
-        picker.style.display = (picker.style.display === 'none') ? 'flex' : 'none';
+        if (!picker) return;
+        
+        const isCurrentlyVisible = (picker.style.display === 'flex' || window.getComputedStyle(picker).display === 'flex');
+        const targetTab = startTab || this._currentPickerTab || 'emoji';
+
+        console.log(`⚡ Picker Toggle: visible=${isCurrentlyVisible}, target=${targetTab}, current=${this._currentPickerTab}`);
+
+        if (isCurrentlyVisible && (!startTab || this._currentPickerTab === targetTab)) {
+            this.closeEmojiPicker();
+        } else {
+            picker.style.display = 'flex';
+            this.switchPickerTab(targetTab);
+        }
     }
+
+    closeEmojiPicker() {
+        const picker = document.getElementById('emojiPickerPanel');
+        if (picker) {
+            picker.style.display = 'none';
+        }
+    }
+
+    // Legacy alias
+    initEmojiMart() { this.switchPickerTab('emoji'); }
 
     insertEmoji(emoji) {
         const input = document.getElementById('messageInput');
-        const start = input.selectionStart;
-        const end = input.selectionEnd;
+        const start = input.selectionStart || input.value.length;
+        const end = input.selectionEnd || input.value.length;
         const text = input.value;
         input.value = text.substring(0, start) + emoji + text.substring(end);
         input.selectionStart = input.selectionEnd = start + emoji.length;
@@ -1706,90 +1803,204 @@ class SparkleChat {
     }
 
     // ==========================================
-    // V3 EXTENDED FEATURES 
+    // UNIFIED PICKER: switchPickerTab + GIPHY
     // ==========================================
+    get GIPHY_KEY() { return this._giphyApiKey; }
 
-    switchEmojiTab(tab, el) {
-        document.querySelectorAll('.emoji-tab-icon').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
+    switchPickerTab(tab) {
+        console.log(`⚡ Picker: Attempting switch to [${tab}]`);
+        this._currentPickerTab = tab;
+        
+        try {
+            // ── Tab button active states ──────────────────────────────
+            const tabKeys = ['emoji','gif','sticker'];
+            tabKeys.forEach(t => {
+                const btnId = `tabBtn${t.charAt(0).toUpperCase()+t.slice(1)}`;
+                const btn = document.getElementById(btnId);
+                if (!btn) {
+                    console.warn(`⚠️ Picker: Button #${btnId} not found`);
+                    return;
+                }
+                if (t === tab) {
+                    btn.style.color = '#00a884';
+                    btn.style.borderBottomColor = '#00a884';
+                    btn.style.opacity = '1';
+                    btn.classList.add('active');
+                } else {
+                    btn.style.color = '#8696a0';
+                    btn.style.borderBottomColor = 'transparent';
+                    btn.style.opacity = '0.6';
+                    btn.classList.remove('active');
+                }
+            });
 
-        const grid = document.getElementById('emojiPickerGrid');
-        grid.innerHTML = '<div class="chat-loader" style="width:100%;"><div class="spinner-pink"></div></div>';
+            // ── Show/hide tab panels with absolute switch ─────────────
+            const panels = {
+                emoji: document.getElementById('pickerTabEmoji'),
+                gif: document.getElementById('pickerTabGif'),
+                sticker: document.getElementById('pickerTabSticker')
+            };
 
-        setTimeout(() => {
+            Object.entries(panels).forEach(([type, el]) => {
+                if (el) {
+                    const shouldShow = (type === tab);
+                    el.style.setProperty('display', shouldShow ? 'flex' : 'none', 'important');
+                    console.log(`⚡ Picker: Panel [${type}] display set to ${shouldShow ? 'flex' : 'none'}`);
+                }
+            });
+
+            // ── Trigger specific loader ──────────────────────────────
             if (tab === 'emoji') {
-                this.renderEmojiGrid('');
+                 this._initEmojiMartPicker();
             } else if (tab === 'gif') {
-                this.renderGifGrid('');
+                this._loadGiphyContent('gif');
             } else if (tab === 'sticker') {
-                this.renderStickerGrid();
-            } else if (tab === 'avatar') {
-                this.renderAvatarGrid();
+                this._loadGiphyContent('sticker');
             }
-        }, 300);
+        } catch (err) {
+            console.error('❌ Picker Switch Error:', err);
+        }
     }
 
-    renderEmojiGrid(query) {
-        const grid = document.getElementById('emojiPickerGrid');
-        const list = [
-            '😂','❤️','😍','🥺','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩','🙏','👌','😊','🤦‍♂️','🤷‍♀️','💪','✨',
-            '😁','😆','😅','😋','😎','😘','😗','😙','😚','🙂','🤗','🤔','😐','😑','😶','😏','😣','😥','😮','🤐','😯','😪','😫','🥱',
-            '🧐','🤓','😈','👿','👹','👺','🤡','💩','👻','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾',
-            '🤲','👐','🙌','👏','🤝','👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','🤘','👌','🤌','🤏','👈','👉','👆','👇','✋','🤚','🖐','🖖','👋','🤙',
-            '🦷','🦴','👀','👁','👅','👄','💋','🩸','👋','🤚','🖐','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️'
-        ];
+    // ── LEGACY compatibility ────
+    switchEmojiTab(tab) { this.switchPickerTab(tab === 'recent' ? 'emoji' : tab); }
+    renderEmojiGrid(q)  { /* Handled by EmojiMart */ }
+    renderGifGrid(q)    { this._loadTenorContent('gif', q); }
+    renderStickerGrid() { this._loadTenorContent('sticker'); }
 
-        // Combine with recent emojis
-        const recents = JSON.parse(localStorage.getItem("recentEmojis")) || [];
-        const fullList = [...new Set([...recents, ...list])];
+    // ── EMOJI: Mount EmojiMart web component (3600+ emojis) ──────
+    _initEmojiMartPicker() {
+        const mount = document.getElementById('emojiMartMount');
+        if (!mount) return;
+        if (mount.dataset.initialized === 'true') return; // Already setup
 
-        const filtered = query ? fullList.filter(e => e.includes(query)) : fullList;
-        grid.innerHTML = filtered.map(e => `<span class="emoji-item" onclick="sparkChat.insertEmoji('${e}')">${e}</span>`).join('');
+        const tryMount = () => {
+            if (!window.EmojiMart) {
+                console.warn('⚡ Picker: Waiting for EmojiMart scripts...');
+                mount.innerHTML = '<div style="color:#8696a0;padding:20px;text-align:center;">Loading Emojis...</div>';
+                setTimeout(tryMount, 800);
+                return;
+            }
+            
+            mount.innerHTML = '';
+            try {
+                const picker = new window.EmojiMart.Picker({
+                    theme: 'dark',
+                    set: 'native',
+                    previewPosition: 'none',
+                    skinTonePosition: 'search',
+                    onEmojiSelect: (emoji) => {
+                        this.insertEmoji(emoji.native);
+                        // Save to recents handled by Picker itself usually, but we keep our local logic
+                        this.saveRecentEmoji(emoji.native);
+                    },
+                    style: { height: '100%', width: '100%' }
+                });
+                mount.appendChild(picker);
+                mount.dataset.initialized = 'true';
+                console.log('✅ Picker: EmojiMart successfully mounted.');
+            } catch (err) {
+                console.error('⚡ Picker: Failed to mount EmojiMart:', err);
+                mount.innerHTML = '<div style="color:#ef4444;padding:20px;text-align:center;">Failed to load emojis</div>';
+            }
+        };
+        tryMount();
     }
 
-    renderGifGrid(query) {
-        const grid = document.getElementById('emojiPickerGrid');
-        const mocks = [
-            'https://media.giphy.com/media/3o7TKDkDbIDJieKbVm/giphy.gif',
-            'https://media.giphy.com/media/l41lTfuxR7N0f3OqA/giphy.gif',
-            'https://media.giphy.com/media/3o7TKVUn7iM8FMEU24/giphy.gif',
-            'https://media.giphy.com/media/26AHONh79uHEUY_XG/giphy.gif'
-        ];
+    // ── GIPHY: GIFs and Stickers ─────────────────────────────
+    async _loadGiphyContent(type, query) {
+        const gridId = type === 'gif' ? 'gifResultsGrid' : 'stickerResultsGrid';
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
         
-        // In a real production app, you would fetch from Giphy/Tenor here
-        // searchGiphy(query).then(data => grid.innerHTML = ...)
+        // Local loading UI
+        if (!grid.hasChildNodes() || query) {
+            grid.innerHTML = `<div class="chat-loader" style="grid-column:1/-1; padding:30px;"><div class="spinner-pink"></div></div>`;
+        }
         
-        grid.innerHTML = mocks.map(g => `<img src="${g}" class="gif-item" onclick="sparkChat.sendGif('${g}')">`).join('');
+        try {
+            const q = query && query.trim() ? query.trim() : null;
+            const isSticker = (type === 'sticker');
+            const searchEndpoint = `https://api.giphy.com/v1/${isSticker?'stickers':'gifs'}/search?api_key=${this.GIPHY_KEY}&q=${encodeURIComponent(q)}&limit=30&rating=g`;
+            const trendingEndpoint = `https://api.giphy.com/v1/${isSticker?'stickers':'gifs'}/trending?api_key=${this.GIPHY_KEY}&limit=30&rating=g`;
+            
+            const res = await fetch(q ? searchEndpoint : trendingEndpoint);
+            const data = await res.json();
+            
+            if (!data.data || data.data.length === 0) {
+                grid.innerHTML = `<div style="color:#8696a0;padding:20px;text-align:center;grid-column:1/-1;">No results for "${q}"</div>`;
+                return;
+            }
+            
+            grid.innerHTML = data.data.map(item => {
+                const low = item.images.fixed_height_small.url;
+                const high = item.images.fixed_height.url;
+                
+                // Hardened styling to prevent overlap
+                const itemStyles = `
+                    position: relative; 
+                    background: #111b21; 
+                    border-radius: 8px; 
+                    overflow: hidden; 
+                    width: 100%;
+                    height: ${isSticker ? '100px' : '90px'};
+                    display: block;
+                `;
+                
+                return `<div class="media-item-wrapper" style="${itemStyles}">
+                    <img src="${low}" loading="lazy"
+                         style="width:100%; height:100%; object-fit:${isSticker?'contain':'cover'}; cursor:pointer; touch-action:manipulation; display:block;"
+                         onclick="window.sparkChat.${isSticker?'sendSticker':'sendGif'}('${high}')"
+                         onerror="this.src='/img/floral.png'">
+                </div>`;
+            }).join('');
+        } catch(err) {
+            console.error('❌ GIPHY Error:', err);
+            grid.innerHTML = `<div style="color:#ef4444;padding:20px;text-align:center;grid-column:1/-1;">GIPHY Connection Error</div>`;
+        }
     }
 
-    renderStickerGrid() {
-        const grid = document.getElementById('emojiPickerGrid');
-        // Basic set of stickers (standard images/URLs)
-        const stickers = [
-            'https://ouch-cdn2.icons8.com/Psh_T2l9l9_T_y6I9_T_y6I9_T_y6I9_T_y6I/rs:fit:256:256/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvMTYv/MGFlMjFjMTQtOGYy/YS00YTMxLWFkMjgt/MDYwNWU5YTVmZGEz/LnN2Zw.png',
-            'https://ouch-cdn2.icons8.com/j1v1_T_y6I9_T_y6I9_T_y6I9_T_y6I9_T_y6I/rs:fit:256:256/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvMzgv/MDZlMjFjMTQtOGYy/YS00YTMxLWFkMjgt/MDYwNWU5YTVmZGEz/LnN2Zw.png'
-        ];
-        grid.innerHTML = stickers.map(s => `<img src="${s}" class="gif-item" style="height:auto; padding:10px;" onclick="sparkChat.sendSticker('${s}')">`).join('');
+    searchGiphy(query) {
+        clearTimeout(this._gifSearchTimer);
+        this._gifSearchTimer = setTimeout(() => this._loadGiphyContent('gif', query), 500);
     }
 
-    renderAvatarGrid() {
-        const grid = document.getElementById('emojiPickerGrid');
-        // Show current user's profile card / avatar
-        const avatarUrl = this.conversations.find(c => c.chat_id === this.currentChatId)?.partner_avatar || '/uploads/avatars/default.png';
-        grid.innerHTML = `
-            <div style="width:100%; padding:15px; text-align:center;">
-                <img src="${avatarUrl}" style="width:80px; height:80px; border-radius:50%; margin-bottom:12px; border:2px solid #00a884;">
-                <div style="color:white; font-size:14px; font-weight:600;">Share Contact Card</div>
-                <button onclick="sparkChat.sendContactCard()" style="margin-top:15px; background:#00a884; color:white; border:none; padding:10px 20px; border-radius:20px; font-weight:700; cursor:pointer; width:100%;">Send Profile</button>
-            </div>
-        `;
+    searchGiphyStickers(query) {
+        clearTimeout(this._stickerSearchTimer);
+        this._stickerSearchTimer = setTimeout(() => this._loadGiphyContent('sticker', query), 500);
     }
 
-    handleEmojiSearch(val) {
-        const activeTab = document.querySelector('.emoji-tab-icon.active').title.toLowerCase();
-        if (activeTab === 'emoji') this.renderEmojiGrid(val);
-        if (activeTab === 'gif') this.renderGifGrid(val);
+    renderAvatarGrid() { /* Legacy no-op */ }
+
+
+
+    sendGif(url) {
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            recipientId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
+            content: '',
+            mediaUrl: url,
+            type: 'gif',
+        });
+        const pickerPanel = document.getElementById('emojiPickerPanel');
+        if (pickerPanel) pickerPanel.style.display = 'none';
+        this.closeAllModals();
     }
+
+    sendSticker(url) {
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            recipientId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
+            content: '',
+            mediaUrl: url,
+            type: 'sticker',
+        });
+        const pickerPanel = document.getElementById('emojiPickerPanel');
+        if (pickerPanel) pickerPanel.style.display = 'none';
+        this.closeAllModals();
+    }
+
+    // Search is now handled by tab-specific searchGiphy and searchGiphyStickers
 
     saveRecentEmoji(emoji) {
         let recents = JSON.parse(localStorage.getItem("recentEmojis")) || [];
@@ -2445,16 +2656,14 @@ class SparkleChat {
             } else {
                 this.openCameraInterface();
             }
-        } else if (type === 'Document') {
-            input.setAttribute('accept', '.pdf,.doc,.docx,.txt');
-            input.click();
-        } else if (type === 'Audio') {
-            input.setAttribute('accept', 'audio/*');
-            input.click();
-        } else if (type === 'Follower') {
+        } else if (type === 'Contact') {
             this.openFollowerShareModal();
-        } else {
-            alert(`${type} attaching is coming soon!`);
+        } else if (type === 'Location') {
+             navigator.geolocation.getCurrentPosition((pos) => {
+                 this.sendLocationMessage(pos.coords.latitude, pos.coords.longitude);
+             }, (err) => {
+                 alert("Location access denied or unavailable.");
+             });
         }
     }
 
@@ -2620,13 +2829,31 @@ class SparkleChat {
         }
     }
 
-    shareContact(userId, username) {
+    shareContact(userId, username, avatar_url, numFollowers) {
         document.getElementById('followerShareModal').style.display = 'none';
+        
+        const payload = {
+            userId: userId,
+            username: username,
+            avatar: avatar_url || '/uploads/avatars/default.png',
+            followersCount: numFollowers || 0
+        };
+
         this.socket.emit('send-message', {
             chatId: this.currentChatId,
             recipientId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
-            content: `Sent a contact: @${username}`,
-            type: 'text',
+            content: JSON.stringify(payload),
+            type: 'contact',
+        });
+    }
+
+    sendLocationMessage(lat, lng) {
+        const payload = { lat, lng };
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            recipientId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
+            content: JSON.stringify(payload),
+            type: 'location',
         });
     }
 
@@ -3459,27 +3686,28 @@ class SparkleChat {
         this._activeModal = null;
     }
 
-    toggleEmojiPicker(e) {
-        if (e) e.stopPropagation();
-        const picker = document.getElementById('emojiPickerPanel');
-        if (!picker) return;
-        if (picker.style.display === 'flex') this.closeAllModals();
-        else { this.openModal('emojiPickerPanel'); this.renderEmojiGrid(''); }
-    }
-
     toggleAttachmentMenu(e) {
         if (e) e.stopPropagation();
         const menu = document.getElementById('attachmentMenu');
         if (!menu) return;
-        if (menu.style.display === 'flex') this.closeAllModals();
-        else this.openModal('attachmentMenu');
+        if (menu.style.display === 'grid') {
+            menu.style.display = 'none';
+        } else {
+            this.closeAllModals();
+            menu.style.display = 'grid';
+        }
     }
 
     renderEmojiGrid(query) {
         const grid = document.getElementById('emojiPickerGrid');
         if (!grid) return;
-        const list = ['😂','❤️','😍','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩'];
-        grid.innerHTML = list.map(e => `<span class="emoji-item" onclick="sparkChat.insertEmoji('${e}')">${e}</span>`).join('');
+        const list = ['😂','❤️','😍','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩',
+                      '😁','😆','😅','😋','😘','🙂','🤗','🤐','😯','😪','😫','🥱','🧐','🤓','😈','💩','👻',
+                      '🙌','🤝','👍','👎','👊','✊','🤞','✌️','👌','✋','🖖','👋','🤙','💪','🦾','🙏'];
+        const recents = JSON.parse(localStorage.getItem('recentEmojis') || '[]');
+        const full = [...new Set([...recents, ...list])];
+        const filtered = query ? full.filter(e => e.toLowerCase().includes(query.toLowerCase())) : full;
+        grid.innerHTML = filtered.map(e => `<span class="emoji-item" onclick="window.sparkChat.insertEmoji('${e}')">${e}</span>`).join('');
     }
 
     insertEmoji(emoji) {

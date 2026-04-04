@@ -1053,6 +1053,80 @@
         }
 
         /* Responsive */
+        /* Options & Report Modals */
+        .options-list {
+            padding: 0.5rem;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+            font-weight: 500;
+            color: #1c1917;
+        }
+
+        .option-item:hover {
+            background: #f3f4f6;
+        }
+
+        .option-item i {
+            font-size: 1.25rem;
+            width: 24px;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .option-item.danger {
+            color: #ef4444;
+        }
+
+        .option-item.danger i {
+            color: #ef4444;
+        }
+
+        .report-reasons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .report-reason {
+            padding: 0.75rem 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .report-reason:hover {
+            border-color: #6366f1;
+            background: #f1f5f9;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
         @media (max-width: 1024px) {
             .main-container {
                 grid-template-columns: 1fr 320px;
@@ -1330,6 +1404,61 @@
                 <button class="btn-order" id="confirmOrderBtn">
                     <i class="fas fa-check"></i> Place Order
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- More Options Menu Modal (Facebook Style) -->
+    <div class="modal" id="optionsModal">
+        <div class="modal-content options-content">
+            <div class="modal-header">
+                <h3>Listing Options</h3>
+                <i class="fas fa-times" onclick="closeOptionsModal()"></i>
+            </div>
+            <div class="options-list">
+                <div class="option-item" id="optionViewProfile">
+                    <i class="fas fa-user-circle"></i>
+                    <span>View Seller Profile</span>
+                </div>
+                <div class="option-item" id="optionCopyLink">
+                    <i class="fas fa-link"></i>
+                    <span>Copy Listing Link</span>
+                </div>
+                <div class="option-item" id="optionShare">
+                    <i class="fas fa-share-alt"></i>
+                    <span>Share Listing</span>
+                </div>
+                <div class="option-item" id="optionReport">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Report Listing</span>
+                </div>
+                <div class="option-item danger" id="optionHide">
+                    <i class="fas fa-eye-slash"></i>
+                    <span>Hide Listing</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Report Listing</h3>
+                <i class="fas fa-times" onclick="closeReportModal()"></i>
+            </div>
+            <div class="modal-body">
+                <p>Select a reason for reporting this listing:</p>
+                <div class="report-reasons">
+                    <div class="report-reason" data-reason="Scam/Fraud">Scam/Fraud</div>
+                    <div class="report-reason" data-reason="Inappropriate Content">Inappropriate content</div>
+                    <div class="report-reason" data-reason="Duplicate Listing">Duplicate listing</div>
+                    <div class="report-reason" data-reason="Sold/Unavailable">Item is sold or unavailable</div>
+                    <div class="report-reason" data-reason="Other">Other</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-chat" onclick="closeReportModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -1785,28 +1914,58 @@
 
         async function toggleWishlist(listingId, event) {
             if (event) event.stopPropagation();
+            
+            const btn = (event && event.currentTarget) || document.querySelector(`.wishlist-btn[data-id="${listingId}"]`) || document.querySelector(`button[onclick*="toggleWishlist('${listingId}']`);
+            const icon = btn ? btn.querySelector('i') : null;
+            
+            // Optimistic UI Update
+            const isCurrentlySaved = icon?.classList.contains('fas');
+            if (icon) {
+                if (isCurrentlySaved) {
+                    icon.classList.replace('fas', 'far');
+                    icon.style.color = '';
+                } else {
+                    icon.classList.replace('far', 'fas');
+                    icon.style.color = '#f02849';
+                }
+            }
+
             try {
                 const response = await fetch(`${API_BASE_URL}/listings/${listingId}/wishlist`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>' })
                 });
+                
                 const data = await response.json();
                 if (data.success) {
-                    const btn = event.currentTarget;
-                    const icon = btn.querySelector('i');
-                    if (data.wishlisted) {
+                    // Update state properly from server response
+                    if (icon) {
+                        if (data.wishlisted) {
+                            icon.classList.replace('far', 'fas');
+                            icon.style.color = '#f02849';
+                        } else {
+                            icon.classList.replace('fas', 'far');
+                            icon.style.color = '';
+                        }
+                    }
+                    showToast(data.wishlisted ? 'Added to Wishlist' : 'Removed from Wishlist', 'success');
+                } else {
+                    throw new Error(data.message || 'Failed to sync');
+                }
+            } catch (err) {
+                console.error(err);
+                // Rollback UI
+                if (icon) {
+                    if (isCurrentlySaved) {
                         icon.classList.replace('far', 'fas');
-                        icon.style.color = '#6366f1';
+                        icon.style.color = '#f02849';
                     } else {
                         icon.classList.replace('fas', 'far');
                         icon.style.color = '';
                     }
-                    showToast(data.wishlisted ? 'Added to Wishlist' : 'Removed from Wishlist');
                 }
-            } catch (err) {
-                console.error(err);
-                showToast('Failed to sync wishlist');
+                showToast('Failed to sync wishlist', 'error');
             }
         }
 
@@ -1927,123 +2086,134 @@
             window.location.href = `/messages/?user=${listing.seller_id}&mkt=${mktEncoded}`;
         }
 
-        async function toggleWishlist(listingId) {
-            try {
-                const response = await fetch(`/api/marketplace/listings/${listingId}/favorite`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+        let selectedListingId = null;
+
+        function showOptions(listingId) {
+            selectedListingId = listingId;
+            const listing = listingsMap[listingId];
+            if (!listing) return;
+
+            // Setup option handlers
+            document.getElementById('optionViewProfile').onclick = () => {
+                closeOptionsModal();
+                window.location.href = `/marketplace/profile/${listing.seller_id}`;
+            };
+
+            document.getElementById('optionCopyLink').onclick = () => {
+                closeOptionsModal();
+                const link = `${window.location.origin}/marketplace/listings/${listingId}`;
+                navigator.clipboard.writeText(link).then(() => {
+                    showToast('Listing link copied!', 'success');
                 });
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    // Update UI state
-                    const btn = document.querySelector(`.wishlist-btn[data-id="${listingId}"]`);
-                    const icon = btn?.querySelector('i');
-                    if (result.action === 'added') {
-                        icon?.classList.replace('bi-heart', 'bi-heart-fill');
-                        btn?.classList.add('active');
-                        showToast('Item saved to wishlist!', 'success');
-                    } else {
-                        icon?.classList.replace('bi-heart-fill', 'bi-heart');
-                        btn?.classList.remove('active');
-                        showToast('Item removed from wishlist', 'info');
-                    }
-                    // Refresh wishlist modal if it's open
-                    if (document.getElementById('wishlistModal').style.display === 'flex') {
-                        loadWishlist();
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-            }
+            };
+
+            document.getElementById('optionShare').onclick = () => {
+                closeOptionsModal();
+                shareListing(listingId);
+            };
+
+            document.getElementById('optionReport').onclick = () => {
+                closeOptionsModal();
+                openReportModal(listingId);
+            };
+
+            document.getElementById('optionHide').onclick = () => {
+                closeOptionsModal();
+                hideListing(listingId);
+            };
+
+            document.getElementById('optionsModal').style.display = 'flex';
         }
 
-        async function loadWishlist() {
-            const container = document.getElementById('wishlistItems');
-            container.innerHTML = '<div class="spinner-pink"></div>';
-            
-            try {
-                const response = await fetch('/api/marketplace/favorites');
-                const result = await response.json();
-                
-                if (result.success && result.favorites && result.favorites.length > 0) {
-                    container.innerHTML = result.favorites.map(item => `
-                        <div class="wishlist-item" onclick="viewListing('${item.listing_id}')">
-                            <img src="${item.media_url || item.image_url || '/images/default-listing.jpg'}" class="wishlist-img">
-                            <div class="wishlist-info">
-                                <h3>${item.title}</h3>
-                                <p>KES ${Number(item.price).toLocaleString()}</p>
-                            </div>
-                            <div class="wishlist-actions" style="margin-left: auto; display: flex; gap: 8px;">
-                                <button class="marketplace-msg-btn" style="margin:0;" onclick="event.stopPropagation(); startChat('${item.listing_id}')" title="Message Seller">
-                                    <i class="bi bi-chat-dots"></i>
-                                </button>
-                                <button class="wishlist-remove-btn" style="position:static; transform:none;" onclick="event.stopPropagation(); toggleLike('${item.listing_id}', event)">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = '<div class="empty-wishlist">Your wishlist is empty</div>';
-                }
-            } catch (err) {
-                container.innerHTML = '<div class="error-msg">Failed to load wishlist</div>';
-            }
-        }
-
-        function openWishlist() {
-            document.getElementById('wishlistModal').style.display = 'flex';
-            loadWishlist();
-        }
-
-        function closeWishlist() {
-            document.getElementById('wishlistModal').style.display = 'none';
-        }
-
-        function toggleLike(listingId, event) {
-            event.stopPropagation();
-            const btn = event.currentTarget;
-            const icon = btn.querySelector('i');
-            const likeSpan = document.getElementById(`like-${listingId}`);
-
-            fetch(`${API_BASE_URL}/listings/${listingId}/favorite`, {
-                method: 'POST',
-                credentials: 'include'
-            }).then(response => response.json()).then(data => {
-                if (data.success) {
-                    const current = parseInt(likeSpan.textContent) || 0;
-                    if (data.favorited) {
-                        icon.classList.replace('far', 'fas');
-                        icon.style.color = '#ef4444';
-                        likeSpan.textContent = current + 1;
-                    } else {
-                        icon.classList.replace('fas', 'far');
-                        icon.style.color = '';
-                        likeSpan.textContent = Math.max(0, current - 1);
-                    }
-                }
-            }).catch(console.error);
+        function closeOptionsModal() {
+            document.getElementById('optionsModal').style.display = 'none';
         }
 
         function shareListing(listingId) {
             const listing = listingsMap[listingId];
+            const title = listing ? listing.title : 'Check out this item on Sparkle!';
             const url = `${window.location.origin}/marketplace/listings/${listingId}`;
-            navigator.clipboard.writeText(url).then(() => {
-                // Record share server-side (fire-and-forget)
-                fetch(`${API_BASE_URL}/listings/${listingId}/share`, {
-                    method: 'POST',
-                    credentials: 'include'
+
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    text: `KES ${new Intl.NumberFormat('en-KE').format(listing.price)} - ${title}`,
+                    url: url
                 }).catch(() => {});
-                alert('✅ Link copied to clipboard!');
-            }).catch(() => {
-                prompt('Copy this link:', url);
+            } else {
+                // Fallback: Copy link
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('Link copied to clipboard!');
+                });
+            }
+        }
+
+        function openReportModal(listingId) {
+            selectedListingId = listingId;
+            document.getElementById('reportModal').style.display = 'flex';
+            
+            const reportReasons = document.querySelectorAll('.report-reason');
+            reportReasons.forEach(btn => {
+                btn.onclick = () => {
+                    const reason = btn.dataset.reason;
+                    submitReport(listingId, reason);
+                };
             });
         }
 
-        function showOptions(listingId) {
-            // Implement options menu (report, share, etc.)
-            console.log('Options for listing:', listingId);
+        function closeReportModal() {
+            document.getElementById('reportModal').style.display = 'none';
+        }
+
+        async function submitReport(listingId, reason) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        reason, 
+                        _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>' 
+                    })
+                });
+                if (response.ok) {
+                    showToast('Listing reported. Thank you for keeping Sparkle safe!', 'success');
+                    closeReportModal();
+                }
+            } catch (err) {
+                showToast('Failed to submit report');
+            }
+        }
+
+        function hideListing(listingId) {
+            const card = document.querySelector(`.product-card[onclick*="viewListing('${listingId}')"]`) || 
+                         document.querySelector(`div[data-id="${listingId}"]`);
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.remove();
+                    showToast('Listing hidden from your view');
+                }, 300);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            if (!toast) {
+                // Fallback to alert if toast element not found
+                console.log('Toast:', message);
+                return;
+            }
+            
+            toast.textContent = message;
+            toast.style.display = 'block';
+            toast.style.animation = 'fadeIn 0.3s';
+            toast.style.background = type === 'error' ? '#ef4444' : (type === 'success' ? '#10b981' : '#1e293b');
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
         }
 
         // Modal functions
@@ -2238,5 +2408,6 @@
         .marketplace-msg-btn { background: #f1f5f9; border: none; width: 40px; height: 40px; border-radius: 12px; color: #6366f1; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 10px; transition: 0.2s; }
         .marketplace-msg-btn:hover { background: #6366f1; color: white; }
     </style>
+    <div id="toast" class="toast"></div>
 </body>
 </html>

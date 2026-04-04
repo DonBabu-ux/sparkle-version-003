@@ -1140,6 +1140,7 @@ function toggleWaFab() {
     flex-direction: column;
     z-index: 99999;
     overflow: hidden;
+    overscroll-behavior: contain;
     box-shadow: 0 -8px 30px rgba(0,0,0,0.6);
     animation: pickerSlideUp 0.2s cubic-bezier(0.4,0,0.2,1);
 ">
@@ -1183,9 +1184,9 @@ function toggleWaFab() {
     </div>
 
     <!-- ── EMOJI TAB ─────────────────────────────────────────── -->
-    <div id="pickerTabEmoji" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+    <div id="pickerTabEmoji" style="flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0;">
         <!-- EmojiMart will be appended here as a web component -->
-        <div id="emojiMartMount" style="flex:1; overflow:hidden; display:flex; flex-direction:column;"></div>
+        <div id="emojiMartMount" style="flex:1; overflow:hidden; display:flex; flex-direction:column; min-height:0; -webkit-overflow-scrolling:touch !important; touch-action:pan-y !important;"></div>
     </div>
 
     <!-- ── GIF TAB ───────────────────────────────────────────── -->
@@ -1198,9 +1199,11 @@ function toggleWaFab() {
                           caret-color:#00a884;">
         </div>
         <div id="gifResultsGrid" style="
-            flex:1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
             padding: 10px;
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -1212,7 +1215,7 @@ function toggleWaFab() {
     </div>
 
     <!-- ── STICKER TAB ───────────────────────────────────────── -->
-    <div id="pickerTabSticker" style="flex:1; display:none; flex-direction:column; overflow:hidden;">
+    <div id="pickerTabSticker" style="flex:1; display:none; flex-direction:column; overflow:hidden; min-height:0;">
         <div style="padding:8px 10px; background:#111b21; flex-shrink:0;">
             <input id="stickerSearchInput" type="text" placeholder="🔍  Search Stickers..."
                    oninput="window.sparkChat.searchGiphyStickers(this.value)"
@@ -1221,9 +1224,11 @@ function toggleWaFab() {
                           caret-color:#00a884;">
         </div>
         <div id="stickerResultsGrid" style="
-            flex:1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
             padding: 10px;
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;

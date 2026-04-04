@@ -22,6 +22,7 @@ class SparkleChat {
         this.selectedGroupUsers = [];
         this.newChatTab = 'new';
         this.currentTab = 'all';
+        this.typingUsers = {}; // chatId -> Set of typing usernames
 
         this.init();
     }
@@ -540,6 +541,14 @@ class SparkleChat {
             if (conv.last_message_type === 'voice_note') lastMsg = '🎙️ Voice Message';
             if (conv.last_message_type === 'marketplace_listing') lastMsg = '🛍️ Marketplace Item';
 
+            let typingText = null;
+            if (this.typingUsers && this.typingUsers[conv.chat_id]) {
+                const typists = Array.from(this.typingUsers[conv.chat_id]);
+                if (typists.length > 0) {
+                    typingText = `<span style="color:#00a884; font-weight:500;">${typists.length > 2 ? typists.length + ' people' : typists.join(', ')} typing...</span>`;
+                }
+            }
+
             return `
                 <div class="chat-item ${activeClass} ${conv.is_archived ? 'archived' : ''}" 
                      data-id="${conv.chat_id}"
@@ -562,8 +571,8 @@ class SparkleChat {
                             <span class="chat-time" data-time="${conv.last_message_at}">${this.formatChatTime(conv.last_message_at)}</span>
                         </div>
                         <div class="chat-bottom" style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                            <span class="chat-message" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#aaa; font-size:13px;">
-                                ${lastMsg}
+                            <span class="chat-message" data-original-message="${escape(lastMsg)}" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#aaa; font-size:13px;">
+                                ${typingText || lastMsg}
                             </span>
                             ${unread}
                         </div>
@@ -1586,6 +1595,26 @@ class SparkleChat {
 
     handleTypingIndicator(data) {
         const { chatId, isTyping, username } = data;
+
+        if (!this.typingUsers[chatId]) this.typingUsers[chatId] = new Set();
+        if (isTyping) {
+            this.typingUsers[chatId].add(username);
+            // Setup timeout to clear ghost typing indicators (e.g. if close event lost)
+            // We use a custom property on the Set or manage timeouts externally. 
+            // Simple: Just let it be for now or handle via client timeouts locally.
+            // Let's implement auto-clear using an object wrapper down the line, but set timeout here:
+            if (this.typingUsers[chatId]._timeout) clearTimeout(this.typingUsers[chatId]._timeout);
+            this.typingUsers[chatId]._timeout = setTimeout(() => {
+                if (this.typingUsers[chatId]) this.typingUsers[chatId].delete(username);
+                this.updateSidebarTypingState(chatId);
+            }, 6000);
+        } else {
+            this.typingUsers[chatId].delete(username);
+        }
+
+        // Always update side preview immediately
+        this.updateSidebarTypingState(chatId);
+
         if (this.currentChatId !== chatId) return;
 
         let pill = document.getElementById('typingIndicator');
@@ -1607,6 +1636,27 @@ class SparkleChat {
             }, 4000);
         } else {
             pill?.remove();
+            if (this.typingUsers[chatId] && this.typingUsers[chatId].size > 0) {
+                // If others are still typing, we may want to recreate the pill. For now just removing is okay.
+                // We'll trust the next emit to recreate it.
+            }
+        }
+    }
+
+    updateSidebarTypingState(chatId) {
+        const item = document.querySelector(`.chat-item[data-id="${chatId}"]`);
+        if (!item) return;
+
+        const msgSpan = item.querySelector('.chat-message');
+        if (!msgSpan) return;
+
+        const typists = Array.from(this.typingUsers[chatId] || []);
+        if (typists.length > 0) {
+            const txt = typists.length > 2 ? typists.length + ' people' : typists.join(', ');
+            msgSpan.innerHTML = `<span style="color:#00a884; font-weight:500;">${txt} typing...</span>`;
+        } else {
+            // Restore original message
+            msgSpan.innerHTML = unescape(msgSpan.getAttribute('data-original-message') || '');
         }
     }
 
@@ -3213,13 +3263,86 @@ class SparkleChat {
         } catch (err) { console.error(err); }
     }
 
-    openAddMemberModal() {
+    async openAddMemberModal() {
         this.closeGroupInfo();
-        this.openNewChatModal();
-        this.switchNewChatTab('group');
-        // This effectively transforms the "Create Group" logic into "Add to Group" 
-        // We'll need to tweak submitCreateGroup or add a separate handle if we want real "add" logic
-        // For now, users can use the FAB. A dedicated "Add Members" endpoint is in the controller.
+        const modal = document.getElementById('addMemberToGroupModal');
+        if(!modal) return;
+        
+        modal.style.display = 'flex';
+        const listEl = document.getElementById('addMemberList');
+        listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#667781;">Loading contacts...</div>';
+        
+        try {
+            const res = await fetch('/api/users/following');
+            const result = await res.json();
+            const users = result.data || result.users || (Array.isArray(result) ? result : []);
+            this._addMemberContacts = users;
+            this.renderAddMemberList(users);
+        } catch (e) {
+            listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#ea4335;">Failed to load contacts.</div>';
+        }
+    }
+
+    renderAddMemberList(users) {
+        const listEl = document.getElementById('addMemberList');
+        if(users.length === 0) {
+            listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#667781;">No eligible contacts found.</div>';
+            return;
+        }
+
+        // Get existing members to disable/exclude them
+        let existingIds = new Set();
+        if(this.currentChatId) {
+            const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+            if(conv && conv.members) { // Though `members` may not be in conv directly, we'll try API approach
+                 // Wait, we don't have existing members in local state easily unless we just loaded group details.
+            }
+        }
+        // Let user select any and the backend will filter.
+
+        listEl.innerHTML = users.map(u => `
+            <div style="display:flex; align-items:center; padding:10px 15px; cursor:pointer; border-bottom:1px solid #f0f2f5; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background=''" onclick="sparkChat.submitAddMember('${u.user_id}')">
+                <img src="${u.avatar_url || '/uploads/avatars/default.png'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;margin-right:12px;">
+                <div style="flex:1;">
+                    <div style="font-size:15px;color:#111b21;font-weight:500;">${u.name}</div>
+                    <div style="font-size:13px;color:#667781;">@${u.username}</div>
+                </div>
+                <div style="width:24px; height:24px; border-radius:50%; border:1px solid #d1d5db; display:flex; align-items:center; justify-content:center;">
+                    <i class="bi bi-plus" style="font-size:16px; color:#54656f;"></i>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    filterAddMembers() {
+        const query = (document.getElementById('addMemberSearchInput').value || '').toLowerCase();
+        if(!this._addMemberContacts) return;
+        const filtered = this._addMemberContacts.filter(u => 
+            (u.name && u.name.toLowerCase().includes(query)) || 
+            (u.username && u.username.toLowerCase().includes(query))
+        );
+        this.renderAddMemberList(filtered);
+    }
+
+    async submitAddMember(userId) {
+        if(!this.currentChatId) return;
+        try {
+            const res = await fetch(`/api/groupChat/${this.currentChatId}/members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_ids: [userId] })
+            });
+            const result = await res.json();
+            if(result.status === 'success') {
+                document.getElementById('addMemberToGroupModal').style.display = 'none';
+                this.openGroupInfo(); // Refresh UI
+            } else {
+                alert(result.error || 'Failed to add member');
+            }
+        } catch(e) {
+            console.error(e);
+            alert('Failed to add member.');
+        }
     }
 
     // ==========================================

@@ -134,12 +134,18 @@ const initializeSocket = (server) => {
                 const finalChatId = message.conversation_id || message.chat_id;
 
                 // 2. Emit to sender for confirmation
-                // FIX: Sender Copy Bug - emit 'new-message' back to sender so it renders properly in their stream
                 socket.emit('new-message', message);
                 socket.emit('message-sent', message);
 
-                // 3. Emit to all in the chat room (delivered status)
+                // 3. Emit to all in the chat room
                 socket.to(`chat:${finalChatId}`).emit('new-message', message);
+
+                // 4. Mark as delivered if recipients are online
+                const roomMembers = io.sockets.adapter.rooms.get(`chat:${finalChatId}`);
+                if (roomMembers && roomMembers.size > 1) {
+                    await pool.query("UPDATE messages SET status = 'delivered', delivered_at = NOW() WHERE message_id = ?", [messageId]);
+                    io.to(`chat:${finalChatId}`).emit('messages-delivered', { chatId: finalChatId, messageId, status: 'delivered' });
+                }
 
                 // 4. Handle notifications if it's a personal chat and recipient is offline
                 if (recipientId) {
@@ -179,7 +185,11 @@ const initializeSocket = (server) => {
                 if (result && result.action === 'deleted') {
                     io.to(`chat:${result.chatId}`).emit('message_deleted', messageId);
                 } else if (result && result.action === 'updated') {
-                    // Optionally notify sender that message was viewed X times
+                    // Notify everyone in the room that views_used changed
+                    io.to(`chat:${messageData.conversation_id || messageData.chat_id}`).emit('message_view_update', { 
+                        messageId, 
+                        viewsUsed: result.viewsUsed 
+                    });
                 }
             } catch (error) {
                 logger.error('Open message error:', error);

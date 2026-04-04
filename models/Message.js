@@ -60,6 +60,17 @@ class Message {
         // Auto-infer marketplace context
         if (context === 'chat' && marketplaceListingId) context = 'marketplace';
 
+        // Block Check Enforcement (Point 5)
+        if (recipientId) {
+            const [blocked] = await db.query(
+                'SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)',
+                [senderId, recipientId, recipientId, senderId]
+            );
+            if (blocked.length > 0) {
+                throw new Error('You cannot message this user (blocked)');
+            }
+        }
+
         try {
             await db.query(`
                 INSERT INTO messages (
@@ -69,13 +80,15 @@ class Message {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW(), ?, ?, ?)
             `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId, viewPolicy, viewsAllowed, context]);
 
-            // Update last_message_time and clear archives for both participants in personal chats
+            // Update last_message_time and clear archives/deletions for both participants in personal chats
             if (personalChatId) {
                 await db.query(`
                     UPDATE personal_chats 
                     SET last_message_time = NOW(),
                         is_archived_p1 = 0,
-                        is_archived_p2 = 0
+                        is_archived_p2 = 0,
+                        is_deleted_p1 = 0,
+                        is_deleted_p2 = 0
                     WHERE chat_id = ?
                 `, [personalChatId]);
             } else if (groupChatId) {
@@ -213,7 +226,8 @@ class Message {
                     WHERE conversation_id = pc.chat_id 
                     ORDER BY sent_at DESC LIMIT 1
                 )
-                WHERE pc.participant1_id = ? OR pc.participant2_id = ?
+                WHERE (pc.participant1_id = ? AND pc.is_deleted_p1 = 0) 
+                   OR (pc.participant2_id = ? AND pc.is_deleted_p2 = 0)
 
                 UNION ALL
 
@@ -241,7 +255,7 @@ class Message {
                     NULL as listing_title,
                     gcm.role,
                     gc.only_admins_send,
-                    gc.edit_info
+                    gc.only_admins_edit as edit_info
                 FROM group_chats gc
                 JOIN group_chat_members gcm ON gc.chat_id = gcm.chat_id
                 LEFT JOIN messages m ON m.message_id = (
@@ -252,7 +266,7 @@ class Message {
                 WHERE gcm.user_id = ? AND gcm.status = 'active'
             ) as conversations
             ORDER BY is_pinned DESC, last_message_at DESC
-        `, [userId, userId, userId, userId, userId, userId, userId, userId]);
+        `, [userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId]);
 
         return rows;
     }
@@ -393,9 +407,15 @@ class Message {
      */
     static async deleteConversation(userId, chatId) {
         const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
-        if (chat.length === 0) return false;
+        if (chat.length > 0) {
+            const isP1 = chat[0].participant1_id === userId;
+            const column = isP1 ? 'is_deleted_p1' : 'is_deleted_p2';
+            await db.query(`UPDATE personal_chats SET ${column} = 1 WHERE chat_id = ?`, [chatId]);
+            return true;
+        }
 
-        const [messages] = await db.query('SELECT message_id FROM messages WHERE conversation_id = ?', [chatId]);
+        // If it's a group chat, we might just mark all messages as deleted for this user
+        const [messages] = await db.query('SELECT message_id FROM messages WHERE (conversation_id = ? OR chat_id = ?)', [chatId, chatId]);
         if (messages.length > 0) {
             const values = messages.map(m => `(UUID(), '${m.message_id}', '${userId}')`).join(',');
             await db.query(`INSERT IGNORE INTO message_deletions (deletion_id, message_id, user_id) VALUES ${values}`);

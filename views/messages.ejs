@@ -195,6 +195,50 @@
                     </div>
                 </div>
 
+                <!-- Emoji Picker Panel -->
+                <div id="emojiPickerPanel" class="emoji-picker-panel" style="display:none;">
+                    <div class="emoji-search-wrap">
+                        <input type="text" placeholder="Search emoji..." onkeyup="sparkChat.handleEmojiSearch(this.value)">
+                    </div>
+                    <div id="emojiPickerGrid" class="emoji-grid">
+                        <!-- Injected via JS -->
+                    </div>
+                    <div class="emoji-tabs">
+                        <i class="bi bi-clock-history emoji-tab-icon active" title="Recent" onclick="sparkChat.switchEmojiTab('recent', this)"></i>
+                        <i class="bi bi-emoji-smile emoji-tab-icon" title="Emoji" onclick="sparkChat.switchEmojiTab('emoji', this)"></i>
+                        <i class="bi bi-sticky emoji-tab-icon" title="Stickers" onclick="sparkChat.switchEmojiTab('sticker', this)"></i>
+                        <i class="bi bi-gift emoji-tab-icon" title="GIF" onclick="sparkChat.switchEmojiTab('gif', this)"></i>
+                    </div>
+                </div>
+
+                <!-- Attachment Menu -->
+                <div id="attachmentMenu" class="attachment-menu" style="display:none;">
+                    <div class="attach-item" onclick="document.getElementById('mediaUpload').click(); sparkChat.closeAllModals();">
+                        <div class="attach-icon at-purple"><i class="bi bi-file-earmark-fill"></i></div>
+                        <span class="attach-label">Document</span>
+                    </div>
+                    <div class="attach-item" onclick="sparkChat.openAttachment('Camera')">
+                        <div class="attach-icon at-pink"><i class="bi bi-camera-fill"></i></div>
+                        <span class="attach-label">Camera</span>
+                    </div>
+                    <div class="attach-item" onclick="document.getElementById('mediaUpload').click(); sparkChat.closeAllModals();">
+                        <div class="attach-icon at-orange"><i class="bi bi-image-fill"></i></div>
+                        <span class="attach-label">Gallery</span>
+                    </div>
+                    <div class="attach-item" onclick="sparkChat.openAttachment('Audio')">
+                        <div class="attach-icon at-orange" style="background:#ff5722;"><i class="bi bi-headphones"></i></div>
+                        <span class="attach-label">Audio</span>
+                    </div>
+                    <div class="attach-item" onclick="sparkChat.openAttachment('Location')">
+                        <div class="attach-icon at-green"><i class="bi bi-geo-alt-fill"></i></div>
+                        <span class="attach-label">Location</span>
+                    </div>
+                    <div class="attach-item" onclick="sparkChat.openAttachment('Contact')">
+                        <div class="attach-icon at-blue"><i class="bi bi-person-fill"></i></div>
+                        <span class="attach-label">Contact</span>
+                    </div>
+                </div>
+
                 <!-- CHAT-ONLY NAV DROPDOWN -->
                 <div id="chatNavDropdown" style="display:none; height:0; overflow:hidden; transition:height 0.3s cubic-bezier(0.4, 0, 0.2, 1); width:100%;">
                     <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:15px 10px; padding:15px 10px 5px; background:transparent;">

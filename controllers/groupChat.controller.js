@@ -34,7 +34,15 @@ class GroupChatController {
                 creatorId,
                 name: name || 'Group Chat',
                 photoUrl: finalPhotoUrl,
-                settings: settings || { allowMedia: true, allowVoice: true, allowVideo: true, allowReactions: true }
+                description: req.body.description || null,
+                settings: settings || { 
+                    allowMedia: true, 
+                    allowVoice: true, 
+                    allowVideo: true, 
+                    allowReactions: true,
+                    onlyAdminsSend: req.body.onlyAdminsSend === 'true' || req.body.onlyAdminsSend === true,
+                    onlyAdminsEdit: req.body.onlyAdminsEdit === 'true' || req.body.onlyAdminsEdit === true
+                }
             });
 
             // Add Creator
@@ -110,10 +118,32 @@ class GroupChatController {
         try {
             const { chatId } = req.params;
             const { user_ids } = req.body;
+            if (!user_ids || !Array.isArray(user_ids)) {
+                return res.status(400).json({ status: 'error', error: 'user_ids is required and must be an array' });
+            }
+            // Filter out existing members
+            const existingMembers = await GroupMember.getMembers(chatId);
+            const existingIds = new Set(existingMembers.map(m => m.user_id));
+            const newUids = user_ids.filter(uid => !existingIds.has(uid));
 
-            await GroupMember.addMany(user_ids.map(uid => ({
+            if (newUids.length === 0) {
+                return res.json({ status: 'success', message: 'No new members to add' });
+            }
+
+            await GroupMember.addMany(newUids.map(uid => ({
                 chatId, userId: uid, role: 'member', status: 'active'
             })));
+
+            // Send system message
+            for (const uid of newUids) {
+                const user = await User.findById(uid);
+                await Message.sendMessage({
+                    chatId,
+                    senderId: req.user.user_id || req.user.userId,
+                    content: `added ${user ? user.username : 'a member'}`,
+                    type: 'system'
+                });
+            }
 
             // --- Real-time: Notify added members ---
             try {
@@ -145,6 +175,15 @@ class GroupChatController {
             const member = await GroupMember.find(chatId, req.user.user_id || req.user.userId);
             if (!member || member.role !== 'admin' && member.role !== 'creator') {
                 return res.status(403).json({ status: 'error', error: 'Only admins can update group settings' });
+            }
+
+            if (req.body.onlyAdminsSend !== undefined) {
+                updates.only_admins_send = req.body.onlyAdminsSend === 'true' || req.body.onlyAdminsSend === true ? 1 : 0;
+                delete updates.onlyAdminsSend;
+            }
+            if (req.body.onlyAdminsEdit !== undefined) {
+                updates.only_admins_edit = req.body.onlyAdminsEdit === 'true' || req.body.onlyAdminsEdit === true ? 1 : 0;
+                delete updates.onlyAdminsEdit;
             }
 
             await GroupChat.update(chatId, updates);

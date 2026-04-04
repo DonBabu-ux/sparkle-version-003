@@ -193,6 +193,7 @@ class SparkleChat {
         this.socket.on('user-typing', (data) => this.handleTypingIndicator(data));
         this.socket.on('messages-read', (data) => this.handleReadReceipt(data));
         this.socket.on('messages-delivered', (data) => this.handleMessageDelivered(data));
+        this.socket.on('message_view_update', (data) => this.handleViewUpdate(data));
         this.socket.on('user-status', (data) => this.handleUserStatus(data));
         this.socket.on('new-reaction', (data) => this.handleReaction(data));
         this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
@@ -625,44 +626,60 @@ class SparkleChat {
             const response = await fetch(`/api/messages/chat/${chatId}/archive`, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ archived: true }) // You could toggle this if needed
+                body: JSON.stringify({ archived: true })
             });
             const result = await response.json();
             
             if (result.status === 'success') {
                 const conv = this.conversations.find(c => c.chat_id === chatId);
-                if (conv) conv.is_archived = !conv.is_archived;
+                if (conv) conv.is_archived = true;
                 
-                alert(result.message || 'Chat updated');
                 this.renderInbox();
                 
-                // Hide chat if we archived it and we're not in the archived tab
-                if (this.currentTab !== 'archived') {
-                    document.getElementById('chatMain').style.display = 'none';
-                    document.getElementById('chatEmptyWindow').style.display = 'flex';
-                    document.querySelector('.messaging-layout').classList.remove('chat-active');
-                }
+                // Close chat view
+                document.getElementById('chatMain').style.display = 'none';
+                document.getElementById('chatEmptyWindow').style.display = 'flex';
+                document.querySelector('.messaging-layout').classList.remove('chat-active');
             }
         } catch (err) {
             console.error('Archive failed:', err);
         }
     }
 
-    deleteConversation(chatId) {
-        if (confirm('Are you sure you want to delete this conversation? This cannot be undone.')) {
-            fetch(`/api/messages/chat/${chatId}`, { method: 'DELETE' })
-                .then(res => res.json())
-                .then(result => {
-                    if (result.status === 'success') {
-                        this.conversations = this.conversations.filter(c => c.chat_id !== chatId);
-                        this.renderInbox();
-                        if (this.currentChatId === chatId) {
-                            document.getElementById('chatMain').style.display = 'none';
-                            document.getElementById('chatEmptyWindow').style.display = 'flex';
-                            document.querySelector('.messaging-layout').classList.remove('chat-active');
-                        }
-                    }
-                });
+    async handleDeleteChat() {
+        const chatId = this.currentChatId;
+        if (!chatId || !confirm('Are you sure you want to delete this chat permanently?')) return;
+
+        try {
+            const response = await fetch(`/api/messages/chat/${chatId}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                this.conversations = this.conversations.filter(c => c.chat_id !== chatId);
+                this.renderInbox();
+                document.getElementById('chatMain').style.display = 'none';
+                document.getElementById('chatEmptyWindow').style.display = 'flex';
+                document.querySelector('.messaging-layout').classList.remove('chat-active');
+            }
+        } catch (err) {
+            console.error('Delete failed:', err);
+        }
+    }
+
+    async handleBlockUser() {
+        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        if (!conv || !conv.partner_id) return;
+
+        if (!confirm(`Block ${conv.partner_name}? They will no longer be able to message you.`)) return;
+
+        try {
+            const response = await fetch(`/api/users/block/${conv.partner_id}`, { method: 'POST' });
+            const result = await response.json();
+            if (result.success) {
+                alert('User blocked');
+                window.location.reload(); // Hard refresh to clear state
+            }
+        } catch (err) {
+            console.error('Block failed:', err);
         }
     }
 
@@ -915,7 +932,6 @@ class SparkleChat {
                 const limitIcon = msg.view_policy === 'once' ? 'bi-1-circle' : 'bi-2-circle';
                 const limitText = msg.view_policy === 'once' ? 'Photo' : 'Photo (x2)';
 
-                // Not viewed yet or partially viewed
                 mediaContent = `
                     <div class="view-limited-placeholder" onclick="window.sparkChat.openLimitedMedia('${msg.message_id}', '${msg.media_url}', '${msg.type}')" 
                          style="background:#202c33; padding:15px; border-radius:12px; cursor:pointer; display:flex; align-items:center; color:#00a884; font-weight:600; border:1px solid #111b21;">
@@ -923,7 +939,7 @@ class SparkleChat {
                         <span style="color:#e9edef;">${limitText}</span>
                     </div>
                 `;
-            } else if (isLimited && isMe) { // Sender also sees limited wrapper matching WhatsApp context
+            } else if (isLimited && isMe) { 
                 const limitIcon = msg.view_policy === 'once' ? 'bi-1-circle' : 'bi-2-circle';
                 mediaContent = `
                     <div class="view-limited-placeholder" style="background:#005c4b; padding:15px; border-radius:12px; cursor:default; display:flex; align-items:center; color:#e9edef; font-weight:600; border:1px solid #111b21;">
@@ -936,8 +952,23 @@ class SparkleChat {
                     mediaContent = `<img src="${msg.media_url}" class="msg-media-img" loading="lazy" onclick="window.open('${msg.media_url}')" style="max-width:80%; border-radius:12px;">`;
                 } else if (msg.type === 'video' || msg.media_url.match(/\.(mp4|webm|mov)$/i)) {
                     mediaContent = `<video src="${msg.media_url}" class="msg-media-video" controls preload="none" style="max-width:80%; border-radius:12px; max-height:250px; background:#000;"></video>`;
-                } else if (msg.type === 'audio' || msg.media_url.match(/\.(mp3|wav|ogg)$/i)) {
-                    mediaContent = `<audio src="${msg.media_url}" controls preload="none" style="max-width:260px;"></audio>`;
+                } else if (msg.type === 'audio' || msg.type === 'voice_note' || msg.media_url.match(/\.(mp3|wav|ogg|webm)$/i)) {
+                    mediaContent = `
+                        <div class="audio-bubble" style="display:flex; align-items:center; gap:12px; padding:8px 12px; background:rgba(0,0,0,0.1); border-radius:12px; min-width:220px;">
+                            <div class="audio-play-btn" onclick="window.sparkChat.playAudio(this, '${msg.media_url}')" style="width:40px; height:40px; border-radius:50%; background:#00a884; display:flex; align-items:center; justify-content:center; color:white; cursor:pointer;">
+                                <i class="bi bi-play-fill" style="font-size:24px;"></i>
+                            </div>
+                            <div class="audio-info" style="flex:1;">
+                                <div class="audio-waveform" style="height:15px; background:rgba(255,255,255,0.1); border-radius:10px; position:relative; overflow:hidden;">
+                                    <div class="audio-progress" style="position:absolute; top:0; left:0; height:100%; width:0%; background:#00a884; transition:width 0.1s linear;"></div>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:#8696a0;">
+                                    <span>VOICE NOTE</span>
+                                    <span class="audio-duration">--:--</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 } else {
                     mediaContent = `
                         <a href="${msg.media_url}" target="_blank" class="document-download" style="display:flex; align-items:center; gap:10px; padding:12px; background:rgba(0,0,0,0.05); border-radius:8px; text-decoration:none; color:inherit;">
@@ -3189,6 +3220,184 @@ class SparkleChat {
         // This effectively transforms the "Create Group" logic into "Add to Group" 
         // We'll need to tweak submitCreateGroup or add a separate handle if we want real "add" logic
         // For now, users can use the FAB. A dedicated "Add Members" endpoint is in the controller.
+    }
+
+    // ==========================================
+    // AUDIO PLAYBACK
+    // ==========================================
+
+    playAudio(btn, url) {
+        if (this._currentAudio && this._currentAudio.src === url) {
+            if (this._currentAudio.paused) {
+                this._currentAudio.play();
+                btn.innerHTML = '<i class="bi bi-pause-fill" style="font-size:24px;"></i>';
+            } else {
+                this._currentAudio.pause();
+                btn.innerHTML = '<i class="bi bi-play-fill" style="font-size:24px;"></i>';
+            }
+            return;
+        }
+
+        if (this._currentAudio) {
+            this._currentAudio.pause();
+            const prevBtn = this._currentAudio._btn;
+            if (prevBtn) prevBtn.innerHTML = '<i class="bi bi-play-fill" style="font-size:24px;"></i>';
+        }
+
+        const audio = new Audio(url);
+        audio._btn = btn;
+        this._currentAudio = audio;
+
+        const progress = btn.parentElement.querySelector('.audio-progress');
+        const durationEl = btn.parentElement.querySelector('.audio-duration');
+
+        audio.addEventListener('timeupdate', () => {
+            const pct = (audio.currentTime / audio.duration) * 100;
+            if (progress) progress.style.width = pct + '%';
+            if (durationEl) durationEl.textContent = this.formatAudioTime(audio.currentTime);
+        });
+
+        audio.addEventListener('loadedmetadata', () => {
+            if (durationEl) durationEl.textContent = this.formatAudioTime(audio.duration);
+        });
+
+        audio.addEventListener('ended', () => {
+            btn.innerHTML = '<i class="bi bi-play-fill" style="font-size:24px;"></i>';
+            if (progress) progress.style.width = '0%';
+        });
+
+        audio.play();
+        btn.innerHTML = '<i class="bi bi-pause-fill" style="font-size:24px;"></i>';
+    }
+
+    formatAudioTime(seconds) {
+        if (isNaN(seconds)) return '0:00';
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    handleViewUpdate(data) {
+        const { messageId, viewsUsed } = data;
+        const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`);
+        if (msgEl) {
+            // Update UI to show viewed status if needed
+            const label = msgEl.querySelector('.view-limited-placeholder span');
+            if (label) label.textContent = 'Opened';
+            msgEl.classList.add('viewed-once');
+        }
+    }
+
+    formatTime(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    closeChat() {
+        this.currentChatId = null;
+        const layout = document.querySelector('.messaging-layout');
+        if (layout) layout.classList.remove('chat-active');
+        const chatMain = document.getElementById('chatMain');
+        if (chatMain) chatMain.style.display = 'none';
+        const empty = document.getElementById('chatEmptyWindow');
+        if (empty) empty.style.display = 'flex';
+        
+        this.socket.emit('leave-chat', this.currentChatId);
+    }
+
+    // ==========================================
+    // MODAL SYSTEM (WhatsApp-Style)
+    // ==========================================
+
+    openModal(panelId) {
+        this.closeAllModals();
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.style.display = 'flex';
+        let backdrop = document.getElementById('modalBackdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'modalBackdrop';
+            backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:8989;background:rgba(0,0,0,0);';
+            document.body.appendChild(backdrop);
+        }
+        backdrop.style.display = 'block';
+        backdrop.onclick = (e) => { e.stopPropagation(); this.closeAllModals(); };
+        this._activeModal = panelId;
+    }
+
+    closeAllModals() {
+        document.querySelectorAll('.modal-overlay-target, .emoji-picker-panel, .attachment-menu').forEach(el => {
+            el.style.display = 'none';
+        });
+        const backdrop = document.getElementById('modalBackdrop');
+        if (backdrop) backdrop.style.display = 'none';
+        this._activeModal = null;
+    }
+
+    toggleEmojiPicker(e) {
+        if (e) e.stopPropagation();
+        const picker = document.getElementById('emojiPickerPanel');
+        if (!picker) return;
+        if (picker.style.display === 'flex') this.closeAllModals();
+        else { this.openModal('emojiPickerPanel'); this.renderEmojiGrid(''); }
+    }
+
+    toggleAttachmentMenu(e) {
+        if (e) e.stopPropagation();
+        const menu = document.getElementById('attachmentMenu');
+        if (!menu) return;
+        if (menu.style.display === 'flex') this.closeAllModals();
+        else this.openModal('attachmentMenu');
+    }
+
+    renderEmojiGrid(query) {
+        const grid = document.getElementById('emojiPickerGrid');
+        if (!grid) return;
+        const list = ['😂','❤️','😍','🔥','✨','👍','🎉','😭','🥰','👏','🙄','🤔','😎','👀','💯','💀','🤩'];
+        grid.innerHTML = list.map(e => `<span class="emoji-item" onclick="sparkChat.insertEmoji('${e}')">${e}</span>`).join('');
+    }
+
+    insertEmoji(emoji) {
+        const input = document.getElementById('messageInput');
+        if (!input) return;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
+        input.selectionStart = input.selectionEnd = start + emoji.length;
+        this.autoResizeTextarea(input);
+        input.focus();
+    }
+
+    sendGif(url) {
+        this.closeAllModals();
+        this.socket.emit('send-message', {
+            chatId: this.currentChatId,
+            recipientId: this.conversations.find(c => c.chat_id == this.currentChatId)?.partner_id,
+            content: '',
+            type: 'image',
+            mediaUrl: url
+        });
+    }
+
+    initViewportHeight() {
+        const setVh = () => {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        };
+        setVh();
+        window.addEventListener('resize', setVh);
+    }
+
+    switchEmojiTab(tab, el) {
+        document.querySelectorAll('.emoji-tab-icon').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        this.renderEmojiGrid('');
+    }
+
+    handleEmojiSearch(val) {
+        this.renderEmojiGrid(val);
     }
 }
 

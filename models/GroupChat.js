@@ -2,18 +2,20 @@ const db = require('../config/database');
 const crypto = require('crypto');
 
 class GroupChat {
-    static async create({ creatorId, name, photoUrl, privacy, isPrivate, settings }) {
+    static async create({ creatorId, name, photoUrl, description, privacy, isPrivate, settings }) {
         const chatId = crypto.randomUUID();
-        const { allowMedia, allowVoice, allowVideo, allowReactions } = settings || {};
+        const { allowMedia, allowVoice, allowVideo, allowReactions, onlyAdminsSend, onlyAdminsEdit } = settings || {};
 
         await db.query(`
             INSERT INTO group_chats (
-                chat_id, creator_id, name, photo_url, privacy, is_private, 
-                allow_media, allow_voice_notes, allow_video_calls, allow_reactions
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                chat_id, creator_id, name, photo_url, description, privacy, is_private, 
+                allow_media, allow_voice_notes, allow_video_calls, allow_reactions,
+                only_admins_send, only_admins_edit
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            chatId, creatorId, name || null, photoUrl || null, privacy || 'open', isPrivate !== false,
-            allowMedia !== false, allowVoice !== false, allowVideo !== false, allowReactions !== false
+            chatId, creatorId, name || null, photoUrl || null, description || null, privacy || 'open', isPrivate !== false,
+            allowMedia !== false, allowVoice !== false, allowVideo !== false, allowReactions !== false,
+            onlyAdminsSend ? 1 : 0, onlyAdminsEdit ? 1 : 0
         ]);
 
         return chatId;

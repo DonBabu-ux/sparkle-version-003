@@ -23,6 +23,9 @@ class SparkleChat {
         this.newChatTab = 'new';
         this.currentTab = 'all';
         this.typingUsers = {}; // chatId -> Set of typing usernames
+        
+        // Persistent Offline Queue (Survives Reloads)
+        this._msgQueue = this._loadPersistentQueue();
 
         this.init();
     }
@@ -297,20 +300,72 @@ class SparkleChat {
             this.socket.emit(event, data, callback);
         } else {
             console.warn('🔌 Sparkle: Offline — queuing message for retry');
-            this._msgQueue = this._msgQueue || [];
-            this._msgQueue.push({ event, data, callback, ts: Date.now() });
+            // Add to persistent queue
+            const queueMsg = { 
+                event, 
+                data, 
+                ts: Date.now(), 
+                tempId: data.tempId || 'q-' + Date.now() 
+            };
+            this._msgQueue.push(queueMsg);
+            this._savePersistentQueue();
+            
+            // If it's a message, fire the callback (if exists) with a failed-to-send-live hint
+            if (typeof callback === 'function') {
+                callback({ success: false, queued: true });
+            }
+        }
+    }
+
+    _loadPersistentQueue() {
+        try {
+            const key = `sparkle_queue_${this.userId}`;
+            const saved = localStorage.getItem(key);
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    _savePersistentQueue() {
+        try {
+            const key = `sparkle_queue_${this.userId}`;
+            localStorage.setItem(key, JSON.stringify(this._msgQueue));
+        } catch (e) {
+            console.error('Failed to save queue to localStorage', e);
         }
     }
 
     _drainMessageQueue() {
         if (!this._msgQueue || this._msgQueue.length === 0) return;
         console.log(`🔌 Sparkle: Draining ${this._msgQueue.length} queued message(s)`);
+        
         const queue = [...this._msgQueue];
-        this._msgQueue = [];
-        queue.forEach(({ event, data, callback }) => {
-            // Only retry send-message events (status events can be skipped)
-            if (event === 'send-message') {
-                this.socket.emit(event, data, callback);
+        // We don't clear this._msgQueue immediately, we clear as we get individual ACKs 
+        // to prevent data loss if the connection drops again mid-drain.
+        
+        queue.forEach((item) => {
+            if (item.event === 'send-message') {
+                this.socket.emit(item.event, item.data, (ack) => {
+                    if (ack && ack.success) {
+                        // Success! Remove from persistent queue
+                        this._msgQueue = this._msgQueue.filter(q => q.tempId !== item.tempId);
+                        this._savePersistentQueue();
+                        
+                        // Update UI if the message is rendered
+                        const bubble = document.querySelector(`[data-msg-id="${item.data.tempId}"]`);
+                        if (bubble) {
+                            bubble.dataset.msgId = ack.messageId;
+                            const tick = bubble.querySelector('.msg-tick i');
+                            if (tick) tick.className = 'bi bi-check';
+                        }
+                    }
+                });
+            } else {
+                // For status events (typing, etc), just fire and forget
+                this.socket.emit(item.event, item.data);
+                this._msgQueue = this._msgQueue.filter(q => q.ts !== item.ts);
+                this._savePersistentQueue();
             }
         });
     }
@@ -849,6 +904,24 @@ class SparkleChat {
             }
             html += this.createMessageHTML(msg);
         });
+
+        // ─── Append Persistent Queued Messages (Survive Refresh) ───
+        if (this._msgQueue && this._msgQueue.length > 0) {
+            const pendingForThisChat = this._msgQueue.filter(q => 
+                q.event === 'send-message' && String(q.data.chatId) === String(this.currentChatId)
+            );
+            
+            pendingForThisChat.forEach(q => {
+                const msgObj = {
+                    ...q.data,
+                    message_id: q.data.tempId,
+                    sender_id: this.userId,
+                    status: 'pending',
+                    sent_at: new Date(q.ts).toISOString()
+                };
+                html += this.createMessageHTML(msgObj);
+            });
+        }
 
         container.innerHTML = html;
         this.scrollToBottom();
@@ -1662,11 +1735,19 @@ class SparkleChat {
         if (isSelf && msg.content) {
             const allBubbles = document.querySelectorAll('.msg-sent');
             for (let b of allBubbles) {
-                if (b.dataset.msgId?.startsWith('temp-') && b.querySelector('.msg-body')?.textContent?.trim() === (msg.content || '').trim()) {
+                const bubbleTempId = b.dataset.msgId;
+                if (bubbleTempId?.startsWith('temp-') && b.querySelector('.msg-body')?.textContent?.trim() === (msg.content || '').trim()) {
                     // This is our pending message! Update its ID and status.
                     b.dataset.msgId = messageId;
                     const tick = b.querySelector('.msg-tick i');
                     if (tick) tick.className = 'bi bi-check';
+                    
+                    // Cleanup persistent queue
+                    if (this._msgQueue) {
+                        this._msgQueue = this._msgQueue.filter(q => q.data.tempId !== bubbleTempId);
+                        this._savePersistentQueue();
+                    }
+
                     if (!this._renderedIds) this._renderedIds = new Set();
                     this._renderedIds.add(messageId);
                     return; 
@@ -1732,10 +1813,18 @@ class SparkleChat {
         // Check for ANY temp bubble that might match
         const allBubbles = document.querySelectorAll('.msg-sent');
         for (let b of allBubbles) {
-            if (b.dataset.msgId?.startsWith('temp-') && b.querySelector('.msg-body')?.textContent?.trim() === (msg.content || '').trim()) {
+            const bubbleTempId = b.dataset.msgId;
+            if (bubbleTempId?.startsWith('temp-') && b.querySelector('.msg-body')?.textContent?.trim() === (msg.content || '').trim()) {
                 b.dataset.msgId = messageId;
                 const tick = b.querySelector('.msg-tick i');
                 if (tick) tick.className = 'bi bi-check';
+                
+                // Cleanup persistent queue
+                if (this._msgQueue) {
+                    this._msgQueue = this._msgQueue.filter(q => q.data.tempId !== bubbleTempId);
+                    this._savePersistentQueue();
+                }
+
                 if (!this._renderedIds) this._renderedIds = new Set();
                 this._renderedIds.add(messageId);
                 return;

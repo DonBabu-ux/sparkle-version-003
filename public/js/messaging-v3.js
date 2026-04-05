@@ -72,23 +72,60 @@ class SparkleChat {
 
         const openChatForUser = async (uid) => {
             try {
+                // 1. Get or create conversation
+                let chatId = null;
                 const response = await fetch(`/api/messages/chat/${uid}`);
                 const result = await response.json();
+                
                 if (result.status === 'success' && result.chatId) {
-                    await this.openChat(result.chatId);
-                    return result.chatId;
+                    chatId = result.chatId;
+                } else {
+                    const startRes = await fetch('/api/messages/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ partnerId: uid })
+                    });
+                    const startResult = await startRes.json();
+                    if (startResult.status === 'success') {
+                        chatId = startResult.data.conversationId;
+                    }
                 }
-                // No existing conversation – create one
-                const startRes = await fetch('/api/messages/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ partnerId: uid })
-                });
-                const startResult = await startRes.json();
-                if (startResult.status === 'success') {
-                    await this.openChat(startResult.data.conversationId);
-                    return startResult.data.conversationId;
+
+                if (!chatId) return null;
+
+                // 2. Ensure we have the conversation object in our local list for UI metadata
+                let conv = this.conversations.find(c => c.chat_id === chatId);
+                if (!conv) {
+                    console.log('✨ Initializing new conversation metadata for UID', uid);
+                    const userRes = await fetch(`/api/users/${uid}`);
+                    const userResult = await userRes.json();
+                    const partner = userResult.data || userResult.user;
+
+                    if (partner) {
+                        conv = {
+                            chat_id: chatId,
+                            chat_type: 'personal',
+                            partner_id: uid,
+                            partner_name: partner.name,
+                            partner_username: partner.username,
+                            partner_avatar: partner.avatar_url,
+                            is_online: partner.is_online || 0,
+                            last_seen_at: partner.last_seen_at,
+                            last_message: '',
+                            last_message_at: null,
+                            unread_count: 0,
+                            is_pinned: 0,
+                            is_muted: 0,
+                            is_archived: 0
+                        };
+                        this.conversations.unshift(conv);
+                        this.renderInbox();
+                    }
                 }
+
+                // 3. Open the chat
+                await this.openChat(chatId);
+                return chatId;
             } catch (err) {
                 console.error('Deep-link failed:', err);
             }
@@ -1582,9 +1619,8 @@ class SparkleChat {
             this.socket.emit('mark-read', this.currentChatId);
         }
 
-        // Point 3 & 4: Always trigger sound logic, let NotificationManager decide on focus/mute
-        // If it's a new message in a DIFFERENT chat or we are testing with ourselves
-        if (this.currentChatId !== msgChatId || isSelf) {
+        // Point 3 & 4: Sound should ONLY play on incoming messages from OTHER users
+        if (!isSelf) {
             this.playNotificationSound();
         }
 

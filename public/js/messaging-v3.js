@@ -270,12 +270,12 @@ class SparkleChat {
             this._lastPing = Date.now();
             this.socket.emit('sparkle-ping');
 
-            // Timeout check for sluggish connections (20s tolerance)
+            // Timeout check for sluggish connections (30s tolerance)
             setTimeout(() => {
-                if (this._lastPong < this._lastPing - 19000) {
+                if (this._lastPong < this._lastPing - 29000) {
                     console.warn('🔌 Sparkle: Heartbeat delay detected — connection may be unstable');
                 }
-            }, 20000);
+            }, 30000);
         }, 25000);
     }
 

@@ -185,6 +185,9 @@ const initializeSocket = (server) => {
                 }
             } catch (error) {
                 logger.error('Send message error:', error);
+                if (typeof callback === 'function') {
+                    callback({ success: false, error: 'Database or broadcast error' });
+                }
                 socket.emit('message-error', { error: 'Failed to send message' });
             }
         });
@@ -414,9 +417,10 @@ const broadcastOnlineStatus = async (socket, isOnline) => {
             lastSeen: isOnline ? null : new Date().toISOString()
         };
 
-        targetIds.forEach(targetId => {
-            socket.to(`user:${targetId}`).emit('user-status', statusData);
-        });
+        const rooms = Array.from(targetIds).map(id => `user:${id}`);
+        if (rooms.length > 0) {
+            socket.to(rooms).emit('user-status', statusData);
+        }
     } catch (error) {
         logger.error('Broadcast status error:', error);
     }

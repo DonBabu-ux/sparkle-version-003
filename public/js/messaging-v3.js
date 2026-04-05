@@ -158,6 +158,14 @@ class SparkleChat {
 
         window.socket = this.socket;
 
+        // Cleanup legacy listeners to prevent duplication (Point 9)
+        this.socket.off('connect');
+        this.socket.off('disconnect');
+        this.socket.off('new-message');
+        this.socket.off('message-sent');
+        this.socket.off('user-typing');
+        this.socket.off('user-status');
+
         // ─── Connection Events ───────────────────────────────────────────────
         this.socket.on('connect', () => {
             console.log('🔌 Sparkle: Socket connected', this.socket.id);
@@ -734,6 +742,7 @@ class SparkleChat {
         const conv = this.conversations.find(c => c.chat_id === chatId);
         if (conv) conv.unread_count = 0;
         this.renderInbox();
+        this.updateViewState('chat');
     }
 
     async loadMessages(chatId) {
@@ -1179,6 +1188,10 @@ class SparkleChat {
             </div>`;
         }
 
+        // Point 2: Stable Timestamps
+        const timestamp = msg.sent_at || msg.created_at;
+        const displayTime = this.formatTime(timestamp);
+        
         return `
             <div class="msg-bubble-wrapper ${isMe ? 'own-msg' : 'other-msg'}" style="display:flex; flex-direction:column; align-items: ${isMe ? 'flex-end' : 'flex-start'}; gap:2px; margin-bottom:8px;">
                 ${isGroup && !isMe && !isDeleted ? `
@@ -1198,7 +1211,7 @@ class SparkleChat {
                     ${listingHtml && !isDeleted ? listingHtml : ''}
                     ${isDeleted ? '<div class="msg-body" style="font-size:14px;">\uD83D\uDEAB This message was deleted.</div>' : this.renderMsgBody(msg)}
                     <div class="msg-footer" style="display:flex; align-items:center; justify-content:flex-end; gap:4px; font-size:11px; color:#8696a0; margin-top:2px;">
-                        <span>${this.formatTime(msg.sent_at)}</span>
+                        <span>${displayTime}</span>
                         ${msg.edited_at && !isDeleted ? '<span style="font-style:italic;">(edited)</span>' : ''}
                         ${isMe && !isDeleted ? `
                             <span class="msg-tick">
@@ -2073,49 +2086,47 @@ class SparkleChat {
     // MODAL SYSTEM (WhatsApp-Style)
     // ==========================================
 
-    openModal(panelId) {
-        // Close everything first
-        this.closeAllModals();
+    openMessageSettings() {
+        const modal = document.getElementById('messageSettingsModal');
+        if (modal) modal.style.display = 'flex';
+        this.updateViewState('settings');
+    }
 
+    updateViewState(view) {
+        const fab = document.getElementById('waFabContainer');
+        const sidebar = document.querySelector('.conversation-sidebar');
+        if (view === 'chat') {
+            if (fab) fab.style.display = 'none';
+            if (window.innerWidth <= 768 && sidebar) sidebar.style.display = 'none';
+        } else {
+            if (fab) fab.style.display = 'flex';
+            if (sidebar) sidebar.style.display = 'flex';
+        }
+    }
+
+    openModal(panelId) {
+        this.closeAllModals();
         const panel = document.getElementById(panelId);
         if (!panel) return;
-
-        // Show panel
         panel.style.display = 'flex';
-
-        // Create/show backdrop at body level so it covers full screen reliably
         let backdrop = document.getElementById('modalBackdrop');
         if (!backdrop) {
             backdrop = document.createElement('div');
             backdrop.id = 'modalBackdrop';
-            // Use pointer-events: auto to catch clicks
             backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:8989;background:rgba(0,0,0,0);';
             document.body.appendChild(backdrop);
         }
         backdrop.style.display = 'block';
-        backdrop.onclick = (e) => {
-            e.stopPropagation();
-            this.closeAllModals();
-        };
-        // Also touch support
-        backdrop.ontouchstart = (e) => {
-            e.stopPropagation();
-            this.closeAllModals();
-        };
-
+        backdrop.onclick = () => this.closeAllModals();
         this._activeModal = panelId;
     }
 
     closeAllModals() {
-        // Hide all overlay panels using inline style only
-        document.querySelectorAll('.modal-overlay-target').forEach(el => {
-            el.style.display = 'none';
+        document.querySelectorAll('.modal-overlay-target, .wa-modal-overlay').forEach(el => {
+            if (el.id !== 'emojiPickerPanel') el.style.display = 'none';
         });
-
-        // Hide backdrop
         const backdrop = document.getElementById('modalBackdrop');
         if (backdrop) backdrop.style.display = 'none';
-
         this._activeModal = null;
     }
 
@@ -3081,17 +3092,29 @@ class SparkleChat {
 
     async handleDeleteChat() {
         const chatId = this.activeChatTarget || this.currentChatId;
-        if (!chatId || !confirm('Permanently delete this chat?')) return;
+        if (!chatId || !confirm('Permanently delete all messages in this chat?')) return;
 
         try {
             const res = await fetch(`/api/messages/chat/${chatId}`, { method: 'DELETE' });
             if (res.ok) {
-                this.conversations = this.conversations.filter(c => c.chat_id !== chatId);
+                // Point 4 & 8: Keep relationship, clear messages
+                const messagesContainer = document.getElementById('messagesContainer');
+                if (messagesContainer && this.currentChatId === chatId) messagesContainer.innerHTML = '';
+                
+                // Update inbox preview to "No messages"
+                const conv = this.conversations.find(c => c.chat_id === chatId);
+                if (conv) {
+                    conv.last_message = 'Messages deleted';
+                    conv.last_message_at = new Date().toISOString();
+                }
                 this.renderInbox();
+                
                 document.getElementById('chatActionModal').style.display = 'none';
-                if (this.currentChatId === chatId) this.closeChat();
+                alert('Messages deleted.');
             }
-        } catch (e) { }
+        } catch (e) { 
+            console.error('Delete error:', e);
+        }
     }
 
     async handleBlockUser() {
@@ -3631,11 +3654,12 @@ class SparkleChat {
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
+    // --- Message Information & Metadata ---
+
     handleViewUpdate(data) {
         const { messageId, viewsUsed } = data;
         const msgEl = document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`);
         if (msgEl) {
-            // Update UI to show viewed status if needed
             const label = msgEl.querySelector('.view-limited-placeholder span');
             if (label) label.textContent = 'Opened';
             msgEl.classList.add('viewed-once');
@@ -3648,7 +3672,30 @@ class SparkleChat {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
     }
 
+    // --- View State & Navigation Controllers ---
+
+    openMessageSettings() {
+        const modal = document.getElementById('messageSettingsModal');
+        if (modal) modal.style.display = 'flex';
+        this.updateViewState('settings');
+    }
+
+    updateViewState(view) {
+        const fab = document.getElementById('waFabContainer');
+        const sidebar = document.querySelector('.conversation-sidebar');
+        if (view === 'chat') {
+            if (fab) fab.style.display = 'none';
+            if (window.innerWidth <= 768 && sidebar) sidebar.style.display = 'none';
+        } else {
+            if (fab) fab.style.display = 'flex';
+            if (sidebar) sidebar.style.display = 'flex';
+        }
+    }
+
     closeChat() {
+        if(this.currentChatId) {
+            this.socket.emit('leave-chat', this.currentChatId);
+        }
         this.currentChatId = null;
         const layout = document.querySelector('.messaging-layout');
         if (layout) layout.classList.remove('chat-active');
@@ -3657,12 +3704,38 @@ class SparkleChat {
         const empty = document.getElementById('chatEmptyWindow');
         if (empty) empty.style.display = 'flex';
         
-        this.socket.emit('leave-chat', this.currentChatId);
+        this.updateViewState('list');
     }
 
     // ==========================================
     // MODAL SYSTEM (WhatsApp-Style)
     // ==========================================
+
+    openModal(panelId) {
+        this.closeAllModals();
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.style.display = 'flex';
+        let backdrop = document.getElementById('modalBackdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'modalBackdrop';
+            backdrop.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:8989;background:rgba(0,0,0,0);';
+            document.body.appendChild(backdrop);
+        }
+        backdrop.style.display = 'block';
+        backdrop.onclick = () => this.closeAllModals();
+        this._activeModal = panelId;
+    }
+
+    closeAllModals() {
+        document.querySelectorAll('.modal-overlay-target, .wa-modal-overlay, .emoji-picker-panel, .attachment-menu').forEach(el => {
+            if (el.id !== 'emojiPickerPanel') el.style.display = 'none';
+        });
+        const backdrop = document.getElementById('modalBackdrop');
+        if (backdrop) backdrop.style.display = 'none';
+        this._activeModal = null;
+    }
 
     openModal(panelId) {
         this.closeAllModals();

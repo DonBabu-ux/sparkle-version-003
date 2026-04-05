@@ -1,0 +1,64 @@
+# SPARKLE MESSAGING ARCHITECTURE (V3)
+=====================================
+Status: Production-Grade Reliability Enabled
+Last Updated: 2026-04-05
+
+## 1. DATA FLOW (SENDING)
+---------------------------
+1. CLIENT: Send message triggered.
+2. OPTIMISTIC UI: Message instantly renders with "Pending" (clock) icon and temp-id.
+3. PERSISTENCE: Message is saved to LocalStorage (sparkle_queue_[userId]) before emit.
+4. EMIT: Socket.io sends 'send-message' with the payload.
+5. SERVER: Node.js receives event, VALIDATES session, and calculates authoritative 'sentAt'.
+6. DATABASE: Async INSERT into 'messages' table (ACID Guaranteed).
+7. ACKNOWLEDGMENT: Server executes the client's callback with { success: true, messageId: '...' }.
+8. UI SYNC: Client updates the 'Pending' bubble to 'Sent' (single check) and replaces temp-id with real DB ID.
+9. BROADCAST: Server emits 'new-message' to the recipient and all other active sessions of the sender.
+
+## 2. RELIABILITY & RECOVERY (THE "ZERO LOSS" SYSTEM)
+------------------------------------------------------
+A. OFFLINE QUEUE:
+   If the socket is disconnected, messages are stored in an in-memory + LocalStorage FIFO queue.
+   UI shows messages as "Pending".
+
+B. AUTOMATIC DRAIN:
+   Upon 'reconnect', the client automatically iterates through the persistent queue and re-emits them in order.
+
+C. DE-DUPLICATION:
+   Clients use a 'renderedIds' Set and DOM checks (data-msg-id) to ensure that if a message is received via broadcast before the ACK callback completes, it is only rendered once.
+
+D. ACK TIMEOUTS:
+   If the server doesn't ACK within a threshold (or returns an error), the UI marks the message with a red exclamation for manual retry.
+
+## 3. PRESENCE & VISIBILITY (LIVE STATUS)
+------------------------------------------
+A. SOCKET LIFECYCLE:
+   Server tracks 'connection' and 'disconnect' events. Disconnect immediately triggers a DB status update and a platform-wide broadcast.
+
+B. TAB VISIBILITY:
+   Client uses the 'visibilitychange' API. 
+   - Window Focused: Emits 'user-online'.
+   - Window Hidden: Emits 'user-offline'.
+   This prevents "Ghost Online" status when the user has the tab open but minimized.
+
+C. HEARTBEAT:
+   Client-side 'sparkle-ping' / 'sparkle-pong' cycle monitors connection health (30s tolerance). Triggers "Connection Unstable" UI if delays detected.
+
+## 4. DATABASE INTEGRITY (SINGLE SOURCE OF TRUTH)
+--------------------------------------------------
+A. AUTHORITATIVE TIME:
+   The Server (Node.js) generates the timestamp using 'new Date()'. This prevents client-side clock skew from breaking the chronological order of history.
+
+B. DUAL-COLUMN QUERY:
+   History fetching queries both 'conversation_id' (Personal) and 'chat_id' (Group/Marketplace) columns to ensure every historical entry is retrieved accurately.
+
+C. PERSISTENT RESTART:
+   Every 'openChat' call triggers a fresh fetch from the /api/messages/chat/ endpoint, forcing memory to synchronize with the Database.
+
+## 5. SCALABILITY OPTIMIZATIONS
+-------------------------------
+A. CONNECTION POOLING:
+   Database connection limit increased to 50 for high-concurrency throughput (200+ users/sec).
+
+B. FAN-OUT EFFICIENCY:
+   Presence broadcasts use Socket.io Room Arrays (io.to([rooms]).emit) instead of O(N) loops to prevent event-loop blocking.

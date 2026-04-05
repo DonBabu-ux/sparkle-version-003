@@ -269,7 +269,7 @@ class Message {
                 WHERE gcm.user_id = ? AND gcm.status = 'active'
             ) as conversations
             ORDER BY is_pinned DESC, last_message_at DESC
-        `, [userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId]);
+        `, [userId, userId, userId, userId, userId, userId, userId, userId]);
 
         return rows;
     }

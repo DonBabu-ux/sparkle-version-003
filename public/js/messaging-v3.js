@@ -889,7 +889,11 @@ class SparkleChat {
         const container = document.getElementById('messagesContainer');
         if (!container) return;
 
-        if (!messages || messages.length === 0) {
+        // Reset tracking for fresh render
+        if (!this._renderedIds) this._renderedIds = new Set();
+        this._renderedIds.clear();
+
+        if ((!messages || messages.length === 0) && (!this._msgQueue || this._msgQueue.length === 0)) {
             container.innerHTML = '<div class="date-divider">Start of your conversation</div>';
             return;
         }
@@ -897,7 +901,11 @@ class SparkleChat {
         let html = '';
         let lastDate = null;
 
+        // 1. Process Database Messages
         messages.forEach(msg => {
+            const msgId = msg.message_id || msg.id;
+            this._renderedIds.add(msgId); // Track existing IDs
+
             const msgDate = new Date(msg.sent_at).toDateString();
             if (msgDate !== lastDate) {
                 html += `<div class="date-divider">${this.formatFullDate(msg.sent_at)}</div>`;
@@ -906,13 +914,16 @@ class SparkleChat {
             html += this.createMessageHTML(msg);
         });
 
-        // ─── Append Persistent Queued Messages (Survive Refresh) ───
+        // 2. Append Persistent/Optimistic Queued Messages
         if (this._msgQueue && this._msgQueue.length > 0) {
             const pendingForThisChat = this._msgQueue.filter(q => 
                 q.event === 'send-message' && String(q.data.chatId) === String(this.currentChatId)
             );
             
             pendingForThisChat.forEach(q => {
+                // Avoid duplicating if the DB fetch somehow already has it
+                if (this._renderedIds.has(q.tempId)) return;
+
                 const msgObj = {
                     ...q.data,
                     message_id: q.data.tempId,
@@ -921,14 +932,21 @@ class SparkleChat {
                     sent_at: new Date(q.ts).toISOString()
                 };
                 html += this.createMessageHTML(msgObj);
+                this._renderedIds.add(q.data.tempId);
             });
         }
 
+        // 3. ATOMIC RENDER: Replace loader content
         container.innerHTML = html;
         this.scrollToBottom();
         this.bindGestures();
-        // Async: inject OG link previews for any link-only messages
-        this.injectLinkPreviews(messages);
+
+        // 4. POST-RENDER: Async Link Previews
+        messages.forEach(msg => {
+            if (msg.content && msg.content.match(/https?:\/\/[^\s]+/)) {
+                this.injectLinkPreviews(msg);
+            }
+        });
     }
 
     // ── Link & Content Rendering Engine ──────────────────────────

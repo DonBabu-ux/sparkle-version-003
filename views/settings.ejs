@@ -22,7 +22,15 @@
         .tab-item.active { background: var(--pink-primary); color: white; box-shadow: 0 4px 10px rgba(255, 107, 139, 0.2); }
 
         /* Main */
-        .settings-main { margin-top: calc(var(--header-height) + var(--tabs-height) + 24px); max-width: 800px; margin-left: auto; margin-right: auto; padding: 0 20px 180px 20px; }
+        .settings-main { 
+            margin-top: calc(var(--header-height) + var(--tabs-height) + 24px); 
+            max-width: 800px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            padding: 0 20px 180px 20px; 
+            -webkit-overflow-scrolling: touch;
+        }
+
         .settings-card { background: var(--card-white); border-radius: 24px; border: 1px solid var(--border); padding: 40px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); margin-bottom: 24px; }
         .settings-section { display: none; animation: fadeIn 0.4s ease; }
         .settings-section.active { display: block; }
@@ -62,6 +70,14 @@
         .visible-box { display: block; }
         
         small { color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px; }
+
+        /* Prevent double scroll and fix mobile containment */
+        html, body {
+            height: 100%;
+            overscroll-behavior-y: contain;
+        }
+
+        * { -webkit-tap-highlight-color: transparent; }
 
         @media (max-width: 768px) {
             .form-row { grid-template-columns: 1fr; gap: 0; }

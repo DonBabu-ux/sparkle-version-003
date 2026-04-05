@@ -71,32 +71,33 @@ class Message {
             }
         }
 
+        const sentAt = new Date().toISOString();
         try {
             await db.query(`
                 INSERT INTO messages (
                     message_id, chat_id, conversation_id, sender_id, content, 
                     type, media_url, reply_to_message_id, marketplace_listing_id, status, sent_at,
                     view_policy, views_allowed, context
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NOW(), ?, ?, ?)
-            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId, viewPolicy, viewsAllowed, context]);
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', ?, ?, ?, ?)
+            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId, sentAt, viewPolicy, viewsAllowed, context]);
 
-            // Update last_message_time and clear archives/deletions for both participants in personal chats
+            // Update last_message_time and clear archives/deletions
             if (personalChatId) {
                 await db.query(`
                     UPDATE personal_chats 
-                    SET last_message_time = NOW(),
+                    SET last_message_time = ?,
                         is_archived_p1 = 0,
                         is_archived_p2 = 0,
                         is_deleted_p1 = 0,
                         is_deleted_p2 = 0
                     WHERE chat_id = ?
-                `, [personalChatId]);
+                `, [sentAt, personalChatId]);
             } else if (groupChatId) {
                  await db.query(`
                     UPDATE group_chats 
-                    SET last_message_at = NOW()
+                    SET last_message_at = ?
                     WHERE chat_id = ?
-                `, [groupChatId]);
+                `, [sentAt, groupChatId]);
             }
 
             return messageId;

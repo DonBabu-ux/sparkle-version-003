@@ -51,7 +51,7 @@ class NotificationManager {
   }
 
   play(type = "default") {
-    if (!this.settings.soundEnabled) return;
+    if (!this.settings.soundEnabled || !this.unlocked) return;
 
     // Reset and Fire
     this.audio.volume = this.settings.volume;
@@ -61,11 +61,15 @@ class NotificationManager {
 
     if (playPromise !== undefined) {
       playPromise.catch(error => {
+        // If it still fails even after "unlocked" (browser edge case), fail silently
+        if (error.name === "NotAllowedError") return;
+        
         console.warn("🔊 Local sound blocked or missing. Attempting remote fallback...");
-        // Re-use logic for remote fallback if local fails
         const fallback = new Audio('https://cdn.jsdelivr.net/gh/clarix-ai/assets@main/iphone_ping.mp3');
         fallback.volume = this.settings.volume;
-        fallback.play().catch(e => console.error("🔊 All audio fallbacks failed.", e));
+        fallback.play().catch(e => {
+            // Silently ignore fallback failure if it's a browser restriction
+        });
       });
     }
 
@@ -73,8 +77,13 @@ class NotificationManager {
   }
 
   vibrate() {
-    if ("vibrate" in navigator) {
-      navigator.vibrate([100, 50, 100]);
+    // Only vibrate if unlocked and supported
+    if (this.unlocked && "vibrate" in navigator) {
+      try {
+        navigator.vibrate([100, 50, 100]);
+      } catch (e) {
+        // Ignore vibration errors (mostly browser permissions)
+      }
     }
   }
 

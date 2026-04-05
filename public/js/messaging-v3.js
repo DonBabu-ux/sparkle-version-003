@@ -218,10 +218,11 @@ class SparkleChat {
         this.socket.on('disconnect', (reason) => {
             console.warn('🔌 Sparkle: Socket disconnected –', reason);
             this._stopHeartbeat();
-
-            // Attempt manual reconnect for transport-close cases
-            if (reason === 'transport close' || reason === 'transport error') {
-                this._scheduleReconnect();
+            
+            // Note: Socket.io's built-in reconnection will handle most cases.
+            // Only force-reconnect if it's a server-side disconnect that needs a new session.
+            if (reason === 'io server disconnect') {
+                this.socket.connect();
             }
         });
 
@@ -269,14 +270,12 @@ class SparkleChat {
             this._lastPing = Date.now();
             this.socket.emit('sparkle-ping');
 
-            // If no pong in 10s, force reconnect
+            // Timeout check for sluggish connections (20s tolerance)
             setTimeout(() => {
-                if (this._lastPong < this._lastPing - 9500) {
-                    console.warn('🔌 Sparkle: Heartbeat timeout — forcing reconnect');
-                    this.socket.disconnect();
-                    this.socket.connect();
+                if (this._lastPong < this._lastPing - 19000) {
+                    console.warn('🔌 Sparkle: Heartbeat delay detected — connection may be unstable');
                 }
-            }, 10000);
+            }, 20000);
         }, 25000);
     }
 
@@ -287,16 +286,9 @@ class SparkleChat {
         }
     }
 
-    // ─── Reconnect with exponential backoff ───────────────────────────────────
+    // Rely on Socket.IO's built-in reconnection management; keep for reference but remove manual call in disconnect
     _scheduleReconnect() {
-        this._reconnectAttempts++;
-        const delay = Math.min(1000 * Math.pow(2, this._reconnectAttempts), this._maxReconnectDelay);
-        console.log(`🔌 Sparkle: Scheduling reconnect in ${delay}ms (attempt ${this._reconnectAttempts})`);
-        setTimeout(() => {
-            if (this.socket && !this.socket.connected) {
-                this.socket.connect();
-            }
-        }, delay);
+        // Obsolete manually called function, Socket.io manages this now
     }
 
     // ─── Message Queue: queue when offline, drain when reconnected ────────────
@@ -1597,38 +1589,51 @@ class SparkleChat {
     }
 
     handleIncomingMessage(msg) {
-        // Point 8: For testing, we allow self-messages to trigger sound if explicitly testing
-        // Standard behavior: if (String(msg.sender_id) === String(this.userId)) return;
-        const isSelf = String(msg.sender_id) === String(this.userId);
-
         const messageId = msg.message_id || msg.id;
         if (!messageId) return;
+
+        // 1. DEDUPLICATION: Prevent duplicate renders/sounds
         if (this._renderedIds?.has(messageId)) return;
         if (document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return;
 
+        const isSelf = String(msg.sender_id) === String(this.userId);
         const msgChatId = msg.conversation_id || msg.chat_id;
         
-        // Show message in active chat
+        // 2. RENDER: Show in active chat if it matches
         if (this.currentChatId === msgChatId) {
             const container = document.getElementById('messagesContainer');
-            container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
-            this.scrollToBottom(false);
-            this.injectLinkPreviews(msg);
+            if (container) {
+                container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
+                this.scrollToBottom(false);
+                this.injectLinkPreviews(msg);
+            }
 
             this.socket.emit('mark-delivered', { messageId: messageId, chatId: msgChatId });
             this.socket.emit('mark-read', this.currentChatId);
         }
 
-        // Point 3 & 4: Sound should ONLY play on incoming messages from OTHER users
+        // 3. SOUND LOGIC: Strictly for incoming messages from OTHERS
         if (!isSelf) {
-            this.playNotificationSound();
+            const isWindowFocused = document.visibilityState === 'visible';
+            const isChatActive = this.currentChatId === msgChatId;
+
+            // Only play sound if chat is hidden, or if in another chat, or if window is backgrounded
+            if (!isWindowFocused || !isChatActive) {
+                this.playNotificationSound();
+            }
         }
 
+        // 4. INDEX UPDATE: Ensure inbox preview stays fresh
         this.updateInboxPreview(msg);
 
-        if (messageId) {
-            if (!this._renderedIds) this._renderedIds = new Set();
-            this._renderedIds.add(messageId);
+        // 5. STATE: Track ID to prevent duplicates
+        if (!this._renderedIds) this._renderedIds = new Set();
+        this._renderedIds.add(messageId);
+        
+        // Safety cap for state memory
+        if (this._renderedIds.size > 200) {
+            const first = this._renderedIds.values().next().value;
+            this._renderedIds.delete(first);
         }
     }
 
@@ -3293,10 +3298,11 @@ class SparkleChat {
 
     formatChatTime(dateString) {
         if (!dateString) return '';
-        // Normalize MySQL datetime strings ("2026-04-04 15:30:00" → ISO)
-        const normalized = typeof dateString === 'string'
-            ? dateString.replace(' ', 'T')
-            : dateString;
+        // Normalize: turn "YYYY-MM-DD HH:MM:SS" into UTC ISO
+        let normalized = typeof dateString === 'string' ? dateString.replace(' ', 'T') : dateString;
+        if (typeof normalized === 'string' && !normalized.includes('Z') && !normalized.includes('+')) {
+            normalized += 'Z';
+        }
         const now = new Date();
         const msgTime = new Date(normalized);
         if (isNaN(msgTime.getTime())) return '';
@@ -3324,8 +3330,11 @@ class SparkleChat {
     formatLastSeen(lastSeen, isOnline) {
         if (isOnline) return 'Online';
         if (!lastSeen) return 'Offline';
-        // Normalize MySQL datetime strings
-        const normalized = typeof lastSeen === 'string' ? lastSeen.replace(' ', 'T') : lastSeen;
+        // Normalize: turn "YYYY-MM-DD HH:MM:SS" into UTC ISO
+        let normalized = typeof lastSeen === 'string' ? lastSeen.replace(' ', 'T') : lastSeen;
+        if (typeof normalized === 'string' && !normalized.includes('Z') && !normalized.includes('+')) {
+            normalized += 'Z';
+        }
         const date = new Date(normalized);
         if (isNaN(date.getTime())) return 'Offline';
         return 'Last seen ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -3333,10 +3342,11 @@ class SparkleChat {
 
     formatTime(dateString) {
         if (!dateString) return '';
-        // Normalize MySQL datetime strings (no 'T' separator)
-        const normalized = typeof dateString === 'string'
-            ? dateString.replace(' ', 'T')
-            : dateString;
+        // Normalize: turn "YYYY-MM-DD HH:MM:SS" into UTC ISO
+        let normalized = typeof dateString === 'string' ? dateString.replace(' ', 'T') : dateString;
+        if (typeof normalized === 'string' && !normalized.includes('Z') && !normalized.includes('+')) {
+            normalized += 'Z';
+        }
         const date = new Date(normalized);
         if (isNaN(date.getTime())) return '';
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

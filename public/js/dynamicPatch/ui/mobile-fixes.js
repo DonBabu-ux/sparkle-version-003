@@ -62,16 +62,20 @@ export function initMobileFixes() {
        body-scroll leak while allowing scrolling in the messages.
     ══════════════════════════════════════════════════════════ */
     document.body.addEventListener('touchmove', (e) => {
-        // Find if we are on a messaging page or inside a scroll-locked container
         const isMsgPage = !!document.getElementById('messagesContainer');
         if (!isMsgPage) return; // Allow normal scrolling on all other pages
         
-        // Allow scroll only within scrollable containers like #messagesContainer or sidebar
-        if (!e.target.closest('#messagesContainer') && 
-            !e.target.closest('.conversation-list') && 
-            !e.target.closest('.theme-panel-content')) {
-            e.preventDefault();
+        // Allow scroll within these specific scrollable containers
+        if (e.target.closest('#messagesContainer') || 
+            e.target.closest('.conversation-list') || 
+            e.target.closest('#emojiPickerPanel') || 
+            e.target.closest('.wa-modal-content') || 
+            e.target.closest('.settings-main') || 
+            e.target.closest('.theme-panel-content')) {
+            return; // Allow touchmove
         }
+        
+        e.preventDefault();
     }, { passive: false });
 
     /* ══════════════════════════════════════════════════════════

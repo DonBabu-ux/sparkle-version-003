@@ -350,10 +350,13 @@ class User {
      * Update online status
      */
     static async setOnlineStatus(userId, isOnline) {
-        await pool.query(
-            'UPDATE users SET is_online = ?, last_seen_at = NOW() WHERE user_id = ?',
-            [isOnline ? 1 : 0, userId]
-        );
+        if (isOnline) {
+            // Just mark online, don't update last_seen_at yet
+            await pool.query('UPDATE users SET is_online = 1 WHERE user_id = ?', [userId]);
+        } else {
+            // Mark offline AND record the exit time (last seen)
+            await pool.query('UPDATE users SET is_online = 0, last_seen_at = NOW() WHERE user_id = ?', [userId]);
+        }
         return true;
     }
 

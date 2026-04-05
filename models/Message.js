@@ -157,7 +157,14 @@ class Message {
                 ORDER BY m.sent_at ASC
             `;
             const [messages] = await db.query(query, [chatId, chatId, userId]);
-            return { chatId, messages };
+            // Ensure all dates are returned as ISO strings for client-side UTC parsing
+            const normalized = messages.map(m => ({
+                ...m,
+                sent_at: m.sent_at ? new Date(m.sent_at).toISOString() : null,
+                delivered_at: m.delivered_at ? new Date(m.delivered_at).toISOString() : null,
+                read_at: m.read_at ? new Date(m.read_at).toISOString() : null
+            }));
+            return { chatId, messages: normalized };
         } else {
             query = `
                 SELECT 
@@ -181,7 +188,14 @@ class Message {
                 ORDER BY m.sent_at ASC
             `;
             const [messages] = await db.query(query, [chatId, userId]);
-            return { chatId, messages };
+            // Ensure all dates are returned as ISO strings for client-side UTC parsing
+            const normalized = messages.map(m => ({
+                ...m,
+                sent_at: m.sent_at ? new Date(m.sent_at).toISOString() : null,
+                delivered_at: m.delivered_at ? new Date(m.delivered_at).toISOString() : null,
+                read_at: m.read_at ? new Date(m.read_at).toISOString() : null
+            }));
+            return { chatId, messages: normalized };
         }
     }
 
@@ -271,7 +285,11 @@ class Message {
             ORDER BY is_pinned DESC, last_message_at DESC
         `, [userId, userId, userId, userId, userId, userId, userId, userId]);
 
-        return rows;
+        return rows.map(conv => ({
+            ...conv,
+            last_message_at: conv.last_message_at ? new Date(conv.last_message_at).toISOString() : null,
+            last_seen_at: conv.last_seen_at ? new Date(conv.last_seen_at).toISOString() : null
+        }));
     }
 
     /**

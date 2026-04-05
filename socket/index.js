@@ -154,7 +154,11 @@ const initializeSocket = (server) => {
                     WHERE m.message_id = ?
                 `, [messageId]);
 
-                const message = fullMessage[0];
+                const message = {
+                    ...fullMessage[0],
+                    sent_at: fullMessage[0].sent_at ? new Date(fullMessage[0].sent_at).toISOString() : null,
+                    read_at: fullMessage[0].read_at ? new Date(fullMessage[0].read_at).toISOString() : null
+                };
                 const finalChatId = message.conversation_id || message.chat_id;
 
                 // 2. Emit to sender for confirmation

@@ -809,7 +809,8 @@ class SparkleChat {
     // --- Chat Logic ---
 
     async openChat(chatId) {
-        if (this.currentChatId === chatId) return;
+        // We removed the chatId early-return to allow force-refreshing 
+        // the chat when the user manually clicks the active item again.
 
         this.currentChatId = chatId;
         document.querySelector('.messaging-layout').classList.add('chat-active');

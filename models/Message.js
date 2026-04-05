@@ -71,7 +71,7 @@ class Message {
             }
         }
 
-        const sentAt = new Date().toISOString();
+        const sentAt = new Date();
         try {
             await db.query(`
                 INSERT INTO messages (
@@ -152,7 +152,7 @@ class Message {
                 JOIN users u ON m.sender_id = u.user_id
                 LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
                 LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
-                WHERE (m.conversation_id = ? OR m.personal_chat_id = ?)
+                WHERE (m.conversation_id = ? OR m.chat_id = ?)
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
             `;

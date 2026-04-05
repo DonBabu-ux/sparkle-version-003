@@ -1556,8 +1556,9 @@ class SparkleChat {
     }
 
     handleIncomingMessage(msg) {
-        // Deduplicate: ignore messages sent by this user (server echoes new-message to sender too)
-        if (String(msg.sender_id) === String(this.userId)) return;
+        // Point 8: For testing, we allow self-messages to trigger sound if explicitly testing
+        // Standard behavior: if (String(msg.sender_id) === String(this.userId)) return;
+        const isSelf = String(msg.sender_id) === String(this.userId);
 
         const messageId = msg.message_id || msg.id;
         if (!messageId) return;
@@ -1565,20 +1566,30 @@ class SparkleChat {
         if (document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return;
 
         const msgChatId = msg.conversation_id || msg.chat_id;
+        
+        // Show message in active chat
         if (this.currentChatId === msgChatId) {
             const container = document.getElementById('messagesContainer');
             container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
             this.scrollToBottom(false);
-            // Async: scan for and inject link previews if this msg contains links
             this.injectLinkPreviews(msg);
 
             this.socket.emit('mark-delivered', { messageId: messageId, chatId: msgChatId });
             this.socket.emit('mark-read', this.currentChatId);
-        } else {
+        }
+
+        // Point 3 & 4: Always trigger sound logic, let NotificationManager decide on focus/mute
+        // If it's a new message in a DIFFERENT chat or we are testing with ourselves
+        if (this.currentChatId !== msgChatId || isSelf) {
             this.playNotificationSound();
         }
 
         this.updateInboxPreview(msg);
+
+        if (messageId) {
+            if (!this._renderedIds) this._renderedIds = new Set();
+            this._renderedIds.add(messageId);
+        }
     }
 
     handleMessageSent(msg) {
@@ -3678,6 +3689,29 @@ class SparkleChat {
         const modal = document.getElementById('messageSettingsModal');
         if (modal) modal.style.display = 'flex';
         this.updateViewState('settings');
+    }
+
+    openPrivacySettings() {
+        const modal = document.getElementById('privacySettingsModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            const mainModal = document.getElementById('messageSettingsModal');
+            if (mainModal) mainModal.style.display = 'none';
+        }
+    }
+
+    async savePrivacy(key, value) {
+        console.log(`🔒 Sparkle Privacy: Updating ${key} to ${value}`);
+        const val = typeof value === 'boolean' ? (value ? 1 : 0) : value;
+        try {
+            await fetch('/api/users/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [key]: val })
+            });
+        } catch (err) {
+            console.error('🔒 Privacy update failed:', err);
+        }
     }
 
     updateViewState(view) {

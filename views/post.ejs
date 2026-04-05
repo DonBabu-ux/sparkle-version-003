@@ -128,7 +128,7 @@
                             </div>
 
                             <!-- 6. QUICK COMMENT INPUT (SSR Context slightly different) -->
-                            <div class="post-comment-quick">
+                            <div class="post-comment-quick" style="display: none;">
                                 <input type="text" id="postQuickInput" class="comment-input-min"
                                     placeholder="Add a comment..."
                                     onkeypress="if(event.key === 'Enter') submitComment('<%= post.post_id %>')">

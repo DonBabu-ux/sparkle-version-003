@@ -1,0 +1,31 @@
+# Sparkle (TaskFlow OS) Feature Gap Audit - Missing & Broken Features
+
+## 1. Backend & Database Gaps (Critical Persistence)
+- [ ] **Reporting Infrastructure**: `post_reports` and `confession_reports` tables are missing from `db.sql`. Controllers (`handlePostReport`, `handleConfessionReport`) will fail on execution.
+- [ ] **Live Streaming Lifecycle**: While `renderStreams` exists, the "Go Live" utility and real-time viewer count management are not fully implemented. Viewer UI is currently a placeholder alert.
+- [ ] **Anonymous Identity Mapping**: The `messages` table lacks a formal `is_anonymous` flag, making the "Incognito Chat" feature reliant on ephemeral logic rather than database state.
+- [ ] **Analytics Engine**: RSVP management exists, but the "Check-in" and "Analytics" dashboard for event creators is missing backend logic.
+
+## 2. Frontend & UI Gaps (Integration)
+- [ ] **Live Stream Viewer**: Clicking "Watch Now" on `streams.ejs` triggers a "coming soon" alert instead of a video player.
+- [ ] **Quick Interactions**: `quickComment` function in `script.js` is still a demo alert and does not hit the API yet.
+- [ ] **Poll Detail Refinement**: `poll-detail.ejs` exists but lacks full interactive voting logic (currently relies on page reloads).
+- [ ] **Connect Page Sync**: Frontend JS skips loading users if SSR content is detected, which may prevent infinite scroll/pagination for the student directory.
+- [ ] **User "Manage" UI**: Modals for creating content exist, but "Edit" and "Delete" interfaces for user-owned polls, events, and stories are largely missing from the dashboard.
+
+## 3. Design Philosophy Discrepancies (Intent vs. Implementation)
+- [ ] **AfterGlow Delay**: Designed for a 1-3 hour delay before publishing; currently publishes immediately.
+- [ ] **Moments Privacy**: Designed to hide public like/view counts to reduce "clout-chasing"; currently displays total likes in the UI.
+- [ ] **Infinite Scroll Restriction**: Designed to restrict infinite scrolling to prevent addiction; currently allows standard scrolling on home feed.
+
+## 4. UI/UX Experience Gaps (Usability Issues)
+- [ ] **Legacy Alerting**: Most success/error feedback uses blocking browser `alert()` calls instead of modern toast notifications.
+- [ ] **Poll Detail Voting**: Voting on a poll requires a full page reload and uses synchronous alerts, disrupting the focus.
+- [ ] **Empty State Clarity**: Some pages (like Marketplace or Connect) don't clearly state when a filter results in zero items, often appearing as just a blank screen.
+- [ ] **Marketplace Navigation**: Lack of a central index page for the marketplace; navigation between categories is fragmented.
+- [ ] **Hardcoded Verification**: "Verified" status for users is hardcoded in the frontend JS logic rather than being driven by the database.
+
+## 5. Technical Debt & Redundancy
+- [ ] **Duplicate API Methods**: `DashboardAPI.js` contains multiple/duplicate definitions for `createEvent`.
+- [ ] **Socket.io vs. Firebase**: The app is in a half-migrated state between Socket.io (primary) and Firebase Realtime (partial), causing logic fragmentation in `script.js`.
+- [ ] **Hardcoded Paths**: Some components rely on hardcoded local paths that will break in production environments.

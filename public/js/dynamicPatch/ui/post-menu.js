@@ -32,13 +32,10 @@ export function showPostOptions(postId, button) {
         <div class="menu-item copy" onclick="copyPostLink('${postId}')">
             <i class="far fa-copy"></i> Copy Link
         </div>
-        <div class="menu-item report" onclick="reportPost('${postId}')">
-            <i class="far fa-flag"></i> Report
-        </div>
         ${isOwner ? `
             <div class="menu-divider"></div>
-            <div class="menu-item delete danger" onclick="confirmDeletePost('${postId}')">
-                <i class="far fa-trash-alt"></i> Delete
+            <div class="menu-item delete danger" onclick="window.showNotification ? window.showNotification('Delete feature coming soon!', 'info') : alert('Coming soon!')">
+                <i class="far fa-trash-alt"></i> Delete <span style="font-size:10px; opacity:0.7;">(Soon)</span>
             </div>
         ` : ''}
     `;

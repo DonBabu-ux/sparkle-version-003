@@ -1,0 +1,38 @@
+Sparkle Dashboard Description
+
+Data Retrieval and Processing
+The feed is heavily dynamic and loads multiple datasets concurrently for performance. 
+
+Posts Delivery
+It retrieves post media, text, author info like names, avatars, and campus, and tracks interactions such as comments and likes, and if the current user liked or saved it. If the user follows nobody, they get a global feed sorted by a recommendation score. This score weighs likes and comments heavily, gives a boost to posts under 24 hours old, and applies some randomness for variety. If they follow people, the feed is mixed: 70 percent is from people they follow sorted by date, and 30 percent is recommended global posts based on the score.
+
+Stories (Afterglow)
+It fetches all active stories that have not expired within their 24 hour limits, groups them by user, and calculates the exact remaining time.
+
+Notifications and Suggestions
+It pulls the top twenty notifications with actor details and finds five suggested users for the current user to follow.
+
+Trending Hashtags
+Calculates and displays the top eight most popular hashtags currently active.
+
+Styling and Layout Architecture
+The design borrows layout systems from Facebook and aesthetic elements from Instagram to create a Premium Hybrid UI.
+
+Grid Structure
+On desktop, it uses a three column layout. A 240px left navigation, a fluid center feed, and a 300px right sidebar. The background is a clean off white. This layout collapses on smaller screens, eventually turning to a single edge-to-edge column on mobile.
+
+Composer and Stories Array
+At the very top sits a white rounded composer card that prompt the user with "What's on your mind" and provides quick buttons for Photo, Video, and Feeling. Below it is the Stories array, built visually like Facebook stories. They are tall rectangular cards that scroll horizontally. Each card uses the media as a background with a dark gradient overlay, placing a circle avatar top-left and the name at the bottom.
+
+Main Feed Cards
+The posts emulate Instagram. They have a white background and zero margins between internal elements. 
+The header contains the avatar, name, campus, and an options button.
+The media spans the full width and has a soft inset shadow applied for a vignette effect.
+Directly underneath is the action bar with heart, comment, share on the left and bookmark on the right. When liked, the outline heart fills with a bright red color.
+The bottom holds the like count, the text caption which supports colored clickable hashtags, and a small timestamp.
+
+Sidebar Cards
+The right sidebar uses a glassmorphism style, meaning slightly translucent white backgrounds with soft shadows. It contains the Suggested For You follow list. Below that is a Trending Pulse card that features an animated glowing blue dot next to a list of pill shaped trending tags that elevate when hovered over.
+
+Hidden UI Modes
+The template contains hidden logic for a split view mode that slides comments out next to the media when opened, and a full screen image inspector mode for viewing pictures.

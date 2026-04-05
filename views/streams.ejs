@@ -23,7 +23,7 @@
                     <div class="discover-grid" id="streamsContent" style="padding-bottom: 80px;">
                         <% if (typeof initialStreams !=='undefined' && initialStreams.length> 0) { %>
                             <% initialStreams.forEach(stream=> { %>
-                                <div class="discover-card" onclick="alert('Live stream viewer coming soon! Stream ID: <%= stream.stream_id %>')">
+                                <div class="discover-card" style="cursor: default;" title="Stream Viewer Coming Soon">
                                     <div class="discover-card-banner">
                                         <img src="<%= stream.thumbnail_url || 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=800' %>"
                                             alt="<%= stream.title %>">
@@ -57,8 +57,8 @@
                                                 style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
                                                 <%= stream.category || 'General' %>
                                             </div>
-                                            <div style="font-size: 12px; font-weight: 700; color: var(--primary);">
-                                                Watch Now <i class="fas fa-play"
+                                            <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); opacity: 0.5;">
+                                                Preview Only <i class="fas fa-lock"
                                                     style="font-size: 10px; margin-left: 4px;"></i>
                                             </div>
                                         </div>
@@ -74,7 +74,8 @@
                                         <% } %>
                     </div>
 
-                    <button class="fab-btn" onclick="openGoLiveModal()">
+                    <!-- Hide Go Live button for Phase 1 -->
+                    <button class="fab-btn" onclick="openGoLiveModal()" style="display: none;">
                         <i class="fas fa-video"></i>
                     </button>
                 </div>

@@ -103,7 +103,7 @@ const initializeSocket = (server) => {
         });
 
         // Send Message
-        socket.on('send-message', async (data) => {
+        socket.on('send-message', async (data, callback) => {
             try {
                 const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited' } = data;
                 const recipientId = data.recipientId || data.partnerId;
@@ -137,6 +137,11 @@ const initializeSocket = (server) => {
                     viewPolicy,
                     context
                 });
+
+                // Acknowledge receipt to the sender immediately (Point 1)
+                if (typeof callback === 'function') {
+                    callback({ success: true, messageId });
+                }
 
                 // Get the saved message with sender info and reply info
                 const [fullMessage] = await pool.query(`

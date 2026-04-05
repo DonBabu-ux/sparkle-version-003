@@ -292,12 +292,13 @@ class SparkleChat {
     }
 
     // ─── Message Queue: queue when offline, drain when reconnected ────────────
-    _safeEmit(event, data) {
+    _safeEmit(event, data, callback) {
         if (this.socket && this.socket.connected) {
-            this.socket.emit(event, data);
+            this.socket.emit(event, data, callback);
         } else {
             console.warn('🔌 Sparkle: Offline — queuing message for retry');
-            this._msgQueue.push({ event, data, ts: Date.now() });
+            this._msgQueue = this._msgQueue || [];
+            this._msgQueue.push({ event, data, callback, ts: Date.now() });
         }
     }
 
@@ -306,10 +307,10 @@ class SparkleChat {
         console.log(`🔌 Sparkle: Draining ${this._msgQueue.length} queued message(s)`);
         const queue = [...this._msgQueue];
         this._msgQueue = [];
-        queue.forEach(({ event, data }) => {
+        queue.forEach(({ event, data, callback }) => {
             // Only retry send-message events (status events can be skipped)
             if (event === 'send-message') {
-                this.socket.emit(event, data);
+                this.socket.emit(event, data, callback);
             }
         });
     }
@@ -323,6 +324,20 @@ class SparkleChat {
         textarea?.addEventListener('input', () => {
             this.handleTyping();
             this.autoResizeTextarea(textarea);
+        });
+
+        // Online/Offline status based on tab visibility
+        document.addEventListener("visibilitychange", () => {
+            if (this.socket && this.socket.connected) {
+                const status = document.visibilityState === 'visible' ? 'online' : 'offline';
+                // Only act on explicit focus/blur to prioritize connection lifecycle
+                if (status === 'online') {
+                    this.socket.emit('user-online');
+                } else {
+                    // Optional: delay offline emit to prevent flip-flopping
+                    this.socket.emit('user-offline');
+                }
+            }
         });
 
         // Media Upload
@@ -964,18 +979,20 @@ class SparkleChat {
     // ─────────────────────────────────────────────────────────────
 
     createMessageHTML(msg) {
-        const isMe = msg.sender_id === this.userId;
-        const conv = this.conversations.find(c => c.chat_id === this.currentChatId);
+        const isMe = String(msg.sender_id) === String(this.userId);
+        const conv = this.conversations.find(c => String(c.chat_id) === String(this.currentChatId));
         const isGroup = conv?.chat_type === 'group';
 
         let statusIcon = 'bi-check';
-        let statusColor = '#8696a0'; // Default gray for sent
-        if (msg.status === 'delivered') {
+        let statusColor = '#8696a0'; 
+        
+        if (msg.status === 'pending') {
+            statusIcon = 'bi-clock';
+        } else if (msg.status === 'delivered' || msg.delivered) {
             statusIcon = 'bi-check-all';
-        }
-        if (msg.status === 'read') {
+        } else if (msg.status === 'read' || msg.is_read) {
             statusIcon = 'bi-check-all';
-            statusColor = '#53bdeb'; // WhatsApp Read Blue
+            statusColor = '#53bdeb'; 
         }
 
         let mediaContent = '';
@@ -1245,8 +1262,8 @@ class SparkleChat {
                         ${msg.edited_at && !isDeleted ? '<span style="font-style:italic;">(edited)</span>' : ''}
                         ${isMe && !isDeleted ? `
                             <span class="msg-tick">
-                                <i class="bi ${msg.is_read || msg.status === 'read' ? 'bi-check-all' : (msg.delivered ? 'bi-check-all' : 'bi-check')}" 
-                                   style="color:${msg.is_read || msg.status === 'read' ? '#53bdeb' : '#8696a0'}; font-size:16px; margin-left:2px;"></i>
+                                <i class="bi ${statusIcon}" 
+                                   style="color:${statusColor}; font-size:16px; margin-left:2px;"></i>
                             </span>
                         ` : ''}
                     </div>
@@ -1530,19 +1547,62 @@ class SparkleChat {
         const content = input.value.trim();
         if (!content || !this.currentChatId) return;
 
-        // Use '==' to handle cases where one is string and one is int
-        const conv = this.conversations.find(c => c.chat_id == this.currentChatId);
+        const conv = this.conversations.find(c => String(c.chat_id) === String(this.currentChatId));
+        const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        
         const data = {
             chatId: this.currentChatId,
             recipientId: conv?.partner_id,
             content: content,
             type: 'text',
+            tempId: tempId,
             replyToId: this.replyingToMessageId,
             marketplaceListingId: conv?.marketplace_listing_id
         };
 
-        // Use _safeEmit so messages are queued if socket is temporarily offline
-        this._safeEmit('send-message', data);
+        // 1. Optimistic UI: Render immediately as pending
+        const msgObj = {
+            ...data,
+            message_id: tempId,
+            sender_id: this.userId,
+            status: 'pending',
+            sent_at: new Date().toISOString()
+        };
+        
+        const container = document.getElementById('messagesContainer');
+        if (container) {
+            container.insertAdjacentHTML('beforeend', this.createMessageHTML(msgObj));
+            this.scrollToBottom(true);
+        }
+
+        // 2. Reliable Delivery: Emit with acknowledgment
+        this._safeEmit('send-message', data, (ack) => {
+            if (ack && ack.success) {
+                // Update specific bubble to reflect success
+                const bubble = document.querySelector(`[data-msg-id="${tempId}"]`);
+                if (bubble) {
+                    bubble.dataset.msgId = ack.messageId;
+                    const tickIcon = bubble.querySelector('.msg-tick i');
+                    if (tickIcon) {
+                        tickIcon.className = 'bi bi-check';
+                    }
+                }
+                // Add real ID to rendered set
+                if (!this._renderedIds) this._renderedIds = new Set();
+                this._renderedIds.add(ack.messageId);
+            } else {
+                // Mark as failed
+                const bubble = document.querySelector(`[data-msg-id="${tempId}"]`);
+                if (bubble) {
+                    const tickIcon = bubble.querySelector('.msg-tick i');
+                    if (tickIcon) {
+                        tickIcon.className = 'bi bi-exclamation-circle';
+                        tickIcon.style.color = '#ef4444';
+                    }
+                }
+            }
+        });
+
         input.value = '';
         this.autoResizeTextarea(input);
         this.stopTyping();
@@ -1592,11 +1652,28 @@ class SparkleChat {
         const messageId = msg.message_id || msg.id;
         if (!messageId) return;
 
+        const isSelf = String(msg.sender_id) === String(this.userId);
+        
         // 1. DEDUPLICATION: Prevent duplicate renders/sounds
         if (this._renderedIds?.has(messageId)) return;
         if (document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return;
+        
+        // Also check if this is a message we sent optimistically that hasn't been "acked" yet
+        if (isSelf && msg.content) {
+            const allBubbles = document.querySelectorAll('.msg-sent');
+            for (let b of allBubbles) {
+                if (b.dataset.msgId?.startsWith('temp-') && b.querySelector('.msg-body')?.textContent?.trim() === (msg.content || '').trim()) {
+                    // This is our pending message! Update its ID and status.
+                    b.dataset.msgId = messageId;
+                    const tick = b.querySelector('.msg-tick i');
+                    if (tick) tick.className = 'bi bi-check';
+                    if (!this._renderedIds) this._renderedIds = new Set();
+                    this._renderedIds.add(messageId);
+                    return; 
+                }
+            }
+        }
 
-        const isSelf = String(msg.sender_id) === String(this.userId);
         const msgChatId = msg.conversation_id || msg.chat_id;
         
         // 2. RENDER: Show in active chat if it matches
@@ -1639,23 +1716,44 @@ class SparkleChat {
 
     handleMessageSent(msg) {
         const messageId = msg.message_id || msg.id;
-        // Deduplicate: the server emits both 'new-message' and 'message-sent' to sender
-        if (!this._renderedIds) this._renderedIds = new Set();
-        if (messageId && this._renderedIds.has(messageId)) return;
-        if (messageId && document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`)) return;
+        if (!messageId) return;
 
-        if (messageId) this._renderedIds.add(messageId);
-        // Auto-prune to avoid memory leak (keep last 200)
-        if (this._renderedIds.size > 200) {
-            const first = this._renderedIds.values().next().value;
-            this._renderedIds.delete(first);
+        // 1. DEDUPLICATION (Optimistic UI check)
+        if (this._renderedIds?.has(messageId)) return;
+        
+        // Check for tempId bubble from createMessageHTML
+        const existing = document.querySelector(`.msg-bubble[data-msg-id="${messageId}"]`);
+        if (existing) {
+             if (!this._renderedIds) this._renderedIds = new Set();
+             this._renderedIds.add(messageId);
+             return;
         }
 
+        // Check for ANY temp bubble that might match
+        const allBubbles = document.querySelectorAll('.msg-sent');
+        for (let b of allBubbles) {
+            if (b.dataset.msgId?.startsWith('temp-') && b.querySelector('.msg-body')?.textContent?.trim() === (msg.content || '').trim()) {
+                b.dataset.msgId = messageId;
+                const tick = b.querySelector('.msg-tick i');
+                if (tick) tick.className = 'bi bi-check';
+                if (!this._renderedIds) this._renderedIds = new Set();
+                this._renderedIds.add(messageId);
+                return;
+            }
+        }
+
+        // 2. RENDER (if not already there)
+        if (messageId) {
+            if (!this._renderedIds) this._renderedIds = new Set();
+            this._renderedIds.add(messageId);
+        }
+        
         const container = document.getElementById('messagesContainer');
-        container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
-        this.scrollToBottom(true);
+        if (container) {
+            container.insertAdjacentHTML('beforeend', this.createMessageHTML(msg));
+            this.scrollToBottom(true);
+        }
         this.updateInboxPreview(msg);
-        // Async: scan for and inject link previews if this msg contains links
         this.injectLinkPreviews(msg);
     }
 

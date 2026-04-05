@@ -408,15 +408,7 @@ class Message {
      * Soft delete a conversation (clears history for a user)
      */
     static async deleteConversation(userId, chatId) {
-        const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
-        if (chat.length > 0) {
-            const isP1 = chat[0].participant1_id === userId;
-            const column = isP1 ? 'is_deleted_p1' : 'is_deleted_p2';
-            await db.query(`UPDATE personal_chats SET ${column} = 1 WHERE chat_id = ?`, [chatId]);
-            return true;
-        }
-
-        // If it's a group chat, we might just mark all messages as deleted for this user
+        // Clear all messages for this user by inserting into message_deletions
         const [messages] = await db.query('SELECT message_id FROM messages WHERE (conversation_id = ? OR chat_id = ?)', [chatId, chatId]);
         if (messages.length > 0) {
             const values = messages.map(m => `(UUID(), '${m.message_id}', '${userId}')`).join(',');

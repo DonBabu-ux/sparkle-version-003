@@ -3124,19 +3124,23 @@ class SparkleChat {
             const res = await fetch(`/api/messages/chat/${chatId}`, { method: 'DELETE' });
             if (res.ok) {
                 // Point 4 & 8: Keep relationship, clear messages
-                const messagesContainer = document.getElementById('messagesContainer');
-                if (messagesContainer && this.currentChatId === chatId) messagesContainer.innerHTML = '';
-                
-                // Update inbox preview to "No messages"
-                const conv = this.conversations.find(c => c.chat_id === chatId);
-                if (conv) {
-                    conv.last_message = 'Messages deleted';
-                    conv.last_message_at = new Date().toISOString();
+                if (this.currentChatId === chatId) {
+                    const messagesContainer = document.getElementById('messagesContainer');
+                    if (messagesContainer) {
+                        messagesContainer.innerHTML = '<div class="date-divider">Messages deleted</div>';
+                    }
+                    this._renderedIds = new Set();
                 }
-                this.renderInbox();
+                
+                // Refresh inbox to update last_message status etc.
+                await this.loadInbox();
+                
+                // Point 4: Re-render header to fix "Loading..." or status issues
+                if (this.currentChatId === chatId) {
+                    this.updateChatHeader(chatId);
+                }
                 
                 document.getElementById('chatActionModal').style.display = 'none';
-                alert('Messages deleted.');
             }
         } catch (e) { 
             console.error('Delete error:', e);

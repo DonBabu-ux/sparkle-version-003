@@ -1616,7 +1616,14 @@ class SparkleChat {
 
     playNotificationSound() {
         const audio = new Audio('/sounds/notification.mp3');
-        audio.play().catch(() => { });
+        audio.play().catch((err) => {
+            // If local sound missing or blocked, use a premium remote fallback
+            const fallback = new Audio('https://cdn.jsdelivr.net/gh/clarix-ai/assets@main/notification.mp3');
+            fallback.volume = 0.5;
+            fallback.play().catch(() => {
+                // Final silence fallback to prevent console noise
+            });
+        });
     }
 
     // --- Presence & Status ---

@@ -11,94 +11,84 @@
   const finalCaption = (bufCaption && bufCaption !== 'undefined' && bufCaption !== 'null') ? bufCaption : '';
 %>
 
-<div class="post" data-post-id="<%= pId %>">
+<div class="post-card" data-post-id="<%= pId %>">
     <div class="post-header">
-        <div class="avatar-wrapper <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" 
-             style="cursor: pointer;"
-             onclick="event.stopPropagation(); <%= post.has_story ? 'openStoryViewer(\'' + (post.user_id || post.actor_id) + '\')' : 'window.location.href=\'/profile/' + uname + '\'' %>">
-            <img src="<%= avatar %>" alt="profile" class="post-avatar" style="background: #eee;" onerror="this.onerror=null; this.src='/uploads/avatars/default.png'">
-        </div>
-
-        <div class="user-info" style="cursor: pointer; display: flex; flex-direction: column;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
-            <div style="display: flex; align-items: center; gap: 4px;">
-                <a href="/profile/<%= uname %>" class="post-username">
+        <img src="<%= avatar %>" class="post-avatar <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" style="cursor: pointer; background: #eee;" onclick="event.stopPropagation(); <%= post.has_story ? 'openStoryViewer(\'' + (post.user_id || post.actor_id) + '\')' : 'window.location.href=\'/profile/' + uname + '\'' %>" onerror="this.onerror=null; this.src='/uploads/avatars/default.png'">
+        <div class="post-author-info" style="cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
+            <div class="author-name-row">
+                <a href="/profile/<%= uname %>" class="author-name">
                     <%= uname %>
                 </a>
                 <%- include('verified-badge', { id: post.user_id || post.actor_id }) %>
+                <% if (post.campus && post.campus !== 'undefined') { %>
+                    <span class="campus-badge"><%= post.campus %></span>
+                <% } %>
             </div>
-            <% if (post.campus && post.campus !== 'undefined') { %>
-                <div style="font-size: 11px; color: #8e8e8e;"><%= post.campus %></div>
-            <% } %>
         </div>
-
-        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-            <button class="options-btn" style="background:none; border:none; color: var(--text-main); font-size: 14px; cursor: pointer; padding: 8px;" onclick="event.stopPropagation()">
-                <i class="fas fa-ellipsis-h"></i>
-            </button>
-        </div>
+        <button class="post-menu-btn" onclick="event.stopPropagation()">
+            <i class="fas fa-ellipsis-h"></i>
+        </button>
     </div>
 
-    <% if (post.media_url && post.media_url !== 'undefined') { %>
-        <div class="post-media-container" ondblclick="event.stopPropagation(); const btn = this.closest('.post').querySelector('.like-btn'); if(btn && !btn.classList.contains('active')) btn.click();">
+    <% if (post.media_url && post.media_url !== 'undefined' && post.media_url !== 'null' && post.media_url.trim() !== '') { %>
+        <div class="post-media with-vignette" ondblclick="event.stopPropagation(); const btn = this.closest('.post-card').querySelector('.like-btn'); if(btn && !btn.classList.contains('active')) btn.click();">
             <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
                 <video src="<%= post.media_url %>" autoplay loop muted playsinline onclick="event.stopPropagation()"></video>
             <% } else { %>
-                <img src="<%= post.media_url %>" class="post-image" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('<%= pId %>', '<%= post.media_url %>')" onerror="this.onerror=null; this.src='/uploads/posts/default.png'">
+                <img src="<%= post.media_url %>" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('<%= pId %>', '<%= post.media_url %>')" onerror="this.onerror=null; this.src='/uploads/posts/default.png'">
             <% } %>
         </div>
     <% } %>
 
-    <div class="post-bottom-container">
-        <div class="post-actions dark">
-            <div class="left-actions">
-                <button class="icon-btn like-btn <%= isSparked ? 'active' : '' %>" onclick="event.stopPropagation(); window.toggleSpark('<%= pId %>', this)">
-                    <i class="<%= isSparked ? 'fas' : 'far' %> fa-heart"></i>
-                </button>
-                <button class="icon-btn comment-btn" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
-                    <i class="far fa-comment"></i>
-                </button>
-                <button class="icon-btn share-btn" onclick="event.stopPropagation(); window.sharePost('<%= pId %>')">
-                    <i class="far fa-paper-plane"></i>
-                </button>
+    <div class="post-content">
+        <% if (finalCaption) { %>
+            <div class="post-text caption">
+                <span style="font-weight: 600; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'"><%= uname %></span>
+                <% if (finalCaption.length > 100) { %>
+                    <span class="short-text">
+                        <%- finalCaption.slice(0, 100).replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag" onclick="event.stopPropagation()">#$1</a>') %>
+                    </span>
+                    <span class="full-text hidden">
+                        <%- finalCaption.replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag" onclick="event.stopPropagation()">#$1</a>') %>
+                    </span>
+                    <span class="toggle-text" style="color: #888; cursor: pointer; font-weight: 500;" onclick="event.stopPropagation(); const p=this.parentElement; p.querySelector('.short-text').classList.toggle('hidden'); p.querySelector('.full-text').classList.toggle('hidden'); this.textContent = this.textContent === '... more' ? ' less' : '... more';">... more</span>
+                <% } else { %>
+                    <span class="short-text">
+                        <%- finalCaption.replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag" onclick="event.stopPropagation()">#$1</a>') %>
+                    </span>
+                <% } %>
             </div>
-            <div class="right-actions">
-                <button class="icon-btn save-btn" onclick="event.stopPropagation(); this.classList.toggle('active'); const i = this.querySelector('i'); i.classList.toggle('far'); i.classList.toggle('fas');">
-                    <i class="far fa-bookmark"></i>
-                </button>
-            </div>
+        <% } %>
+    </div>
+    
+    <div class="post-actions">
+        <div class="actions-left">
+            <button class="action-icon like-btn <%= isSparked ? 'active' : '' %>" onclick="event.stopPropagation(); window.toggleLikePremium('<%= pId %>', this)">
+                <i class="<%= isSparked ? 'fas' : 'far' %> fa-heart"></i>
+            </button>
+            <button class="action-icon comment-btn" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
+                <i class="far fa-comment"></i>
+            </button>
+            <button class="action-icon share-btn" onclick="event.stopPropagation(); window.sharePost('<%= pId %>')">
+                <i class="far fa-paper-plane"></i>
+            </button>
         </div>
-
-    <div class="post-likes">
-        <%= sparks %> likes
+        <button class="action-icon save-btn" onclick="event.stopPropagation(); this.classList.toggle('bookmarked'); const i = this.querySelector('i'); i.classList.toggle('far'); i.classList.toggle('fas');">
+            <i class="far fa-bookmark"></i>
+        </button>
     </div>
 
-    <% if (finalCaption) { %>
-        <div class="post-caption-wrap caption">
-            <span style="font-weight: 600; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'"><%= uname %></span>
-            <% if (finalCaption.length > 100) { %>
-                <span class="short-text">
-                    <%- finalCaption.slice(0, 100).replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" style="color:var(--insta-blue); text-decoration:none;" onclick="event.stopPropagation()">#$1</a>') %>
-                </span>
-                <span class="full-text hidden">
-                    <%- finalCaption.replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" style="color:var(--insta-blue); text-decoration:none;" onclick="event.stopPropagation()">#$1</a>') %>
-                </span>
-                <span class="toggle-text" style="color: #888; cursor: pointer; font-weight: 500;" onclick="event.stopPropagation(); const p=this.parentElement; p.querySelector('.short-text').classList.toggle('hidden'); p.querySelector('.full-text').classList.toggle('hidden'); this.textContent = this.textContent === '... more' ? ' less' : '... more';">... more</span>
-            <% } else { %>
-                <span class="short-text">
-                    <%- finalCaption.replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" style="color:var(--insta-blue); text-decoration:none;" onclick="event.stopPropagation()">#$1</a>') %>
-                </span>
-            <% } %>
+    <div class="post-stats">
+        <div class="likes-count"><%= sparks %> likes</div>
+        <div class="timestamp">
+            <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
         </div>
-    <% } %>
+    </div>
 
     <% if (comments > 0) { %>
-        <div class="post-view-comments" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
+        <div class="view-comments-link" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
             View all <%= comments %> comments
         </div>
     <% } %>
 
-    <div class="post-timestamp">
-        <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
-    </div>
-    </div>
 </div>

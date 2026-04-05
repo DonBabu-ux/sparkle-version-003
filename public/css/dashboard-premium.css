@@ -1,0 +1,563 @@
+/* ============================================
+   GLOBAL VARIABLES & RESET
+   ============================================ */
+:root {
+  /* Colors */
+  --bg-primary: #f0f2f5;
+  --bg-white: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.92);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border-light: #e2e8f0;
+  --border-radius-card: 16px;
+  --border-radius-sm: 12px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --shadow-glass: 0 8px 32px rgba(0,0,0,0.08);
+  
+  /* Brand Colors */
+  --indigo-primary: #6366f1;
+  --indigo-light: rgba(99, 102, 241, 0.08);
+  --indigo-hover: #4f46e5;
+  --red-like: #ef4444;
+  --green-online: #22c55e;
+  --blue-trending: #3b82f6;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}
+
+/* ============================================
+   COMPOSER CARD (What's on your mind?)
+   ============================================ */
+
+.composer-card {
+  background: var(--bg-white);
+  border-radius: var(--border-radius-card);
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.composer-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.composer-input-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.composer-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.composer-prompt {
+  flex: 1;
+  background: var(--bg-primary);
+  border: none;
+  padding: 12px 16px;
+  border-radius: 40px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.composer-prompt:hover {
+  background: #e4e6e9;
+}
+
+.composer-actions {
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid var(--border-light);
+  padding-top: 12px;
+}
+
+.composer-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.composer-btn:hover {
+  background: var(--indigo-light);
+  color: var(--indigo-primary);
+}
+
+.composer-btn .emoji {
+  font-size: 1.2rem;
+}
+
+/* ============================================
+   STORIES (AFTERGLOW) - Facebook Style
+   ============================================ */
+
+.stories-container {
+  background: var(--bg-white);
+  border-radius: var(--border-radius-card);
+  padding: 12px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  white-space: nowrap;
+}
+
+.stories-scroll {
+  display: flex;
+  gap: 10px;
+}
+
+.story-card {
+  position: relative;
+  width: 110px;
+  height: 190px;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  border: none; /* removes legacy thick border */
+}
+
+.story-card:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.story-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.story-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  z-index: 2;
+}
+
+.story-avatar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--indigo-primary);
+  z-index: 3;
+}
+
+.story-name {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  z-index: 3;
+  white-space: normal;
+  word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.story-add {
+  background: var(--bg-white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--border-light);
+}
+
+.story-add .plus-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--indigo-primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+/* ============================================
+   POST CARD - Instagram Aesthetic
+   ============================================ */
+
+.post-card {
+  background: var(--bg-white);
+  border-radius: var(--border-radius-card);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+  overflow: hidden;
+  border: none;
+}
+
+.post-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 12px;
+  border-bottom: none; /* override legacy */
+}
+
+.post-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.post-author-info {
+  flex: 1;
+}
+
+.author-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.author-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.verified-badge {
+  color: var(--indigo-primary);
+  font-size: 0.8rem;
+}
+
+.campus-badge {
+  background: var(--indigo-light);
+  color: var(--indigo-primary);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.post-menu-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background var(--transition-fast);
+}
+
+.post-menu-btn:hover {
+  background: var(--bg-primary);
+}
+
+/* Post Media - Full width with vignette */
+.post-media {
+  position: relative;
+  width: 100%;
+  height: auto !important;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.post-media img,
+.post-media video {
+  width: 100%;
+  height: auto !important;
+  max-height: 80vh;
+  object-fit: contain;
+  display: block;
+}
+
+.post-media.with-vignette {
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.15);
+}
+
+/* Post Content */
+.post-content {
+  padding: 0 16px;
+}
+
+.post-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 12px 0;
+  color: var(--text-primary);
+}
+
+.post-text .hashtag {
+  color: var(--indigo-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.post-text .mention {
+  color: var(--indigo-primary);
+  font-weight: 500;
+}
+
+/* ============================================
+   POST ACTION BAR (Instagram style)
+   ============================================ */
+
+.post-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  border-top: none; /* removed if no content border */
+  margin-top: 4px;
+}
+
+.actions-left {
+  display: flex;
+  gap: 20px;
+}
+
+.action-icon {
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+  color: var(--text-secondary);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-icon:hover {
+  transform: scale(1.08);
+}
+
+.action-icon.liked, .action-icon.active {
+  color: var(--red-like);
+  animation: likePop 0.3s ease;
+}
+
+@keyframes likePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.action-icon.bookmarked {
+  color: var(--text-primary);
+}
+
+/* Post Stats */
+.post-stats {
+  padding: 4px 16px;
+}
+
+.likes-count {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.timestamp {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* View Comments */
+.view-comments-link {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: 4px;
+  padding: 0 16px 8px;
+}
+
+/* ============================================
+   TRENDING PULSE CARD (Animated)
+   ============================================ */
+
+.trending-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius-card);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.trending-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.2),
+    transparent
+  );
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.trending-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pulse-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  background: var(--blue-trending);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--blue-trending);
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: var(--blue-trending);
+  border-radius: 50%;
+  opacity: 0;
+  animation: radar 2s infinite;
+}
+
+@keyframes radar {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.5);
+  }
+}
+
+.trending-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trending-pill {
+  background: rgba(99, 102, 241, 0.1);
+  padding: 6px 14px;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--indigo-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.trending-pill:hover {
+  background: var(--indigo-primary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.trending-count {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* ============================================
+   MOBILE SPECIFIC ELEMENTS
+   ============================================ */
+
+.mobile-messenger-fab {
+  display: none;
+  position: fixed;
+  bottom: 80px; /* Above bottom nav */
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--indigo-primary);
+  color: white;
+  text-align: center;
+  line-height: 56px;
+  font-size: 24px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  transition: transform var(--transition-fast);
+}
+
+.mobile-messenger-fab:active {
+  transform: scale(0.9);
+}
+
+.mobile-messenger-fab i {
+  line-height: inherit;
+}
+
+@media (max-width: 768px) {
+  .mobile-messenger-fab {
+    display: block;
+  }
+}

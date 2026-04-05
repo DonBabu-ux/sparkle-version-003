@@ -651,6 +651,25 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchNotifications();
         });
     }
+
+    // Global Back Navigation Button script
+    if (window.location.pathname !== '/dashboard' && window.location.pathname !== '/' && window.location.pathname !== '/login') {
+        const backBtn = document.createElement("button");
+        backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+        backBtn.style.cssText = "font-size: 20px; cursor: pointer; background: none; border: none; padding: 0; color: var(--text-main); margin-right: 12px; display: flex; align-items: center;";
+        backBtn.setAttribute('aria-label', 'Go Back');
+        backBtn.onclick = () => {
+            if (document.referrer && new URL(document.referrer).origin === window.location.origin) {
+                history.back();
+            } else {
+                window.location.href = '/dashboard';
+            }
+        };
+        const logoText = document.querySelector('.logo-text');
+        if (logoText && logoText.parentElement) {
+            logoText.parentElement.insertBefore(backBtn, logoText);
+        }
+    }
 });
 </script>
 

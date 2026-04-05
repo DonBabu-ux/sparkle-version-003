@@ -1,4 +1,5 @@
 <%- include('partials/head', { title: 'Dashboard' }) %>
+<link rel="stylesheet" href="/css/dashboard-premium.css">
 
     <style>
         /* ============ PREMIUM HYBRID UI DESIGN SYSTEM ============ */
@@ -471,45 +472,44 @@
                 <main class="main-feed-column">
                     <!-- 🔷 PREMIUM COMPOSER -->
                     <div class="composer-card" onclick="openCreateModal()">
-                        <div class="composer-top">
+                        <div class="composer-input-area">
                             <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="composer-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
-                            <div class="composer-input">What's on your mind?</div>
+                            <div class="composer-prompt">What's on your mind?</div>
                         </div>
                         <div class="composer-actions">
-                            <div class="composer-action"><i class="fas fa-image" style="color: #4CAF50;"></i> Photo</div>
-                            <div class="composer-action"><i class="fas fa-video" style="color: #f44336;"></i> Video</div>
-                            <div class="composer-action"><i class="fas fa-laugh" style="color: #FFC107;"></i> Feeling</div>
+                            <div class="composer-btn"><i class="fas fa-image" style="color: #4CAF50;"></i> Photo</div>
+                            <div class="composer-btn"><i class="fas fa-video" style="color: #f44336;"></i> Video</div>
+                            <div class="composer-btn"><i class="fas fa-laugh" style="color: #FFC107;"></i> Feeling</div>
                         </div>
                     </div>
 
                     <!-- 🔷 STORIES ROW (Facebook Style) -->
                     <div class="stories-section">
                         <div class="stories-container" id="afterglowStories">
+                            <div class="stories-scroll">
                             <!-- Instagram Style Custom Upload Button -->
-                            <div class="story-upload-btn" onclick="openAfterglowModal()">
-                                <div class="story-upload-avatar-wrapper">
-                                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="story-upload-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
-                                    <div class="story-upload-plus"><i class="fas fa-plus"></i></div>
-                                </div>
-                                <div class="story-upload-text">Afterglow</div>
+                            <div class="story-card story-add" onclick="openAfterglowModal()">
+                                <div class="plus-icon"><i class="fas fa-plus"></i></div>
+                                <div style="font-size:0.75rem; font-weight:600;">Afterglow</div>
                             </div>
 
                             <!-- Server Stories -->
                             <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
                                 <% stories.forEach(storyGroup=> { %>
                                     <% const firstStory=storyGroup.stories[0]; %>
-                                    <div class="fb-story-card" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
+                                    <div class="story-card" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
                                         <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
-                                            class="fb-story-media" onerror="this.src='/uploads/avatars/default.png';">
-                                        <div class="fb-story-overlay"></div>
+                                            class="story-media" onerror="this.src='/uploads/avatars/default.png';">
+                                        <div class="story-gradient"></div>
                                         <% if (storyGroup.stories.length> 1) { %>
                                             <div class="story-multi-badge-fb"><%= storyGroup.stories.length %></div>
                                         <% } %>
-                                        <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>" class="fb-story-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
-                                        <div class="fb-story-name"><%= storyGroup.username %></div>
+                                        <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>" class="story-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
+                                        <div class="story-name"><%= storyGroup.username %></div>
                                     </div>
                                 <% }); %>
                             <% } %>
+                            </div>
                         </div>
                     </div>
 
@@ -517,48 +517,44 @@
                     <div class="feed-container" id="feed">
 
                         <!-- 🔷 MOCK TEXT POST (Demo) -->
-                        <div class="post" data-post-id="mock-001">
+                        <div class="post-card" data-post-id="mock-001">
                             <div class="post-header">
-                                <div class="avatar-wrapper">
-                                    <img src="/uploads/avatars/default.png" class="post-avatar" style="background:#eee;" onerror="this.src='/uploads/avatars/default.png'">
-                                </div>
-                                <div class="user-info" style="cursor:pointer; display:flex; flex-direction:column;">
-                                    <div style="display:flex; align-items:center; gap:4px;">
-                                        <span class="post-username">Sparkle CEO</span>
+                                <img src="/uploads/avatars/default.png" class="post-avatar" style="background:#eee;" onerror="this.src='/uploads/avatars/default.png'">
+                                <div class="post-author-info">
+                                    <div class="author-name-row">
+                                        <span class="author-name">Sparkle CEO</span>
+                                        <i class="fas fa-check-circle verified-badge"></i>
+                                        <span class="campus-badge">Nairobi Campus</span>
                                     </div>
-                                    <div style="font-size:11px; color:#8e8e8e;">Nairobi Campus</div>
+                                    <div class="post-meta">3d ago • Campus Post</div>
                                 </div>
-                                <div style="margin-left:auto;">
-                                    <button class="options-btn" style="background:none;border:none;color:#262626;cursor:pointer;padding:8px;">
-                                        <i class="fas fa-ellipsis-h"></i>
+                                <button class="post-menu-btn">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                            </div>
+                            <div class="post-content">
+                                <div class="post-text">
+                                    Happy Birthday @Naty Leila! 🎂🎉 Wishing you endless joy, success, and all the love in the world. May this year be your best one yet! 🎈🌟 <a href="/dashboard/hashtag/HBD" class="hashtag">#HBD</a> <a href="/dashboard/hashtag/Sparkle" class="hashtag">#Sparkle</a>
+                                </div>
+                            </div>
+                            <div class="post-actions">
+                                <div class="actions-left">
+                                    <button class="action-icon like-btn" onclick="event.stopPropagation(); window.toggleLikePremium('mock-001', this)">
+                                        <i class="far fa-heart"></i>
+                                    </button>
+                                    <button class="action-icon" onclick="event.stopPropagation()">
+                                        <i class="far fa-comment"></i>
+                                    </button>
+                                    <button class="action-icon" onclick="event.stopPropagation()">
+                                        <i class="far fa-paper-plane"></i>
                                     </button>
                                 </div>
+                                <button class="action-icon save-btn" onclick="event.stopPropagation(); this.classList.toggle('bookmarked'); const i=this.querySelector('i'); i.classList.toggle('far'); i.classList.toggle('fas');">
+                                    <i class="far fa-bookmark"></i>
+                                </button>
                             </div>
-                            <!-- Text content (no image) -->
-                            <div style="padding: 14px 16px 4px; font-size:15px; color:#262626; line-height:1.6;">
-                                Happy Birthday @Naty Leila! 🎂🎉 Wishing you endless joy, success, and all the love in the world. May this year be your best one yet! 🎈🌟 <a href="/dashboard/hashtag/HBD" style="color:var(--insta-blue); text-decoration:none;" onclick="event.stopPropagation()">#HBD</a> <a href="/dashboard/hashtag/Sparkle" style="color:var(--insta-blue); text-decoration:none;" onclick="event.stopPropagation()">#Sparkle</a>
-                            </div>
-                            <div class="post-bottom-container">
-                                <div class="post-actions dark">
-                                    <div class="left-actions">
-                                        <button class="icon-btn like-btn" onclick="event.stopPropagation(); this.classList.toggle('active'); const i1=this.querySelector('i'); i1.classList.toggle('far'); i1.classList.toggle('fas');">
-                                            <i class="far fa-heart"></i>
-                                        </button>
-                                        <button class="icon-btn comment-btn" onclick="event.stopPropagation()">
-                                            <i class="far fa-comment"></i>
-                                        </button>
-                                        <button class="icon-btn share-btn" onclick="event.stopPropagation()">
-                                            <i class="far fa-paper-plane"></i>
-                                        </button>
-                                    </div>
-                                    <div class="right-actions">
-                                        <button class="icon-btn save-btn" onclick="event.stopPropagation(); this.classList.toggle('active'); const i2=this.querySelector('i'); i2.classList.toggle('far'); i2.classList.toggle('fas');">
-                                            <i class="far fa-bookmark"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="post-likes">2 likes</div>
-                                <div class="post-timestamp">3d</div>
+                            <div class="post-stats">
+                                <div class="likes-count">2 likes</div>
                             </div>
                         </div>
                         <!-- END MOCK POST -->
@@ -619,44 +615,36 @@
                     </div>
 
                     <!-- NEW: Trending Pulse -->
-                    <div class="trending-pulse-card glass" style="margin-top: 20px; padding: 20px; border-radius: 25px;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                            <div style="width: 8px; height: 8px; background: #6366f1; border-radius: 50%; box-shadow: 0 0 10px #6366f1; animation: pulse 2s infinite;"></div>
-                            <h4 style="font-weight: 800; font-size: 15px; margin: 0; color: var(--text-main); letter-spacing: -0.5px;">Trending Pulse</h4>
+                    <div class="trending-card" style="margin-top: 20px;">
+                        <div class="trending-header">
+                            <div class="pulse-dot"></div>
+                            <h4 style="font-weight: 800; font-size: 15px; margin: 0; color: var(--text-main);">Trending Pulse</h4>
                         </div>
-                        <div class="trending-tags" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <div class="trending-tags">
                             <% if (typeof trendingHashtags !== 'undefined' && trendingHashtags && trendingHashtags.length > 0) { %>
                                 <% trendingHashtags.forEach(tag => { %>
-                                    <a href="/dashboard/hashtag/<%= tag.tag %>" class="trending-tag-item" style="padding: 6px 14px; background: rgba(99, 102, 241, 0.08); color: #6366f1; border-radius: 12px; font-size: 12px; font-weight: 700; text-decoration: none; transition: all 0.2s;">
+                                    <a href="/dashboard/hashtag/<%= tag.tag %>" class="trending-pill">
                                         #<%= tag.tag %>
-                                        <span style="opacity: 0.6; margin-left: 2px;"><%= tag.count %></span>
+                                        <span class="trending-count"><%= tag.count %></span>
                                     </a>
                                 <% }); %>
                             <% } else { %>
                                 <p style="font-size: 12px; color: var(--text-muted);">Stay tuned for trends...</p>
                             <% } %>
                         </div>
-                        <style>
-                            .trending-tag-item:hover {
-                                background: #6366f1 !important;
-                                color: white !important;
-                                transform: translateY(-2px);
-                                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-                            }
-                            @keyframes pulse {
-                                0% { opacity: 0.5; transform: scale(1); }
-                                50% { opacity: 1; transform: scale(1.2); }
-                                100% { opacity: 0.5; transform: scale(1); }
-                            }
-                        </style>
                     </div>
                 </aside>
             </div>
         </div>
+        
+        <!-- Mobile Messenger FAB -->
+        <a href="/messages" class="mobile-messenger-fab">
+            <i class="fas fa-comment-dots"></i>
+        </a>
     </div>
 
         <!-- Scripts & Partials -->
-        <script src="/js/dashboardAPI.js"></script>
+        <script src="/js/dashboard-interactions.js"></script>
         <%- include('partials/dashboard-modals') %>
             <%- include('partials/share-modal') %>
                 <%- include('partials/bottom-nav') %>

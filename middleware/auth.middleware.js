@@ -88,12 +88,20 @@ const ejsAuthMiddleware = async (req, res, next) => {
     const pathFromReq = req.path.toLowerCase().replace(/\/+$/, '') || '/';
     const pathFromOriginal = req.originalUrl.split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
     const publicPaths = ['/login', '/signup', '/about', '/', '/logout', '/legal', '/terms', '/privacy', '/favicon.ico'];
+    const token = req.cookies?.sparkleToken;
 
     if (publicPaths.includes(pathFromReq) || publicPaths.includes(pathFromOriginal)) {
+        if (token && ['/', '/login', '/signup'].includes(pathFromReq)) {
+            try {
+                jwt.verify(token, JWT_SECRET);
+                return res.redirect('/dashboard');
+            } catch (err) {
+                // Invalid token, proceed to public page
+            }
+        }
         return next();
     }
 
-    const token = req.cookies?.sparkleToken;
     if (!token) {
         return res.redirect('/login?reason=no_token');
     }

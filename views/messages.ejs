@@ -130,6 +130,10 @@
                     </div>
                 </div>
             </header>
+            
+            <div id="disappearingNotice" style="display:none; text-align:center; background:rgba(0,168,132,0.1); color:#00a884; padding:8px; font-size:12px; font-weight:600;">
+                <i class="bi bi-clock-history" style="margin-right:5px;"></i> Disappearing messages are turned on. <a href="#" onclick="window.sparkChat.openDisappearingMessages()" style="color:#00a884; text-decoration:underline;">Change</a>
+            </div>
 
             <div class="messages-container" id="messagesContainer">
                 <!-- Messages go here -->
@@ -1038,7 +1042,7 @@ function toggleWaFab() {
     animation: modalIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 .disappearing-active .wa-composer-input-wrapper {
-    border: 2px dashed #00a884 !important;
+    border: 2px dotted #00a884 !important;
 }
 
 @keyframes zoomIn { from { transform:scale(0.8); opacity:0; } to { transform:scale(1); opacity:1; } }

@@ -214,6 +214,7 @@ class SparkleChat {
         this.socket.on('reaction-removed', (data) => this.handleReactionRemoved(data));
         this.socket.on('message-deleted-everyone', (data) => this.handleMessageDeleted({ messageId: data.messageId }));
         this.socket.on('message_deleted', (messageId) => this.handleMessageDeleted({ messageId }));
+        this.socket.on('disappearing_messages_update', (data) => this.handleDisappearingUpdate(data));
         this.socket.on('new_group_created', async (data) => {
             await this.loadInbox();
             if (data.chatId) this.socket.emit('join-chat', data.chatId);
@@ -1248,10 +1249,13 @@ class SparkleChat {
         }
 
         // Apply disappearing messages UI if active
+        const notice = document.getElementById('disappearingNotice');
         if (conv.disappearing_duration > 0) {
             document.getElementById('chatComposer').classList.add('disappearing-active');
+            if (notice) notice.style.display = 'block';
         } else {
             document.getElementById('chatComposer').classList.remove('disappearing-active');
+            if (notice) notice.style.display = 'none';
         }
 
         // --- Admin Restrictions ---
@@ -3033,7 +3037,18 @@ class SparkleChat {
     setDisappearing(hours) {
         this.socket.emit('disappearing_messages', { chatId: this.currentChatId, duration: hours });
         document.getElementById('disappearingModal').style.display = 'none';
-        alert(`Messages will now disappear after ${hours === 0 ? 'off' : hours + ' hours'}`);
+        // Feedback will come via socket 'disappearing_messages_update'
+    }
+
+    handleDisappearingUpdate(data) {
+        const { chatId, duration } = data;
+        const conv = this.conversations.find(c => c.chat_id == chatId);
+        if (conv) {
+            conv.disappearing_duration = duration;
+            if (this.currentChatId == chatId) {
+                this.updateChatHeader(chatId);
+            }
+        }
     }
 
     toggleChatLock() {

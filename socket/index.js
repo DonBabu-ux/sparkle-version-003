@@ -53,6 +53,25 @@ const initializeSocket = (server) => {
         // Update user online status
         await User.setOnlineStatus(socket.userId, true);
 
+        // Periodic cleanup for disappearing messages (Runs once per connection to ensure it's active)
+        if (!global._disappearingCleanupStarted) {
+            global._disappearingCleanupStarted = true;
+            setInterval(async () => {
+                try {
+                    // Find messages that have exceeded the disappearing duration of their chat
+                    // duration is in hours, sent_at is UTC
+                    await pool.query(`
+                        DELETE messages FROM messages 
+                        INNER JOIN personal_chats pc ON (messages.conversation_id = pc.chat_id OR messages.chat_id = pc.chat_id)
+                        WHERE pc.disappearing_duration > 0 
+                        AND messages.sent_at < DATE_SUB(NOW(), INTERVAL pc.disappearing_duration HOUR)
+                    `);
+                } catch (e) {
+                    console.error('Cleanup error:', e);
+                }
+            }, 60000); // Check every minute
+        }
+
         // Join user to their personal room
         socket.join(`user:${socket.userId}`);
 
@@ -298,6 +317,44 @@ const initializeSocket = (server) => {
                 }
             } catch (error) {
                 logger.error('Delete for everyone error:', error);
+            }
+        });
+
+        // Disappearing Messages toggle
+        socket.on('disappearing_messages', async (data) => {
+            const { chatId, duration } = data; // duration in hours
+            try {
+                // Update DB
+                await pool.query(
+                    'UPDATE personal_chats SET disappearing_duration = ? WHERE chat_id = ?',
+                    [duration, chatId]
+                );
+
+                // Broadcast update to chat room
+                io.to(`chat:${chatId}`).emit('disappearing_messages_update', { chatId, duration });
+
+                // System message notice
+                const systemMsg = duration > 0 
+                  ? `Disappearing messages turned on (${duration === 24 ? '24 hours' : duration/24 + ' days'})`
+                  : 'Disappearing messages turned off';
+                
+                await Message.sendMessage({
+                    chatId,
+                    senderId: socket.userId,
+                    content: systemMsg,
+                    type: 'system'
+                });
+
+                io.to(`chat:${chatId}`).emit('new-message', {
+                    chat_id: chatId,
+                    sender_id: socket.userId,
+                    content: systemMsg,
+                    type: 'system',
+                    sent_at: new Date().toISOString()
+                });
+
+            } catch (error) {
+                logger.error('Disappearing messages error:', error);
             }
         });
 

@@ -1,5 +1,5 @@
 <%- include('partials/head', { title: 'Dashboard' }) %>
-<link rel="stylesheet" href="/css/dashboard-premium.css">
+<link rel="stylesheet" href="/css/dashboard-premium.css?v=<%= Date.now() %>">
 
 <div id="mainContent" class="animate-fade-in">
     <div id="homePage" class="page active">
@@ -63,7 +63,7 @@
                 <div class="feed-container" id="feed">
                     <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
                         <% feed.forEach((post, index)=> { %>
-                            <div class="animate-fade-in" style="animation-delay: <%= 0.2 + (index * 0.1) %>s">
+                            <div class="animate-fade-in" style="animation-delay: <%= (0.2 + (index * 0.1)).toFixed(1) %>s">
                                 <%- include('partials/post-card', { post, user }) %>
                             </div>
                         <% }); %>

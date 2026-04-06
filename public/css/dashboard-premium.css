@@ -172,13 +172,13 @@ a {
   min-height: 100vh;
 }
 
-/* 1. Left Navigation Sidebar (DEBUG: BLACK BACKGROUND) */
+/* 1. Left Navigation Sidebar (CLEAN PREMIUM STYLE) */
 .sidebar-column {
   width: 250px;
   position: sticky;
   top: 80px;
   height: calc(100vh - 80px); /* 100% height minus header */
-  background: var(--bg-white) !important; /* PREMIUM WHITE BACKGROUND */
+  background: var(--bg-white); /* PREMIUM WHITE BACKGROUND */
   display: block !important;
   opacity: 1 !important;
   visibility: visible !important;
@@ -246,7 +246,7 @@ a {
   }
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   /* Truly small screens: stack or hide sidebar */
   .dashboard-layout {
     flex-direction: column;
@@ -254,8 +254,8 @@ a {
     padding: 100px 16px 40px;
   }
   
-  .dashboard-sidebar, .suggestions-column {
-    display: none; /* Hide floating sidebar on mobile */
+  .sidebar-column, .suggestions-column {
+    display: none !important; /* Hide floating sidebars on mobile */
   }
 }
 
@@ -558,6 +558,40 @@ a {
   color: var(--text-main);
   margin-bottom: 12px;
   position: relative;
+}
+
+/* 💎 Text-Only Post Optimization (Fit Height) */
+.post-card.text-only {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-white);
+  justify-content: space-between;
+}
+
+.post-card.text-only .post-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 30px 40px;
+}
+
+.post-card.text-only .post-text {
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+  margin-bottom: 0;
+  color: var(--text-main);
+}
+
+.post-card.text-only .post-header {
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+
+.post-card.text-only .post-actions {
+  border-top: 1px solid rgba(0,0,0,0.03);
 }
 
 .post-text.truncated {

@@ -317,8 +317,8 @@ async function submitAfterglow() {
         return;
     }
 
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    btn.disabled = true;
+    if (btn.disabled) return;
+    window.setBtnLoading(btn, true);
 
     try {
         const formData = new FormData();
@@ -350,8 +350,7 @@ async function submitAfterglow() {
         console.error(e);
         alert('Network error. Please check your connection.');
     } finally {
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-        btn.disabled = false;
+        window.setBtnLoading(btn, false, '<i class="fas fa-paper-plane"></i>');
     }
 }
 </script>
@@ -429,13 +428,13 @@ async function submitAfterglow() {
         document.body.style.overflow = 'auto'; // Re-enable scroll
     });
 
-    document.getElementById('submitEventBtn')?.addEventListener('click', async () => {
+    document.getElementById('submitEventBtn')?.addEventListener('click', async function() {
         const titleInput = document.getElementById('eventTitle');
         const descInput = document.getElementById('eventDesc');
         const startInput = document.getElementById('eventStart');
         const locInput = document.getElementById('eventLocation');
         const capInput = document.getElementById('eventCapacity');
-        const submitBtn = document.getElementById('submitEventBtn');
+        const submitBtn = this;
 
         const title = titleInput.value.trim();
         const description = descInput.value.trim();
@@ -456,9 +455,8 @@ async function submitAfterglow() {
             return;
         }
 
-        const originalBtnContent = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>Creating Event...</span> <i class="fas fa-spinner fa-spin"></i>';
+        if (submitBtn.disabled) return;
+        window.setBtnLoading(submitBtn, true, 'Creating Event...');
 
         try {
             // Get user from global state or localStorage if available
@@ -486,8 +484,8 @@ async function submitAfterglow() {
         } catch (e) {
             if(window.showNotification) showNotification('Error creating event: ' + e.message, 'error');
             else alert('Error creating event: ' + e.message);
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnContent;
+        } finally {
+            window.setBtnLoading(submitBtn, false);
         }
     });
 
@@ -578,13 +576,20 @@ async function submitAfterglow() {
         container.appendChild(div);
     };
 
-    document.getElementById('submitPollBtn')?.addEventListener('click', async () => {
+    document.getElementById('submitPollBtn')?.addEventListener('click', async function() {
         const question = document.getElementById('pollQuestion').value;
         const optionInputs = document.querySelectorAll('.option-input');
         const options = Array.from(optionInputs).map(input => input.value).filter(val => val.trim() !== '');
         const is_anonymous = document.getElementById('pollAnonymous').checked;
+        const btn = this;
 
-        if (!question || options.length < 2) return alert('Question and at least 2 options required');
+        if (!question || options.length < 2) {
+            alert('Question and at least 2 options required');
+            return;
+        }
+
+        if (btn.disabled) return;
+        window.setBtnLoading(btn, true, 'Launching Poll...');
 
         try {
             await DashboardAPI.createPoll({
@@ -596,6 +601,8 @@ async function submitAfterglow() {
             window.location.reload();
         } catch (e) {
             alert('Error creating poll: ' + e.message);
+        } finally {
+            window.setBtnLoading(btn, false);
         }
     });
 </script>

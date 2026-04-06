@@ -275,7 +275,9 @@ export async function submitComment() {
     if (!text) return;
 
     const btn = document.querySelector('.send-comment-btn');
-    if (btn) btn.disabled = true;
+    if (!btn || btn.disabled) return;
+
+    window.setBtnLoading(btn, true);
 
     try {
         await window.DashboardAPI.postComment(currentCommentPostId, text);
@@ -284,7 +286,7 @@ export async function submitComment() {
     } catch (error) {
         console.warn('Comment post error:', error);
     } finally {
-        if (btn) btn.disabled = false;
+        window.setBtnLoading(btn, false, '<i class="fas fa-paper-plane"></i>');
     }
 }
 

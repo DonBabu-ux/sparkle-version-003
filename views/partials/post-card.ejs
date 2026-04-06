@@ -13,7 +13,7 @@
   const avatarAction = post.has_story ? `openStoryViewer('${actorId}')` : `window.location.href='/profile/${uname}'`;
 %>
 
-<div class="post-card animate-fade-in" data-post-id="<%= pId %>">
+<div class="post-card animate-fade-in <%= (!post.media_url || post.media_url === 'undefined' || post.media_url === 'null' || post.media_url.trim() === '') ? 'text-only' : '' %>" data-post-id="<%= pId %>">
     <div class="post-header">
         <div class="post-avatar-wrapper" onclick="event.stopPropagation(); <%= avatarAction %>">
             <img src="<%= avatar %>" class="post-avatar <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" onerror="this.src='/uploads/avatars/default.png'">

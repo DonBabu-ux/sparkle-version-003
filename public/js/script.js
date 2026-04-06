@@ -70,6 +70,30 @@ if (typeof dataManager !== 'undefined') {
 
 
 // ================================
+// CORE UI UTILITIES (house 5.1)
+// ================================
+window.setBtnLoading = function(btn, isLoading, iconClass = 'fa-spinner fa-spin') {
+    if (!btn) return;
+    
+    if (isLoading) {
+        if (btn.disabled) return; // Already loading
+        btn.dataset.originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.style.cursor = 'not-allowed';
+        const text = btn.innerText || 'Working...';
+        btn.innerHTML = `<span>Processing...</span> <i class="fas ${iconClass}"></i>`;
+    } else {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.cursor = '';
+        if (btn.dataset.originalContent) {
+            btn.innerHTML = btn.dataset.originalContent;
+        }
+    }
+};
+
+// ================================
 // CORE PAGE FUNCTIONS
 // ================================
 
@@ -238,70 +262,8 @@ function hideHamburger() {
     appState.hamburgerOpen = false;
 }
 
-// ================================
-// LOAD FUNCTIONS FOR EACH PAGE
-// ================================
-
-// HOME PAGE - AfterGlow Stories
-let activeStories = []; // Store the current list of stories for navigation
-let currentStoryIndex = -1;
-let isSubmittingAfterglow = false;
-
-async function loadAfterglowStories() {
-    const container = document.getElementById('afterglowStories');
-    if (!container) return;
-
-    // Use a flag to prevent concurrent loads
-    if (container.dataset.loading === 'true') return;
-    container.dataset.loading = 'true';
-
-    try {
-        const stories = await DashboardAPI.loadStories();
-        activeStories = stories || []; 
-        container.innerHTML = '';
-
-        if (!stories || stories.length === 0) {
-            container.innerHTML = `
-                <div style="padding: 20px; text-align: center; width: 100%;">
-                    <div style="color: #999; font-size: 13px; margin-bottom: 10px;">No active glows</div>
-                    <button class="action-btn" onclick="window.showCreateOptions()" style="background: linear-gradient(135deg, #9c27b0, #e91e63); color: white; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-weight: 600;">
-                        <i class="fas fa-plus"></i> Create AfterGlow
-                    </button>
-                </div>
-            `;
-            return;
-        }
-
-        stories.forEach(story => {
-            const storyEl = document.createElement('div');
-            storyEl.className = 'story-view-card';
-            storyEl.innerHTML = `
-                <div class="story-view-inner">
-                    <div class="story-avatar-container">
-                        <div class="story-avatar-ring ${story.is_viewed ? 'viewed' : ''}"></div>
-                        <img src="${story.avatar || story.avatar_url || '/uploads/avatars/default.png'}" 
-                             alt="${story.username}" 
-                             class="story-avatar ${story.is_viewed ? 'viewed' : ''}"
-                             onerror="this.src='/uploads/avatars/default.png'">
-                    </div>
-                    <div class="story-username">${story.username}</div>
-                </div>
-            `;
-
-            storyEl.addEventListener('click', () => {
-                currentStoryIndex = activeStories.indexOf(story);
-                showAfterglowViewer(story);
-            });
-
-            container.appendChild(storyEl);
-        });
-    } catch (error) {
-        console.error('❌ Failed to load stories:', error);
-        container.innerHTML = '<div style="padding: 10px; color: var(--danger); font-size: 12px;">Failed to load</div>';
-    } finally {
-        container.dataset.loading = 'false';
-    }
-}
+// HOME PAGE - AfterGlow Stories (Handled by modular dynamicPatch/features/stories.js)
+// Redundant functions removed to prevent conflicts.
 
 // HOME PAGE - Feed Posts
 async function loadFeedPosts() {
@@ -2508,6 +2470,7 @@ function setupEventListeners() {
 
     // Submit moment button
     document.getElementById('submitMomentBtn')?.addEventListener('click', async function () {
+        const btn = this;
         const fileInput = document.getElementById('momentVideoUpload');
         const caption = document.getElementById('momentCaption')?.value || '';
 
@@ -2515,6 +2478,9 @@ function setupEventListeners() {
             showNotification('Please select a video first', 'error');
             return;
         }
+
+        if (btn.disabled) return;
+        window.setBtnLoading(btn, true);
 
         const file = fileInput.files[0];
         console.log('📤 Uploading moment video...');
@@ -2532,7 +2498,7 @@ function setupEventListeners() {
             if (!uploadResponse.ok) throw new Error('Upload failed');
             const { url: media_url } = await uploadResponse.json();
 
-            // Create moment (you can add a moments API endpoint or reuse posts)
+            // Create moment
             console.log('✅ Moment uploaded:', media_url);
             showNotification('Moment shared!');
             hideModal('moment');
@@ -2542,16 +2508,13 @@ function setupEventListeners() {
         } catch (error) {
             console.error('❌ Moment upload failed:', error);
             showNotification('Failed to share moment', 'error');
+        } finally {
+            window.setBtnLoading(btn, false);
         }
     });
 
     // Submit afterglow button
     document.getElementById('submitAfterglowBtn')?.addEventListener('click', async function () {
-        if (isSubmittingAfterglow) {
-            console.log('⚠️ Submission already in progress, ignoring click.');
-            return;
-        }
-
         const btn = this;
         const fileInput = document.getElementById('afterglowMediaUpload');
         const caption = document.getElementById('afterglowCaption')?.value || '';
@@ -2562,12 +2525,7 @@ function setupEventListeners() {
         }
 
         if (btn.disabled) return;
-
-        // Global lock and visual state
-        isSubmittingAfterglow = true;
-        btn.disabled = true;
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = '<span>Sharing...</span> <i class="fas fa-spinner fa-spin"></i>';
+        window.setBtnLoading(btn, true, 'Sharing...');
 
         const file = fileInput.files[0];
         console.log('📤 Uploading AfterGlow story...');
@@ -2606,19 +2564,11 @@ function setupEventListeners() {
 
             // Reload stories
             if (window.loadAfterglowStories) window.loadAfterglowStories();
-
-            // Reset button state for next time
-            btn.disabled = false;
-            btn.innerHTML = originalContent;
-            isSubmittingAfterglow = false;
         } catch (error) {
             console.error('❌ AfterGlow creation failed:', error);
             showNotification('Failed to share AfterGlow', 'error');
-
-            // Re-enable button on error
-            btn.disabled = false;
-            btn.innerHTML = originalContent;
-            isSubmittingAfterglow = false;
+        } finally {
+            window.setBtnLoading(btn, false);
         }
     });
 
@@ -2725,16 +2675,8 @@ window.submitPost = async function () {
     const postTypeBtn = document.querySelector('.type-chip.active') || document.querySelector('.post-type-btn.active');
     const postType = postTypeBtn ? postTypeBtn.getAttribute('data-post-type') : 'public';
 
-    // In a real app, we'd handle file upload here. 
-    // For now, we'll check if a file was selected but we'll mock the URL if needed.
     const mediaInput = document.getElementById('mediaUpload');
     let mediaUrl = null;
-
-    if (mediaInput && mediaInput.files && mediaInput.files[0]) {
-        // Placeholder for file upload logic
-        console.log("File selected for upload:", mediaInput.files[0].name);
-        // showNotification("File upload is not fully implemented yet, sending post without media.");
-    }
 
     if (!caption) {
         showNotification("Please enter some content for your post!");
@@ -2742,9 +2684,9 @@ window.submitPost = async function () {
     }
 
     const submitBtn = document.getElementById('submitPostBtn');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
+    if (!submitBtn || submitBtn.disabled) return;
+
+    window.setBtnLoading(submitBtn, true, 'Posting...');
 
     try {
         const postData = {
@@ -2770,12 +2712,11 @@ window.submitPost = async function () {
         // Refresh feed
         window.forceFeedRefresh = true;
         loadFeedPosts();
-        submitBtn.innerHTML = originalText;
     } catch (error) {
         console.error("Failed to create post:", error);
         showNotification("Failed to share post. Please try again.");
     } finally {
-        submitBtn.disabled = false;
+        window.setBtnLoading(submitBtn, false);
     }
 };
 

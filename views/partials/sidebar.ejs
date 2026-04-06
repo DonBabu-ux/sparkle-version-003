@@ -119,59 +119,6 @@
     </nav>
 </div>
 
-<!-- Mobile Hamburger (Simplified Drawer) -->
-<div class="hamburger-overlay" id="hamburgerOverlay" onclick="hideHamburger()"></div>
-<div class="hamburger-menu glass-card animate-slide-in" id="hamburgerMenu">
-    <div class="hamburger-header" style="padding: 24px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
-            <span style="font-family: 'Outfit'; font-weight: 800; font-size: 1.3rem;">Menu</span>
-            <button class="close-btn" onclick="hideHamburger()" style="background:none; border:none; font-size: 24px; color: var(--text-muted);">✕</button>
-        </div>
-
-        <div class="user-profile-header animate-scale-in" onclick="window.location.href='/profile'; hideHamburger();"
-            style="display: flex; align-items: center; gap: 16px; padding: 18px; background: var(--bg-main); border-radius: var(--radius-lg); cursor: pointer; border: 1px solid var(--border-light);">
-            <img src="<%= (typeof user !== 'undefined' && user) ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
-                style="width: 52px; height: 52px; border-radius: 50%; border: 2.5px solid var(--primary); padding: 2px; background: white;"
-                onerror="this.src='/uploads/avatars/default.png';">
-            <div style="overflow: hidden;">
-                <div style="font-weight: 800; font-size: 1rem; color: var(--text-main);">
-                    <%= (typeof user !=='undefined' && user) ? user.name : 'Sparkle Student' %>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
-                    <i class="fas fa-graduation-cap" style="color: var(--primary); margin-right: 4px;"></i>
-                    <%= (typeof user !=='undefined' && user) ? user.campus : 'Campus Student' %>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="hamburger-scroll-area" style="padding: 0 16px 30px; flex: 1; overflow-y: auto;">
-        <div class="hamburger-item" onclick="window.location.href='/dashboard'; hideHamburger();">
-            <div class="sidebar-icon-box"><i class="fas fa-house-chimney"></i></div>
-            <span>Home Feed</span>
-        </div>
-        <div class="hamburger-item" onclick="window.location.href='/connect'; hideHamburger();">
-            <div class="sidebar-icon-box"><i class="fas fa-compass"></i></div>
-            <span>Discover</span>
-        </div>
-        <div class="hamburger-item" onclick="window.location.href='/messages'; hideHamburger();">
-            <div class="sidebar-icon-box"><i class="fas fa-paper-plane"></i></div>
-            <span>Messages</span>
-        </div>
-        <div class="hamburger-item" onclick="window.location.href='/marketplace'; hideHamburger();">
-            <div class="sidebar-icon-box"><i class="fas fa-store"></i></div>
-            <span>Marketplace</span>
-        </div>
-        <div class="hamburger-item" onclick="window.location.href='/settings'; hideHamburger();">
-            <div class="sidebar-icon-box"><i class="fas fa-cog"></i></div>
-            <span>Settings</span>
-        </div>
-        <div class="hub-divider" style="margin: 20px 0; height: 1px; background: var(--border-light);"></div>
-        <div class="hamburger-item logout" onclick="window.location.href='/logout'; hideHamburger();" style="color: var(--accent);">
-            <div class="sidebar-icon-box"><i class="fas fa-sign-out-alt"></i></div>
-            <span>Logout</span>
-        </div>
-    </div>
 </div>
 
 <style>
@@ -180,6 +127,7 @@
         height: 100%;
         display: flex;
         flex-direction: column;
+        background: var(--bg-white); /* Force white background to prevent transparent/black fallback */
     }
     .sidebar-logo {
         display: flex;
@@ -257,71 +205,30 @@
         background: var(--bg-main);
         color: var(--primary);
     }
-
-    /* Mobile Drawer */
-    .hamburger-menu {
-        position: fixed;
-        top: 0;
-        right: -320px;
-        width: 320px;
-        height: 100%;
-        z-index: 2000;
-        background: white;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        display: flex;
-        flex-direction: column;
-    }
-    .hamburger-menu.active {
-        right: 0;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.1);
-    }
-    .hamburger-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.4);
-        backdrop-filter: blur(4px);
-        z-index: 1999;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s;
-    }
-    .hamburger-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
-    }
-    .hamburger-item {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        padding: 14px 18px;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        color: var(--text-main);
-        transition: background 0.2s;
-        cursor: pointer;
-    }
-    .hamburger-item:hover {
-        background: var(--bg-main);
-    }
 </style>
 
 <script>
+    // Enhanced Hub Toggle Logic
     document.querySelectorAll('.hub-trigger').forEach(trigger => {
-        trigger.addEventListener('click', () => {
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
             const container = trigger.parentElement;
+            
+            // Close other hubs
+            document.querySelectorAll('.sidebar-hub-container').forEach(hub => {
+                if (hub !== container) hub.classList.remove('active');
+            });
+            
             container.classList.toggle('active');
         });
     });
 
-    window.toggleHamburger = () => {
-        document.getElementById('hamburgerMenu').classList.toggle('active');
-        document.getElementById('hamburgerOverlay').classList.toggle('active');
-        document.body.style.overflow = document.getElementById('hamburgerMenu').classList.contains('active') ? 'hidden' : '';
-    };
-
-    window.hideHamburger = () => {
-        document.getElementById('hamburgerMenu').classList.remove('active');
-        document.getElementById('hamburgerOverlay').classList.remove('active');
-        document.body.style.overflow = '';
-    };
+    // Close hubs when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.sidebar-hub-container')) {
+            document.querySelectorAll('.sidebar-hub-container').forEach(hub => {
+                hub.classList.remove('active');
+            });
+        }
+    });
 </script>

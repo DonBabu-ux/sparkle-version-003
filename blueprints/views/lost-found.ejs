@@ -1,0 +1,593 @@
+<%- include('partials/head', { title: 'Lost & Found | Sparkle' }) %>
+    <style>
+        :root {
+            --lf-primary: #FF3D6D;
+            --lf-secondary: #FF8E9D;
+            --lf-lost: #EF4444;
+            --lf-found: #10B981;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --card-radius: 28px;
+        }
+
+        .lf-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Hero / Header Glass */
+        .lf-header-glass {
+            background: linear-gradient(135deg, #FF3D6D 0%, #FF8E9D 100%);
+            border-radius: 32px;
+            padding: 50px 40px;
+            color: white;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 50px rgba(255, 61, 109, 0.15);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .lf-header-glass h1 {
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 800;
+            margin-bottom: 12px;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .lf-header-glass p {
+            font-size: 17px;
+            opacity: 0.95;
+            max-width: 600px;
+            font-weight: 500;
+        }
+
+        /* Glass Tabs Navigation */
+        .lf-tabs-wrapper {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            padding: 8px;
+            border-radius: 24px;
+            display: flex;
+            gap: 8px;
+            margin-bottom: 35px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+            position: sticky;
+            top: 15px;
+            z-index: 100;
+        }
+
+        .lf-tab-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            background: transparent;
+            border-radius: 18px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 15px;
+        }
+
+        .lf-tab-btn.active {
+            background: white;
+            color: var(--lf-primary);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+            transform: translateY(-1px);
+        }
+
+        .lf-tab-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.4);
+            color: var(--lf-primary);
+        }
+
+        /* ============ GRID LAYOUT OVERHAUL ============ */
+        .lf-main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            align-items: flex-start;
+        }
+
+        .lf-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .lf-content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 1024px) {
+            .lf-main-grid {
+                grid-template-columns: 320px 1fr;
+            }
+
+            .lf-tabs-wrapper {
+                flex-direction: column;
+                position: static;
+                padding: 15px;
+            }
+
+            .lf-tab-btn {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+        /* Premium Item Cards */
+        .lf-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .lf-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        }
+
+        .lf-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            border-color: rgba(255, 61, 109, 0.2);
+        }
+
+        .lf-card-image {
+            width: 100%;
+            height: 220px;
+            position: relative;
+            background: #f1f5f9;
+        }
+
+        .lf-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .lf-card:hover .lf-card-image img {
+            transform: scale(1.05);
+        }
+
+        .lf-status-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 18px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-lost {
+            background: rgba(239, 68, 68, 0.85);
+            color: white;
+        }
+
+        .status-found {
+            background: rgba(16, 185, 129, 0.85);
+            color: white;
+        }
+
+        .lf-card-body {
+            padding: 24px;
+            flex: 1;
+        }
+
+        .lf-category {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--lf-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .lf-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .lf-meta-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .lf-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .lf-meta-item i {
+            color: var(--lf-primary);
+            width: 16px;
+        }
+
+        .lf-btn-claim {
+            width: 100%;
+            background: #0f172a;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .lf-btn-claim:hover {
+            background: var(--lf-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(255, 61, 109, 0.3);
+        }
+
+        /* Report Wizard Overhaul */
+        .lf-wizard {
+            background: white;
+            border-radius: 32px;
+            padding: 40px;
+            max-width: 650px;
+            margin: 0 auto;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.02);
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+        .step-dot.completed {
+            background: var(--pink-primary);
+        }
+
+        /* Image Upload Box */
+        .upload-box {
+            border: 2px dashed var(--border);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            background: #f8fafc;
+            transition: all 0.2s;
+        }
+
+        .upload-box:hover {
+            border-color: var(--pink-primary);
+            background: var(--pink-light);
+        }
+
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preview-img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <%- include('partials/sidebar') %>
+        <%- include('partials/bottom-nav') %>
+
+            <div class="header glass">
+                <div class="logo">Lost & Found</div>
+                <div class="header-actions">
+                    <!-- Notifications handled by main script -->
+                </div>
+            </div>
+
+            <div class="lf-container">
+                <!-- New Premium Header -->
+                <div class="lf-header-glass">
+                    <div class="lf-hero-overlay"></div>
+                    <h1>Lost & Found</h1>
+                    <p>Sparkle helps you reunite with your belongings. Fast, secure, and campus-wide.</p>
+                </div>
+
+                <div class="lf-main-grid">
+                    <div class="lf-sidebar">
+                        <div class="lf-tabs-wrapper">
+                            <button class="lf-tab-btn active" data-type="all">
+                                <i class="fas fa-search"></i> Browse All
+                            </button>
+                            <button class="lf-tab-btn" data-type="lost">
+                                <i class="fas fa-question-circle"></i> Lost Items
+                            </button>
+                            <button class="lf-tab-btn" data-type="found">
+                                <i class="fas fa-check-circle"></i> Found Items
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="lf-content-area">
+                        <!-- Premium Items Grid -->
+                        <div class="lf-grid" id="itemsGrid">
+                            <!-- Shimmer Loading state -->
+                            <% for(let i=0; i < 6; i++) { %>
+                                <div class="shimmer-card">
+                                    <div class="shimmer shimmer-img"></div>
+                                    <div class="shimmer shimmer-title" style="width: 70%;"></div>
+                                    <div class="shimmer shimmer-text"></div>
+                                    <div class="shimmer shimmer-btn"></div>
+                                </div>
+                                <% } %>
+                        </div>
+                    </div>
+                </div>
+                <!-- Report Wizard (Hidden by default) -->
+                <div id="reportWizard" class="lf-wizard" style="display: none;">
+                    <div class="wizard-progress">
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Type & Category -->
+                    <div id="step1" class="wizard-step active">
+                        <h2 style="margin-bottom: 25px; font-weight: 800; color: #0f172a;">What happened?</h2>
+                        <div class="form-group" style="margin-bottom: 30px;">
+                            <label class="form-label">Report Type</label>
+                            <div style="display: flex; gap: 15px;">
+                                <button class="form-input" style="flex:1" id="btnTypeLost"
+                                    onclick="setReportType('lost')">I Lost Something</button>
+                                <button class="form-input" style="flex:1" id="btnTypeFound"
+                                    onclick="setReportType('found')">I Found Something</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select id="itemCategory" class="form-input">
+                                <option value="electronics">Electronics</option>
+                                <option value="documents">Documents / IDs</option>
+                                <option value="keys">Keys</option>
+                                <option value="clothing">Clothing / Accessories</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div style="margin-top: 40px; display: flex; justify-content: flex-end;">
+                            <button class="lf-btn-claim" style="width: auto; padding: 14px 40px;"
+                                onclick="nextWizardStep(2)">Next Step</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Details -->
+                    <div id="step2" class="wizard-step">
+                        <h2 style="margin-bottom: 25px; font-weight: 800; color: #0f172a;">Item Details</h2>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="form-label">Title</label>
+                            <input type="text" id="itemTitle" class="form-input"
+                                placeholder="e.g., Blue Sony Headphones">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <textarea id="itemDesc" class="form-input" style="height: 120px; resize: none;"
+                                placeholder="Provide details like brand, color, specific markings..."></textarea>
+                        </div>
+                        <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                            <button class="lf-tab-btn" style="width: auto; padding: 14px 30px;"
+                                onclick="nextWizardStep(1)">Back</button>
+                            <button class="lf-btn-claim" style="width: auto; padding: 14px 40px;"
+                                onclick="nextWizardStep(3)">Next Step</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Location & Photos -->
+                    <div id="step3" class="wizard-step">
+                        <h2 style="margin-bottom: 25px; font-weight: 800; color: #0f172a;">Location & Media</h2>
+                        <div class="form-group" style="margin-bottom: 25px;">
+                            <label class="form-label">Where was it?</label>
+                            <input type="text" id="itemLocation" class="form-input"
+                                placeholder="e.g., Student Union, 2nd Floor">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Upload Photos</label>
+                            <div class="image-upload-zone" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-cloud-upload-alt"
+                                    style="font-size: 32px; color: var(--lf-primary); margin-bottom: 10px;"></i>
+                                <p style="font-weight: 700; color: #475569;">Click to upload item photos</p>
+                                <p style="font-size: 13px; color: #94a3b8; margin-top: 5px;">Supports JPG, PNG up to 5MB
+                                </p>
+                            </div>
+                            <input type="file" id="fileInput" multiple accept="image/*" style="display: none;"
+                                onchange="handleImagePreview(event)">
+                            <div id="imagePreview" class="image-preview-container"
+                                style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;"></div>
+                        </div>
+                        <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                            <button class="lf-tab-btn" style="width: auto; padding: 14px 30px;"
+                                onclick="nextWizardStep(2)">Back</button>
+                            <button class="lf-btn-claim" style="width: auto; padding: 14px 40px;"
+                                onclick="submitReport()">Submit Report</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script src="/js/dashboardAPI.js"></script>
+            <script>
+                let currentFilter = 'all';
+                let reportType = 'lost';
+                let selectedFiles = [];
+
+                async function init() {
+                    await loadItems('all');
+
+                    // Add event listeners for tabs
+                    document.querySelectorAll('.lf-tab-btn').forEach(btn => {
+                        btn.addEventListener('click', function () {
+                            const type = this.dataset.type;
+                            document.querySelectorAll('.lf-tab-btn').forEach(b => b.classList.remove('active'));
+                            this.classList.add('active');
+
+                            if (type === 'report') {
+                                // Handle report wizard if needed
+                            } else {
+                                loadItems(type);
+                            }
+                        });
+                    });
+                }
+
+                async function loadItems(type) {
+                    const grid = document.getElementById('itemsGrid');
+                    if (!grid) return;
+
+                    grid.innerHTML = '';
+
+                    try {
+                        const items = await DashboardAPI.loadLostFoundItems(type);
+
+                        if (!items || items.length === 0) {
+                            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 80px; color: #94a3b8;"><i class="fas fa-ghost" style="font-size: 40px; margin-bottom: 20px;"></i><p>No items found here.</p></div>';
+                            return;
+                        }
+
+                        items.forEach(item => {
+                            grid.appendChild(createItemCard(item));
+                        });
+                    } catch (err) {
+                        console.error(err);
+                        grid.innerHTML = '<p style="color: red; text-align: center; grid-column: 1/-1;">Error loading items.</p>';
+                    }
+                }
+
+                function createItemCard(item) {
+                    const div = document.createElement('div');
+                    div.className = 'lf-card';
+                    const statusClass = item.type === 'lost' ? 'status-lost' : 'status-found';
+
+                    div.innerHTML = `
+                <div class="lf-card-image">
+                    <span class="lf-status-badge ${statusClass}">${item.type}</span>
+                    <img src="${item.image_url || 'https://placehold.co/400x300?text=No+Photo'}" 
+                         onerror="this.src='https://placehold.co/400x300?text=Image+Unavailable'">
+                </div>
+                <div class="lf-card-body">
+                    <span class="lf-category">${item.category || 'General'}</span>
+                    <h3 class="lf-title">${item.title}</h3>
+                    <div class="lf-meta-info">
+                        <div class="lf-meta-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${item.location || 'Unknown'}</span>
+                        </div>
+                        <div class="lf-meta-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>${new Date(item.createdAt || item.date_lost_found).toLocaleDateString()}</span>
+                        </div>
+                        <div class="lf-meta-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>Reported by ${item.reporter_username || 'Student'}</span>
+                        </div>
+                    </div>
+                    <button class="lf-btn-claim" onclick="toggleDetails('${item.id}')">
+                        View Details <i class="fas fa-chevron-right" style="font-size: 11px;"></i>
+                    </button>
+                </div>
+            `;
+                    return div;
+                }
+
+                function setReportType(type) {
+                    reportType = type;
+                    document.getElementById('btnTypeLost').style.borderColor = type === 'lost' ? 'var(--lf-primary)' : '#f1f5f9';
+                    document.getElementById('btnTypeFound').style.borderColor = type === 'found' ? 'var(--lf-primary)' : '#f1f5f9';
+                }
+
+                function nextWizardStep(step) {
+                    document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+                    document.getElementById('step' + step).classList.add('active');
+                    updateProgressBar(step);
+                }
+
+                function updateProgressBar(step) {
+                    const fill = document.getElementById('progressFill');
+                    fill.style.width = ((step / 3) * 100) + '%';
+                }
+
+                function handleImagePreview(event) {
+                    const files = Array.from(event.target.files);
+                    selectedFiles = [...selectedFiles, ...files];
+                    const container = document.getElementById('imagePreview');
+                    container.innerHTML = '';
+
+                    selectedFiles.forEach((file, idx) => {
+                        const reader = new FileReader();
+                        reader.onload = e => {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.className = 'preview-img';
+                            img.style.width = '80px';
+                            img.style.height = '80px';
+                            img.style.borderRadius = '12px';
+                            img.style.objectFit = 'cover';
+                            container.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+
+                async function submitReport() {
+                    // Simplified submission for UI demo
+                    alert('Your report has been received! Reviewing now...');
+                    switchTab('all');
+                }
+
+                document.addEventListener('DOMContentLoaded', init);
+            </script>
+            </body>
+
+            </html>

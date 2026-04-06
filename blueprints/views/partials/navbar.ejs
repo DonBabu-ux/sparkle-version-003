@@ -1,0 +1,255 @@
+<header class="header glass-card" style="position: fixed; top: 0; width: 100%; z-index: 1000; height: 75px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px;">
+    <!-- Left Section: Logo & Mobile Toggle -->
+    <div class="header-left" style="display: flex; align-items: center; gap: 20px; flex: 1;">
+        <button class="hamburger-btn" onclick="toggleHamburger()" aria-label="Toggle Menu"
+            style="font-size: 22px; cursor: pointer; background: none; border: none; padding: 0; color: var(--text-main); display: none;">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="logo-text" onclick="window.location.href='/dashboard'"
+            style="font-size: 28px; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; margin: 0; letter-spacing: -1px;">
+            Sparkle</h1>
+    </div>
+
+    <!-- Center Section: Universal Search -->
+    <div class="header-center" style="flex: 2; max-width: 500px; position: relative;">
+        <div class="universal-search-bar" style="background: var(--bg-main); padding: 12px 20px; border-radius: 30px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-light); transition: all var(--transition-normal);">
+            <i class="fas fa-search" style="color: var(--text-muted); font-size: 16px;"></i>
+            <input type="text" id="universalSearchInput" placeholder="Search Sparkle..." autocomplete="off" 
+                style="border: none; background: transparent; outline: none; width: 100%; font-size: 0.95rem; color: var(--text-main); font-weight: 600;">
+        </div>
+        
+        <!-- Search Results Panel -->
+        <div class="search-results-panel shadow-premium animate-scale-in" id="searchResultsPanel" 
+            style="position: absolute; top: calc(100% + 15px); left: 0; right: 0; background: #fff; border-radius: var(--radius-lg); display: none; max-height: 450px; overflow-y: auto; z-index: 1001; border: 1px solid var(--border-light);">
+            <div id="searchHistoryContainer" style="padding: 20px; border-bottom: 1px solid var(--bg-main); display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Recent</span>
+                    <span style="font-size: 11px; color: var(--primary); cursor: pointer; font-weight: 700;" onclick="clearAllSearchHistory()">Clear All</span>
+                </div>
+                <div id="searchHistoryItems"></div>
+            </div>
+            <div id="suggestionsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Right Section: Actions & Profile -->
+    <nav class="header-right" style="display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end;">
+        <!-- Mobile-only search icon -->
+        <button class="mob-search-icon" onclick="openMobileSearch()" aria-label="Search">
+            <i class="fas fa-search"></i>
+        </button>
+
+        <!-- Desktop-only nav links -->
+        <div class="nav-actions-group" style="display: flex; align-items: center; gap: 12px;">
+            <a href="/dashboard" class="action-btn-circle" title="Home Feed"><i class="fas fa-home"></i></a>
+            <a href="/groups" class="action-btn-circle" title="Groups"><i class="fas fa-users"></i></a>
+            <a href="/messages" class="action-btn-circle" title="Messages"><i class="fas fa-comment-dots"></i></a>
+            <a href="/moments" class="action-btn-circle" title="Moments"><i class="fas fa-play-circle"></i></a>
+        </div>
+
+        <!-- Notifications -->
+        <div class="notification-trigger-wrapper" style="position: relative;">
+            <button id="navNotificationBell" class="action-btn-circle" aria-label="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="badge-dot" id="notificationCount"></span>
+            </button>
+            <div class="notification-panel-dropdown glass-card animate-scale-in" id="notificationDropdown">
+                <div class="dropdown-header-main">
+                    <h3>Notifications</h3>
+                    <button id="markAllReadBtn">Mark all read</button>
+                </div>
+                <div class="notification-scroll-area" id="notificationList"></div>
+                <div class="dropdown-footer-main">
+                    <a href="/notifications" style="color: var(--primary); font-weight: 700; font-size: 13px;">View All</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Dropdown -->
+        <div class="profile-nav-item" style="position: relative; margin-left: 10px;">
+        <div id="profileDropdownTrigger" class="profile-trigger-btn" style="cursor: pointer; display: flex; align-items: center; position: relative;">
+            <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>" 
+                 alt="Me" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; box-shadow: var(--shadow-sm); background: white;">
+            <div class="chevron-badge" style="position: absolute; bottom: -2px; right: -2px; background: var(--bg-white); width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; border: 1px solid var(--border-light); color: var(--text-muted);"><i class="fas fa-chevron-down"></i></div>
+        </div>
+            
+            <div id="profileDropdown" class="premium-dropdown-menu glass-card animate-scale-in">
+                <div class="user-peek-section">
+                    <img src="<%= typeof user !== 'undefined' ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>" 
+                         style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+                    <div class="user-peek-info">
+                        <span class="peek-name"><%= typeof user !== 'undefined' ? user.name : 'Sparkle Student' %></span>
+                        <span class="peek-handle">@<%= typeof user !== 'undefined' ? user.username : 'sparkler' %></span>
+                    </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <a href="/profile" class="dropdown-menu-item">
+                    <div class="item-icon"><i class="fas fa-user-circle"></i></div>
+                    <div class="item-label">My Profile</div>
+                </a>
+                <a href="/follow-requests" class="dropdown-menu-item" style="color: var(--accent);">
+                    <div class="item-icon"><i class="fas fa-user-plus"></i></div>
+                    <div class="item-label">Requests</div>
+                </a>
+                <a href="/dashboard/professional" class="dropdown-menu-item">
+                    <div class="item-icon"><i class="fas fa-chart-line"></i></div>
+                    <div class="item-label">Pro Dashboard</div>
+                </a>
+                
+                <div class="dropdown-divider"></div>
+                <div id="navbar-account-switcher" style="max-height: 150px; overflow-y: auto;"></div>
+                <a href="javascript:void(0)" class="dropdown-menu-item" onclick="if(window.authMultiAccounts) authMultiAccounts.addNewAccount()">
+                    <div class="item-icon"><i class="fas fa-plus"></i></div>
+                    <div class="item-label">Add Account</div>
+                </a>
+                
+                <div class="dropdown-divider"></div>
+                <a href="/settings" class="dropdown-menu-item">
+                    <div class="item-icon"><i class="fas fa-cog"></i></div>
+                    <div class="item-label">Settings</div>
+                </a>
+                <a href="/logout" class="dropdown-menu-item logout-item" style="color: var(--accent);">
+                    <div class="item-icon"><i class="fas fa-sign-out-alt"></i></div>
+                    <div class="item-label">Logout</div>
+                </a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<style>
+    .header { transition: all 0.3s var(--ease-out); }
+    
+    .action-btn-circle {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--bg-main);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        font-size: 18px;
+        transition: all var(--transition-fast);
+        border: 1px solid var(--border-light);
+    }
+    .action-btn-circle:hover {
+        background: var(--primary);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .badge-dot {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: var(--accent);
+        border: 2px solid white;
+        border-radius: 50%;
+        display: none;
+    }
+
+    /* DROPDOWNS BASE */
+    .premium-dropdown-menu, .notification-panel-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 15px);
+        background: var(--bg-white);
+        border-radius: var(--radius-lg);
+        z-index: 2000;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+    }
+
+    .premium-dropdown-menu { right: 0; width: 280px; padding: 15px; }
+    .notification-panel-dropdown { right: -10px; width: 380px; }
+
+    .dropdown-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 12px;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+        color: var(--text-secondary);
+        text-decoration: none;
+    }
+    .dropdown-menu-item:hover { background: var(--bg-main); color: var(--primary); }
+    .item-icon { width: 20px; text-align: center; opacity: 0.8; }
+    
+    .dropdown-header-main { padding: 20px; border-bottom: 1px solid var(--bg-main); display: flex; justify-content: space-between; align-items: center; }
+    .dropdown-header-main h3 { margin: 0; font-size: 1.1rem; font-weight: 800; font-family: 'Outfit', sans-serif; }
+    .dropdown-header-main button { background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; }
+    
+    .notification-scroll-area { max-height: 400px; overflow-y: auto; }
+    .notif-row { display: flex; gap: 14px; padding: 15px 20px; transition: background 0.2s; border-bottom: 1px solid var(--bg-main); align-items: center; text-decoration: none; color: var(--text-main); }
+    .notif-row:hover { background: var(--bg-main); }
+    .notif-row.unread { background: rgba(99, 102, 241, 0.05); }
+    .notif-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: var(--shadow-sm); }
+    
+    /* MOBILE ADAPTATIONS */
+    @media (max-width: 768px) {
+        .premium-dropdown-menu, .notification-panel-dropdown {
+            position: fixed;
+            top: auto;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100% !important;
+            border-radius: 30px 30px 0 0;
+            margin: 0;
+            padding: 20px 20px 40px;
+            max-height: 80vh;
+            animation: slideUpDrawer 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -15px 50px rgba(0,0,0,0.2);
+        }
+
+        .notification-scroll-area { max-height: 50vh; }
+        
+        .dropdown-divider { height: 1px; background: var(--border-light); margin: 15px 0; }
+        
+        /* Center search logo on mobile */
+        .header { height: 65px !important; padding: 0 16px !important; }
+        .logo-text { font-size: 24px !important; }
+    }
+
+    @keyframes slideUpDrawer {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+</style>
+
+<script>
+// Notification & UI Logic
+document.addEventListener('DOMContentLoaded', () => {
+    const profileTrigger = document.getElementById('profileDropdownTrigger');
+    const profileDropdown = document.getElementById('profileDropdown');
+    const bellBtn = document.getElementById('navNotificationBell');
+    const notifDropdown = document.getElementById('notificationDropdown');
+
+    const toggleMenu = (trigger, menu) => {
+        if (!trigger || !menu) return;
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = menu.style.display === 'block';
+            document.querySelectorAll('.glass-card').forEach(m => {
+                if (m.id.includes('Dropdown')) m.style.display = 'none';
+            });
+            menu.style.display = isOpen ? 'none' : 'block';
+        });
+    };
+
+    toggleMenu(profileTrigger, profileDropdown);
+    toggleMenu(bellBtn, notifDropdown);
+
+    document.addEventListener('click', () => {
+        if (profileDropdown) profileDropdown.style.display = 'none';
+        if (notifDropdown) notifDropdown.style.display = 'none';
+    });
+});
+</script>

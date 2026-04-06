@@ -45,14 +45,13 @@ const mutationRateLimiter = createRateLimiter(1 * 60 * 1000, 10);
 const imageLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 60,
-    keyGenerator: (req) => req.ip + ":" + req.path,
-    validate: { keyGenerator: false },
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
         // Only rate-limit repeated fetches of the same default/placeholder images
         return !req.path.match(/default-|placeholder/);
-    }
+    },
+    validate: false
 });
 
 /**

@@ -1,0 +1,2704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sparkle Market - Community Marketplace</title>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+        }
+
+        /* Modern Navigation */
+        .navbar {
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid #e4e6eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #a855f7, #ec489a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo i {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-bar {
+            background: #f0f2f5;
+            border-radius: 24px;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 320px;
+            transition: all 0.2s;
+        }
+
+        .search-bar i {
+            color: #65676b;
+            font-size: 1rem;
+        }
+
+        .search-bar input {
+            background: none;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .search-bar:focus-within {
+            background: #e4e6eb;
+            box-shadow: 0 0 0 2px #6366f1;
+        }
+
+        .nav-icons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f2f5;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1a1a2e;
+        }
+
+        .nav-icon:hover {
+            background: #e4e6eb;
+        }
+
+        /* Main Layout */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            gap: 1.5rem;
+        }
+
+        /* Left Sidebar */
+        .sidebar-left {
+            position: sticky;
+            top: 70px;
+            height: fit-content;
+        }
+
+        .categories-card {
+            background: white;
+            border-radius: 16px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .categories-header {
+            padding: 0.75rem 0.75rem 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #1a1a2e;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #4a5568;
+        }
+
+        .category-item:hover {
+            background: #f0f2f5;
+        }
+
+        .category-item.active {
+            background: #e8eaff;
+            color: #6366f1;
+        }
+
+        .category-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .category-name {
+            flex: 1;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .category-count {
+            font-size: 0.75rem;
+            color: #65676b;
+            background: #f0f2f5;
+            padding: 0.125rem 0.5rem;
+            border-radius: 12px;
+        }
+
+        /* Filter Card */
+        .filter-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .filter-section {
+            margin-bottom: 1.25rem;
+        }
+
+        .filter-section label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4a5568;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .price-inputs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .price-inputs input {
+            flex: 1;
+            padding: 0.625rem;
+            border: 1px solid #e4e6eb;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .price-inputs input:focus {
+            border-color: #6366f1;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid #e4e6eb;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+            background: white;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: #6366f1;
+        }
+
+        .apply-filters-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .apply-filters-btn:hover {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        /* Main Feed */
+        .feed {
+            min-width: 0;
+        }
+
+        /* Create Listing Card */
+        .create-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .create-header {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .create-input {
+            flex: 1;
+            background: #f0f2f5;
+            border-radius: 24px;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            color: #65676b;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .create-input:hover {
+            background: #e4e6eb;
+        }
+
+        .create-actions {
+            display: flex;
+            gap: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e4e6eb;
+        }
+
+        .create-action {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #65676b;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .create-action:hover {
+            background: #f0f2f5;
+        }
+
+        /* Sort Bar */
+        .sort-bar {
+            background: white;
+            border-radius: 16px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .sort-options {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .sort-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 24px;
+            background: #f0f2f5;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sort-btn:hover {
+            background: #e4e6eb;
+        }
+
+        .sort-btn.active {
+            background: #6366f1;
+            color: white;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .view-btn {
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #f0f2f5;
+            width: 36px;
+            text-align: center;
+        }
+
+        .view-btn.active {
+            background: #6366f1;
+            color: white;
+        }
+
+        /* Loading State */
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+
+        .loading-spinner i {
+            font-size: 2rem;
+            color: #6366f1;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Products Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .products-grid.list-view {
+            grid-template-columns: 1fr;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.2);
+        }
+
+        .product-header {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .seller-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .seller-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .seller-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        .seller-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .seller-details {
+            text-align: center;
+        }
+
+        .seller-details h4 {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #65676b;
+            margin: 0;
+        }
+
+        .seller-details p {
+            display: none; /* Hide rating in header to simplify */
+        }
+
+        .product-menu {
+            cursor: pointer;
+            padding: 0.5rem;
+            color: #65676b;
+        }
+
+        /* ===== FB MARKETPLACE STYLE IMAGE CAROUSEL ===== */
+        .product-media {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: #f0f2f5;
+            overflow: hidden;
+        }
+
+        .carousel-track-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .carousel-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+        }
+
+        .carousel-slide {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            cursor: zoom-in;
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* Navigation arrows */
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.92);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+            transition: opacity 0.2s, transform 0.2s;
+            opacity: 0;
+            font-size: 12px;
+            color: #1c1e21;
+        }
+
+        .carousel-btn.prev { left: 8px; }
+        .carousel-btn.next { right: 8px; }
+
+        .product-media:hover .carousel-btn {
+            opacity: 1;
+        }
+
+        .carousel-btn:hover {
+            background: white;
+            transform: translateY(-50%) scale(1.08);
+        }
+
+        .carousel-btn:disabled {
+            opacity: 0 !important;
+        }
+
+        /* Dot indicators */
+        .carousel-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .carousel-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.6);
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .carousel-dot.active {
+            background: white;
+            transform: scale(1.3);
+        }
+
+        /* Image counter badge */
+        .media-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.55);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 20;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Legacy - keep for backward compat */
+        .media-indicator {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            z-index: 10;
+        }
+
+        /* Lightbox Styles */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 80%;
+            position: relative;
+        }
+
+        .lightbox-image {
+            max-width: 100%;
+            max-height: 85vh;
+            border-radius: 8px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .lightbox-info {
+            color: white;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .condition-badge {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .save-overlay-mini {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+            color: #65676b;
+        }
+
+        .save-overlay-mini:hover { transform: scale(1.1); background: white; }
+        .save-overlay-mini.active { color: #f02849; }
+        .save-overlay-mini i { font-size: 16px; }
+
+        .product-info {
+            padding: 0.75rem 0.75rem 0.5rem;
+            background: white;
+        }
+
+        /* 🚀 NEW ACTION BAR & STATUS */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: #fff;
+            border: 1px solid #e4e6eb;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #65676b;
+            margin-top: 4px;
+        }
+
+        .action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-top: 1px solid #f0f2f5;
+            gap: 4px;
+        }
+
+        .action-btn-main {
+            flex: 1;
+            height: 34px;
+            border-radius: 6px;
+            border: none;
+            background: #e4e6eb;
+            color: #050505;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn-main:hover { background: #d8dadf; }
+        .action-btn-main.primary { background: #1877f2; color: white; }
+        .action-btn-main.primary:hover { background: #166fe5; }
+
+        .action-btn-circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: #f0f2f5;
+            color: #050505;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .action-btn-circle:hover { background: #e4e6eb; }
+
+        /* 💬 REFINED QUICK INQUIRY */
+        .quick-inquiry-card {
+            margin: 0 12px 12px;
+            padding: 10px;
+            background: #f0f2f5;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .quick-inquiry-card:hover { background: #e4e6eb; }
+
+        .inquiry-placeholder {
+            font-size: 0.9rem;
+            color: #65676b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inquiry-send-icon {
+            color: #1877f2;
+            font-size: 1.1rem;
+        }
+
+        .product-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6366f1;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+
+
+        .btn-order {
+            flex: 1;
+            padding: 0.75rem;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-order:hover {
+            background: #4f46e5;
+            transform: scale(0.98);
+        }
+
+        .btn-chat {
+            flex: 1;
+            padding: 0.75rem;
+            background: #f0f2f5;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: #1a1a2e;
+        }
+
+        .btn-chat:hover {
+            background: #e4e6eb;
+        }
+
+        /* Right Sidebar */
+        .sidebar-right {
+            position: sticky;
+            top: 70px;
+            height: fit-content;
+        }
+
+        .trending-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .trending-header {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .trending-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 8px;
+        }
+
+        .trending-item:hover {
+            background: #f0f2f5;
+        }
+
+        .trending-rank {
+            font-weight: 700;
+            color: #6366f1;
+            width: 28px;
+            text-align: center;
+        }
+
+        .trending-info h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .trending-info p {
+            font-size: 0.75rem;
+            color: #65676b;
+        }
+
+        .safe-tips {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .safe-tip {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 0;
+            font-size: 0.875rem;
+            color: #4a5568;
+        }
+
+        .safe-tip i {
+            width: 20px;
+            color: #10b981;
+        }
+
+        .view-spots {
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e4e6eb;
+            color: #6366f1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e4e6eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+        }
+
+        .modal-header i {
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: #65676b;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e4e6eb;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: #6366f1;
+        }
+
+        .image-upload {
+            border: 2px dashed #e4e6eb;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .image-upload:hover {
+            border-color: #6366f1;
+            background: #f8fafc;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e4e6eb;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 16px;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Responsive */
+        /* Options & Report Modals */
+        .options-list {
+            padding: 0.5rem;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+            font-weight: 500;
+            color: #1c1917;
+        }
+
+        .option-item:hover {
+            background: #f3f4f6;
+        }
+
+        .option-item i {
+            font-size: 1.25rem;
+            width: 24px;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .option-item.danger {
+            color: #ef4444;
+        }
+
+        .option-item.danger i {
+            color: #ef4444;
+        }
+
+        .report-reasons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .report-reason {
+            padding: 0.75rem 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .report-reason:hover {
+            border-color: #6366f1;
+            background: #f1f5f9;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr 320px;
+            }
+            .sidebar-left {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            .sidebar-right {
+                display: none;
+            }
+            .search-bar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="logo" onclick="window.location.href='/feed'">
+                    <i class="fas fa-star"></i>
+                    <span>Sparkle</span>
+                </div>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search Sparkle Market..." id="searchInput">
+                </div>
+            </div>
+            <div class="nav-icons">
+                <div class="nav-icon" onclick="window.location.href='/feed'"><i class="fas fa-home"></i></div>
+                <div class="nav-icon"><i class="fas fa-users"></i></div>
+                <div class="nav-icon" onclick="window.location.href='/messages'"><i class="fas fa-comment"></i></div>
+                <div class="nav-icon"><i class="fas fa-bell"></i></div>
+                <div class="nav-icon" onclick="window.location.href='/profile'"><i class="fas fa-user"></i></div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Left Sidebar - Categories -->
+        <aside class="sidebar-left" id="sidebarCategories">
+            <div class="categories-card">
+                <div class="categories-header">
+                    <i class="fas fa-layer-group"></i> Categories
+                </div>
+                <div id="categoriesList">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-card">
+                <div class="categories-header">
+                    <i class="fas fa-sliders-h"></i> Filters
+                </div>
+                <div class="filter-section">
+                    <label><i class="fas fa-tag"></i> Price Range (KES)</label>
+                    <div class="price-inputs">
+                        <input type="number" placeholder="Min" id="minPrice">
+                        <input type="number" placeholder="Max" id="maxPrice">
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <label><i class="fas fa-clipboard-list"></i> Condition</label>
+                    <select id="conditionFilter">
+                        <option value="all">Any Condition</option>
+                        <option value="new">Brand New</option>
+                        <option value="like_new">Like New</option>
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                    </select>
+                </div>
+                <div class="filter-section">
+                    <label><i class="fas fa-star"></i> Min Seller Rating</label>
+                    <select id="ratingFilter">
+                        <option value="0">Any Rating</option>
+                        <option value="4">4+ Stars</option>
+                        <option value="4.5">4.5+ Stars</option>
+                        <option value="5">5 Stars Only</option>
+                    </select>
+                </div>
+                <button class="apply-filters-btn" id="applyFilters">
+                    <i class="fas fa-check"></i> Apply Filters
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Feed -->
+        <main class="feed">
+            <!-- Create Listing Card -->
+            <div class="create-card">
+                <div class="create-header">
+                    <div class="avatar" id="userAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="create-input" id="openSellModalInput">
+                        What are you selling today?
+                    </div>
+                </div>
+                <div class="create-actions">
+                    <div class="create-action" id="openSellModalFull" onclick="window.location.href='/marketplace/sell'">
+                        <i class="fas fa-plus-circle" style="color: var(--primary);"></i> Create Listing
+                    </div>
+                    <div class="create-action" id="viewWishlistBtn" onclick="window.location.href='/marketplace/wishlist'">
+                        <i class="fas fa-bookmark" style="color: #6366f1;"></i> Wishlist (<%= counts && typeof counts.wishlistCount !== "undefined" ? counts.wishlistCount : 0 %>)
+                    </div>
+                    <div class="create-action" onclick="window.location.href='/messages?tab=marketplace'">
+                        <i class="fas fa-comments" style="color: #6366f1;"></i> Marketplace Chats
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sort Bar -->
+            <div class="sort-bar">
+                <div class="sort-options">
+                    <div class="sort-btn active" data-sort="newest">
+                        <i class="fas fa-clock"></i> Just In
+                    </div>
+                    <div class="sort-btn" data-sort="popular">
+                        <i class="fas fa-fire"></i> Popular
+                    </div>
+                    <div class="sort-btn" data-sort="price_low">
+                        <i class="fas fa-arrow-up"></i> Price: Low
+                    </div>
+                    <div class="sort-btn" data-sort="price_high">
+                        <i class="fas fa-arrow-down"></i> Price: High
+                    </div>
+                    <div class="sort-btn" data-sort="rating">
+                        <i class="fas fa-star"></i> Top Rated
+                    </div>
+                </div>
+                <div class="view-toggle">
+                    <div class="view-btn active" data-view="grid">
+                        <i class="fas fa-th"></i>
+                    </div>
+                    <div class="view-btn" data-view="list">
+                        <i class="fas fa-list"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div id="productsContainer">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner"></i>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside class="sidebar-right">
+            <div class="trending-card">
+                <div class="trending-header">
+                    <i class="fas fa-fire" style="color: #f97316;"></i> Trending Now
+                </div>
+                <div id="trendingList">
+                    <div class="loading-spinner" style="padding: 1rem;">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="safe-tips">
+                <div class="trending-header">
+                    <i class="fas fa-shield-alt" style="color: #10b981;"></i> Safe Trading Tips
+                </div>
+                <div class="safe-tip">
+                    <i class="fas fa-check-circle"></i> Meet in public campus spots
+                </div>
+                <div class="safe-tip">
+                    <i class="fas fa-check-circle"></i> Inspect item before paying
+                </div>
+                <div class="safe-tip">
+                    <i class="fas fa-check-circle"></i> Use M-PESA for safety
+                </div>
+                <div class="safe-tip">
+                    <i class="fas fa-exclamation-triangle"></i> Never pay before seeing item
+                </div>
+                <div class="view-spots" id="viewSafeSpots">
+                    <i class="fas fa-map-marker-alt"></i> View Campus Safe Spots
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Sell Modal -->
+    <div class="modal" id="sellModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> Sell Your Item</h3>
+                <i class="fas fa-times" onclick="closeSellModal()"></i>
+            </div>
+            <div class="modal-body">
+                <form id="sellForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-heading"></i> Title *</label>
+                        <input type="text" id="itemTitle" placeholder="e.g., iPhone 13 Pro - Like New" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Description *</label>
+                        <textarea id="itemDescription" rows="3" placeholder="Describe your item in detail..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> Price (KES) *</label>
+                        <input type="number" id="itemPrice" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-folder"></i> Category *</label>
+                        <select id="itemCategory">
+                            <option value="electronics">Electronics</option>
+                            <option value="books">Books & Notes</option>
+                            <option value="fashion">Fashion</option>
+                            <option value="dorm_life">Dorm Life</option>
+                            <option value="services">Services</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-clipboard-check"></i> Condition *</label>
+                        <select id="itemCondition">
+                            <option value="new">Brand New</option>
+                            <option value="like_new">Like New</option>
+                            <option value="good">Good</option>
+                            <option value="fair">Fair</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-images"></i> Add Photos</label>
+                        <div class="image-upload" id="imageUpload">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem;"></i>
+                            <p>Click to upload photos</p>
+                            <input type="file" id="itemImages" multiple accept="image/*,video/*" style="display: none;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-chat" onclick="closeSellModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn-order" onclick="submitListing()">
+                    <i class="fas fa-check"></i> Post Listing
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Modal -->
+    <div class="modal" id="orderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-cart"></i> Confirm Order</h3>
+                <i class="fas fa-times" onclick="closeOrderModal()"></i>
+            </div>
+            <div class="modal-body">
+                <p id="orderItemName"></p>
+                <p><i class="fas fa-paper-plane"></i> Your order request will be sent to the seller.</p>
+                <p><i class="fas fa-clock"></i> They'll accept or reject it within 24 hours.</p>
+                <p><i class="fas fa-map-marker-alt"></i> Arrange a safe campus meetup to complete the purchase.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-chat" onclick="closeOrderModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn-order" id="confirmOrderBtn">
+                    <i class="fas fa-check"></i> Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- More Options Menu Modal (Facebook Style) -->
+    <div class="modal" id="optionsModal">
+        <div class="modal-content options-content">
+            <div class="modal-header">
+                <h3>Listing Options</h3>
+                <i class="fas fa-times" onclick="closeOptionsModal()"></i>
+            </div>
+            <div class="options-list">
+                <div class="option-item" id="optionViewProfile">
+                    <i class="fas fa-user-circle"></i>
+                    <span>View Seller Profile</span>
+                </div>
+                <div class="option-item" id="optionCopyLink">
+                    <i class="fas fa-link"></i>
+                    <span>Copy Listing Link</span>
+                </div>
+                <div class="option-item" id="optionShare">
+                    <i class="fas fa-share-alt"></i>
+                    <span>Share Listing</span>
+                </div>
+                
+                <!-- Seller Only Options -->
+                <div class="option-item" id="optionBoost" style="display: none;">
+                    <i class="fas fa-rocket" style="color: #f59e0b;"></i>
+                    <span>Boost / Promote Listing</span>
+                </div>
+                <div class="option-item" id="optionSold" style="display: none;">
+                    <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                    <span>Mark as Sold</span>
+                </div>
+                
+                <div class="option-item" id="optionReport">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Report Listing</span>
+                </div>
+                <div class="option-item" id="optionEvents">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Listing Events</span>
+                </div>
+                <div class="option-item danger" id="optionHide">
+                    <i class="fas fa-eye-slash"></i>
+                    <span>Hide Listing</span>
+                </div>
+                
+                <!-- Delete Listing (Seller Only) -->
+                <div class="option-item danger" id="optionDelete" style="display: none;">
+                    <i class="fas fa-trash-alt"></i>
+                    <span>Delete Listing</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Report Listing</h3>
+                <i class="fas fa-times" onclick="closeReportModal()"></i>
+            </div>
+            <div class="modal-body">
+                <p>Select a reason for reporting this listing:</p>
+                <div class="report-reasons">
+                    <div class="report-reason" data-reason="Scam/Fraud">Scam/Fraud</div>
+                    <div class="report-reason" data-reason="Inappropriate Content">Inappropriate content</div>
+                    <div class="report-reason" data-reason="Duplicate Listing">Duplicate listing</div>
+                    <div class="report-reason" data-reason="Sold/Unavailable">Item is sold or unavailable</div>
+                    <div class="report-reason" data-reason="Other">Other</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-chat" onclick="closeReportModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = '/api/marketplace';
+        let currentUser = null;
+        let currentSort = 'newest';
+        let currentView = 'grid';
+        let currentFilters = {
+            category: 'all',
+            minPrice: null,
+            maxPrice: null,
+            condition: 'all',
+            minRating: 0
+        };
+        // Registry so onclick handlers can look up listing data by ID safely
+        const listingsMap = {};
+        // Carousel state: { [listingId]: { index, total } }
+        const carouselState = {};
+
+
+        // Fetch current user
+        async function fetchCurrentUser() {
+            try {
+                // Changed from /api/auth/me to /api/users/me
+                const response = await fetch('/api/users/me', {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data.user || data;
+                    updateUserAvatar();
+                }
+            } catch (error) {
+                console.error('Error fetching user:', error);
+            }
+        }
+
+        // Update user avatar
+        function updateUserAvatar() {
+            if (currentUser && currentUser.name) {
+                const avatar = document.getElementById('userAvatar');
+                if (currentUser.profile_picture) {
+                    avatar.innerHTML = `<img src="${currentUser.profile_picture}" alt="Profile" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    avatar.innerHTML = `<i class="fas fa-user"></i>`;
+                }
+            }
+        }
+
+        // Fetch categories with counts
+        async function fetchCategories() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/categories?campus=all`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch categories');
+                
+                const data = await response.json();
+                renderCategories(data.categories);
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+                renderCategoriesError();
+            }
+        }
+
+        // Render categories
+        function renderCategories(categories) {
+            const container = document.getElementById('categoriesList');
+            
+            const defaultCategory = {
+                id: 'all',
+                name: 'All Items',
+                icon: 'fas fa-store',
+                count: categories.reduce((sum, cat) => sum + cat.count, 0)
+            };
+            
+            const allCategories = [defaultCategory, ...categories];
+            
+            container.innerHTML = allCategories.map(cat => `
+                <div class="category-item ${currentFilters.category === cat.id ? 'active' : ''}" data-category="${cat.id}">
+                    <div class="category-icon">
+                        <i class="${getCategoryIcon(cat.id)}"></i>
+                    </div>
+                    <div class="category-name">${cat.name}</div>
+                    <div class="category-count">${cat.count}</div>
+                </div>
+            `).join('');
+            
+            // Add click handlers
+            document.querySelectorAll('.category-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const categoryId = item.dataset.category;
+                    currentFilters.category = categoryId;
+                    fetchListings();
+                    
+                    // Update active state
+                    document.querySelectorAll('.category-item').forEach(c => c.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+        }
+
+        function getCategoryIcon(categoryId) {
+            const icons = {
+                'all': 'fas fa-store',
+                'electronics': 'fas fa-mobile-alt',
+                'books': 'fas fa-book',
+                'fashion': 'fas fa-tshirt',
+                'dorm': 'fas fa-bed',
+                'dorm_life': 'fas fa-bed',
+                'services': 'fas fa-briefcase',
+                'other': 'fas fa-gift'
+            };
+            return icons[categoryId] || 'fas fa-tag';
+        }
+
+        function renderCategoriesError() {
+            const container = document.getElementById('categoriesList');
+            container.innerHTML = `
+                <div class="category-item" style="color: #ef4444;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Failed to load categories</span>
+                </div>
+            `;
+        }
+
+        // Fetch listings from backend
+        async function fetchListings() {
+            const container = document.getElementById('productsContainer');
+            container.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner"></i>
+                </div>
+            `;
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('sort', currentSort);
+                params.append('limit', '20');
+                params.append('campus', 'all');
+                
+                if (currentFilters.category !== 'all') {
+                    params.append('category', currentFilters.category);
+                }
+                if (currentFilters.minPrice) {
+                    params.append('minPrice', currentFilters.minPrice);
+                }
+                if (currentFilters.maxPrice) {
+                    params.append('maxPrice', currentFilters.maxPrice);
+                }
+                if (currentFilters.condition !== 'all') {
+                    params.append('condition', currentFilters.condition);
+                }
+                if (currentFilters.minRating > 0) {
+                    params.append('minRating', currentFilters.minRating);
+                }
+                
+                const searchTerm = document.getElementById('searchInput').value;
+                if (searchTerm) {
+                    params.append('search', searchTerm);
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/listings?${params.toString()}`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch listings');
+                
+                const data = await response.json();
+                renderListings(data.listings || []);
+                
+            } catch (error) {
+                console.error('Error fetching listings:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Failed to load listings</h3>
+                        <p>Please check your connection and try again</p>
+                        <button class="btn-order" onclick="fetchListings()" style="margin-top: 1rem;">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Render listings
+        function renderListings(listingsRaw) {
+            const container = document.getElementById('productsContainer');
+            
+            if (!listingsRaw || listingsRaw.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-store-slash"></i>
+                        <h3>No listings found</h3>
+                        <p>Try adjusting your filters or be the first to post an item!</p>
+                        <button class="btn-order" onclick="openSellModal()" style="margin-top: 1rem;">
+                            <i class="fas fa-plus"></i> Sell Something
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Remove duplicate data
+            const listings = [...new Map(listingsRaw.map(l => [l.listing_id, l])).values()];
+
+            // Register listings in map for safe onclick lookup
+            listings.forEach(l => { listingsMap[l.listing_id] = l; });
+            
+            const gridClass = currentView === 'list' ? 'products-grid list-view' : 'products-grid';
+            container.innerHTML = `
+                <div class="${gridClass}">
+                    ${listings.map(listing => renderProductCard(listing)).join('')}
+                </div>
+            `;
+        }
+
+        // Render individual product card
+        function renderProductCard(listing) {
+            const lid = listing.listing_id;
+            const sellerInitial = listing.seller_name ? listing.seller_name.charAt(0).toUpperCase() : '?';
+            const conditionIcon = getConditionIcon(listing.condition);
+            const conditionText = formatCondition(listing.condition);
+            const formattedPrice = new Intl.NumberFormat('en-KE').format(listing.price);
+            const humanDate = formatHumanDate(listing.created_at, listing.affiliation || listing.campus || 'Main Campus');
+            const isSaved = listing.is_wishlisted || listing.is_favorited;
+
+            // Build FB-style image carousel
+            // Use the EJS inline SVG as fallback so NO HTTP request is ever made for missing images
+            const PLACEHOLDER = '<%= defaultImage %>';
+            const media = (listing.media && listing.media.length > 0)
+                ? listing.media.map(m => ({ ...m, media_url: m.media_url || PLACEHOLDER }))
+                : [{ media_url: listing.image_url || PLACEHOLDER }];
+            const totalImages = media.length;
+
+            const slides = media.map((m, idx) => `
+                <div class="carousel-slide" onclick="openLightbox('${lid}', ${idx}, event)">
+                    <img src="${m.media_url}" alt="${escapeHtml(listing.title)}" loading="lazy" onerror="this.onerror=null;this.src='<%= defaultImage %>'">
+                </div>
+            `).join('');
+
+            const dots = totalImages > 1
+                ? `<div class="carousel-dots">${media.map((_, i) => `<div class="carousel-dot${i === 0 ? ' active' : ''}"></div>`).join('')}</div>`
+                : '';
+
+            const prevBtn = totalImages > 1
+                ? `<button class="carousel-btn prev" onclick="event.stopPropagation(); carouselNav('${lid}', -1)" disabled><i class="fas fa-chevron-left"></i></button>`
+                : '';
+            const nextBtn = totalImages > 1
+                ? `<button class="carousel-btn next" onclick="event.stopPropagation(); carouselNav('${lid}', 1)" ${totalImages <= 1 ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`
+                : '';
+
+            const counter = totalImages > 1
+                ? `<div class="media-counter" id="counter-${lid}">1 / ${totalImages}</div>`
+                : '';
+
+            const mediaHtml = `
+                <div class="carousel-track-wrapper">
+                    <div class="carousel-track" id="track-${lid}">
+                        ${slides}
+                    </div>
+                </div>
+                ${prevBtn}
+                ${nextBtn}
+                ${dots}
+                ${counter}
+            `;
+
+            carouselState[lid] = { index: 0, total: totalImages };
+
+            return `
+                <div class="product-card" onclick="viewListing('${lid}')">
+                    <div class="product-header">
+                        <div class="seller-info" onclick="event.stopPropagation(); window.location.href='/marketplace/profile/${listing.seller_id}'">
+                            <div class="seller-avatar">
+                                ${listing.seller_avatar ? `<img src="${listing.seller_avatar}" alt="${escapeHtml(listing.seller_name)}">` : sellerInitial}
+                            </div>
+                            <div class="seller-details">
+                                <h4>${escapeHtml(listing.seller_username || listing.seller_name || 'Anonymous')}</h4>
+                            </div>
+                        </div>
+                        <div class="product-menu" onclick="event.stopPropagation(); showOptions('${lid}')">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="product-media">
+                        ${mediaHtml}
+                    </div>
+                    
+                    <div class="product-info" style="padding: 12px 12px 8px;">
+                        <div class="product-price" style="font-size: 1.15rem; color: #1c1e21; margin: 0; font-weight: 700;">KES ${formattedPrice}</div>
+                        <div class="product-title" style="font-size: 0.95rem; color: #1c1e21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">${escapeHtml(listing.title)}</div>
+                        
+                        <div class="status-badge">
+                            <i class="${conditionIcon}"></i> ${conditionText}
+                        </div>
+                        
+                        <div class="product-location" style="font-size: 0.8rem; color: #65676b; margin-top: 6px;">${humanDate}</div>
+                    </div>
+
+                    <div class="action-bar">
+                        <button class="action-btn-main primary" onclick="event.stopPropagation(); startChat('${lid}')">
+                            <i class="fas fa-comment"></i> Message
+                        </button>
+                        <button class="action-btn-circle" onclick="event.stopPropagation(); toggleWishlist('${lid}', event)" title="Save listing">
+                            <i class="${isSaved ? 'fas' : 'far'} fa-heart" ${isSaved ? 'style="color: #f02849;"' : ''}></i>
+                        </button>
+                        <button class="action-btn-circle" onclick="event.stopPropagation(); shareListing('${lid}')" title="Share">
+                            <i class="fas fa-share"></i>
+                        </button>
+                        <button class="action-btn-circle" onclick="event.stopPropagation(); showOptions('${lid}')">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+
+                    <div class="quick-inquiry-card" onclick="event.stopPropagation(); sendQuickMessage('${lid}')">
+                        <div class="inquiry-placeholder">
+                            <i class="fab fa-facebook-messenger" style="color: #0084FF;"></i>
+                            <span>Is this still available? 😊</span>
+                        </div>
+                        <i class="fas fa-paper-plane inquiry-send-icon"></i>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ===== CAROUSEL NAVIGATION =====
+        function carouselNav(lid, dir) {
+            const state = carouselState[lid];
+            if (!state || state.total <= 1) return;
+
+            const track = document.getElementById('track-' + lid);
+            if (!track) return;
+
+            state.index = (state.index + dir + state.total) % state.total;
+
+            // Slide the track
+            track.style.transform = `translateX(-${state.index * 100}%)`;
+
+            // Update dots
+            const mediaEl = track.closest('.product-media');
+            if (mediaEl) {
+                mediaEl.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+                    dot.classList.toggle('active', i === state.index);
+                });
+
+                // Update prev/next button disabled state
+                const prevBtn = mediaEl.querySelector('.carousel-btn.prev');
+                const nextBtn = mediaEl.querySelector('.carousel-btn.next');
+                if (prevBtn) prevBtn.disabled = state.index === 0;
+                if (nextBtn) nextBtn.disabled = state.index === state.total - 1;
+
+                // Update counter
+                const counter = document.getElementById('counter-' + lid);
+                if (counter) counter.textContent = `${state.index + 1} / ${state.total}`;
+            }
+        }
+
+        // ===== TOUCH SWIPE FOR CARD CAROUSELS (event delegation) =====
+        (function() {
+            let touchStartX = 0, touchStartY = 0, activeLid = null;
+            document.addEventListener('touchstart', function(e) {
+                const mediaEl = e.target.closest('.product-media');
+                if (!mediaEl) return;
+                const track = mediaEl.querySelector('.carousel-track');
+                if (!track) return;
+                activeLid = track.id.replace('track-', '');
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+            document.addEventListener('touchend', function(e) {
+                if (!activeLid) return;
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                    carouselNav(activeLid, dx < 0 ? 1 : -1);
+                }
+                activeLid = null;
+            }, { passive: true });
+        })();
+
+        function getConditionIcon(condition) {
+
+            const icons = {
+                'new': 'fas fa-box',
+                'like_new': 'fas fa-star',
+                'used_like_new': 'fas fa-star',
+                'good': 'fas fa-thumbs-up',
+                'used_good': 'fas fa-thumbs-up',
+                'refurbished': 'fas fa-wrench',
+                'fair': 'fas fa-hand-peace'
+            };
+            return icons[condition] || 'fas fa-tag';
+        }
+
+        function formatCondition(condition) {
+            const formats = {
+                'new': 'New',
+                'like_new': 'Used - Like New',
+                'used_like_new': 'Used - Like New',
+                'good': 'Used - Good',
+                'used_good': 'Used - Good',
+                'refurbished': 'Refurbished',
+                'fair': 'Fair'
+            };
+            return formats[condition] || condition;
+        }
+
+        function formatHumanDate(dateString, location) {
+            if (!dateString) return `Listed in ${location}`;
+            const date = new Date(dateString);
+            const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const weekday = weekdays[date.getDay()];
+            
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            let timeStr = `on ${weekday}`;
+            if (diffDays === 0) timeStr = 'Today';
+            if (diffDays === 1) timeStr = 'Yesterday';
+            
+            return `Listed ${timeStr} in ${location}`;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Recently';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            return date.toLocaleDateString();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Fetch trending listings
+        async function fetchTrending() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/trending?campus=all`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch trending');
+                
+                const data = await response.json();
+                renderTrending(data.trending || []);
+            } catch (error) {
+                console.error('Error fetching trending:', error);
+                renderTrendingError();
+            }
+        }
+
+        function renderTrending(trending) {
+            const container = document.getElementById('trendingList');
+            
+            if (!trending || trending.length === 0) {
+                container.innerHTML = '<p style="color: #65676b;">No trending items yet</p>';
+                return;
+            }
+            
+            container.innerHTML = trending.map((item, index) => `
+                <div class="trending-item" onclick="viewListing('${item.listing_id}')">
+                    <div class="trending-rank">${index + 1}</div>
+                    <div class="trending-info">
+                        <h4>${escapeHtml(item.title)}</h4>
+                        <p><i class="fas fa-eye"></i> ${item.view_count || 0} views</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderTrendingError() {
+            const container = document.getElementById('trendingList');
+            container.innerHTML = '<p style="color: #ef4444;">Failed to load trending</p>';
+        }
+
+        // Submit new listing
+        async function submitListing() {
+            const title = document.getElementById('itemTitle').value;
+            const description = document.getElementById('itemDescription').value;
+            const price = document.getElementById('itemPrice').value;
+            const category = document.getElementById('itemCategory').value;
+            const condition = document.getElementById('itemCondition').value;
+            
+            if (!title || !description || !price) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('price', price);
+            formData.append('category', category);
+            formData.append('condition', condition);
+            
+            const images = document.getElementById('itemImages').files;
+            for (let i = 0; i < images.length; i++) {
+                // Changed from 'images' to 'media' to match multer config
+                formData.append('media', images[i]);
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to create listing');
+                }
+                
+                alert('✅ Listing posted successfully!');
+                closeSellModal();
+                fetchListings();
+                fetchCategories();
+                fetchTrending();
+                
+            } catch (error) {
+                console.error('Error creating listing:', error);
+                alert('Failed to post listing: ' + error.message);
+            }
+        }
+
+        async function toggleWishlist(listingId, event) {
+            if (event) event.stopPropagation();
+            
+            const btn = (event && event.currentTarget) || document.querySelector(`.wishlist-btn[data-id="${listingId}"]`) || document.querySelector(`button[onclick*="toggleWishlist('${listingId}']`);
+            const icon = btn ? btn.querySelector('i') : null;
+            
+            // Optimistic UI Update
+            const isCurrentlySaved = icon?.classList.contains('fas');
+            if (icon) {
+                if (isCurrentlySaved) {
+                    icon.classList.replace('fas', 'far');
+                    icon.style.color = '';
+                } else {
+                    icon.classList.replace('far', 'fas');
+                    icon.style.color = '#f02849';
+                }
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}/wishlist`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>' })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Update state properly from server response
+                    if (icon) {
+                        if (data.wishlisted) {
+                            icon.classList.replace('far', 'fas');
+                            icon.style.color = '#f02849';
+                        } else {
+                            icon.classList.replace('fas', 'far');
+                            icon.style.color = '';
+                        }
+                    }
+                    showToast(data.wishlisted ? 'Added to Wishlist' : 'Removed from Wishlist', 'success');
+                } else {
+                    throw new Error(data.message || 'Failed to sync');
+                }
+            } catch (err) {
+                console.error(err);
+                // Rollback UI
+                if (icon) {
+                    if (isCurrentlySaved) {
+                        icon.classList.replace('far', 'fas');
+                        icon.style.color = '#f02849';
+                    } else {
+                        icon.classList.replace('fas', 'far');
+                        icon.style.color = '';
+                    }
+                }
+                showToast('Failed to sync wishlist', 'error');
+            }
+        }
+
+        // Initialize Sell Bar Click
+        document.addEventListener('DOMContentLoaded', () => {
+            const sellBar = document.getElementById('openSellModalInput');
+            if (sellBar) {
+                sellBar.addEventListener('click', () => {
+                    window.location.href = '/marketplace/sell';
+                });
+            }
+
+            document.querySelectorAll('.open-sell-modal-trigger').forEach(el => {
+                el.addEventListener('click', () => {
+                    window.location.href = '/marketplace/sell';
+                });
+            });
+        });
+        // Order functions
+        let currentOrderId = null;
+        
+        function openOrderModal(listingId) {
+            const listing = listingsMap[listingId];
+            const title = listing ? listing.title : 'item';
+            currentOrderId = listingId;
+            document.getElementById('orderItemName').innerHTML = `
+                <strong><i class="fas fa-box"></i> ${escapeHtml(title)}</strong><br>
+                <i class="fas fa-paper-plane"></i> Your order request will be sent to the seller.
+            `;
+            document.getElementById('orderModal').style.display = 'flex';
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').style.display = 'none';
+            currentOrderId = null;
+        }
+
+        async function confirmOrder() {
+            if (!currentOrderId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ listingId: currentOrderId }),
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to place order');
+                }
+                
+                alert('✅ Order placed successfully! The seller will contact you shortly.');
+                closeOrderModal();
+                
+            } catch (error) {
+                console.error('Error placing order:', error);
+                alert('Failed to place order: ' + error.message);
+            }
+        }
+
+        function viewListing(listingId) {
+            // Record the view first (fire-and-forget)
+            fetch(`${API_BASE_URL}/listings/${listingId}/view`, {
+                method: 'POST',
+                credentials: 'include'
+            }).catch(() => {});
+            window.location.href = `/marketplace/listings/${listingId}`;
+        }
+
+        async function sendQuickMessage(listingId) {
+            const listing = listingsMap[listingId];
+            if (!listing) return;
+            
+            const text = "Is this still available?";
+            
+            // Show optimistic feedback
+            showToast("Opening chat...");
+
+            // Prepare rich card payload for chat
+            const host = window.location.origin;
+            const mktPayload = {
+                title: listing.title,
+                price: `KES ${new Intl.NumberFormat('en-KE').format(listing.price)}`,
+                image: listing.image_url || (listing.media && listing.media[0]?.media_url) || '/images/default-listing.jpg',
+                link: `${host}/marketplace/listings/${listingId}`,
+                initialMessage: text
+            };
+            
+            // Encode and navigate to chat
+            const mktEncoded = btoa(encodeURIComponent(JSON.stringify(mktPayload)));
+            window.location.href = `/messages/?user=${listing.seller_id}&mkt=${mktEncoded}&autoSend=true`;
+        }
+
+        function openMessenger(userId, listingId = null) {
+            let url = `/messages/?user=${userId}`;
+            if (listingId) url += `&listing=${listingId}`;
+            window.location.href = url;
+        }
+
+        function startChat(listingId) {
+            const listing = listingsMap[listingId];
+            if (!listing) { window.location.href = '/messages'; return; }
+            
+            const host = window.location.origin;
+            const mktPayload = {
+                title: listing.title,
+                price: `KES ${new Intl.NumberFormat('en-KE').format(listing.price)}`,
+                image: listing.image_url || (listing.media && listing.media[0]?.media_url) || '/images/default-listing.jpg',
+                link: `${host}/marketplace/listings/${listingId}`
+            };
+            
+            // Base64-encode structured payload so chat page renders it as a rich product card
+            const mktEncoded = btoa(encodeURIComponent(JSON.stringify(mktPayload)));
+            window.location.href = `/messages/?user=${listing.seller_id}&mkt=${mktEncoded}`;
+        }
+
+        let selectedListingId = null;
+
+        function showOptions(listingId) {
+            selectedListingId = listingId;
+            const listing = listingsMap[listingId];
+            if (!listing) return;
+
+            // Determine if current user is the owner
+            const currentUserId = currentUser ? (currentUser.user_id || currentUser.id) : null;
+            const isOwner = currentUserId && listing.seller_id === currentUserId;
+
+            // Toggle visibility based on ownership
+            document.getElementById('optionReport').style.display = isOwner ? 'none' : 'flex';
+            document.getElementById('optionHide').style.display = isOwner ? 'none' : 'flex';
+            
+            document.getElementById('optionBoost').style.display = isOwner ? 'flex' : 'none';
+            document.getElementById('optionSold').style.display = (isOwner && !listing.is_sold) ? 'flex' : 'none';
+            document.getElementById('optionDelete').style.display = isOwner ? 'flex' : 'none';
+
+            // Setup option handlers
+            document.getElementById('optionViewProfile').onclick = () => {
+                closeOptionsModal();
+                window.location.href = `/marketplace/profile/${listing.seller_id}`;
+            };
+
+            document.getElementById('optionCopyLink').onclick = () => {
+                closeOptionsModal();
+                const link = `${window.location.origin}/marketplace/listings/${listingId}`;
+                navigator.clipboard.writeText(link).then(() => {
+                    showToast('Listing link copied!', 'success');
+                });
+            };
+
+            document.getElementById('optionShare').onclick = () => {
+                closeOptionsModal();
+                shareListing(listingId);
+            };
+
+            document.getElementById('optionReport').onclick = () => {
+                closeOptionsModal();
+                openReportModal(listingId);
+            };
+
+            document.getElementById('optionEvents').onclick = () => {
+                closeOptionsModal();
+                window.location.href = `/events/?listing=${listingId}`;
+            };
+
+            document.getElementById('optionHide').onclick = () => {
+                closeOptionsModal();
+                hideListing(listingId);
+            };
+
+            // Seller Action Handlers
+            document.getElementById('optionBoost').onclick = () => {
+                closeOptionsModal();
+                boostListing(listingId);
+            };
+
+            document.getElementById('optionSold').onclick = () => {
+                closeOptionsModal();
+                if (confirm('Are you sure you want to mark this item as sold?')) {
+                    markAsSold(listingId);
+                }
+            };
+
+            document.getElementById('optionDelete').onclick = () => {
+                closeOptionsModal();
+                if (confirm('Are you sure you want to delete this listing permanently? This action cannot be undone.')) {
+                    deleteListing(listingId);
+                }
+            };
+
+            document.getElementById('optionsModal').style.display = 'flex';
+        }
+
+        function closeOptionsModal() {
+            document.getElementById('optionsModal').style.display = 'none';
+        }
+
+        // Close options modal when clicking outside
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('optionsModal');
+            if (event.target === modal) {
+                closeOptionsModal();
+            }
+            // Also for other modals if they don't have it
+            const reportModal = document.getElementById('reportModal');
+            if (event.target === reportModal) {
+                closeReportModal();
+            }
+        });
+
+        function shareListing(listingId) {
+            const listing = listingsMap[listingId];
+            const title = listing ? listing.title : 'Check out this item on Sparkle!';
+            const url = `${window.location.origin}/marketplace/listings/${listingId}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    text: `KES ${new Intl.NumberFormat('en-KE').format(listing.price)} - ${title}`,
+                    url: url
+                }).catch(() => {});
+            } else {
+                // Fallback: Copy link
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('Link copied to clipboard!');
+                });
+            }
+        }
+
+        function openReportModal(listingId) {
+            selectedListingId = listingId;
+            document.getElementById('reportModal').style.display = 'flex';
+            
+            const reportReasons = document.querySelectorAll('.report-reason');
+            reportReasons.forEach(btn => {
+                btn.onclick = () => {
+                    const reason = btn.dataset.reason;
+                    submitReport(listingId, reason);
+                };
+            });
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportModal').style.display = 'none';
+        }
+
+        async function submitReport(listingId, reason) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        reason, 
+                        _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>' 
+                    })
+                });
+                if (response.ok) {
+                    showToast('Listing reported. Thank you for keeping Sparkle safe!', 'success');
+                    closeReportModal();
+                }
+            } catch (err) {
+                showToast('Failed to submit report');
+            }
+        }
+
+        function hideListing(listingId) {
+            const card = document.querySelector(`.product-card[onclick*="viewListing('${listingId}')"]`) || 
+                         document.querySelector(`div[data-id="${listingId}"]`);
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.remove();
+                    showToast('Listing hidden from your view');
+                }, 300);
+            }
+        }
+
+        async function markAsSold(listingId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}/sold`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Item marked as sold!', 'success');
+                    // Update local map and visual
+                    if (listingsMap[listingId]) listingsMap[listingId].is_sold = 1;
+                    fetchListings(); // Refresh UI
+                } else {
+                    showToast(result.error || 'Failed to update item');
+                }
+            } catch (err) {
+                showToast('Network error occurred');
+            }
+        }
+
+        async function boostListing(listingId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}/boost`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Listing boosted successfully! 🚀', 'success');
+                    fetchTrending(); // Refresh trending section
+                } else {
+                    showToast(result.error || 'Failed to boost listing');
+                }
+            } catch (err) {
+                showToast('Boost failed. Try again later.');
+            }
+        }
+
+        async function deleteListing(listingId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/listings/${listingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Listing deleted successfully', 'success');
+                    hideListing(listingId); // Remove from view
+                } else {
+                    showToast(result.error || 'Failed to delete listing');
+                }
+            } catch (err) {
+                showToast('Deletion failed');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            if (!toast) {
+                // Fallback to alert if toast element not found
+                console.log('Toast:', message);
+                return;
+            }
+            
+            toast.textContent = message;
+            toast.style.display = 'block';
+            toast.style.animation = 'fadeIn 0.3s';
+            toast.style.background = type === 'error' ? '#ef4444' : (type === 'success' ? '#10b981' : '#1e293b');
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // Modal functions
+        function openSellModal() {
+            document.getElementById('sellModal').style.display = 'flex';
+        }
+
+        function closeSellModal() {
+            document.getElementById('sellModal').style.display = 'none';
+            document.getElementById('sellForm').reset();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchCurrentUser();
+            fetchCategories();
+            fetchListings();
+            fetchTrending();
+            
+            // Search input with debounce
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    fetchListings();
+                }, 500);
+            });
+            
+            // Filter buttons
+            document.getElementById('applyFilters').addEventListener('click', () => {
+                currentFilters.minPrice = document.getElementById('minPrice').value;
+                currentFilters.maxPrice = document.getElementById('maxPrice').value;
+                currentFilters.condition = document.getElementById('conditionFilter').value;
+                currentFilters.minRating = parseFloat(document.getElementById('ratingFilter').value) || 0;
+                fetchListings();
+            });
+            
+            // Sort buttons
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentSort = btn.dataset.sort;
+                    fetchListings();
+                });
+            });
+            
+            // View toggle
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentView = btn.dataset.view;
+                    fetchListings();
+                });
+            });
+            
+            // Modal triggers
+            document.getElementById('openSellModal')?.addEventListener('click', openSellModal);
+            document.getElementById('openSellModalPhoto')?.addEventListener('click', openSellModal);
+            document.getElementById('openSellModalItem')?.addEventListener('click', openSellModal);
+            document.getElementById('openSellModalService')?.addEventListener('click', openSellModal);
+            document.getElementById('confirmOrderBtn')?.addEventListener('click', confirmOrder);
+            document.getElementById('viewSafeSpots')?.addEventListener('click', () => {
+                window.location.href = '/safe-spots'; // Could be mapped appropriately later
+            });
+            
+            // Image upload
+            document.getElementById('imageUpload').addEventListener('click', () => {
+                document.getElementById('itemImages').click();
+            });
+            
+            // Close modals on outside click
+            window.onclick = (event) => {
+                const sellModal = document.getElementById('sellModal');
+                const orderModal = document.getElementById('orderModal');
+                if (event.target === sellModal) closeSellModal();
+                if (event.target === orderModal) closeOrderModal();
+            };
+        });
+    </script>
+    <!-- Lightbox Viewer -->
+    <div id="lightbox" class="lightbox" onclick="if(event.target === this) closeLightbox()">
+        <div class="lightbox-close" onclick="closeLightbox()">&times;</div>
+        <div class="lightbox-content">
+            <img id="lightboxImage" class="lightbox-image" src="" alt="Listing Image">
+            <div class="lightbox-nav">
+                <button class="nav-btn" onclick="event.stopPropagation(); changeLightboxImage(-1)"><i class="fas fa-chevron-left"></i></button>
+                <button class="nav-btn" onclick="event.stopPropagation(); changeLightboxImage(1)"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+        <div id="lightboxInfo" class="lightbox-info">Image 1 of 1</div>
+    </div>
+
+    <script>
+        // Lightbox state
+        let currentLightboxImages = [];
+        let currentLightboxIndex = 0;
+
+        function openLightbox(listingId, index, event) {
+            if (event) event.stopPropagation();
+            const listing = listingsMap[listingId];
+            if (!listing || !listing.media || listing.media.length === 0) {
+                // Fallback to main image
+                currentLightboxImages = [listing.image_url || '/images/default-listing.jpg'];
+            } else {
+                currentLightboxImages = listing.media.map(m => m.media_url);
+            }
+            
+            currentLightboxIndex = index || 0;
+            updateLightbox();
+            document.getElementById('lightbox').style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent scroll
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function changeLightboxImage(dir) {
+            currentLightboxIndex = (currentLightboxIndex + dir + currentLightboxImages.length) % currentLightboxImages.length;
+            updateLightbox();
+        }
+
+        function updateLightbox() {
+            const img = document.getElementById('lightboxImage');
+            const info = document.getElementById('lightboxInfo');
+            img.src = currentLightboxImages[currentLightboxIndex];
+            info.textContent = `Image ${currentLightboxIndex + 1} of ${currentLightboxImages.length}`;
+        }
+
+        // Touch support for swiping
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.getElementById('lightbox').addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.getElementById('lightbox').addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const threshold = 50;
+            if (touchEndX < touchStartX - threshold) changeLightboxImage(1); // Swipe Left
+            if (touchEndX > touchStartX + threshold) changeLightboxImage(-1); // Swipe Right
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('lightbox').style.display === 'flex') {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') changeLightboxImage(-1);
+                if (e.key === 'ArrowRight') changeLightboxImage(1);
+            }
+        });
+    </script>
+    <!-- Wishlist Modal -->
+    <div id="wishlistModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container wishlist-modal">
+            <div class="modal-header">
+                <h2><i class="bi bi-heart-fill" style="color: #ef4444;"></i> Saved Wishlist</h2>
+                <div class="modal-header-actions">
+                    <button class="marketplace-msg-btn" onclick="window.location.href='/messages?tab=marketplace'" title="Marketplace Messages">
+                        <i class="bi bi-chat-dots-fill"></i>
+                    </button>
+                    <button class="close-modal" onclick="closeWishlist()">&times;</button>
+                </div>
+            </div>
+            <div class="wishlist-body">
+                <div id="wishlistItems" class="wishlist-grid">
+                    <!-- Wishlist items will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Styles for Wishlist -->
+    <style>
+        .wishlist-modal { max-width: 600px; width: 90%; border-radius: 20px; overflow: hidden; }
+        .wishlist-grid { display: grid; grid-template-columns: 1fr; gap: 12px; max-height: 70vh; overflow-y: auto; padding: 10px; }
+        .wishlist-item { display: flex; align-items: center; gap: 15px; padding: 12px; background: #f8fafc; border-radius: 12px; cursor: pointer; transition: 0.2s; position: relative; }
+        .wishlist-item:hover { background: #f1f5f9; transform: translateX(5px); }
+        .wishlist-img { width: 70px; height: 70px; border-radius: 10px; object-fit: cover; }
+        .wishlist-info h3 { margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; }
+        .wishlist-info p { margin: 4px 0 0; font-weight: 800; color: var(--primary); }
+        .wishlist-remove-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 8px; border-radius: 50%; transition: 0.2s; }
+        .wishlist-remove-btn:hover { background: #fee2e2; color: #ef4444; }
+        .marketplace-msg-btn { background: #f1f5f9; border: none; width: 40px; height: 40px; border-radius: 12px; color: #6366f1; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 10px; transition: 0.2s; }
+        .marketplace-msg-btn:hover { background: #6366f1; color: white; }
+    </style>
+    <div id="toast" class="toast"></div>
+</body>
+</html>

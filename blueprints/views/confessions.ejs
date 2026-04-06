@@ -1,0 +1,534 @@
+<%- include('partials/head', { title: 'Confessions | Sparkle' }) %>
+        <style>
+            /* Confessions Specific Styles */
+            body {
+                background-color: #0F172A;
+                /* Dark theme for stories */
+                color: white;
+                overflow: hidden;
+                /* Prevent body scroll to focus on container */
+            }
+
+            .main-content {
+                height: 100vh;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+            }
+
+            .stories-container {
+                height: 100%;
+                width: 100%;
+                max-width: 600px;
+                /* Tik-tok style width */
+                overflow-y: scroll;
+                scroll-snap-type: y mandatory;
+                position: relative;
+                scrollbar-width: none;
+                /* Firefox */
+            }
+
+            .stories-container::-webkit-scrollbar {
+                display: none;
+                /* Chrome/Safari */
+            }
+
+            .story-slide {
+                height: 100vh;
+                width: 100%;
+                scroll-snap-align: start;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: relative;
+                /* Gradient background for each slide to break monotony */
+                background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.8) 100%);
+            }
+
+            .story-card {
+                width: 90%;
+                padding: 40px;
+                border-radius: 30px;
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+                text-align: center;
+                position: relative;
+                animation: zoomIn 0.5s ease;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 400px;
+            }
+
+            @keyframes zoomIn {
+                from {
+                    transform: scale(0.9);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .story-category {
+                display: inline-block;
+                padding: 6px 16px;
+                background: var(--primary);
+                /* Use global pink */
+                color: white;
+                border-radius: 50px;
+                font-size: 13px;
+                font-weight: 700;
+                text-transform: uppercase;
+                margin-bottom: 25px;
+                letter-spacing: 1px;
+                box-shadow: 0 5px 15px rgba(255, 61, 109, 0.4);
+            }
+
+            .story-text {
+                font-size: 28px;
+                font-weight: 600;
+                line-height: 1.6;
+                margin-bottom: 50px;
+                color: #ffffff;
+                font-family: 'Outfit', sans-serif;
+                text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            }
+
+            .story-actions {
+                display: flex;
+                justify-content: center;
+                gap: 25px;
+            }
+
+            .reaction-btn {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                width: 65px;
+                height: 65px;
+                border-radius: 50%;
+                font-size: 26px;
+                color: white;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .reaction-btn:hover {
+                transform: scale(1.15);
+                background: rgba(255, 255, 255, 0.2);
+                border-color: rgba(255, 255, 255, 0.4);
+            }
+
+            .reaction-btn:active {
+                transform: scale(0.95);
+            }
+
+            .reaction-btn.active {
+                background: var(--primary);
+                color: white;
+                border-color: var(--primary);
+                box-shadow: 0 0 20px rgba(255, 61, 109, 0.5);
+            }
+
+            .reaction-count {
+                font-size: 11px;
+                margin-top: 4px;
+                opacity: 0.9;
+                font-weight: 600;
+            }
+
+            /* Floating Create Button */
+            .fab-create {
+                position: fixed;
+                bottom: 40px;
+                right: 40px;
+                background: var(--primary-gradient);
+                color: white;
+                width: 70px;
+                height: 70px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 28px;
+                box-shadow: 0 10px 25px rgba(255, 61, 109, 0.5);
+                cursor: pointer;
+                z-index: 100;
+                border: none;
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+
+            .fab-create:hover {
+                transform: scale(1.1) rotate(90deg);
+            }
+
+            /* Custom Modal Styling */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                backdrop-filter: blur(8px);
+            }
+
+            .modal-card {
+                background: #1E293B;
+                padding: 40px;
+                border-radius: 25px;
+                width: 90%;
+                max-width: 500px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                animation: slideUp 0.4s ease;
+            }
+
+            @keyframes slideUp {
+                from {
+                    transform: translateY(20px);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            .modal-title {
+                color: white;
+                font-size: 24px;
+                margin-bottom: 25px;
+                text-align: center;
+                font-weight: 700;
+            }
+
+            .modal-input,
+            .modal-select {
+                width: 100%;
+                background: rgba(255, 255, 255, 0.05);
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 16px;
+                color: white;
+                font-size: 16px;
+                margin-bottom: 20px;
+                transition: all 0.2s;
+            }
+
+            .modal-input:focus,
+            .modal-select:focus {
+                outline: none;
+                border-color: var(--primary);
+                background: rgba(255, 255, 255, 0.08);
+            }
+
+            .modal-select option {
+                background: #1E293B;
+                color: white;
+            }
+
+            .btn-submit {
+                width: 100%;
+                background: var(--primary-gradient);
+                color: white;
+                border: none;
+                padding: 16px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 16px;
+                cursor: pointer;
+                transition: transform 0.2s;
+                margin-top: 10px;
+            }
+
+            .btn-submit:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px -5px rgba(255, 61, 109, 0.4);
+            }
+
+            .btn-cancel {
+                background: transparent;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: white;
+            }
+
+            .verified-badge {
+                background: rgba(255, 215, 0, 0.2);
+                color: #FFD700;
+                border: 1px solid rgba(255, 215, 0, 0.3);
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+                margin-top: 10px;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+            .feed-mode-container {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 100;
+                display: flex;
+                gap: 10px;
+                background: rgba(0, 0, 0, 0.4);
+                padding: 5px;
+                border-radius: 50px;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .feed-toggle {
+                padding: 8px 20px;
+                border-radius: 50px;
+                text-decoration: none;
+                font-size: 14px;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.6);
+                transition: all 0.3s;
+            }
+
+            .feed-toggle.active {
+                background: var(--primary);
+                color: white;
+            }
+
+            .feed-toggle:hover:not(.active) {
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+            }
+        </style>
+
+    <%- include('partials/sidebar') %>
+
+        <div class="main-content">
+            <!-- Feed Mode Toggle (Batch 3) -->
+            <div class="feed-mode-container">
+                <a href="/confessions?feed=recent" class="feed-toggle <%= !isRandom ? 'active' : '' %>">
+                    Recent
+                </a>
+                <a href="/confessions?feed=random" class="feed-toggle <%= isRandom ? 'active' : '' %>">
+                    Discover
+                </a>
+            </div>
+
+            <div class="stories-container" id="storiesContainer">
+                <% if (confessions && confessions.length> 0) { %>
+                    <% confessions.forEach(confession=> { %>
+                        <div class="story-slide">
+                            <div class="story-card">
+                                <span class="story-category">
+                                    <%= confession.category || 'General' %>
+                                </span>
+
+                                <div class="story-text">"<%= confession.content %>"</div>
+
+                                <div class="story-actions">
+                                    <button class="reaction-btn"
+                                        onclick="react('<%= confession.confession_id %>', 'heart', this)">
+                                        <i class="fas fa-heart"></i>
+                                        <span class="reaction-count">
+                                            <%= confession.heart_count || 0 %>
+                                        </span>
+                                    </button>
+                                    <button class="reaction-btn"
+                                        onclick="react('<%= confession.confession_id %>', 'fire', this)">
+                                        <i class="fas fa-fire"></i>
+                                        <span class="reaction-count">
+                                            <%= confession.fire_count || 0 %>
+                                        </span>
+                                    </button>
+                                    <button class="reaction-btn"
+                                        onclick="react('<%= confession.confession_id %>', 'laugh', this)">
+                                        <i class="fas fa-laugh-squint"></i>
+                                        <span class="reaction-count">
+                                            <%= confession.smile_count || 0 %>
+                                        </span>
+                                    </button>
+                                    <button class="reaction-btn"
+                                        onclick="react('<%= confession.confession_id %>', 'downvote', this)">
+                                        <i class="fas fa-thumbs-down"></i>
+                                        <span class="reaction-count">
+                                            <%= confession.downvote_count || 0 %>
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <div
+                                    style="margin-top: 30px; font-size: 13px; color: rgba(255,255,255,0.4); display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                                    <span>
+                                        <%= new Date(confession.created_at).toLocaleDateString() %> • Anonymous
+                                    </span>
+                                    <span class="verified-badge"><i class="fas fa-check-circle"></i> AI Filtered</span>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                            <% } else { %>
+                                <div class="story-slide">
+                                    <div class="story-card">
+                                        <div class="story-text">No confessions yet.<br>Be the first to share your
+                                            secret!</div>
+                                        <button class="btn-submit" onclick="openModal()"
+                                            style="width: auto; padding-left: 30px; padding-right: 30px;">
+                                            Share Secret
+                                        </button>
+                                    </div>
+                                </div>
+                                <% } %>
+            </div>
+        </div>
+
+        <!-- Create Button -->
+        <button class="fab-create" onclick="openModal()">
+            <i class="fas fa-pen-nib"></i>
+        </button>
+
+        <!-- Modal -->
+        <div id="confessModal" class="modal-overlay">
+            <div class="modal-card">
+                <h3 class="modal-title">Share a Secret</h3>
+                <form id="confessForm">
+                    <select id="category" class="modal-select">
+                        <option value="general">General</option>
+                        <option value="love">Crushes & Love</option>
+                        <option value="exam">Academic & Exams</option>
+                        <option value="rant">Rants</option>
+                        <option value="funny">Funny</option>
+                        <option value="gossip">Campus Tea 🍵</option>
+                    </select>
+
+                    <textarea id="content" class="modal-input" rows="5"
+                        placeholder="Type your confession anonymously..." required></textarea>
+
+                    <p
+                        style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 25px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-shield-alt" style="color: var(--primary);"></i>
+                        Your identity is hidden. Content is AI-moderated.
+                    </p>
+
+                    <div style="display: flex; gap: 15px;">
+                        <button type="button" class="btn-submit btn-cancel" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn-submit">Post Secret</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script src="/js/apiClient.js"></script>
+        <script>
+            function openModal() {
+                document.getElementById('confessModal').style.display = 'flex';
+            }
+
+            function closeModal() {
+                document.getElementById('confessModal').style.display = 'none';
+            }
+
+            // Close on outside click
+            window.onclick = function (event) {
+                if (event.target.classList.contains('modal-overlay')) {
+                    closeModal();
+                }
+            }
+
+            document.getElementById('confessForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const content = document.getElementById('content').value;
+                const category = document.getElementById('category').value;
+                const btn = e.target.querySelector('button[type="submit"]');
+                const originalText = btn.innerText;
+
+                btn.innerText = 'Posting...';
+                btn.disabled = true;
+
+                try {
+                    // Use fetch directly with token
+                    const token = getCookie('sparkleToken');
+                    const res = await fetch('/api/confessions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ content, category })
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        // Show success animation or alert
+                        alert('Confession posted anonymously! 🎭');
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Failed to post.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Error posting confession. Please try again.');
+                } finally {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            });
+
+            async function react(id, type, btn) {
+                try {
+                    // Optimistic UI update
+                    btn.classList.add('active');
+
+                    // Add simple animation
+                    const icon = btn.querySelector('i');
+                    icon.style.transform = 'scale(1.4)';
+                    setTimeout(() => icon.style.transform = 'scale(1)', 200);
+
+                    const countSpan = btn.querySelector('.reaction-count');
+                    if (countSpan) {
+                        let count = parseInt(countSpan.innerText) || 0;
+                        countSpan.innerText = count + 1;
+                    }
+
+                    const token = getCookie('sparkleToken');
+                    await fetch(`/api/confessions/${id}/react`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ type })
+                    });
+
+                } catch (err) {
+                    console.error('Reaction failed:', err);
+                    // Revert style if failed (optional, keeping it simple)
+                }
+            }
+
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            }
+        </script>
+</body>
+
+</html>

@@ -1,0 +1,71 @@
+<%- include('../partials/head', { title: title }) %>
+<link rel="stylesheet" href="/css/marketplace.css">
+
+<body class="marketplace-page">
+    <%- include('../partials/sidebar') %>
+
+    <div class="marketplace-container" style="display: block; width: 100%; max-width: 1200px; padding: 20px;">
+        <div class="header glass" style="margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; border-radius: 50px;">
+            <a href="/marketplace" class="btn btn-outline" style="text-decoration: none; padding: 8px 20px; border-radius: 50px;">
+                <i class="fas fa-arrow-left"></i> Back to Market
+            </a>
+            <h2 style="font-weight: 900; margin: 0; font-size: 1.2rem;"><i class="fas fa-bookmark" style="color: #6366f1;"></i> My Wishlist</h2>
+            <div style="width: 100px;"></div> <!-- Spacer -->
+        </div>
+
+        <% if (listings && listings.length > 0) { %>
+            <div class="wishlist-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                <% listings.forEach(listing => { %>
+                    <div class="listing-card card glass" style="border-radius: 20px; overflow: hidden; position: relative;">
+                        <button class="remove-wishlist" onclick="toggleWishlist('<%= listing.listing_id %>', event)" 
+                                style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #6366f1; cursor: pointer; z-index: 10;">
+                            <i class="fas fa-bookmark"></i>
+                        </button>
+                        <div onclick="window.location.href='/marketplace/listings/<%= listing.listing_id %>'" style="cursor: pointer;">
+                            <div style="height: 180px; overflow: hidden; background: #eee;">
+                                <img src="<%= listing.image_url || '/images/default-listing.jpg' %>" style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <div style="padding: 15px;">
+                                <h4 style="margin: 0; font-size: 1rem; font-weight: 800;"><%= listing.title %></h4>
+                                <div style="font-weight: 900; color: var(--primary); margin-top: 5px;">KES <%= parseFloat(listing.price).toLocaleString() %></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                        <i class="fas fa-map-marker-alt"></i> <%= listing.campus || 'Main Campus' %>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" style="border-radius: 10px; padding: 5px 12px; font-size: 0.8rem;">View</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div style="text-align: center; padding: 100px 20px; color: var(--text-muted);">
+                <i class="fas fa-heart-broken" style="font-size: 4rem; margin-bottom: 20px; display: block; opacity: 0.3;"></i>
+                <h3 style="font-weight: 800;">Your wishlist is empty</h3>
+                <p>Save items you like to keep track of them here.</p>
+                <a href="/marketplace" class="btn btn-primary" style="margin-top: 15px; border-radius: 50px; padding: 10px 30px;">Start Shopping</a>
+            </div>
+        <% } %>
+    </div>
+
+    <script>
+        async function toggleWishlist(id, event) {
+            if (event) event.stopPropagation();
+            try {
+                const response = await fetch(`/api/marketplace/listings/${id}/wishlist`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>' })
+                });
+                const data = await response.json();
+                if (data.success && !data.wishlisted) {
+                    // Remove item from UI
+                    event.target.closest('.listing-card').style.opacity = '0';
+                    setTimeout(() => window.location.reload(), 300);
+                }
+            } catch (e) { console.error(e); }
+        }
+    </script>
+</body>
+</html>

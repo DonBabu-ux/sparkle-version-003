@@ -1,0 +1,218 @@
+<%- include('partials/head', { title: 'Discover Groups' }) %>
+<link rel="stylesheet" href="/css/groups-proto.css">
+<style>
+    /* Premium Dashboard Compatibility */
+    #mainContent { margin-left: 280px; min-height: 100vh; padding: 20px; }
+    @media (max-width: 768px) { #mainContent { margin-left: 0; } }
+    
+    .create-group-fab {
+        position: fixed; bottom: 30px; right: 30px; 
+        width: 60px; height: 60px; border-radius: 50%;
+        background: var(--sparkle-purple-grad); color: white;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 10px 25px rgba(233, 30, 99, 0.3);
+        cursor: pointer; z-index: 100; transition: 0.3s;
+    }
+    .create-group-fab:hover { transform: scale(1.1) rotate(90deg); }
+</style>
+
+<body class="proto-body">
+    <%- include('partials/sidebar') %>
+
+    <div id="mainContent">
+        <div class="proto-container">
+            <!-- Header Section -->
+            <div class="discovery-header">
+                <div class="discovery-header-row">
+                    <h1>Discover Communities</h1>
+                    <button class="btn-sparkle" style="flex:none; padding:12px 22px;" onclick="openCreateGroupModal()">
+                        <i class="fas fa-plus"></i> Create Group
+                    </button>
+                </div>
+
+                <input type="text" class="search-bar-glass" id="groupSearch" placeholder="Search groups by name or topic...">
+
+                <div class="tab-group">
+                    <a href="/groups" class="tab-btn <%= !activeFilter || activeFilter === 'all' ? 'active' : '' %>">All Groups</a>
+                    <a href="/groups?filter=my" class="tab-btn <%= activeFilter === 'my' ? 'active' : '' %>">My Groups</a>
+                    <a href="/groups?filter=managed" class="tab-btn <%= activeFilter === 'managed' ? 'active' : '' %>">Managed</a>
+                </div>
+            </div>
+
+            <!-- Groups Grid -->
+            <div class="group-grid" id="groupsGrid">
+                <% if (initialGroups && initialGroups.length > 0) { %>
+                    <% initialGroups.forEach(group => { %>
+                        <div class="glass-card group-discovery-card" onclick="window.location.href='/groups/<%= group.group_id %>'">
+                            <div class="card-cover">
+                                <img src="<%= group.cover_image || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400&q=80' %>" alt="Cover">
+                                <div class="card-icon-overlay">
+                                    <img src="<%= group.icon_url || '/uploads/avatars/default.png' %>" alt="Icon">
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="card-category"><%= group.category || 'General' %></div>
+                                <h3 class="card-name"><%= group.name %></h3>
+                                <div class="card-members"><%= group.member_count || 0 %> Members</div>
+                                <p class="card-bio"><%= group.description %></p>
+                                <div class="card-actions">
+                                    <% if (group.user_membership_status === 'active') { %>
+                                        <button class="btn-sparkle secondary" disabled>Joined</button>
+                                    <% } else if (group.user_request_status === 'pending') { %>
+                                        <button class="btn-sparkle secondary" disabled>Requested</button>
+                                    <% } else { %>
+                                        <button class="btn-sparkle" onclick="event.stopPropagation(); joinGroup('<%= group.group_id %>')">Join Group</button>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                    <div id="searchEmptyState" style="display:none; grid-column:1/-1; text-align:center; padding:80px 0; color:#64748b;">
+                        <i class="fas fa-search" style="font-size:48px; opacity:0.2; margin-bottom:20px;"></i>
+                        <h3>No groups match your search.</h3>
+                        <p>Try a different keyword or explore all communities.</p>
+                    </div>
+                <% } else { %>
+                    <div style="grid-column: 1/-1; text-align:center; padding:100px; color:#64748b;">
+                        <i class="fas fa-users-slash fa-4x" style="opacity:0.2; margin-bottom:20px;"></i>
+                        <h3>No groups found matching your criteria.</h3>
+                        <p>Be the first to create a community on Sparkle!</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE GROUP MODAL -->
+    <div class="proto-modal" id="createGroupModalWrapper">
+        <div class="glass-card p-modal-content" style="max-width: 500px; height: auto; padding: 0; overflow: hidden; border-radius: 20px;">
+            <div class="modal-header-premium" style="padding: 24px 24px 10px; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-weight: 900; margin: 0; font-size: 22px; color: #1e293b;">Launch Community</h2>
+                <button class="close-modal-btn" onclick="closeCreateModal()" style="background: none; border: none; font-size: 24px; color: #64748b; cursor: pointer;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 0 24px 24px;">
+                <form id="createGroupForm">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 1px; margin-bottom: 8px;">Community Name</label>
+                        <input type="text" id="gName" class="glass-input" required placeholder="Ex: Sparkle Creators..." style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.5); outline: none; transition: 0.3s; font-family: inherit;">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 1px; margin-bottom: 8px;">Category</label>
+                            <select id="gCategory" class="glass-input" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.5); outline: none; font-family: inherit; cursor: pointer;">
+                                <option value="Campus">Campus</option>
+                                <option value="Study">Study</option>
+                                <option value="Sports">Sports</option>
+                                <option value="Social">Social</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 1px; margin-bottom: 8px;">Privacy</label>
+                            <select id="gPrivacy" class="glass-input" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.5); outline: none; font-family: inherit; cursor: pointer;">
+                                <option value="public">Public</option>
+                                <option value="private">Private</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 1px; margin-bottom: 8px;">Description</label>
+                        <textarea id="gDesc" class="glass-input" rows="3" placeholder="Tell us what this group is about..." style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.5); outline: none; resize: none; font-family: inherit;"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-sparkle" style="width: 100%; padding: 16px; font-size: 16px; box-shadow: 0 10px 20px rgba(233, 30, 99, 0.2);">Create Community</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/dashboardAPI.js"></script>
+    <script>
+        // Live search filter
+        const searchInput = document.getElementById('groupSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const q = this.value.toLowerCase().trim();
+                const cards = document.querySelectorAll('.group-discovery-card');
+                let visible = 0;
+                cards.forEach(function(card) {
+                    const name = (card.querySelector('.card-name') || {}).textContent || '';
+                    const desc = (card.querySelector('.card-bio') || {}).textContent || '';
+                    const cat  = (card.querySelector('.card-category') || {}).textContent || '';
+                    const match = !q || name.toLowerCase().includes(q) || desc.toLowerCase().includes(q) || cat.toLowerCase().includes(q);
+                    card.parentElement.style.display = match ? '' : 'none';
+                    if (match) visible++;
+                });
+                // Show empty state if nothing visible
+                var empty = document.getElementById('searchEmptyState');
+                if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+            });
+        }
+
+        function openCreateGroupModal() {
+            document.getElementById('createGroupModalWrapper').style.display = 'flex';
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createGroupModalWrapper').style.display = 'none';
+        }
+
+        // Close on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('createGroupModalWrapper');
+            if (event.target == modal) {
+                closeCreateModal();
+            }
+        }
+
+        // Close on ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCreateModal();
+        });
+
+        async function joinGroup(id) {
+            try {
+                const res = await DashboardAPI.request('/groups/' + id + '/join', { method: 'POST' });
+                if (res.success) {
+                    location.reload();
+                } else {
+                    alert(res.error || 'Failed to join');
+                }
+            } catch (err) { alert(err.message); }
+        }
+
+        document.getElementById('createGroupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerText = 'Launching...';
+
+            const payload = {
+                name: document.getElementById('gName').value,
+                category: document.getElementById('gCategory').value,
+                description: document.getElementById('gDesc').value,
+                is_public: document.getElementById('gPrivacy').value === 'public'
+            };
+
+            try {
+                const res = await DashboardAPI.request('/groups', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                if (res.success) {
+                    window.location.href = '/groups/' + res.id;
+                } else {
+                    alert(res.error || 'Creation failed');
+                    btn.disabled = false;
+                    btn.innerText = 'Create Community';
+                }
+            } catch (err) {
+                alert('Request failed');
+                btn.disabled = false;
+                btn.innerText = 'Create Community';
+            }
+        });
+    </script>
+</body>
+</html>

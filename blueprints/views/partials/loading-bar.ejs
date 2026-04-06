@@ -1,0 +1,43 @@
+<!-- Page Loading Bar (Facebook-style) -->
+<div id="page-loading-bar"></div>
+
+<script>
+// Loading bar functionality
+(function() {
+    const loadingBar = document.getElementById('page-loading-bar');
+    
+    // Start loading on page load
+    function startLoading() {
+        loadingBar.style.width = '0%';
+        loadingBar.classList.add('loading');
+        loadingBar.style.opacity = '1';
+    }
+    
+    // Complete loading
+    function completeLoading() {
+        loadingBar.classList.remove('loading');
+        loadingBar.classList.add('complete');
+        loadingBar.style.width = '100%';
+        
+        setTimeout(() => {
+            loadingBar.style.opacity = '0';
+            loadingBar.classList.remove('complete');
+        }, 300);
+    }
+    
+    // Show loading on navigation
+    window.addEventListener('beforeunload', startLoading);
+    
+    // Complete loading when page is ready
+    if (document.readyState === 'loading') {
+        startLoading();
+        document.addEventListener('DOMContentLoaded', completeLoading);
+    } else {
+        completeLoading();
+    }
+    
+    // Also handle for dynamic content loading
+    window.showLoadingBar = startLoading;
+    window.hideLoadingBar = completeLoading;
+})();
+</script>

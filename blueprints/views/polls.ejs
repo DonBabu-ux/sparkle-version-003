@@ -1,0 +1,105 @@
+<%- include('partials/head', { title: 'Campus Polls' }) %>
+
+
+    <body>
+        <%- include('partials/sidebar') %>
+
+            <!-- Main Content Container -->
+            <div class="container" id="mainContent">
+                <!-- Polls Page -->
+                <div id="pollsPage" class="page active">
+                    <div class="header glass">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="hamburger-btn" onclick="window.location.href='/'">
+                                <i class="fas fa-chevron-left"></i>
+                            </div>
+                            <div class="logo-text">Campus Polls</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="openCreatePollModal()" style="border-radius: 14px;">
+                            <i class="fas fa-plus"></i> <span class="d-none d-sm-inline">New Poll</span>
+                        </button>
+                    </div>
+
+                    <div class="premium-tabs">
+                        <button class="premium-tab-btn active" onclick="window.location.href='/polls?campus=all'">All
+                            Campuses</button>
+                        <button class="premium-tab-btn"
+                            onclick="window.location.href='/polls?campus=' + (localStorage.getItem('sparkleUserCampus') || 'My Campus')">My
+                            Campus</button>
+                    </div>
+
+                    <div class="polls-grid" id="pollsContent" style="padding-bottom: 80px;">
+                        <% if (typeof initialPolls !=='undefined' && initialPolls.length> 0) { %>
+                            <% initialPolls.forEach(poll=> { %>
+                                <div class="poll-card"
+                                    style="background: white; border-radius: 20px; padding: 24px; box-shadow: var(--shadow); margin-bottom: 15px;">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                                        <div>
+                                            <h3
+                                                style="margin: 0 0 5px 0; font-size: 18px; font-weight: 700; color: var(--text-light);">
+                                                <%= poll.question %>
+                                            </h3>
+                                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                                By <%= poll.is_anonymous ? 'Anonymous' : (poll.creator_name || '@' +
+                                                    poll.username) %> • <%= new
+                                                        Date(poll.created_at).toLocaleDateString() %>
+                                            </div>
+                                        </div>
+                                        <div class="poll-card-votes-badge"
+                                            style="background: #f1f5f9; color: #64748b; padding: 4px 10px; border-radius: 10px; font-weight: 600; font-size: 11px;">
+                                            <%= poll.total_votes || 0 %> votes
+                                        </div>
+                                    </div>
+
+                                    <div class="poll-options">
+                                        <% if (poll.options && poll.options.length> 0) {
+                                            // Show only first 2 options in list view
+                                            poll.options.slice(0, 2).forEach(opt => {
+                                            const percentage = poll.total_votes > 0 ? Math.round((opt.vote_count /
+                                            poll.total_votes) * 100) : 0;
+                                            %>
+                                            <div class="poll-option-row" style="margin-bottom: 8px;">
+                                                <div
+                                                    style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                                                    <span style="font-weight: 600;">
+                                                        <%= opt.option_text %>
+                                                    </span>
+                                                    <span>
+                                                        <%= percentage %>%
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    style="background: #f1f5f9; height: 6px; border-radius: 3px; overflow: hidden;">
+                                                    <div
+                                                        style="background: var(--primary); --p: <%= percentage %>%; width: var(--p); height: 100%;">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% }); } %>
+                                    </div>
+
+                                    <button class="btn btn-outline-primary btn-sm"
+                                        style="margin-top: 15px; width: 100%; border-radius: 12px;"
+                                        onclick="window.location.href='/polls/<%= poll.poll_id %>'">Vote & View
+                                        All</button>
+                                </div>
+                                <% }); %>
+                                    <% } else { %>
+                                        <div class="discover-empty-state">
+                                            <i class="fas fa-poll"></i>
+                                            <h4>No active polls</h4>
+                                            <p>Check back later or create your own poll!</p>
+                                            <button class="btn btn-primary" onclick="openCreatePollModal()">Create
+                                                Poll</button>
+                                        </div>
+                                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <%- include('partials/dashboard-modals') %>
+                    <script src="/js/dashboardAPI.js"></script>
+    </body>
+
+    </html>

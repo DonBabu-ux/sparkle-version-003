@@ -1,0 +1,9 @@
+{
+	"appId": "com.sparkle.app",
+	"appName": "Sparkle",
+	"webDir": "public",
+	"server": {
+		"url": "https://sparkle-version-003-1-f4v3.onrender.com",
+		"cleartext": true
+	}
+}

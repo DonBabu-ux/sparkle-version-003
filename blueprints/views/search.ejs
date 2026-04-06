@@ -1,0 +1,362 @@
+<%- include('partials/head', { title: 'Search Results' }) %>
+
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --accent: #6366f1;
+    }
+
+    body {
+        background: #f8fafc;
+        min-height: 100vh;
+    }
+
+    .search-page-container {
+        max-width: 800px;
+        margin: 90px auto 40px;
+        padding: 0 20px;
+    }
+
+    .search-hero {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .search-hero h1 {
+        font-size: 32px;
+        font-weight: 850;
+        color: var(--text-main);
+        margin-bottom: 12px;
+    }
+
+    .search-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 30px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        scrollbar-width: none;
+    }
+
+    .search-tabs::-webkit-scrollbar { display: none; }
+
+    .search-tab {
+        padding: 10px 24px;
+        border-radius: 25px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        color: var(--text-muted);
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        white-space: nowrap;
+    }
+
+    .search-tab:hover {
+        background: #f1f5f9;
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .search-tab.active {
+        background: var(--primary-gradient);
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+    }
+
+    .results-section {
+        margin-bottom: 40px;
+    }
+
+    .section-title {
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+    .result-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .result-item {
+        background: #fff;
+        border-radius: 20px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #f1f5f9;
+    }
+
+    .result-item:hover {
+        transform: translateY(-3px) scale(1.01);
+        box-shadow: 0 12px 25px rgba(0,0,0,0.06);
+        border-color: var(--accent);
+    }
+
+    .result-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        object-fit: cover;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: var(--accent);
+        flex-shrink: 0;
+    }
+
+    .avatar-circle { border-radius: 50% !important; }
+
+    .result-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .result-title {
+        font-weight: 800;
+        font-size: 17px;
+        color: var(--text-main);
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .result-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+
+    .result-desc {
+        font-size: 14px;
+        color: #475569;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.5;
+    }
+
+    .type-badge {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        background: #f1f5f9;
+        color: var(--text-muted);
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .no-results i {
+        font-size: 50px;
+        color: #cbd5e1;
+        margin-bottom: 20px;
+    }
+
+    .no-results h3 {
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .no-results p {
+        color: var(--text-muted);
+    }
+
+    .loading-shimmer {
+        height: 100px;
+        background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 20px;
+        margin-bottom: 16px;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+</style>
+
+<div id="mainContent">
+    <%- include('partials/navbar') %>
+
+    <div class="search-page-container">
+        <div class="search-hero">
+            <h1 id="searchTitle">Search Results</h1>
+            <p id="resultCount" style="color: var(--text-muted); font-weight: 600;">Searching for masterpieces...</p>
+        </div>
+
+        <div class="search-tabs">
+            <div class="search-tab active" data-type="all">All</div>
+            <div class="search-tab" data-type="users">People</div>
+            <div class="search-tab" data-type="posts">Posts</div>
+            <div class="search-tab" data-type="marketplace">Mall</div>
+            <div class="search-tab" data-type="groups">hubs</div>
+            <div class="search-tab" data-type="clubs">Clubs</div>
+        </div>
+
+        <div id="resultsContent">
+            <!-- Shimmers while loading -->
+            <div class="loading-shimmer"></div>
+            <div class="loading-shimmer"></div>
+            <div class="loading-shimmer"></div>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/bottom-nav') %>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const query = urlParams.get('q') || '';
+    let currentType = 'all';
+
+    document.getElementById('searchTitle').innerText = query ? `Results for "${query}"` : 'Search Sparkle';
+
+    async function performSearch() {
+        if (!query) {
+            renderEmpty('Try typing something to search the sparkle world!');
+            return;
+        }
+
+        try {
+            const resultsDiv = document.getElementById('resultsContent');
+            const countDiv = document.getElementById('resultCount');
+            
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=${currentType}`);
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const results = data.data.results;
+                let html = '';
+                let total = 0;
+
+                if (currentType === 'all') {
+                    total = data.data.total;
+                    const sections = [
+                        { id: 'users', title: 'People', icon: 'fa-users' },
+                        { id: 'posts', title: 'Posts', icon: 'fa-file-alt' },
+                        { id: 'marketplace', title: 'Marketplace', icon: 'fa-shopping-bag' },
+                        { id: 'groups', title: 'hubs', icon: 'fa-network-wired' },
+                        { id: 'clubs', title: 'Clubs', icon: 'fa-shield-alt' }
+                    ];
+
+                    sections.forEach(sec => {
+                        const items = results[sec.id];
+                        if (items && items.length > 0) {
+                            html += `<div class="results-section">
+                                <div class="section-title"><i class="fas ${sec.icon}"></i> ${sec.title}</div>
+                                <div class="result-list">
+                                    ${items.map(item => renderItem(item)).join('')}
+                                </div>
+                            </div>`;
+                        }
+                    });
+                } else {
+                    total = results.length;
+                    html = `<div class="result-list">
+                        ${results.map(item => renderItem(item)).join('')}
+                    </div>`;
+                }
+
+                resultsDiv.innerHTML = html || renderEmpty('No results found for this category.');
+                countDiv.innerText = `${total} match${total === 1 ? '' : 'es'} found`;
+            }
+        } catch (error) {
+            console.error('Search failed:', error);
+            renderEmpty('Something went wrong. Please try again later.');
+        }
+    }
+
+    function renderItem(item) {
+        const routes = { 
+            user: `/profile/${item.id}`, 
+            marketplace_item: `/marketplace/item/${item.id}`,
+            post: `/post/${item.id}`,
+            group: `/groups/${item.id}`,
+            club: `/clubs/${item.id}`,
+            moment: `/moments`
+        };
+        const url = routes[item.type] || '#';
+        const isCircle = item.type === 'user';
+        
+        return `
+            <a href="${url}" class="result-item">
+                <div class="result-avatar ${isCircle ? 'avatar-circle' : ''}">
+                    ${item.image ? `<img src="${item.image}" class="${isCircle ? 'avatar-circle' : ''}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fas ${getIcon(item.type)}"></i>`}
+                </div>
+                <div class="result-content">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div class="result-title">${item.title || 'Untitled'}</div>
+                        <span class="type-badge">${item.type.replace('_',' ')}</span>
+                    </div>
+                    ${item.subtitle ? `<div class="result-subtitle">${item.subtitle}</div>` : ''}
+                    ${item.description ? `<div class="result-desc">${item.description}</div>` : ''}
+                </div>
+            </a>
+        `;
+    }
+
+    function getIcon(type) {
+        const icons = { user: 'fa-user', post: 'fa-file-alt', marketplace_item: 'fa-tag', group: 'fa-users', club: 'fa-shield-alt', moment: 'fa-play-circle' };
+        return icons[type] || 'fa-search';
+    }
+
+    function renderEmpty(msg) {
+        return `<div class="no-results">
+            <i class="fas fa-search-minus"></i>
+            <h3>No spark found</h3>
+            <p>${msg}</p>
+        </div>`;
+    }
+
+    // Tabs functionality
+    document.querySelectorAll('.search-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelector('.search-tab.active').classList.remove('active');
+            this.classList.add('active');
+            currentType = this.dataset.type;
+            performSearch();
+        });
+    });
+
+    performSearch();
+</script>
+</body>
+</html>

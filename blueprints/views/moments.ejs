@@ -1,0 +1,1868 @@
+<%- include('partials/head', { title: 'Sparkle - Moments' }) %>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    <script>
+        window.__INITIAL_DATA__ = {
+            moments: <%- JSON.stringify(initialMoments || []) %>,
+            trendingHashtags: <%- JSON.stringify(trendingHashtags || []) %>,
+            suggestedUsers: <%- JSON.stringify(suggestedUsers || []) %>,
+            userInterests: <%- JSON.stringify(userInterests || []) %>,
+            user: <%- JSON.stringify(user || {}) %>,
+            env: <%- JSON.stringify(env || {}) %>
+        };
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #000;
+            --text-primary: #fff;
+            --accent-pink: #FF3D6D;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .app-container {
+            position: relative;
+            height: 100vh;
+            width: 100%;
+            max-width: 100vw; /* EDGE TO EDGE */
+            margin: 0 auto;
+            background: var(--bg-primary);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 600px) {
+            .app-container {
+                max-width: 450px;
+                border-left: 1px solid var(--glass-border);
+                border-right: 1px solid var(--glass-border);
+            }
+        }
+
+        /* Main Feed - Vertical Scroller */
+        .feed-scroller {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .feed-scroller::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Video Card */
+        .video-card {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            scroll-snap-align: start;
+            background: #000;
+        }
+
+        .video-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        .video-element {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-info-overlay {
+            position: absolute;
+            bottom: calc(80px + var(--safe-area-inset-bottom));
+            left: 16px;
+            right: 80px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .user-info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-pink);
+            overflow: hidden;
+            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .username {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .follow-btn {
+            font-size: 12px;
+            color: var(--accent-pink);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-block;
+            padding: 4px 0;
+            border: none;
+            background: transparent;
+        }
+
+        .follow-btn.following {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .follow-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* CUSTOM VIDEO CONTROLS (Spec v5 - Pink Theme) */
+        .video-controls {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            display: flex;
+            gap: 40px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .video-card:hover .video-controls, .video-card:active .video-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .video-controls button {
+            background: rgba(0,0,0,0.5);
+            border: none;
+            color: #ff2d55; /* PINK THEME */
+            font-size: 24px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .video-controls button:active {
+            transform: scale(0.9);
+        }
+
+        /* Pink Progress Bar */
+        .video-progress-container {
+            position: absolute;
+            bottom: calc(75px + var(--safe-area-inset-bottom));
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255,255,255,0.2);
+            z-index: 21;
+        }
+        .video-progress-bar {
+            height: 100%;
+            background: #ff2d55;
+            width: 0%;
+        }
+
+        .video-caption {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            margin-top: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .hashtags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .hashtag {
+            font-size: 13px;
+            color: var(--accent-pink);
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            cursor: pointer;
+        }
+
+        .side-actions {
+            position: absolute;
+            right: 12px;
+            bottom: calc(100px + var(--safe-area-inset-bottom));
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .action-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .action-circle {
+            width: 48px;
+            height: 48px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .action-circle:active {
+            transform: scale(0.9);
+        }
+
+        .action-circle.liked {
+            background: rgba(255, 61, 109, 0.2);
+        }
+
+        .action-circle.liked i {
+            color: var(--accent-pink);
+            animation: heartBeat 0.3s ease-out;
+        }
+
+        .action-circle.saved i {
+            color: var(--accent-pink);
+        }
+
+        @keyframes heartBeat {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.3);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .action-count {
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .app-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 30;
+            padding: 12px 16px;
+            padding-top: max(12px, env(safe-area-inset-top));
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 70%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            pointer-events: auto;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: var(--accent-pink);
+            text-shadow: 0 0 20px rgba(255, 61, 109, 0.5);
+        }
+
+        .header-icons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .search-section {
+            position: relative;
+            pointer-events: auto;
+            margin-bottom: 12px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .search-bar:focus-within {
+            background: rgba(0, 0, 0, 0.7);
+            border-color: var(--accent-pink);
+            box-shadow: 0 0 15px rgba(255, 61, 109, 0.3);
+        }
+
+        .search-bar i {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            margin-right: 12px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .search-bar input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .clear-search {
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 4px;
+            display: none;
+        }
+
+        .search-history {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(20, 20, 20, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            margin-top: 8px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            z-index: 40;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .search-history.show {
+            display: block;
+        }
+
+        .categories-wrapper {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            pointer-events: auto;
+            margin-top: 8px;
+            padding-bottom: 8px;
+        }
+
+        .categories-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+
+        .categories-list {
+            display: flex;
+            gap: 10px;
+            padding: 4px 0;
+        }
+
+        .category-pill {
+            font-size: 13px;
+            font-weight: 500;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            padding: 8px 18px;
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .category-pill.active {
+            background: var(--accent-pink);
+            border-color: var(--accent-pink);
+        }
+
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(70px + var(--safe-area-inset-bottom));
+            padding-bottom: var(--safe-area-inset-bottom);
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.8) 70%, transparent 100%);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 25;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 10px;
+            text-decoration: none;
+            transition: color 0.2s;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .nav-item.active {
+            color: #fff;
+        }
+
+        .nav-item i {
+            font-size: 20px;
+        }
+
+        .add-button {
+            width: 45px;
+            height: 30px;
+            background: #fff;
+            color: #000;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .long-press-menu {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(20, 20, 20, 0.98);
+            backdrop-filter: blur(10px);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 20px;
+            padding-bottom: max(20px, var(--safe-area-inset-bottom));
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .long-press-menu.show {
+            transform: translateY(0);
+        }
+
+        .floating-heart {
+            position: fixed;
+            font-size: 80px;
+            color: var(--accent-pink);
+            pointer-events: none;
+            z-index: 200;
+            animation: floatHeart 0.8s ease-out forwards;
+        }
+
+        @keyframes floatHeart {
+            0% {
+                transform: scale(0) rotate(-10deg);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.2) rotate(5deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1) rotate(0);
+                opacity: 0;
+                transform: translateY(-100px);
+            }
+        }
+
+        .toast-notification {
+            position: fixed;
+            bottom: calc(100px + var(--safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            z-index: 60;
+            border: 1px solid var(--accent-pink);
+            box-shadow: 0 4px 15px rgba(255, 61, 109, 0.3);
+            animation: slideUp 0.3s ease-out;
+            white-space: nowrap;
+            max-width: 90%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 61, 109, 0.3);
+            border-top-color: var(--accent-pink);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .skeleton-card {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            scroll-snap-align: start;
+            background: #000;
+        }
+
+        .skeleton-media {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .end-message {
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            gap: 10px;
+            scroll-snap-align: none;
+        }
+
+        .error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 100;
+        }
+
+        .media-error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(20, 20, 20, 0.9);
+            color: rgba(255, 255, 255, 0.5);
+            z-index: 5;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .media-error-overlay i {
+            font-size: 40px;
+            color: var(--accent-pink);
+            margin-bottom: 12px;
+            opacity: 0.7;
+        }
+
+        .media-error-overlay span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        /* COMMENTS DRAWER - PREMIUM SLIDING DRAWER */
+        .comments-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translate(-50%, 100%);
+            width: 100%;
+            max-width: 450px;
+            height: 75vh;
+            background: #121212;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            border: 1px solid var(--glass-border);
+            border-bottom: none;
+        }
+
+        .comments-drawer.open {
+            transform: translate(-50%, 0);
+        }
+
+        .drawer-header {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .drawer-handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            margin: 0 auto 8px;
+        }
+
+        .comments-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scrollbar-width: thin;
+        }
+
+        .comment-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .comment-item.comment-reply {
+            margin-left: 48px;
+            padding-left: 12px;
+            border-left: 2px solid rgba(255, 61, 109, 0.2);
+            margin-top: 12px;
+        }
+
+        .comment-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comment-reply .comment-avatar {
+            width: 28px;
+            height: 28px;
+        }
+
+        .comment-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .comment-author {
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .comment-like-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .comment-like-btn.active {
+            color: var(--accent-pink);
+        }
+
+        .comment-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.95);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .comment-reply .comment-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .comment-footer {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 4px;
+        }
+
+        .comment-date {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .reply-button {
+            background: none;
+            border: none;
+            color: var(--accent-pink);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 0;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .reply-button:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .replies-container {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .comment-input-area {
+            padding: 16px;
+            padding-bottom: max(16px, calc(var(--safe-area-inset-bottom) + 8px));
+            background: #1a1a1a;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .comment-input-area input {
+            flex: 1;
+            background: #2a2a2a;
+            border: 1px solid transparent;
+            border-radius: 25px;
+            padding: 12px 18px;
+            color: #fff;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .comment-input-area input:focus {
+            border-color: var(--accent-pink);
+        }
+
+        .comment-send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-pink);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .comment-send-btn:active {
+            transform: scale(0.9);
+        }
+        
+        .overlay-dim {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 90;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .overlay-dim.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+
+    <div class="app-container">
+        <!-- Main Feed -->
+        <div class="feed-scroller" id="feedContainer"></div>
+
+        <!-- Header -->
+        <div class="app-header">
+            <div class="header-top">
+                <div class="logo">SPARKLE</div>
+                <div class="header-icons">
+                    <div class="header-icon" id="muteBtn">
+                        <i class="fas fa-volume-mute"></i>
+                    </div>
+                    <div class="header-icon" id="backBtn">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="search-section">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search moments..." autocomplete="off">
+                    <i class="fas fa-times-circle clear-search" id="clearSearch"></i>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="categories-wrapper">
+                <div class="categories-list" id="categoryList">
+                    <span class="category-pill active" data-cat="all">All</span>
+                    <span class="category-pill" data-cat="sports">Sports</span>
+                    <span class="category-pill" data-cat="music">Music</span>
+                    <span class="category-pill" data-cat="food">Food</span>
+                    <span class="category-pill" data-cat="travel">Travel</span>
+                    <span class="category-pill" data-cat="tech">Tech</span>
+                    <span class="category-pill" data-cat="fashion">Fashion</span>
+                    <span class="category-pill" data-cat="dance">Dance</span>
+                    <span class="category-pill" data-cat="fitness">Fitness</span>
+                    <span class="category-pill" data-cat="gaming">Gaming</span>
+                    <span class="category-pill" data-cat="lifestyle">Lifestyle</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <a href="/dashboard" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="/explore" class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>Discover</span>
+            </a>
+            <a href="/moments/create" class="nav-item active" id="createMomentBtn" style="text-decoration:none;">
+                <div class="add-button"><i class="fas fa-plus"></i></div>
+            </a>
+            <a href="/notifications" class="nav-item">
+                <i class="fas fa-heart"></i>
+                <span>Activity</span>
+            </a>
+            <a href="/profile" class="nav-item">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </div>
+
+        <!-- Comments Drawer -->
+        <div class="overlay-dim" id="commentsOverlay"></div>
+        <div class="comments-drawer" id="commentsDrawer">
+            <div class="drawer-header">
+                <div style="flex: 1"></div>
+                <h4 style="flex: 2; text-align: center;">Comments</h4>
+                <div style="flex: 1; text-align: right;">
+                    <i class="fas fa-times" id="closeComments" style="cursor: pointer; padding: 8px;"></i>
+                </div>
+            </div>
+            <div class="comments-list" id="commentsList">
+                <!-- Comments will be dynamic -->
+            </div>
+            <form class="comment-input-area" id="commentForm">
+                <input type="text" id="commentInput" placeholder="Add a comment..." autocomplete="off">
+                <button type="submit" class="comment-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Long Press Menu -->
+        <div class="long-press-menu" id="longPressMenu">
+            <div class="menu-header">
+                <h3>Options</h3>
+                <span class="close-menu" id="closeMenu" style="cursor: pointer;">&times;</span>
+            </div>
+            <div class="menu-items" id="menuItems">
+                <!-- Menu items will be dynamically inserted -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            // Get initial data from server
+            const INITIAL_DATA = window.__INITIAL_DATA__ || {
+                moments: [],
+                trendingHashtags: [],
+                suggestedUsers: [],
+                userInterests: [],
+                user: {},
+                env: {}
+            };
+
+            // State management
+            class MomentsApp {
+                constructor() {
+                    this.moments = INITIAL_DATA.moments;
+                    this.filteredMoments = [...this.moments];
+                    this.currentCategory = 'all';
+                    this.currentPage = 1;
+                    this.hasMore = true;
+                    this.isLoading = false;
+                    this.isMuted = true;
+                    this.currentVideoId = null;
+                    this.longPressTimer = null;
+                    this.observer = null;
+                    this.searchHistory = this.loadSearchHistory();
+                    this.seenIds = JSON.parse(localStorage.getItem('momentsSeenIds') || '[]'); // Part 5: Anti-Repetition
+                    this.api = new MomentsAPI(INITIAL_DATA.user?.user_id);
+
+                    this.init();
+                }
+
+                init() {
+                    this.renderFeed(this.filteredMoments);
+                    this.initVideoObserver();
+                    this.setupEventListeners();
+                    this.setupCategories();
+                    this.hideLoadingScreen();
+                }
+
+                loadSearchHistory() {
+                    try {
+                        return JSON.parse(localStorage.getItem('searchHistory')) || [];
+                    } catch {
+                        return [];
+                    }
+                }
+
+                saveSearchHistory() {
+                    localStorage.setItem('searchHistory', JSON.stringify(this.searchHistory.slice(0, 10)));
+                }
+
+                showSkeleton(count = 3) {
+                    const container = document.getElementById('feedContainer');
+                    let skeleton = '';
+                    for (let i = 0; i < count; i++) {
+                        skeleton += `
+                            <div class="skeleton-card">
+                                <div class="skeleton-media"></div>
+                            </div>
+                        `;
+                    }
+                    container.innerHTML = skeleton;
+                }
+
+                hideLoadingScreen() {
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen) {
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => loadingScreen.remove(), 500);
+                    }
+                }
+
+                renderFeed(videos) {
+                    const container = document.getElementById('feedContainer');
+
+                    if (!videos || videos.length === 0) {
+                        container.innerHTML = `
+                            <div class="video-card" style="display: flex; align-items: center; justify-content: center;">
+                                <div style="text-align: center; padding: 40px;">
+                                    <i class="fas fa-video-slash" style="font-size: 60px; color: #FF3D6D; margin-bottom: 20px;"></i>
+                                    <h3 style="margin-bottom: 10px;">No moments found</h3>
+                                    <p style="color: rgba(255,255,255,0.5);">Be the first to create one!</p>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    container.innerHTML = videos.map(video => this.createVideoCard(video)).join('');
+                }
+
+                createVideoCard(video) {
+                    const isLiked = video.is_liked ? 'liked' : '';
+                    const isSaved = video.is_saved ? 'saved' : '';
+                    const tags = video.caption?.match(/#[a-zA-Z0-9_]+/g) || [];
+                    const cleanCaption = video.caption?.replace(/#[a-zA-Z0-9_]+/g, '').trim() || '';
+
+                    return `
+                        <div class="video-card" data-id="${video.moment_id}" data-category="${video.category || 'general'}">
+                            <div class="video-wrapper" 
+                                 ondblclick="app.handleDoubleTap(event, '${video.moment_id}')"
+                                 oncontextmenu="app.handleLongPress(event, '${video.moment_id}')"
+                                 ontouchstart="app.handleTouchStart(event, '${video.moment_id}')"
+                                 ontouchend="app.handleTouchEnd()">
+                                 <video class="video-element" loop playsinline ${this.isMuted ? 'muted' : ''} autoplay preload="auto" poster="/images/video-placeholder.jpg" onerror="app.handleMediaError(this)" ontimeupdate="app.updateProgress(this)">
+                                     <source src="${video.media_url}" type="video/mp4">
+                                 </video>
+                                 <div class="video-controls">
+                                     <button class="rewind" onclick="app.seekVideo(event, -10)"><i class="fas fa-undo"></i></button>
+                                     <button class="pause" onclick="app.togglePlay(event, this)"><i class="fas fa-pause"></i></button>
+                                     <button class="forward" onclick="app.seekVideo(event, 10)"><i class="fas fa-redo"></i></button>
+                                 </div>
+                                 <div class="video-progress-container">
+                                     <div class="video-progress-bar"></div>
+                                 </div>
+                             </div>
+
+                            <div class="video-info-overlay">
+                                <div class="user-info-row" onclick="app.goToProfile('${video.username}')">
+                                    <div class="user-avatar">
+                                        <img src="${video.avatar_url || '/images/default-avatar.jpg'}" alt="${video.username}" loading="lazy" onerror="this.src='/uploads/avatars/default.png'">
+                                    </div>
+                                    <div class="user-details">
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                            <span class="username">@${video.username}</span>
+                                            ${this.getVerifiedBadge(video.user_id)}
+                                        </div>
+                                        <button class="follow-btn ${video.is_following ? 'following' : ''}" 
+                                                onclick="app.toggleFollow(event, '${video.user_id}', this)"
+                                                ${video.user_id === INITIAL_DATA.user?.user_id ? 'disabled' : ''}>
+                                            ${video.is_following ? 'Following' : 'Follow'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="video-caption">${this.escapeHtml(cleanCaption)}</div>
+                                <div class="hashtags">
+                                    ${tags.map(tag => `<span class="hashtag" onclick="app.searchHashtag('${tag}')">${tag}</span>`).join('')}
+                                </div>
+                            </div>
+
+                            <div class="side-actions">
+                                <div class="action-item">
+                                    <div class="action-circle ${isLiked}" onclick="app.toggleLike('${video.moment_id}', this)">
+                                        <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+                                    </div>
+                                    <span class="action-count">${this.formatCount(video.like_count || 0)}</span>
+                                </div>
+                                <div class="action-item" onclick="app.openComments('${video.moment_id}')">
+                                    <div class="action-circle">
+                                        <i class="far fa-comment"></i>
+                                    </div>
+                                    <span class="action-count">${this.formatCount(video.comment_count || 0)}</span>
+                                </div>
+                                <div class="action-item" onclick="app.shareVideo('${video.moment_id}')">
+                                    <div class="action-circle">
+                                        <i class="far fa-paper-plane"></i>
+                                    </div>
+                                    <span class="action-count">${this.formatCount(video.share_count || 0)}</span>
+                                </div>
+                                <div class="action-item">
+                                    <div class="action-circle ${isSaved}" onclick="app.toggleSave('${video.moment_id}', this)">
+                                        <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                getVerifiedBadge(userId) {
+                    const verifiedUsers = ["175a02d1-4707-44cd-a559-13a99cd5c8fe"];
+                    if (verifiedUsers.includes(userId)) {
+                        return `
+                            <span class="verified-badge" title="Verified Account">
+                                <i class="fas fa-check"></i>
+                            </span>
+                        `;
+                    }
+                    return '';
+                }
+
+                escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+
+                formatCount(num) {
+                    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                    return num;
+                }
+
+                showToast(message, duration = 2000) {
+                    const toast = document.createElement('div');
+                    toast.className = 'toast-notification';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 300);
+                    }, duration);
+                }
+
+                initVideoObserver() {
+                    const options = {
+                        threshold: 0.5,
+                        rootMargin: '0px'
+                    };
+
+                    this.observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            const video = entry.target.querySelector('video');
+                            if (!video) return;
+
+                            if (entry.isIntersecting) {
+                                // Part 5: Track Seen ID for anti-repetition
+                                const id = entry.target.dataset.id;
+                                if (id && !this.seenIds.includes(id)) {
+                                    this.seenIds.push(id);
+                                    if (this.seenIds.length > 50) this.seenIds.shift();
+                                    localStorage.setItem('momentsSeenIds', JSON.stringify(this.seenIds));
+                                }
+                                video.play().catch(() => { });
+                            } else {
+                                video.pause();
+                                video.currentTime = 0;
+                            }
+                        });
+                    }, options);
+
+                    document.querySelectorAll('.video-card').forEach(card => {
+                        this.observer.observe(card);
+                    });
+                }
+
+                setupEventListeners() {
+                    // Mute toggle
+                    document.getElementById('muteBtn').addEventListener('click', () => this.toggleMute());
+
+                    // Back button
+                    document.getElementById('backBtn').addEventListener('click', () => window.history.back());
+
+                    // Search
+                    const searchInput = document.getElementById('searchInput');
+                    const clearBtn = document.getElementById('clearSearch');
+
+                    searchInput.addEventListener('input', (e) => {
+                        const query = e.target.value.trim();
+                        clearBtn.style.display = query ? 'block' : 'none';
+                        this.debounce(() => this.filterBySearch(query), 300)();
+                    });
+
+                    searchInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            const query = e.target.value.trim();
+                            if (query) {
+                                this.addToHistory(query);
+                                this.filterBySearch(query);
+                            }
+                        }
+                    });
+
+                    clearBtn.addEventListener('click', () => this.clearSearch());
+
+                    // Close menu
+                    document.getElementById('closeMenu').addEventListener('click', () => this.hideLongPressMenu());
+
+                    // Comments close
+                    document.getElementById('closeComments').addEventListener('click', () => this.hideComments());
+                    document.getElementById('commentsOverlay').addEventListener('click', () => this.hideComments());
+
+                    // Comment form
+                    document.getElementById('commentForm').addEventListener('submit', (e) => this.submitComment(e));
+
+                    // Video click handling
+                    document.addEventListener('click', (event) => {
+                        const videoCard = event.target.closest('.video-card');
+                        if (!videoCard) return;
+
+                        const video = videoCard.querySelector('video');
+                        const isActionBtn = event.target.closest('.action-circle');
+                        const isUserRow = event.target.closest('.user-info-row');
+                        const isHashtag = event.target.closest('.hashtag');
+
+                        if (video && !isActionBtn && !isUserRow && !isHashtag) {
+                            // Video click now handled by custom overlay or pause button
+                        }
+                    });
+                }
+
+                debounce(func, wait) {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                }
+
+                setupCategories() {
+                    document.querySelectorAll('.category-pill').forEach(pill => {
+                        pill.addEventListener('click', async () => {
+                            document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+                            pill.classList.add('active');
+
+                            const category = pill.dataset.cat;
+                            this.currentCategory = category;
+                            this.currentPage = 1;
+
+                            this.showSkeleton(2);
+
+                            try {
+                                const response = await this.api.getStream({
+                                    category,
+                                    page: 1,
+                                    limit: 10
+                                });
+
+                                if (response.moments) {
+                                    this.filteredMoments = response.moments;
+                                    this.renderFeed(this.filteredMoments);
+                                    this.initVideoObserver();
+                                }
+                            } catch (error) {
+                                this.showToast('Failed to load moments');
+                            }
+                        });
+                    });
+                }
+
+                async toggleLike(videoId, element) {
+                    try {
+                        const response = await this.api.sparkMoment(videoId);
+                        const icon = element.querySelector('i');
+                        const countSpan = element.closest('.action-item').querySelector('.action-count');
+
+                        if (response.action === 'liked') {
+                            icon.className = 'fas fa-heart';
+                            element.classList.add('liked');
+                        } else {
+                            icon.className = 'far fa-heart';
+                            element.classList.remove('liked');
+                        }
+
+                        countSpan.textContent = this.formatCount(response.likes);
+                    } catch (error) {
+                        this.showToast('Failed to like moment');
+                    }
+                }
+
+                async toggleSave(videoId, element) {
+                    try {
+                        const response = await this.api.saveMoment(videoId);
+                        const icon = element.querySelector('i');
+
+                        if (response.action === 'saved') {
+                            icon.className = 'fas fa-bookmark';
+                            element.classList.add('saved');
+                            this.showToast('Saved to collection');
+                        } else {
+                            icon.className = 'far fa-bookmark';
+                            element.classList.remove('saved');
+                            this.showToast('Removed from collection');
+                        }
+                    } catch (error) {
+                        this.showToast('Failed to save moment');
+                    }
+                }
+
+                async toggleFollow(event, userId, button) {
+                    event.stopPropagation();
+
+                    if (button.disabled) return;
+
+                    const originalText = button.textContent;
+                    button.disabled = true;
+
+                    try {
+                        const response = await this.api.followUser(userId);
+
+                        if (response.action === 'followed') {
+                            button.textContent = 'Following';
+                            button.classList.add('following');
+                            this.showToast('Followed user');
+                        } else {
+                            button.textContent = 'Follow';
+                            button.classList.remove('following');
+                            this.showToast('Unfollowed user');
+                        }
+                    } catch (error) {
+                        button.textContent = originalText;
+                        this.showToast('Failed to follow user');
+                    } finally {
+                        button.disabled = false;
+                    }
+                }
+
+                handleDoubleTap(event, videoId) {
+                    const heart = document.createElement('i');
+                    heart.className = 'fas fa-heart floating-heart';
+                    heart.style.left = (event.clientX - 40) + 'px';
+                    heart.style.top = (event.clientY - 40) + 'px';
+                    document.body.appendChild(heart);
+
+                    setTimeout(() => heart.remove(), 800);
+
+                    const likeBtn = document.querySelector(`[data-id="${videoId}"] .action-circle:first-child`);
+                    if (likeBtn && !likeBtn.classList.contains('liked')) {
+                        this.toggleLike(videoId, likeBtn);
+                    }
+                }
+
+                handleLongPress(event, videoId) {
+                    event.preventDefault();
+                    this.currentVideoId = videoId;
+                    this.showLongPressMenu(videoId);
+                }
+
+                handleTouchStart(event, videoId) {
+                    this.longPressTimer = setTimeout(() => {
+                        this.currentVideoId = videoId;
+                        this.showLongPressMenu(videoId);
+                    }, 500);
+                }
+
+                handleTouchEnd() {
+                    clearTimeout(this.longPressTimer);
+                }
+
+                seekVideo(event, seconds) {
+                    event.stopPropagation();
+                    const video = event.target.closest('.video-card').querySelector('video');
+                    if (video) video.currentTime += seconds;
+                }
+
+                togglePlay(event, btn) {
+                    event.stopPropagation();
+                    const video = event.target.closest('.video-card').querySelector('video');
+                    if (video) {
+                        if (video.paused) {
+                            video.play();
+                            btn.innerHTML = '<i class="fas fa-pause"></i>';
+                        } else {
+                            video.pause();
+                            btn.innerHTML = '<i class="fas fa-play"></i>';
+                        }
+                    }
+                }
+
+                updateProgress(video) {
+                    const bar = video.closest('.video-wrapper').querySelector('.video-progress-bar');
+                    if (bar && video.duration) {
+                        const progress = (video.currentTime / video.duration) * 100;
+                        bar.style.width = progress + '%';
+                    }
+                }
+
+                handleMediaError(videoElement) {
+                    const wrapper = videoElement.closest('.video-wrapper');
+                    if (wrapper && !wrapper.querySelector('.media-error-overlay')) {
+                        const overlay = document.createElement('div');
+                        overlay.className = 'media-error-overlay';
+                        overlay.innerHTML = `
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Unable to load media<br><small style="opacity: 0.6; font-size: 11px;">External link expired or protected</small></span>
+                        `;
+                        wrapper.appendChild(overlay);
+                        videoElement.style.display = 'none';
+                    }
+                }
+
+                showLongPressMenu(videoId) {
+                    const menu = document.getElementById('longPressMenu');
+                    const menuItems = document.getElementById('menuItems');
+
+                    const items = [
+                        { icon: 'flag', label: 'Report', methodName: 'reportVideo' },
+                        { icon: 'share', label: 'Share', methodName: 'shareVideo' },
+                        { icon: 'download', label: 'Download', methodName: 'downloadVideo' },
+                        { icon: 'eye-slash', label: 'Not interested', methodName: 'hideVideo' },
+                        { icon: 'link', label: 'Copy link', methodName: 'copyLink' }
+                    ];
+
+                    menuItems.innerHTML = items.map(item => `
+                        <div class="menu-item" onclick="app.${item.methodName}('${videoId}')" style="display:flex; align-items:center; gap: 15px; padding: 15px 0; cursor: pointer; color: white;">
+                            <div class="menu-icon" style="width: 24px; text-align: center;"><i class="fas fa-${item.icon}"></i></div>
+                            <span class="menu-label" style="font-size: 16px;">${item.label}</span>
+                        </div>
+                    `).join('');
+
+                    menu.classList.add('show');
+                }
+
+                hideLongPressMenu() {
+                    document.getElementById('longPressMenu').classList.remove('show');
+                }
+
+                reportVideo(videoId) {
+                    this.showToast('Video reported');
+                    this.hideLongPressMenu();
+                }
+
+                async shareVideo(videoId) {
+                    try {
+                        const shareData = await this.api.getShareData(videoId);
+
+                        if (navigator.share) {
+                            await navigator.share({
+                                title: shareData.title,
+                                text: shareData.description,
+                                url: shareData.url
+                            });
+                            this.api.trackShare(videoId);
+                        } else {
+                            navigator.clipboard.writeText(shareData.url);
+                            this.showToast('Link copied to clipboard');
+                        }
+                    } catch (error) {
+                        this.showToast('Failed to share');
+                    }
+                    this.hideLongPressMenu();
+                }
+
+                downloadVideo(videoId) {
+                    const video = document.querySelector(`[data-id="${videoId}"] video source`).src;
+                    const a = document.createElement('a');
+                    a.href = video;
+                    a.download = `moment-${videoId}.mp4`;
+                    a.click();
+                    this.showToast('Download started');
+                    this.hideLongPressMenu();
+                }
+
+                hideVideo(videoId) {
+                    const card = document.querySelector(`[data-id="${videoId}"]`);
+                    if (card) {
+                        card.style.display = 'none';
+                        this.showToast('Video hidden');
+                    }
+                    this.hideLongPressMenu();
+                }
+
+                copyLink(videoId) {
+                    const url = `${window.location.origin}/moments/${videoId}`;
+                    navigator.clipboard.writeText(url);
+                    this.showToast('Link copied to clipboard');
+                    this.hideLongPressMenu();
+                }
+
+                toggleMute() {
+                    this.isMuted = !this.isMuted;
+                    const icon = document.querySelector('#muteBtn i');
+                    icon.className = this.isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+
+                    document.querySelectorAll('video').forEach(video => {
+                        video.muted = this.isMuted;
+                    });
+                }
+
+                addToHistory(term) {
+                    if (!term) return;
+                    this.searchHistory = [term, ...this.searchHistory.filter(t => t !== term)].slice(0, 10);
+                    this.saveSearchHistory();
+                }
+
+                filterBySearch(term) {
+                    if (!term) {
+                        this.filteredMoments = this.currentCategory === 'all'
+                            ? [...this.moments]
+                            : this.moments.filter(m => m.category === this.currentCategory);
+                    } else {
+                        this.filteredMoments = this.moments.filter(m =>
+                            m.caption?.toLowerCase().includes(term.toLowerCase()) ||
+                            m.username?.toLowerCase().includes(term.toLowerCase()) ||
+                            m.user_name?.toLowerCase().includes(term.toLowerCase())
+                        );
+
+                        if (this.currentCategory !== 'all') {
+                            this.filteredMoments = this.filteredMoments.filter(m =>
+                                m.category === this.currentCategory
+                            );
+                        }
+                    }
+
+                    this.renderFeed(this.filteredMoments);
+                    this.initVideoObserver();
+                }
+
+                clearSearch() {
+                    const searchInput = document.getElementById('searchInput');
+                    const clearBtn = document.getElementById('clearSearch');
+                    searchInput.value = '';
+                    clearBtn.style.display = 'none';
+                    this.filterBySearch('');
+                }
+
+                searchHashtag(tag) {
+                    const searchTerm = tag.replace('#', '');
+                    document.getElementById('searchInput').value = searchTerm;
+                    document.getElementById('clearSearch').style.display = 'block';
+                    this.filterBySearch(searchTerm);
+                }
+
+                goToProfile(username) {
+                    window.location.href = `/profile/${username}`;
+                }
+
+                async openComments(videoId) {
+                    this.currentVideoId = videoId;
+                    const drawer = document.getElementById('commentsDrawer');
+                    const overlay = document.getElementById('commentsOverlay');
+                    const list = document.getElementById('commentsList');
+
+                    drawer.classList.add('open');
+                    overlay.classList.add('active');
+                    list.innerHTML = `<div style="text-align:center; padding: 40px;"><div class="loading-spinner" style="margin: 0 auto;"></div></div>`;
+
+                    try {
+                        const response = await this.api.getComments(videoId);
+                        this.renderComments(response.comments || []);
+                    } catch (error) {
+                        list.innerHTML = `<div style="text-align:center; padding: 40px; color: rgba(255,255,255,0.5);">Failed to load comments</div>`;
+                    }
+                }
+
+                renderComments(comments) {
+                    const list = document.getElementById('commentsList');
+                    if (!comments || comments.length === 0) {
+                        list.innerHTML = `<div style="text-align:center; padding: 60px 40px; color: rgba(255,255,255,0.4);">
+                            <i class="far fa-comment-dots" style="font-size: 40px; margin-bottom: 12px; display: block;"></i>
+                            No comments yet. Be the first to share your thoughts!
+                        </div>`;
+                        return;
+                    }
+
+                    const renderSingleComment = (c, isReply = false, parentUsername = null) => `
+                        <div class="comment-item ${isReply ? 'comment-reply' : ''}" id="comment-${c.comment_id || c.id}">
+                            <img src="${c.avatar_url || '/uploads/avatars/default.png'}" class="comment-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                            <div class="comment-content">
+                                <div class="comment-header">
+                                    <div class="comment-author">@${c.username}</div>
+                                    <div class="comment-like-btn ${c.is_liked ? 'active' : ''}" onclick="app.likeComment('${c.comment_id || c.id}', this)">
+                                        <i class="${c.is_liked ? 'fas' : 'far'} fa-heart"></i>
+                                        <span>${c.like_count || 0}</span>
+                                    </div>
+                                </div>
+                                ${isReply && parentUsername ? `<div style="font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 2px;">Replying to <span style="color: var(--accent-pink);">@${parentUsername}</span></div>` : ''}
+                                <div class="comment-text">${this.escapeHtml(c.content || c.text)}</div>
+                                <div class="comment-footer">
+                                    <span class="comment-date">${new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <button class="reply-button" onclick="app.toggleReply('${c.comment_id || c.id}', '${c.username}')">Reply</button>
+                                </div>
+                                ${c.replies && c.replies.length > 0 ? `<div class="replies-container">${c.replies.map(r => renderSingleComment(r, true, c.username)).join('')}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    list.innerHTML = comments.map(c => renderSingleComment(c)).join('');
+                }
+
+                toggleReply(commentId, username) {
+                    this.currentReplyToId = commentId;
+                    const input = document.getElementById('commentInput');
+                    input.placeholder = `Replying to @${username}...`;
+                    input.focus();
+                }
+
+                async likeComment(commentId, btn) {
+                    try {
+                        const response = await this.api.request(`/comment/${commentId}/like`, { method: 'POST' });
+                        if (response.success) {
+                            const icon = btn.querySelector('i');
+                            const span = btn.querySelector('span');
+                            if (response.action === 'liked') {
+                                btn.classList.add('active');
+                                icon.classList.remove('far');
+                                icon.classList.add('fas');
+                            } else {
+                                btn.classList.remove('active');
+                                icon.classList.remove('fas');
+                                icon.classList.add('far');
+                            }
+                            span.textContent = response.likes;
+                        }
+                    } catch (err) {
+                        console.error('Like error:', err);
+                    }
+                }
+
+                async submitComment(e) {
+                    e.preventDefault();
+                    const input = document.getElementById('commentInput');
+                    const content = input.value.trim();
+                    if (!content || !this.currentVideoId) return;
+
+                    const originalPlaceholder = input.placeholder;
+                    input.value = '';
+                    input.disabled = true;
+                    input.placeholder = 'Posting...';
+
+                    try {
+                        const response = await this.api.postComment(this.currentVideoId, content, this.currentReplyToId);
+                        if (response.status === 'success') {
+                            this.currentReplyToId = null;
+                            input.placeholder = 'Add a comment...';
+                            // Fetch all comments again to refresh list or just prepend
+                            const commentsResponse = await this.api.getComments(this.currentVideoId);
+                            this.renderComments(commentsResponse.comments);
+                            
+                            // Update count in UI
+                            const countSpan = document.querySelector(`[data-id="${this.currentVideoId}"] [onclick*="openComments"] .action-count`);
+                            if (countSpan) {
+                                let count = parseInt(countSpan.textContent) || 0;
+                                countSpan.textContent = this.formatCount(count + 1);
+                            }
+                        }
+                    } catch (error) {
+                        this.showToast('Failed to post comment');
+                        input.value = content;
+                    } finally {
+                        input.disabled = false;
+                        input.placeholder = originalPlaceholder;
+                    }
+                }
+
+                hideComments() {
+                    document.getElementById('commentsDrawer').classList.remove('open');
+                    document.getElementById('commentsOverlay').classList.remove('active');
+                }
+
+                async loadMore() {
+                    if (this.isLoading || !this.hasMore) return;
+
+                    this.isLoading = true;
+                    this.currentPage++;
+
+                    try {
+                        const response = await this.api.getStream({
+                            category: this.currentCategory,
+                            page: this.currentPage,
+                            limit: 10,
+                            recentlySeen: this.seenIds.join(',')
+                        });
+
+                        if (response.moments?.length) {
+                            this.filteredMoments = [...this.filteredMoments, ...response.moments];
+                            this.renderFeed(this.filteredMoments);
+                            this.initVideoObserver();
+                        }
+
+                        this.hasMore = this.currentPage < response.pagination?.pages;
+                    } catch (error) {
+                        this.showToast('Failed to load more moments');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+            }
+
+            // API Client
+            class MomentsAPI {
+                constructor(userId) {
+                    this.userId = userId;
+                    this.baseUrl = '/api/moments';
+                }
+
+                async request(endpoint, options = {}) {
+                    const response = await fetch(this.baseUrl + endpoint, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content,
+                            ...options.headers
+                        },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API request failed: ${response.status}`);
+                    }
+
+                    return response.json();
+                }
+
+                getStream(params = {}) {
+                    const query = new URLSearchParams(params).toString();
+                    return this.request(`/stream?${query}`);
+                }
+
+                sparkMoment(id) {
+                    return this.request(`/${id}/spark`, { method: 'POST' });
+                }
+
+                saveMoment(id) {
+                    return this.request(`/${id}/save`, { method: 'POST' });
+                }
+
+                followUser(userId) {
+                    return this.request(`/user/${userId}/follow`, { method: 'POST' });
+                }
+
+                getShareData(id) {
+                    return this.request(`/${id}/share-data`);
+                }
+
+                trackShare(id) {
+                    return this.request(`/${id}/share`, { method: 'POST' });
+                }
+
+                getComments(id, page = 1) {
+                    return this.request(`/${id}/comments?page=${page}`);
+                }
+
+                postComment(id, content) {
+                    return this.request(`/${id}/comments`, {
+                        method: 'POST',
+                        body: JSON.stringify({ comment: content })
+                    });
+                }
+            }
+
+            // Initialize app
+            window.app = new MomentsApp();
+
+            // Handle infinite scroll
+            const feedContainer = document.getElementById('feedContainer');
+            feedContainer.addEventListener('scroll', () => {
+                const { scrollTop, scrollHeight, clientHeight } = feedContainer;
+                if (scrollTop + clientHeight >= scrollHeight - 100) {
+                    app.loadMore();
+                }
+            });
+        })();
+    </script>
+    </body>
+
+    </html>

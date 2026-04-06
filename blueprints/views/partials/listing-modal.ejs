@@ -1,0 +1,151 @@
+<!-- Create Listing Modal -->
+<div class="modal premium-modal" id="createListingModal">
+    <div class="modal-content premium-modal-content">
+        <div class="modal-header premium-modal-header">
+            <div class="modal-title premium-modal-title">
+                <i class="fas fa-plus-circle text-primary"></i> List New Item
+            </div>
+            <button class="close-modal premium-close-btn" data-bs-dismiss="modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body premium-modal-body">
+            <form id="createListingForm" enctype="multipart/form-data">
+                <!-- Listing Details -->
+                <div class="form-group mb-3">
+                    <label class="form-label">Item Title</label>
+                    <input type="text" class="form-control" name="title" placeholder="e.g. MacBook Pro 2021" required>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="description" rows="3" placeholder="Describe your item..."
+                        required></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Price (KES)</label>
+                            <input type="number" class="form-control" name="price" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" name="category">
+                                <option value="electronics">Electronics</option>
+                                <option value="books">Books</option>
+                                <option value="clothing">Clothing</option>
+                                <option value="furniture">Furniture</option>
+                                <option value="services">Services</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label">Condition</label>
+                    <select class="form-select" name="condition">
+                        <option value="new">New</option>
+                        <option value="like_new">Like New</option>
+                        <option value="good" selected>Good</option>
+                        <option value="fair">Fair</option>
+                        <option value="poor">Poor</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label">Location (e.g. Hostel/Campus Area)</label>
+                    <input type="text" class="form-control" name="location" placeholder="e.g. Halls of Residence">
+                </div>
+
+                <!-- Media Upload Area -->
+                <div class="media-upload-section mb-4">
+                    <label class="form-label">Upload Images</label>
+                    <div class="media-upload-container p-4 border dashed rounded text-center" id="listingUploadArea"
+                        style="cursor: pointer; border: 2px dashed #ddd;">
+                        <div class="upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt fs-2 text-muted mb-2"></i>
+                            <p class="mb-0">Click or drag images here</p>
+                            <small class="text-muted">Maximum 5 images</small>
+                        </div>
+                        <input type="file" name="images" id="listingImages" accept="image/*" multiple class="d-none">
+                    </div>
+                    <div id="listingImagePreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary w-100 py-2" id="submitListingBtn">
+                    <span>Post Listing</span>
+                    <i class="fas fa-paper-plane ms-1"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const uploadArea = document.getElementById('listingUploadArea');
+        const fileInput = document.getElementById('listingImages');
+        const previewGrid = document.getElementById('listingImagePreview');
+        const form = document.getElementById('createListingForm');
+
+        if (uploadArea) {
+            uploadArea.addEventListener('click', () => fileInput.click());
+        }
+
+        if (fileInput) {
+            fileInput.addEventListener('change', function () {
+                previewGrid.innerHTML = '';
+                const files = Array.from(this.files).slice(0, 5);
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const div = document.createElement('div');
+                        div.className = 'position-relative';
+                        div.style.width = '80px';
+                        div.style.height = '80px';
+                        div.innerHTML = `<img src="${e.target.result}" class="w-100 h-100 object-fit-cover rounded border">`;
+                        previewGrid.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('submitListingBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Posting...';
+
+                try {
+                    const formData = new FormData(form);
+                    const response = await fetch('/api/marketplace/listings', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert('Listing posted successfully!');
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Error posting listing');
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>Post Listing</span> <i class="fas fa-paper-plane ms-1"></i>';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An unexpected error occurred');
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>Post Listing</span> <i class="fas fa-paper-plane ms-1"></i>';
+                }
+            });
+        }
+    });
+</script>

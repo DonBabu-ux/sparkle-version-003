@@ -1,0 +1,373 @@
+<!-- ========== MARKETPLACE ENHANCEMENTS - UI COMPONENTS ========== -->
+<!-- This file contains all the new UI components for Phase 3 -->
+<!-- To integrate: Add these components to marketplace.ejs -->
+
+<!-- 1. VIEW TOGGLE (Add to navigation bar, after search) -->
+<div class="view-toggle" style="display: flex; gap: 8px; margin-left: 15px;">
+    <button class="view-btn active" data-view="grid"
+        style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer;">
+        <i class="fas fa-th"></i>
+    </button>
+    <button class="view-btn" data-view="list"
+        style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer;">
+        <i class="fas fa-list"></i>
+    </button>
+</div>
+
+<!-- 2. FILTER TOGGLE BUTTON (Mobile - Add to navigation) -->
+<button class="filter-toggle-btn"
+    style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; display: none;">
+    <i class="fas fa-filter"></i> Filters
+</button>
+
+<!-- 3. FILTER SIDEBAR (Add after navigation, before main content) -->
+<div class="filter-sidebar glass"
+    style="position: fixed; left: 0; top: 80px; width: 300px; height: calc(100vh - 80px); overflow-y: auto; padding: 20px; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); border-right: 1px solid #ffd6e0; box-shadow: 0 4px 20px rgba(225,48,108,0.15);">
+    <div class="filter-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; color: #E1306C; font-size: 20px;">
+            <i class="fas fa-filter"></i> Filters
+        </h3>
+        <button class="clear-filters"
+            style="background: none; border: 1px solid #E1306C; color: #E1306C; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+            Clear All
+        </button>
+    </div>
+
+    <!-- Price Range -->
+    <div class="filter-section" style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #ffd6e0;">
+        <h4 style="margin: 0 0 15px 0; color: #262626; font-size: 14px; font-weight: 600;">💰 Price Range</h4>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span id="minPriceDisplay" style="font-size: 13px; color: #666;">$0</span>
+            <span id="maxPriceDisplay" style="font-size: 13px; color: #666;">$10000</span>
+        </div>
+        <input type="range" id="minPrice" min="0" max="10000" value="0" step="10"
+            style="width: 100%; margin-bottom: 8px;">
+        <input type="range" id="maxPrice" min="0" max="10000" value="10000" step="10" style="width: 100%;">
+    </div>
+
+    <!-- Category Filters -->
+    <div class="filter-section" style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #ffd6e0;">
+        <h4 style="margin: 0 0 15px 0; color: #262626; font-size: 14px; font-weight: 600;">📂 Category</h4>
+        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+            <input type="checkbox" class="category-filter" value="books" style="width: 16px; height: 16px;">
+            <span style="font-size: 13px;">📚 Books & Textbooks</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+            <input type="checkbox" class="category-filter" value="electronics" style="width: 16px; height: 16px;">
+            <span style="font-size: 13px;">💻 Electronics</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+            <input type="checkbox" class="category-filter" value="furniture" style="width: 16px; height: 16px;">
+            <span style="font-size: 13px;">🪑 Furniture</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+            <input type="checkbox" class="category-filter" value="clothing" style="width: 16px; height: 16px;">
+            <span style="font-size: 13px;">👕 Clothing</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+            <input type="checkbox" class="category-filter" value="sports" style="width: 16px; height: 16px;">
+            <span style="font-size: 13px;">⚽ Sports Equipment</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+            <input type="checkbox" class="category-filter" value="other" style="width: 16px; height: 16px;">
+            <span style="font-size: 13px;">📦 Other</span>
+        </label>
+    </div>
+
+    <!-- Condition Filters -->
+    <div class="filter-section" style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #ffd6e0;">
+        <h4 style="margin: 0 0 15px 0; color: #262626; font-size: 14px; font-weight: 600;">✨ Condition</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button class="condition-btn" data-condition="new"
+                style="padding: 8px 16px; border: 2px solid #ffd6e0; background: white; border-radius: 20px; cursor: pointer; font-size: 12px; transition: all 0.3s;">New</button>
+            <button class="condition-btn" data-condition="like_new"
+                style="padding: 8px 16px; border: 2px solid #ffd6e0; background: white; border-radius: 20px; cursor: pointer; font-size: 12px; transition: all 0.3s;">Like
+                New</button>
+            <button class="condition-btn" data-condition="good"
+                style="padding: 8px 16px; border: 2px solid #ffd6e0; background: white; border-radius: 20px; cursor: pointer; font-size: 12px; transition: all 0.3s;">Good</button>
+            <button class="condition-btn" data-condition="fair"
+                style="padding: 8px 16px; border: 2px solid #ffd6e0; background: white; border-radius: 20px; cursor: pointer; font-size: 12px; transition: all 0.3s;">Fair</button>
+        </div>
+    </div>
+
+    <!-- Sort By -->
+    <div class="filter-section" style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 15px 0; color: #262626; font-size: 14px; font-weight: 600;">🔄 Sort By</h4>
+        <select id="sortBy"
+            style="width: 100%; padding: 10px; border: 2px solid #ffd6e0; border-radius: 8px; font-size: 13px; background: white; cursor: pointer;">
+            <option value="newest">Newest First</option>
+            <option value="price_low">Price: Low to High</option>
+            <option value="price_high">Price: High to Low</option>
+            <option value="popular">Most Popular</option>
+        </select>
+    </div>
+</div>
+
+<!-- 4. MULTI-STEP LISTING WIZARD MODAL -->
+<div id="createListingWizard" class="wizard-modal"
+    style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="wizard-container glass"
+        style="background: white; border-radius: 20px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 30px; position: relative;">
+        <button class="close-wizard"
+            style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; color: #E1306C; cursor: pointer;">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <!-- Step Indicators -->
+        <div class="wizard-steps"
+            style="display: flex; justify-content: space-between; margin-bottom: 30px; position: relative;">
+            <div class="step-line"
+                style="position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: #ffd6e0; z-index: 0;">
+            </div>
+            <div class="step-indicator active" data-step="1"
+                style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div
+                    style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(45deg, #E1306C, #833AB4); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    1</div>
+                <span style="font-size: 12px; color: #666;">Photos</span>
+            </div>
+            <div class="step-indicator" data-step="2"
+                style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div
+                    style="width: 40px; height: 40px; border-radius: 50%; background: #ffd6e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    2</div>
+                <span style="font-size: 12px; color: #666;">Details</span>
+            </div>
+            <div class="step-indicator" data-step="3"
+                style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div
+                    style="width: 40px; height: 40px; border-radius: 50%; background: #ffd6e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    3</div>
+                <span style="font-size: 12px; color: #666;">Location</span>
+            </div>
+            <div class="step-indicator" data-step="4"
+                style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div
+                    style="width: 40px; height: 40px; border-radius: 50%; background: #ffd6e0; color: #666; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    4</div>
+                <span style="font-size: 12px; color: #666;">Preview</span>
+            </div>
+        </div>
+
+        <!-- Step 1: Photos & Title -->
+        <div class="wizard-step active" data-step="1">
+            <h2 style="color: #E1306C; margin-bottom: 20px;">📸 Add Photos & Title</h2>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #262626;">Upload Photos (Max
+                    10)</label>
+                <input type="file" id="wizardPhotos" multiple accept="image/*"
+                    style="width: 100%; padding: 10px; border: 2px dashed #E1306C; border-radius: 8px; cursor: pointer;">
+                <div id="photoPreviewContainer" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
+                </div>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #262626;">Title *</label>
+                <input type="text" id="wizardTitle" placeholder="e.g., iPhone 13 Pro - Like New"
+                    style="width: 100%; padding: 12px; border: 2px solid #ffd6e0; border-radius: 8px; font-size: 14px;">
+            </div>
+        </div>
+
+        <!-- Step 2: Details -->
+        <div class="wizard-step" data-step="2" style="display: none;">
+            <h2 style="color: #E1306C; margin-bottom: 20px;">📝 Item Details</h2>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #262626;">Category *</label>
+                <select id="wizardCategory"
+                    style="width: 100%; padding: 12px; border: 2px solid #ffd6e0; border-radius: 8px; font-size: 14px;">
+                    <option value="">Select category...</option>
+                    <option value="books">📚 Books & Textbooks</option>
+                    <option value="electronics">💻 Electronics</option>
+                    <option value="furniture">🪑 Furniture</option>
+                    <option value="clothing">👕 Clothing</option>
+                    <option value="sports">⚽ Sports Equipment</option>
+                    <option value="other">📦 Other</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #262626;">Condition *</label>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="condition-btn" data-condition="new"
+                        style="padding: 10px 20px; border: 2px solid #ffd6e0; background: white; border-radius: 20px; cursor: pointer;">New</button>
+                    <button class="condition-btn" data-condition="like_new"
+                        style="padding: 10px 20px; border: 2px solid #ffd6e0; background: white; border-radius: 20px; cursor: pointer;">Like
+                        New</button>
+                    <button class="condition-btn" data-condition="good"
+                        style="padding: 10px 20px; border: 2px solid #ffd6e0; background: white; border-radius: 20px; cursor: pointer;">Good</button>
+                    <button class="condition-btn" data-condition="fair"
+                        style="padding: 10px 20px; border: 2px solid #ffd6e0; background: white; border-radius: 20px; cursor: pointer;">Fair</button>
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #262626;">Price *</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="wizardPrice" placeholder="0.00" min="0" step="0.01"
+                        style="flex: 1; padding: 12px; border: 2px solid #ffd6e0; border-radius: 8px; font-size: 14px;">
+                    <label style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                        <input type="checkbox" id="wizardNegotiable">
+                        <span style="font-size: 13px;">Negotiable</span>
+                    </label>
+                </div>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #262626;">Description</label>
+                <textarea id="wizardDescription" rows="4" placeholder="Describe your item..."
+                    style="width: 100%; padding: 12px; border: 2px solid #ffd6e0; border-radius: 8px; font-size: 14px; resize: vertical;"></textarea>
+            </div>
+        </div>
+
+        <!-- Step 3: Location -->
+        <div class="wizard-step" data-step="3" style="display: none;">
+            <h2 style="color: #E1306C; margin-bottom: 20px;">📍 Location & Meetup</h2>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #262626;">Your Location
+                    *</label>
+                <input type="text" id="wizardLocation" placeholder="e.g., North Campus, Building A"
+                    style="width: 100%; padding: 12px; border: 2px solid #ffd6e0; border-radius: 8px; font-size: 14px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #262626;">Preferred Meetup
+                    Spot (Optional)</label>
+                <select id="wizardMeetupLocation"
+                    style="width: 100%; padding: 12px; border: 2px solid #ffd6e0; border-radius: 8px; font-size: 14px;">
+                    <option value="">Select a safe meetup spot...</option>
+                </select>
+                <p style="font-size: 12px; color: #666; margin-top: 8px;">💡 Choose a public, well-lit location for
+                    safety</p>
+            </div>
+        </div>
+
+        <!-- Step 4: Preview -->
+        <div class="wizard-step" data-step="4" style="display: none;">
+            <h2 style="color: #E1306C; margin-bottom: 20px;">👀 Preview Your Listing</h2>
+            <div id="listingPreview"
+                style="border: 2px solid #ffd6e0; border-radius: 12px; padding: 20px; background: #fafafa;">
+                <!-- Preview will be generated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="wizard-navigation"
+            style="display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ffd6e0;">
+            <button class="wizard-prev-btn"
+                style="padding: 12px 24px; background: white; border: 2px solid #E1306C; color: #E1306C; border-radius: 8px; cursor: pointer; font-weight: 600; display: none;">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <button class="wizard-next-btn"
+                style="padding: 12px 24px; background: linear-gradient(45deg, #E1306C, #833AB4); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; margin-left: auto;">
+                Next <i class="fas fa-arrow-right"></i>
+            </button>
+            <button class="wizard-submit-btn"
+                style="padding: 12px 24px; background: linear-gradient(45deg, #E1306C, #833AB4); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; display: none; margin-left: auto;">
+                <i class="fas fa-check"></i> Post Listing
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 5. CREATE LISTING BUTTON (Floating button or add to nav) -->
+<button class="open-create-wizard floating-btn"
+    style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(45deg, #E1306C, #833AB4); border: none; color: white; font-size: 24px; cursor: pointer; box-shadow: 0 10px 40px rgba(225,48,108,0.3); z-index: 1000;">
+    <i class="fas fa-plus"></i>
+</button>
+
+<!-- 6. SCRIPT INCLUDE (Add before closing body tag) -->
+<script src="/js/marketplace-enhancements.js"></script>
+
+<!-- 7. ADDITIONAL CSS FOR ACTIVE STATES -->
+<style>
+    .condition-btn.active {
+        background: linear-gradient(45deg, #E1306C, #833AB4) !important;
+        color: white !important;
+        border-color: #E1306C !important;
+    }
+
+    .view-btn.active {
+        background: rgba(255, 255, 255, 0.4) !important;
+    }
+
+    .wizard-modal.active {
+        display: flex !important;
+    }
+
+    .filter-sidebar.active {
+        left: 0 !important;
+    }
+
+    .step-indicator.completed>div {
+        background: #00c853 !important;
+    }
+
+    .step-indicator.active>div {
+        background: linear-gradient(45deg, #E1306C, #833AB4) !important;
+    }
+
+    .photo-preview-item {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #ffd6e0;
+    }
+
+    .photo-preview-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .remove-photo-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(225, 48, 108, 0.9);
+        border: none;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* List View Styles */
+    .listings-grid.list-view {
+        grid-template-columns: 1fr !important;
+    }
+
+    .listings-grid.list-view .listing-card {
+        display: flex;
+    }
+
+    .listings-grid.list-view .listing-image {
+        width: 200px;
+        height: auto;
+    }
+
+    .listings-grid.list-view .listing-content {
+        flex: 1;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .filter-sidebar {
+            left: -100% !important;
+            transition: left 0.3s ease;
+        }
+
+        .filter-sidebar.active {
+            left: 0 !important;
+        }
+
+        .filter-toggle-btn {
+            display: inline-block !important;
+        }
+
+        .view-toggle {
+            display: none !important;
+        }
+    }
+</style>

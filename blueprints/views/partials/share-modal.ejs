@@ -1,0 +1,77 @@
+<!-- Instagram Style Share Sheet -->
+<div id="shareModal" class="share-modal-overlay" style="display: none;">
+    <div class="share-modal-sheet">
+        <div class="share-modal-header">
+            <div class="pull-bar"></div>
+            <h3>Share</h3>
+            <button class="close-share-btn" onclick="window.shareManager.closeShareModal()">&times;</button>
+        </div>
+
+        <div class="share-modal-content">
+            <!-- Search & Recipients -->
+            <div class="share-search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search for people...">
+            </div>
+
+            <div class="share-recipients-scroll">
+                <!-- Recipient list injected by ShareManager.js -->
+                <div style="padding: 20px; text-align: center; width: 100%; color: #999;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+            </div>
+
+            <div class="share-actions-grid">
+                <div class="share-action-item" onclick="window.shareManager.shareToWhatsApp()">
+                    <div class="share-icon-circle whatsapp">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <span>WhatsApp</span>
+                </div>
+
+                <div class="share-action-item" onclick="window.shareManager.shareToTwitter()">
+                    <div class="share-icon-circle twitter">
+                        <i class="fab fa-twitter"></i>
+                    </div>
+                    <span>X</span>
+                </div>
+
+                <div class="share-action-item" onclick="window.shareManager.shareToTelegram()">
+                    <div class="share-icon-circle telegram">
+                        <i class="fab fa-telegram"></i>
+                    </div>
+                    <span>Telegram</span>
+                </div>
+
+                <div class="share-action-item" onclick="window.shareManager.copyPostLink()">
+                    <div class="share-icon-circle link">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <span>Copy Link</span>
+                </div>
+
+                <div class="share-action-item" onclick="window.shareManager.openNativeShare()">
+                    <div class="share-icon-circle more">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </div>
+                    <span>More</span>
+                </div>
+            </div>
+
+            <div class="share-secondary-options">
+                <div class="secondary-option" onclick="window.shareManager.shareToStory()">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Add to Story</span>
+                </div>
+                <div class="secondary-option" onclick="window.shareManager.savePost()">
+                    <i class="far fa-bookmark"></i>
+                    <span>Save Post</span>
+                </div>
+                <div class="secondary-option" onclick="window.shareManager.republish()">
+                    <i class="fas fa-retweet"></i>
+                    <span>Republish</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

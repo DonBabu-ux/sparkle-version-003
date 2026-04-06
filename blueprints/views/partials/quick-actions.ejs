@@ -1,0 +1,162 @@
+<div id="quickActionsOverlay" class="qa-overlay" style="display: none;">
+    <div class="qa-menu glass">
+        <div class="qa-header">
+            <h3>Quick Actions</h3>
+            <button onclick="toggleQuickActions()" class="qa-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="qa-grid">
+            <a href="/dashboard?action=new-post" class="qa-item"
+                onclick="toggleQuickActions(); openCreateModal(); return false;">
+                <div class="qa-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);"><i class="fas fa-pen"></i></div>
+                <span>New Post</span>
+            </a>
+            <a href="/moments?action=upload" class="qa-item">
+                <div class="qa-icon" style="background: linear-gradient(135deg, #ec4899 0%, #d946ef 100%);"><i class="fas fa-video"></i></div>
+                <span>New Moment</span>
+            </a>
+            <a href="#" class="qa-item"
+                onclick="alert('Go Live feature coming soon!'); toggleQuickActions(); return false;">
+                <div class="qa-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);"><i class="fas fa-broadcast-tower"></i></div>
+                <span>Go Live</span>
+            </a>
+            <a href="/polls" class="qa-item">
+                <div class="qa-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);"><i class="fas fa-poll"></i></div>
+                <span>Create Poll</span>
+            </a>
+            <a href="/skill-marketplace" class="qa-item" onclick="localStorage.setItem('sm_action', 'create');">
+                <div class="qa-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);"><i class="fas fa-graduation-cap"></i></div>
+                <span>Offer Skill</span>
+            </a>
+            <a href="/confessions" class="qa-item" onclick="localStorage.setItem('confess_open', 'true');">
+                <div class="qa-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);"><i class="fas fa-user-secret"></i></div>
+                <span>Confess</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .qa-overlay {
+        position: fixed;
+        inset: 0;
+        background: var(--bg-glass-dark);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        z-index: 2000;
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .qa-menu {
+        width: 100%;
+        max-width: 450px;
+        background: var(--bg-white);
+        border-radius: 30px 30px 0 0;
+        padding: 30px 24px 50px;
+        box-shadow: 0 -15px 50px rgba(0,0,0,0.25);
+        animation: slideUpPremium 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        border-top: 1px solid var(--border-light);
+    }
+
+    .qa-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .qa-header h3 {
+        margin: 0;
+        color: var(--text-main);
+        font-size: 20px;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+    }
+
+    .qa-close {
+        background: var(--bg-main);
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        transition: all 0.2s;
+    }
+    .qa-close:hover { background: var(--border-light); color: var(--text-main); }
+
+    .qa-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px 16px;
+    }
+
+    .qa-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 700;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.3s var(--ease-out);
+    }
+
+    .qa-item:hover {
+        transform: translateY(-8px);
+        color: var(--primary);
+    }
+
+    .qa-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s;
+    }
+    
+    .qa-item:hover .qa-icon {
+        transform: rotate(-5deg) scale(1.1);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    @keyframes slideUpPremium {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+</style>
+
+<script>
+    function toggleQuickActions() {
+        const overlay = document.getElementById('quickActionsOverlay');
+        if (overlay.style.display === 'none') {
+            overlay.style.display = 'flex';
+        } else {
+            overlay.style.display = 'none';
+        }
+    }
+
+    // Close when clicking outside menu
+    document.getElementById('quickActionsOverlay')?.addEventListener('click', function (e) {
+        if (e.target === this) toggleQuickActions();
+    });
+</script>

@@ -1,0 +1,1262 @@
+<%- include('partials/head', { title: title }) %>
+
+    <style>        /* Typography & Layout Hardenings */
+        body { margin: 0; padding: 0; padding-bottom: 70px; background: #fafafa; overflow-x: hidden; }
+        .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .text-wrap { word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; }
+        
+        /* Mobile Profile Overrides */
+        @media (max-width: 768px) {
+            .profile-container { grid-template-columns: 1fr; padding-top: 60px; overflow-x: hidden; }
+            .profile-sidebar { position: static; height: auto; border-radius: 0; border: none; box-shadow: none; border-bottom: 1px solid #f1f5f9; padding: 20px 15px; }
+            .profile-main { margin-left: 0; }
+            
+            /* Avatar adjustment */
+            .profile-avatar-container { margin-top: -60px; text-align: center; }
+            .profile-avatar-container img { width: 100px; height: 100px; border-width: 4px; }
+            
+            /* Text wrapping for links and bio */
+            .profile-website { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .profile-bio-text { word-wrap: break-word; overflow-wrap: break-word; }
+            
+            /* Remove margins from stat boxes */
+            .profile-stats { justify-content: center; gap: 20px; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                padding-bottom: 80px;
+            }
+
+            .profile-header-card {
+                padding: 20px 15px !important;
+            }
+
+            .profile-header-top {
+                flex-direction: column !important;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .profile-info {
+                width: 100%;
+            }
+
+            .profile-info-header {
+                justify-content: center !important;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .profile-stats {
+                gap: 15px !important;
+                background: none;
+                padding: 0;
+                box-shadow: none;
+                margin: 0 !important;
+            }
+
+            .profile-avatar-container {
+                width: 100px !important;
+                height: 100px !important;
+                margin: 0 auto;
+            }
+
+            .profile-bio {
+                text-align: center;
+            }
+
+            .profile-tabs {
+                padding: 10px 0;
+                gap: 10px;
+                overflow-x: auto;
+                justify-content: space-around;
+            }
+
+            .profile-posts-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+                padding: 10px 0;
+            }
+
+            .post-card {
+                border-radius: 12px !important;
+            }
+        }
+
+        .profile-posts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Image Viewer Modal */
+        .image-viewer-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-viewer-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .image-viewer-content img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .close-viewer {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+        }
+
+        /* Mutual Connections Styles */
+        .mutual-connections {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .mutual-avatars {
+            display: flex;
+            align-items: center;
+        }
+
+        .mutual-avatars img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            margin-left: -8px;
+        }
+
+        .mutual-avatars img:first-child {
+            margin-left: 0;
+        }
+
+        /* Follow List Modal Styles */
+        .follow-list-content {
+            max-width: 400px !important;
+            padding: 0 !important;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #94a3b8;
+        }
+
+        .follow-list-body {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            transition: background 0.2s;
+        }
+
+        .user-item:hover {
+            background: #f8fafc;
+        }
+
+        .user-item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .user-item-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-item-details h4 {
+            font-size: 14px;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .user-item-details p {
+            font-size: 12px;
+            margin: 0;
+            color: #64748b;
+        }
+
+        /* New Profile Section Styles */
+        .profile-headline { font-weight: 600; color: #475569; margin-top: 5px; font-size: 15px; }
+        .profile-website { color: #6366f1; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+        .profile-website:hover { text-decoration: underline; }
+        .profile-details-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 25px; padding: 20px; background: rgba(255,255,255,0.5); border-radius: 20px; border: 1px solid rgba(225, 48, 108, 0.1); }
+        .detail-item { display: flex; align-items: flex-start; gap: 12px; }
+        .detail-icon { width: 36px; height: 36px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .detail-content h4 { margin: 0; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail-content p { margin: 2px 0 0; font-size: 14px; font-weight: 600; color: #1e293b; }
+        .social-links { display: flex; gap: 10px; margin-top: 20px; }
+        .social-btn { width: 40px; height: 40px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #475569; text-decoration: none; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .social-btn:hover { background: var(--primary); color: white; transform: translateY(-3px); }
+        
+        @media (max-width: 480px) {
+            .profile-details-grid { padding: 15px; gap: 12px; }
+            .detail-content p { font-size: 13px; word-break: break-word; }
+            .detail-icon { width: 32px; height: 32px; font-size: 14px; }
+            .profile-headline { font-size: 14px; }
+        }
+        
+        .birthday-badge { background: linear-gradient(135deg, #FF3D6D 0%, #FF8A00 100%); color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(255, 61, 109, 0.2); }
+        .similar-birthdays-btn { background: #fee2e2; color: #ef4444; border: none; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 15px; display: flex; align-items: center; gap: 8px; transition: 0.2s; width: 100%; justify-content: center; }
+        .similar-birthdays-btn:hover { background: #fecaca; transform: scale(1.02); }
+        
+        /* Birthday Wish Template Modal */
+        .birthday-list-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid #f1f5f9; }
+        .birthday-user-info { display: flex; align-items: center; gap: 12px; }
+        .birthday-user-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+        .wish-btn { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+    </style>
+    <%- include('partials/sidebar') %>
+
+        <div class="container" id="mainContent">
+            <%- include('partials/navbar') %>
+
+                <main class="profile-container">
+                    <!-- Premium Profile Header Card - Instagram Style -->
+                    <div class="profile-header-card" style="background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 20px;">
+                        
+                        <!-- Top Row: Avatar & Stats -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 15px;">
+                            <!-- Avatar -->
+                            <div class="avatar-section" style="flex-shrink: 0;">
+                                <div class="profile-avatar-container" style="width: 90px; height: 90px; border-radius: 50%; overflow: hidden; border: 3px solid var(--primary); cursor: pointer;" 
+                                    data-avatar-url="<%= profile.avatar_url || '/uploads/avatars/default.png' %>"
+                                    onclick="openImageViewer(this.dataset.avatarUrl)">
+                                    <img src="<%= profile.avatar_url || '/uploads/avatars/default.png' %>"
+                                        alt="<%= profile.name %>"
+                                        style="width: 100%; height: 100%; object-fit: cover; background: #fafafa;"
+                                        onerror="this.onerror=null;this.src='/uploads/avatars/default.png';">
+                                </div>
+                            </div>
+
+                            <!-- Stats Flex -->
+                            <% 
+                                const isPrivate = !isOwnProfile && (profile.is_private || profile.profile_visibility === 'private') && !profile.is_followed_by_me;
+                                const followersOnclick = isPrivate ? '' : 'onclick="showFollowList(\'followers\')"';
+                                const followingOnclick = isPrivate ? '' : 'onclick="showFollowList(\'following\')"';
+                                const statsStyle = isPrivate ? 'style="cursor: default; text-align: center;"' : 'style="cursor: pointer; text-align: center; transition: 0.2s;"';
+                            %>
+                            <div class="profile-stats" style="flex: 1; display: flex; justify-content: space-around; align-items: center;">
+                                <div style="text-align: center;">
+                                    <div class="profile-stats-item" id="postsCount" style="font-size: 20px; font-weight: 800; color: #1e293b; line-height: 1;">
+                                        <%= (typeof posts !== 'undefined') ? posts.length : 0 %>
+                                    </div>
+                                    <div class="profile-stats-label" style="font-size: 13px; color: #475569; font-weight: 500; margin-top: 4px;">Posts</div>
+                                </div>
+                                <div <%- statsStyle %> <%- followersOnclick %> onmouseover="if(!<%= isPrivate %>) this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                                    <div class="profile-stats-item" id="followersCount" style="font-size: 20px; font-weight: 800; color: #1e293b; line-height: 1;">
+                                        <%= profile.followers_count || 0 %>
+                                    </div>
+                                    <div class="profile-stats-label" style="font-size: 13px; color: #475569; font-weight: 500; margin-top: 4px;">Followers</div>
+                                </div>
+                                <div <%- statsStyle %> <%- followingOnclick %> onmouseover="if(!<%= isPrivate %>) this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                                    <div class="profile-stats-item" id="followingCount" style="font-size: 20px; font-weight: 800; color: #1e293b; line-height: 1;">
+                                        <%= profile.following_count || 0 %>
+                                    </div>
+                                    <div class="profile-stats-label" style="font-size: 13px; color: #475569; font-weight: 500; margin-top: 4px;">Following</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Identity Block (Name, Bio, Links) -->
+                        <div class="profile-header-text">
+                            <span class="username">
+                                @<%= profile.username %>
+                                <%- include('partials/verified-badge', { id: profile.user_id }) %>
+                            </span>
+                            
+                            <% if (profile.headline) { %>
+                                <h1 class="headline"><%= profile.headline %></h1>
+                            <% } else { %>
+                                <h1 class="headline"><%= profile.name || profile.username %></h1>
+                            <% } %>
+                        </div>
+
+                            <% if (profile.bio) { %>
+                                <div class="bio">
+                                    <%- profile.bio.replace(/@(\w+)/g, '<a href="/profile/$1" style="color: var(--primary); text-decoration: none; font-weight: 600;">@$1</a>') %>
+                                </div>
+                            <% } %>
+
+                            <% if (profile.website) { %>
+                                <a href="https://<%= profile.website.replace('https://', '').replace('http://', '') %>" target="_blank" class="profile-link" style="text-decoration: none; display: flex; align-items: center; gap: 4px; font-size: 14px; margin-bottom: 8px;">
+                                    <i class="fas fa-link"></i> <%= profile.website.replace('https://', '').replace('http://', '') %>
+                                </a>
+                            <% } %>
+
+                        <!-- Actions Layer -->
+                        <div class="profile-actions-grid" style="display: flex; gap: 8px; margin-bottom: 20px;">
+                            <% if (isOwnProfile) { %>
+                                <a href="/settings" class="btn" style="flex: 1; display: flex; justify-content: center; align-items: center; background: #f1f5f9; color: #0f172a; border-radius: 8px; font-weight: 600; font-size: 14px; padding: 8px; text-decoration: none; border: none;">Edit Profile</a>
+                                <button class="btn" onclick="window.location.href='/dashboard'" style="flex-shrink: 0; background: #f1f5f9; color: #0f172a; border-radius: 8px; padding: 8px 12px; border: none;">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                            <% } else { %>
+                                <% if (profile.is_followed_by_me) { %>
+                                    <button class="btn follow-btn" id="followButton" onclick="toggleFollow('<%= profile.user_id %>', this)" style="flex: 1; background: #f1f5f9; color: #0f172a; border-radius: 8px; font-weight: 600; font-size: 14px; padding: 8px; border: none;">Following</button>
+                                <% } else if (profile.is_requested_by_me) { %>
+                                    <button class="btn" disabled id="followButton" style="flex: 1; background: #e2e8f0; color: #64748b; border-radius: 8px; font-weight: 600; font-size: 14px; padding: 8px; border: none;">Requested</button>
+                                <% } else { %>
+                                    <button class="btn follow-btn" id="followButton" onclick="toggleFollow('<%= profile.user_id %>', this)" style="flex: 1; background: var(--primary); color: white; border-radius: 8px; font-weight: 600; font-size: 14px; padding: 8px; border: none;">Follow</button>
+                                <% } %>
+
+                                <button class="btn" onclick="openMessages('<%= profile.user_id %>', '<%= profile.username %>')" style="flex: 1; background: #f1f5f9; color: #0f172a; border-radius: 8px; font-weight: 600; font-size: 14px; padding: 8px; border: none;">
+                                    Message
+                                </button>
+
+                                <button class="btn" data-user-id="<%= profile.user_id %>" onclick="toggleBlockUser(this.dataset.userId)" title="Block User" style="background: white; border: 1px solid #e2e8f0; color: #64748b; border-radius: 8px; padding: 8px 12px;">
+                                    <i class="fas fa-user-slash"></i>
+                                </button>
+                            <% } %>
+                        </div>
+
+                        <!-- Structured Details Layer -->
+                        <div class="profile-details">
+                            <% if (profile.affiliation || profile.interests || profile.experience_level) { %>
+                                <div class="profile-info-item">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <span>
+                                        <% 
+                                            let eduParts = [];
+                                            if (profile.interests) eduParts.push(profile.interests);
+                                            if (profile.experience_level) eduParts.push(profile.experience_level);
+                                        %>
+                                        <%= eduParts.length > 0 ? eduParts.join(' • ') : (profile.affiliation || 'No details') %>
+                                    </span>
+                                </div>
+                                <% if (profile.affiliation && eduParts.length > 0) { %>
+                                    <div class="profile-info-item">
+                                        <i class="fas fa-university"></i>
+                                        <span><%= profile.affiliation %></span>
+                                    </div>
+                                <% } %>
+                            <% } %>
+
+                            <% const canSeeBirthday = profile.birthday && (isOwnProfile || profile.show_birthday == 1 || profile.show_birthday === true); %>
+                            <% if (canSeeBirthday) { %>
+                                <div class="profile-info-item">
+                                    <i class="fas fa-birthday-cake"></i>
+                                    <span><%= new Date(profile.birthday).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) %></span>
+                                </div>
+                            <% } %>
+
+                            <% const canSeeContact = isOwnProfile || profile.show_contact_info == 1 || profile.show_contact_info === true; %>
+                            <% if (canSeeContact) { %>
+                                <div class="profile-info-item">
+                                    <i class="fas fa-envelope"></i>
+                                    <span><%= profile.email %></span>
+                                </div>
+                            <% } %>
+                        </div>
+
+                        <!-- Social Proof Layer -->
+                        <% if (mutualConnections && mutualConnections.length > 0 && !isOwnProfile) { %>
+                            <div class="mutual-connections" onclick="showFollowList('mutual')" style="display: flex; align-items: center; gap: 8px; margin-top: 15px; cursor: pointer;">
+                                <div class="mutual-avatars" style="display: flex; align-items: center;">
+                                    <% mutualConnections.slice(0, 3).forEach(user=> { %>
+                                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" alt="Mutual" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; margin-left: -8px; object-fit: cover;">
+                                    <% }) %>
+                                </div>
+                                <span style="font-size: 13px; color: #475569; font-weight: 500;">
+                                    Followed by <%= mutualConnections[0].username %>
+                                    <%= mutualConnections.length > 1 ? `and ${mutualConnections.length - 1} others` : '' %>
+                                </span>
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <!-- Follow List Modal -->
+                    <div class="modal" id="followListModal" style="display: none;">
+                        <div class="modal-content follow-list-content">
+                            <div class="modal-header">
+                                <h3 id="followListTitle">Followers</h3>
+                                <button class="close-modal" onclick="closeFollowModal()">&times;</button>
+                            </div>
+                            <div class="follow-list-body" id="followListBody">
+                                <!-- Users will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image Viewer Modal -->
+                    <div id="imageViewerModal" class="image-viewer-modal" style="display: none;">
+                        <span class="close-viewer" onclick="closeImageViewer()">&times;</span>
+                        <div class="image-viewer-content">
+                            <img id="viewerImage" src="" alt="Full size profile">
+                        </div>
+                    </div>
+
+                    <!-- Active Friends Section -->
+                    <% if (typeof activeFriends !== 'undefined' && activeFriends && activeFriends.length > 0) { %>
+                    <div class="profile-extra-section" style="margin-top: 20px; padding: 0 10px;">
+                        <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin-bottom: 15px; display: flex; align-items: center;">
+                            Active Friends <span style="background: #10b981; width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px;"></span>
+                        </h3>
+                        <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none;">
+                            <style>.profile-extra-section div::-webkit-scrollbar { display: none; }</style>
+                            <% activeFriends.forEach(u => { %>
+                                <div onclick="window.location.href='/profile/<%= u.username %>'" style="min-width: 65px; text-align: center; cursor: pointer;">
+                                    <div style="position: relative; width: 52px; height: 52px; margin: 0 auto;">
+                                        <img src="<%= u.avatar_url %>" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid var(--accent); background: white;">
+                                        <div style="position: absolute; bottom: 1px; right: 1px; width: 13px; height: 13px; background: #10b981; border: 2px solid white; border-radius: 50%;"></div>
+                                    </div>
+                                    <div style="font-size: 11px; font-weight: 600; margin-top: 6px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= u.username %></div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    </div>
+                    <% } %>
+
+                    <!-- Friends List (Following) -->
+                    <% if (isOwnProfile && typeof followingList !== 'undefined' && followingList && followingList.length > 0) { %>
+                    <div class="profile-extra-section" style="margin-top: 25px; padding: 0 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="font-weight: 800; font-size: 18px; color: var(--text-main); margin: 0;">Connected Sparklers</h3>
+                            <a href="javascript:void(0)" onclick="showFollowList('following')" style="color: var(--accent); font-size: 13px; font-weight: 700; text-decoration: none;">View All</a>
+                        </div>
+                        <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none;">
+                            <% followingList.slice(0, 12).forEach(u => { %>
+                                <div onclick="window.location.href='/profile/<%= u.username %>'" style="min-width: 65px; text-align: center; cursor: pointer;">
+                                    <img src="<%= u.avatar_url %>" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 1px solid #edf2f7; background: white; margin: 0 auto;">
+                                    <div style="font-size: 11px; font-weight: 600; margin-top: 6px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= u.username %></div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    </div>
+                    <% } %>
+
+                    <!-- Profile Highlights -->
+                    <div style="margin: 20px 10px; display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; align-items: flex-start;" class="profile-highlights" id="dynamicHighlightsList">
+                        <style>.profile-highlights::-webkit-scrollbar { display: none; }</style>
+
+                        <!-- Always-visible Add Highlight Button (own profile only) -->
+                        <% if (isOwnProfile) { %>
+                        <div id="addHighlightBtn" style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="document.getElementById('highlightCreateModal').style.display='flex'" title="Create Highlight">
+                            <div style="
+                                width: 68px; height: 68px; border-radius: 50%;
+                                border: 2px dashed #cbd5e1;
+                                display: flex; align-items: center; justify-content: center;
+                                font-size: 26px; color: #94a3b8;
+                                margin: 0 auto; background: #f8fafc;
+                                transition: all 0.2s;
+                            "
+                            onmouseenter="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)'; this.style.background='#ede9fe';"
+                            onmouseleave="this.style.borderColor='#cbd5e1'; this.style.color='#94a3b8'; this.style.background='#f8fafc';">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-top: 6px;">New</div>
+                        </div>
+                        <% } %>
+
+                        <!-- Dynamic highlights injected here -->
+                        <div id="highlightsDynamicItems" style="display: contents;"></div>
+                    </div>
+
+                    <!-- Content Tabs -->
+                    <div class="profile-tabs">
+                        <div class="tab active" onclick="switchTab(event, 'posts')">
+                            <i class="fas fa-th"></i> POSTS
+                        </div>
+                        <% if (isOwnProfile) { %>
+                        <div class="tab" onclick="switchTab(event, 'sparks')">
+                            <i class="fas fa-heart"></i> LIKED
+                        </div>
+                        <div class="tab" onclick="switchTab(event, 'saved')">
+                            <i class="fas fa-bookmark"></i> SAVED
+                        </div>
+                        <div class="tab" id="activityTab" onclick="switchTab(event, 'activity')">
+                            <i class="fas fa-history"></i> ACTIVITY
+                        </div>
+                        <% } %>
+                    </div>
+
+                    <!-- Posts Grid -->
+                    <div class="profile-posts-grid" id="postsGrid">
+                        <% if (!isOwnProfile && (profile.is_private || profile.profile_visibility==='private') && !profile.is_followed_by_me) { %>
+                            <div class="private-account-message"
+                                style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: #f8fafc; border-radius: 20px;">
+                                <i class="fas fa-lock"
+                                    style="font-size: 48px; color: #94a3b8; margin-bottom: 20px;"></i>
+                                <h2 style="color: #1e293b; margin-bottom: 10px;">This Account is Private</h2>
+                                <p style="color: #64748b;">Follow this account to see their photos and videos.</p>
+                            </div>
+                        <% } else if (posts && posts.length> 0) { %>
+                                <% posts.forEach(post=> { %>
+                                    <div class="post-card" onclick="viewPost('<%= post.post_id %>')">
+                                        <% if (post.media_url) { %>
+                                            <img src="<%= post.media_url %>" alt="Post"
+                                                onerror="this.onerror=null;this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:#fafafa;&quot;><i class=&quot;fas fa-image&quot; style=&quot;font-size:48px;color:#dbdbdb;&quot;></i></div>';">
+                                            <% } else { %>
+                                                <div class="text-post-placeholder">
+                                                    <p>
+                                                        <%= post.content.substring(0, 100) %>
+                                                            <%= post.content.length> 100 ? '...' : '' %>
+                                                    </p>
+                                                </div>
+                                                <% } %>
+                                                    <div class="post-overlay">
+                                                        <div><i class="fas fa-bolt"></i>
+                                                            <%= post.sparks || 0 %>
+                                                        </div>
+                                                        <div><i class="fas fa-comment"></i>
+                                                            <%= post.comments || 0 %>
+                                                        </div>
+                                                    </div>
+                                    </div>
+                                    <% }) %>
+                                        <% } else { %>
+                                            <div class="empty-state">
+                                                <div class="empty-state-icon">
+                                                    <i class="fas fa-camera"></i>
+                                                </div>
+                                                <h3>No Posts Yet</h3>
+                                                <p>When <%= isOwnProfile ? 'you' : profile.username %> share<%=
+                                                            isOwnProfile ? '' : 's' %> posts, they'll appear here.</p>
+                                            </div>
+                                            <% } %>
+                    </div>
+                </main>
+        </div>
+
+        <script id="mutualConnectionsData" type="application/json">
+            <%- JSON.stringify(mutualConnections || []) %>
+        </script>
+        <script src="/js/dashboardAPI.js"></script>
+        <script src="/js/script.js"></script>
+        <script type="module" src="/js/dynamicPatch/index.js"></script>
+        <script>
+            // Follow/Unfollow functionality
+            document.getElementById('followButton')?.addEventListener('click', async function () {
+                const userId = this.dataset.userId;
+                const isFollowing = this.innerText.trim() === 'Following';
+
+                try {
+                    const response = await fetch(`/api/users/follow/${userId}`, {
+                        method: isFollowing ? 'DELETE' : 'POST',
+                        headers: { 'Authorization': `Bearer ${getToken()}` }
+                    });
+                    const data = await response.json();
+
+                    if (data.status === 'requested') {
+                        this.innerText = 'Requested';
+                        this.classList.replace('btn-primary', 'btn-secondary');
+                        this.disabled = true;
+                    } else if (data.status === 'following' || data.success) {
+                        location.reload();
+                    }
+                } catch (error) {
+                    console.error('Follow error:', error);
+                    alert('Error updating follow status');
+                }
+            });
+
+            function getToken() {
+                const match = document.cookie.match(new RegExp('(^| )sparkleToken=([^;]+)'));
+                return match ? match[2] : localStorage.getItem('sparkleToken');
+            }
+
+            async function toggleBlockUser(userId) {
+                if (!confirm('Are you sure you want to block this user? They will not be able to see your profile or posts.')) return;
+                try {
+                    const response = await fetch(`/api/users/block/${userId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${getToken()}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (response.ok) {
+                        alert('User blocked');
+                        window.location.href = '/dashboard';
+                    }
+                } catch (error) {
+                    console.error('Block error:', error);
+                }
+            }
+
+            function updateFollowerCount(change) {
+                const followersElement = document.getElementById('followersCount');
+                if (followersElement) {
+                    const currentCount = parseInt(followersElement.textContent) || 0;
+                    followersElement.textContent = Math.max(0, currentCount + change);
+                }
+            }
+
+            // Follow List Management
+            async function showFollowList(type) {
+                const modal = document.getElementById('followListModal');
+                const title = document.getElementById('followListTitle');
+                const body = document.getElementById('followListBody');
+                const userId = '<%= profile.user_id %>';
+
+                modal.style.display = 'flex';
+                body.innerHTML = '<div style="padding: 20px; text-align: center;"><i class="fas fa-spinner fa-spin"></i></div>';
+
+                if (type === 'followers') title.innerText = 'Followers';
+                else if (type === 'following') title.innerText = 'Following';
+                else title.innerText = 'Mutual Connections';
+
+                try {
+                    let users = [];
+                    if (type === 'mutual') {
+                        users = JSON.parse(document.getElementById('mutualConnectionsData').textContent);
+                    } else {
+                        const res = await fetch(`/api/users/${userId}/${type}`, {
+                            headers: { 'Authorization': `Bearer ${getToken()}` }
+                        });
+                        users = await res.json();
+                    }
+
+                    if (users.length === 0) {
+                        body.innerHTML = `<div style="padding: 40px; text-align: center; color: #64748b;">No ${type} yet.</div>`;
+                        return;
+                    }
+
+                    body.innerHTML = users.map(user => `
+                        <div class="user-item">
+                            <div class="user-item-info" onclick="window.location.href='/profile/${user.username}'">
+                                <img src="${user.avatar_url || '/uploads/avatars/default.png'}" class="user-item-avatar">
+                                <div class="user-item-details">
+                                    <h4>${user.username}</h4>
+                                    <p>${user.name}</p>
+                                </div>
+                            </div>
+                            ${user.user_id === '<%= user.userId || user.user_id %>' ? '' : `
+                                <button class="btn ${user.is_followed_by_me ? 'btn-secondary' : 'btn-primary'}" 
+                                        style="padding: 6px 12px; font-size: 12px;"
+                                        onclick="handleListFollow(this, '${user.user_id}')">
+                                    ${user.is_followed_by_me ? 'Following' : 'Follow'}
+                                </button>
+                            `}
+                        </div>
+                    `).join('');
+                } catch (err) {
+                    body.innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444;">Error loading list.</div>';
+                }
+            }
+
+            function closeFollowModal() {
+                document.getElementById('followListModal').style.display = 'none';
+            }
+
+            async function toggleFollow(userId, btn) {
+                const isFollowing = btn.innerText.trim() === 'Following';
+                try {
+                    btn.disabled = true;
+                    const res = await DashboardAPI.followUser(userId);
+                    
+                    if (res.status === 'unfollowed') {
+                        btn.innerText = 'Follow';
+                        btn.classList.replace('btn-secondary', 'btn-primary');
+                    } else if (res.status === 'following') {
+                        btn.innerText = 'Following';
+                        btn.classList.replace('btn-primary', 'btn-secondary');
+                    } else if (res.status === 'requested') {
+                        btn.innerText = 'Requested';
+                        btn.disabled = true;
+                    }
+                } catch (err) {
+                    console.error('Follow error:', err);
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            async function toggleBlockUser(userId) {
+                if (!confirm('Are you sure you want to block this user?')) return;
+                try {
+                    await DashboardAPI.blockUser(userId);
+                    alert('User blocked successfully.');
+                    window.location.href = '/dashboard';
+                } catch (err) {
+                    alert('Failed to block user.');
+                }
+            }
+
+            function openMessages(userId, username) {
+                window.location.href = `/messages?chat=${userId}`;
+            }
+
+            async function handleListFollow(btn, userId) {
+                const isFollowing = btn.innerText.trim() === 'Following';
+                try {
+                    if (isFollowing) {
+                        await DashboardAPI.unfollowUser(userId);
+                        btn.innerText = 'Follow';
+                        btn.classList.replace('btn-secondary', 'btn-primary');
+                    } else {
+                        await DashboardAPI.followUser(userId);
+                        btn.innerText = 'Following';
+                        btn.classList.replace('btn-primary', 'btn-secondary');
+                    }
+                } catch (err) {
+                    alert('Action failed');
+                }
+            }
+
+            // Close modal on outside click
+            window.onclick = function (event) {
+                const modal = document.getElementById('followListModal');
+                if (event.target == modal) {
+                    closeFollowModal();
+                }
+            }
+
+            function viewPost(postId) {
+                // Point 7: Clicking a post must open the post viewer - now handled via navigation or viewer if we want
+                // For now, let's keep it as navigation to /post/:id as per profile logic, 
+                // but the user might want the modal viewer.
+                // In dashboard, viewPost is used to open modal.
+                if (window.openPostViewer) {
+                    window.openPostViewer(postId);
+                } else {
+                    window.location.href = `/post/${postId}`;
+                }
+            }
+
+            function openImageViewer(url) {
+                const modal = document.getElementById('imageViewerModal');
+                const img = document.getElementById('viewerImage');
+                img.src = url;
+                modal.style.display = 'flex';
+            }
+
+            function closeImageViewer() {
+                document.getElementById('imageViewerModal').style.display = 'none';
+            }
+
+            async function openSimilarBirthdays() {
+                const modal = document.getElementById('followListModal');
+                const title = document.getElementById('followListTitle');
+                const body = document.getElementById('followListBody');
+
+                modal.style.display = 'flex';
+                title.innerText = 'Similar Birthdays 🎂';
+                body.innerHTML = '<div style="padding: 20px; text-align: center;"><i class="fas fa-spinner fa-spin"></i></div>';
+
+                try {
+                    const res = await fetch('/api/profile/similar-birthdays', {
+                        headers: { 'Authorization': `Bearer ${getToken()}` }
+                    });
+                    const users = await res.json();
+
+                    if (users.length === 0) {
+                        body.innerHTML = '<div style="padding: 40px; text-align: center; color: #64748b;">No one else shares your birthday yet!</div>';
+                        return;
+                    }
+
+                    body.innerHTML = users.map(user => `
+                        <div class="birthday-list-item">
+                            <div class="birthday-user-info" onclick="window.location.href='/profile/${user.username}'">
+                                <img src="${user.avatar_url}" class="birthday-user-avatar">
+                                <div>
+                                    <h4 style="margin: 0; font-size: 14px;">${user.username}</h4>
+                                    <p style="margin: 0; font-size: 12px; color: #64748b;">${user.campus || 'Sparkler'}</p>
+                                </div>
+                            </div>
+                            <button class="wish-btn" onclick="wishHappyBirthday(this, '${user.user_id}', '${user.username}')">
+                                <i class="fas fa-gift"></i> Wish happy birthday
+                            </button>
+                        </div>
+                    `).join('');
+                } catch (err) {
+                    body.innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444;">Error loading list.</div>';
+                }
+            }
+
+            async function wishHappyBirthday(btn, userId, username) {
+                const originalText = btn.innerHTML;
+                try {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    const response = await fetch('/api/posts', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${getToken()}`
+                        },
+                        body: JSON.stringify({
+                            content: `Happy Birthday @${username}! 🎂🎉 Wishing you joy and success on your special day! #SparkleBirthday`,
+                            post_type: 'public'
+                        })
+                    });
+
+                    if (response.ok) {
+                        btn.innerHTML = '<i class="fas fa-check"></i> Sent!';
+                        btn.style.background = '#10b981';
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                            btn.style.background = '';
+                        }, 3000);
+                    } else {
+                        throw new Error('Failed to send');
+                    }
+                } catch (err) {
+                    btn.innerHTML = '<i class="fas fa-times"></i> Error';
+                    btn.style.background = '#ef4444';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        btn.style.background = '';
+                    }, 2000);
+                }
+            }
+
+            const _isOwnProfile = <%= isOwnProfile ? 'true' : 'false' %>;
+
+            async function switchTab(event, tabName) {
+                // Update active state
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+
+                const postsGrid = document.getElementById('postsGrid');
+
+                if (tabName === 'posts') {
+                    if (window.originalPostsHTML) {
+                        postsGrid.innerHTML = window.originalPostsHTML;
+                    }
+                    return;
+                }
+
+                // Guard: Liked/Saved/Activity are only accessible to the profile owner
+                if (!_isOwnProfile && (tabName === 'sparks' || tabName === 'saved' || tabName === 'activity')) {
+                    postsGrid.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-lock"></i></div><h3>Private</h3><p>This content is only visible to the account owner.</p></div>`;
+                    return;
+                }
+
+                // Save original HTML if not already saved
+                if (!window.originalPostsHTML) {
+                    window.originalPostsHTML = postsGrid.innerHTML;
+                }
+
+                if (tabName === 'activity') {
+                    postsGrid.innerHTML = `
+                        <div class="activity-container" style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 15px; margin-bottom: 50px;">
+                            <div class="activity-header-card" style="padding: 24px; border-radius: 16px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                                <h3 style="margin:0 0 5px 0; font-size: 18px; font-weight: 800;">Your Activity</h3>
+                                <p style="color: #64748b; font-size: 14px; margin: 0 0 20px 0;">Manage your content and interactions across Sparkle.</p>
+                                
+                                <style>
+                                    .activity-grid {
+                                        display: grid;
+                                        gap: 15px;
+                                        grid-template-columns: 1fr; /* Mobile default */
+                                        width: 100%;
+                                        max-width: 100%;
+                                    }
+                                    @media (min-width: 600px) {
+                                        .activity-grid { grid-template-columns: repeat(2, 1fr); }
+                                    }
+                                    @media (min-width: 900px) {
+                                        .activity-grid { grid-template-columns: repeat(3, 1fr); }
+                                    }
+                                    .activity-card {
+                                        padding: 16px;
+                                        border-radius: 16px;
+                                        background: #f8fafc;
+                                        cursor: pointer;
+                                        display: flex;
+                                        flex-direction: column;
+                                        gap: 12px;
+                                        border: 1px solid transparent;
+                                        transition: all 0.2s;
+                                        height: 100%;
+                                    }
+                                    .activity-card:hover { transform: translateY(-2px); }
+                                    .activity-card-icon {
+                                        width: 44px;
+                                        height: 44px;
+                                        border-radius: 12px;
+                                        background: white;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+                                    }
+                                    .activity-card-text {
+                                        flex: 1;
+                                    }
+                                </style>
+
+                                <div class="activity-grid">
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#f472b6'" onmouseleave="this.style.borderColor='transparent'" onclick="document.querySelector('.tab').click()">
+                                        <div class="activity-card-icon"><i class="fas fa-images" style="font-size: 20px; color: #f472b6;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Photos & Videos</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Manage your visual posts</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#a855f7'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-play-circle" style="font-size: 20px; color: #a855f7;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Stories</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review past Afterglows</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#60a5fa'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-heart" style="font-size: 20px; color: #60a5fa;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Interactions</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review your likes and sparks</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#3b82f6'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-comment-dots" style="font-size: 20px; color: #3b82f6;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Comments</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Your comments on posts</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#0ea5e9'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-reply" style="font-size: 20px; color: #0ea5e9;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Replies</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Your replies in threads</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#eab308'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-star" style="font-size: 20px; color: #eab308;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Reviews</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Reviews on marketplace & skills</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='#10b981'" onmouseleave="this.style.borderColor='transparent'">
+                                        <div class="activity-card-icon"><i class="fas fa-history" style="font-size: 20px; color: #10b981;"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Account History</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Review profile changes</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="activity-card" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='transparent'" onclick="window.location.href='/dashboard/professional'" style="display: none;">
+                                        <div class="activity-card-icon"><i class="fas fa-chart-line" style="font-size: 20px; color: var(--accent);"></i></div>
+                                        <div class="activity-card-text">
+                                            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">Professional Dashboard</div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Full analytics and insights</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Show loading
+                postsGrid.innerHTML = `<div class="empty-state"><i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading...</p>
+                </div>`;
+
+                try {
+                    const endpoint = tabName === 'saved' ? '/api/profile/saved' : `/api/posts/liked`;
+                    const response = await fetch(endpoint, {
+                        headers: { 'Authorization': `Bearer ${getToken()}` }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+
+                    const posts = await response.json();
+
+                    if (!Array.isArray(posts)) {
+                        throw new Error('API did not return a list of posts');
+                    }
+
+                    if (posts.length === 0) {
+                        postsGrid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-${tabName === 'sparks' ? 'heart' : 'bookmark'}"></i>
+                            </div>
+                            <h3>No ${tabName.charAt(0).toUpperCase() + tabName.slice(1)} Yet</h3>
+                            <p>When you ${tabName === 'sparks' ? 'like' : 'save'} posts, they'll appear here.</p>
+                        </div>
+                        `;
+                    } else {
+                        postsGrid.innerHTML = posts.map(post => `
+                        <div class="post-card" onclick="viewPost('${post.post_id}')">
+                            ${post.media_url ?
+                                `<img src="${post.media_url}" alt="Post"
+                                onerror="this.onerror=null;this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:#fafafa;&quot;><i class=&quot;fas fa-image&quot; style=&quot;font-size:48px;color:#dbdbdb;&quot;></i></div>';">`
+                                :
+                                `<div class="text-post-placeholder">
+                                <p>${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</p>
+                            </div>`
+                            }
+                            <div class="post-overlay">
+                                <div><i class="fas fa-bolt"></i> ${post.sparks || 0}</div>
+                                <div><i class="fas fa-comment"></i> ${post.comments || 0}</div>
+                            </div>
+                        </div>
+                        `).join('');
+                    }
+                } catch (error) {
+                    console.error('Error fetching tab data:', error);
+                    postsGrid.innerHTML = `<div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <p>Error loading ${tabName}. Please try again later.</p>
+                        <p style="font-size: 12px; opacity: 0.7;">${error.message}</p>
+                    </div>`;
+                }
+            }
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('tab') === 'activity' && document.getElementById('activityTab')) {
+                    setTimeout(() => {
+                        document.getElementById('activityTab').click();
+                    }, 100);
+                }
+            });
+        </script>
+
+        <!-- Highlight Create Modal -->
+        <div id="highlightCreateModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+            <div style="background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; font-weight: 800; font-size: 18px;">Create Highlight</h3>
+                    <button onclick="document.getElementById('highlightCreateModal').style.display='none'" style="background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer;">&times;</button>
+                </div>
+                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Highlights live permanently on your profile and don't expire.</p>
+                
+                <input type="text" id="highlightTitleInput" placeholder="Highlight Title (e.g., Campus Vibes)" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-weight: 600;">
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Direct Upload Option -->
+                    <label class="btn" style="background: #f1f5f9; color: var(--text-main); border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin: 0;">
+                        <i class="fas fa-upload"></i> Upload Photo/Video
+                        <input type="file" id="highlightDirectUpload" accept="image/*,video/*" style="display: none;">
+                    </label>
+
+                    <button class="btn" onclick="alert('Choose from stories feature in development.')" style="background: var(--primary-gradient, linear-gradient(135deg, #6366f1, #a855f7)); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-history"></i> Choose from Stories
+                    </button>
+                    
+                    <button class="btn" id="saveHighlightBtn" style="background: #10b981; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
+                        <i class="fas fa-save"></i> Save Highlight
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Highlight Viewer Modal -->
+        <div id="highlightViewerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; flex-direction:column; align-items:center; justify-content:center;">
+            <button onclick="closeHighlightViewer()" style="position:absolute; top:20px; right:20px; background:none; border:none; color:white; font-size:30px; cursor:pointer;"><i class="fas fa-times"></i></button>
+            <div id="highlightViewerTitle" style="position:absolute; top:20px; left:20px; color:white; font-weight:700; font-size:18px;"></div>
+            <div style="width:100%; max-width:400px; height:80vh; display:flex; align-items:center; justify-content:center; position:relative;">
+                <div id="highlightViewerMedia" style="width:100%; height:100%; max-height:800px; border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center;"></div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const profileId = '<%= profile.user_id %>';
+                const _isOwnProfile = '<%= isOwnProfile %>' === 'true';
+                const container = document.getElementById('dynamicHighlightsList');
+                let pendingUpload = null;
+
+                // SAFETY NET: If the + button is missing (EJS type mismatch), inject it via JS
+                if (_isOwnProfile && !document.getElementById('addHighlightBtn')) {
+                    const modal = document.getElementById('highlightCreateModal');
+                    if (modal && container) {
+                        const addBtn = document.createElement('div');
+                        addBtn.id = 'addHighlightBtn';
+                        addBtn.style.cssText = 'flex-shrink: 0; text-align: center; cursor: pointer;';
+                        addBtn.title = 'Create Highlight';
+                        addBtn.onclick = () => modal.style.display = 'flex';
+                        addBtn.innerHTML = `
+                            <div style="
+                                width: 68px; height: 68px; border-radius: 50%;
+                                border: 2px dashed #cbd5e1;
+                                display: flex; align-items: center; justify-content: center;
+                                font-size: 26px; color: #94a3b8;
+                                margin: 0 auto; background: #f8fafc;
+                                transition: all 0.2s;
+                            "
+                            onmouseenter="this.style.borderColor='#6366f1'; this.style.color='#6366f1'; this.style.background='#ede9fe';"
+                            onmouseleave="this.style.borderColor='#cbd5e1'; this.style.color='#94a3b8'; this.style.background='#f8fafc';">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: #64748b; margin-top: 6px;">New</div>
+                        `;
+                        container.insertBefore(addBtn, container.firstChild);
+                    }
+                }
+
+                // Load highlights from storage
+                function getHighlights() {
+                    try { return JSON.parse(localStorage.getItem('sparkle_highlights_' + profileId) || '[]'); }
+                    catch(e) { return []; }
+                }
+
+                function saveHighlights(h) {
+                    localStorage.setItem('sparkle_highlights_' + profileId, JSON.stringify(h));
+                }
+
+                function renderHighlights() {
+                    const h = getHighlights();
+
+                    // Target ONLY the dynamic items container — never touch the + button
+                    const itemsContainer = document.getElementById('highlightsDynamicItems');
+                    if (!itemsContainer) return;
+
+                    if (h.length === 0) {
+                        itemsContainer.innerHTML = '';
+                        return;
+                    }
+
+                    itemsContainer.innerHTML = h.map((item, idx) => `
+                        <div style="flex-shrink: 0; text-align: center; cursor: pointer;" onclick="openHighlightViewer(${idx})">
+                            <div style="
+                                width: 68px; height: 68px; border-radius: 50%;
+                                background: linear-gradient(45deg, #f472b6, #a855f7, #6366f1);
+                                padding: 3px; margin: 0 auto;
+                                display: flex; align-items: center; justify-content: center;
+                                box-shadow: 0 0 10px rgba(168,85,247,0.35);
+                            ">
+                                <img src="${item.coverImage}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid white; background: #fff;">
+                            </div>
+                            <div style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-top: 6px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.title || 'Highlight'}</div>
+                        </div>
+                    `).join('');
+                }
+
+                // Handle file upload selection
+                document.getElementById('highlightDirectUpload')?.addEventListener('change', function(e) {
+                    if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            pendingUpload = {
+                                type: file.type.startsWith('video/') ? 'video' : 'image',
+                                url: evt.target.result,
+                                createdAt: new Date().toISOString()
+                            };
+                            document.getElementById('saveHighlightBtn').style.display = 'flex';
+                            document.querySelector('label[for="highlightDirectUpload"]')?.closest('.btn').setAttribute('style', 'background:#e2e8f0; color:#1e293b; border:1px solid #cbd5e1; padding:12px; border-radius:12px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                // Attach Save behavior
+                document.getElementById('saveHighlightBtn')?.addEventListener('click', () => {
+                    const tInput = document.getElementById('highlightTitleInput').value.trim();
+                    const title = tInput || 'New Highlight';
+                    
+                    if (!pendingUpload) { alert('Select media first'); return; }
+
+                    const items = [pendingUpload];
+                    const newHighlight = {
+                        title: title,
+                        coverImage: pendingUpload.url,
+                        items: items
+                    };
+
+                    const current = getHighlights();
+                    current.unshift(newHighlight);
+                    saveHighlights(current);
+                    
+                    // Reset 
+                    document.getElementById('highlightTitleInput').value = '';
+                    document.getElementById('highlightDirectUpload').value = '';
+                    pendingUpload = null;
+                    document.getElementById('saveHighlightBtn').style.display = 'none';
+                    document.getElementById('highlightCreateModal').style.display = 'none';
+                    
+                    renderHighlights();
+                });
+
+                // Initial render
+                if (container) renderHighlights();
+
+                // Highlight Viewer functions
+                window.openHighlightViewer = function(idx) {
+                    const h = getHighlights();
+                    if (!h[idx] || !h[idx].items || h[idx].items.length === 0) return;
+                    
+                    const modal = document.getElementById('highlightViewerModal');
+                    const titleEl = document.getElementById('highlightViewerTitle');
+                    const mediaEl = document.getElementById('highlightViewerMedia');
+                    
+                    const item = h[idx].items[0]; // Currently supporting 1 item per direct upload
+                    titleEl.innerText = h[idx].title || 'Highlight';
+                    
+                    if (item.type === 'video') {
+                        mediaEl.innerHTML = `<video src="${item.url}" controls autoplay style="width:100%; height:100%; object-fit:contain;"></video>`;
+                    } else {
+                        mediaEl.innerHTML = `<img src="${item.url}" style="width:100%; height:100%; object-fit:contain;">`;
+                    }
+                    
+                    modal.style.display = 'flex';
+                };
+
+                window.closeHighlightViewer = function() {
+                    const modal = document.getElementById('highlightViewerModal');
+                    const mediaEl = document.getElementById('highlightViewerMedia');
+                    mediaEl.innerHTML = ''; // Clear to stop video
+                    modal.style.display = 'none';
+                };
+            });
+        </script>
+
+        </body>
+        </html>

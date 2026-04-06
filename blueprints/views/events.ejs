@@ -1,0 +1,488 @@
+<%- include('partials/head', { title: 'Campus Events' }) %>
+
+
+        <style>
+            .event-container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .event-card {
+                backdrop-filter: blur(12px);
+                border-radius: 16px;
+                padding: 20px;
+                background: rgba(255, 255, 255, 0.85); /* Slightly brighter for Sparkle's light mode */
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+                transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                margin-bottom: 20px;
+                display: flex;
+                flex-direction: column;
+            }
+            .event-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            }
+            .event-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+            .event-header .badge {
+                background: var(--primary-gradient);
+                color: #fff;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            .live-dot {
+                width: 10px;
+                height: 10px;
+                background: #10b981;
+                border-radius: 50%;
+                box-shadow: 0 0 8px #10b981;
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+                70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            }
+            .event-card h3 {
+                margin: 0 0 10px 0;
+                font-size: 22px;
+                font-weight: 800;
+                color: var(--text-main);
+            }
+            .event-card .meta {
+                color: var(--text-secondary);
+                font-size: 14px;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            .progress-container {
+                margin-top: 10px;
+            }
+            .progress-bar {
+                height: 8px;
+                background: #e2e8f0;
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .progress-bar div {
+                height: 100%;
+                background: var(--primary-gradient);
+                transition: width 0.4s ease;
+            }
+            .spots-text {
+                font-size: 12px;
+                color: var(--text-muted);
+                margin-top: 6px;
+                font-weight: 600;
+                text-align: right;
+            }
+            .btn {
+                padding: 10px 20px;
+                border-radius: 12px;
+                font-weight: 700;
+                border: none;
+                cursor: pointer;
+                transition: 0.2s;
+                text-align: center;
+                margin-top: 15px;
+            }
+            .btn.primary {
+                background: var(--primary);
+                color: white;
+            }
+            .btn.primary:hover {
+                opacity: 0.9;
+                transform: translateY(-2px);
+            }
+            .btn.cancel {
+                background: #fef2f2;
+                color: #ef4444;
+                border: 1px solid #fecaca;
+            }
+            .btn.cancel:hover {
+                background: #fee2e2;
+            }
+            .btn.disabled {
+                background: #f1f5f9;
+                color: #94a3b8;
+                cursor: not-allowed;
+            }
+            .event-actions {
+                display: flex;
+                gap: 10px;
+                margin-top: auto;
+            }
+            .btn.qr-btn {
+                background: #f8fafc;
+                color: var(--text-main);
+                border: 1px solid #e2e8f0;
+            }
+            .event-status-badge {
+                font-size: 11px;
+                font-weight: 800;
+                padding: 4px 10px;
+                border-radius: 8px;
+                text-transform: uppercase;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+            }
+            .status-pending { background: #fef3c7; color: #92400e; }
+            .status-accepted { background: #dcfce7; color: #166534; }
+            .status-rejected { background: #fee2e2; color: #991b1b; }
+            
+            .requirements-box {
+                margin-top: 10px;
+                padding: 12px;
+                background: #f8fafc;
+                border-radius: 12px;
+                font-size: 13px;
+                border: 1px solid #e2e8f0;
+                display: none;
+            }
+            .requirements-box.active { display: block; }
+            
+            .stats-row {
+                display: flex;
+                gap: 15px;
+                font-size: 12px;
+                color: var(--text-muted);
+                font-weight: 600;
+                margin-bottom: 10px;
+            }
+            .stats-item i { color: var(--accent); }
+
+            /* Hamburger Admin Menu Styling */
+            .admin-menu-trigger {
+                background: none;
+                border: none;
+                color: var(--text-muted);
+                cursor: pointer;
+                padding: 8px;
+                border-radius: 50%;
+                transition: 0.2s;
+                position: relative;
+            }
+            .admin-menu-trigger:hover {
+                background: rgba(0,0,0,0.05);
+                color: var(--text-main);
+            }
+            .admin-dropdown {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                border: 1px solid rgba(0,0,0,0.05);
+                min-width: 160px;
+                z-index: 100;
+                display: none;
+                overflow: hidden;
+            }
+            .admin-dropdown.active {
+                display: block;
+                animation: slideDown 0.2s ease-out;
+            }
+            @keyframes slideDown {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .admin-dropdown-item {
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 13px;
+                color: var(--text-main);
+                text-decoration: none;
+                transition: 0.2s;
+            }
+            .admin-dropdown-item:hover {
+                background: #f8fafc;
+                color: var(--primary);
+            }
+        </style>
+        <%- include('partials/sidebar') %>
+        <div class="container" id="mainContent">
+            <div id="eventsPage" class="page active">
+                <div class="header glass" style="margin-bottom: 20px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button class="back-btn" onclick="window.history.back()" aria-label="Back" style="background:none;border:none;font-size:20px;color:var(--text-main);cursor:pointer;">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="logo-text">Campus Events</div>
+                    </div>
+                </div>
+
+                <div class="premium-tabs" style="margin-bottom: 20px; display: flex; justify-content: flex-start; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;">
+                    <style>.premium-tabs::-webkit-scrollbar { display: none; }</style>
+                    <button class="premium-tab-btn <%= (typeof activeFilter !== 'undefined' && activeFilter === 'all') ? 'active' : '' %>" style="flex-shrink: 0;" onclick="window.location.href='/events?campus=all&filter=all'">All</button>
+                    <% if (user && user.campus) { %>
+                        <button class="premium-tab-btn <%= (typeof activeFilter !== 'undefined' && activeFilter === 'campus') ? 'active' : '' %>" style="flex-shrink: 0;" onclick="window.location.href='/events?campus=<%= user.campus %>&filter=campus'">My Campus</button>
+                    <% } %>
+                    <button class="premium-tab-btn <%= (typeof activeFilter !== 'undefined' && activeFilter === 'managed') ? 'active' : '' %>" style="flex-shrink: 0; background: var(--instagram-gradient); color: white; border: none;" onclick="window.location.href='/events?filter=managed'">My Managed</button>
+                    <button class="premium-tab-btn" style="flex-shrink: 0;" onclick="alert('Trending events coming soon!')">Trending</button>
+                </div>
+
+                <div class="event-container">
+                    <div class="event-grid">
+                        <% if (typeof initialEvents !=='undefined' && initialEvents.length > 0) { %>
+                            <% initialEvents.forEach(event => { %>
+                                <div class="event-card" id="event-<%= event.event_id %>">
+                                    <div class="event-header">
+                                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                                            <span style="font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;"><%= event.username %></span>
+                                            <span class="badge" style="width: fit-content; padding: 2px 8px; font-size: 10px;"><%= event.campus || 'Campus Wide' %></span>
+                                        </div>
+                                        <div style="display: flex; align-items: flex-start; gap: 8px;">
+                                            <span class="live-dot" title="Live Event Updates Active"></span>
+                                            
+                                            <% if (event.is_creator) { %>
+                                                <div style="position: relative;">
+                                                    <button class="admin-menu-trigger" onclick="toggleAdminDropdown('<%= event.event_id %>')" aria-label="Admin Options">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <div class="admin-dropdown" id="admin-dropdown-<%= event.event_id %>">
+                                                        <a href="/events/admin?id=<%= event.event_id %>" class="admin-dropdown-item">
+                                                            <i class="fas fa-tasks"></i> Manage Event
+                                                        </a>
+                                                        <a href="#" class="admin-dropdown-item" onclick="sendAnnouncement('<%= event.event_id %>')">
+                                                            <i class="fas fa-bullhorn"></i> Send Blast
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            <% } %>
+                                        </div>
+                                    </div>
+
+                                    <h3 style="font-size: 18px; margin: 5px 0;"><%= event.title %></h3>
+                                    
+                                    <div class="stats-row" onclick="fetchAndShowAttendees('<%= event.event_id %>')" style="cursor: pointer; transition: 0.2s; padding: 4px; border-radius: 8px;" onmouseover="this.style.background='rgba(0,0,0,0.02)'" onmouseout="this.style.background='transparent'">
+                                        <div class="stats-item"><i class="fas fa-users"></i> <%= event.total_rsvps %> RSVP</div>
+                                        <div class="stats-item"><i class="fas fa-user-check"></i> <%= event.total_attended %> Present</div>
+                                    </div>
+
+                                    <p class="meta" style="margin-bottom: 5px; font-size: 13px;">
+                                        <i class="far fa-clock"></i> <%= new Date(event.start_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %>
+                                    </p>
+
+                                    <!-- Spots Remaining Bar -->
+                                    <% if (event.max_attendees > 0) { 
+                                        let capacity = event.max_attendees;
+                                        let reserved = event.total_rsvps || 0;
+                                        let progress = (reserved / capacity) * 100;
+                                        let spotsLeft = Math.max(0, capacity - reserved);
+                                    %>
+                                        <div class="progress-wrap" style="margin-bottom: 15px;">
+                                            <div class="progress-bar" style="height: 6px; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                                                <div style="width: <%= Math.min(progress, 100) %>%; height: 100%; background: <%= progress >= 90 ? '#ef4444' : 'var(--primary-gradient)' %>; border-radius: 10px; transition: 0.5s;"></div>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; font-weight: 700; color: var(--text-muted);">
+                                                <span><%= Math.round(progress) %>% FULL</span>
+                                                <span><%= spotsLeft %> SPOTS LEFT</span>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                    
+                                    <!-- RSVP Status Indicator -->
+                                    <div style="margin-bottom: 10px;">
+                                        <% if (event.user_status === 'pending') { %>
+                                            <span class="event-status-badge status-pending"><i class="fas fa-hourglass-half"></i> Pending Approval ⏳</span>
+                                        <% } else if (event.user_status === 'accepted') { %>
+                                            <span class="event-status-badge status-accepted"><i class="fas fa-check-circle"></i> Accepted ✔</span>
+                                        <% } else if (event.user_status === 'rejected') { %>
+                                            <span class="event-status-badge status-rejected"><i class="fas fa-times-circle"></i> Rejected ❌</span>
+                                        <% } else if (event.user_status === 'attended') { %>
+                                            <span class="event-status-badge status-accepted"><i class="fas fa-star"></i> Attended</span>
+                                        <% } %>
+                                    </div>
+
+                                    <div class="event-actions" style="gap: 8px;">
+                                        <% if (!event.user_status) { %>
+                                            <button class="btn primary" style="flex: 3; margin-top: 0; padding: 8px;" onclick="updateRSVP('<%= event.event_id %>', 'pending')">RSVP</button>
+                                        <% } else if (event.user_status === 'accepted') { %>
+                                            <button class="btn qr-btn" style="flex: 1; margin-top: 0; padding: 8px;" onclick="showEventQR('<%= event.event_id %>')"><i class="fas fa-qrcode"></i> Entry Pass</button>
+                                            <button class="btn cancel" style="flex: 1; margin-top: 0; padding: 8px; background: none; border: none; font-size: 12px;" onclick="updateRSVP('<%= event.event_id %>', 'not_going')">Cancel</button>
+                                        <% } else { %>
+                                            <button class="btn cancel" style="flex: 1; margin-top: 0; padding: 8px;" onclick="updateRSVP('<%= event.event_id %>', 'not_going')">Withdraw</button>
+                                        <% } %>
+                                        
+                                        <button class="btn" style="flex: 1; margin-top: 0; padding: 8px; background: #f1f5f9; color: #475569;" onclick="toggleRequirements('<%= event.event_id %>')">
+                                            <i class="fas fa-chevron-down" id="req-icon-<%= event.event_id %>"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="requirements-box" id="req-box-<%= event.event_id %>">
+                                        <strong style="display: block; margin-bottom: 5px; font-size: 11px; color: var(--text-muted);">EVENT REQUIREMENTS</strong>
+                                        <div style="white-space: pre-line; font-size: 12px;"><%= event.requirements || '- No specific requirements' %></div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="discover-empty-state" style="text-align: center; padding: 40px; background: rgba(255,255,255,0.7); border-radius: 16px;">
+                                <i class="fas fa-calendar-times" style="font-size: 40px; color: #cbd5e1; margin-bottom: 15px;"></i>
+                                <h4>No upcoming events</h4>
+                                <p style="color: var(--text-muted);">Check back later or host one yourself!</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <button class="fab-btn" onclick="appShowEventModal()" style="position: fixed; bottom: 85px; right: 20px; z-index: 100; width: 56px; height: 56px; border-radius: 50%; background: var(--primary-gradient); box-shadow: 0 4px 15px rgba(0,0,0,0.2); color: white; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modals and scripts -->
+        <script src="/js/dashboardAPI.js"></script>
+        <%- include('partials/dashboard-modals') %>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        
+        <!-- Live Web Socket Updates -->
+        <script>
+            // Assumes socket is already defined globally or initialize one if missing
+            const ioSocket = window.socket || io({ auth: { token: localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0] } });
+            
+            ioSocket.on('event_updated', (data) => {
+                const { eventId } = data;
+                // Live blink animation on the card
+                const card = document.getElementById('event-' + eventId);
+                if (card) {
+                    card.style.transform = 'scale(1.02)';
+                    setTimeout(() => {
+                        card.style.transform = '';
+                        setTimeout(() => location.reload(), 300); // Simple reload for fresh data
+                    }, 300);
+                } else {
+                    location.reload();
+                }
+            });
+
+            async function updateRSVP(eventId, status) {
+                try {
+                    const token = localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0];
+                    const res = await fetch(`/api/events/${eventId}/rsvp`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ status })
+                    });
+                    
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Failed to update RSVP');
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: status === 'pending' ? 'Request Sent' : 'Updated',
+                        text: status === 'pending' ? 'Wait for admin approval.' : '',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    
+                    // Socket emission is handled by server, which will trigger location.reload()
+                } catch (e) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: e.message
+                    });
+                }
+            }
+
+            async function showEventQR(eventId) {
+                try {
+                    const token = localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0];
+                    const res = await fetch(`/api/events/${eventId}/qr`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            title: 'Your Entry Pass',
+                            text: 'Show this QR code at the event entrance',
+                            imageUrl: data.qr,
+                            imageWidth: 200,
+                            imageHeight: 200,
+                            imageAlt: 'QR Code',
+                            confirmButtonText: 'Close',
+                            confirmButtonColor: '#6366f1'
+                        });
+                    }
+                } catch (error) {
+                    console.error("QR Error", error);
+                    alert("Could not load QR code.");
+                }
+            }
+            function toggleRequirements(eventId) {
+                const box = document.getElementById(`req-box-${eventId}`);
+                const icon = document.getElementById(`req-icon-${eventId}`);
+                box.classList.toggle('active');
+                icon.classList.toggle('fa-chevron-up');
+                icon.classList.toggle('fa-chevron-down');
+            }
+            async function fetchAndShowAttendees(eventId) {
+                try {
+                    const token = localStorage.getItem('sparkleToken') || document.cookie.split('sparkleToken=')[1]?.split(';')[0];
+                    const res = await fetch(`/api/events/${eventId}/attendees`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const attendees = await res.json();
+                    
+                    if (attendees.length === 0) {
+                        Swal.fire({ title: 'No attendees yet', icon: 'info' });
+                        return;
+                    }
+
+                    const listHtml = attendees.map(a => `
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #eee;">
+                            <img src="${a.avatar_url || '/uploads/avatars/default.png'}" style="width: 30px; height: 30px; border-radius: 50%;">
+                            <div style="text-align: left;">
+                                <div style="font-weight: 700; font-size: 14px;">${a.username}</div>
+                                <div style="font-size: 11px; color: #666;">${a.status.toUpperCase()}</div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    Swal.fire({
+                        title: 'Attendee List',
+                        html: `<div style="max-height: 400px; overflow-y: auto;">${listHtml}</div>`,
+                        confirmButtonText: 'Close'
+                    });
+                } catch (e) {
+                    console.error("Attendee load error", e);
+                }
+            }
+            function toggleAdminDropdown(eventId) {
+                document.querySelectorAll('.admin-dropdown').forEach(d => {
+                    if (d.id !== 'admin-dropdown-' + eventId) d.classList.remove('active');
+                });
+                const dropdown = document.getElementById('admin-dropdown-' + eventId);
+                if (dropdown) dropdown.classList.toggle('active');
+                const closeHandler = (e) => {
+                    if (!e.target.closest('.admin-menu-trigger')) {
+                        dropdown.classList.remove('active');
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                setTimeout(() => document.addEventListener('click', closeHandler), 0);
+            }
+        </script>
+    </body>
+</html>

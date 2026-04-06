@@ -1,0 +1,65 @@
+================================================================================
+ARCHITECTURE MIGRATION MAP: SIDE-BY-SIDE FILE COMPARISON
+================================================================================
+
+[ORIGINAL JAVASCRIPT MVC STRUCTURE (The Source)]
+📂 sparkle-version-003/ (Root)
+├── 📂 controllers/          [Logic]
+│   ├── 📄 auth.controller.js   ────┐ (Refactored into React Services)
+│   ├── 📄 post.controller.js   ────┤
+│   └── 📄 chat.controller.js   ────┘
+├── 📂 views/                [UI Template]
+│   ├── 📄 dashboard.ejs        ────┐ (Refactored into React Pages)
+│   ├── 📄 discover.ejs         ────┤
+│   ├── 📄 profile.ejs          ────┤
+│   └── 📂 partials/            ────┐ (Refactored into React Components)
+│       └── 📄 navbar.ejs       ────┘
+├── 📂 routes/               [Server URLs]
+│   ├── 📄 api.js               (Points to backend logic)
+│   └── 📄 web.js               (Served the partial views)
+├── 📂 middleware/           [Security]
+│   └── 📄 auth.middleware.js   (Protected the EJS routes)
+├── 📂 sockets/              [Async Engine]
+│   └── 📄 index.js             (The standalone SocketIO listener)
+└── 📂 public/js/            [Legacy Front Scripts]
+    ├── 📄 main.js              (Manual DOM interaction)
+    └── 📄 chat.js              (Manual event handling)
+
+--------------------------------------------------------------------------------
+
+[NEW REACT-BASED APPLICATION STRUCTURE (The Target)]
+📂 frontend/
+├── 📄 main.jsx                 [Root Entry Point]
+├── 📄 App.jsx                  [Client-Side Router]
+├── 📂 src/
+│   ├── 📂 pages/               [The View Equivalents]
+│   │   ├── 📄 Dashboard.jsx    (Was: dashboard.ejs)
+│   │   ├── 📄 Discover.jsx     (Was: discover.ejs)
+│   │   ├── 📄 Profile.jsx      (Was: profile.ejs)
+│   │   └── 📄 Messages.jsx     (Was: chat.js/ejs)
+│   │
+│   ├── 📂 components/          [The Partials Equivalents]
+│   │   ├── 📄 Navbar.jsx       (Was: partials/navbar.ejs)
+│   │   ├── 📄 PostCard.jsx     (Was: inline HTML in main.js)
+│   │   └── 📄 StoryCircle.jsx  (Was: hardcoded HTML segments)
+│   │
+│   ├── 📂 hooks/               [The Middleware Equivalents]
+│   │   ├── 📄 useAuth.js       (Protects React views on-the-fly)
+│   │   └── 📄 useSocket.js     (Connects UI to live data)
+│   │
+│   ├── 📂 services/            [The Controller Bridge]
+│   │   ├── 📄 api.js           (Talks to auth.controller.js)
+│   │   ├── 📄 socket.js        (Talks to sockets/index.js)
+│   │   └── 📄 auth.js          (Talks to user.controller.js)
+│   │
+│   ├── 📂 context/             [The Session Equivalents]
+│   │   ├── 📄 AuthContext.jsx   (Persists login across pages)
+│   │   └── 📄 SocketContext.jsx (Persists real-time connection)
+│   │
+│   └── 📂 utils/               [The Helper Equivalents]
+│       ├── 📄 formatters.js     (Was: public/js/utils.js)
+│       └── 📄 validators.js     (Manual regex checks in main.js)
+
+================================================================================
+END OF DUAL-BLUEPRINT COMPILATION
+================================================================================

@@ -1,0 +1,1446 @@
+<%- include('partials/head', { title: 'Messages' }) %>
+<script>
+    window.sparkConfig = {
+        giphyKey: '<%= typeof giphyKey !== "undefined" ? giphyKey : "" %>'
+    };
+</script>
+<link rel="stylesheet" href="/css/messaging-v3.css">
+<link rel="stylesheet" href="/css/chat-themes.css">
+<script type="module" src="/js/dynamicPatch/ui/mobile-fixes.js"></script>
+<script src="/js/themes-data.js"></script>
+<script src="/js/chat-theme-manager.js" defer></script>
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<div id="mainContent" class="messaging-page">
+    <div class="messaging-layout">
+        
+        <!-- SIDEBAR -->
+        <aside class="conversation-sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h1>Conversations</h1>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <!-- Global Nav Trigger for Sidebar -->
+                        <button onclick="toggleSidebarNavDropdown()" title="Menu" style="background:transparent; border:none; color:#8696a0; font-size:22px; cursor:pointer;">
+                            <i class="bi bi-grid-fill" id="sidebarMenuIcon"></i>
+                        </button>
+                        <!-- Theme Setting -->
+                        <button class="settings-btn" onclick="openChatCustomization()" title="Chat Settings" style="background:transparent; border:none; color:#8696a0; font-size:22px; cursor:pointer;">
+                            <i class="bi bi-gear"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SIDEBAR NAV DROPDOWN -->
+                <div id="sidebarNavDropdown" style="display:none; height:0; overflow:hidden; transition:height 0.3s cubic-bezier(0.4, 0, 0.2, 1); width:100%; margin-top:10px; border-top:1px solid #f3f4f6;">
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:15px 5px; padding:15px 5px; background:white;">
+                        <a href="/dashboard" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-house-door-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Home</span></a>
+                        <a href="/connect" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-compass-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Discover</span></a>
+                        <a href="/moments" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-play-circle-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Moments</span></a>
+                        <a href="/marketplace" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-shop" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Market</span></a>
+                        <a href="/groups" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-people-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Groups</span></a>
+                        <a href="/notifications" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-bell-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Notify</span></a>
+                        <a href="/profile" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-person-circle" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Profile</span></a>
+                        <a href="/settings" style="display:flex; flex-direction:column; align-items:center; color:#6b7280; text-decoration:none;"><i class="bi bi-gear-fill" style="font-size:20px; margin-bottom:5px;"></i><span style="font-size:10px; font-weight:600;">Settings</span></a>
+                    </div>
+                </div>
+
+                <script>
+                    window.toggleSidebarNavDropdown = function() {
+                        const dropdown = document.getElementById('sidebarNavDropdown');
+                        const icon = document.getElementById('sidebarMenuIcon');
+                        if(dropdown.style.display === 'none') {
+                            dropdown.style.display = 'block';
+                            void dropdown.offsetWidth; // Reflow
+                            dropdown.style.height = '145px';
+                            icon.style.color = '#3b82f6';
+                        } else {
+                            dropdown.style.height = '0';
+                            icon.style.color = '#8696a0';
+                            setTimeout(() => { dropdown.style.display = 'none'; }, 300);
+                        }
+                    };
+                </script>
+
+                <div class="search-bar-container" style="margin-top: 15px;">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="sidebarSearch" class="sidebar-search" placeholder="Search chats or friends...">
+                </div>
+                <!-- Inbox Tabs -->
+                <div class="inbox-tabs">
+                    <button class="inbox-tab active" onclick="window.sparkChat.switchInboxTab('all', this)">All</button>
+                    <button class="inbox-tab" onclick="window.sparkChat.switchInboxTab('unread', this)">Unread</button>
+                    <button class="inbox-tab" onclick="window.sparkChat.switchInboxTab('groups', this)">Groups</button>
+                    <button class="inbox-tab" onclick="window.sparkChat.switchInboxTab('marketplace', this)">Marketplace</button>
+                    <button class="inbox-tab" onclick="window.sparkChat.switchInboxTab('archived', this)">Archived</button>
+                </div>
+            </div>
+
+            <!-- Active Friends -->
+            <div class="active-friends-section" id="activeFriendsSection">
+                <h4 class="active-friends-title">Active Friends</h4>
+                <div class="active-friends-carousel" id="activeFriendsCarousel">
+                    <div class="chat-loader"><div class="spinner-pink"></div></div>
+                </div>
+            </div>
+
+            <!-- List -->
+            <div class="conversation-list" id="conversationList">
+                <div class="chat-loader" style="display: flex; justify-content: center; padding: 40px;">
+                    <div class="spinner-pink"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CHAT MAIN -->
+        <main class="chat-main" id="chatMain">
+            <div class="chat-background" id="chatBackground"></div>
+            <div class="chat-overlay" id="chatOverlay"></div>
+            
+            <div class="chat-content" style="position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; width: 100%;">
+                <header class="chat-banner" id="chatBanner">
+                <div class="chat-banner-left" onclick="window.sparkChat.openChatSettings()" style="cursor:pointer;">
+                    <i class="bi bi-chevron-left mobile-back-btn" onclick="event.stopPropagation(); closeChat()"></i>
+                    <img id="bannerAvatar" src="/uploads/avatars/default.png" class="banner-avatar" onclick="event.stopPropagation(); window.sparkChat.expandProfilePicture()" style="border-radius:50%; object-fit:cover;">
+                    <div class="banner-info">
+                        <h2 id="bannerName">Loading...</h2>
+                        <span id="bannerStatus" class="banner-status">Offline</span>
+                    </div>
+                </div>
+                    <div class="chat-actions">
+                        <div class="header-search-wrap" id="headerSearchWrap" style="display: none;">
+                            <input type="text" id="chatMsgSearch" placeholder="Search in chat...">
+                            <i class="bi bi-x-lg" onclick="window.sparkChat.toggleChatSearch(false)"></i>
+                        </div>
+                        <i class="bi bi-search" onclick="window.sparkChat.toggleChatSearch(true)" title="Search"></i>
+                        <i class="bi bi-gear" onclick="window.sparkChat.openMessageSettings()" title="Message Settings"></i>
+                        <i class="bi bi-palette" onclick="openChatCustomization()" title="Theme Settings" style="color:#00a884;"></i>
+                        <i class="bi bi-telephone" title="Voice Call"></i>
+                        <i class="bi bi-camera-video" title="Video Call"></i>
+                        <div class="chat-menu-wrapper" style="position: relative;">
+                        <i class="bi bi-three-dots-vertical" onclick="window.sparkChat.toggleChatMenu()" title="More"></i>
+                        <div class="chat-dropdown-menu" id="chatDropdownMenu" style="display: none;">
+                            <a href="#" onclick="window.sparkChat.handleGroupSettings()" id="menuGroupSettings" style="display: none;">Group Settings</a>
+                            <a href="#" onclick="window.sparkChat.handleMuteNotifications()" id="menuMute">Mute Notifications</a>
+                            <a href="#" onclick="window.sparkChat.handleArchiveChat()">Archive Chat</a>
+                            <a href="#" onclick="window.sparkChat.handleBlockUser()" class="text-danger" id="menuBlock">Block User</a>
+                            <a href="#" onclick="window.sparkChat.handleDeleteChat()" class="text-danger" style="border-top:1px solid #eee;">Delete Chat</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <div id="disappearingNotice" style="display:none; text-align:center; background:rgba(0,168,132,0.1); color:#00a884; padding:8px; font-size:12px; font-weight:600;">
+                <i class="bi bi-clock-history" style="margin-right:5px;"></i> Disappearing messages are turned on. <a href="#" onclick="window.sparkChat.openDisappearingMessages()" style="color:#00a884; text-decoration:underline;">Change</a>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <!-- Messages go here -->
+            </div>
+
+            <!-- Scroll to Latest Button -->
+            <button id="scrollToLatestBtn" onclick="window.sparkChat.scrollToBottom(true)" style="display:none; position:fixed; bottom:85px; right:20px; background:#202c33; color:#00a884; border:none; border-radius:50%; width:45px; height:45px; box-shadow:0 4px 12px rgba(0,0,0,0.4); z-index:100; align-items:center; justify-content:center;">
+                <i class="bi bi-chevron-double-down" style="font-size:20px;"></i>
+                <span id="newMsgBadge" style="display:none; position:absolute; top:-5px; right:-5px; background:#00a884; color:#fff; font-size:10px; padding:2px 6px; border-radius:10px; font-weight:700;">1</span>
+            </button>
+
+            <footer class="chat-composer" id="chatComposer">
+                <!-- Attachment Inputs -->
+                <input type="file" id="docInput" accept=".pdf,.doc,.docx,.txt" hidden onchange="window.sparkChat.handleMediaUpload(event, 'document')">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden onchange="window.sparkChat.handleMediaUpload(event, 'image')">
+                <input type="file" id="galleryInput" accept="image/*,video/*" hidden onchange="window.sparkChat.handleMediaUpload(event, 'gallery')">
+                <input type="file" id="audioInput" accept="audio/*" hidden onchange="window.sparkChat.handleMediaUpload(event, 'audio')">
+                <div class="message-preview-container" id="messagePreviewContainer" style="display: none; position:absolute; bottom:100%; left:0; right:0; background:#111; padding:10px 15px; border-top:1px solid #222;">
+                    <div class="preview-content" style="background:#222; border-left:4px solid #00a884; padding:8px 12px; border-radius:8px;">
+                        <span class="preview-label" id="previewLabel" style="color:#00a884; font-size:12px; font-weight:800; display:block;">Replying to</span>
+                        <p class="preview-text" id="previewText" style="font-size:13px; color:#e9edef; margin:0; line-height:1.4;"></p>
+                    </div>
+                    <i class="bi bi-x" onclick="window.sparkChat.cancelReplyOrEdit()" style="position:absolute; right:20px; top:20px; cursor:pointer; color:#8696a0; font-size:24px;"></i>
+                </div>
+                
+                <!-- Single Horizontal Bar -->
+                <div class="wa-composer-input-wrapper" style="position:relative; width:100%; border-radius:30px; display:flex; align-items:flex-end; padding:8px 12px; min-height:48px; background:#000; border:1px solid #333; box-sizing:border-box;">
+                    
+                    <!-- VOICE NOTE OVERLAY (Countdown, Waveform, Actions) -->
+                    <div id="voiceNoteOverlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#000; border-radius:30px; align-items:center; padding:0 15px; z-index:10; justify-content:space-between; box-sizing:border-box;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i class="bi bi-mic-fill" style="color:#00a884; font-size:18px; animation: pulse 1s infinite alternate;"></i>
+                            <span id="vnTimer" style="color:#fff; font-size:15px; font-variant-numeric:tabular-nums;">0:00</span>
+                        </div>
+                        <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:0 10px;">
+                            <div class="vn-waveform" style="display:flex; gap:2px; height:20px; align-items:center;">
+                                <!-- Waveform bars inject dynamically through JS -->
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <i class="bi bi-trash-fill" onclick="window.sparkChat.cancelVoiceNote(event)" style="color:#f15c6d; font-size:20px; cursor:pointer;" title="Delete"></i>
+                            <i class="bi bi-check-circle-fill" onclick="window.sparkChat.confirmVoiceNote(event)" style="color:#00a884; font-size:20px; cursor:pointer;" title="Send"></i>
+                        </div>
+                    </div>
+
+                    <!-- Left: Emoji & Chat Nav Trigger -->
+                    <button class="icon-btn" id="chatMenuTriggerBtn" style="background:none; border:none; padding:0 12px 4px 0; outline:none; display:flex; color:#8696a0; font-size:22px; cursor:pointer; pointer-events:auto;" onclick="toggleChatDropdown()">
+                        <i class="bi bi-grid-fill"></i>
+                    </button>
+                    <button class="icon-btn" id="emojiBtn" title="Emoji" style="background:none; border:none; padding:0 12px 4px 0; outline:none; display:flex; color:#8696a0; font-size:24px; cursor:pointer; pointer-events:auto;" onclick="window.sparkChat.toggleEmojiPicker(event, 'emoji')">
+                        <i class="bi bi-emoji-smile"></i>
+                    </button>
+                    
+                    <!-- Text Input -->
+                    <textarea id="messageInput" placeholder="Message" rows="1" style="flex:1; border:none; background:transparent; font-size:16px; resize:none; outline:none; font-family:inherit; padding:6px 0; max-height:100px; overflow-y:auto; color:#fff; line-height:22px; margin-bottom:1px;"></textarea>
+                    
+                    <!-- Right Check: Attachment -> Camera -> Mic -> Send -->
+                    <div style="display:flex; align-items:center; gap:14px; padding-left:8px; padding-bottom:5px; transform:translateY(2px);">
+                        <button class="icon-btn" id="attachmentBtn" onclick="window.sparkChat.toggleAttachmentMenu(event)" style="background:none; border:none; padding:0; outline:none; display:flex; color:#8696a0; font-size:24px; cursor:pointer; transform:rotate(-45deg); pointer-events:auto;">
+                            <i class="bi bi-paperclip"></i>
+                        </button>
+                        <button class="icon-btn" id="cameraBtnInline" onclick="document.getElementById('cameraInput').click()" style="background:none; border:none; padding:0; outline:none; display:flex; color:#8696a0; font-size:24px; cursor:pointer; pointer-events:auto;">
+                            <i class="bi bi-camera"></i>
+                        </button>
+                        
+                        <!-- Fixed Mic: Separate button for recording -->
+                        <button class="icon-btn" id="micBtn" style="background:none; border:none; padding:0; outline:none; color:#8696a0; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; pointer-events:auto;"
+                            onmousedown="window.sparkChat.startVoiceNote()" 
+                            onmouseup="window.sparkChat.stopVoiceNote()" 
+                            ontouchstart="window.sparkChat.startVoiceNote(); event.preventDefault();" 
+                            ontouchend="window.sparkChat.stopVoiceNote(); event.preventDefault();">
+                            <i class="bi bi-mic" id="micIconRef"></i>
+                        </button>
+
+                        <!-- Fixed Send: Always visible -->
+                        <button class="icon-btn" id="sendBtn" onclick="window.sparkChat.sendMessage()" style="background:none; border:none; padding:0; outline:none; color:#00a884; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; pointer-events:auto;">
+                            <i class="bi bi-send-fill" style="transform:rotate(45deg); margin-top:-2px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+
+                <!-- Attachment Menu -->
+                <div id="attachmentMenu" class="attachment-menu" style="display:none; pointer-events:auto;">
+                    <div class="attach-item" style="cursor:pointer;" onclick="document.getElementById('docInput').click(); window.sparkChat.closeAllModals();">
+                        <div class="attach-icon at-purple"><i class="bi bi-file-earmark-fill"></i></div>
+                        <span class="attach-label">Document</span>
+                    </div>
+                    <div class="attach-item" style="cursor:pointer;" onclick="document.getElementById('cameraInput').click(); window.sparkChat.closeAllModals();">
+                        <div class="attach-icon at-pink"><i class="bi bi-camera-fill"></i></div>
+                        <span class="attach-label">Camera</span>
+                    </div>
+                    <div class="attach-item" style="cursor:pointer;" onclick="document.getElementById('galleryInput').click(); window.sparkChat.closeAllModals();">
+                        <div class="attach-icon at-orange"><i class="bi bi-image-fill"></i></div>
+                        <span class="attach-label">Gallery</span>
+                    </div>
+                    <div class="attach-item" style="cursor:pointer;" onclick="document.getElementById('audioInput').click(); window.sparkChat.closeAllModals();">
+                        <div class="attach-icon at-orange" style="background:#ff5722;"><i class="bi bi-headphones"></i></div>
+                        <span class="attach-label">Audio</span>
+                    </div>
+                    <div class="attach-item" style="cursor:pointer;" onclick="window.sparkChat.openAttachment('Location'); window.sparkChat.closeAllModals();">
+                        <div class="attach-icon at-green"><i class="bi bi-geo-alt-fill"></i></div>
+                        <span class="attach-label">Location</span>
+                    </div>
+                    <div class="attach-item" style="cursor:pointer;" onclick="window.sparkChat.openAttachment('Contact'); window.sparkChat.closeAllModals();">
+                        <div class="attach-icon at-blue"><i class="bi bi-person-fill"></i></div>
+                        <span class="attach-label">Contact</span>
+                    </div>
+                </div>
+
+                <!-- CHAT-ONLY NAV DROPDOWN -->
+                <div id="chatNavDropdown" style="display:none; height:0; overflow:hidden; transition:height 0.3s cubic-bezier(0.4, 0, 0.2, 1); width:100%;">
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:15px 10px; padding:15px 10px 5px; background:transparent;">
+                        <a href="/dashboard" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-house-door-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Home</span></a>
+                        <a href="/connect" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-compass-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Discover</span></a>
+                        <a href="/moments" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-play-circle-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Moments</span></a>
+                        <a href="/marketplace" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-shop" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Market</span></a>
+                        <a href="/groups" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-people-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Groups</span></a>
+                        <a href="/notifications" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-bell-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Notify</span></a>
+                        <a href="/profile" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-person-circle" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Profile</span></a>
+                        <a href="/settings" style="display:flex; flex-direction:column; align-items:center; color:#8696a0; text-decoration:none;"><i class="bi bi-gear-fill" style="font-size:24px; margin-bottom:5px;"></i><span style="font-size:11px;">Settings</span></a>
+                    </div>
+                </div>
+
+            </footer>
+
+            <script>
+                // STRICTLY ISOLATED CHAT DROPDOWN TOGGLE
+                window.toggleChatDropdown = function() {
+                    const dropdown = document.getElementById('chatNavDropdown');
+                    const trigger = document.getElementById('chatMenuTriggerBtn');
+                    if(dropdown.style.display === 'none') {
+                        dropdown.style.display = 'block';
+                        // Force reflow
+                        void dropdown.offsetWidth;
+                        dropdown.style.height = '160px';
+                        trigger.style.color = '#00a884';
+                        
+                        // Push scroll upwards
+                        setTimeout(() => { if(window.sparkChat) window.sparkChat.scrollToBottom(true); }, 300);
+                    } else {
+                        dropdown.style.height = '0';
+                        trigger.style.color = '#8696a0';
+                        setTimeout(() => { dropdown.style.display = 'none'; }, 300);
+                    }
+                };
+            </script>
+
+            </div> <!-- End chat-content wrapper -->
+
+            <!-- Legacy picker removed here to avoid ID conflict with new unified picker at footer -->
+
+            <!-- FLOATING ATTACHMENT MENU (6 SQUARES 2X3) -->
+            <div id="attachmentMenu" class="modal-overlay-target" onclick="event.stopPropagation()" style="display:none; position:absolute; bottom:70px; right:15px; background:transparent; z-index:9010; width:100%; max-width: 250px; transform-origin: bottom right; animation: scaleUp 0.15s ease-out;">
+                <div style="background:#233138; border-radius:18px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,0.4); display:grid; grid-template-columns:1fr 1fr 1fr; gap:25px 15px;">
+                    <!-- Top Row -->
+                    <div onclick="window.sparkChat.openAttachment('Gallery')" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
+                        <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg, #0A9BE2 0%, #0CB2F7 100%); display:flex; justify-content:center; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-image" style="color:#fff; font-size:20px;"></i></div>
+                        <span style="font-size:11px; margin-top:8px; color:#d1d7db; text-align:center;">Gallery</span>
+                    </div>
+                    <div onclick="window.sparkChat.openAttachment('Camera')" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
+                        <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg, #D3396D 0%, #E53F77 100%); display:flex; justify-content:center; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-camera" style="color:#fff; font-size:20px;"></i></div>
+                        <span style="font-size:11px; margin-top:8px; color:#d1d7db; text-align:center;">Camera</span>
+                    </div>
+                    <div onclick="window.sparkChat.openAttachment('Location')" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
+                        <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg, #0BA360 0%, #17BE71 100%); display:flex; justify-content:center; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-geo-alt" style="color:#fff; font-size:20px;"></i></div>
+                        <span style="font-size:11px; margin-top:8px; color:#d1d7db; text-align:center;">Location</span>
+                    </div>
+                    
+                    <!-- Bottom Row -->
+                    <div onclick="window.sparkChat.openAttachment('Document')" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
+                        <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg, #BF59CF 0%, #9F34CC 100%); display:flex; justify-content:center; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-file-earmark-text" style="color:#fff; font-size:20px;"></i></div>
+                        <span style="font-size:11px; margin-top:8px; color:#d1d7db; text-align:center;">Document</span>
+                    </div>
+                    <div onclick="window.sparkChat.openAttachment('Audio')" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
+                        <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg, #E65A4B 0%, #F56B5A 100%); display:flex; justify-content:center; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-headphones" style="color:#fff; font-size:20px;"></i></div>
+                        <span style="font-size:11px; margin-top:8px; color:#d1d7db; text-align:center;">Audio</span>
+                    </div>
+                    <div onclick="window.sparkChat.openAttachment('Follower')" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
+                        <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg, #5157AE 0%, #5F66CD 100%); display:flex; justify-content:center; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-person-fill-add" style="color:#fff; font-size:20px;"></i></div>
+                        <span style="font-size:11px; margin-top:8px; color:#d1d7db; text-align:center;">Follower</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MEDIA PREVIEW MODAL -->
+            <div id="mediaPreviewModal" style="display:none; position:fixed; inset:0; z-index:99999; background:#000; flex-direction:column;">
+                <div style="padding:15px; background:#111; display:flex; align-items:center; border-bottom:1px solid #222;">
+                    <i class="bi bi-x-lg" onclick="window.sparkChat.closeMediaPreview()" style="font-size:24px; color:#fff; cursor:pointer; margin-right:20px;"></i>
+                    <span style="font-size:16px; color:#fff; font-weight:600;">Preview</span>
+                </div>
+                <div style="flex:1; display:flex; align-items:center; justify-content:center; background:#000; padding:20px;" id="mediaPreviewContent">
+                    <!-- Image/Video goes here -->
+                </div>
+                <div style="background:#111; padding:15px 20px; display:flex; align-items:center; gap:10px; border-top:1px solid #222;">
+                    <!-- Caption Input -->
+                    <div style="flex:1; background:#202c33; border-radius:24px; display:flex; align-items:center; padding:5px 15px;">
+                        <textarea id="mediaCaptionInput" placeholder="Add a caption..." rows="1" style="flex:1; border:none; background:transparent; font-size:15px; resize:none; outline:none; height:24px; padding:4px 0; color:#e9edef;"></textarea>
+                    </div>
+                    
+                    <!-- View Limit Toggle (Eye Cycle) -->
+                    <button id="viewPolicyToggle" onclick="window.sparkChat.cycleViewPolicy()" style="background:#202c33; border:none; border-radius:12px; height:40px; min-width:80px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; color:#00a884; font-size:14px; font-weight:600; flex-shrink:0; border:1px solid rgba(255,255,255,0.05);">
+                        <i class="bi bi-infinity" id="vpIcon"></i>
+                        <span id="vpLabel" style="color:#e9edef;">Keep</span>
+                    </button>
+                    <!-- Floating Send Button inside Preview -->
+                    <button class="wa-composer-btn" onclick="window.sparkChat.confirmSendMedia()" style="width:48px; height:48px; border-radius:50%; background:#00a884; color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i class="bi bi-send-fill" style="font-size:20px; margin-left:-2px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FULL SCREEN CAMERA UI -->
+            <div id="cameraInterface" style="display:none; position:fixed; inset:0; z-index:999999; background:#000; flex-direction:column;">
+                <div style="padding:20px; display:flex; justify-content:space-between; align-items:center; position:absolute; top:0; left:0; width:100%; z-index:10; background:linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);">
+                    <i class="bi bi-x-lg" onclick="window.sparkChat.closeCamera()" style="font-size:28px; color:#fff; cursor:pointer; text-shadow:0 1px 3px rgba(0,0,0,0.5);"></i>
+                    <i class="bi bi-lightning" id="flashToggle" style="font-size:28px; color:#fff; cursor:pointer; text-shadow:0 1px 3px rgba(0,0,0,0.5);"></i>
+                </div>
+                
+                <video id="cameraVideo" autoplay playsinline style="flex:1; object-fit:cover; width:100%; height:100%; background:#000;"></video>
+                
+                <div style="position:absolute; bottom:0; padding:30px 20px; width:100%; display:flex; flex-direction:column; align-items:center; background:linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
+                    <!-- Camera Mode Selector -->
+                    <div style="display:flex; gap:25px; margin-bottom:25px; color:#fff; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; opacity:0.8;">
+                        <span id="modePhoto" onclick="window.sparkChat.switchCameraMode('photo')" style="cursor:pointer; color:#00a884; border-bottom:2px solid #00a884; padding-bottom:4px;">Photo</span>
+                        <span id="modeVideo" onclick="window.sparkChat.switchCameraMode('video')" style="cursor:pointer;">Video</span>
+                        <span id="modeVideoNote" onclick="window.sparkChat.switchCameraMode('videonote')" style="cursor:pointer;">Video Note</span>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:400px;">
+                        <div style="width:40px; height:40px;"></div><!-- Placeholder -->
+                        
+                        <div id="cameraCaptureBtn" 
+                             onclick="window.sparkChat.cameraCaptureClick()"
+                             onmousedown="window.sparkChat.cameraCaptureStart()" 
+                             onmouseup="window.sparkChat.cameraCaptureEnd()" 
+                             ontouchstart="window.sparkChat.cameraCaptureStart(); event.preventDefault();" 
+                             ontouchend="window.sparkChat.cameraCaptureEnd(); event.preventDefault();"
+                             style="width:75px; height:75px; border-radius:50%; border:5px solid #fff; background:transparent; cursor:pointer; display:flex; justify-content:center; align-items:center; position:relative;">
+                             <div id="cameraCaptureInner" style="width:55px; height:55px; border-radius:50%; background:#fff; transition:all 0.2s;"></div>
+                        </div>
+                        
+                        <i class="bi bi-arrow-repeat" onclick="window.sparkChat.switchCamera()" style="font-size:32px; color:#fff; cursor:pointer;"></i>
+                    </div>
+                    <div style="display:flex; gap:20px; color:#fff; font-size:14px; margin-top:15px; font-weight:600;">
+                        <span style="opacity:0.6;">Photo</span>
+                        <span>Video Note</span>
+                        <span style="opacity:0.6;">Video</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOLLOWER SHARE MODAL -->
+            <div id="followerShareModal" style="display:none; position:fixed; inset:0; z-index:999999; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); flex-direction:column; justify-content:flex-end;">
+                <div style="background:#111; border-radius:24px 24px 0 0; display:flex; flex-direction:column; max-height:80vh; border-top:1px solid rgba(255,255,255,0.05);">
+                    <div style="padding:20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #222;">
+                        <span style="font-size:18px; color:#fff; font-weight:700;">Share Contact</span>
+                        <i class="bi bi-x-lg" onclick="document.getElementById('followerShareModal').style.display='none'" style="font-size:24px; color:#aaa; cursor:pointer;"></i>
+                    </div>
+                    <div style="padding:15px; overflow-y:auto; flex:1;" id="followerShareList">
+                        <!-- Follower List Injector -->
+                        <div class="chat-loader"><div class="spinner-pink"></div></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- EMPTY STATE WINDOW -->
+        <div class="empty-window" id="chatEmptyWindow">
+            <div class="empty-content">
+                <i class="bi bi-chat-heart"></i>
+                <h2>Spark Your Connections</h2>
+                <p>Select a friend from the left sidebar to start messaging in real-time. Share your sparkles!</p>
+                <button class="btn-primary" style="margin-top: 20px; border-radius: 20px; padding: 10px 25px;" onclick="window.location.href='/connect'">Find New Friends</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Message Action Overlay (Combined Reactions + Actions like IG/Messenger) -->
+<div class="overlay-backdrop" id="messageActionOverlay" style="display:none; position:fixed; z-index:9999; inset:0; background:rgba(0,0,0,0.6);" onclick="window.sparkChat.closeMessageActionMenu()">
+    <div class="message-action-modal" id="messageActionModal" style="position:absolute; z-index:9999; background:#233138; border-radius:16px; padding:10px; box-shadow:0 10px 40px rgba(0,0,0,0.4); width:240px; border:1px solid rgba(255,255,255,0.05);" onclick="event.stopPropagation()">
+        
+        <!-- Reactions Row -->
+        <div class="message-reactions-row" style="display:flex; justify-content:space-between; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:10px;">
+            <button onclick="window.sparkChat.selectReaction('❤️')">❤️</button>
+            <button onclick="window.sparkChat.selectReaction('😂')">😂</button>
+            <button onclick="window.sparkChat.selectReaction('👍')">👍</button>
+            <button onclick="window.sparkChat.selectReaction('😮')">😮</button>
+            <button onclick="window.sparkChat.selectReaction('😢')">😢</button>
+            <button onclick="window.sparkChat.selectReaction('😡')">😡</button>
+        </div>
+        
+        <div class="action-drawer-options" style="display:flex; flex-direction:column; gap:4px;">
+            <style>
+                .action-drawer-options .action-btn {
+                    background: transparent; border: none; outline: none; padding: 10px 14px;
+                    display: flex; align-items: center; gap: 12px; color: #e9edef; font-size: 14px;
+                    font-weight: 500; cursor: pointer; border-radius: 8px; transition: background 0.2s;
+                    text-align: left; width: 100%;
+                }
+                .action-drawer-options .action-btn:hover { background: rgba(255,255,255,0.08); }
+                .action-drawer-options .action-btn i { font-size: 18px; color: #8696a0; }
+                .action-drawer-options .action-btn.text-danger { color: #f15c6d; }
+                .action-drawer-options .action-btn.text-danger i { color: #f15c6d; }
+            </style>
+            <button onclick="window.sparkChat.handleActionReply()" class="action-btn">
+                <i class="bi bi-reply"></i> Reply
+            </button>
+            <button onclick="window.sparkChat.handleActionEdit()" class="action-btn" id="actionDrawerEditBtn">
+                <i class="bi bi-pencil"></i> Edit Message
+            </button>
+            <button onclick="window.sparkChat.handleActionCopy()" class="action-btn">
+                <i class="bi bi-clipboard"></i> Copy Text
+            </button>
+            <button onclick="window.sparkChat.handleActionDeleteForMe()" class="action-btn">
+                <i class="bi bi-person-x"></i> Delete for Me
+            </button>
+            <button onclick="window.sparkChat.handleActionDeleteForEveryone()" class="action-btn text-danger" id="actionDrawerDeleteEveryoneBtn">
+                <i class="bi bi-trash-fill"></i> Unsend
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- New Chat / Create Group Modal -->
+<div class="modal-overlay" id="newChatModalOverlay" style="display:none; z-index:11000; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:16px;" onclick="window.sparkChat.closeNewChatModal(false, event)">
+    <div class="new-chat-modal" onclick="event.stopPropagation()" style="background:white; width:100%; max-width:480px; border-radius:24px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.2); display:flex; flex-direction:column; max-height:85vh;">
+
+        <!-- Header -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 20px 0;">
+            <div>
+                <div style="font-size:19px; font-weight:800; color:#111;" id="newChatModalTitle">New Chat</div>
+                <div style="font-size:12px; color:#888; margin-top:2px;">Start a direct message or group</div>
+            </div>
+            <button onclick="window.sparkChat.closeNewChatModal(true)" style="width:36px;height:36px;border-radius:50%;background:#f1f5f9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:#64748b;transition:background .2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex; gap:0; margin:16px 20px 0; background:#f8fafc; border-radius:12px; padding:4px;">
+            <button id="tabNewMessage" onclick="window.sparkChat.switchNewChatTab('new')"
+                style="flex:1; padding:10px; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; transition:all .25s; background:white; color:#6366f1; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <i class="bi bi-chat-dots" style="margin-right:6px;"></i>New Message
+            </button>
+            <button id="tabCreateGroup" onclick="window.sparkChat.switchNewChatTab('group')"
+                style="flex:1; padding:10px; border:none; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; transition:all .25s; background:transparent; color:#94a3b8;">
+                <i class="bi bi-people" style="margin-right:6px;"></i>Create Group
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div style="padding:16px 20px; overflow-y:auto; flex:1;">
+
+            <!-- Group Details Form -->
+            <div id="groupDetailsForm" style="display:none; margin-bottom:14px;">
+                <div style="position:relative; margin-bottom:10px;">
+                    <i class="bi bi-pencil-fill" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:14px;"></i>
+                    <input type="text" id="groupNameInput" placeholder="Group name..."
+                        style="width:100%; padding:12px 14px 12px 38px; border:2px solid #e2e8f0; border-radius:14px; font-size:14px; font-weight:600; outline:none; color:#111; transition:border .2s; box-sizing:border-box;"
+                        onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+                <label style="display:flex; align-items:center; gap:10px; padding:10px 14px; border:2px dashed #e2e8f0; border-radius:14px; cursor:pointer; color:#94a3b8; font-size:13px; font-weight:600; transition:border .2s;" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#e2e8f0'">
+                    <i class="bi bi-image" style="font-size:18px; color:#6366f1;"></i>
+                    Add group icon (optional)
+                    <input type="file" id="groupIconInput" accept="image/*" style="display:none;">
+                </label>
+            </div>
+
+            <!-- Selected Group Users Tags -->
+            <div id="selectedGroupUsers" style="display:none; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
+
+            <!-- Search Bar -->
+            <div style="display:flex; align-items:center; gap:10px; background:#f8fafc; border-radius:14px; padding:10px 14px; margin-bottom:14px; border:2px solid transparent; transition:border .2s;" onfocusin="this.style.borderColor='#6366f1'" onfocusout="this.style.borderColor='transparent'">
+                <i class="bi bi-search" style="color:#94a3b8; font-size:15px; flex-shrink:0;"></i>
+                <input type="text" id="newChatSearch"
+                    placeholder="Search people..."
+                    oninput="window.sparkChat.handleUserSearch(this.value)"
+                    style="flex:1; background:none; border:none; outline:none; font-size:14px; color:#111; font-family:inherit;">
+            </div>
+
+            <!-- Results -->
+            <div id="userSearchResults" style="display:flex; flex-direction:column; gap:4px;"></div>
+        </div>
+
+        <!-- Group Footer -->
+        <div id="groupModalFooter" style="display:none; padding:16px 20px; border-top:1px solid #f1f5f9; gap:10px;">
+            <button onclick="window.sparkChat.closeNewChatModal(true)"
+                style="flex:1; padding:12px; border:2px solid #e2e8f0; border-radius:14px; background:white; font-size:14px; font-weight:700; color:#64748b; cursor:pointer; transition:all .2s;"
+                onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">Cancel</button>
+            <button onclick="window.sparkChat.submitCreateGroup()"
+                style="flex:1; padding:12px; border:none; border-radius:14px; background:linear-gradient(135deg,#6366f1,#a855f7); color:white; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(99,102,241,0.35); transition:all .2s; display:flex; align-items:center; justify-content:center; gap:8px;"
+                onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                <i class="bi bi-people-fill"></i> Create Group
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- WhatsApp Style FAB for Messages Page -->
+<div class="wa-fab-container" id="waFabContainer">
+    <div class="wa-fab-menu" id="waFabMenu">
+        <button class="wa-fab-item" onclick="toggleWaFab(); window.sparkChat.openNewChatModal(); window.sparkChat.switchNewChatTab('group');">
+            <i class="bi bi-people-fill text-blue-500"></i>
+            <span class="wa-fab-label">Create Group</span>
+        </button>
+        <button class="wa-fab-item" onclick="toggleWaFab(); window.sparkChat.openNewChatModal(); window.sparkChat.switchNewChatTab('new');">
+            <i class="bi bi-person-fill-add text-green-500"></i>
+            <span class="wa-fab-label">New Chat</span>
+        </button>
+    </div>
+    <button class="wa-main-fab" id="waMainFab" onclick="toggleWaFab()">
+        <i class="bi bi-chat-text-fill" id="waFabIcon_chat"></i>
+        <i class="bi bi-x-lg" id="waFabIcon_close" style="display:none; font-size: 26px;"></i>
+    </button>
+</div>
+
+<!-- GROUP INFO DRAWER -->
+<div id="groupInfoDrawer" class="side-drawer" style="display:none; position:absolute; top:0; right:0; width:100%; max-width:400px; height:100%; background:#f0f2f5; z-index:10000; flex-direction:column; border-left:1px solid #ddd; animation: slideInRight 0.3s ease-out;">
+    <header style="background:#fff; padding:15px; display:flex; align-items:center; gap:20px; border-bottom:1px solid #ddd;">
+        <i class="bi bi-x-lg" onclick="window.sparkChat.closeGroupInfo()" style="cursor:pointer; font-size:20px; color:#54656f;"></i>
+        <span style="font-weight:700; font-size:16px; color:#3b4a54;">Group info</span>
+    </header>
+    <div style="flex:1; overflow-y:auto; padding-bottom:30px;">
+        <div style="background:#fff; padding:28px 20px; display:flex; flex-direction:column; align-items:center; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+            <div style="position:relative; margin-bottom:15px;">
+                <img id="groupInfoPhoto" src="/uploads/avatars/default.png" style="width:200px; height:200px; border-radius:50%; object-fit:cover;">
+                <label id="groupInfoPhotoEdit" style="display:none; position:absolute; bottom:10px; right:10px; width:40px; height:40px; border-radius:50%; background:#00a884; color:#fff; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                    <i class="bi bi-camera-fill"></i>
+                    <input type="file" onchange="window.sparkChat.updateGroupPhoto(this)" hidden>
+                </label>
+            </div>
+            <h2 id="groupInfoName" style="font-size:24px; color:#111b21; margin:0 0 5px; font-weight:400;">Group Name</h2>
+            <p id="groupInfoMeta" style="font-size:16px; color:#667781; margin:0;">Group • <span id="groupInfoMemberCount">0</span> members</p>
+        </div>
+
+        <div style="background:#fff; padding:14px 20px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+            <div style="font-size:14px; color:#008069; font-weight:500; margin-bottom:10px;">Created by <span id="groupInfoCreator">...</span> on <span id="groupInfoDate">...</span></div>
+            <div id="groupInfoMutuals" style="font-size:13px; color:#667781;">0 followers in group</div>
+        </div>
+
+        <div style="background:#fff; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+            <div style="padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+                <span id="groupInfoMemberLabel" style="font-size:14px; color:#667781;">0 members</span>
+                <i class="bi bi-search" style="color:#667781; cursor:pointer;"></i>
+            </div>
+            <div id="groupInfoAddMemberBtn" onclick="window.sparkChat.openAddMemberModal()" style="display:none; padding:15px 20px; align-items:center; gap:15px; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f5f6f6'" onmouseout="this.style.background='white'">
+                <div style="width:40px; height:40px; border-radius:50%; background:#00a884; display:flex; align-items:center; justify-content:center; color:#fff;">
+                    <i class="bi bi-person-plus-fill"></i>
+                </div>
+                <span style="font-size:16px; color:#111b21;">Add member</span>
+            </div>
+            <div id="groupMemberList" style="display:flex; flex-direction:column;">
+                <!-- Member list injected here -->
+            </div>
+        </div>
+
+        <div style="background:#fff; padding:15px 20px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+            <div onclick="window.sparkChat.leaveGroup()" style="display:flex; align-items:center; gap:15px; cursor:pointer; color:#ea0038; font-size:16px; font-weight:500;">
+                <i class="bi bi-box-arrow-left"></i>
+                <span>Exit group</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MEMBER PROFILE MODAL -->
+<div id="memberProfileModal" style="display:none; position:fixed; inset:0; z-index:11000; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:15px;" onclick="this.style.display='none'">
+    <div class="member-profile-card" onclick="event.stopPropagation()" style="background:#fff; width:100%; max-width:320px; border-radius:12px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation: zoomIn 0.2s ease-out;">
+        <img id="memberModalPfp" src="/uploads/avatars/default.png" style="width:100%; height:320px; object-fit:cover;">
+        <div style="padding:15px;">
+            <h3 id="memberModalName" style="margin:0 0 4px; font-size:18px; color:#111b21; font-weight:500;">Username</h3>
+            <p id="memberModalStatus" style="margin:0 0 15px; font-size:14px; color:#667781;">Offline</p>
+            <div style="display:flex; justify-content:space-around; border-top:1px solid #eee; padding-top:15px;">
+                <i class="bi bi-chat-fill" onclick="window.sparkChat.messageMember()" style="font-size:22px; color:#00a884; cursor:pointer;" title="Message"></i>
+                <i class="bi bi-telephone-fill" style="font-size:22px; color:#00a884; cursor:pointer;" title="Voice Call"></i>
+                <i class="bi bi-camera-video-fill" style="font-size:22px; color:#00a884; cursor:pointer;" title="Video Call"></i>
+                <i class="bi bi-info-circle-fill" style="font-size:22px; color:#00a884; cursor:pointer;" title="Info"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD MEMBER TO GROUP MODAL -->
+<div id="addMemberToGroupModal" style="display:none; position:fixed; inset:0; z-index:11500; background:rgba(0,0,0,0.5); backdrop-filter:blur(5px); align-items:center; justify-content:center; padding:15px;" onclick="if(event.target===this) this.style.display='none'">
+    <div style="background:#fff; width:100%; max-width:400px; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; max-height:80vh;">
+        <div style="padding:15px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; font-size:18px; color:#111b21;">Add Member</h3>
+            <i class="bi bi-x-lg" onclick="document.getElementById('addMemberToGroupModal').style.display='none'" style="cursor:pointer; color:#54656f;"></i>
+        </div>
+        <div style="padding:15px; border-bottom:1px solid #eee;">
+            <div style="position:relative;">
+                <i class="bi bi-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#54656f;"></i>
+                <input type="text" id="addMemberSearchInput" onkeyup="window.sparkChat.filterAddMembers()" placeholder="Search contacts..." style="width:100%; padding:10px 10px 10px 35px; border-radius:8px; border:none; background:#f0f2f5; font-size:15px; outline:none; box-sizing:border-box;">
+            </div>
+        </div>
+        <div id="addMemberList" class="members-list" style="flex:1; overflow-y:auto; max-height:300px; padding:10px 0;">
+            <!-- Contacts loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+.wa-fab-container {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    z-index: 999;
+}
+.wa-main-fab {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #25D366;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s;
+}
+.wa-main-fab:hover {
+    transform: scale(1.05);
+}
+.wa-main-fab.active {
+    background: #128C7E;
+    transform: rotate(90deg);
+}
+.wa-fab-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+    margin-bottom: 20px;
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1);
+    transform: translateY(20px) scale(0.9);
+    transform-origin: bottom right;
+}
+.wa-fab-menu.open {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.wa-fab-item {
+    background: white;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #475569;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s, background 0.2s;
+}
+.wa-fab-item:hover {
+    transform: scale(1.1);
+}
+.wa-fab-label {
+    position: absolute;
+    right: 60px;
+    background: white;
+    color: #1e293b;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    pointer-events: none;
+}
+@media (min-width: 1025px) {
+    .wa-fab-container {
+        bottom: 30px;
+        right: 30px;
+    }
+}
+</style>
+
+<script>
+function toggleWaFab() {
+    const menu = document.getElementById('waFabMenu');
+    const fabButton = document.getElementById('waMainFab');
+    const chatIcon = document.getElementById('waFabIcon_chat');
+    const closeIcon = document.getElementById('waFabIcon_close');
+    
+    if (menu.classList.contains('open')) {
+        menu.classList.remove('open');
+        fabButton.classList.remove('active');
+        setTimeout(() => {
+            chatIcon.style.display = 'block';
+            closeIcon.style.display = 'none';
+        }, 150);
+    } else {
+        menu.classList.add('open');
+        fabButton.classList.add('active');
+        setTimeout(() => {
+            chatIcon.style.display = 'none';
+            closeIcon.style.display = 'block';
+        }, 100);
+    }
+}
+</script>
+
+<!-- MODALS FOR SETTINGS & GROUPS -->
+
+<!-- Chat Settings/Profile Modal (WhatsApp Style) -->
+<div id="chatSettingsModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content full-mobile" style="background:#000; color:#fff; padding:0; max-width:500px;">
+        <header style="background:#202c33; padding:15px; display:flex; align-items:center; gap:20px;">
+            <i class="bi bi-chevron-left" onclick="document.getElementById('chatSettingsModal').style.display='none'" style="cursor:pointer; font-size:20px;"></i>
+            <span style="font-weight:600; font-size:18px;">Contact info</span>
+        </header>
+
+        <div style="flex:1; overflow-y:auto; padding-bottom:80px;">
+            <div style="display:flex; flex-direction:column; align-items:center; padding:30px 20px; background:#111b21;">
+                <img id="settingsAvatar" src="/uploads/avatars/default.png" style="width:200px; height:200px; border-radius:50%; object-fit:cover; margin-bottom:15px; border:3px solid #00a884;">
+                <h2 id="settingsName" style="margin:0; font-size:24px;">Username</h2>
+                <span id="settingsStatus" style="color:#8696a0; font-size:16px; margin-top:5px;">Hey there! I am using Sparkle.</span>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px;">
+                <div class="settings-item" onclick="window.sparkChat.handleMuteNotifications()" style="padding:15px 20px; display:flex; align-items:center; border-bottom:1px solid #202c33; cursor:pointer;">
+                    <i class="bi bi-bell" style="width:40px; color:#8696a0; font-size:20px;"></i>
+                    <div style="flex:1;">
+                        <div style="font-size:16px;">Mute notifications</div>
+                    </div>
+                </div>
+                <div class="settings-item" onclick="window.sparkChat.openDisappearingMessages()" style="padding:15px 20px; display:flex; align-items:center; border-bottom:1px solid #202c33; cursor:pointer;">
+                    <i class="bi bi-clock-history" style="width:40px; color:#8696a0; font-size:20px;"></i>
+                    <div style="flex:1;">
+                        <div style="font-size:16px;">Disappearing messages</div>
+                        <div style="font-size:13px; color:#8696a0;">Off</div>
+                    </div>
+                </div>
+                <div class="settings-item" onclick="window.sparkChat.toggleChatLock()" style="padding:15px 20px; display:flex; align-items:center; border-bottom:1px solid #202c33; cursor:pointer;">
+                    <i class="bi bi-lock" style="width:40px; color:#8696a0; font-size:20px;"></i>
+                    <div style="flex:1;">
+                        <div style="font-size:16px;">Chat lock</div>
+                        <div style="font-size:13px; color:#8696a0;">Lock this chat with a fingerprint or code</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px; padding:20px;">
+                <div style="color:#00a884; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:10px;">Groups in common</div>
+                <div id="commonGroupsList">
+                    <div style="color:#8696a0; font-size:12px;">None</div>
+                </div>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px; padding:20px;">
+                <div style="color:#00a884; font-size:13px; font-weight:600; text-transform:uppercase; margin-bottom:10px;">End-to-end encryption</div>
+                <div style="display:flex; gap:15px;">
+                    <i class="bi bi-shield-lock" style="color:#00a884; font-size:20px;"></i>
+                    <div style="font-size:13px; color:#8696a0;">Messages and calls are end-to-end encrypted. No one outside of this chat, not even Sparkle, can read or listen to them.</div>
+                </div>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px;">
+                <div class="settings-item text-danger" onclick="window.sparkChat.handleBlockUser()" style="padding:15px 20px; display:flex; align-items:center; border-bottom:1px solid #202c33; cursor:pointer;">
+                    <i class="bi bi-slash-circle" style="width:40px; font-size:20px;"></i>
+                    <div style="font-size:16px;">Block Username</div>
+                </div>
+                <div class="settings-item text-danger" onclick="window.sparkChat.handleDeleteChat()" style="padding:15px 20px; display:flex; align-items:center; cursor:pointer;">
+                    <i class="bi bi-trash" style="width:40px; font-size:20px;"></i>
+                    <div style="font-size:16px;">Delete Chat</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disappearing Messages Modal -->
+<div id="disappearingModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content" style="background:#000; color:#fff; width:100%; max-width:350px;">
+        <h3 style="margin:0 0 15px;">Disappearing messages</h3>
+        <p style="color:#8696a0; font-size:13px;">Make messages in this chat disappear after a certain period of time.</p>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="radio" name="expiry" value="0" checked onclick="window.sparkChat.setDisappearing(0)"> Off
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="radio" name="expiry" value="24" onclick="window.sparkChat.setDisappearing(24)"> 24 hours
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="radio" name="expiry" value="168" onclick="window.sparkChat.setDisappearing(168)"> 7 days
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="radio" name="expiry" value="2160" onclick="window.sparkChat.setDisappearing(2160)"> 90 days
+            </label>
+        </div>
+        <button onclick="document.getElementById('disappearingModal').style.display='none'" 
+                style="margin-top:25px; width:100%; padding:12px; background:#00a884; border:none; border-radius:8px; color:white; font-weight:700;">Close</button>
+    </div>
+</div>
+
+<!-- Group Details Modal -->
+<div id="groupDetailsModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content full-mobile" style="background:#000; color:#fff; padding:0; max-width:500px;">
+        <header style="background:#202c33; padding:15px; display:flex; align-items:center; gap:20px;">
+            <i class="bi bi-chevron-left" onclick="document.getElementById('groupDetailsModal').style.display='none'" style="cursor:pointer; font-size:20px;"></i>
+            <span style="font-weight:600; font-size:18px;">Group info</span>
+        </header>
+
+        <div style="flex:1; overflow-y:auto; padding-bottom:80px;">
+            <div style="display:flex; flex-direction:column; align-items:center; padding:30px 20px; background:#111b21;">
+                <img id="groupSettingsAvatar" src="/uploads/avatars/default.png" style="width:200px; height:200px; border-radius:50%; object-fit:cover; margin-bottom:15px;">
+                <h2 id="groupSettingsName" style="margin:0; font-size:24px;">Group Name</h2>
+                <span id="groupSettingsDesc" style="color:#8696a0; font-size:16px; margin-top:5px; text-align:center;">Group description goes here...</span>
+            </div>
+
+            <div style="padding:15px 20px; background:#111b21; margin-top:10px;">
+                <div style="color:#00a884; font-size:14px; font-weight:600; margin-bottom:15px;" id="groupMemberCount">0 members</div>
+                <div id="groupMembersList" style="display:flex; flex-direction:column; gap:12px;">
+                    <!-- Members injected here -->
+                </div>
+            </div>
+
+            <div class="settings-group" style="background:#111b21; margin-top:10px;">
+                <div class="settings-item text-danger" onclick="window.sparkChat.handleLeaveGroup()" style="padding:15px 20px; display:flex; align-items:center; cursor:pointer;">
+                    <i class="bi bi-box-arrow-right" style="width:40px; font-size:20px;"></i>
+                    <div style="font-size:16px;">Leave group</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Group Invite Modal (QR & Link) -->
+<div id="inviteModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content" style="background:#000; color:#fff; width:100%; max-width:400px; text-align:center;">
+        <h3 style="margin:0 0 10px;">Invite via link</h3>
+        <p style="color:#8696a0; font-size:13px; margin-bottom:20px;">Share this link or QR code so friends can join your group.</p>
+        
+        <div id="qrContainer" style="background:#fff; padding:15px; border-radius:12px; display:inline-block; margin-bottom:20px;">
+            <img id="groupQR" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=example" style="width:150px; height:150px;">
+        </div>
+        
+        <div style="background:#111b21; padding:12px; border-radius:8px; display:flex; align-items:center; gap:10px; border:1px solid #202c33;">
+            <span id="inviteLinkText" style="flex:1; font-size:12px; color:#8696a0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">https://sparkle.app/join/xyz...</span>
+            <i class="bi bi-copy" onclick="window.sparkChat.copyInviteLink()" style="cursor:pointer; color:#00a884;"></i>
+        </div>
+        
+        <button onclick="document.getElementById('inviteModal').style.display='none'" 
+                style="margin-top:25px; width:100%; padding:12px; background:#00a884; border:none; border-radius:8px; color:white; font-weight:700;">Done</button>
+    </div>
+</div>
+
+<!-- Media Visibility Modal -->
+<div id="mediaVisibilityModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content" style="background:#000; color:#fff; width:100%; max-width:350px;">
+        <h3 style="margin:0 0 15px;">Media visibility</h3>
+        <p style="color:#8696a0; font-size:14px; margin-bottom:20px;">Show newly downloaded media from this chat in your device's gallery?</p>
+        <div style="display:flex; flex-direction:column; gap:15px; margin-top:20px;">
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <input type="radio" name="mediaVis" value="default" checked> Default (Yes)
+            </label>
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <input type="radio" name="mediaVis" value="yes"> Yes
+            </label>
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <input type="radio" name="mediaVis" value="no"> No
+            </label>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:30px;">
+            <button onclick="document.getElementById('mediaVisibilityModal').style.display='none'" style="flex:1; padding:12px; background:transparent; border:none; color:#00a884; font-weight:700;">Cancel</button>
+            <button onclick="window.sparkChat.saveMediaVisibility()" style="flex:1; padding:12px; background:transparent; border:none; color:#00a884; font-weight:700;">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- Storage Management Modal -->
+<div id="storageModal" class="wa-modal-overlay" style="display:none;">
+    <div class="wa-modal-content full-mobile" style="background:#000; color:#fff; padding:0; max-width:500px;">
+        <header style="background:#202c33; padding:15px; display:flex; align-items:center; gap:20px;">
+            <i class="bi bi-chevron-left" onclick="document.getElementById('storageModal').style.display='none'" style="cursor:pointer; font-size:20px;"></i>
+            <span style="font-weight:600; font-size:18px;">Manage storage</span>
+        </header>
+        <div style="padding:20px; flex:1; overflow-y:auto;">
+            <div style="background:#111b21; padding:20px; border-radius:12px; text-align:center; margin-bottom:20px;">
+                <div style="font-size:28px; font-weight:700; color:#00a884;" id="totalStorageUsed">0 KB</div>
+                <div style="color:#8696a0; font-size:13px;">Used in this chat</div>
+            </div>
+            <div class="storage-breakdown" style="display:flex; flex-direction:column; gap:1px; background:#202c33; border-radius:12px; overflow:hidden;">
+                <div style="background:#111b21; padding:15px; display:flex; justify-content:space-between;">
+                    <span>Images</span> <span id="storageImages">0 B</span>
+                </div>
+                <div style="background:#111b21; padding:15px; display:flex; justify-content:space-between;">
+                    <span>Videos</span> <span id="storageVideos">0 B</span>
+                </div>
+                <div style="background:#111b21; padding:15px; display:flex; justify-content:space-between;">
+                    <span>Voice Notes</span> <span id="storageVoice">0 B</span>
+                </div>
+                <div style="background:#111b21; padding:15px; display:flex; justify-content:space-between;">
+                    <span>Documents</span> <span id="storageDocs">0 B</span>
+                </div>
+            </div>
+            <button onclick="window.sparkChat.clearChatMedia()" style="margin-top:30px; width:100%; padding:15px; background:rgba(239, 68, 68, 0.1); border:none; border-radius:12px; color:#ef4444; font-weight:700;">
+                <i class="bi bi-trash"></i> DELETE LARGE FILES
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Chat Actions Modal (Long Press/Right Click) -->
+<div id="chatActionModal" class="wa-modal-overlay" style="display:none; background:rgba(0,0,0,0.4);" onclick="if(event.target === this) this.style.display='none'">
+    <div class="wa-modal-content" style="background:#233138; width:220px; padding:0; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); overflow:hidden;">
+        <div style="padding:15px; border-bottom:1px solid rgba(255,255,255,0.1); font-weight:700; color:#fff; font-size:14px;">Chat Options</div>
+        <div class="action-item" onclick="window.sparkChat.handleArchiveChat()" style="padding:14px 20px; display:flex; gap:15px; align-items:center; cursor:pointer; color:#fff;">
+            <i class="bi bi-archive-fill"></i> Archive Chat
+        </div>
+        <div class="action-item" onclick="window.sparkChat.handleMuteNotifications()" style="padding:14px 20px; display:flex; gap:15px; align-items:center; cursor:pointer; color:#fff;">
+            <i class="bi bi-bell-slash-fill"></i> Mute Notifications
+        </div>
+        <div class="action-item text-danger" onclick="window.sparkChat.handleDeleteChat()" style="padding:14px 20px; display:flex; gap:15px; align-items:center; cursor:pointer; color:#ef4444;">
+            <i class="bi bi-trash-fill"></i> Delete Chat
+        </div>
+        <div style="padding:10px; background:rgba(0,0,0,0.1); text-align:center;">
+             <button onclick="document.getElementById('chatActionModal').style.display='none'" style="background:none; border:none; color:#8696a0; font-size:13px; font-weight:700; cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Message Settings Modal -->
+<div id="messageSettingsModal" class="wa-modal-overlay" style="display:none; background:rgba(0,0,0,0.6);" onclick="if(event.target === this) this.style.display='none'">
+    <div class="wa-modal-content" style="background:#111b21; border:1px solid #2a3942; width:90%; max-width:360px; border-radius:16px; overflow:hidden;">
+        <div style="padding:20px; border-bottom:1px solid #2a3942; display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; color:#e9edef; font-size:18px;">Message Settings</h3>
+            <i class="bi bi-x-lg" onclick="document.getElementById('messageSettingsModal').style.display='none'" style="cursor:pointer; color:#8696a0;"></i>
+        </div>
+        <div style="padding:10px 0;">
+            <div class="setting-row" onclick="window.NotificationManager.toggleSound()" style="padding:15px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <i class="bi bi-bell-fill" style="color:#00a884; font-size:18px;"></i>
+                    <span style="color:#e9edef;">Sound Notifications</span>
+                </div>
+                <div class="toggle-track" style="width:36px; height:20px; background:#00a884; border-radius:20px; position:relative;">
+                    <div style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; right:2px; top:2px;"></div>
+                </div>
+            </div>
+            <div class="setting-row" onclick="openChatCustomization()" style="padding:15px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <i class="bi bi-palette-fill" style="color:#53bdeb; font-size:18px;"></i>
+                    <span style="color:#e9edef;">Chat Themes</span>
+                </div>
+                <i class="bi bi-chevron-right" style="color:#8696a0;"></i>
+            </div>
+            <div class="setting-row" onclick="window.NotificationManager.test()" style="padding:15px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:rgba(0,168,132,0.05); margin-top:5px; border-top:1px solid #2a3942; border-bottom:1px solid #2a3942;">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <i class="bi bi-play-circle-fill" style="color:#00a884; font-size:18px;"></i>
+                    <span style="color:#e9edef;">Test Alert Sound</span>
+                </div>
+                <span style="font-size:11px; color:#00a884; border:1px solid #00a884; padding:2px 8px; border-radius:5px;">PLAY</span>
+            </div>
+            <div class="setting-row" onclick="window.sparkChat.openPrivacySettings()" style="padding:15px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <i class="bi bi-shield-lock-fill" style="color:#ffbc2c; font-size:18px;"></i>
+                    <span style="color:#e9edef;">Privacy & Security</span>
+                </div>
+                <i class="bi bi-chevron-right" style="color:#8696a0;"></i>
+            </div>
+        </div>
+        <div style="padding:15px; background:#202c33; text-align:center;">
+             <span style="color:#8696a0; font-size:11px;">Sparkle Messaging v3.2.0-stable</span>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Picture Expanded Modal -->
+<div id="pfpExpandModal" class="wa-modal-overlay" style="display:none; background:rgba(0,0,0,0.9); transition:none;" onclick="this.style.display='none'">
+    <div style="position:absolute; top:20px; left:0; width:100%; display:flex; justify-content:space-between; padding:0 20px; align-items:center; pointer-events:none;">
+        <span id="expandedPartnerName" style="color:#fff; font-size:18px; font-weight:600; pointer-events:auto;">Username</span>
+        <i class="bi bi-x-lg" style="color:#fff; font-size:24px; cursor:pointer; pointer-events:auto;"></i>
+    </div>
+    <img id="expandedPfp" src="" style="width:100%; max-width:500px; aspect-ratio:1/1; object-fit:cover; animation: zoomIn 0.2s ease-out;">
+</div>
+
+<!-- Modal Logic Refinement -->
+<style>
+.action-item:hover { background: #111b21; border-radius: 8px; }
+.wa-modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.85); z-index: 10000; 
+    display: flex; justify-content: center; align-items: center; 
+}
+.wa-modal-content { 
+    background: #222; border-radius: 20px; 
+    width: 95%; max-width: 450px; 
+    max-height: 90vh; overflow-y: auto; 
+    display: flex; flex-direction: column;
+    animation: modalIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+.disappearing-active .wa-composer-input-wrapper {
+    border: 2px dotted #00a884 !important;
+}
+
+@keyframes zoomIn { from { transform:scale(0.8); opacity:0; } to { transform:scale(1); opacity:1; } }
+
+@media (max-width: 768px) {
+    .wa-modal-content.full-mobile {
+        width: 100%; height: 100%; max-height: 100%; border-radius: 0; 
+    }
+}
+@keyframes modalIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+
+<!-- Privacy Settings Modal -->
+<div id="privacySettingsModal" class="wa-modal-overlay" style="display:none; background:rgba(0,0,0,0.7); z-index:10001;" onclick="if(event.target === this) this.style.display='none'">
+    <div class="wa-modal-content" style="background:#111b21; border:1px solid #2a3942; width:92%; max-width:400px; border-radius:24px; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+        <div style="padding:24px; border-bottom:1px solid #2a3942; display:flex; justify-content:space-between; align-items:center; background:#202c33;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:32px; height:32px; background:rgba(255,188,44,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                    <i class="bi bi-shield-lock-fill" style="color:#ffbc2c;"></i>
+                </div>
+                <h3 style="margin:0; color:#e9edef; font-size:17px; font-weight:600;">Privacy Controls</h3>
+            </div>
+            <i class="bi bi-x-lg" onclick="document.getElementById('privacySettingsModal').style.display='none'" style="cursor:pointer; color:#8696a0; font-size:18px;"></i>
+        </div>
+        
+        <div style="padding:16px 0; max-height:70vh; overflow-y:auto;">
+            <div style="padding:0 24px 16px 24px;">
+                <span style="font-size:12px; color:#00a884; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Account Visibility</span>
+            </div>
+
+            <div style="padding:16px 24px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="color:#e9edef; font-size:15px; margin-bottom:4px;">Private Profile</div>
+                    <div style="color:#8696a0; font-size:12px;">Only followers can see your media.</div>
+                </div>
+                <label class="switch-pink">
+                    <input type="checkbox" onchange="window.sparkChat.savePrivacy('is_private', this.checked)" <%= user.is_private ? 'checked' : '' %>>
+                    <span class="slider-pink"></span>
+                </label>
+            </div>
+
+            <div style="padding:24px 24px 12px 24px;">
+                <span style="font-size:12px; color:#00a884; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Messaging</span>
+            </div>
+
+            <div style="padding:16px 24px;">
+                <div style="color:#e9edef; font-size:15px; margin-bottom:12px;">Who can message you?</div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <label class="p-radio">
+                        <input type="radio" name="dm_perm" value="everyone" <%= user.dm_permission === 'everyone' ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('dm_permission', 'everyone')">
+                        <span class="p-radio-label">Everyone</span>
+                    </label>
+                    <label class="p-radio">
+                        <input type="radio" name="dm_perm" value="followers" <%= user.dm_permission === 'followers' ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('dm_permission', 'followers')">
+                        <span class="p-radio-label">Followers Only</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="padding:16px 24px; border-top:1px solid #2a3942;">
+                <div style="color:#e9edef; font-size:15px; margin-bottom:12px;">Default message timer</div>
+                <div style="color:#8696a0; font-size:12px; margin-bottom:8px;">Start new chats with disappearing messages set to this timer.</div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <label class="p-radio">
+                        <input type="radio" name="msg_timer" value="0" <%= (!user.message_privacy || user.message_privacy === '0') ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('message_privacy', '0')">
+                        <span class="p-radio-label">Off</span>
+                    </label>
+                    <label class="p-radio">
+                        <input type="radio" name="msg_timer" value="24" <%= user.message_privacy === '24' ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('message_privacy', '24')">
+                        <span class="p-radio-label">24 hours</span>
+                    </label>
+                    <label class="p-radio">
+                        <input type="radio" name="msg_timer" value="168" <%= user.message_privacy === '168' ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('message_privacy', '168')">
+                        <span class="p-radio-label">7 days</span>
+                    </label>
+                    <label class="p-radio">
+                        <input type="radio" name="msg_timer" value="2160" <%= user.message_privacy === '2160' ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('message_privacy', '2160')">
+                        <span class="p-radio-label">90 days</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="padding:16px 24px; border-top:1px solid #2a3942;">
+                <div style="color:#e9edef; font-size:15px; margin-bottom:12px;">Who can see my last seen?</div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <label class="p-radio">
+                        <input type="radio" name="last_seen" value="everyone" <%= (!user.last_seen_visibility || user.last_seen_visibility === 'everyone') ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('last_seen_visibility', 'everyone')">
+                        <span class="p-radio-label">Everyone</span>
+                    </label>
+                    <label class="p-radio">
+                        <input type="radio" name="last_seen" value="followers" <%= user.last_seen_visibility === 'followers' ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('last_seen_visibility', 'followers')">
+                        <span class="p-radio-label">Followers Only</span>
+                    </label>
+                    <label class="p-radio">
+                        <input type="radio" name="last_seen" value="nobody" <%= user.last_seen_visibility === 'nobody' ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('last_seen_visibility', 'nobody')">
+                        <span class="p-radio-label">Nobody</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="padding:16px 24px; border-top:1px solid #2a3942;">
+                <div style="color:#e9edef; font-size:15px; margin-bottom:12px;">Who can see when I'm online?</div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <label class="p-radio">
+                        <input type="radio" name="online_status" value="everyone" <%= (user.activity_status_enabled == null || user.activity_status_enabled) ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('activity_status_enabled', 1)">
+                        <span class="p-radio-label">Everyone</span>
+                    </label>
+                    <label class="p-radio">
+                        <input type="radio" name="online_status" value="nobody" <%= (user.activity_status_enabled === 0 || user.activity_status_enabled === false) ? 'checked' : '' %> onchange="window.sparkChat.savePrivacy('activity_status_enabled', 0)">
+                        <span class="p-radio-label">Nobody</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding:20px 24px; background:rgba(0,168,132,0.05); text-align:center;">
+             <p style="margin:0 0 16px 0; color:#8696a0; font-size:11px;">Note: Advanced security like 2FA is managed in your main account settings.</p>
+             <button class="btn btn-pink" onclick="window.location.href='/settings?tab=account'" style="width:100%; border-radius:12px; padding:12px; font-size:13px; font-weight:700;">Manage Full Account</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.switch-pink { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch-pink input { opacity: 0; width: 0; height: 0; }
+.slider-pink { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #3b4a54; transition: .3s; border-radius: 34px; }
+.slider-pink:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #8696a0; transition: .3s; border-radius: 50%; }
+input:checked + .slider-pink { background: #00a884; }
+input:checked + .slider-pink:before { transform: translateX(20px); background: #fff; }
+
+.p-radio { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; cursor: pointer; transition: 0.2s; }
+.p-radio:hover { background: rgba(255,255,255,0.05); border-color: #00a884; }
+.p-radio input { accent-color: #00a884; width: 18px; height: 18px; }
+.p-radio-label { color: #e9edef; font-size: 14px; }
+</style>
+
+<%- include('partials/bottom-nav') %>
+
+<!-- Scripts -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    function safeParse(jsonString) {
+      try { return JSON.parse(jsonString); } catch (e) { return {}; }
+    }
+    const currentUserDataStr = '<%- Buffer.from(JSON.stringify(user || {})).toString("base64") %>';
+    const currentUserData = safeParse(atob(currentUserDataStr));
+    window.sparkleUser = { user_id: currentUserData.user_id || currentUserData.userId || null, username: currentUserData.username || null, name: currentUserData.name || null };
+</script>
+<script src="/js/notifications.js"></script>
+<script src="/js/messaging-v3.js"></script>
+
+<style>
+    .icon-btn {
+        cursor: pointer;
+        pointer-events: auto;
+    }
+    .icon-btn i {
+        pointer-events: none;
+    }
+
+    /* Active Friends Section */
+    .active-friends-section {
+        padding: 15px 0 10px;
+        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 10px;
+    }
+    .active-friends-title {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        padding: 0 20px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .active-friends-title::after {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: #10b981;
+        border-radius: 50%;
+    }
+    .active-friends-carousel {
+        display: flex;
+        gap: 15px;
+        padding: 0 20px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .active-friends-carousel::-webkit-scrollbar { display: none; }
+    
+    .active-friend-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        min-width: 65px;
+    }
+    .af-avatar-wrapper {
+        position: relative;
+        width: 48px;
+        height: 48px;
+    }
+    .af-avatar-wrapper img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .af-online-dot {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: #10b981;
+        border: 2px solid white;
+        border-radius: 50%;
+    }
+    .af-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 65px;
+        text-align: center;
+    }
+
+    /* Sparkle Spinner */
+    .spinner-pink {
+        width: 24px;
+        height: 24px;
+        border: 2px solid rgba(255, 61, 109, 0.1);
+        border-top: 2px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Custom nav highlights */
+    .nav-item[href="/messages"] { color: var(--primary) !important; font-weight: 700; }
+    
+    body { padding-bottom: 0 !important; } /* Messages uses full height */
+</style>
+<!-- EmojiMart for 3600+ emojis -->
+<script src="https://cdn.jsdelivr.net/npm/@emoji-mart/data"></script>
+<script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+
+<!-- ================================================================
+     UNIFIED PICKER PANEL — position:fixed body-level
+     Tab 1: Emoji (EmojiMart, 3600+)
+     Tab 2: GIF   (Giphy API)
+     Tab 3: Sticker (Giphy Stickers)
+     ================================================================ -->
+<div id="emojiPickerPanel" style="
+    display: none;
+    position: fixed;
+    bottom: 70px;
+    left: 0;
+    right: 0;
+    height: 360px;
+    background: #1a2530;
+    border-top: 1px solid #2a3942;
+    flex-direction: column;
+    z-index: 99999;
+    overflow: hidden !important;
+    overscroll-behavior: contain;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.6);
+    animation: pickerSlideUp 0.2s cubic-bezier(0.4,0,0.2,1);
+">
+
+    <!-- ── HEADER ── -->
+    <div style="display:flex; align-items:center; justify-content:space-between; background:#111b21; padding:10px 15px; border-bottom:1px solid #2a3942; flex-shrink:0; position:relative; z-index:10;">
+        <span style="color:#8696a0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Messaging Picker</span>
+        <button onclick="window.sparkChat.closeEmojiPicker()" style="background:none; border:none; color:#8696a0; font-size:26px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:10px; margin:-10px; position:relative; z-index:20;">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+
+    <!-- ── TAB BAR ───────────────────────────────────────────── -->
+    <div id="pickerTabBar" style="
+        display: flex;
+        background: #111b21;
+        border-bottom: 1px solid #2a3942;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 100;
+        pointer-events: auto;
+    ">
+        <button id="tabBtnEmoji" onclick="window.sparkChat.switchPickerTab('emoji')"
+            style="flex:1; background:none; border:none; border-bottom:3px solid #00a884;
+                   color:#00a884; font-size:13px; font-weight:700; padding:10px 0; cursor:pointer;
+                   display:flex; align-items:center; justify-content:center; gap:5px;">
+            <i class="bi bi-emoji-smile-fill" style="font-size:16px; pointer-events:none;"></i> Emoji
+        </button>
+        <button id="tabBtnGif" onclick="window.sparkChat.switchPickerTab('gif')"
+            style="flex:1; background:none; border:none; border-bottom:3px solid transparent;
+                   color:#8696a0; font-size:13px; font-weight:700; padding:10px 0; cursor:pointer;
+                   display:flex; align-items:center; justify-content:center; gap:5px;">
+            <span style="font-size:11px; font-weight:900; background:#53bdeb; color:#000; padding:1px 5px; border-radius:3px; pointer-events:none;">GIF</span>
+        </button>
+        <button id="tabBtnSticker" onclick="window.sparkChat.switchPickerTab('sticker')"
+            style="flex:1; background:none; border:none; border-bottom:3px solid transparent;
+                   color:#8696a0; font-size:13px; font-weight:700; padding:10px 0; cursor:pointer;
+                   display:flex; align-items:center; justify-content:center; gap:5px;">
+            <i class="bi bi-sticky-fill" style="font-size:16px; pointer-events:none;"></i> Stickers
+        </button>
+    </div>
+
+    <div id="pickerTabEmoji" style="flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; max-height:100%;">
+        <!-- EmojiMart will be appended here as a web component -->
+        <div id="emojiMartMount" style="flex:1; width:100%; height:100%; overflow-y:auto !important; display:flex; flex-direction:column; min-height:0; -webkit-overflow-scrolling:touch !important; touch-action:pan-y !important;"></div>
+    </div>
+
+    <!-- ── GIF TAB ───────────────────────────────────────────── -->
+    <div id="pickerTabGif" style="flex:1; display:none; flex-direction:column; overflow:hidden;">
+        <div style="padding:8px 10px; background:#111b21; flex-shrink:0;">
+            <input id="gifSearchInput" type="text" placeholder="🔍  Search GIFs..."
+                   oninput="window.sparkChat.searchGiphy(this.value)"
+                   style="width:100%; background:#2a3942; border:none; padding:8px 14px; border-radius:20px;
+                          color:#fff; font-size:14px; outline:none; box-sizing:border-box;
+                          caret-color:#00a884;">
+        </div>
+        <div id="gifResultsGrid" style="
+            flex: 1;
+            min-height: 0;
+            max-height: 38vh;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+            padding: 10px;
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            align-content: flex-start;
+        ">
+            <!-- GIFs loaded here -->
+        </div>
+    </div>
+
+    <!-- ── STICKER TAB ───────────────────────────────────────── -->
+    <div id="pickerTabSticker" style="flex:1; display:none; flex-direction:column; overflow:hidden; min-height:0;">
+        <div style="padding:8px 10px; background:#111b21; flex-shrink:0;">
+            <input id="stickerSearchInput" type="text" placeholder="🔍  Search Stickers..."
+                   oninput="window.sparkChat.searchGiphyStickers(this.value)"
+                   style="width:100%; background:#2a3942; border:none; padding:8px 14px; border-radius:20px;
+                          color:#fff; font-size:14px; outline:none; box-sizing:border-box;
+                          caret-color:#00a884;">
+        </div>
+        <div id="stickerResultsGrid" style="
+            flex: 1;
+            min-height: 0;
+            max-height: 38vh;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+            padding: 10px;
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 10px !important;
+            align-content: flex-start;
+        ">
+            <!-- Stickers loaded here -->
+        </div>
+    </div>
+
+</div>
+
+<style>
+@keyframes pickerSlideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+}
+/* EmojiMart dark theme overrides */
+em-emoji-picker {
+    --background-rgb: 26, 37, 48;
+    --border-radius: 0;
+    --category-icon-size: 18px;
+    --color-border: #2a3942;
+    --color-border-over: #3a4952;
+    --font-family: inherit;
+    --input-border-radius: 20px;
+    --input-padding: 6px 14px;
+    --rgb-background: 26, 37, 48;
+    --rgb-color: 233, 237, 239;
+    --rgb-input: 42, 57, 66;
+    --rgb-accent: 0, 168, 132;
+    height: 100%;
+    width: 100%;
+}
+</style>
+
+</body>
+</html>

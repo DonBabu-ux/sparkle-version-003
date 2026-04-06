@@ -1,0 +1,303 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+    <%= title %> | Sparkle Admin
+</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: #f0f2f5;
+        color: #1a1a1a;
+    }
+
+    .admin-layout {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .admin-main {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .admin-content {
+        padding: 30px;
+        max-width: 1400px;
+    }
+
+    h1 {
+        font-size: 28px;
+        font-weight: 800;
+        margin-bottom: 24px;
+    }
+
+    .toolbar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .toolbar input,
+    .toolbar select {
+        padding: 8px 14px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .toolbar input {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .card {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: #888;
+        background: #fafafa;
+    }
+
+    td {
+        padding: 12px 16px;
+        border-top: 1px solid #f5f5f5;
+        font-size: 13px;
+    }
+
+    .avatar-sm {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .badge-admin {
+        background: #fce4ec;
+        color: #c62828;
+    }
+
+    .badge-user {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-mod {
+        background: #fff3e0;
+        color: #e65100;
+    }
+
+    .badge-online {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-offline {
+        background: #f5f5f5;
+        color: #999;
+    }
+
+    .pagination {
+        display: flex;
+        gap: 8px;
+        padding: 16px;
+        justify-content: center;
+    }
+
+    .pagination a {
+        padding: 6px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #333;
+        font-size: 13px;
+    }
+
+    .pagination a.active {
+        background: linear-gradient(135deg, #FF3D6D, #833AB4);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .btn-edit {
+        padding: 4px 10px;
+        background: #e3f2fd;
+        color: #1976d2;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+    }
+</style>
+
+<div class="admin-layout">
+    <%- include('../partials/admin-sidebar') %>
+
+        <div class="admin-main">
+            <div class="admin-content">
+                <h1>👥 User Management</h1>
+
+                <form class="toolbar" method="GET" action="/admin/users">
+                    <input type="text" name="search" placeholder="Search users..." value="<%= filters.search || '' %>">
+                    <select name="role">
+                        <option value="">All Roles</option>
+                        <option value="admin" <%=filters.role==='admin' ? 'selected' : '' %>>Admin</option>
+                        <option value="moderator" <%=filters.role==='moderator' ? 'selected' : '' %>>Moderator
+                        </option>
+                        <option value="user" <%=filters.role==='user' ? 'selected' : '' %>>User</option>
+                    </select>
+                    <button type="submit"
+                        style="padding:8px 18px;background:linear-gradient(135deg,#FF3D6D,#833AB4);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Filter</button>
+                </form>
+
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Campus</th>
+                                <th>Role</th>
+                                <th>Posts</th>
+                                <th>Followers</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% users.forEach(u=> { %>
+                                <tr>
+                                    <td>
+                                        <img src="<%= u.avatar_url || '/uploads/avatars/default.png' %>"
+                                            class="avatar-sm">
+                                        <strong>
+                                            <%= u.name || u.username %>
+                                        </strong>
+                                        <div style="color:#888;font-size:11px;">@<%= u.username %>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <%= u.email %>
+                                    </td>
+                                    <td>
+                                        <%= u.campus || '—' %>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="badge <%= u.role === 'admin' ? 'badge-admin' : u.role === 'moderator' ? 'badge-mod' : 'badge-user' %>">
+                                            <%= u.role || 'user' %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <%= u.post_count || 0 %>
+                                    </td>
+                                    <td>
+                                        <%= u.followers_count || 0 %>
+                                    </td>
+                                    <td>
+                                        <span class="badge <%= u.is_online ? 'badge-online' : 'badge-offline' %>">
+                                            <%= u.is_online ? 'Online' : 'Offline' %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <%= new Date(u.joined_at).toLocaleDateString() %>
+                                    </td>
+                                    <td>
+                                        <div style="display:flex;gap:4px;">
+                                            <button class="btn-edit"
+                                                onclick="editUser('<%= u.user_id %>')">Edit</button>
+                                            <button class="btn-edit"
+                                                style="background:<%= u.account_status === 'suspended' ? '#e8f5e9' : '#ffebee' %>; color:<%= u.account_status === 'suspended' ? '#2e7d32' : '#c62828' %>;"
+                                                onclick="toggleSuspension('<%= u.user_id %>', '<%= u.account_status %>')">
+                                                <%= u.account_status==='suspended' ? 'Reactivate' : 'Suspend' %>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                        </tbody>
+                    </table>
+
+                    <% if (pagination.pages> 1) { %>
+                        <div class="pagination">
+                            <% for (let i=1; i <=pagination.pages; i++) { %>
+                                <a href="/admin/users?page=<%= i %>&search=<%= filters.search || '' %>&role=<%= filters.role || '' %>"
+                                    class="<%= i === pagination.page ? 'active' : '' %>">
+                                    <%= i %>
+                                </a>
+                                <% } %>
+                        </div>
+                        <% } %>
+                </div>
+            </div>
+        </div>
+</div>
+
+<script>
+    function editUser(userId) {
+        const role = prompt('Set role (user / moderator / admin):');
+        if (!role || !['user', 'moderator', 'admin'].includes(role)) return;
+
+        fetch(`/admin/users/${userId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role, email_verified: true })
+        })
+            .then(r => r.json())
+            .then(d => { alert(d.message); location.reload(); })
+            .catch(e => alert('Error: ' + e.message));
+    }
+
+    function toggleSuspension(userId, currentStatus) {
+        const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+        const reason = prompt(`Enter reason for ${newStatus}:`);
+        if (reason === null) return;
+
+        fetch(`/admin/users/${userId}/suspend`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus, reason })
+        })
+            .then(r => r.json())
+            .then(d => { alert(d.message || d.error); location.reload(); })
+            .catch(e => alert('Error: ' + e.message));
+    }
+</script>
+</body>
+
+</html>

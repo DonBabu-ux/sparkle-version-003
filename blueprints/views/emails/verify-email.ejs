@@ -1,0 +1,128 @@
+<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - Sparkle</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f9;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FF3D6D 0%, #833AB4 100%);
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .content {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .content h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .content p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .code-box {
+            background-color: #f8f9fb;
+            border: 2px dashed #e1e4e8;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .verification-code {
+            font-size: 42px;
+            font-weight: 800;
+            color: #FF3D6D;
+            letter-spacing: 10px;
+            margin: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 16px 36px;
+            background: linear-gradient(135deg, #FF3D6D 0%, #833AB4 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 16px;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 61, 109, 0.3);
+        }
+
+        .footer {
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fb;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .expiry {
+            color: #e74c3c;
+            font-weight: 600;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+
+    <div class="container">
+        <div class="header">
+            <h1>✨ Sparkle</h1>
+        </div>
+        <div class="content">
+            <h2>Welcome to the Community!</h2>
+            <p>Hey <%= name %>, we're thrilled to have you! Please verify your email to unlock all the magic on Sparkle.
+            </p>
+
+            <div class="code-box">
+                <p style="margin-top:0; font-size: 14px; color: #999; text-transform: uppercase; letter-spacing: 1px;">
+                    Your Verification Code</p>
+                <div class="verification-code">
+                    <%= code %>
+                </div>
+            </div>
+
+            <p>Or click the button below to verify instantly:</p>
+            <a href="<%= verifyUrl %>" class="btn">Verify My Account</a>
+
+            <p class="expiry">This code expires in 24 hours.</p>
+        </div>
+        <div class="footer">
+            <p>If you didn't create an account on Sparkle, you can safely ignore this email.</p>
+            <p>&copy; 2026 Sparkle Campus. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,283 @@
+<style>
+    /* ── Bottom Nav ─────────────────────────────────────── */
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 70px;
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 10px;
+        z-index: 1000;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+    }
+
+    .b-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        color: var(--text-muted);
+        text-decoration: none;
+        flex: 1;
+        height: 100%;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        border: none;
+        background: none;
+        outline: none;
+    }
+
+    .b-nav-item i { 
+        font-size: 22px; 
+        transition: transform 0.2s;
+    }
+    .b-nav-item span { 
+        font-size: 10px; 
+        font-weight: 700; 
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .b-nav-item.active { color: var(--primary); }
+    .b-nav-item.active i { transform: translateY(-2px); }
+    
+    .b-nav-item.create-action i { 
+        font-size: 36px; 
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3));
+    }
+
+    @media (min-width: 1025px) {
+        .bottom-nav { display: none !important; }
+    }
+
+    /* ── More Drawer ─────────────────────────────────────────── */
+    .more-drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: var(--bg-glass-dark);
+        backdrop-filter: blur(8px);
+        z-index: 1100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    .more-drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+    .more-drawer {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        z-index: 1101;
+        background: var(--bg-white);
+        border-radius: 30px 30px 0 0;
+        padding: 15px 20px 35px;
+        transform: translateY(100%);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 -15px 50px rgba(0,0,0,0.15);
+        border-top: 1px solid var(--border-light);
+    }
+    .more-drawer.open { transform: translateY(0); }
+
+    .more-drawer-handle {
+        width: 45px; height: 5px;
+        background: var(--border-light);
+        border-radius: 99px;
+        margin: 0 auto 20px;
+    }
+
+    .more-drawer-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 15px;
+        padding-left: 5px;
+    }
+
+    .more-drawer-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .more-drawer-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        color: var(--text-secondary);
+        padding: 15px 5px;
+        border-radius: var(--radius-lg);
+        background: var(--bg-main);
+        transition: all 0.2s var(--ease-out);
+        font-size: 11px;
+        font-weight: 700;
+        font-family: 'Inter', sans-serif;
+        border: 1px solid transparent;
+    }
+
+    .more-drawer-item:hover, .more-drawer-item.active {
+        background: var(--bg-white);
+        color: var(--primary);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
+        transform: translateY(-3px);
+    }
+
+    .more-drawer-item i { font-size: 24px; }
+    
+    .more-drawer-divider {
+        height: 1px;
+        background: var(--border-light);
+        margin: 15px 0;
+    }
+
+    .more-drawer-danger {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 16px 20px;
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 800;
+        background: rgba(244, 63, 94, 0.05);
+        transition: all 0.2s;
+        font-family: 'Outfit', sans-serif;
+    }
+    .more-drawer-danger:hover { background: rgba(244, 63, 94, 0.1); transform: scale(0.98); }
+</style>
+
+<% if (locals.title === 'Messages') { %>
+<style>
+    /* ── Hide bottom nav entirely on Messages page ────────────────── */
+    .bottom-nav { display: none !important; }
+</style>
+<% } %>
+
+<div class="bottom-nav" id="bottomNav">
+    <!-- HOME (global pages): always visible, takes to dashboard if clicked, or just href -->
+    <a href="/dashboard" class="b-nav-item home-btn <%= locals.title === 'Dashboard' ? 'active' : '' %>" aria-label="Home">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+    </a>
+    <a href="/connect" class="b-nav-item <%= locals.title === 'Connect' ? 'active' : '' %>">
+        <i class="fas fa-search"></i>
+        <span>Discover</span>
+    </a>
+    <div class="b-nav-item create-action" onclick="toggleQuickActions()">
+        <i class="fas fa-plus-circle"></i>
+    </div>
+    <a href="/moments" class="b-nav-item <%= locals.title === 'Moments' ? 'active' : '' %>">
+        <i class="fas fa-play-circle"></i>
+        <span>Moments</span>
+    </a>
+    <button class="b-nav-item more-btn" id="moreNavBtn" onclick="toggleMoreDrawer()" aria-label="More">
+        <i class="fas fa-th"></i>
+        <span>More</span>
+    </button>
+</div>
+
+
+<!-- More Drawer -->
+<div class="more-drawer-overlay" id="moreDrawerOverlay" onclick="closeMoreDrawer()"></div>
+<div class="more-drawer" id="moreDrawer">
+    <div class="more-drawer-handle"></div>
+    
+    <%
+        var _avatarUrl = (typeof user !== 'undefined' && user && user.avatar_url) ? user.avatar_url : '/uploads/avatars/default.png';
+        var _userName  = (typeof user !== 'undefined' && user && user.name) ? user.name : 'You';
+        var _userHandle = (typeof user !== 'undefined' && user && user.username) ? '@' + user.username : '';
+    %>
+    <!-- User peek -->
+    <a href="/profile" style="display:flex;align-items:center;gap:15px;text-decoration:none;color:var(--text-main);padding:10px 10px 20px;border-bottom:1px solid var(--border-light);margin-bottom:20px;" onclick="closeMoreDrawer()">
+        <img src="<%= _avatarUrl %>" onerror="this.src='/uploads/avatars/default.png'"
+             style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);box-shadow: var(--shadow-sm); padding: 2px; background: var(--bg-white);">
+        <div>
+            <div style="font-weight:800;font-size:16px;font-family:'Outfit',sans-serif;"><%= _userName %></div>
+            <div style="font-size:13px;color:var(--text-muted);font-weight:600;"><%= _userHandle %></div>
+        </div>
+        <i class="fas fa-chevron-right" style="margin-left:auto;color:var(--text-muted);opacity:0.5;font-size:14px;"></i>
+    </a>
+
+    <div class="more-drawer-title">Pages</div>
+    <div class="more-drawer-grid">
+        <a href="/messages"    class="more-drawer-item <%= locals.title === 'Messages'    ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-comment-dots" style="color: #6366f1;"></i><span>Messages</span>
+        </a>
+        <a href="/marketplace" class="more-drawer-item <%= locals.title === 'Marketplace' ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-store" style="color: #10b981;"></i><span>Market</span>
+        </a>
+        <a href="/groups"      class="more-drawer-item <%= locals.title === 'Groups'      ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-users" style="color: #3b82f6;"></i><span>Groups</span>
+        </a>
+        <a href="/confessions" class="more-drawer-item <%= locals.title === 'Confessions' ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-fire" style="color: #f43f5e;"></i><span>Confessions</span>
+        </a>
+        <a href="/events"      class="more-drawer-item <%= locals.title === 'Events'      ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-calendar-alt" style="color: #f59e0b;"></i><span>Events</span>
+        </a>
+        <a href="/notifications" class="more-drawer-item <%= locals.title === 'Notifications' ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-bell" style="color: #8b5cf6;"></i><span>Alerts</span>
+        </a>
+        <a href="/settings"    class="more-drawer-item <%= locals.title === 'Settings'    ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-cog" style="color: #64748b;"></i><span>Settings</span>
+        </a>
+        <a href="/moments"    class="more-drawer-item <%= locals.title === 'Moments'    ? 'active' : '' %>" onclick="closeMoreDrawer()">
+            <i class="fas fa-play-circle" style="color: #ec4899;"></i><span>Moments</span>
+        </a>
+    </div>
+
+    <div class="more-drawer-divider"></div>
+    <a href="/logout" class="more-drawer-danger">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Log Out</span>
+    </a>
+</div>
+
+<script>
+(function() {
+    function openMoreDrawer() {
+        document.getElementById('moreDrawer').classList.add('open');
+        document.getElementById('moreDrawerOverlay').classList.add('open');
+        document.getElementById('moreNavBtn').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeMoreDrawer() {
+        document.getElementById('moreDrawer').classList.remove('open');
+        document.getElementById('moreDrawerOverlay').classList.remove('open');
+        document.getElementById('moreNavBtn').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    window.toggleMoreDrawer = function() {
+        const isOpen = document.getElementById('moreDrawer').classList.contains('open');
+        isOpen ? closeMoreDrawer() : openMoreDrawer();
+    };
+    window.closeMoreDrawer = closeMoreDrawer;
+
+    // Swipe down to close
+    let startY = 0;
+    const drawer = document.getElementById('moreDrawer');
+    drawer.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+    drawer.addEventListener('touchend', e => {
+        if (e.changedTouches[0].clientY - startY > 60) closeMoreDrawer();
+    }, { passive: true });
+})();
+</script>
+
+<%- include('quick-actions') %>

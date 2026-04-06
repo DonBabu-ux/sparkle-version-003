@@ -1,0 +1,682 @@
+<%- include('partials/head', { title: 'Skill Marketplace | Sparkle' }) %>
+    <style>
+        :root {
+            --sm-accent: #a855f7;
+            --sm-accent-light: rgba(168, 85, 247, 0.1);
+            --sm-accent-glow: rgba(168, 85, 247, 0.3);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --card-radius: 24px;
+        }
+
+        .sm-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Hero Section - Premium Overhaul */
+        .sm-hero {
+            background: linear-gradient(135deg, #6366F1 0%, #A855F7 50%, #EC4899 100%);
+            border-radius: 32px;
+            padding: 60px 40px;
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 50px rgba(168, 85, 247, 0.2);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sm-hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.2), transparent);
+            pointer-events: none;
+        }
+
+        .sm-hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .sm-hero h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            margin-bottom: 15px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .sm-hero p {
+            font-size: 18px;
+            opacity: 0.95;
+            max-width: 650px;
+            margin: 0 auto 30px;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .sm-btn-create {
+            background: white;
+            color: var(--sm-accent);
+            border: none;
+            padding: 16px 32px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sm-btn-create:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Filter Bar - Modern Tabs */
+        .sm-filters {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 5px 5px 15px;
+            margin-bottom: 30px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .sm-filters::-webkit-scrollbar {
+            display: none;
+        }
+
+        .sm-filter-btn {
+            padding: 12px 24px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .sm-filter-btn.active {
+            background: var(--sm-accent);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 8px 20px var(--sm-accent-glow);
+            transform: translateY(-2px);
+        }
+
+        .sm-filter-btn:hover:not(.active) {
+            background: white;
+            color: var(--sm-accent);
+            transform: translateY(-1px);
+        }
+
+        /* ============ GRID LAYOUT OVERHAUL ============ */
+        .sm-main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            align-items: flex-start;
+        }
+
+        .sm-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .sm-content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 1024px) {
+            .sm-main-grid {
+                grid-template-columns: 280px 1fr;
+            }
+
+            .sm-filters {
+                flex-direction: column;
+                overflow-x: visible;
+                padding: 0;
+            }
+
+            .sm-filter-btn {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+        /* Premium Grid */
+        .sm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .sm-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--glass-border);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .sm-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .sm-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        .sm-card-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid rgba(241, 245, 249, 0.5);
+        }
+
+        .sm-avatar-wrapper {
+            position: relative;
+            padding: 3px;
+            background: linear-gradient(45deg, var(--sm-accent), #EC4899);
+            border-radius: 50%;
+        }
+
+        .sm-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+        }
+
+        .sm-user-info h4 {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .sm-user-info span {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .sm-card-body {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sm-category-tag {
+            display: inline-flex;
+            width: fit-content;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-tech {
+            background: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .tag-tutor {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .tag-creative {
+            background: #fae8ff;
+            color: #d946ef;
+        }
+
+        .tag-other {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .sm-title {
+            font-size: 19px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #0f172a;
+            line-height: 1.4;
+        }
+
+        .sm-desc {
+            font-size: 14px;
+            color: #475569;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .sm-price-row {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sm-price {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--sm-accent);
+        }
+
+        .sm-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #f59e0b;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .sm-card-footer {
+            padding: 20px 24px 24px;
+        }
+
+        .sm-btn-book {
+            width: 100%;
+            background: #0f172a;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .sm-btn-book:hover {
+            background: var(--sm-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px var(--sm-accent-glow);
+        }
+
+        /* Glass Modals */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: white;
+            padding: 35px;
+            border-radius: 32px;
+            width: 100%;
+            max-width: 550px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+            animation: smFadeUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+        }
+
+        @keyframes smFadeUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .form-control {
+            border-radius: 14px;
+            padding: 12px 16px;
+            border: 1.5px solid #e2e8f0;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--sm-accent);
+            box-shadow: 0 0 0 4px var(--sm-accent-light);
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+    </style>
+    </style>
+
+    <%- include('partials/sidebar') %>
+        <%- include('partials/bottom-nav') %>
+
+            <div class="header glass">
+                <div class="logo">Skill Market</div>
+            </div>
+
+            <div class="container sm-container">
+
+                <div class="sm-hero">
+                    <div class="sm-hero-content">
+                        <h1>Share Your Skills</h1>
+                        <p>Offer tutoring, tech support, or creative lessons to your campus community.</p>
+                        <button class="sm-btn-create" onclick="openCreateModal()">
+                            <i class="fas fa-plus"></i> Create Offer
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sm-main-grid">
+                    <div class="sm-sidebar">
+                        <div class="sm-filters">
+                            <button class="sm-filter-btn active" data-category="all">
+                                <i class="fas fa-th-large"></i> All Skills
+                            </button>
+                            <button class="sm-filter-btn" data-category="Academic">
+                                <i class="fas fa-book"></i> Academic
+                            </button>
+                            <button class="sm-filter-btn" data-category="Tech & Coding">
+                                <i class="fas fa-code"></i> Tech & Coding
+                            </button>
+                            <button class="sm-filter-btn" data-category="Creative">
+                                <i class="fas fa-paint-brush"></i> Creative
+                            </button>
+                            <button class="sm-filter-btn" data-category="Other">
+                                <i class="fas fa-ellipsis-h"></i> Others
+                            </button>
+                        </div>
+
+                        <button class="sm-btn-create" onclick="window.showCreateSkillOffer()">
+                            <i class="fas fa-plus-circle"></i> Offer a Skill
+                        </button>
+                    </div>
+
+                    <div class="sm-content-area">
+                        <!-- Premium Grid -->
+                        <div class="sm-grid" id="skillsGrid">
+                            <!-- Shimmer Loading state -->
+                            <% for(let i=0; i < 6; i++) { %>
+                                <div class="shimmer-card">
+                                    <div class="shimmer shimmer-avatar"></div>
+                                    <div class="shimmer shimmer-title"></div>
+                                    <div class="shimmer shimmer-text"></div>
+                                    <div class="shimmer shimmer-btn"></div>
+                                </div>
+                                <% } %>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Create Offer Modal -->
+            <div id="createModal" class="modal-overlay">
+                <div class="modal-card">
+                    <h2 style="margin-bottom: 20px;">Create Skill Offer</h2>
+                    <form id="createOfferForm">
+                        <div class="form-group mb-3">
+                            <label>Title</label>
+                            <input type="text" name="title" class="form-control" placeholder="e.g. Calculus I Tutoring"
+                                required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label>Category</label>
+                            <select name="category" class="form-control">
+                                <option value="tutoring">Tutoring</option>
+                                <option value="tech_support">Tech Support</option>
+                                <option value="creative">Creative</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label>Description</label>
+                            <textarea name="description" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label>Price ($/hr)</label>
+                            <input type="number" name="price" class="form-control" placeholder="0 for free">
+                            <div style="margin-top: 5px;">
+                                <input type="checkbox" name="is_free" id="isFree"> <label for="isFree">Offer for
+                                    free</label>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Offer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Booking Modal -->
+            <div id="bookModal" class="modal-overlay">
+                <div class="modal-card">
+                    <h2 style="margin-bottom: 20px;">Book Session</h2>
+                    <form id="bookSessionForm">
+                        <input type="hidden" name="offerId" id="bookOfferId">
+                        <div class="form-group mb-3">
+                            <label>Preferred Date</label>
+                            <input type="datetime-local" name="booking_date" class="form-control" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label>Duration (minutes)</label>
+                            <select name="duration" class="form-control">
+                                <option value="30">30 mins</option>
+                                <option value="60" selected>60 mins</option>
+                                <option value="90">90 mins</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label>Notes</label>
+                            <textarea name="notes" class="form-control"
+                                placeholder="What do you need help with?"></textarea>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" onclick="closeBookModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Send Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <script src="/js/dashboardAPI.js"></script>
+            <script>
+                async function init() {
+                    await loadOffers('all');
+                }
+
+                async function loadOffers(category) {
+                    const grid = document.getElementById('skillsGrid');
+                    if (!grid) return;
+
+                    // Show shimmers if needed (already in HTML on load)
+                    // If manually refreshing, we could re-add them
+                    grid.innerHTML = '';
+
+                    try {
+                        const offers = await DashboardAPI.loadSkillOffers(category);
+
+                        if (!offers || offers.length === 0) {
+                            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 40px;">No skill offers found in this category. Be the first!</div>';
+                            return;
+                        }
+
+                        offers.forEach(offer => {
+                            grid.appendChild(createOfferCard(offer));
+                        });
+                    } catch (error) {
+                        console.error(error);
+                        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--lf-primary); padding: 40px;">Failed to load offers. Please try again.</div>';
+                    }
+                }
+
+                function createOfferCard(offer) {
+                    const div = document.createElement('div');
+                    div.className = 'sm-card';
+
+                    let tagClass = 'tag-other';
+                    if (offer.category === 'tech_support') tagClass = 'tag-tech';
+                    if (offer.category === 'tutoring') tagClass = 'tag-tutor';
+                    if (offer.category === 'creative') tagClass = 'tag-creative';
+
+                    const priceDisplay = offer.is_free ? 'Free' : `$${offer.price}/hr`;
+
+                    div.innerHTML = `
+                <div class="sm-card-header">
+                    <div class="sm-avatar-wrapper">
+                        <img src="${offer.avatar_url || '/uploads/avatars/default.png'}" class="sm-avatar">
+                    </div>
+                    <div class="sm-user-info">
+                        <h4>${offer.username || offer.name}</h4>
+                        <span>${offer.campus || 'Main Campus'}</span>
+                    </div>
+                </div>
+                <div class="sm-card-body">
+                    <span class="sm-category-tag ${tagClass}">${offer.category.replace('_', ' ')}</span>
+                    <h3 class="sm-title">${offer.title}</h3>
+                    <p class="sm-desc">
+                        ${offer.description}
+                    </p>
+                    <div class="sm-price-row">
+                        <div class="sm-price">${priceDisplay}</div>
+                        ${offer.average_rating ? `
+                        <div class="sm-rating">
+                            <i class="fas fa-star"></i> ${parseFloat(offer.average_rating).toFixed(1)}
+                            <span style="color:#94a3b8; font-weight:500; margin-left:2px;">(${offer.review_count})</span>
+                        </div>` : ''}
+                    </div>
+                </div>
+                <div class="sm-card-footer">
+                    <button class="sm-btn-book" onclick="openBookModal('${offer.offer_id}')">
+                        Book Session <i class="fas fa-arrow-right" style="font-size:12px;"></i>
+                    </button>
+                </div>
+            `;
+                    return div;
+                }
+
+                // Filters logic
+                document.querySelectorAll('.sm-filter-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const category = this.dataset.category;
+                        document.querySelectorAll('.sm-filter-btn').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        loadOffers(category === 'all' ? null : category);
+                    });
+                });
+
+                // Create Modal
+                window.showCreateSkillOffer = function () { document.getElementById('createModal').style.display = 'flex'; }
+                function closeCreateModal() { document.getElementById('createModal').style.display = 'none'; }
+
+                document.getElementById('createOfferForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const data = Object.fromEntries(formData.entries());
+                    data.is_free = document.getElementById('isFree').checked;
+
+                    try {
+                        await DashboardAPI.createSkillOffer(data);
+                        closeCreateModal();
+                        loadOffers('all');
+                        alert('Offer created successfully!');
+                    } catch (error) {
+                        console.error(error);
+                        alert('Failed to create offer.');
+                    }
+                });
+
+                // Booking Modal
+                function openBookModal(offerId) {
+                    document.getElementById('bookOfferId').value = offerId;
+                    document.getElementById('bookModal').style.display = 'flex';
+                }
+                function closeBookModal() { document.getElementById('bookModal').style.display = 'none'; }
+
+                document.getElementById('bookSessionForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const offerId = document.getElementById('bookOfferId').value;
+                    const formData = new FormData(e.target);
+                    const data = Object.fromEntries(formData.entries());
+
+                    try {
+                        await DashboardAPI.bookSkillSession(offerId, data);
+                        closeBookModal();
+                        alert('Booking request sent! Check your messages for confirmation.');
+                    } catch (error) {
+                        console.error(error);
+                        alert('Failed to book session.');
+                    }
+                });
+
+                // Close on outside click
+                window.onclick = function (event) {
+                    if (event.target.classList.contains('modal-overlay')) {
+                        event.target.style.display = "none";
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', init);
+            </script>
+            </body>
+
+            </html>

@@ -1,0 +1,327 @@
+<!-- Desktop Side Navigation (Premium Style) -->
+<div class="desktop-sidebar">
+    <div class="sidebar-logo animate-fade-in">
+        <div class="logo-icon-wrapper" style="background: var(--primary-gradient); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+            <i class="fas fa-sparkles"></i>
+        </div>
+        <span style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.5rem; letter-spacing: -0.5px; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Sparkle</span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <!-- 1. Home -->
+        <a href="/dashboard" class="sidebar-item <%= title === 'Dashboard' ? 'active' : '' %>" title="Home Feed">
+            <div class="sidebar-icon-box"><i class="fas fa-house-chimney"></i></div>
+            <span>Home</span>
+        </a>
+
+        <!-- 2. Discover -->
+        <div class="sidebar-hub-container" id="discoverHub">
+            <div class="sidebar-item hub-trigger">
+                <div class="sidebar-icon-box"><i class="fas fa-compass"></i></div>
+                <span>Discover</span>
+                <i class="fas fa-chevron-right hub-chevron"></i>
+            </div>
+            <div class="hub-dropdown glass-card animate-scale-in">
+                <a href="/connect" class="hub-sub-item">
+                    <i class="fas fa-search"></i>
+                    <span>Find Students</span>
+                </a>
+                <a href="/follow-requests" class="hub-sub-item">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Requests</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 3. Moments -->
+        <a href="/moments" class="sidebar-item <%= title === 'Moments' ? 'active' : '' %>" title="Moments">
+            <div class="sidebar-icon-box"><i class="fas fa-play-circle"></i></div>
+            <span>Moments</span>
+        </a>
+
+        <!-- 4. Profile -->
+        <a href="/profile" class="sidebar-item <%= title === 'Profile' ? 'active' : '' %>" title="My Profile">
+            <div class="sidebar-icon-box">
+                <img src="<%= (typeof user !== 'undefined' && user) ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                    style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1.5px solid currentColor;">
+            </div>
+            <span>Profile</span>
+        </a>
+
+        <!-- 5. Confessions -->
+        <a href="/confessions" class="sidebar-item <%= title === 'Confessions' ? 'active' : '' %>" title="Anonymous Confessions">
+            <div class="sidebar-icon-box"><i class="fas fa-user-secret"></i></div>
+            <span>Confessions</span>
+        </a>
+
+        <!-- 6. Messages -->
+        <a href="/messages" class="sidebar-item <%= title === 'Messages' ? 'active' : '' %>" title="Direct Messages">
+            <div class="sidebar-icon-box"><i class="fas fa-paper-plane"></i></div>
+            <span>Messages</span>
+        </a>
+
+        <!-- 7. Create -->
+        <div class="sidebar-spacer" style="height: 12px;"></div>
+        <button class="premium-btn create-trigger-large animate-scale-in" onclick="window.showCreateOptions()" style="width: 100%; justify-content: center; padding: 14px; margin: 12px 0; border-radius: var(--radius-lg);">
+            <i class="fas fa-plus-circle"></i>
+            <span>Create</span>
+        </button>
+
+        <!-- 8. Sparkle Shop Hub -->
+        <div class="sidebar-hub-container" id="shopHub">
+            <div class="sidebar-item hub-trigger">
+                <div class="sidebar-icon-box"><i class="fas fa-bag-shopping"></i></div>
+                <span>Sparkle Shop</span>
+                <i class="fas fa-chevron-right hub-chevron"></i>
+            </div>
+            <div class="hub-dropdown glass-card animate-scale-in">
+                <a href="/marketplace" class="hub-sub-item">
+                    <i class="fas fa-store"></i>
+                    <span>Marketplace</span>
+                </a>
+                <a href="/skill-market" class="hub-sub-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Skill Market</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 9. More Menu -->
+        <div class="sidebar-hub-container" id="moreHub" style="margin-top: auto;">
+            <div class="sidebar-item hub-trigger">
+                <div class="sidebar-icon-box"><i class="fas fa-bars"></i></div>
+                <span>More</span>
+            </div>
+            <div class="hub-dropdown up glass-card animate-scale-in" style="bottom: 100%; top: auto; margin-bottom: 12px;">
+                <a href="/groups" class="hub-sub-item">
+                    <i class="fas fa-users"></i>
+                    <span>Groups</span>
+                </a>
+                <a href="/polls" class="hub-sub-item">
+                    <i class="fas fa-poll-h"></i>
+                    <span>Polls</span>
+                </a>
+                <a href="/events" class="hub-sub-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Events</span>
+                </a>
+                <a href="/settings" class="hub-sub-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <div class="hub-divider"></div>
+                <a href="/logout" class="hub-sub-item logout" style="color: var(--accent);">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Mobile Hamburger (Simplified Drawer) -->
+<div class="hamburger-overlay" id="hamburgerOverlay" onclick="hideHamburger()"></div>
+<div class="hamburger-menu glass-card animate-slide-in" id="hamburgerMenu">
+    <div class="hamburger-header" style="padding: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+            <span style="font-family: 'Outfit'; font-weight: 800; font-size: 1.3rem;">Menu</span>
+            <button class="close-btn" onclick="hideHamburger()" style="background:none; border:none; font-size: 24px; color: var(--text-muted);">✕</button>
+        </div>
+
+        <div class="user-profile-header animate-scale-in" onclick="window.location.href='/profile'; hideHamburger();"
+            style="display: flex; align-items: center; gap: 16px; padding: 18px; background: var(--bg-main); border-radius: var(--radius-lg); cursor: pointer; border: 1px solid var(--border-light);">
+            <img src="<%= (typeof user !== 'undefined' && user) ? (user.avatar_url || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>"
+                style="width: 52px; height: 52px; border-radius: 50%; border: 2.5px solid var(--primary); padding: 2px; background: white;"
+                onerror="this.src='/uploads/avatars/default.png';">
+            <div style="overflow: hidden;">
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-main);">
+                    <%= (typeof user !=='undefined' && user) ? user.name : 'Sparkle Student' %>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+                    <i class="fas fa-graduation-cap" style="color: var(--primary); margin-right: 4px;"></i>
+                    <%= (typeof user !=='undefined' && user) ? user.campus : 'Campus Student' %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="hamburger-scroll-area" style="padding: 0 16px 30px; flex: 1; overflow-y: auto;">
+        <div class="hamburger-item" onclick="window.location.href='/dashboard'; hideHamburger();">
+            <div class="sidebar-icon-box"><i class="fas fa-house-chimney"></i></div>
+            <span>Home Feed</span>
+        </div>
+        <div class="hamburger-item" onclick="window.location.href='/connect'; hideHamburger();">
+            <div class="sidebar-icon-box"><i class="fas fa-compass"></i></div>
+            <span>Discover</span>
+        </div>
+        <div class="hamburger-item" onclick="window.location.href='/messages'; hideHamburger();">
+            <div class="sidebar-icon-box"><i class="fas fa-paper-plane"></i></div>
+            <span>Messages</span>
+        </div>
+        <div class="hamburger-item" onclick="window.location.href='/marketplace'; hideHamburger();">
+            <div class="sidebar-icon-box"><i class="fas fa-store"></i></div>
+            <span>Marketplace</span>
+        </div>
+        <div class="hamburger-item" onclick="window.location.href='/settings'; hideHamburger();">
+            <div class="sidebar-icon-box"><i class="fas fa-cog"></i></div>
+            <span>Settings</span>
+        </div>
+        <div class="hub-divider" style="margin: 20px 0; height: 1px; background: var(--border-light);"></div>
+        <div class="hamburger-item logout" onclick="window.location.href='/logout'; hideHamburger();" style="color: var(--accent);">
+            <div class="sidebar-icon-box"><i class="fas fa-sign-out-alt"></i></div>
+            <span>Logout</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .desktop-sidebar {
+        padding: 24px 16px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .sidebar-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 12px;
+        margin-bottom: 40px;
+    }
+    .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+    }
+    .sidebar-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 14px;
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        font-weight: 600;
+        transition: all var(--transition-fast);
+        cursor: pointer;
+    }
+    .sidebar-item:hover {
+        background: rgba(99, 102, 241, 0.08);
+        color: var(--primary);
+        transform: translateX(4px);
+    }
+    .sidebar-item.active {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+    }
+    .sidebar-icon-box {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    .hub-trigger {
+        justify-content: space-between;
+    }
+    .hub-chevron {
+        font-size: 0.8rem;
+        transition: transform 0.3s;
+    }
+    .sidebar-hub-container.active .hub-chevron {
+        transform: rotate(90deg);
+    }
+    .hub-dropdown {
+        display: none;
+        padding: 8px;
+        margin-top: 4px;
+        border-radius: var(--radius-md);
+    }
+    .sidebar-hub-container.active .hub-dropdown {
+        display: block;
+    }
+    .hub-sub-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+    .hub-sub-item:hover {
+        background: var(--bg-main);
+        color: var(--primary);
+    }
+
+    /* Mobile Drawer */
+    .hamburger-menu {
+        position: fixed;
+        top: 0;
+        right: -320px;
+        width: 320px;
+        height: 100%;
+        z-index: 2000;
+        background: white;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+    }
+    .hamburger-menu.active {
+        right: 0;
+        box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+    }
+    .hamburger-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        backdrop-filter: blur(4px);
+        z-index: 1999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+    .hamburger-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .hamburger-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 18px;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        color: var(--text-main);
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+    .hamburger-item:hover {
+        background: var(--bg-main);
+    }
+</style>
+
+<script>
+    document.querySelectorAll('.hub-trigger').forEach(trigger => {
+        trigger.addEventListener('click', () => {
+            const container = trigger.parentElement;
+            container.classList.toggle('active');
+        });
+    });
+
+    window.toggleHamburger = () => {
+        document.getElementById('hamburgerMenu').classList.toggle('active');
+        document.getElementById('hamburgerOverlay').classList.toggle('active');
+        document.body.style.overflow = document.getElementById('hamburgerMenu').classList.contains('active') ? 'hidden' : '';
+    };
+
+    window.hideHamburger = () => {
+        document.getElementById('hamburgerMenu').classList.remove('active');
+        document.getElementById('hamburgerOverlay').classList.remove('active');
+        document.body.style.overflow = '';
+    };
+</script>

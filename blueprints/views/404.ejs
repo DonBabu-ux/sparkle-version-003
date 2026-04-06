@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            background: #ffe6eb;
+            color: #df006c;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 500px;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: clamp(4rem, 15vw, 8rem);
+            margin: 0;
+            color: #df006c;
+            line-height: 1;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #64748b;
+            margin: 20px 0;
+        }
+
+        .btn-home {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #FF3D6D;
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-home:hover {
+            background: #E91E63;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>404</h1>
+        <p>Oops! The page you're searching for in the Sparkle universe doesn't exist.</p>
+        <a href="/dashboard" class="btn-home">Go Home</a>
+    </div>
+</body>
+</html>

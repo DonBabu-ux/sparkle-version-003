@@ -1,0 +1,286 @@
+================================================================================
+EXHAUSTIVE SPARKLE MVC PROJECT TREE (SOURCE CODE ONLY)
+================================================================================
+
+sparkle-version-003/ (Project Root)
+├── .env
+├── .gitignore
+├── README.md
+├── server.js                        [Master Server Entry]
+├── package.json                     [Dependency Manifest]
+├── package-lock.json                [Lock File]
+├── vercel.json                      [Deployment Config]
+├── manifest.json                    [WWA/Mobile Config]
+├── db.sql                           [SQL DB Master Schema]
+├── db-schema.json                   [JSON DB Metadata]
+├── db_check.json                    [Health Data]
+├── architecture.txt                 [Legacy Blueprint]
+├── structure.txt                    [Legacy Directory Map]
+├── pages.txt                        [Routes Catalog]
+├── features.txt                     [Sparkle Roadmap]
+├── react.txt                        [React Migration Guide]
+├── full_stack_report.txt            [System Audit]
+├── log.txt                          [Application Runtime Logs]
+│
+├── 📂 config/
+│   ├── constants.js
+│   ├── database.js
+│   ├── email.js
+│   ├── cloudinary.config.js
+│   ├── firebase.config.js
+│   └── push.config.js
+│
+├── 📂 controllers/                  [The Logic Engines - Literal Index]
+│   ├── admin.controller.js
+│   ├── auth.controller.js
+│   ├── campus.controller.js
+│   ├── clubs.controller.js
+│   ├── confession.controller.js
+│   ├── dashboard.controller.js
+│   ├── email-auth.controller.js
+│   ├── feed.controller.js
+│   ├── groupChat.controller.js
+│   ├── groups.controller.js
+│   ├── lostFound.controller.js
+│   ├── marketplace.controller.js
+│   ├── messages.controller.js
+│   ├── messaging.controller.js
+│   ├── moments.controller.js
+│   ├── notification.controller.js
+│   ├── post.controller.js
+│   ├── professional.controller.js
+│   ├── profile.controller.js
+│   ├── realtime.controller.js
+│   ├── search.controller.js
+│   ├── skillMarket.controller.js
+│   ├── social.controller.js
+│   ├── supabase.controller.js
+│   ├── upload.controller.js
+│   ├── user.controller.js
+│   └── web.controller.js
+│
+├── 📂 models/                       [Applied <name>.model.js rule]
+│   ├── Category.model.js
+│   ├── Comment.model.js
+│   ├── Group.model.js
+│   ├── GroupMember.model.js
+│   ├── Marketplace.model.js
+│   ├── MarketplaceListing.model.js
+│   ├── Message.model.js
+│   ├── Notification.model.js
+│   ├── Order.model.js
+│   ├── Post.model.js
+│   ├── Reaction.model.js
+│   ├── RSVP.model.js
+│   ├── User.model.js
+│   └── Wishlist.model.js
+│
+├── 📂 middleware/                   [Applied <name>.middleware.js rule]
+│   ├── api-rate-limit.middleware.js
+│   ├── auth.middleware.js
+│   ├── error.middleware.js
+│   ├── security.middleware.js
+│   └── upload.middleware.js
+│
+├── 📂 helpers/                      [Applied <name>.helper.js rule]
+│   ├── auth.helper.js
+│   ├── date.helper.js
+│   ├── format.helper.js
+│   ├── response.helper.js
+│   ├── route-scanner.helper.js
+│   ├── upload.helper.js
+│   └── userformat.helper.js
+│
+├── 📂 routes/                       [The URL Navigation Layer]
+│   ├── api.js
+│   ├── web.js
+│   ├── auth.routes.js
+│   ├── post.routes.js
+│   ├── user.routes.js
+│   ├── groups.routes.js
+│   ├── marketplace.routes.js
+│   ├── messaging.routes.js
+│   ├── notifications.routes.js
+│   └── social.routes.js
+│
+├── 📂 views/                        [Server-Side Render Templates]
+│   ├── 📄 dashboard.ejs
+│   ├── 📄 discover.ejs
+│   ├── 📄 profile.ejs
+│   ├── 📄 market.ejs
+│   ├── 📄 login.ejs
+│   ├── 📄 signup.ejs
+│   ├── 📄 404.ejs
+│   ├── 📄 error.ejs
+│   ├── 📄 api-tester.ejs
+│   ├── 📄 sparkle-tester.html
+│   ├── 📂 partials/
+│   │   ├── 📄 navbar.ejs
+│   │   ├── 📄 footer.ejs
+│   │   ├── 📄 head.ejs
+│   │   ├── 📄 sidebar.ejs
+│   │   ├── 📄 modal.ejs
+│   │   ├── 📄 verified-badge.ejs
+│   │   └── 📄 verified-check.ejs
+│   └── 📂 explore/
+│       └── 📄 trends.ejs
+│
+├── 📂 public/                       [Direct Asset Traversal]
+│   ├── 📄 manifest.json
+│   ├── 📄 favicon.ico
+│   ├── 📄 architecture.txt
+│   ├── 📂 css/
+│   │   ├── 📄 style.css
+│   │   ├── 📄 components.css
+│   │   ├── 📄 responsive.css
+│   │   ├── 📄 responsive-overhaul.css
+│   │   ├── 📄 dark-mode.css
+│   │   ├── 📄 auth.css
+│   │   ├── 📄 animations.css
+│   │   └── 📄 market.css
+│   ├── 📂 js/
+│   │   ├── 📄 main.js
+│   │   ├── 📄 chat.js
+│   │   ├── 📄 groups-mock-data.js
+│   │   ├── 📄 dynamic-patch.js
+│   │   ├── 📄 auth.js
+│   │   ├── 📄 theme.js
+│   │   ├── 📄 search.js
+│   │   ├── 📄 feed.js
+│   │   ├── 📄 socket-client.js
+│   │   └── 📂 dynamicPatch/
+│   │       └── 📂 features/
+│   │           └── 📄 search.js
+│   ├── 📂 images/
+│   │   ├── 📄 logo.png
+│   │   ├── 📄 logo-white.png
+│   │   ├── 📄 default-profile.jpg
+│   │   ├── 📄 banner.jpg
+│   │   ├── 📄 placeholder.png
+│   │   └── 📂 badges/
+│   │       ├── 📄 gold.svg
+│   │       └── 📄 silver.svg
+│   └── 📂 uploads/
+│       ├── 📂 posts/
+│       ├── 📂 profiles/
+│       └── 📂 temp/
+│
+├── 📂 validators/                   [Data Verification Layer]
+│   ├── auth.validator.js
+│   ├── post.validator.js
+│   ├── user.validator.js
+│   ├── marketplace.validator.js
+│   ├── messaging.validator.js
+│   ├── groups.validator.js
+│   └── chat.validator.js
+│
+├── 📂 utils/                        [System Modules]
+│   ├── 📂 database/
+│   │   ├── 📄 init.js
+│   │   └── 📄 db.js
+│   ├── 📄 logger.js
+│   ├── 📄 mailer.js
+│   ├── 📄 keep-alive.js
+│   ├── 📄 security.js
+│   └── 📄 pagination.js
+│
+├── 📂 frontend/                     [NEW: React SPA Source]
+│   ├── 📄 index.html
+│   ├── 📄 vite.config.js
+│   ├── 📄 tailwind.config.js
+│   ├── 📂 src/
+│   │   ├── 📄 main.jsx
+│   │   ├── 📄 App.jsx
+│   │   ├── 📂 pages/
+│   │   │   ├── 📄 Dashboard.jsx
+│   │   │   ├── 📄 Discover.jsx
+│   │   │   ├── 📄 Messages.jsx
+│   │   │   ├── 📄 Profile.jsx
+│   │   │   ├── 📄 Login.jsx
+│   │   │   └── 📄 Signup.jsx
+│   │   ├── 📂 components/
+│   │   │   ├── 📄 Navbar.jsx
+│   │   │   ├── 📄 PostCard.jsx
+│   │   │   └── 📄 StoryCircle.jsx
+│   │   ├── 📂 services/
+│   │   │   ├── 📄 api.js
+│   │   │   └── 📄 socket.js
+│   │   ├── 📂 context/
+│   │   │   ├── 📄 AuthContext.jsx
+│   │   │   └── 📄 SocketContext.jsx
+│   │   └── 📂 styles/
+│   │       ├── 📄 index.css
+│   │       └── 📄 animations.css
+│
+├── 📂 android/                      [Capacitor Native Shell]
+│   ├── 📄 build.gradle
+│   ├── 📄 settings.gradle
+│   ├── 📂 app/
+│   │   ├── 📄 build.gradle
+│   │   ├── 📄 AndroidManifest.xml
+│   │   └── 📂 src/
+│   │       ├── 📂 main/
+│   │       │   ├── 📂 java/
+│   │       │   ├── 📂 res/
+│   │       │   └── 📂 assets/
+│   │       └── 📂 test/
+│   └── 📂 gradle/
+│
+[GLOBAL AUTOMATION AND MAINTENANCE]
+├── add-role-column.js
+├── add-status-column.js        
+├── alter-rsvps-attended.js     
+├── check-admins.js
+├── check-chat-schema.js        
+├── check-db.js
+├── check-marketplace-schema.js
+├── check-master-schema.js
+├── check-syntax.js
+├── check_groups.js
+├── comprehensive-fix.js
+├── create-notifications-table.js
+├── create-story-likes-table.js
+├── create-user-blocks.js
+├── create_support_table.js
+├── describe-users.js
+├── dump-schema.js
+├── emergency-migrate.js
+├── fix-marketplace-final.js
+├── fix-marketplace-issues.js
+├── fix-marketplace-tables.js
+├── fix-messaging-db.js
+├── migrate-2fa-pin.js
+├── migrate-appearance.js
+├── migrate-batch-4.js
+├── migrate-chat-schema.js
+├── migrate-marketplace-v2.js
+├── migrate-master-settings.js
+├── migrate-master.js
+├── migrate-messages.js
+├── migrate-messaging-display.js
+├── migrate-messaging-patch-v4.js
+├── migrate-messaging-patch.js
+├── migrate-privacy.js
+├── migrate-profile-v2.js
+├── migrate-profile-v3.js
+├── migrate-push.js
+├── migrate-security.js
+├── migrate-sessions.js
+├── migrate-theme.js
+├── repair-marketplace.js
+├── setup-marketplace.js
+├── seed-marketplace.js
+├── test-auth.js
+├── test-db.js
+├── test-events-schema.js
+├── test-marketplace.js
+├── test-messaging.js
+├── test-moments-query.js
+├── test-query.js
+├── test-spark-logic.js
+├── test-sync-fix.js
+└── update-notification-push.js
+
+================================================================================
+END OF EXHAUSTIVE SOURCE RECORD - (NODE_MODULES EXCLUDED)
+================================================================================

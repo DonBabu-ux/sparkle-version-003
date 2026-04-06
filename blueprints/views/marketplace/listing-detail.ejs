@@ -1,0 +1,323 @@
+<%- include('../partials/head', { title: listing.title }) %>
+<!-- OpenGraph / Social Preview Tags -->
+<meta property="og:type"        content="product" />
+<meta property="og:title"       content="<%= listing.title %> – KES <%= parseFloat(listing.price).toLocaleString('en-KE') %>" />
+<meta property="og:description" content="<%= (listing.description || '').substring(0, 160) %> · For sale on Sparkle Marketplace" />
+<meta property="og:image"       content="<%= listing.image_url || (listing.media && listing.media[0] && listing.media[0].media_url) || '' %>" />
+<meta property="og:url"         content="<%= `${process?.env?.BASE_URL || ''}/marketplace/listings/${listing.listing_id}` %>" />
+<meta property="og:site_name"   content="Sparkle Marketplace" />
+<meta name="twitter:card"       content="summary_large_image" />
+<meta name="twitter:title"      content="<%= listing.title %>" />
+<meta name="twitter:description" content="KES <%= parseFloat(listing.price).toLocaleString('en-KE') %> · Sparkle Marketplace" />
+<meta name="twitter:image"      content="<%= listing.image_url || (listing.media && listing.media[0] && listing.media[0].media_url) || '' %>" />
+<link rel="stylesheet" href="/css/marketplace.css">
+
+<body class="marketplace-page">
+    <%- include('../partials/sidebar') %>
+    
+    <div class="marketplace-container" style="display: block; width: 100%; max-width: 1200px; padding: 20px;">
+        <div class="header glass" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <a href="/marketplace" class="btn btn-outline" style="text-decoration: none; padding: 10px 20px; border-radius: 50px;">
+                <i class="fas fa-arrow-left"></i> Back to Market
+            </a>
+            <div class="badge" style="background: var(--gradient); color: white; padding: 5px 15px; border-radius: 50px; font-weight: 800;">
+                <%= listing.category || 'Product' %>
+            </div>
+        </div>
+        
+        <div class="listing-detail">
+            <!-- Product Images Carousel -->
+            <div class="listing-images">
+                <% if (listing.media && listing.media.length > 0) { %>
+                    <div id="listingCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            <% listing.media.forEach((media, index) => { %>
+                                <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
+                                    <% if (media.media_type === 'image') { %>
+                                        <div class="img-zoom-container">
+                                            <img src="<%= media.media_url %>" class="d-block w-100" alt="<%= listing.title %>" 
+                                                 style="max-height: 500px; object-fit: contain; border-radius: 12px;">
+                                        </div>
+                                    <% } else { %>
+                                        <video controls class="d-block w-100" style="max-height: 500px;">
+                                            <source src="<%= media.media_url %>" type="video/mp4">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    <% } %>
+                                </div>
+                            <% }); %>
+                        </div>
+                        <% if (listing.media.length > 1) { %>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                        <% } %>
+                    </div>
+                <% } else { %>
+                    <img src="<%= listing.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800' %>" 
+                         class="img-fluid" alt="<%= listing.title %>" style="max-height: 500px; width: 100%; object-fit: contain;">
+                <% } %>
+            </div>
+            
+            <!-- Product Details -->
+            <div class="listing-info">
+                <h1><%= listing.title %></h1>
+                <div class="price-tag">KES <%= parseFloat(listing.price).toLocaleString('en-KE') %></div>
+                <!-- Seller Card -->
+                <div class="seller-card glass" style="padding: 20px; border-radius: 20px; margin-bottom: 25px; border: 1px solid rgba(225, 48, 108, 0.1);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <img src="<%= listing.seller_avatar || '/uploads/avatars/default.png' %>" 
+                             alt="<%= listing.seller_username %>" class="seller-avatar"
+                             style="cursor: pointer;" onclick="window.location.href='/marketplace/profile/<%= listing.seller_id %>'"
+                             onerror="this.src='/uploads/avatars/default.png'">
+                        <div class="seller-details" style="cursor: pointer;" onclick="window.location.href='/marketplace/profile/<%= listing.seller_id %>'">
+                            <h5 style="margin: 0; font-weight: 800; font-size: 1.1rem;"><%= listing.seller_username %></h5>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
+                                <i class="fas fa-check-circle" style="color: #4CAF50;"></i> Verified Seller • <%= listing.campus || 'Main Campus' %>
+                            </p>
+                            <div class="rating" style="color: #FFD700; font-size: 0.8rem; margin-top: 3px;">
+                                <% 
+                                   const avg = listing.seller_rating || 0;
+                                   for(let i=0; i<5; i++) { 
+                                %>
+                                    <i class="f<%= i < Math.floor(avg) ? 'as' : (i < avg ? 'as fa-star-half-alt' : 'ar') %> fa-star"></i>
+                                <% } %>
+                                <span style="color: var(--text-muted); margin-left: 5px;">(<%= Number(avg).toFixed(1) %>)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="listing-meta">
+                    <span><i class="fas fa-eye"></i> <%= listing.view_count || 0 %> Views</span>
+                    <span><i class="fas fa-calendar"></i> <%= new Date(listing.created_at).toLocaleDateString() %></span>
+                    <span><i class="fas fa-shield-alt"></i> Safe Meetup</span>
+                </div>
+                
+                <div class="description">
+                    <h3>Description</h3>
+                    <p style="white-space: pre-wrap;"><%= listing.description %></p>
+                </div>
+                
+                <div class="listing-actions" style="margin-top: 20px; display: grid; gap: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                        <button class="btn btn-outline" style="padding: 12px; border-radius:15px; <%= listing.is_favorited ? 'color: #ef4444;' : '' %>" 
+                                onclick="toggleDetailLike('<%= listing.listing_id %>')">
+                            <i class="<%= listing.is_favorited ? 'fas' : 'far' %> fa-heart" id="detailLikeIcon"></i> Like
+                        </button>
+                        <button class="btn btn-outline" style="padding: 12px; border-radius:15px; <%= listing.is_wishlisted ? 'color: #6366f1;' : '' %>"
+                                onclick="toggleDetailWishlist('<%= listing.listing_id %>')">
+                            <i class="<%= listing.is_wishlisted ? 'fas' : 'far' %> fa-bookmark" id="detailWishIcon"></i> Wishlist
+                        </button>
+                    </div>
+
+                    <button class="btn btn-primary w-100" style="padding: 15px; border-radius:18px; margin-bottom: 15px;" 
+                            id="contactSellerBtn"
+                            data-seller-id="<%= listing.seller_id %>"
+                            data-listing-id="<%= listing.listing_id %>"
+                            data-listing-title="<%= listing.title %>">
+                        <i class="fas fa-envelope"></i> Message Seller Now
+                    </button>
+                    <% if (user && user.user_id !== listing.seller_id) { %>
+                        <!-- Review Section / Action Change -->
+                        <div class="review-prompt card glass" style="padding: 20px; border-radius: 20px; border: 1px solid rgba(225, 48, 108, 0.1);">
+                            <h4 style="margin-bottom: 15px; font-weight: 800;">Rate this Product</h4>
+                            <div class="star-rating" id="starInput" style="font-size: 2rem; color: #ddd; cursor: pointer; display: flex; gap: 10px; margin-bottom: 15px;">
+                                <i class="fas fa-star" data-rating="1"></i>
+                                <i class="fas fa-star" data-rating="2"></i>
+                                <i class="fas fa-star" data-rating="3"></i>
+                                <i class="fas fa-star" data-rating="4"></i>
+                                <i class="fas fa-star" data-rating="5"></i>
+                            </div>
+                            <textarea id="reviewComment" class="form-control" placeholder="Share your experience (optional)..." style="border-radius: 12px; margin-bottom: 15px; background: rgba(255,255,255,0.5);"></textarea>
+                            <input type="hidden" id="selectedRating" value="0">
+                            <button class="btn btn-primary" onclick="submitReview()" id="submitReviewBtn">Post Review</button>
+                        </div>
+                    <% } %>
+                </div>
+
+                <!-- Reviews Display -->
+                <div class="reviews-section" style="margin-top: 40px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <h3 style="font-weight: 800; margin: 0;">Verified Reviews</h3>
+                        <div class="avg-stat" style="text-align: right;">
+                            <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary);"><%= listing.average_rating ? Number(listing.average_rating).toFixed(1) : '0.0' %></div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);"><%= reviews.length %> Reviews</div>
+                        </div>
+                    </div>
+
+                    <% if (reviews && reviews.length > 0) { %>
+                        <div class="review-list" style="display: grid; gap: 20px;">
+                            <% reviews.forEach(rv => { %>
+                                <div class="review-item glass" style="padding: 20px; border-radius: 20px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <img src="<%= rv.reviewer_avatar || '/uploads/avatars/default.png' %>" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
+                                            <div>
+                                                <div style="font-weight: 800; font-size: 0.9rem;"><%= rv.reviewer_name %></div>
+                                                <div style="font-size: 0.7rem; color: var(--text-muted);"><%= new Date(rv.created_at).toLocaleDateString() %></div>
+                                            </div>
+                                        </div>
+                                        <div style="color: #FFD700; font-size: 0.85rem;">
+                                            <% for(let i=0; i<5; i++) { %>
+                                                <i class="f<%= i < rv.rating ? 'as' : 'ar' %> fa-star"></i>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <p style="margin: 0; font-size: 0.95rem; color: #444;"><%= rv.comment %></p>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <i class="fas fa-comment-slash" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                            No reviews yet. Be the first to rate!
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const contactBtn = document.getElementById('contactSellerBtn');
+            if (contactBtn) {
+                contactBtn.addEventListener('click', () => {
+                    const sellerId = contactBtn.dataset.sellerId;
+                    const listingId = contactBtn.dataset.listingId;
+                    const title = contactBtn.dataset.listingTitle;
+                    contactSeller(sellerId, listingId, title);
+                });
+            }
+        });
+
+        function contactSeller(sellerId, listingId, listingTitle) {
+            const host = window.location.origin;
+            const sellerName = document.querySelector('.seller-details h5')?.textContent?.trim() || 'there';
+            const mktPayload = {
+                title: listingTitle || document.querySelector('.listing-info h1')?.textContent?.trim() || 'Item',
+                price: document.querySelector('.price-tag')?.textContent?.trim() || '',
+                image: '<%= listing.image_url || (listing.media && listing.media[0] && listing.media[0].media_url) || "/images/default-listing.jpg" %>',
+                link:  `${host}/marketplace/listings/${listingId}`,
+                listingId: listingId,
+                sellerName
+            };
+            const mktEncoded = btoa(encodeURIComponent(JSON.stringify(mktPayload)));
+            window.location.href = `/messages/?user=${sellerId}&mkt=${mktEncoded}`;
+        }
+
+        async function toggleDetailLike(id) {
+            try {
+                const response = await fetch(`/api/marketplace/listings/${id}/favorite`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>' })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const icon = document.getElementById('detailLikeIcon');
+                    if (data.favorited) {
+                        icon.classList.replace('far', 'fas');
+                        icon.style.color = '#ef4444';
+                    } else {
+                        icon.classList.replace('fas', 'far');
+                        icon.style.color = '';
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function toggleDetailWishlist(id) {
+            try {
+                const response = await fetch(`/api/marketplace/listings/${id}/wishlist`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>' })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const icon = document.getElementById('detailWishIcon');
+                    if (data.wishlisted) {
+                        icon.classList.replace('far', 'fas');
+                        icon.style.color = '#6366f1';
+                    } else {
+                        icon.classList.replace('fas', 'far');
+                        icon.style.color = '';
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // Star Rating Logic
+        document.querySelectorAll('#starInput i').forEach(star => {
+            star.addEventListener('mouseover', () => {
+                const rating = star.getAttribute('data-rating');
+                highlightStars(rating);
+            });
+            star.addEventListener('mouseleave', () => {
+                highlightStars(document.getElementById('selectedRating').value);
+            });
+            star.addEventListener('click', () => {
+                const rating = star.getAttribute('data-rating');
+                document.getElementById('selectedRating').value = rating;
+                highlightStars(rating);
+            });
+        });
+
+        function highlightStars(rating) {
+            document.querySelectorAll('#starInput i').forEach(s => {
+                s.style.color = s.getAttribute('data-rating') <= rating ? '#FFD700' : '#ddd';
+            });
+        }
+
+        async function submitReview() {
+            const rating = document.getElementById('selectedRating').value;
+            const comment = document.getElementById('reviewComment').value;
+            const btn = document.getElementById('submitReviewBtn');
+
+            if (rating == 0) {
+                alert('Please select a star rating');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
+
+            try {
+                const response = await fetch('/api/marketplace/reviews', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        listing_id: '<%= listing.listing_id %>',
+                        reviewee_id: '<%= listing.seller_id %>',
+                        rating: parseInt(rating),
+                        comment: comment,
+                        transaction_type: 'buyer', // Assuming buyer context here
+                        _csrf: '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Thanks for your feedback! 🎉');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Error submitting review');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Post Review';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Failed to submit review');
+                btn.disabled = false;
+            }
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

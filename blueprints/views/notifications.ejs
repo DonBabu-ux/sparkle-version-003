@@ -1,0 +1,304 @@
+<%- include('partials/head', { title: 'Notifications' }) %>
+
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --accent: #6366f1;
+        --blue-gradient: linear-gradient(135deg, #6366f1, #3b82f6);
+    }
+
+    body {
+        background: #f8fafc;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(233, 30, 99, 0.05) 0, transparent 50%);
+        min-height: 100vh;
+    }
+
+    .notifications-container {
+        max-width: 650px;
+        margin: 90px auto 40px;
+        padding: 0 15px;
+    }
+
+    .notifications-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        padding: 0 5px;
+    }
+
+    .notifications-header h1 {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0;
+    }
+
+    .clear-all-btn {
+        background: none;
+        border: none;
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 10px;
+        transition: background 0.2s;
+    }
+
+    .clear-all-btn:hover {
+        background: rgba(99, 102, 241, 0.1);
+    }
+
+    .notification-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        box-shadow: var(--glass-shadow);
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .notif-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+        position: relative;
+    }
+
+    .notif-item:last-child {
+        border-bottom: none;
+    }
+
+    .notif-item:hover {
+        background: rgba(255, 255, 255, 0.9);
+        transform: translateX(4px);
+    }
+
+    .notif-item.unread {
+        background: rgba(99, 102, 241, 0.04);
+    }
+
+    .notif-item.unread::after {
+        content: '';
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 8px;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 50%;
+    }
+
+    .notif-avatar-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .notif-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #fff;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .notif-type-icon {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 10px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .type-spark { background: #FF3D6D; }
+    .type-comment { background: #4CAF50; }
+    .type-follow { background: #6366f1; }
+    .type-mention { background: #FFC107; }
+    .type-system { background: #64748b; }
+
+    .notif-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .notif-text {
+        font-size: 15px;
+        margin: 0 0 4px 0;
+        line-height: 1.4;
+        color: var(--text-main);
+    }
+
+    .notif-text strong {
+        font-weight: 700;
+    }
+
+    .notif-time {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .notif-empty {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .notif-empty i {
+        font-size: 48px;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+
+    .notif-empty h3 {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-main);
+        margin-bottom: 8px;
+    }
+
+    .notif-empty p {
+        color: var(--text-muted);
+        font-size: 14px;
+        max-width: 280px;
+        margin: 0 auto;
+    }
+
+    @media (max-width: 480px) {
+        .notifications-container {
+            margin-top: 80px;
+        }
+        .notif-avatar {
+            width: 44px;
+            height: 44px;
+        }
+        .notif-text {
+            font-size: 14px;
+        }
+    }
+</style>
+
+<div id="mainContent">
+    <%- include('partials/navbar') %>
+
+    <div class="notifications-container">
+        <div class="notifications-header">
+            <h1>Notifications</h1>
+            <% if (notifications && notifications.length > 0) { %>
+                <button class="clear-all-btn" onclick="clearAllNotifications()">Clear All</button>
+            <% } %>
+        </div>
+
+        <div class="notification-card">
+            <% if (!notifications || notifications.length === 0) { %>
+                <div class="notif-empty">
+                    <i class="fas fa-bell-slash"></i>
+                    <h3>All caught up!</h3>
+                    <p>When you get sparks, comments or new followers, they'll appear here.</p>
+                </div>
+            <% } else { %>
+                <% notifications.forEach(notif => { %>
+                    <a href="<%= notif.action_url || '#' %>" class="notif-item <%= notif.is_read ? '' : 'unread' %>">
+                        <div class="notif-avatar-wrap">
+                            <img src="<%= notif.related_user ? (notif.related_user.avatar || '/uploads/avatars/default.png') : '/uploads/avatars/default.png' %>" 
+                                 class="notif-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                            <div class="notif-type-icon type-<%= (notif.type || 'system').toLowerCase() %>">
+                                <i class="fas <%= getIconForType(notif.type) %>"></i>
+                            </div>
+                        </div>
+                        <div class="notif-body">
+                            <p class="notif-text">
+                                <% if (notif.related_user) { %>
+                                    <strong><%= notif.related_user.name || notif.related_user.username %></strong>
+                                <% } %>
+                                <%= notif.message %>
+                            </p>
+                            <span class="notif-time">
+                                <i class="far fa-clock"></i> <%= timeAgo(notif.created_at) %>
+                            </span>
+                        </div>
+                    </a>
+                <% }); %>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/bottom-nav') %>
+
+<% 
+function getIconForType(type) {
+    const icons = {
+        'spark': 'fa-bolt',
+        'comment': 'fa-comment',
+        'follow': 'fa-user-plus',
+        'mention': 'fa-at',
+        'system': 'fa-info-circle'
+    };
+    return icons[(type || 'system').toLowerCase()] || 'fa-bell';
+}
+
+function timeAgo(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return 'just now';
+    const seconds = Math.floor((new Date() - d) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return d.toLocaleDateString();
+}
+%>
+
+<script>
+async function clearAllNotifications() {
+    if (!confirm('Are you sure you want to clear all notifications?')) return;
+    try {
+        const res = await fetch('/api/notifications/clear', { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('sparkleToken')}`
+            }
+        });
+        const data = await res.json();
+        if (data.message) {
+            window.location.reload();
+        }
+    } catch(e) {
+        console.error('Failed to clear notifications:', e);
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,485 @@
+<%- include('partials/head', { title: 'Discover' }) %>
+
+<style>
+    /* Sparkle Connect Page - Production Optimized Styles */
+    :root {
+        --sparkle-pink: #ff6b8b;
+        --sparkle-pink-light: #fff0f5;
+        --bg-white: #ffffff;
+        --grey-soft: #f8fafc;
+        --grey-border: #e2e8f0;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --card-radius: 14px;
+        --btn-radius: 25px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        background: var(--bg-white);
+        color: var(--text-primary);
+        margin: 0;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Main Container Offset for Sidebar */
+    .discover-wrapper {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 0 16px;
+        min-height: 100vh;
+    }
+
+    /* Sticky Header Stack - Combines Search, Chips, and Tabs */
+    .sticky-header-stack {
+        position: sticky;
+        top: 0;
+        background: var(--bg-white);
+        z-index: 900;
+        padding-top: 16px;
+        margin-bottom: 16px;
+    }
+
+    /* 1. Search Bar */
+    .search-bar-container {
+        margin-bottom: 16px;
+    }
+    .search-box {
+        display: flex;
+        align-items: center;
+        background: var(--grey-soft);
+        border: 1.5px solid transparent;
+        border-radius: var(--card-radius);
+        padding: 12px 18px;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .search-box:focus-within {
+        background: white;
+        border-color: var(--sparkle-pink);
+        box-shadow: 0 4px 12px rgba(255, 107, 139, 0.15);
+    }
+    .search-box i { color: var(--text-secondary); margin-right: 12px; }
+    .search-box input {
+        border: none;
+        background: transparent;
+        width: 100%;
+        font-size: 15px;
+        color: var(--text-primary);
+        outline: none;
+    }
+    .search-box input::placeholder { color: var(--text-secondary); }
+
+    /* 2. Filter Chips */
+    .filter-chips-row {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        padding-bottom: 16px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .filter-chips-row::-webkit-scrollbar { display: none; }
+    
+    .filter-chip {
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        border: none;
+        background: var(--grey-soft);
+        color: var(--text-primary);
+        transition: 0.2s;
+    }
+    .filter-chip.active {
+        background: var(--sparkle-pink);
+        color: white;
+    }
+
+    /* 3. Navigation Tabs */
+    .tabs-row {
+        display: flex;
+        border-bottom: 1px solid var(--grey-border);
+    }
+    .tab-btn {
+        flex: 1;
+        background: none;
+        border: none;
+        padding: 14px 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        cursor: pointer;
+        position: relative;
+        transition: 0.2s;
+    }
+    .tab-btn.active {
+        color: var(--sparkle-pink);
+    }
+    .tab-btn.active::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 20%;
+        right: 20%;
+        height: 3px;
+        background: var(--sparkle-pink);
+        border-radius: 4px 4px 0 0;
+    }
+
+    /* 4. User Feed */
+    .feed-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-bottom: 80px;
+    }
+
+    /* User Card */
+    .user-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-radius: var(--card-radius);
+        background: var(--bg-white);
+        border: 1px solid var(--grey-soft);
+        transition: 0.2s;
+    }
+    .user-card:active { background: var(--grey-soft); }
+
+    .card-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex: 1;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .card-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: var(--grey-soft);
+    }
+    .card-info { overflow: hidden; }
+    .card-name {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-sub {
+        font-size: 13px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-mutuals {
+        font-size: 12px;
+        color: var(--sparkle-pink);
+        margin-top: 2px;
+    }
+
+    .follow-btn {
+        background: var(--sparkle-pink);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: var(--btn-radius);
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.2s;
+        flex-shrink: 0;
+    }
+    .follow-btn.following {
+        background: var(--grey-soft);
+        color: var(--text-primary);
+    }
+
+    /* Skeletons */
+    .skeleton-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px;
+    }
+    .skel-circle { width: 48px; height: 48px; border-radius: 50%; background: #f1f5f9; }
+    .skel-content { flex: 1; }
+    .skel-line { border-radius: 4px; background: #f1f5f9; margin-bottom: 8px; height: 12px; }
+    .skel-line.full { width: 100%; }
+    .skel-line.half { width: 50%; }
+
+    .shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+    .shimmer::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+        animation: shimmer-load 1.5s infinite;
+    }
+    @keyframes shimmer-load { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+    .empty-state i { font-size: 40px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-state h3 { margin: 0 0 8px 0; font-size: 18px; color: var(--text-primary); }
+
+    /* Load More */
+    .load-more-container {
+        padding: 20px 0 60px;
+        text-align: center;
+    }
+    .load-more-btn {
+        background: none;
+        border: 1.5px solid var(--grey-border);
+        padding: 10px 30px;
+        border-radius: 20px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .load-more-btn:hover { background: var(--grey-soft); color: var(--text-primary); }
+
+    @media (max-width: 480px) {
+        .discover-wrapper { padding: 0 12px; }
+        .card-avatar { width: 44px; height: 44px; }
+        .tab-btn { font-size: 13px; }
+    }
+</style>
+
+<%- include('partials/sidebar') %>
+<%- include('partials/bottom-nav') %>
+
+<div class="discover-wrapper">
+    <!-- Header Content: Sticky Stack -->
+    <div class="sticky-header-stack">
+        <!-- 1. Search Bar -->
+        <div class="search-bar-container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="discoverSearchInput" placeholder="Search students, majors, campus...">
+            </div>
+        </div>
+
+        <!-- 2. Filter Chips -->
+        <div class="filter-chips-row">
+            <button class="filter-chip active" onclick="setFilter('all', this)">For You</button>
+            <button class="filter-chip" onclick="setFilter('following', this)">Following</button>
+            <button class="filter-chip" onclick="setFilter('campus', this)">Campus</button>
+            <button class="filter-chip" onclick="setFilter('interests', this)">Interests</button>
+            <button class="filter-chip" onclick="setFilter('level', this)">Level</button>
+        </div>
+
+        <!-- 3. Navigation Tabs -->
+        <div class="tabs-row">
+            <button class="tab-btn active" onclick="setTab('suggested', this)">Suggested</button>
+            <button class="tab-btn" onclick="setTab('trending', this)">Trending</button>
+            <button class="tab-btn" onclick="setTab('similar', this)">Similar</button>
+            <button class="tab-btn" onclick="setTab('following', this)">Following</button>
+        </div>
+    </div>
+
+    <!-- 4. User Feed List -->
+    <div class="feed-list" id="discoverFeed">
+        <!-- RENDERED BY JS -->
+    </div>
+
+    <!-- 5. Load More -->
+    <div class="load-more-container" id="loadMoreArea">
+        <button class="load-more-btn" onclick="loadMore()">Load More</button>
+    </div>
+</div>
+
+<script src="/js/dashboardAPI.js"></script>
+<script>
+    let currentTab = 'suggested';
+    let currentFilter = 'all';
+    let searchQuery = '';
+    
+    // Server Initial Data
+    const sparkData = {
+        suggested: <%- JSON.stringify(suggestedUsers || []) %>,
+        trending: <%- JSON.stringify(trendingUsers || []) %>,
+        similar: <%- JSON.stringify(similarInterests || sameAffiliation || []) %>,
+        following: <%- JSON.stringify(followingUsers || []) %>
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initial Render
+        renderDiscoverFeed(sparkData[currentTab]);
+
+        // Search Input Logic
+        const searchInput = document.getElementById('discoverSearchInput');
+        let searchDebounce;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                searchQuery = e.target.value.trim();
+                triggerRefetch();
+            }, 500);
+        });
+    });
+
+    function setTab(tab, btn) {
+        if (currentTab === tab) return;
+        currentTab = tab;
+        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        triggerRefetch();
+    }
+
+    function setFilter(filter, btn) {
+        if (currentFilter === filter) return;
+        currentFilter = filter;
+        
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        
+        triggerRefetch();
+    }
+
+    async function triggerRefetch() {
+        showSkeletons();
+        try {
+            // Mapping filters to API requirements
+            const apiFilters = {
+                relationship: currentFilter === 'following' ? 'following' : 'all',
+                campus: currentFilter === 'campus' ? '<%= user.campus %>' : 'all',
+                major: currentFilter === 'interests' ? '<%= user.major %>' : 'all',
+                year: currentFilter === 'level' ? '<%= user.year_of_study %>' : 'all'
+            };
+            
+            // If it's a raw tab switch without search/filters, use local data if available
+            const isDefaultState = !searchQuery && currentFilter === 'all';
+            const users = isDefaultState ? sparkData[currentTab] : await DashboardAPI.searchUsers(searchQuery, apiFilters);
+            
+            renderDiscoverFeed(users);
+        } catch (e) {
+            console.error('Discover Refetch Error:', e);
+            renderEmptyState("Something went wrong");
+        }
+    }
+
+    function renderDiscoverFeed(users) {
+        const feed = document.getElementById('discoverFeed');
+        const loadMore = document.getElementById('loadMoreArea');
+        feed.innerHTML = '';
+        
+        if (!users || users.length === 0) {
+            renderEmptyState();
+            loadMore.style.display = 'none';
+            return;
+        }
+
+        // Deduplication
+        const seenIds = new Set();
+        const uniqueUsers = users.filter(u => {
+            const uid = u.id || u.user_id;
+            if (seenIds.has(uid)) return false;
+            seenIds.add(uid);
+            return true;
+        });
+
+        loadMore.style.display = uniqueUsers.length > 5 ? 'block' : 'none';
+
+        uniqueUsers.forEach(u => {
+            const uid = u.id || u.user_id;
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            card.innerHTML = `
+                <div class="card-left" onclick="window.location.href='/profile/${u.username}'">
+                    <img src="${u.avatar_url || '/uploads/avatars/default.png'}" class="card-avatar">
+                    <div class="card-info">
+                        <div class="card-name">
+                            ${u.username}
+                            ${u.is_developer ? '<i class="fas fa-check-circle" style="color:var(--sparkle-pink); font-size:12px; margin-left:2px;"></i>' : ''}
+                        </div>
+                        <div class="card-sub">${u.major || 'Student'} • ${u.campus || 'Global'}</div>
+                        ${u.mutual_connections > 0 ? `<div class="card-mutuals">${u.mutual_connections} mutual connections</div>` : ''}
+                    </div>
+                </div>
+                <button class="follow-btn ${u.is_followed ? 'following' : ''}" onclick="handleFollow('${uid}', this)">
+                    ${u.is_followed ? 'Following' : 'Follow'}
+                </button>
+            `;
+            feed.appendChild(card);
+        });
+    }
+
+    async function handleFollow(userId, btn) {
+        try {
+            const isFollowing = btn.classList.contains('following');
+            btn.disabled = true;
+            
+            if (isFollowing) {
+                await DashboardAPI.unfollowUser(userId);
+                btn.classList.remove('following');
+                btn.innerText = 'Follow';
+            } else {
+                const res = await DashboardAPI.followUser(userId);
+                if (res.status === 'requested') {
+                    btn.innerText = 'Requested';
+                } else {
+                    btn.classList.add('following');
+                    btn.innerText = 'Following';
+                }
+            }
+        } catch (e) {
+            console.error('Follow Action Error:', e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function showSkeletons() {
+        document.getElementById('discoverFeed').innerHTML = Array(6).fill(0).map(() => `
+            <div class="skeleton-item shimmer">
+                <div class="skel-circle"></div>
+                <div class="skel-content">
+                    <div class="skel-line half"></div>
+                    <div class="skel-line full"></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderEmptyState(msg = "No more suggestions") {
+        document.getElementById('discoverFeed').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-user-astronaut"></i>
+                <h3>${msg}</h3>
+                <p>Try switching tabs or adjusting filters</p>
+            </div>
+        `;
+    }
+
+    function loadMore() {
+        // Mocking load more as results are usually batched in suggestions
+        alert('Showing more recommendations...');
+    }
+</script>
+</body>
+</html>

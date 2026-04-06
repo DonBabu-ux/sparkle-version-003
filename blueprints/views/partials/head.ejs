@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>
+        <%= title %> | Sparkle
+    </title>
+    <!-- Server-rendered Data -->
+    <meta name="firebase-config" content="<%= JSON.stringify(locals.firebaseConfig || {}) %>">
+    <meta name="current-user" content="<%= JSON.stringify(locals.user || {}) %>">
+    <meta name="csrf-token" content="<%= locals.csrfToken %>">
+    <link rel="manifest" href="/manifest.json">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Tailwind CSS (Removed because project uses custom CSS and Bootstrap classes, causing production warning) -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/responsive-overhaul.css">
+    <link rel="stylesheet" href="/css/post-card.css">
+    <script src="/js/dashboardAPI.js"></script>
+    <script>
+        // Immediate cache clear for specific data keys to prevent "static data" issues
+        if (!sessionStorage.getItem('cache_cleared')) {
+            const keysToClear = ['sparkleCampus', 'mockData', 'currentUser'];
+            keysToClear.forEach(k => localStorage.removeItem(k));
+            sessionStorage.setItem('cache_cleared', 'true');
+            console.log('🧹 Session cache cleared');
+        }
+
+        // Firebase Config and Current User Data
+        const fbMeta = document.querySelector('meta[name="firebase-config"]');
+        window.firebaseConfig = fbMeta && fbMeta.content ? JSON.parse(fbMeta.content) : {};
+
+        const userMeta = document.querySelector('meta[name="current-user"]');
+        window.currentUser = userMeta && userMeta.content ? JSON.parse(userMeta.content) : {};
+
+        window.currentUserId = window.currentUser.user_id || "";
+    </script>
+
+    <!-- Firebase SDK (Modular CDN) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+        "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"
+      }
+    }
+    </script>
+    <%- include('styles') %>
+</head>
+
+<body class="<%= locals.user && locals.user.theme === 'dark' ? 'dark-mode' : '' %> font-<%= locals.user && locals.user.font_size ? locals.user.font_size : 'medium' %>">
+    <%- include('loading-bar') %>

@@ -1,0 +1,414 @@
+<%- include('../partials/head', { title: 'Sell Your Items | Sparkle Mall' }) %>
+
+<style>
+    :root {
+        --primary: #E1306C;
+        --secondary: #833AB4;
+        --bg-main: #f8f9fa;
+        --card-bg: #fff;
+        --border: #efefef;
+        --radius: 24px;
+        --gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    }
+
+    body {
+        background: var(--bg-main);
+        min-height: 100vh;
+        padding-top: 80px;
+    }
+
+    .wizard-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+        padding: 40px;
+        border: 1px solid var(--border);
+    }
+
+    .header-section {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .header-section h1 {
+        font-weight: 900;
+        font-size: 2.2rem;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 35px;
+    }
+
+    .step-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ddd;
+        transition: 0.3s;
+    }
+
+    .step-dot.active {
+        width: 40px;
+        background: var(--primary);
+        border-radius: 20px;
+    }
+
+    .form-step {
+        display: none;
+    }
+
+    .form-step.active {
+        display: block;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .input-group {
+        margin-bottom: 25px;
+    }
+
+    .input-label {
+        font-weight: 800;
+        display: block;
+        margin-bottom: 10px;
+        font-size: 0.95rem;
+        color: #333;
+    }
+
+    .text-input {
+        width: 100%;
+        padding: 15px 20px;
+        border-radius: 15px;
+        border: 1.5px solid var(--border);
+        background: #fdf2f8;
+        font-size: 0.95rem;
+        transition: 0.3s;
+    }
+
+    .text-input:focus {
+        background: white;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 5px rgba(225, 48, 108, 0.1);
+        outline: none;
+    }
+
+    .media-upload {
+        width: 100%;
+        aspect-ratio: 16/9;
+        border: 2px dashed #ddd;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: 0.3s;
+        gap: 10px;
+        color: #888;
+        background: #fafafa;
+    }
+
+    .media-upload:hover {
+        border-color: var(--primary);
+        background: #fff;
+        color: var(--primary);
+    }
+
+    .preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .preview-item {
+        aspect-ratio: 1;
+        border-radius: 15px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .preview-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .remove-preview {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 11px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        z-index: 10;
+        backdrop-filter: blur(4px);
+    }
+    .remove-preview:hover {
+        background: var(--primary);
+        transform: scale(1.1);
+    }
+
+    .btn-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 40px;
+        gap: 20px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 16px;
+        border-radius: 18px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: 0.3s;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-next { background: var(--gradient); color: white; box-shadow: 0 6px 20px rgba(225, 48, 108, 0.3); }
+    .btn-next:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(225, 48, 108, 0.4); }
+
+    .btn-back { background: #f1f1f1; color: #666; }
+    .btn-back:hover { background: #eee; }
+</style>
+
+<div class="wizard-container">
+    <div class="header-section">
+        <h1>Turn Stuff into Cash</h1>
+        <p>Post your item and get found by students across campus.</p>
+    </div>
+
+    <div class="card">
+        <div class="step-indicator">
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+        </div>
+
+        <form id="sellForm" enctype="multipart/form-data">
+            <!-- Step 1: Photos -->
+            <div class="form-step active" id="step1">
+                <div class="input-group">
+                    <label class="input-label">Product Showcase</label>
+                    <div class="media-upload" onclick="document.getElementById('mediaInput').click()">
+                        <i data-lucide="camera" style="width: 40px; height: 40px;"></i>
+                        <span style="font-weight: 700;">Add photos</span>
+                        <span style="font-size: 0.8rem;">Highlight features and any flaws</span>
+                    </div>
+                    <input type="file" id="mediaInput" name="media" multiple accept="image/*" style="display: none;">
+                    <div class="preview-grid" id="previewGrid"></div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Catchy Title</label>
+                    <input type="text" name="title" class="text-input" placeholder="e.g. iPhone 15 Pro - Midnight Blue" required>
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-next" onclick="nextStep(2)">Next Details <i data-lucide="arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- Step 2: Details -->
+            <div class="form-step" id="step2">
+                <div class="input-group">
+                    <label class="input-label">Category</label>
+                    <select name="category" class="text-input" required>
+                        <option value="electronics">Electronics</option>
+                        <option value="books">Books & Notes</option>
+                        <option value="fashion">Fashion Lab</option>
+                        <option value="home">Dorm Life</option>
+                        <option value="services">Services</option>
+                        <option value="other">Other Treasures</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Condition</label>
+                    <select name="condition" class="text-input" required>
+                        <option value="new">Brand New / Sealed</option>
+                        <option value="like_new">Like-New (Opened Box)</option>
+                        <option value="good">Good / Used</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Price (KES)</label>
+                    <input type="number" name="price" class="text-input" placeholder="e.g. 1500" step="1" min="1" required>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Campus</label>
+                    <select name="campus" class="text-input" required>
+                        <option value="main_campus">Main Campus</option>
+                        <option value="north_campus">North Campus</option>
+                        <option value="south_campus">South Campus</option>
+                        <option value="downtown">Downtown Campus</option>
+                    </select>
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-back" onclick="nextStep(1)"><i data-lucide="arrow-left"></i> Back</button>
+                    <button type="button" class="btn btn-next" onclick="nextStep(3)">Last Step <i data-lucide="arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- Step 3: Logistics -->
+            <div class="form-step" id="step3">
+                <div class="input-group">
+                    <label class="input-label">Description & Story</label>
+                    <textarea name="description" class="text-input" rows="5" placeholder="Tell buyers more... Why are you selling? Any special features?"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Campus Meeting Location</label>
+                    <input type="text" name="location" class="text-input" placeholder="e.g. Main Library Fountain, North Gate...">
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-back" onclick="nextStep(2)"><i data-lucide="arrow-left"></i> Back</button>
+                    <button type="submit" class="btn btn-next" id="submitBtn">Launch Listing ! 🚀</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<%- include('../partials/scripts') %>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    lucide.createIcons();
+
+    let currentStep = 1;
+    const steps = document.querySelectorAll('.form-step');
+    const dots = document.querySelectorAll('.step-dot');
+
+    function nextStep(n) {
+        steps.forEach(s => s.classList.remove('active'));
+        dots.forEach(d => d.classList.remove('active'));
+        
+        document.getElementById('step' + n).classList.add('active');
+        dots[n-1].classList.add('active');
+        currentStep = n;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Photo Preview & State Management
+    let selectedFiles = [];
+    const mediaInput = document.getElementById('mediaInput');
+    const previewGrid = document.getElementById('previewGrid');
+
+    mediaInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            // Prevent duplicates (optional)
+            if (selectedFiles.length < 20) {
+                selectedFiles.push(file);
+                renderPreviews();
+            }
+        });
+        // Clear input so same file can be selected again if removed
+        e.target.value = '';
+    });
+
+    function renderPreviews() {
+        previewGrid.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.innerHTML = `
+                    <img src="${e.target.result}">
+                    <button type="button" class="remove-preview" onclick="removeFile(${index})">
+                        <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                    </button>
+                `;
+                previewGrid.appendChild(item);
+                lucide.createIcons(); // Re-render icons for the new button
+            }
+            reader.readAsDataURL(file);
+        });
+    }
+
+    window.removeFile = (index) => {
+        selectedFiles.splice(index, 1);
+        renderPreviews();
+    }
+
+    // Form Submission
+    document.getElementById('sellForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        const originalBtnText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+        btn.disabled = true;
+
+        const formData = new FormData(e.target);
+        
+        // Remove old media entries if any (though unlikely from default form)
+        formData.delete('media');
+        
+        // Add our selected files
+        selectedFiles.forEach(file => {
+            formData.append('media', file);
+        });
+
+        // Add CSRF
+        formData.append('_csrf', '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>');
+        
+        try {
+            const response = await fetch('/api/marketplace/listings', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('Your item is now LIVE! 🎉');
+                window.location.href = '/marketplace';
+            } else {
+                alert(data.message || 'Something went wrong');
+                btn.innerHTML = 'Launch Listing ! 🚀';
+                btn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to connect to server');
+            btn.innerHTML = 'Launch Listing ! 🚀';
+            btn.disabled = false;
+        }
+    });
+</script>

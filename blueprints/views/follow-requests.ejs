@@ -1,0 +1,178 @@
+<%- include('partials/head', { title: 'Follow Requests' }) %>
+<%- include('partials/sidebar') %>
+
+<style>
+    .follow-requests-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .request-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .request-card {
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
+    }
+    .request-card:hover {
+        transform: translateY(-2px);
+    }
+    .request-user-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        cursor: pointer;
+    }
+    .request-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .request-details h4 {
+        margin: 0;
+        font-size: 16px;
+        color: #1e293b;
+    }
+    .request-details p {
+        margin: 0;
+        font-size: 13px;
+        color: #64748b;
+    }
+    .request-actions {
+        display: flex;
+        gap: 10px;
+    }
+    .accept-btn {
+        background: var(--primary, #FF3D6D);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: opacity 0.2s;
+    }
+    .reject-btn {
+        background: #f1f5f9;
+        color: #64748b;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+    .accept-btn:hover { opacity: 0.9; }
+    .reject-btn:hover { background: #e2e8f0; }
+    .empty-requests {
+        text-align: center;
+        padding: 60px 20px;
+        color: #64748b;
+    }
+    .empty-requests i {
+        font-size: 48px;
+        margin-bottom: 20px;
+        color: #cbd5e1;
+    }
+</style>
+
+<div class="container" id="mainContent">
+    <%- include('partials/navbar') %>
+    
+    <div class="follow-requests-container">
+        <h2 style="margin-bottom: 25px; font-weight: 800; color: #1e293b;">Follow Requests</h2>
+        
+        <div class="request-list" id="requestList">
+            <% if (requests && requests.length > 0) { %>
+                <% requests.forEach(request => { %>
+                    <div class="request-card" id="request-<%= request.id %>">
+                        <div class="request-user-info" onclick="window.location.href='/profile/<%= request.username %>'">
+                            <img src="<%= request.avatar_url || '/uploads/avatars/default.png' %>" alt="<%= request.username %>" class="request-avatar">
+                            <div class="request-details">
+                                <h4><%= request.username %></h4>
+                                <p><%= request.name %></p>
+                            </div>
+                        </div>
+                        <div class="request-actions">
+                            <button class="accept-btn" onclick="handleRequest('<%= request.id %>', 'accept')">Accept</button>
+                            <button class="reject-btn" onclick="handleRequest('<%= request.id %>', 'reject')">Reject</button>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <div class="empty-requests">
+                    <i class="fas fa-user-clock"></i>
+                    <h3>No Pending Requests</h3>
+                    <p>When people request to follow you, they'll appear here.</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script src="/js/dashboardAPI.js"></script>
+<script>
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    async function handleRequest(requestId, action) {
+        try {
+            const card = document.getElementById(`request-${requestId}`);
+            if (card) {
+                card.style.opacity = '0.5';
+                card.style.pointerEvents = 'none';
+            }
+
+            // Try to get token from localStorage first, then cookies
+            const token = localStorage.getItem('sparkleToken') || getCookie('sparkleToken');
+
+            const response = await fetch(`/api/users/follow-requests/${requestId}/${action}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                if (card) {
+                    card.style.transform = 'translateX(20px)';
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        card.remove();
+                        if (document.querySelectorAll('.request-card').length === 0) {
+                            location.reload();
+                        }
+                    }, 300);
+                }
+            } else {
+                alert(data.error || 'Failed to process request');
+                if (card) {
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'all';
+                }
+            }
+        } catch (error) {
+            console.error('Request handling error:', error);
+            alert('An error occurred. Please try again.');
+        }
+    }
+</script>
+
+<%- include('partials/bottom-nav') %>
+</body>
+</html>

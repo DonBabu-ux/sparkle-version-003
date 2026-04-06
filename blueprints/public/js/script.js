@@ -1,0 +1,2993 @@
+// ENHANCED DATA INITIALIZATION (Mocks Removed house 5.0)
+
+// Shim mockData if undefined (Legacy Support)
+if (typeof mockData === 'undefined') {
+    window.mockData = {
+        users: [],
+        posts: [],
+        polls: [],
+        confessions: [],
+        groups: [],
+        lostFound: { lost: [], found: [] },
+        skillMarket: { tutoring: [], services: [] },
+        marketplace: { secondhand: [] },
+        notifications: [],
+        events: []
+    };
+    // Basic polls to prevent crash
+    window.mockData.polls = [];
+    window.mockData.confessions = [];
+}
+
+window.appState = {
+    currentPage: 'home',
+    isAnonymousMode: false,
+    isDarkMode: false,
+    currentUser: null, // To be filled by dataManager house 5.0
+    likedPosts: [],
+    savedPosts: [],
+    sparkAnimations: new Set(),
+    activeChat: null,
+    activeGroup: null,
+    isEditingProfile: false,
+    groupMessages: {},
+    hamburgerOpen: false,
+    activeMarketplaceTab: 'student_market',
+    activeLostFoundTab: 'lost',
+    activeSkillMarketTab: 'tutoring',
+    activePoll: null,
+    userPosts: [],
+    postComments: {},
+    momentLikes: new Set(),
+    sparkAnimationQueue: [],
+    seenPostIds: JSON.parse(localStorage.getItem('seenPostIds') || '[]') // Part 5: Anti-Repetition
+};
+const appState = window.appState; // Maintain local reference for script.js
+
+// Sync with dataManager or localStorage immediately to prevent 'undefined' in other scripts
+if (typeof dataManager !== 'undefined') {
+    appState.currentUser = dataManager.getCurrentUser() || {
+        id: 'guest',
+        username: 'Guest',
+        name: 'Guest User',
+        avatar: '/uploads/avatars/default.png'
+    };
+    console.log("👤 Initialized appState.currentUser from dataManager:", appState.currentUser?.username);
+} else {
+    try {
+        const savedUser = localStorage.getItem('sparkleUser');
+        if (savedUser) {
+            appState.currentUser = JSON.parse(savedUser);
+            console.log("👤 Initialized appState.currentUser from localStorage:", appState.currentUser?.username);
+        } else {
+            appState.currentUser = { id: 'guest', username: 'Guest', name: 'Guest User' };
+        }
+    } catch (e) {
+        console.warn("Failed to load user during init:", e);
+        appState.currentUser = { id: 'guest', username: 'Guest', name: 'Guest User' };
+    }
+}
+
+
+// ================================
+// CORE PAGE FUNCTIONS
+// ================================
+
+// Global error handler for broken images/videos (e.g. DNS failure, 403 Forbidden)
+window.addEventListener('error', function (e) {
+    if (e.target.tagName === 'IMG') {
+        const src = e.target.src;
+        // Prevent infinite loops if fallback fails
+        if (e.target.dataset.fallbackApplied) return;
+        e.target.dataset.fallbackApplied = "true";
+
+        if (src.includes('avatar')) {
+            e.target.src = '/uploads/avatars/default.png';
+        } else if (src.includes('cloudinary.com')) {
+            // Specific placeholder for Cloudinary DNS/loading issues
+            e.target.style.background = '#f0f0f0';
+            e.target.src = '/uploads/defaults/no-image.png'; // Campus vibe placeholder
+            console.warn("Cloudinary image failed to load, using local fallback");
+        } else {
+            e.target.src = '/uploads/defaults/no-image.png';
+        }
+    } else if (e.target.tagName === 'VIDEO') {
+        if (e.target.dataset.fallbackApplied) return;
+        e.target.dataset.fallbackApplied = "true";
+
+        console.warn("Video failed to load, showing placeholder:", e.target.src);
+
+        // Find parent and show a placeholder instead of just a black box
+        const container = e.target.parentElement;
+        if (container) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'video-error-placeholder';
+            placeholder.style.cssText = 'width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#1a1a1a; color:white; font-size:14px; text-align:center; padding:20px;';
+            placeholder.innerHTML = `
+                <i class="fas fa-video-slash" style="font-size:30px; margin-bottom:10px; color:#ff4757;"></i>
+                <div>Media unavailable</div>
+                <div style="font-size:10px; color:#888; margin-top:5px;">Please check your connection</div>
+            `;
+            e.target.style.display = 'none';
+            container.appendChild(placeholder);
+        }
+    }
+}, true);
+function switchPage(page) {
+    console.log("🔄 Switching to page:", page);
+
+    const pageElement = document.getElementById(page + 'Page');
+    if (!pageElement) {
+        console.warn(`Page element #${page}Page not found. Staying on current page.`);
+        return;
+    }
+
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('active');
+        p.classList.add('hidden');
+    });
+
+    // Remove active class from all nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    // Show selected page
+    // pageElement is already found above
+    pageElement.classList.remove('hidden');
+    pageElement.classList.add('active');
+
+    // Update nav active state
+    const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+    if (navItem) navItem.classList.add('active');
+
+    // Update app state
+    appState.currentPage = page;
+
+    // Load content for the page
+    switch (page) {
+        case 'home':
+            loadAfterglowStories();
+            loadFeedPosts();
+            break;
+        case 'connect':
+            loadConnectUsers();
+            break;
+        case 'moments':
+            loadMoments();
+            break;
+        case 'groups':
+            loadGroups();
+            break;
+        case 'messages':
+            loadMessages('direct');
+            break;
+        case 'profile':
+            loadProfile();
+            break;
+    }
+}
+
+// ================================
+// MODAL FUNCTIONS
+// ================================
+function showModal(modalId) {
+    const modal = document.getElementById(modalId + 'Modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // Load content for specific modals
+        if (modalId === 'notifications') {
+            loadNotifications();
+        } else if (modalId === 'confessions') {
+            loadEnhancedConfessions();
+        } else if (modalId === 'marketplace') {
+            loadMarketplaceContent('blackmarket');
+        } else if (modalId === 'lostFound') {
+            loadLostFoundContent('lost');
+        } else if (modalId === 'skillMarket') {
+            loadSkillMarketContent('tutoring');
+        } else if (modalId === 'polls') {
+            loadPolls();
+        } else if (modalId === 'groupManagement') {
+            loadGroupManagement();
+        } else if (modalId === 'groupFeed') {
+            loadGroupFeed();
+        }
+    }
+}
+
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId + 'Modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// ================================
+// HAMBURGER MENU FUNCTIONS
+// ================================
+function toggleHamburger() {
+    const menu = document.getElementById('hamburgerMenu');
+    const overlay = document.getElementById('hamburgerOverlay');
+
+    appState.hamburgerOpen = !appState.hamburgerOpen;
+
+    if (appState.hamburgerOpen) {
+        menu.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        updateBadgeCounts(); // Update badges when opening
+    } else {
+        menu.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function hideHamburger() {
+    const menu = document.getElementById('hamburgerMenu');
+    const overlay = document.getElementById('hamburgerOverlay');
+
+    menu.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = 'auto';
+    appState.hamburgerOpen = false;
+}
+
+// ================================
+// LOAD FUNCTIONS FOR EACH PAGE
+// ================================
+
+// HOME PAGE - AfterGlow Stories
+let activeStories = []; // Store the current list of stories for navigation
+let currentStoryIndex = -1;
+let isSubmittingAfterglow = false;
+
+async function loadAfterglowStories() {
+    const container = document.getElementById('afterglowStories');
+    if (!container) return;
+
+    // Use a flag to prevent concurrent loads
+    if (container.dataset.loading === 'true') return;
+    container.dataset.loading = 'true';
+
+    try {
+        const stories = await DashboardAPI.loadStories();
+        activeStories = stories || []; 
+        container.innerHTML = '';
+
+        if (!stories || stories.length === 0) {
+            container.innerHTML = `
+                <div style="padding: 20px; text-align: center; width: 100%;">
+                    <div style="color: #999; font-size: 13px; margin-bottom: 10px;">No active glows</div>
+                    <button class="action-btn" onclick="window.showCreateOptions()" style="background: linear-gradient(135deg, #9c27b0, #e91e63); color: white; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-plus"></i> Create AfterGlow
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        stories.forEach(story => {
+            const storyEl = document.createElement('div');
+            storyEl.className = 'story-view-card';
+            storyEl.innerHTML = `
+                <div class="story-view-inner">
+                    <div class="story-avatar-container">
+                        <div class="story-avatar-ring ${story.is_viewed ? 'viewed' : ''}"></div>
+                        <img src="${story.avatar || story.avatar_url || '/uploads/avatars/default.png'}" 
+                             alt="${story.username}" 
+                             class="story-avatar ${story.is_viewed ? 'viewed' : ''}"
+                             onerror="this.src='/uploads/avatars/default.png'">
+                    </div>
+                    <div class="story-username">${story.username}</div>
+                </div>
+            `;
+
+            storyEl.addEventListener('click', () => {
+                currentStoryIndex = activeStories.indexOf(story);
+                showAfterglowViewer(story);
+            });
+
+            container.appendChild(storyEl);
+        });
+    } catch (error) {
+        console.error('❌ Failed to load stories:', error);
+        container.innerHTML = '<div style="padding: 10px; color: var(--danger); font-size: 12px;">Failed to load</div>';
+    } finally {
+        container.dataset.loading = 'false';
+    }
+}
+
+// HOME PAGE - Feed Posts
+async function loadFeedPosts() {
+    const container = document.getElementById('feed');
+    if (!container) return;
+
+    // Use a flag to prevent concurrent loads and double render
+    if (container.dataset.loading === 'true') return;
+    container.dataset.loading = 'true';
+
+    try {
+        const posts = await DashboardAPI.loadFeed({
+            recentlySeen: appState.seenPostIds.join(',')
+        });
+        container.innerHTML = '';
+
+        if (!posts || posts.length === 0) {
+            container.innerHTML = `
+                <div class="premium-empty-state">
+                    <div class="empty-icon-container">
+                        <i class="fas fa-newspaper"></i>
+                    </div>
+                    <h3>No posts yet</h3>
+                    <p>Be the first to share something!</p>
+                    <button onclick="window.showCreateOptions()" class="empty-cta-btn">
+                        <i class="fas fa-plus"></i> Spark One!
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        // Render once per ID using a Set to track
+        const seenIds = new Set();
+        posts.forEach(post => {
+            const postId = post.post_id || post.id;
+            if (seenIds.has(postId)) return;
+            seenIds.add(postId);
+
+            const postEl = window.createPostElement(post);
+            container.appendChild(postEl);
+        });
+
+        // Part 5: Track Seen Posts
+        initFeedObserver();
+    } catch (error) {
+        console.error('❌ Failed to load feed:', error);
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Failed to load feed. Please refresh.</div>';
+    } finally {
+        container.dataset.loading = 'false';
+    }
+}
+
+// Anti-Repetition Observer
+function initFeedObserver() {
+    const options = { threshold: 0.5 };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const postId = entry.target.dataset.postId;
+                if (postId && !appState.seenPostIds.includes(postId)) {
+                    appState.seenPostIds.push(postId);
+                    if (appState.seenPostIds.length > 50) appState.seenPostIds.shift();
+                    localStorage.setItem('seenPostIds', JSON.stringify(appState.seenPostIds));
+                }
+            }
+        });
+    }, options);
+
+    document.querySelectorAll('.post').forEach(post => observer.observe(post));
+}
+
+// Global function to create a post element (used by dynamicPatch.js)
+// Global function to create a post element (used by dynamicPatch.js) house 5.0
+window.createPostElement = function (post) {
+    const timeAgo = (dateStr) => {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return 'Recently';
+        const secs = Math.floor((new Date() - date) / 1000);
+        if (secs < 60) return 'Just now';
+        const mins = Math.floor(secs / 60);
+        if (mins < 60) return `${mins}m`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `${hours}h`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days}d`;
+        if (days < 365) return `${Math.floor(days / 7)}w`;
+        return `${Math.floor(days / 365)}y`;
+    };
+
+    const postId = post.post_id || post.id;
+    const postEl = document.createElement('div');
+    postEl.className = 'post-card animate-fade-in';
+    postEl.dataset.postId = postId;
+
+    const displayTime = (post.created_at || post.timestamp) ? timeAgo(post.created_at || post.timestamp) : 'recently';
+    
+    let bufCaption = post.content || post.caption || '';
+    if (!bufCaption || bufCaption === 'undefined' || bufCaption === 'null') bufCaption = '';
+    const finalCaption = bufCaption;
+
+    const isSparked = post.isLiked || post.user_has_liked || post.is_sparked || false;
+    const sparks = parseInt(post.sparks || post.spark_count || 0);
+    const commentsCount = parseInt(post.comments || post.comment_count || 0);
+
+    const username = post.isAnonymous ? 'Anonymous Student' : (post.name || post.username || post.user_name || 'sparkler');
+    
+    const rawAvatar = (post.userId && post.userId.profilePic) ? post.userId.profilePic : (post.avatar || post.avatar_url);
+    const avatarUrl = (typeof DashboardAPI !== 'undefined' && DashboardAPI.ensureUrl) 
+        ? DashboardAPI.ensureUrl(rawAvatar) 
+        : (rawAvatar || '/uploads/avatars/default.png');
+        
+    const mediaUrl = (typeof DashboardAPI !== 'undefined' && DashboardAPI.ensureUrl)
+        ? DashboardAPI.ensureUrl(post.media || post.media_url)
+        : (post.media || post.media_url || null);
+
+    const avatarAction = post.has_story ? `openStoryViewer('${post.user_id || post.userId?.id || ''}')` : `window.location.href='/profile/${username}'`;
+
+    // 1. POST HEADER (Premium v3)
+    const headerHtml = `
+        <div class="post-header">
+            <div class="post-avatar-wrapper" onclick="event.stopPropagation(); ${avatarAction}">
+                <img src="${avatarUrl}" class="post-avatar ${post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : ''}" onerror="this.src='/uploads/avatars/default.png'">
+            </div>
+            <div class="post-info" onclick="event.stopPropagation(); window.location.href='/profile/${username}'">
+                <div class="post-author-name">
+                    ${username}
+                    ${post.verified ? '<span class="verified-badge"><i class="fas fa-check"></i></span>' : ''}
+                    ${(post.campus && post.campus !== 'undefined') ? `<span class="campus-badge" style="background: var(--bg-main); color: var(--text-muted); font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; margin-left: 5px;">${post.campus}</span>` : ''}
+                </div>
+                <div class="post-meta">${displayTime}</div>
+            </div>
+            <button class="post-options">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+        </div>
+    `;
+
+    // 3. MEDIA (Premium v3)
+    let mediaHtml = '';
+    if (mediaUrl) {
+        const isVideo = mediaUrl.match(/\.(mp4|webm|ogg|mov|m4v)$/i);
+        if (isVideo) {
+            mediaHtml = `
+                <div class="post-media">
+                    <video src="${mediaUrl}" autoplay loop muted playsinline></video>
+                </div>`;
+        } else {
+            mediaHtml = `
+                <div class="post-media" ondblclick="event.stopPropagation(); const btn = this.closest('.post-card').querySelector('.like-btn'); if(btn && !btn.classList.contains('liked')) btn.click();">
+                    <img src="${mediaUrl}" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('${postId}', '${mediaUrl}')" onerror="this.src='/uploads/posts/default.png'">
+                </div>`;
+        }
+    }
+
+    // 4. ACTIONS (Premium v3)
+    const actionsHtml = `
+        <div class="post-actions">
+            <div class="actions-left">
+                <button class="action-btn like-btn ${isSparked ? 'liked' : ''}" onclick="event.stopPropagation(); window.toggleLikePremium('${postId}', this)">
+                    <i class="${isSparked ? 'fas' : 'far'} fa-heart"></i>
+                </button>
+                <button class="action-btn" onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">
+                    <i class="far fa-comment"></i>
+                </button>
+                <button class="action-btn" onclick="event.stopPropagation(); window.sharePost('${postId}')">
+                    <i class="far fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="actions-right">
+                <button class="action-btn">
+                    <i class="far fa-bookmark"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    // 5. STATS & CONTENT (Premium v3)
+    let statsHtml = `
+        <div class="post-stats">
+            <span onclick="event.stopPropagation(); showSparksModal('${postId}')">${sparks} sparks</span>
+            ${commentsCount > 0 ? `<span onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">View all ${commentsCount} comments</span>` : ''}
+        </div>
+    `;
+
+    let captionHtml = '';
+    if (finalCaption) {
+        const safeCaps = finalCaption.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag">#$1</a>');
+        captionHtml = `
+            <div class="post-content">
+                <div class="post-text">
+                    <strong style="margin-right: 6px; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/${username}'">${username}</strong>
+                    ${finalCaption.length > 120 ? `
+                        <span class="caption-truncated">
+                            ${safeCaps.substring(0, 120)}
+                            <span class="read-more" style="color: var(--text-muted); cursor: pointer;" onclick="event.stopPropagation(); this.parentElement.classList.add('hidden'); this.parentElement.nextElementSibling.classList.remove('hidden');">... more</span>
+                        </span>
+                        <span class="caption-full hidden">${safeCaps}</span>
+                    ` : safeCaps}
+                </div>
+            </div>
+        `;
+    }
+
+    postEl.innerHTML = headerHtml + mediaHtml + captionHtml + actionsHtml + statsHtml;
+    return postEl;
+};
+
+// Toggle function for "See More"
+window.togglePostExpansion = function (postId, btn) {
+    const preview = document.getElementById(`caption-${postId}`);
+    if (!preview) return;
+
+    if (preview.classList.contains('has-fade')) {
+        preview.classList.remove('has-fade');
+        preview.style.maxHeight = 'none';
+        btn.textContent = 'See Less';
+    } else {
+        preview.classList.add('has-fade');
+        preview.style.maxHeight = '4.8em';
+        btn.textContent = 'See More';
+    }
+};
+
+// Placeholder for quick comment logic
+window.quickComment = async function (postId, text) {
+    if (!text.trim()) return;
+    try {
+        console.log(`💬 Adding quick comment to ${postId}: ${text}`);
+        // Actual implementation would call API
+        alert('Comment sparking! (Demo logic)');
+    } catch (err) {
+        console.error('Failed to add comment:', err);
+    }
+};
+
+// (Legacy toggleSeeMore removed in favor of togglePostExpansion)
+
+// CONNECT PAGE - Load Users
+async function loadConnectUsers() {
+    const container = document.getElementById('connectContainer');
+    if (!container) return;
+
+    // Skip if SSR content already exists and we are just initializing
+    if (container.querySelector('.connect-card') && !container.dataset.filtered) {
+        console.log('✅ Connect users already rendered via SSR');
+        return;
+    }
+
+    try {
+        if (!container.dataset.filtered) {
+            container.innerHTML = '<div class="loading-shimmer" style="width: 100%; height: 300px;"></div>';
+        }
+        const users = await DashboardAPI.searchUsers('', 'all');
+        container.innerHTML = '';
+
+        if (!users || users.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: #999;">
+                    <i class="fas fa-users" style="font-size: 50px; margin-bottom: 15px;"></i>
+                    <h3>No users to connect with</h3>
+                    <p>Check back later!</p>
+                </div>
+            `;
+            return;
+        }
+
+        users.forEach(user => {
+            const userCard = window.createUserCard(user);
+            container.appendChild(userCard);
+        });
+    } catch (error) {
+        console.error('❌ Failed to load users:', error);
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Failed to load students.</div>';
+    }
+}
+
+// Global function to create a user card (used by dynamicPatch.js) house 5.0
+window.createUserCard = function (user) {
+    const isFollowed = user.is_followed || false;
+    const userCard = document.createElement('div');
+    userCard.className = 'connect-card';
+
+    // Use the new Instagram-style styling found in connect.ejs
+    userCard.style = 'background: white; border-radius: 8px; padding: 25px 20px; text-align: center; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.05); position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0;';
+
+    userCard.innerHTML = `
+        <button style="position: absolute; top: 10px; right: 10px; border: none; background: none; color: #ccc; cursor: pointer; padding: 5px;" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+
+        <div style="position: relative; margin-bottom: 15px;">
+            <img src="${user.avatar || user.avatar_url || '/uploads/avatars/default.png'}" 
+                 alt="${user.username}" 
+                 style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 1px solid #dbdbdb;">
+            ${user.is_online ? `
+                <div class="chat-status-online" 
+                     style="width: 16px; height: 16px; border: 3px solid white; right: 0; bottom: 0;">
+                </div>
+            ` : ''}
+        </div>
+
+        <div style="font-weight: 600; font-size: 14px; color: var(--text-color); margin-bottom: 4px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 4px;">
+            ${user.username}
+            ${(() => {
+                const verifiedUsers = ["175a02d1-4707-44cd-a559-13a99cd5c8fe"];
+                if (verifiedUsers.includes(user.user_id || user.id)) {
+                    return `
+                        <span class="verified-badge" title="Verified Account">
+                            <i class="fas fa-check"></i>
+                        </span>
+                    `;
+                }
+                return '';
+            })()}
+        </div>
+        <div style="font-size: 12px; color: #8e8e8e; margin-bottom: 20px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${user.name}
+        </div>
+
+        <button class="btn btn-sm ${isFollowed ? 'btn-secondary' : 'btn-primary'} connect-btn" 
+                onclick="connectUser('${user.user_id || user.id}', this)" 
+                style="width: 100%; border-radius: 4px; font-size: 13px; font-weight: 600; padding: 8px 0; margin-top: auto;">
+            ${isFollowed ? 'Following' : 'Follow'}
+        </button>
+    `;
+    return userCard;
+}
+
+// MOMENTS PAGE
+async function loadMoments() {
+    const container = document.getElementById('momentVideoContainer');
+    if (!container) return;
+
+    try {
+        container.innerHTML = '<div class="loading-shimmer" style="width: 100%; height: 100%;"></div>';
+        const moments = await DashboardAPI.loadMoments();
+        container.innerHTML = '';
+
+        if (!moments || moments.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <i class="fas fa-play-circle" style="font-size: 50px; margin-bottom: 15px;"></i>
+                    <h3>No moments found</h3>
+                    <p>Be the first to share a moment!</p>
+                </div>
+            `;
+            return;
+        }
+
+        moments.forEach(moment => {
+            const momentEl = document.createElement('div');
+            momentEl.className = 'moment-video';
+            momentEl.setAttribute('data-moment-id', moment.id);
+
+            momentEl.innerHTML = `
+                <video class="moment-video-player" autoplay muted loop playsinline>
+                    <source src="${moment.video}" type="video/mp4">
+                </video>
+                <div class="moment-overlay">
+                    <div class="moment-user">
+                        <img src="${moment.avatar || moment.avatar_url || '/uploads/avatars/default.png'}" alt="${moment.username}" class="moment-avatar">
+                        <div class="moment-user-info">
+                            <div class="moment-username">${moment.name || moment.username}</div>
+                            <div class="moment-campus">${moment.campus || 'Campus'}</div>
+                        </div>
+                    </div>
+                    <div class="moment-caption">${moment.caption || ''}</div>
+                    <div class="moment-stats">
+                        <span><i class="fas fa-heart"></i> ${moment.likes || 0}</span>
+                        <span><i class="fas fa-comment"></i> ${moment.comments || 0}</span>
+                        <span><i class="fas fa-share"></i> Share</span>
+                    </div>
+                </div>
+            `;
+
+            momentEl.addEventListener('dblclick', (e) => {
+                handleMomentDoubleClick(moment.id, e);
+            });
+
+            container.appendChild(momentEl);
+        });
+    } catch (error) {
+        console.error('❌ Failed to load moments:', error);
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Failed to load moments.</div>';
+    }
+}
+
+// GROUPS PAGE
+async function loadGroups() {
+    const container = document.getElementById('groupsContainer');
+    if (!container) return;
+
+    try {
+        container.innerHTML = '<div class="loading-shimmer" style="width: 100%; height: 200px;"></div>';
+        const groups = await DashboardAPI.loadGroups();
+        container.innerHTML = '';
+
+        if (!groups || groups.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <i class="fas fa-users" style="font-size: 50px; margin-bottom: 15px;"></i>
+                    <h3>No groups found</h3>
+                    <p>Create or join a group to see it here!</p>
+                </div>
+            `;
+            return;
+        }
+
+        groups.forEach(group => {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'group-card';
+
+            groupEl.innerHTML = `
+                <div style="padding: 15px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <div style="width: 50px; height: 50px; border-radius: 10px; background: linear-gradient(45deg, var(--primary), var(--secondary)); 
+                                    display: flex; align-items: center; justify-content: center; margin-right: 15px; color: white; font-size: 20px; overflow: hidden;">
+                            ${group.icon_url ?
+                    `<img src="${group.icon_url}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                    `<i class="${group.icon || 'fas fa-users'}"></i>`
+                }
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 2px;">${group.name}</div>
+                            <div style="font-size: 13px; color: #666;">
+                                <i class="fas fa-users"></i> ${group.member_count || 0} members
+                            </div>
+                        </div>
+                        ${group.is_joined ?
+                    '<span style="background: var(--success); color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px;">Joined</span>' :
+                    `<button class="btn btn-primary" style="font-size: 12px;" onclick="joinGroup('${group.id}')">Join</button>`
+                }
+                    </div>
+                    <div style="font-size: 13px; color: #555; margin-bottom: 10px; line-height: 1.4;">
+                        ${group.description || 'No description provided.'}
+                    </div>
+                    <div style="font-size: 12px; color: var(--campus-blue);">
+                        <i class="fas fa-graduation-cap"></i> ${group.campus || 'Campus'}
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(groupEl);
+        });
+    } catch (error) {
+        console.error('❌ Failed to load groups:', error);
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Failed to load groups.</div>';
+    }
+}
+
+// MESSAGES PAGE
+async function loadMessages(type) {
+    const container = document.getElementById('messagesList');
+    if (!container) return;
+
+    try {
+        container.innerHTML = '<div class="loading-shimmer" style="width: 100%; height: 60px; margin-bottom: 10px;"></div>';
+        const chats = await DashboardAPI.loadChats();
+        container.innerHTML = '';
+
+        // Filter chats based on type if needed
+        let filteredChats = chats;
+        if (type === 'direct') filteredChats = chats.filter(c => !c.is_group && !c.is_anonymous);
+        else if (type === 'groups') filteredChats = chats.filter(c => c.is_group);
+        else if (type === 'anonymous') filteredChats = chats.filter(c => c.is_anonymous);
+
+        if (!filteredChats || filteredChats.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No messages here yet.</div>';
+            return;
+        }
+
+        filteredChats.forEach(msg => {
+            const msgEl = document.createElement('div');
+            msgEl.className = 'message-item';
+
+            msgEl.innerHTML = `
+                <div style="display: flex; align-items: center; padding: 15px;">
+                    <div style="position: relative; margin-right: 15px;">
+                        ${msg.is_group ?
+                    `<div style="width: 50px; height: 50px; border-radius: 10px; background: var(--primary); 
+                                      display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">
+                                <i class="fas fa-users"></i>
+                             </div>` :
+                    `<img src="${msg.avatar || msg.avatar_url || '/uploads/avatars/default.png'}" alt="${msg.name}" 
+                                  style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">`
+                }
+                        ${msg.is_online ?
+                    '<div style="position: absolute; bottom: 0; right: 0; width: 14px; height: 14px; background: #4CAF50; border: 2px solid white; border-radius: 50%;"></div>' : ''}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <div style="font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                                ${msg.name || msg.username}
+                                ${(() => {
+                                    const verifiedUsers = ["175a02d1-4707-44cd-a559-13a99cd5c8fe"];
+                                    if (verifiedUsers.includes(msg.user_id || msg.id)) {
+                                        return `
+                                            <span class="verified-badge" title="Verified Account">
+                                                <i class="fas fa-check"></i>
+                                            </span>
+                                        `;
+                                    }
+                                    return '';
+                                })()}
+                            </div>
+                            <div style="font-size: 12px; color: #999;">${DashboardAPI.formatTimestamp(msg.last_message_time)}</div>
+                        </div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
+                            ${msg.last_message || 'Start a conversation'}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            msgEl.addEventListener('click', () => {
+                if (msg.is_group) openGroupChat(msg);
+                else startChatWithUser(msg.user_id || msg.id);
+            });
+
+            container.appendChild(msgEl);
+        });
+    } catch (error) {
+        console.error('❌ Failed to load messages:', error);
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Failed to load chats.</div>';
+    }
+}
+
+// PROFILE PAGE
+async function loadProfile() {
+    try {
+        // Fetch real user data for profile
+        const user = await DashboardAPI.loadUserProfile('me'); // 'me' route or current user ID
+
+        // Update profile info
+        const profileElements = {
+            'profileName': user.name,
+            'profileCampus': `${user.campus || 'Campus'} • ${user.major || 'Major'}`,
+            'profileBio': user.bio || 'New Sparkler!',
+            'profileAvatar': user.avatar_url || '/uploads/avatars/default.png'
+        };
+
+        Object.entries(profileElements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                if (id.includes('Avatar')) {
+                    element.src = value;
+                } else {
+                    element.textContent = value;
+                }
+            }
+        });
+
+        // Update stats from real data
+        if (document.getElementById('profilePosts')) {
+            const posts = await DashboardAPI.loadUserPosts(user.user_id);
+            document.getElementById('profilePosts').textContent = posts.length;
+            document.getElementById('profileSparks').textContent = posts.reduce((sum, post) => sum + (post.sparks || 0), 0);
+        }
+    } catch (error) {
+        console.error('❌ Failed to load profile:', error);
+    }
+}
+
+// ================================
+// CONNECT PAGE FUNCTIONS
+// ================================
+function viewUserProfile(userId) {
+    const user = mockData.users.find(u => u.id === userId);
+    if (!user) return;
+
+    // Create profile modal
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <div class="modal-title">${user.name}'s Profile</div>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="${user.avatar}" alt="${user.name}" 
+                         style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; border: 4px solid var(--primary);">
+                    <h3>${user.name}</h3>
+                    <p style="color: var(--campus-blue);">
+                        <i class="fas fa-graduation-cap"></i> ${user.campus}
+                    </p>
+                    <p>${user.major} • ${user.year}</p>
+                    <p style="color: ${user.isOnline ? 'var(--success)' : '#999'};">
+                        <i class="fas fa-circle" style="font-size: 10px;"></i>
+                        ${user.isOnline ? 'Online now' : 'Offline'}
+                    </p>
+                </div>
+                
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 10px;">Bio</h4>
+                    <p>${user.bio}</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; margin-bottom: 20px;">
+                    <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="font-weight: bold; color: var(--primary);">${user.mutualConnections}</div>
+                        <div style="font-size: 12px;">Connections</div>
+                    </div>
+                    <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="font-weight: bold; color: var(--primary);">${Math.floor(Math.random() * 50)}</div>
+                        <div style="font-size: 12px;">Posts</div>
+                    </div>
+                    <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="font-weight: bold; color: var(--primary);">${user.isOnline ? 'Online' : 'Offline'}</div>
+                        <div style="font-size: 12px;">Status</div>
+                    </div>
+                </div>
+                
+                ${user.isNew ? `
+                    <div style="background: var(--success-light); color: var(--success); padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+                        <i class="fas fa-user-plus"></i> New to Sparkle!
+                    </div>
+                ` : ''}
+                
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn ${user.isConnected ? 'btn-primary' : ''}" style="flex: 2;" id="modalConnectBtn">
+                        <i class="fas ${user.isConnected ? 'fa-check' : 'fa-user-plus'}"></i>
+                        ${user.isConnected ? 'Connected' : 'Connect'}
+                    </button>
+                    <button class="btn btn-primary" style="flex: 1;" id="modalMessageBtn">
+                        <i class="fas fa-paper-plane"></i> Message
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Connect button
+    const connectBtn = modal.querySelector('#modalConnectBtn');
+    connectBtn.addEventListener('click', function () {
+        connectWithUser(user.id, this);
+    });
+
+    // Message button
+    const messageBtn = modal.querySelector('#modalMessageBtn');
+    messageBtn.addEventListener('click', function () {
+        document.body.removeChild(modal);
+        startChatWithUser(user.id);
+    });
+
+    // Close modal
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal || e.target.classList.contains('close-modal')) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+function connectWithUser(userId, button) {
+    const user = mockData.users.find(u => u.id === userId);
+    if (!user) return;
+
+    const newState = !user.isConnected;
+    user.isConnected = newState;
+    user.mutualConnections += newState ? 1 : -1;
+
+    if (newState) {
+        // Connect
+        if (button) {
+            button.innerHTML = '<i class="fas fa-check"></i> Connected';
+            button.classList.add('btn-primary');
+        }
+        showNotification(`Connected with ${user.name}!`);
+
+        // Add to messages
+        mockData.messages.direct.unshift({
+            id: mockData.messages.direct.length + 1,
+            userId: user.id,
+            username: user.username,
+            name: user.name,
+            avatar: user.avatar,
+            lastMessage: "Hi! Just connected with you",
+            timestamp: "Just now",
+            unread: 0,
+            isOnline: user.isOnline,
+            lastActive: "Now"
+        });
+    } else {
+        // Disconnect
+        if (button) {
+            button.innerHTML = '<i class="fas fa-user-plus"></i> Connect';
+            button.classList.remove('btn-primary');
+        }
+        showNotification(`Disconnected from ${user.name}`);
+    }
+
+    // Update connect page if open
+    if (appState.currentPage === 'connect') {
+        loadConnectUsers();
+    }
+}
+
+function startChatWithUser(userId) {
+    const user = mockData.users.find(u => u.id === userId);
+    if (!user) return;
+
+    // Create chat modal
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="${user.avatar}" alt="${user.name}" style="width: 30px; height: 30px; border-radius: 50%;">
+                    <div>
+                        <div style="font-weight: 600;">${user.name}</div>
+                        <div style="font-size: 11px; color: ${user.isOnline ? 'var(--success)' : '#999'}">
+                            ${user.isOnline ? 'Online now' : 'Last seen 2h ago'}
+                        </div>
+                    </div>
+                </div>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 15px; background: #f9f9f9;">
+                <div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">
+                    Start a conversation with ${user.name}!
+                </div>
+            </div>
+            <div style="padding: 15px; border-top: 1px solid var(--border);">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" class="form-control" id="chatMessageInput" placeholder="Type a message...">
+                    <button class="btn btn-primary" onclick="sendMessageToUser(${userId})">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add enter key support
+    const input = modal.querySelector('#chatMessageInput');
+    input.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessageToUser(userId);
+        }
+    });
+
+    // Close modal
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal || e.target.classList.contains('close-modal')) {
+            document.body.removeChild(modal);
+        }
+    });
+
+    input.focus();
+}
+
+function sendMessageToUser(userId) {
+    const input = document.querySelector('#chatMessageInput');
+    const message = input?.value.trim();
+
+    if (!message) return;
+
+    const user = mockData.users.find(u => u.id === userId);
+    if (!user) return;
+
+    showNotification(`Message sent to ${user.name}`);
+    if (input) input.value = '';
+}
+
+// ================================
+// POST INTERACTION FUNCTIONS
+// ================================
+async function toggleSpark(postId, button) {
+    try {
+        const result = await DashboardAPI.sparkPost(postId);
+        const postEl = button.closest('.post') || button.closest('.post-card');
+        if (!postEl) return;
+
+        const engagementSummary = postEl.querySelector('.engagement-summary');
+        const icon = button.querySelector('i');
+        
+        if (result.action === 'sparked') {
+            button.classList.add('active');
+            if (icon) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+            }
+            if (typeof createSparkAnimation === 'function') {
+                createSparkAnimation(event.clientX || 100, event.clientY || 100);
+            }
+            showNotification('Post sparked! ✨');
+        } else {
+            button.classList.remove('active');
+            if (icon) {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+            }
+        }
+
+        // Update counts in engagement summary if it exists
+        if (engagementSummary) {
+            engagementSummary.innerHTML = `❤️ ${result.spark_count || result.likes || 0} • 💬 ${result.comment_count || result.comments || 0}`;
+        }
+    } catch (error) {
+        console.error('Spark error:', error);
+        showNotification('Failed to spark post.');
+    }
+}
+
+// SPEC v3: MODES & COMMENTS ENGINE
+window.currentOpenedPostId = null;
+
+window.openCommentSplitView = async function(postId) {
+    console.log('💬 Opening Split View for post:', postId);
+    window.currentOpenedPostId = postId;
+    const splitView = document.getElementById('splitView');
+    if (!splitView) return;
+
+    // 1. Shrink image to 15% (Layout is already set in CSS)
+    const post = document.querySelector(`.post[data-postId="${postId}"], .post[data-post-id="${postId}"]`);
+    const splitViewMedia = document.getElementById('splitViewMedia');
+    if (post && splitViewMedia) {
+        const media = post.querySelector('.post-image');
+        if (media) {
+            splitViewMedia.innerHTML = media.outerHTML;
+            // Ensure videos don't autoplay or stay paused/muted in preview
+            const video = splitViewMedia.querySelector('video');
+            if (video) { video.muted = true; video.pause(); }
+        } else {
+            splitViewMedia.innerHTML = '<div style="height:100%; display:flex; align-items:center; justify-content:center; background:#eee; color:#666; font-size:12px;">No Media</div>';
+        }
+    }
+
+    // 2. Show Split View
+    splitView.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // 3. Load & Render Comments
+    window.refreshSplitViewComments(postId);
+};
+
+window.refreshSplitViewComments = async function(postId) {
+    const commentsList = document.getElementById('splitViewComments');
+    if (!commentsList) return;
+
+    commentsList.innerHTML = '<div style="padding: 40px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading comments...</div>';
+
+    try {
+        const comments = await DashboardAPI.loadComments(postId);
+        commentsList.innerHTML = '';
+
+        if (!comments || comments.length === 0) {
+            commentsList.innerHTML = '<div style="padding:40px; text-align:center; color:#999; font-size: 14px;">No comments yet.</div>';
+            return;
+        }
+
+        comments.forEach(comment => {
+            const commentEl = window.renderComment(comment);
+            commentsList.appendChild(commentEl);
+        });
+    } catch (e) {
+        console.error(e);
+        commentsList.innerHTML = '<div style="padding:20px; color:var(--danger); text-align:center;">Failed to load comments</div>';
+    }
+};
+
+window.renderComment = function(comment, isReply = false, parentUsername = null) {
+    const commentDiv = document.createElement('div');
+    commentDiv.className = isReply ? 'reply' : 'comment';
+    commentDiv.dataset.commentId = comment.id || comment.comment_id;
+
+    const avatarFallback = "this.onerror=null; this.src='/uploads/avatars/default.png';";
+    const avatar = comment.avatar || comment.avatar_url || '/uploads/avatars/default.png';
+    const userId = comment.user_id || comment.userId;
+    const commentId = comment.id || comment.comment_id;
+
+    commentDiv.innerHTML = `
+        <img src="${avatar}" class="avatar clickable" 
+             onclick="window.location.href='/profile/${userId}'" 
+             onerror="${avatarFallback}">
+        <div class="comment-body">
+            <div class="comment-main">
+                <span class="username clickable" onclick="window.location.href='/profile/${userId}'">@${comment.username || 'Sparkler'}</span>
+                <span class="comment-like ${comment.is_liked ? 'liked' : ''}" onclick="window.toggleCommentLike('${commentId}', this)">
+                    ${comment.is_liked ? '❤️' : '🤍'} ${comment.likes || comment.like_count || 0}
+                </span>
+            </div>
+            ${isReply && parentUsername ? `<div style="font-size: 11px; opacity: 0.6; margin-bottom: 2px;">Replying to <span style="color: var(--accent-pink);">@${parentUsername}</span></div>` : ''}
+            <p class="comment-text">${comment.text || comment.content}</p>
+            <div class="comment-meta">
+                <span>${comment.timestamp || (comment.created_at ? new Date(comment.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Just now')}</span>
+                <span class="reply-btn" onclick="window.toggleReply('${commentId}', '${comment.username}')">Reply</span>
+            </div>
+            <div class="replies" id="replies-${commentId}"></div>
+        </div>
+    `;
+
+    // Recursive rendering for replies
+    if (comment.replies && comment.replies.length > 0) {
+        const repliesContainer = commentDiv.querySelector('.replies');
+        comment.replies.forEach(reply => {
+            const replyEl = window.renderComment(reply, true, comment.username);
+            repliesContainer.appendChild(replyEl);
+        });
+    }
+
+    return commentDiv;
+};
+
+window.closeCommentSplitView = function() {
+    const splitView = document.getElementById('splitView');
+    if (splitView) splitView.classList.remove('active');
+    document.body.style.overflow = 'auto';
+    window.currentOpenedPostId = null;
+    window.currentReplyToId = null; // Clean up reply state
+};
+
+window.currentReplyToId = null;
+
+window.toggleReply = function(commentId, username) {
+    window.currentReplyToId = commentId;
+    const input = document.getElementById('splitViewInput');
+    if (!input) return;
+    
+    input.focus();
+    input.placeholder = `Replying to @${username}...`;
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+window.submitSplitViewComment = async function() {
+    const input = document.getElementById('splitViewInput');
+    const text = input.value.trim();
+    if (!text || !window.currentOpenedPostId) return;
+
+    try {
+        // Send parentCommentId if we are in reply mode
+        await DashboardAPI.postComment(window.currentOpenedPostId, text, window.currentReplyToId);
+        
+        input.value = '';
+        input.placeholder = 'Add a comment...';
+        window.currentReplyToId = null; // Reset reply state
+        
+        window.refreshSplitViewComments(window.currentOpenedPostId);
+    } catch (e) {
+        console.error(e);
+        showNotification('Failed to post comment', 'error');
+    }
+};
+
+window.toggleCommentLike = async function(commentId, btn) {
+    try {
+        const result = await DashboardAPI.likeComment(commentId);
+        if (result.action === 'liked') {
+            btn.innerHTML = `❤️ ${result.likes || 0}`;
+            btn.classList.add('liked');
+        } else {
+            btn.innerHTML = `❤️ ${result.likes || 0}`;
+            btn.classList.remove('liked');
+        }
+    } catch (e) {
+        console.error('Comment like error:', e);
+    }
+};
+
+window.showPostMenu = function(postId, button) {
+    if (window.showPostOptions) {
+        window.showPostOptions(postId, button);
+    } else {
+        console.log('Post Menu triggered for:', postId);
+    }
+};
+
+window.openImageViewer = function(postId, mediaUrl) {
+    console.log('🖼️ Opening Image Viewer for:', mediaUrl);
+    window.currentOpenedPostId = postId;
+    const viewer = document.getElementById('imageViewer');
+    if (viewer) viewer.setAttribute('data-post-id', postId);
+    const viewerImg = document.getElementById('viewerImageSrc');
+    const viewerStats = document.getElementById('viewerStats');
+
+    if (!viewer || !viewerImg) return;
+
+    viewerImg.src = mediaUrl;
+    viewer.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // Populate minimal stats (Heart, Comment, Share)
+    const post = document.querySelector(`.post[data-postId="${postId}"], .post[data-post-id="${postId}"]`);
+    if (post) {
+        const summary = post.querySelector('.engagement-summary')?.textContent || '❤️ 0 • 💬 0';
+        // Clean up summary string for viewer format: ❤️ 120   💬 45   🔁 10
+        const stats = summary.replace('•', '  ').trim();
+        viewerStats.innerHTML = stats + '   🔁 0';
+    } else {
+        viewerStats.innerHTML = '❤️ 0   💬 0   🔁 0';
+    }
+};
+
+window.closeImageViewer = function() {
+    const viewer = document.getElementById('imageViewer');
+    if (viewer) viewer.classList.remove('active');
+    document.body.style.overflow = 'auto';
+};
+
+window.openTagModal = async function() {
+    const modal = document.getElementById('tagModal');
+    const list = document.getElementById('tagFollowersList');
+    if (!modal || !list) return;
+
+    modal.style.display = 'flex';
+    list.innerHTML = '<div style="padding:20px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading followers...</div>';
+
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('appState.currentUser')) || { id: 'me' };
+        const response = await fetch(`/api/users/${currentUser.id}/followers`);
+        const followers = await response.json();
+
+        if (followers && followers.length > 0) {
+            list.innerHTML = followers.map(f => `
+                <div class="follower-tag-item" style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #f0f0f0; cursor:pointer;" onclick="this.classList.toggle('tagged');">
+                    <img src="${f.avatar_url || f.profilePic || '/uploads/avatars/default.png'}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+                    <div style="flex:1;">
+                        <div style="font-weight:600; font-size:13px;">${f.name || f.username}</div>
+                        <div style="font-size:11px; opacity:0.6;">@${f.username}</div>
+                    </div>
+                    <div class="tagged-indicator" style="color:var(--accent-pink); display:none;"><i class="fas fa-check-circle"></i></div>
+                </div>
+            `).join('');
+        } else {
+            list.innerHTML = '<div style="padding:20px; text-align:center; opacity:0.6;">No followers to tag yet.</div>';
+        }
+    } catch (e) {
+        console.error('Tagging error:', e);
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:red;">Failed to load followers.</div>';
+    }
+};
+
+window.showViewerMenu = function() {
+    const currentPostId = window.currentOpenedPostId || (document.getElementById('imageViewer')?.getAttribute('data-post-id'));
+    if (!currentPostId) return showNotification('No post selected.');
+
+    // Modularized menu (Spec v5)
+    if (window.showPostOptions) {
+        window.showPostOptions(currentPostId);
+    } else {
+        alert('Options:\n- Save\n- Not Interested\n- Report Post\n- Hide Post');
+    }
+};
+
+window.toggleCommentLike = function(commentId, btn) {
+    console.log('❤️ Toggling like for comment:', commentId);
+    // For demo/UI consistency, just toggle visually
+    btn.classList.toggle('active');
+};
+
+window.toggleReply = function(commentId) {
+    document.getElementById('splitViewInput').focus();
+    document.getElementById('splitViewInput').placeholder = 'Reply to comment...';
+};
+
+async function toggleSavePost(postId, button) {
+    try {
+        const result = await DashboardAPI.savePost(postId);
+        const saveBtn = button || document.querySelector(`[data-post-id="${postId}"] .save-btn-custom`);
+
+        if (result.action === 'saved') {
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i><span>Saved</span>';
+                saveBtn.classList.add('active');
+            }
+            showNotification('Post saved! 🔖');
+        } else {
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i><span>Save</span>';
+                saveBtn.classList.remove('active');
+            }
+            showNotification('Removed from saved');
+        }
+    } catch (error) {
+        console.error('Save error:', error);
+        showNotification('Failed to save post.');
+    }
+}
+
+function sharePost(postId) {
+    if (window.shareManager) {
+        window.shareManager.openShareSheet('post', postId);
+    } else {
+        console.error('ShareManager not initialized');
+        // Fallback
+        const url = window.location.origin + '/post/' + postId;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link copied to clipboard!');
+        });
+    }
+}
+
+// ================================
+// MOMENTS FUNCTIONS
+// ================================
+function handleMomentDoubleClick(momentId, event) {
+    // Create spark animation
+    createSparkAnimation(event.clientX, event.clientY);
+
+    // Like the moment
+    const moment = mockData.moments.find(m => m.id === momentId);
+    if (moment && !appState.momentLikes.has(momentId)) {
+        moment.likes++;
+        appState.momentLikes.add(momentId);
+
+        // Update like count
+        const likeElement = document.querySelector(`[data-moment-id="${momentId}"] .fa-heart`).parentElement;
+        if (likeElement) {
+            likeElement.innerHTML = `<i class="fas fa-heart"></i> ${moment.likes}`;
+        }
+
+        showNotification('Liked the moment! ✨');
+    }
+}
+
+// ================================
+// SPARK ANIMATION
+// ================================
+function createSparkAnimation(x, y) {
+    const colors = ['#FF4081', '#2196F3', '#4CAF50', '#FF9800', '#9C27B0'];
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.pointerEvents = 'none';
+    container.style.zIndex = '10000';
+    container.style.left = `${x}px`;
+    container.style.top = `${y}px`;
+
+    for (let i = 0; i < 12; i++) {
+        const spark = document.createElement('div');
+        spark.style.position = 'absolute';
+        spark.style.width = '8px';
+        spark.style.height = '8px';
+        spark.style.background = colors[Math.floor(Math.random() * colors.length)];
+        spark.style.borderRadius = '50%';
+        spark.style.opacity = '0';
+
+        const angle = (i * 30) * (Math.PI / 180);
+        const distance = 50 + Math.random() * 50;
+
+        spark.animate([
+            {
+                opacity: 1,
+                transform: `translate(0, 0) scale(1)`,
+                offset: 0
+            },
+            {
+                opacity: 0.8,
+                transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(1.2)`,
+                offset: 0.5
+            },
+            {
+                opacity: 0,
+                transform: `translate(${Math.cos(angle) * distance * 1.5}px, ${Math.sin(angle) * distance * 1.5}px) scale(0.5)`,
+                offset: 1
+            }
+        ], {
+            duration: 800 + Math.random() * 400,
+            easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        });
+
+        container.appendChild(spark);
+    }
+
+    document.body.appendChild(container);
+
+    setTimeout(() => {
+        if (container.parentNode) {
+            document.body.removeChild(container);
+        }
+    }, 1200);
+}
+
+// ================================
+// NOTIFICATIONS SYSTEM
+// ================================
+// ================================
+// NOTIFICATIONS SYSTEM (REAL API)
+// ================================
+window.loadNotifications = async function () {
+    const container = document.getElementById('notificationList');
+    if (!container) return;
+
+    try {
+        // Show loading state if container is empty
+        if (!container.innerHTML || container.innerHTML.includes('fa-spinner') === false) {
+            container.innerHTML = `
+                <div style="padding: 40px; text-align: center; color: #999;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <div style="margin-top: 10px;">Checking updates...</div>
+                </div>
+            `;
+        }
+
+        const notifications = await DashboardAPI.loadNotifications();
+
+        // update notification badges
+        const badgeElems = [];
+        ['notificationCount', 'notificationCountBottom'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) badgeElems.push(el);
+        });
+
+        const unreadCount = notifications.filter(n => !n.is_read).length;
+        badgeElems.forEach(badge => {
+            badge.textContent = unreadCount;
+            badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+        });
+
+        if (notifications.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px 40px; color: #94a3b8;">
+                    <div style="width: 80px; height: 80px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fas fa-bell-slash" style="font-size: 32px; color: #cbd5e1;"></i>
+                    </div>
+                    <h3 style="color: #1e293b; margin-bottom: 8px; font-weight: 700;">No notifications yet</h3>
+                    <p style="font-size: 14px;">When people spark your posts or follow you, you'll see them here.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = notifications.map(n => {
+            let icon = 'fa-bell';
+            let color = 'linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%)';
+
+            if (n.type === 'spark') {
+                icon = 'fa-fire';
+            } else if (n.type === 'follow') {
+                icon = 'fa-user-plus';
+            } else if (n.type === 'comment') {
+                icon = 'fa-comment';
+            } else if (n.type === 'share') {
+                icon = 'fa-share';
+            }
+
+            return `
+                <div class="notification-item ${n.is_read ? '' : 'unread'}" 
+                     onclick="handleNotificationClick('${n.notification_id || n.id}', '${n.action_url || ''}')">
+                    <div class="notification-icon-wrapper">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-message">
+                            <strong>${n.actor_name || 'Someone'}</strong> ${n.content || 'performed an action'}
+                        </div>
+                        <div class="notification-time">${DashboardAPI.formatTimestamp(n.created_at)}</div>
+                    </div>
+                    ${!n.is_read ? '<div class="unread-dot-premium"></div>' : ''}
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error('Failed to load notifications:', err);
+        container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--error);">Failed to load notifications. Please try again.</div>`;
+    }
+};
+
+window.handleNotificationClick = async function (id, url) {
+    try {
+        await DashboardAPI.markNotificationRead(id);
+        if (url && url !== '#') {
+            window.location.href = url;
+        } else {
+            loadNotifications();
+        }
+    } catch (e) {
+        console.error('Notification click error:', e);
+        if (url) window.location.href = url;
+    }
+};
+
+function showNotificationsModal() {
+    loadNotifications();
+    showModal('notifications');
+}
+
+// ================================
+// NEW FEATURE FUNCTIONS
+// ================================
+
+// MARKETPLACE
+function showMarketplace(type) {
+    appState.activeMarketplaceTab = type;
+    showModal('marketplace');
+    loadMarketplaceContent(type);
+}
+
+function loadMarketplaceContent(type) {
+    const container = document.getElementById('marketplaceContent');
+    if (!container) return;
+
+    const items = mockData.marketplace[type] || [];
+
+    // Update tabs
+    document.querySelectorAll('[data-market]').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.getAttribute('data-market') === type) {
+            tab.classList.add('active');
+        }
+    });
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            < div style = "text-align: center; padding: 40px 20px; color: #999;" >
+                <i class="fas fa-store" style="font-size: 50px; margin-bottom: 15px;"></i>
+                <h3>No items found</h3>
+                <p>Be the first to post in this category!</p>
+            </div >
+            `;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    items.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.style.padding = '15px';
+        itemEl.style.borderBottom = '1px solid var(--border)';
+        itemEl.style.display = 'flex';
+        itemEl.style.justifyContent = 'space-between';
+        itemEl.style.alignItems = 'center';
+
+        itemEl.innerHTML = `
+            < div >
+                <div style="font-weight: 600; margin-bottom: 5px;">${item.title}</div>
+                <div style="font-size: 14px; color: var(--primary); margin-bottom: 5px;">${item.price}</div>
+                <div style="font-size: 12px; color: #666;">
+                    <i class="fas fa-user"></i> ${item.seller || item.provider}
+                    <span style="margin-left: 10px;"><i class="fas fa-graduation-cap"></i> ${item.campus}</span>
+                </div>
+            </div >
+            <div style="text-align: right;">
+                <div style="font-size: 12px; color: #999; margin-bottom: 5px;">${item.timestamp}</div>
+                <button class="btn btn-primary" style="padding: 5px 15px; font-size: 12px;">
+                    <i class="fas fa-shopping-cart"></i> Buy
+                </button>
+            </div>
+        `;
+
+        container.appendChild(itemEl);
+    });
+}
+
+// LOST & FOUND
+function showLostFound(type) {
+    appState.activeLostFoundTab = type;
+    showModal('lostFound');
+    loadLostFoundContent(type);
+}
+
+function loadLostFoundContent(type) {
+    const container = document.getElementById('lostFoundItems');
+    if (!container) return;
+
+    const items = mockData.lostFound[type] || [];
+
+    container.innerHTML = '';
+
+    items.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.style.padding = '15px';
+        itemEl.style.borderBottom = '1px solid var(--border)';
+        itemEl.style.marginBottom = '10px';
+        itemEl.style.background = '#f9f9f9';
+        itemEl.style.borderRadius = '8px';
+
+        const isLost = type === 'lost';
+
+        itemEl.innerHTML = `
+            < div style = "display: flex; align-items: center; margin-bottom: 10px;" >
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: ${isLost ? 'var(--danger-light)' : 'var(--success-light)'}; 
+                            display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                    <i class="fas ${isLost ? 'fa-exclamation-triangle' : 'fa-check-circle'}" 
+                       style="color: ${isLost ? 'var(--danger)' : 'var(--success)'};"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 600;">${item.item}</div>
+                    <div style="font-size: 12px; color: #666;">
+                        <i class="fas fa-map-marker-alt"></i> ${item.location}
+                    </div>
+                </div>
+            </div >
+            <div style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                <i class="fas fa-clock"></i> ${item.timestamp}
+                ${item.reward ? `<span style="color: var(--warning); margin-left: 10px;"><i class="fas fa-gift"></i> Reward: ${item.reward}</span>` : ''}
+            </div>
+            <div style="font-size: 12px;">
+                <strong>Contact:</strong> ${item.contact}
+            </div>
+        `;
+
+        container.appendChild(itemEl);
+    });
+}
+
+function reportLostItem() {
+    showNotification('Report lost item feature coming soon!');
+}
+
+// SKILL MARKETPLACE
+function showSkillMarket(type) {
+    appState.activeSkillMarketTab = type;
+    showModal('skillMarket');
+    loadSkillMarketContent(type);
+}
+
+function loadSkillMarketContent(type) {
+    const container = document.getElementById('availableSkills');
+    if (!container) return;
+
+    const skills = mockData.skillMarket[type] || [];
+
+    container.innerHTML = '';
+
+    if (skills.length === 0) {
+        container.innerHTML = `
+            < div style = "text-align: center; padding: 40px 20px; color: #999;" >
+                <i class="fas fa-graduation-cap" style="font-size: 50px; margin-bottom: 15px;"></i>
+                <h3>No skills available</h3>
+                <p>Be the first to offer your skills!</p>
+            </div >
+            `;
+        return;
+    }
+
+    skills.forEach(skill => {
+        const skillEl = document.createElement('div');
+        skillEl.style.padding = '15px';
+        skillEl.style.borderBottom = '1px solid var(--border)';
+        skillEl.style.marginBottom = '10px';
+        skillEl.style.background = 'white';
+        skillEl.style.borderRadius = '8px';
+        skillEl.style.border = '1px solid var(--border)';
+
+        skillEl.innerHTML = `
+            < div style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;" >
+                <div style="font-weight: 600; font-size: 16px;">${skill.skill}</div>
+                <div style="font-size: 18px; color: var(--primary); font-weight: bold;">${skill.rate}</div>
+            </div >
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <i class="fas fa-user" style="color: #666;"></i>
+                    <span style="font-size: 14px;">${skill.provider}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <i class="fas fa-star" style="color: #FF9800;"></i>
+                    <span style="font-size: 14px;">${skill.rating}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <i class="fas fa-graduation-cap" style="color: #666;"></i>
+                    <span style="font-size: 14px;">${skill.campus}</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" style="flex: 1; font-size: 14px;">
+                    <i class="fas fa-envelope"></i> Message
+                </button>
+                <button class="btn btn-primary" style="flex: 1; font-size: 14px;">
+                    <i class="fas fa-calendar"></i> Book Session
+                </button>
+            </div>
+        `;
+
+        container.appendChild(skillEl);
+    });
+}
+
+function offerSkill() {
+    showNotification('Offer skill feature coming soon!');
+}
+
+// POLLS
+function createPoll() {
+    showModal('polls');
+    loadPolls();
+}
+
+function loadPolls() {
+    const container = document.getElementById('activePolls');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    mockData.polls.forEach(poll => {
+        const pollEl = document.createElement('div');
+        pollEl.style.padding = '15px';
+        pollEl.style.border = '1px solid var(--border)';
+        pollEl.style.borderRadius = '10px';
+        pollEl.style.marginBottom = '15px';
+        pollEl.style.background = 'white';
+
+        let optionsHTML = '';
+        poll.options.forEach((option, index) => {
+            const percentage = poll.totalVotes > 0 ? Math.round((poll.votes[index] / poll.totalVotes) * 100) : 0;
+            optionsHTML += `
+            < div style = "margin-bottom: 10px;" >
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>${option}</span>
+                        <span>${percentage}% (${poll.votes[index]})</span>
+                    </div>
+                    <div style="height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden;">
+                        <div style="width: ${percentage}%; height: 100%; background: linear-gradient(45deg, var(--primary), var(--secondary)); border-radius: 5px;"></div>
+                    </div>
+                </div >
+            `;
+        });
+
+        pollEl.innerHTML = `
+            < div style = "font-weight: 600; margin-bottom: 10px; font-size: 16px;" > ${poll.question}</div >
+                ${optionsHTML}
+            <div style="font-size: 12px; color: #999; margin-top: 10px; text-align: center;">
+                <i class="fas fa-users"></i> ${poll.totalVotes} votes • ${poll.campus} • ${poll.timestamp}
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="votePoll(${poll.id})">
+                <i class="fas fa-vote-yea"></i> Vote Now
+            </button>
+        `;
+
+        container.appendChild(pollEl);
+    });
+}
+
+function votePoll(pollId) {
+    showNotification('Vote recorded!');
+    loadPolls();
+}
+
+function addPollOption() {
+    const optionsContainer = document.getElementById('pollOptions');
+    const optionCount = optionsContainer.children.length + 1;
+
+    const newOption = document.createElement('input');
+    newOption.type = 'text';
+    newOption.className = 'form-control';
+    newOption.placeholder = `Option ${optionCount} `;
+    newOption.style.marginBottom = '5px';
+
+    optionsContainer.appendChild(newOption);
+}
+
+// CONFESSIONS
+function showConfessionsGallery() {
+    showModal('confessions');
+    loadEnhancedConfessions();
+}
+
+function loadEnhancedConfessions() {
+    const container = document.getElementById('confessionsListModal');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    mockData.confessions.forEach((confession, index) => {
+        const confessionEl = document.createElement('div');
+        confessionEl.style.padding = '15px';
+        confessionEl.style.borderBottom = '1px solid var(--border)';
+        confessionEl.style.marginBottom = '15px';
+        confessionEl.style.background = index < 2 ? '#fff8e1' : 'white';
+        confessionEl.style.borderRadius = '10px';
+        confessionEl.style.borderLeft = index < 2 ? '4px solid #FF9800' : '1px solid var(--border)';
+
+        confessionEl.innerHTML = `
+            < div style = "font-style: italic; font-size: 16px; margin-bottom: 10px; color: #333;" > "${confession.text}"</div >
+
+                ${confession.media ? `
+                <img src="${confession.media}" style="width: 100%; border-radius: 8px; margin-bottom: 10px;">
+            ` : ''
+            }
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: ${index < 2 ? '#FF9800' : '#666'};">
+                        <i class="fas fa-fire"></i> ${confession.reactions} reactions
+                    </span>
+                    <span style="color: var(--campus-blue);">
+                        <i class="fas fa-graduation-cap"></i> ${confession.campus}
+                    </span>
+                    <span style="color: #999; font-size: 12px;">
+                        <i class="far fa-comment"></i> ${confession.comments?.length || 0} comments
+                    </span>
+                </div>
+                <span style="color: #999; font-size: 12px;">${confession.timestamp}</span>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" style="flex: 1; font-size: 12px; padding: 8px;" onclick="reactToConfession(${confession.id})">
+                    <i class="far fa-heart"></i> I feel this
+                </button>
+                <button class="btn" style="flex: 1; font-size: 12px; padding: 8px;" onclick="shareConfession(${confession.id})">
+                    <i class="fas fa-share"></i> Share
+                </button>
+                <button class="btn" style="flex: 1; font-size: 12px; padding: 8px;" onclick="showConfessionComments(${confession.id})">
+                    <i class="far fa-comment"></i> Comment
+                </button>
+            </div>
+        `;
+
+        container.appendChild(confessionEl);
+    });
+}
+
+function reactToConfession(confessionId) {
+    const confession = mockData.confessions.find(c => c.id === confessionId);
+    if (confession) {
+        confession.reactions++;
+        showNotification('Reaction added!');
+        loadEnhancedConfessions();
+    }
+}
+
+function shareConfession(confessionId) {
+    if (window.shareManager) {
+        window.shareManager.openShareSheet('confession', confessionId);
+    } else {
+        showNotification('Confession shared!');
+    }
+}
+
+function showConfessionComments(confessionId) {
+    showNotification('Confession comments coming soon!');
+}
+
+// GROUP FEED
+function showGroupFeed() {
+    showModal('groupFeed');
+    loadGroupFeed();
+}
+
+function loadGroupFeed() {
+    const container = document.getElementById('groupFeedContent');
+    if (!container) return;
+
+    container.innerHTML = `
+            < div style = "text-align: center; padding: 40px 20px; color: #999;" >
+            <i class="fas fa-newspaper" style="font-size: 50px; margin-bottom: 15px;"></i>
+            <h3>Group Feed Coming Soon</h3>
+            <p>See posts from your groups in one place</p>
+        </div >
+            `;
+}
+
+// GROUP MANAGEMENT
+function showGroupManagement() {
+    showModal('groupManagement');
+    loadGroupManagement();
+}
+
+function loadGroupManagement() {
+    const container = document.getElementById('groupManagementContent');
+    if (!container) return;
+
+    container.innerHTML = `
+            < div style = "text-align: center; padding: 40px 20px; color: #999;" >
+            <i class="fas fa-user-cog" style="font-size: 50px; margin-bottom: 15px;"></i>
+            <h3>Group Management</h3>
+            <p>Manage your groups and members here</p>
+        </div >
+            `;
+}
+
+// ABOUT SPARKLE
+function showAboutSparkle() {
+    showModal('aboutSparkle');
+}
+
+// AFTERGLOW VIEWER
+let storyTimer = null;
+let storyProgressInterval = null;
+let isStoryPaused = false;
+let storyRemainingTime = 0;
+let storyStartTime = 0;
+let storyTotalDuration = 0;
+
+function showAfterglowViewer(story) {
+    if (!story) return;
+
+    const modal = document.getElementById('afterglowViewer');
+    if (!modal) return;
+
+    // Set current index if not already set correctly
+    if (currentStoryIndex === -1 || activeStories[currentStoryIndex]?.story_id !== (story.story_id || story.user_id)) {
+        currentStoryIndex = activeStories.findIndex(s => (s.story_id || s.user_id) === (story.story_id || story.user_id));
+    }
+
+    // when opening a new story, fetch like state so UI matches
+    (async () => {
+        try {
+            const storyId = story.story_id || story.id;
+            const info = await DashboardAPI.getStoryLikes(storyId);
+            const sparkCount = document.getElementById('sparkCount');
+            if (sparkCount && info.like_count !== undefined) {
+                sparkCount.textContent = info.like_count;
+            }
+            const sparkIcon = document.querySelector('.spark-action .action-icon-circle i');
+            if (sparkIcon) {
+                sparkIcon.classList.toggle('fas', info.liked);
+                sparkIcon.classList.toggle('far', !info.liked);
+            }
+        } catch (e) {
+            console.warn('Could not load story like state', e);
+        }
+    })();
+
+    // Reset previous state
+    isStoryPaused = false;
+    storyRemainingTime = 0;
+    if (storyTimer) clearTimeout(storyTimer);
+    if (storyProgressInterval) clearInterval(storyProgressInterval);
+
+    // Clear progress bars container and recreate based on story count
+    const progressBarContainer = document.getElementById('viewerProgress');
+    if (progressBarContainer) {
+        progressBarContainer.innerHTML = '';
+        // If we have activeStories, show segments for each
+        if (activeStories && activeStories.length > 0) {
+            activeStories.forEach((s, idx) => {
+                const bar = document.createElement('div');
+                bar.className = 'progress-segment-wrapper';
+                const inner = document.createElement('div');
+                inner.className = 'progress-segment-inner';
+                if (idx < currentStoryIndex) inner.style.width = '100%';
+                if (idx === currentStoryIndex) inner.id = 'activeProgressBar';
+                bar.appendChild(inner);
+                progressBarContainer.appendChild(bar);
+            });
+        } else {
+            // Fallback for single story
+            progressBarContainer.innerHTML = '<div class="progress-segment-wrapper"><div class="progress-segment-inner" id="activeProgressBar"></div></div>';
+        }
+    }
+
+    const mediaContainer = document.getElementById('viewerMedia');
+    const avatar = document.getElementById('viewerAvatar');
+    const username = document.getElementById('viewerUsername');
+    const time = document.getElementById('viewerTime');
+    const campus = document.getElementById('viewerCampus');
+    const caption = document.getElementById('viewerCaption');
+
+    // Set user info
+    if (avatar) avatar.src = story.avatar_url || story.avatar || '/uploads/avatars/default.png';
+    if (username) username.textContent = story.username || story.user_name || story.name || 'Sparkler';
+    if (time) time.textContent = story.timestamp || 'Just now';
+    if (campus) campus.textContent = story.campus || 'Campus';
+    if (caption) caption.textContent = story.caption || '';
+
+    // Handle Media
+    mediaContainer.innerHTML = `
+        <div class="media-loading-spinner" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color:rgba(255,255,255,0.5);"></i>
+        </div>
+    `;
+    const mediaUrl = story.media_url || story.media;
+    const isVideo = mediaUrl?.match(/\.(mp4|webm|ogg|mov)$/i);
+
+    if (isVideo) {
+        const video = document.createElement('video');
+        video.src = mediaUrl;
+        video.autoplay = true;
+        video.muted = false;
+        video.playsInline = true;
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'contain';
+        video.style.opacity = '0';
+        video.style.transition = 'opacity 0.3s ease';
+
+        mediaContainer.appendChild(video);
+
+        video.onplaying = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            video.style.opacity = '1';
+            startStoryTimer(video.duration * 1000);
+        };
+
+        video.onwaiting = () => pauseStory();
+        video.oncanplay = () => { if (isStoryPaused) resumeStory(); };
+
+        video.onerror = () => {
+            console.error("Video failed to load:", mediaUrl);
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            mediaContainer.innerHTML = `
+                <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:white;">
+                    <i class="fas fa-exclamation-triangle" style="font-size:40px; color:#ff4757; margin-bottom:15px;"></i>
+                    <div style="font-weight:600;">Media Unavailable</div>
+                    <div style="font-size:12px; color:#888; margin-top:5px;">Check your internet connection</div>
+                </div>
+            `;
+            startStoryTimer(3000); // Skip faster if it fails
+        };
+    } else {
+        const img = document.createElement('img');
+        img.src = mediaUrl;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.3s ease';
+
+        img.onload = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            img.style.opacity = '1';
+            mediaContainer.appendChild(img);
+            startStoryTimer(5000);
+        };
+
+        img.onerror = () => {
+            const spinner = mediaContainer.querySelector('.media-loading-spinner');
+            if (spinner) spinner.remove();
+            mediaContainer.innerHTML = `
+                <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:white;">
+                    <i class="fas fa-image" style="font-size:40px; color:#333; margin-bottom:15px;"></i>
+                    <div style="font-weight:600;">Image Unavailable</div>
+                </div>
+            `;
+            startStoryTimer(3000);
+        };
+    }
+
+    modal.style.display = 'flex';
+}
+
+function startStoryTimer(duration) {
+    storyTotalDuration = duration;
+    storyRemainingTime = duration;
+    storyStartTime = Date.now();
+
+    const progressBar = document.getElementById('activeProgressBar');
+
+    if (storyProgressInterval) clearInterval(storyProgressInterval);
+
+    storyProgressInterval = setInterval(() => {
+        if (isStoryPaused) return;
+
+        let elapsed = Date.now() - storyStartTime;
+        let progress = ((storyTotalDuration - storyRemainingTime + elapsed) / storyTotalDuration) * 100;
+        if (progressBar) progressBar.style.width = Math.min(progress, 100) + '%';
+
+        if (elapsed >= storyRemainingTime) {
+            clearInterval(storyProgressInterval);
+            nextStory();
+        }
+    }, 50);
+
+    if (storyTimer) clearTimeout(storyTimer);
+    storyTimer = setTimeout(() => {
+        if (!isStoryPaused) nextStory();
+    }, storyRemainingTime);
+}
+
+function pauseStory() {
+    if (isStoryPaused || currentStoryIndex === -1) return;
+    isStoryPaused = true;
+
+    const video = document.querySelector('#viewerMedia video');
+    if (video) video.pause();
+
+    let elapsed = Date.now() - storyStartTime;
+    storyRemainingTime -= elapsed;
+    if (storyRemainingTime < 0) storyRemainingTime = 0;
+
+    if (storyTimer) clearTimeout(storyTimer);
+}
+
+function resumeStory() {
+    if (!isStoryPaused || currentStoryIndex === -1) return;
+    isStoryPaused = false;
+
+    const video = document.querySelector('#viewerMedia video');
+    if (video) {
+        // Only try to play if video has a valid source and hasn't errored
+        if (video.readyState >= 1 && !video.error) {
+            video.play().catch(err => {
+                console.warn("Autoplay/Resume blocked or video error:", err);
+                // If it fails, we still want the timer to run so it eventually moves on
+            });
+        } else {
+            console.log("Video not ready or has error, skipping play()");
+        }
+    }
+
+    storyStartTime = Date.now();
+
+    if (storyTimer) clearTimeout(storyTimer);
+    storyTimer = setTimeout(() => {
+        if (!isStoryPaused) nextStory();
+    }, storyRemainingTime);
+}
+
+function nextStory() {
+    if (currentStoryIndex < activeStories.length - 1) {
+        currentStoryIndex++;
+        showAfterglowViewer(activeStories[currentStoryIndex]);
+    } else {
+        closeAfterglowViewer();
+    }
+}
+
+function prevStory() {
+    if (currentStoryIndex > 0) {
+        currentStoryIndex--;
+        showAfterglowViewer(activeStories[currentStoryIndex]);
+    } else {
+        showAfterglowViewer(activeStories[currentStoryIndex]);
+    }
+}
+
+function closeAfterglowViewer() {
+    const modal = document.getElementById('afterglowViewer');
+    if (modal) modal.style.display = 'none';
+
+    currentStoryIndex = -1;
+    if (storyTimer) clearTimeout(storyTimer);
+    if (storyProgressInterval) clearInterval(storyProgressInterval);
+
+    const mediaContainer = document.getElementById('viewerMedia');
+    if (mediaContainer) {
+        const video = mediaContainer.querySelector('video');
+        if (video) video.pause();
+        mediaContainer.innerHTML = '';
+    }
+}
+
+// ================================
+// BADGE UPDATES
+// ================================
+function updateBadgeCounts() {
+    // Update all badge counts
+    const lostBadge = document.getElementById('lostItemsBadge');
+    const foundBadge = document.getElementById('foundItemsBadge');
+    const tutorsBadge = document.getElementById('tutorsBadge');
+    const groupsBadge = document.getElementById('groupsCountBadge');
+    const confessionsBadge = document.getElementById('confessionsBadge');
+    const secondhandBadge = document.getElementById('secondhandBadge');
+    const eventsBadge = document.getElementById('eventsBadge');
+
+    if (lostBadge) lostBadge.textContent = mockData.lostFound.lost.length;
+    if (foundBadge) foundBadge.textContent = mockData.lostFound.found.length;
+    if (tutorsBadge) tutorsBadge.textContent = mockData.skillMarket.tutoring.length;
+    if (groupsBadge) groupsBadge.textContent = mockData.groups.filter(g => g.isJoined).length;
+    if (confessionsBadge) confessionsBadge.textContent = mockData.confessions.length;
+    if (secondhandBadge) secondhandBadge.textContent = mockData.marketplace.secondhand.length;
+    if (eventsBadge) eventsBadge.textContent = Math.floor(Math.random() * 10) + 1;
+}
+
+// ================================
+// HELPER FUNCTIONS
+// ================================
+function showNotification(message, options = {}) {
+    // Default options
+    const config = {
+        type: 'info', // spark, comment, follow, share, info
+        title: '',
+        duration: 5000,
+        avatar: '/uploads/avatars/default.png',
+        icon: 'fa-bell',
+        url: '#',
+        id: Date.now(),
+        ...options
+    };
+
+    // Ensure container exists
+    let container = document.getElementById('notification-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-toast-container';
+        document.body.appendChild(container);
+    }
+
+    // Map types to icons if not provided
+    if (!options.icon) {
+        if (config.type === 'spark') config.icon = 'fa-fire';
+        else if (config.type === 'comment') config.icon = 'fa-comment';
+        else if (config.type === 'follow') config.icon = 'fa-user-plus';
+        else if (config.type === 'share') config.icon = 'fa-share';
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `notification-toast-premium toast-type-${config.type}`;
+    toast.setAttribute('data-id', config.id);
+
+    toast.innerHTML = `
+        <div class="toast-avatar-wrapper">
+            <img src="${config.avatar}" class="toast-avatar" onerror="this.src='/uploads/avatars/default.png'">
+            <div class="toast-icon-badge">
+                <i class="fas ${config.icon}"></i>
+            </div>
+        </div>
+        <div class="toast-content">
+            <div class="toast-message">${config.title ? `<strong>${config.title}</strong> ` : ''}${message}</div>
+            <div class="toast-time">Just now</div>
+        </div>
+        <div class="toast-progress" style="animation-duration: ${config.duration}ms"></div>
+    `;
+
+    // Click behavior
+    toast.onclick = (e) => {
+        if (config.url && config.url !== '#') {
+            window.location.href = config.url;
+        }
+        removeToast(toast);
+    };
+
+    // Add to container
+    container.appendChild(toast);
+
+    // Auto-remove
+    setTimeout(() => {
+        removeToast(toast);
+    }, config.duration);
+
+    function removeToast(el) {
+        if (!el.parentNode) return;
+        el.classList.add('toast-pop-out');
+        setTimeout(() => {
+            if (el.parentNode) container.removeChild(el);
+            if (container.children.length === 0) {
+                // optional: remove container? usually better to keep for performance
+            }
+        }, 400);
+    }
+}
+
+function toggleAnonymousMode() {
+    appState.isAnonymousMode = !appState.isAnonymousMode;
+    showNotification(`Anonymous mode ${appState.isAnonymousMode ? 'enabled' : 'disabled'} `);
+}
+
+function toggleDarkMode() {
+    appState.isDarkMode = !appState.isDarkMode;
+    document.body.classList.toggle('dark-mode', appState.isDarkMode);
+    showNotification(`Dark mode ${appState.isDarkMode ? 'enabled' : 'disabled'} `);
+}
+
+function editProfile() {
+    showNotification('Edit profile feature coming soon!');
+}
+
+function createGroup() {
+    showNotification('Create group feature coming soon!');
+}
+
+function uploadMoment() {
+    showNotification('Upload moment feature coming soon!');
+}
+
+function manageGroup(groupId) {
+    showNotification(`Manage group ${groupId} feature coming soon!`);
+}
+
+function openGroupChat(groupChat) {
+    showNotification(`Open group chat: ${groupChat.name} `);
+}
+
+function openAnonymousChat(chat) {
+    showNotification(`Open anonymous chat: ${chat.name} `);
+}
+
+function startChat(contact) {
+    showNotification(`Start chat with ${contact.name} feature coming soon!`);
+}
+
+function shareToAfterGlow() {
+    showNotification('Shared to AfterGlow!');
+}
+
+function reactToAfterglow(reaction) {
+    showNotification(`Reacted with ${reaction} !`);
+}
+
+function shareAfterglowToGroup() {
+    showNotification('Shared to group!');
+}
+
+function shareAfterglowToFriends() {
+    showNotification('Shared with friends!');
+}
+
+function addConfessionMedia() {
+    showNotification('Add confession media feature coming soon!');
+}
+
+function addLostFoundMedia() {
+    showNotification('Add lost & found media feature coming soon!');
+}
+
+function messageUser(username) {
+    showNotification(`Message user ${username} feature coming soon!`);
+}
+
+function clearNotifications() {
+    mockData.notifications.forEach(n => n.read = true);
+    loadNotifications();
+    showNotification('Notifications cleared');
+}
+
+function startLiveStream() {
+    showNotification('Live streaming feature coming soon!');
+}
+
+function viewEvents() {
+    showNotification('Campus events feature coming soon!');
+}
+
+// ================================
+// INITIALIZATION
+// ================================
+document.addEventListener('DOMContentLoaded', function () {
+    console.log("🎉 Sparkle Dashboard Initialized!");
+
+    // Initialize the app
+    // Detect active page from HTML
+    const activePage = document.querySelector('.page.active');
+    const startPage = activePage ? activePage.id.replace('Page', '') : 'home';
+    switchPage(startPage);
+
+    // Setup event listeners
+    setupEventListeners();
+
+    // Update badge counts
+    updateBadgeCounts();
+
+    // Load notifications
+    loadNotifications();
+});
+
+function setupEventListeners() {
+    // Hamburger menu
+    document.getElementById('closeHamburger')?.addEventListener('click', hideHamburger);
+    document.getElementById('hamburgerOverlay')?.addEventListener('click', hideHamburger);
+
+    // Notification bell
+    document.getElementById('notificationIcon')?.addEventListener('click', showNotificationsModal);
+
+    // Polls icon
+    document.getElementById('pollsIcon')?.addEventListener('click', createPoll);
+
+    // Modal close buttons
+    const modals = ['enhancedSettings', 'polls', 'marketplace', 'lostFound', 'skillMarket',
+        'groupManagement', 'aboutSparkle', 'groupFeed', 'notifications',
+        'confessions', 'afterglowViewer'];
+
+    modals.forEach(modal => {
+        const closeBtn = document.getElementById('close' + modal.charAt(0).toUpperCase() + modal.slice(1));
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => hideModal(modal));
+        }
+    });
+
+    // Message type tabs
+    document.querySelectorAll('[data-message-type]').forEach(tab => {
+        tab.addEventListener('click', function () {
+            const type = this.getAttribute('data-message-type');
+            document.querySelectorAll('[data-message-type]').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            loadMessages(type);
+        });
+    });
+
+    // Profile tabs
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+        tab.addEventListener('click', function () {
+            const tabType = this.getAttribute('data-tab');
+            document.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            // Load appropriate content for profile tab
+        });
+    });
+
+    // Marketplace tabs
+    document.querySelectorAll('[data-market]').forEach(tab => {
+        tab.addEventListener('click', function () {
+            const market = this.getAttribute('data-market');
+            loadMarketplaceContent(market);
+        });
+    });
+
+    // Anonymous mode button
+    document.getElementById('anonymousBtn')?.addEventListener('click', toggleAnonymousMode);
+
+    // Confessions button
+    document.getElementById('confessionsBtn')?.addEventListener('click', showConfessionsGallery);
+
+    // Close create modal
+    document.getElementById('closeCreateModal')?.addEventListener('click', () => hideModal('create'));
+    document.getElementById('closeMomentModal')?.addEventListener('click', () => hideModal('moment'));
+    document.getElementById('closeAfterglowModal')?.addEventListener('click', () => hideModal('afterglow'));
+
+    // Submit post button
+    document.getElementById('submitPostBtn')?.addEventListener('click', window.submitPost);
+
+    // Submit moment button
+    document.getElementById('submitMomentBtn')?.addEventListener('click', async function () {
+        const fileInput = document.getElementById('momentVideoUpload');
+        const caption = document.getElementById('momentCaption')?.value || '';
+
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+            showNotification('Please select a video first', 'error');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        console.log('📤 Uploading moment video...');
+
+        try {
+            const formData = new FormData();
+            formData.append('media', file);
+
+            const uploadResponse = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('sparkleToken')}` },
+                body: formData
+            });
+
+            if (!uploadResponse.ok) throw new Error('Upload failed');
+            const { url: media_url } = await uploadResponse.json();
+
+            // Create moment (you can add a moments API endpoint or reuse posts)
+            console.log('✅ Moment uploaded:', media_url);
+            showNotification('Moment shared!');
+            hideModal('moment');
+            fileInput.value = '';
+            document.getElementById('momentCaption').value = '';
+            document.getElementById('momentPreview').innerHTML = '';
+        } catch (error) {
+            console.error('❌ Moment upload failed:', error);
+            showNotification('Failed to share moment', 'error');
+        }
+    });
+
+    // Submit afterglow button
+    document.getElementById('submitAfterglowBtn')?.addEventListener('click', async function () {
+        if (isSubmittingAfterglow) {
+            console.log('⚠️ Submission already in progress, ignoring click.');
+            return;
+        }
+
+        const btn = this;
+        const fileInput = document.getElementById('afterglowMediaUpload');
+        const caption = document.getElementById('afterglowCaption')?.value || '';
+
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+            showNotification('Please select a photo or video first', 'error');
+            return;
+        }
+
+        if (btn.disabled) return;
+
+        // Global lock and visual state
+        isSubmittingAfterglow = true;
+        btn.disabled = true;
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<span>Sharing...</span> <i class="fas fa-spinner fa-spin"></i>';
+
+        const file = fileInput.files[0];
+        console.log('📤 Uploading AfterGlow story...');
+
+        try {
+            const formData = new FormData();
+            formData.append('media', file);
+
+            const uploadResponse = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('sparkleToken')}` },
+                body: formData
+            });
+
+            if (!uploadResponse.ok) throw new Error('Upload failed');
+            const { url: media_url } = await uploadResponse.json();
+
+            // Create story
+            const storyResponse = await fetch('/api/stories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('sparkleToken')}`
+                },
+                body: JSON.stringify({ media_url, caption })
+            });
+
+            if (!storyResponse.ok) throw new Error('Story creation failed');
+
+            console.log('✅ AfterGlow story created');
+            showNotification('AfterGlow shared!');
+            hideModal('afterglow');
+            fileInput.value = '';
+            document.getElementById('afterglowCaption').value = '';
+            document.getElementById('afterglowPreview').innerHTML = '';
+
+            // Reload stories
+            if (window.loadAfterglowStories) window.loadAfterglowStories();
+
+            // Reset button state for next time
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+            isSubmittingAfterglow = false;
+        } catch (error) {
+            console.error('❌ AfterGlow creation failed:', error);
+            showNotification('Failed to share AfterGlow', 'error');
+
+            // Re-enable button on error
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+            isSubmittingAfterglow = false;
+        }
+    });
+
+    // File input handlers for preview
+    document.getElementById('momentVideoUpload')?.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            const preview = document.getElementById('momentPreview');
+            preview.innerHTML = `<video src="${URL.createObjectURL(file)}" controls style="width: 100%; border-radius: 12px; margin-top: 10px;"></video>`;
+        }
+    });
+
+    document.getElementById('afterglowMediaUpload')?.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            const preview = document.getElementById('afterglowPreview');
+            const isVideo = file.type.startsWith('video/');
+            const url = URL.createObjectURL(file);
+            preview.innerHTML = isVideo
+                ? `<video src="${url}" controls style="width: 100%; border-radius: 12px; margin-top: 10px;"></video>`
+                : `<img src="${url}" style="width: 100%; border-radius: 12px; margin-top: 10px;">`;
+        }
+    });
+
+    // Post type selector logic
+    document.querySelectorAll('.post-type-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.post-type-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Edit profile button
+    document.getElementById('editProfileBtn')?.addEventListener('click', editProfile);
+
+    // Create group button
+    document.getElementById('createGroupBtn')?.addEventListener('click', createGroup);
+
+    // New message button
+    document.getElementById('newMessageBtn')?.addEventListener('click', () => {
+        showNotification('New message feature coming soon!');
+    });
+}
+
+// ================================
+// MAKE FUNCTIONS GLOBALLY AVAILABLE
+// ================================
+window.switchPage = switchPage;
+window.showModal = showModal;
+window.hideModal = hideModal;
+window.toggleHamburger = toggleHamburger;
+window.hideHamburger = hideHamburger;
+window.showEnhancedSettings = () => showModal('enhancedSettings');
+window.showMarketplace = showMarketplace;
+window.showLostFound = showLostFound;
+window.showSkillMarket = showSkillMarket;
+window.reportLostItem = reportLostItem;
+window.offerSkill = offerSkill;
+window.showConfessionsGallery = showConfessionsGallery;
+window.showAboutSparkle = showAboutSparkle;
+window.showGroupManagement = showGroupManagement;
+window.showGroupFeed = showGroupFeed;
+window.startLiveStream = startLiveStream;
+window.createPoll = createPoll;
+window.viewEvents = viewEvents;
+window.shareToAfterGlow = shareToAfterGlow;
+window.reactToAfterglow = reactToAfterglow;
+window.shareAfterglowToGroup = shareAfterglowToGroup;
+window.shareAfterglowToFriends = shareAfterglowToFriends;
+window.addConfessionMedia = addConfessionMedia;
+window.addPollOption = addPollOption;
+window.addLostFoundMedia = addLostFoundMedia;
+const addComment = (pId, text) => { if(window.submitSplitViewComment) window.submitSplitViewComment(); };
+window.sendComment = addComment;
+window.messageUser = messageUser;
+window.showNotifications = showNotificationsModal;
+window.clearNotifications = clearNotifications;
+window.toggleAnonymousMode = toggleAnonymousMode;
+window.toggleDarkMode = toggleDarkMode;
+window.editProfile = editProfile;
+window.createGroup = createGroup;
+window.uploadMoment = uploadMoment;
+window.startChat = startChat;
+window.openGroupChat = openGroupChat;
+window.openAnonymousChat = openAnonymousChat;
+window.manageGroup = manageGroup;
+window.toggleSpark = toggleSpark;
+window.toggleSavePost = toggleSavePost;
+window.sharePost = sharePost;
+window.viewUserProfile = viewUserProfile;
+window.connectWithUser = connectWithUser;
+window.connectUser = connectWithUser; // Alias for compatibility
+window.startChatWithUser = startChatWithUser;
+window.sendMessageToUser = sendMessageToUser;
+window.votePoll = votePoll;
+window.reactToConfession = reactToConfession;
+window.shareConfession = shareConfession;
+window.showConfessionComments = showConfessionComments;
+
+// Post Creation Logic
+window.submitPost = async function () {
+    const caption = document.getElementById('postCaption').value.trim();
+    const tags = document.getElementById('postTags').value.trim();
+    const postTypeBtn = document.querySelector('.type-chip.active') || document.querySelector('.post-type-btn.active');
+    const postType = postTypeBtn ? postTypeBtn.getAttribute('data-post-type') : 'public';
+
+    // In a real app, we'd handle file upload here. 
+    // For now, we'll check if a file was selected but we'll mock the URL if needed.
+    const mediaInput = document.getElementById('mediaUpload');
+    let mediaUrl = null;
+
+    if (mediaInput && mediaInput.files && mediaInput.files[0]) {
+        // Placeholder for file upload logic
+        console.log("File selected for upload:", mediaInput.files[0].name);
+        // showNotification("File upload is not fully implemented yet, sending post without media.");
+    }
+
+    if (!caption) {
+        showNotification("Please enter some content for your post!");
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitPostBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
+
+    try {
+        const postData = {
+            content: caption,
+            post_type: postType,
+            tags: tags,
+            media_url: mediaUrl
+        };
+
+        const result = await DashboardAPI.createPost(postData);
+        console.log("Post created successfully:", result);
+
+        showNotification("Post shared successfully! ✨");
+        hideModal('create');
+
+        // Reset form
+        document.getElementById('postCaption').value = '';
+        document.getElementById('postTags').value = '';
+        if (mediaInput) mediaInput.value = '';
+        const preview = document.getElementById('mediaPreview');
+        if (preview) preview.innerHTML = '';
+
+        // Refresh feed
+        window.forceFeedRefresh = true;
+        loadFeedPosts();
+        submitBtn.innerHTML = originalText;
+    } catch (error) {
+        console.error("Failed to create post:", error);
+        showNotification("Failed to share post. Please try again.");
+    } finally {
+        submitBtn.disabled = false;
+    }
+};
+
+// AFTERGLOW INTERACTIONS
+async function sparkAfterglow() {
+    if (currentStoryIndex === -1 || !activeStories[currentStoryIndex]) {
+        console.warn('sparkAfterglow called without active story');
+        return;
+    }
+    const story = activeStories[currentStoryIndex];
+    const storyId = story.story_id || story.id;
+
+    try {
+        const result = await DashboardAPI.likeStory(storyId);
+
+        // update UI count
+        const sparkCount = document.getElementById('sparkCount');
+        if (sparkCount && result.like_count !== undefined) {
+            sparkCount.textContent = result.like_count;
+        }
+
+        // toggle icon style
+        const icon = document.querySelector('.spark-action .action-icon-circle i');
+        if (icon) {
+            icon.classList.toggle('fas', result.liked);
+            icon.classList.toggle('far', !result.liked);
+        }
+
+        // simple pulse animation
+        const btn = document.querySelector('.spark-action .action-icon-circle');
+        if (btn) {
+            btn.style.transform = 'scale(1.3)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 200);
+            
+            if (typeof createSparkAnimation === 'function') {
+                const rect = btn.getBoundingClientRect();
+                createSparkAnimation(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            }
+        }
+
+        showToast(result.liked ? '✨ AfterGlow Sparked!' : '✨ Spark removed');
+    } catch (e) {
+        console.error('Error liking story', e);
+        showToast('⚠️ Unable to spark right now');
+    }
+}
+
+async function shareAfterglow() {
+    if (currentStoryIndex === -1 || !activeStories[currentStoryIndex]) {
+        console.error('No active story to share');
+        return;
+    }
+    const story = activeStories[currentStoryIndex];
+    const storyId = story.id || story.story_id;
+
+    // record share on server (for counts and notifications)
+    try {
+        await DashboardAPI.shareStory(storyId);
+    } catch (e) {
+        console.warn('Could not record story share', e);
+        // continue anyway
+    }
+
+    if (window.shareManager) {
+        window.shareManager.openShareSheet('story', storyId);
+    } else {
+        showToast('Shared to clipboard!');
+        try {
+            navigator.clipboard.writeText(window.location.origin + '/stories/' + storyId);
+        } catch (e) { }
+    }
+}
+
+function saveAfterglow() {
+    const icon = document.querySelector('.save-action i');
+    if (icon) {
+        icon.classList.toggle('far');
+        icon.classList.toggle('fas');
+    }
+    showToast('🔖 Saved to your collection');
+}
+
+function replyToAfterglow() {
+    showToast('💬 Reply feature coming soon!');
+}
+
+// Helper to show toasts (if not already defined)
+if (typeof showToast !== 'function') {
+    window.showToast = function (message) {
+        const toast = document.createElement('div');
+        toast.className = 'sparkle-toast';
+        toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:20px; z-index:10000; font-size:14px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); animation: slideUp 0.3s ease;';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(20px)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+}
+
+// Add animation for toast
+if (!document.getElementById('toast-style')) {
+    const style = document.createElement('style');
+    style.id = 'toast-style';
+    style.innerHTML = `
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(50px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// INITIALIZATION
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("🚀 Sparkle Dashboard Fully Loaded!");
+    // Sync appState with currentUser data if available
+    if (typeof dataManager !== 'undefined') {
+        const user = dataManager.getCurrentUser();
+        if (user && appState) {
+            appState.currentUser = user;
+        }
+    }
+
+    // Global Modal Close Listeners (Sparkle Standard)
+    document.addEventListener('click', (e) => {
+        // Handle .close-modal buttons
+        if (e.target.classList.contains('close-modal') || e.target.closest('.close-modal')) {
+            const btn = e.target.classList.contains('close-modal') ? e.target : e.target.closest('.close-modal');
+            const modal = btn.closest('.modal') || btn.closest('[id$="Modal"]');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+        
+        // Handle Backdrop clicks
+        if (e.target.classList.contains('modal')) {
+            e.target.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+});
+// Global Group Functions for Sidebar
+window.createGroup = function () {
+    // If we are on messages page, open the modal
+    if (window.openGroupModal) {
+        window.openGroupModal();
+    } else {
+        // Redirect to messages page with action param
+        window.location.href = '/messages?action=create_group';
+    }
+};
+
+window.showGroupManagement = function () {
+    window.location.href = '/groups'; // Or open a modal if implemented
+};
+
+window.showGroupFeed = function () {
+    showModal('groupFeed');
+};
+
+window.loadGroupFeed = async function () {
+    // Implementation for loading group feed in modal
+    const container = document.getElementById('groupFeedModalContent'); // Assuming modal structure
+    if (container) container.innerHTML = '<p style="padding:20px;">Group Feed feature coming soon!</p>';
+};
+
+// Toggle Follow logic for global use (e.g. Feed, Connect, Profile)
+window.toggleFollow = async function (userId, button) {
+    if (!userId || userId === 'undefined') return;
+    if (button.disabled) return;
+
+    const isFollowing = button.textContent.trim().toLowerCase() === 'following' || button.classList.contains('active');
+    button.disabled = true;
+
+    try {
+        if (isFollowing) {
+            await DashboardAPI.unfollowUser(userId);
+            button.textContent = 'Follow';
+            button.classList.remove('btn-secondary');
+            button.classList.add('btn-primary');
+            button.style.color = 'var(--accent)';
+            button.style.borderColor = 'var(--accent)';
+            button.style.background = 'none';
+        } else {
+            await DashboardAPI.followUser(userId);
+            button.textContent = 'Following';
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-secondary');
+            button.style.color = 'white';
+            button.style.borderColor = 'var(--accent)';
+            button.style.background = 'var(--accent)';
+        }
+    } catch (error) {
+        console.error('❌ Toggle Follow Error:', error);
+        // Toast or simple notification could go here
+    } finally {
+        button.disabled = false;
+    }
+};
+
+// Handle URL params for actions (e.g. redirect from Create Group)
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'create_group') {
+        // Wait for page init then open modal
+        setTimeout(() => {
+            if (window.openGroupModal) window.openGroupModal();
+        }, 500);
+    }
+});

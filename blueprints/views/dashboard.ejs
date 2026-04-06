@@ -1,0 +1,193 @@
+<%- include('partials/head', { title: 'Dashboard' }) %>
+<link rel="stylesheet" href="/css/dashboard-premium.css">
+
+<div id="mainContent" class="animate-fade-in">
+    <div id="homePage" class="page active">
+        <%- include('partials/navbar') %>
+
+        <div class="dashboard-layout">
+            <!-- Left Column: Sidebar -->
+            <aside class="sidebar-column animate-slide-in">
+                <%- include('partials/sidebar') %>
+            </aside>
+
+            <!-- Center Column: Feed -->
+            <main class="main-feed-column">
+                <!-- 🔷 PREMIUM COMPOSER -->
+                <!-- 🔷 STORIES ROW (AFTERGLOW) AT THE TOP -->
+                <div class="stories-section animate-fade-in">
+                    <div class="stories-container" id="afterglowStories">
+                        <!-- Instagram Style Custom Upload Button -->
+                        <div class="story-card story-add" onclick="openAfterglowModal()">
+                            <div class="story-add-bg">
+                                <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="story-media" style="filter: blur(5px) brightness(0.7);">
+                            </div>
+                            <div class="plus-circle"><i class="fas fa-plus"></i></div>
+                            <div class="story-add-text">Afterglow</div>
+                        </div>
+
+                        <!-- Server Stories -->
+                        <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
+                            <% stories.forEach(storyGroup=> { %>
+                                <% const firstStory=storyGroup.stories[0]; %>
+                                <div class="story-card animate-scale-in" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
+                                    <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
+                                        class="story-media" onerror="this.src='/uploads/avatars/default.png';">
+                                    <div class="story-overlay"></div>
+                                    <% if (storyGroup.stories.length> 1) { %>
+                                        <div class="story-multi-badge-fb" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 800; z-index: 3;"><%= storyGroup.stories.length %></div>
+                                    <% } %>
+                                    <div class="story-avatar-wrapper">
+                                        <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>" class="story-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                                    </div>
+                                    <div class="story-name"><%= storyGroup.username %></div>
+                                </div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- 🔷 PREMIUM COMPOSER -->
+                <div class="composer-card animate-scale-in" onclick="openCreateModal()">
+                    <div class="composer-input-area">
+                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="composer-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                        <div class="composer-prompt">What's on your mind, <%= user.name.split(' ')[0] %>?</div>
+                    </div>
+                    <div class="composer-actions">
+                        <div class="composer-btn"><i class="fas fa-image" style="color: var(--success);"></i> Photo</div>
+                        <div class="composer-btn"><i class="fas fa-video" style="color: var(--accent);"></i> Video</div>
+                        <div class="composer-btn"><i class="fas fa-laugh" style="color: var(--warning);"></i> Feeling</div>
+                    </div>
+                </div>
+
+                <!-- Premium Feed -->
+                <div class="feed-container" id="feed">
+                    <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
+                        <% feed.forEach((post, index)=> { %>
+                            <div class="animate-fade-in" style="animation-delay: <%= 0.2 + (index * 0.1) %>s">
+                                <%- include('partials/post-card', { post, user }) %>
+                            </div>
+                        <% }); %>
+                        <div id="load-more-container" style="text-align: center; padding: 30px;">
+                            <button id="load-more-btn" onclick="loadMorePosts()" class="premium-btn">
+                                <i class="fas fa-sync-alt"></i> Load More Posts
+                            </button>
+                        </div>
+                    <% } else { %>
+                        <div class="glass-card animate-scale-in" style="text-align:center; padding: 80px 40px; border-radius: 30px;">
+                            <div style="width: 100px; height: 100px; background: var(--bg-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px auto;">
+                                <i class="fas fa-wind" style="font-size: 40px; color: var(--primary);"></i>
+                            </div>
+                            <h2 style="font-weight: 800; margin-bottom: 12px;">Your feed is quiet</h2>
+                            <p style="color: var(--text-muted); font-size: 1rem; max-width: 300px; margin: 0 auto;">Follow more students or share your own thoughts to start the spark!</p>
+                            <button onclick="window.showCreateOptions()" class="premium-btn" style="margin-top: 30px;">
+                                <i class="fas fa-plus"></i> Create First Post
+                            </button>
+                        </div>
+                    <% } %>
+                </div>
+            </main>
+
+            <!-- Right Column: Suggestions -->
+            <aside class="suggestions-column animate-slide-in" style="animation-delay: 0.2s;">
+                <div class="sidebar-card">
+                    <div class="sidebar-title">
+                        <span>Suggested for you</span>
+                        <a href="/connect" style="font-size: 0.8rem; color: var(--primary);">See All</a>
+                    </div>
+
+                    <div class="suggestions-list">
+                        <% if (typeof suggestions !=='undefined' && suggestions && suggestions.length> 0) { %>
+                            <% suggestions.forEach(suggestion=> { %>
+                                <div class="suggestion-item">
+                                    <div style="display: flex; align-items: center; gap: 12px; cursor: pointer; flex: 1;" onclick="window.location.href='/profile/<%= suggestion.user_id %>' ">
+                                        <img src="<%= suggestion.avatar_url || '/uploads/avatars/default.png' %>" class="suggestion-avatar" style="border: 2px solid var(--border-light);">
+                                        <div style="overflow: hidden;">
+                                            <div class="suggestion-name">
+                                                <%= suggestion.username %>
+                                                <%- include('partials/verified-badge', { id: suggestion.user_id }) %>
+                                            </div>
+                                            <div class="suggestion-meta"><%= suggestion.campus || 'Sparkler' %></div>
+                                        </div>
+                                    </div>
+                                    <button class="follow-btn-suggestion follow-btn" data-user-id="<%= suggestion.user_id %>">Follow</button>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 20px 0;">No suggestions right now</p>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Trending Pulse -->
+                <div class="sidebar-card trending-card animate-scale-in" style="animation-delay: 0.4s;">
+                    <div class="sidebar-title" style="color: white; margin-bottom: 25px;">
+                        <span style="display: flex; align-items: center; gap: 10px;">
+                            <div class="pulse-dot"></div>
+                            Trending Pulse
+                        </span>
+                    </div>
+                    <div class="trending-tags" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                        <% if (typeof trendingHashtags !== 'undefined' && trendingHashtags && trendingHashtags.length > 0) { %>
+                            <% trendingHashtags.forEach(tag => { %>
+                                <a href="/dashboard/hashtag/<%= tag.tag %>" class="trending-pill">
+                                    #<%= tag.tag %>
+                                    <span style="font-size: 0.7rem; opacity: 0.8; margin-left: 4px;"><%= tag.count %></span>
+                                </a>
+                            <% }); %>
+                        <% } else { %>
+                            <p style="font-size: 0.85rem; opacity: 0.8;">Stay tuned for trends...</p>
+                        <% } %>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+    
+    <!-- Mobile Messenger FAB -->
+    <a href="/messages" class="mobile-messenger-fab animate-scale-in">
+        <i class="fas fa-comment-dots"></i>
+    </a>
+</div>
+
+<!-- Scripts & Partials -->
+<script src="/js/dashboard-interactions.js"></script>
+<%- include('partials/dashboard-modals') %>
+<%- include('partials/share-modal') %>
+<%- include('partials/bottom-nav') %>
+<script type="module" src="/js/dynamicPatch/index.js"></script>
+<script src="/js/script.js"></script>
+
+<!-- Spec v3: Mode Containers -->
+<div class="split-view" id="splitView">
+    <div class="post-preview" id="splitViewMedia"></div>
+    <div class="comments-panel glass-card">
+        <div class="comments-header" style="padding: 20px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-weight: 800;">Comments</h3>
+            <button class="close-btn" onclick="window.closeCommentSplitView()" style="background:none; border:none; font-size: 20px; cursor:pointer; color: var(--text-muted);">✕</button>
+        </div>
+        <div class="comments-list" id="splitViewComments" style="flex: 1; overflow-y: auto; padding: 20px;"></div>
+        <div class="comment-input-area" style="padding: 20px; border-top: 1px solid var(--border-light); display: flex; gap: 12px; align-items: center;">
+            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+            <input type="text" id="splitViewInput" placeholder="Add a comment..." style="flex: 1; border: none; background: var(--bg-main); padding: 12px 18px; border-radius: 25px; outline: none; font-size: 0.9rem; font-weight: 500;">
+            <button onclick="window.submitSplitViewComment()" style="background: none; border: none; color: var(--primary); font-weight: 800; cursor: pointer; font-size: 0.9rem;">Post</button>
+        </div>
+    </div>
+</div>
+
+<div class="image-viewer" id="imageViewer">
+    <div class="top-bar" style="position: absolute; top: 0; left: 0; right: 0; padding: 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent); z-index: 10;">
+        <i class="fas fa-times" onclick="window.closeImageViewer()" style="color: white; font-size: 24px; cursor: pointer;"></i>
+        <div style="display: flex; gap: 25px; color: white; font-size: 20px;">
+            <i class="fas fa-tag" onclick="window.openTagModal()" style="cursor: pointer;"></i>
+            <i class="fas fa-ellipsis-v" onclick="window.showViewerMenu()" style="cursor: pointer;"></i>
+        </div>
+    </div>
+    <img class="full-image" id="viewerImageSrc" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+    <div class="image-stats" id="viewerStats" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent); color: white;">
+        <!-- Populated by JS -->
+    </div>
+</div>
+
+</body>
+</html>

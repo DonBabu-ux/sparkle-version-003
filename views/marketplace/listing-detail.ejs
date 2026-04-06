@@ -203,6 +203,7 @@
                 price: document.querySelector('.price-tag')?.textContent?.trim() || '',
                 image: '<%= listing.image_url || (listing.media && listing.media[0] && listing.media[0].media_url) || "/images/default-listing.jpg" %>',
                 link:  `${host}/marketplace/listings/${listingId}`,
+                listingId: listingId,
                 sellerName
             };
             const mktEncoded = btoa(encodeURIComponent(JSON.stringify(mktPayload)));

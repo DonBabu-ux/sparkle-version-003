@@ -3,31 +3,32 @@ const router = express.Router();
 const marketplaceController = require('../../controllers/marketplace.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { upload, marketplaceUpload } = require('../../utils/fileUpload');
+const { feedRateLimiter, mutationRateLimiter } = require('../../middleware/security.middleware');
 
 // ── Listings ──────────────────────────────────────────────────────────────────
-router.get('/marketplace/listings',              authMiddleware, marketplaceController.getListings);
-router.get('/marketplace/categories',            authMiddleware, marketplaceController.getCategories);
-router.get('/marketplace/trending',              authMiddleware, marketplaceController.getTrending);
+router.get('/marketplace/listings',              authMiddleware, feedRateLimiter, marketplaceController.getListings);
+router.get('/marketplace/categories',            authMiddleware, feedRateLimiter, marketplaceController.getCategories);
+router.get('/marketplace/trending',              authMiddleware, feedRateLimiter, marketplaceController.getTrending);
 // User's listings page (requires auth)
 router.get('/marketplace/my-shop', authMiddleware, marketplaceController.renderUserListings);
 router.get('/marketplace/wishlist', authMiddleware, marketplaceController.renderWishlist);
 router.get('/marketplace/orders', authMiddleware, marketplaceController.renderOrders);
-router.get('/marketplace/listings/recommended',  authMiddleware, marketplaceController.getRecommendations);
+router.get('/marketplace/listings/recommended',  authMiddleware, feedRateLimiter, marketplaceController.getRecommendations);
 router.get('/marketplace/listings/:id',          authMiddleware, marketplaceController.getListingById);
-router.post('/marketplace/listings',             authMiddleware, marketplaceUpload.array('media', 20), ...marketplaceController.createListing);
-router.put('/marketplace/listings/:id',          authMiddleware, marketplaceUpload.array('media', 20), ...marketplaceController.updateListing);
-router.delete('/marketplace/listings/:id',       authMiddleware, marketplaceController.deleteListing);
+router.post('/marketplace/listings',             authMiddleware, mutationRateLimiter, marketplaceUpload.array('media', 20), ...marketplaceController.createListing);
+router.put('/marketplace/listings/:id',          authMiddleware, mutationRateLimiter, marketplaceUpload.array('media', 20), ...marketplaceController.updateListing);
+router.delete('/marketplace/listings/:id',       authMiddleware, mutationRateLimiter, marketplaceController.deleteListing);
 
 // ── Listing Actions ───────────────────────────────────────────────────────────
-router.post('/marketplace/listings/:id/contact', authMiddleware, ...marketplaceController.contactSeller);
-router.put('/marketplace/listings/:id/sold',     authMiddleware, marketplaceController.markAsSold);
-router.post('/marketplace/listings/:id/favorite',authMiddleware, ...marketplaceController.toggleFavorite);
-router.post('/marketplace/listings/:id/wishlist',authMiddleware, marketplaceController.toggleWishlist);
+router.post('/marketplace/listings/:id/contact', authMiddleware, mutationRateLimiter, ...marketplaceController.contactSeller);
+router.put('/marketplace/listings/:id/sold',     authMiddleware, mutationRateLimiter, marketplaceController.markAsSold);
+router.post('/marketplace/listings/:id/favorite',authMiddleware, mutationRateLimiter, ...marketplaceController.toggleFavorite);
+router.post('/marketplace/listings/:id/wishlist',authMiddleware, mutationRateLimiter, marketplaceController.toggleWishlist);
 router.post('/marketplace/listings/:id/view',    authMiddleware, marketplaceController.recordView);
 router.post('/marketplace/listings/:id/share',   authMiddleware, marketplaceController.recordShare);
-router.post('/marketplace/listings/:id/report',  authMiddleware, marketplaceController.reportListing);
-router.post('/marketplace/listings/:id/boost',   authMiddleware, ...marketplaceController.boostListing);
-router.post('/marketplace/listings/:id/relist',  authMiddleware, marketplaceController.relistItem);
+router.post('/marketplace/listings/:id/report',  authMiddleware, mutationRateLimiter, marketplaceController.reportListing);
+router.post('/marketplace/listings/:id/boost',   authMiddleware, mutationRateLimiter, ...marketplaceController.boostListing);
+router.post('/marketplace/listings/:id/relist',  authMiddleware, mutationRateLimiter, marketplaceController.relistItem);
 
 // ── Seller Actions ────────────────────────────────────────────────────────────
 router.post('/marketplace/seller/favorite',      authMiddleware, ...marketplaceController.toggleSellerFavorite);

@@ -14,7 +14,7 @@ const FEED_LIMIT = 12;
 export function initFeed() {
     const container = document.getElementById('feed');
     // If SSR rendered posts, we don't immediately wipe and refresh (Fixes 3-Phase UI Bug)
-    if (container && container.children.length > 0 && container.querySelector('.post')) {
+    if (container && container.children.length > 0 && (container.querySelector('.post') || container.querySelector('.post-card'))) {
         feedPage = 2; // Next page logic
     } else {
         loadFeedPosts({ refresh: true });

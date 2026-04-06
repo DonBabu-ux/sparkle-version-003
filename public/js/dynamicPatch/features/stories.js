@@ -55,17 +55,17 @@ export async function loadAfterglowStories(options = {}) {
 
         const fragment = document.createDocumentFragment();
 
-        // 1. Add Create Story card
+        // 1. Add Create Story card (Sync with Premium dashboard.ejs)
         const currentUserData = window.currentUser || JSON.parse(localStorage.getItem('currentUser') || '{}');
         const createCard = document.createElement('div');
-        createCard.className = 'story-upload-btn';
-        createCard.onclick = () => window.showCreateOptions ? window.showCreateOptions() : uploadAfterglowMedia();
+        createCard.className = 'story-card story-add';
+        createCard.onclick = () => typeof window.openAfterglowModal === 'function' ? window.openAfterglowModal() : uploadAfterglowMedia();
         createCard.innerHTML = `
-            <div class="story-upload-avatar-wrapper">
-                <img src="${currentUserData.avatar_url || currentUserData.avatar || '/uploads/avatars/default.png'}" class="story-upload-avatar" style="background:#eee;" onerror="this.src='/uploads/avatars/default.png'">
-                <div class="story-upload-plus"><i class="fas fa-plus"></i></div>
+            <div class="story-add-bg">
+                <img src="${currentUserData.avatar_url || currentUserData.avatar || '/uploads/avatars/default.png'}" class="story-media" style="filter: blur(5px) brightness(0.7);" onerror="this.src='/uploads/avatars/default.png'">
             </div>
-            <div class="story-upload-text">Afterglow</div>
+            <div class="plus-circle"><i class="fas fa-plus"></i></div>
+            <div class="story-add-text">Afterglow</div>
         `;
         fragment.appendChild(createCard);
 

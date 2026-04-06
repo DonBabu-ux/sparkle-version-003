@@ -96,7 +96,8 @@ window.uploadAfterglowMedia = () => import('./features/stories.js').then(m => m.
 window.showCreateOptions = () => import('./ui/fab-button.js').then(m => m.showCreateOptions());
 window.openCreateModal = () => document.getElementById('createModal').style.display = 'flex';
 window.openMomentModal = () => import('./features/moments.js').then(m => m.uploadMoment());
-window.openAfterglowModal = () => import('./features/stories.js').then(m => m.uploadAfterglowMedia());
+// window.openAfterglowModal is handled by dashboard-modals.ejs inline script for Phase-based logic
+
 
 window.startChat = (contact) => import('./features/messages.js').then(m => m.startChat(contact));
 window.loadMarketplace = (cat) => import('./features/marketplace.js').then(m => m.loadMarketplace(cat));

@@ -11,7 +11,7 @@ const { initDB } = require('./utils/database/init');
 const apiRoutes = require('./routes/api');
 const webRoutes = require('./routes/web');
 
-const { securityHeaders, apiRateLimiter, sanitizeInput } = require('./middleware/security.middleware');
+const { securityHeaders, apiRateLimiter, sanitizeInput, imageLimiter } = require('./middleware/security.middleware');
 const logger = require('./utils/logger');
 const { startKeepAlive } = require('./utils/keep-alive');
 const firebaseConfig = require('./config/firebase.config');
@@ -87,15 +87,40 @@ app.use((req, res, next) => {
     next();
 });
 
+// Inline SVG default image — zero HTTP requests, used as onerror fallback in all templates
+const DEFAULT_IMAGE_SVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f0f2f5'/%3E%3Crect x='140' y='120' width='120' height='90' rx='8' fill='%23c5c7cb'/%3E%3Ccircle cx='200' cy='280' r='40' fill='%23c5c7cb'/%3E%3Ccircle cx='170' cy='147' r='18' fill='%23f0f2f5'/%3E%3Cpath d='M140 210 l30-30 25 25 20-20 45 45H140z' fill='%23b0b3b8'/%3E%3C/svg%3E`;
+app.locals.defaultImage = DEFAULT_IMAGE_SVG;
+
 // Logging - use 'dev' format in development for less noise
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
     stream: { write: message => logger.info(message.trim()) },
-    skip: (req) => req.url.includes('com.chrome.devtools.json') // Skip devtools noise
+    skip: (req) => {
+        // Skip devtools noise and repeated static image requests
+        if (req.url.includes('com.chrome.devtools.json')) return true;
+        if (req.url.match(/\.(jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|css|js\.map)$/)) return true;
+        return false;
+    }
 }));
 
-// Static Files
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'))); // UNCOMMENT THIS
+// Static Files — serve with aggressive caching for images
+app.use('/images', imageLimiter, express.static(path.join(__dirname, 'public', 'images'), {
+    maxAge: '365d',
+    immutable: true,
+    etag: true,
+    lastModified: true,
+    setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+}));
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true
+}));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
+    maxAge: '7d',
+    etag: true
+}));
 
 // Ensure missing static files in /uploads don't hit the auth middleware or EJS engine
 app.use('/uploads', (req, res) => {

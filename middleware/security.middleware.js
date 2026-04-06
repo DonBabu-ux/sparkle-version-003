@@ -27,6 +27,35 @@ const authRateLimiter = createRateLimiter(15 * 60 * 1000, 5); // 5 requests per 
 const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 60); // 60 requests per minute
 
 /**
+ * Listings/feed rate limiter — prevents page hammering the DB
+ * 30 requests per minute per IP (e.g., fetching marketplace, posts)
+ */
+const feedRateLimiter = createRateLimiter(1 * 60 * 1000, 30);
+
+/**
+ * Mutation rate limiter — POST/PUT/DELETE that write to DB
+ * 10 requests per minute per IP
+ */
+const mutationRateLimiter = createRateLimiter(1 * 60 * 1000, 10);
+
+/**
+ * Static image rate limiter — stops 400+ identical image requests
+ * 60 requests per minute per IP for any single static path
+ */
+const imageLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    keyGenerator: (req) => req.ip + ":" + req.path,
+    validate: { keyGenerator: false },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => {
+        // Only rate-limit repeated fetches of the same default/placeholder images
+        return !req.path.match(/default-|placeholder/);
+    }
+});
+
+/**
  * CSRF Protection middleware
  */
 const csrfProtection = csrf({
@@ -82,7 +111,10 @@ module.exports = {
     createRateLimiter,
     authRateLimiter,
     apiRateLimiter,
-    csrfProtection,  // Added this
+    feedRateLimiter,
+    mutationRateLimiter,
+    imageLimiter,
+    csrfProtection,
     sanitizeInput,
     securityHeaders
-};
+};

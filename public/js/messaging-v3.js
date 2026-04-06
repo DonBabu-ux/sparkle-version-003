@@ -86,7 +86,7 @@ class SparkleChat {
                     const startRes = await fetch('/api/messages/start', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ partnerId: uid })
+                        body: JSON.stringify({ partnerId: uid, listingId: marketplaceData?.listingId || null })
                     });
                     const startResult = await startRes.json();
                     if (startResult.status === 'success') {

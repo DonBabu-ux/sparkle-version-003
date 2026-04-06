@@ -26,20 +26,25 @@
 }
 
 /* 2. POST CARD (FLAT DESIGN) */
-.post {
+.post-card.post {
     width: 100%;
     background: var(--post-bg);
-    margin-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
     display: flex;
     flex-direction: column;
+    min-height: auto;
 }
 
-.post-header { order: 0; }
-.post-media { order: 1; }
-.caption { order: 2; }
-.engagement-summary { order: 3; }
-.actions { order: 4; }
+.post-card.post .post-header { order: 1; }
+.post-card.post .post-media { order: 2; }
+.post-card.post .caption { 
+    order: 3; 
+    height: auto;
+    flex: none;
+    min-height: 0;
+}
+.post-card.post .engagement-summary { order: 4; }
+.post-card.post .actions { order: 5; }
 
 @media (min-width: 601px) {
     .post {
@@ -226,6 +231,7 @@
     animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     background: var(--insta-gradient);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 

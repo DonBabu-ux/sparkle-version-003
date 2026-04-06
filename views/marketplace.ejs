@@ -516,56 +516,124 @@
             color: #65676b;
         }
 
+        /* ===== FB MARKETPLACE STYLE IMAGE CAROUSEL ===== */
         .product-media {
             position: relative;
+            width: 100%;
             aspect-ratio: 1;
             background: #f0f2f5;
             overflow: hidden;
-            display: grid;
-            gap: 2px;
         }
 
-        /* Grid layouts based on image count */
-        .product-media.grid-1 { grid-template-columns: 1fr; }
-        .product-media.grid-2 { grid-template-columns: 1fr 1fr; }
-        .product-media.grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-        .product-media.grid-3 .media-item:first-child { grid-row: span 2; }
-        .product-media.grid-4, .product-media.grid-more { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-
-        .media-item {
-            position: relative;
+        .carousel-track-wrapper {
             width: 100%;
             height: 100%;
+            overflow: hidden;
+        }
+
+        .carousel-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+        }
+
+        .carousel-slide {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            position: relative;
             cursor: zoom-in;
         }
 
-        .media-item img {
+        .carousel-slide img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.3s ease;
+            user-select: none;
+            -webkit-user-drag: none;
         }
 
-        .media-item:hover img {
-            transform: scale(1.05);
-        }
-
-        .more-overlay {
+        /* Navigation arrows */
+        .carousel-btn {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            color: white;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.92);
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 700;
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+            transition: opacity 0.2s, transform 0.2s;
+            opacity: 0;
+            font-size: 12px;
+            color: #1c1e21;
+        }
+
+        .carousel-btn.prev { left: 8px; }
+        .carousel-btn.next { right: 8px; }
+
+        .product-media:hover .carousel-btn {
+            opacity: 1;
+        }
+
+        .carousel-btn:hover {
+            background: white;
+            transform: translateY(-50%) scale(1.08);
+        }
+
+        .carousel-btn:disabled {
+            opacity: 0 !important;
+        }
+
+        /* Dot indicators */
+        .carousel-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            z-index: 20;
             pointer-events: none;
         }
 
+        .carousel-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.6);
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .carousel-dot.active {
+            background: white;
+            transform: scale(1.3);
+        }
+
+        /* Image counter badge */
+        .media-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.55);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 20;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Legacy - keep for backward compat */
         .media-indicator {
             position: absolute;
             top: 0.75rem;
@@ -1499,6 +1567,9 @@
         };
         // Registry so onclick handlers can look up listing data by ID safely
         const listingsMap = {};
+        // Carousel state: { [listingId]: { index, total } }
+        const carouselState = {};
+
 
         // Fetch current user
         async function fetchCurrentUser() {
@@ -1709,20 +1780,48 @@
             const humanDate = formatHumanDate(listing.created_at, listing.affiliation || listing.campus || 'Main Campus');
             const isSaved = listing.is_wishlisted || listing.is_favorited;
 
-            // Pre-calculate media HTML to avoid complex IIFE inside template literal
-            let mediaHtml = '';
-            const media = (listing.media && listing.media.length > 0) ? listing.media : [{ media_url: listing.image_url || '/images/default-listing.jpg' }];
-            const displayMedia = media.slice(0, 4);
-            const moreCount = media.length - 4;
-            
-            mediaHtml = displayMedia.map((m, idx) => `
-                <div class="media-item" onclick="openLightbox('${lid}', ${idx}, event)">
-                    <img src="${m.media_url}" alt="${escapeHtml(listing.title)}" onerror="this.src='/images/default-listing.jpg'">
-                    ${idx === 3 && moreCount > 0 ? `<div class="more-overlay">+${moreCount}</div>` : ''}
+            // Build FB-style image carousel
+            // Use the EJS inline SVG as fallback so NO HTTP request is ever made for missing images
+            const PLACEHOLDER = '<%= defaultImage %>';
+            const media = (listing.media && listing.media.length > 0)
+                ? listing.media.map(m => ({ ...m, media_url: m.media_url || PLACEHOLDER }))
+                : [{ media_url: listing.image_url || PLACEHOLDER }];
+            const totalImages = media.length;
+
+            const slides = media.map((m, idx) => `
+                <div class="carousel-slide" onclick="openLightbox('${lid}', ${idx}, event)">
+                    <img src="${m.media_url}" alt="${escapeHtml(listing.title)}" loading="lazy" onerror="this.onerror=null;this.src='<%= defaultImage %>'">
                 </div>
             `).join('');
 
-            const mediaGridClass = listing.media && listing.media.length > 0 ? 'grid-' + (listing.media.length > 4 ? 'more' : listing.media.length) : 'grid-1';
+            const dots = totalImages > 1
+                ? `<div class="carousel-dots">${media.map((_, i) => `<div class="carousel-dot${i === 0 ? ' active' : ''}"></div>`).join('')}</div>`
+                : '';
+
+            const prevBtn = totalImages > 1
+                ? `<button class="carousel-btn prev" onclick="event.stopPropagation(); carouselNav('${lid}', -1)" disabled><i class="fas fa-chevron-left"></i></button>`
+                : '';
+            const nextBtn = totalImages > 1
+                ? `<button class="carousel-btn next" onclick="event.stopPropagation(); carouselNav('${lid}', 1)" ${totalImages <= 1 ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`
+                : '';
+
+            const counter = totalImages > 1
+                ? `<div class="media-counter" id="counter-${lid}">1 / ${totalImages}</div>`
+                : '';
+
+            const mediaHtml = `
+                <div class="carousel-track-wrapper">
+                    <div class="carousel-track" id="track-${lid}">
+                        ${slides}
+                    </div>
+                </div>
+                ${prevBtn}
+                ${nextBtn}
+                ${dots}
+                ${counter}
+            `;
+
+            carouselState[lid] = { index: 0, total: totalImages };
 
             return `
                 <div class="product-card" onclick="viewListing('${lid}')">
@@ -1740,7 +1839,7 @@
                         </div>
                     </div>
                     
-                    <div class="product-media ${mediaGridClass}">
+                    <div class="product-media">
                         ${mediaHtml}
                     </div>
                     
@@ -1781,7 +1880,63 @@
             `;
         }
 
+        // ===== CAROUSEL NAVIGATION =====
+        function carouselNav(lid, dir) {
+            const state = carouselState[lid];
+            if (!state || state.total <= 1) return;
+
+            const track = document.getElementById('track-' + lid);
+            if (!track) return;
+
+            state.index = (state.index + dir + state.total) % state.total;
+
+            // Slide the track
+            track.style.transform = `translateX(-${state.index * 100}%)`;
+
+            // Update dots
+            const mediaEl = track.closest('.product-media');
+            if (mediaEl) {
+                mediaEl.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+                    dot.classList.toggle('active', i === state.index);
+                });
+
+                // Update prev/next button disabled state
+                const prevBtn = mediaEl.querySelector('.carousel-btn.prev');
+                const nextBtn = mediaEl.querySelector('.carousel-btn.next');
+                if (prevBtn) prevBtn.disabled = state.index === 0;
+                if (nextBtn) nextBtn.disabled = state.index === state.total - 1;
+
+                // Update counter
+                const counter = document.getElementById('counter-' + lid);
+                if (counter) counter.textContent = `${state.index + 1} / ${state.total}`;
+            }
+        }
+
+        // ===== TOUCH SWIPE FOR CARD CAROUSELS (event delegation) =====
+        (function() {
+            let touchStartX = 0, touchStartY = 0, activeLid = null;
+            document.addEventListener('touchstart', function(e) {
+                const mediaEl = e.target.closest('.product-media');
+                if (!mediaEl) return;
+                const track = mediaEl.querySelector('.carousel-track');
+                if (!track) return;
+                activeLid = track.id.replace('track-', '');
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+            document.addEventListener('touchend', function(e) {
+                if (!activeLid) return;
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                    carouselNav(activeLid, dx < 0 ? 1 : -1);
+                }
+                activeLid = null;
+            }, { passive: true });
+        })();
+
         function getConditionIcon(condition) {
+
             const icons = {
                 'new': 'fas fa-box',
                 'like_new': 'fas fa-star',
@@ -2408,12 +2563,12 @@
             });
             
             // Modal triggers
-            document.getElementById('openSellModal').addEventListener('click', openSellModal);
-            document.getElementById('openSellModalPhoto').addEventListener('click', openSellModal);
-            document.getElementById('openSellModalItem').addEventListener('click', openSellModal);
-            document.getElementById('openSellModalService').addEventListener('click', openSellModal);
-            document.getElementById('confirmOrderBtn').addEventListener('click', confirmOrder);
-            document.getElementById('viewSafeSpots').addEventListener('click', () => {
+            document.getElementById('openSellModal')?.addEventListener('click', openSellModal);
+            document.getElementById('openSellModalPhoto')?.addEventListener('click', openSellModal);
+            document.getElementById('openSellModalItem')?.addEventListener('click', openSellModal);
+            document.getElementById('openSellModalService')?.addEventListener('click', openSellModal);
+            document.getElementById('confirmOrderBtn')?.addEventListener('click', confirmOrder);
+            document.getElementById('viewSafeSpots')?.addEventListener('click', () => {
                 window.location.href = '/safe-spots'; // Could be mapped appropriately later
             });
             

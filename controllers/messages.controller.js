@@ -84,9 +84,9 @@ class MessageController {
      */
     async startConversation(req, res) {
         try {
-            const { partnerId } = req.body;
+            const { partnerId, listingId } = req.body;
             const userId = req.user.user_id || req.user.userId;
-            const conversationId = await Message.getOrCreateConversation(userId, partnerId);
+            const conversationId = await Message.getOrCreateConversation(userId, partnerId, listingId);
             res.json({ status: 'success', data: { conversationId } });
         } catch (error) {
             res.status(500).json({ status: 'error', error: 'Server error' });

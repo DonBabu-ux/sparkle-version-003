@@ -1,687 +1,192 @@
 <%- include('partials/head', { title: 'Dashboard' }) %>
 <link rel="stylesheet" href="/css/dashboard-premium.css">
 
-    <style>
-        /* ============ PREMIUM HYBRID UI DESIGN SYSTEM ============ */
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.95);
-            --glass-border: rgba(0, 0, 0, 0.05);
-            --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            --primary-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            --card-bg: #ffffff;
-            --body-bg: #fafafa;
-            --text-main: #262626;
-            --text-muted: #8e8e8e;
-            --insta-blue: #0095f6;
-            --border-color: #dbdbdb;
-        }
+<div id="mainContent" class="animate-fade-in">
+    <div id="homePage" class="page active">
+        <%- include('partials/navbar') %>
 
-        body {
-            background-color: var(--body-bg);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            opacity: 0;
-            animation: pageFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
+        <div class="dashboard-layout">
+            <!-- Left Column: Sidebar -->
+            <aside class="sidebar-column animate-slide-in">
+                <%- include('partials/sidebar') %>
+            </aside>
 
-        @keyframes pageFadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .glass {
-            background: var(--glass-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        /* 🔷 2. COMPOSER (Compact Card) */
-        .composer-card {
-            background: #fff;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            cursor: pointer;
-        }
-
-        .composer-top {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .composer-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .composer-input {
-            flex: 1;
-            background: #f0f2f5;
-            border-radius: 20px;
-            padding: 8px 16px;
-            color: var(--text-muted);
-            font-size: 14px;
-            border: none;
-            text-align: left;
-        }
-
-        .composer-actions {
-            display: flex;
-            justify-content: space-around;
-            border-top: 1px solid #f0f2f5;
-            padding-top: 8px;
-        }
-
-        .composer-action {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #65676b;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .composer-action:hover { background: #f0f2f5; }
-
-        /* 🔷 3. STORIES ROW (Facebook Style) */
-        .stories-section {
-            margin-bottom: 12px;
-        }
-
-        .stories-container {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding: 4px 0 12px;
-            scrollbar-width: none;
-        }
-
-        .stories-container::-webkit-scrollbar { display: none; }
-
-        /* Story Upload Button (Insta Style) */
-        .story-upload-btn {
-            flex: 0 0 110px;
-            height: 170px;
-            background: #fff;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            position: relative;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .story-upload-avatar-wrapper {
-            position: relative;
-            padding: 3px;
-            background: var(--primary-gradient);
-            border-radius: 50%;
-            width: 66px;
-            height: 66px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 8px;
-        }
-
-        .story-upload-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            object-fit: cover;
-        }
-
-        .story-upload-plus {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            background: var(--insta-blue);
-            color: #fff;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            border: 2px solid #fff;
-        }
-
-        .story-upload-text {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        /* Facebook Style Cards */
-        .fb-story-card {
-            flex: 0 0 110px;
-            height: 170px;
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .fb-story-card:hover { transform: scale(1.02); }
-
-        .fb-story-media {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: brightness(0.9);
-        }
-
-        .fb-story-avatar {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 3px solid var(--insta-blue);
-            padding: 2px;
-            background: #fff;
-            z-index: 2;
-        }
-
-        .fb-story-name {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            right: 10px;
-            color: #fff;
-            font-size: 11px;
-            font-weight: 700;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-            z-index: 2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .fb-story-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.5), transparent 40%);
-            z-index: 1;
-        }
-
-        .story-multi-badge-fb {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 700;
-            z-index: 3;
-        }
-
-        /* 🔷 5. POSTS FEED (Instagram Style) */
-        .feed-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .post {
-            background: #fff;
-            border: 1px solid var(--border-color);
-            border-radius: 0;
-            margin-bottom: 0;
-            overflow: hidden;
-        }
-
-        .post-header {
-            padding: 14px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: #fff;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .post-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .post-username {
-            font-weight: 600;
-            font-size: 14px;
-            color: #262626;
-            text-decoration: none;
-        }
-
-        .post-media-container {
-            width: 100%;
-            background: #fafafa;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Soft vignette at edges only */
-        .post-media-container::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            box-shadow: inset 0px 8px 32px rgba(0,0,0,0.15), inset 0px -8px 32px rgba(0,0,0,0.15);
-            pointer-events: none;
-        }
-
-        .post-media-container img,
-        .post-media-container video {
-            width: 100%;
-            display: block;
-            height: auto;
-            object-fit: contain;
-            position: relative;
-            z-index: 1;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* POST BOTTOM - WHITE BACKGROUND */
-        .post-bottom-container {
-            background-color: #fff;
-            color: #262626;
-            margin-top: 0;
-            padding-top: 6px; /* Small sensible gap below image */
-        }
-
-        /* ACTION BAR */
-        .post-actions.dark {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 8px 2px 8px;  /* Tight — right below image */
-            margin: 0;
-            background: #fff;
-        }
-
-        /* ICON GROUP */
-        .left-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px; /* IMPORTANT spacing */
-        }
-
-        .right-actions {
-            display: flex;
-        }
-
-        /* BUTTON BASE */
-        .icon-btn {
-            background: none;
-            border: none;
-            padding: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ICON STYLE - dark on white */
-        .icon-btn i {
-            font-size: 20px; /* Slightly reduced */
-            color: #262626;
-        }
-
-        /* LIKE ACTIVE */
-        .like-btn.active i {
-            color: #ed4956;
-        }
-
-        /* SAVE ACTIVE */
-        .save-btn.active i {
-            color: #262626;
-        }
-
-        /* Hover / tap feedback */
-        .icon-btn:active {
-            transform: scale(0.92);
-        }
-
-        .post-likes {
-            padding: 0 16px 6px;
-            font-weight: 600;
-            font-size: 14px;
-            color: #262626;
-        }
-
-        .post-caption-wrap {
-            padding: 0 16px 8px;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #262626;
-        }
-
-        .post-view-comments {
-            padding: 0 16px 4px;
-            color: #8e8e8e;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .post-timestamp {
-            padding: 0 16px 16px;
-            color: #8e8e8e;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.2px;
-        }
-
-        /* 🔷 Layout Grid */
-        .dashboard-layout {
-            display: grid;
-            grid-template-columns: 240px 1fr 300px;
-            gap: 28px;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 85px 20px 40px;
-        }
-
-        .sidebar-column {
-            position: sticky;
-            top: 85px;
-            height: calc(100vh - 100px);
-            overflow-y: auto;
-            scrollbar-width: none;
-        }
-        .sidebar-column::-webkit-scrollbar { display: none; }
-
-        .main-feed-column {
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .suggestions-column {
-            position: sticky;
-            top: 85px;
-            height: fit-content;
-        }
-
-        @media (max-width: 1100px) {
-            .dashboard-layout {
-                grid-template-columns: 240px 1fr;
-            }
-            .suggestions-column {
-                display: none;
-            }
-        }
-
-        @media (max-width: 850px) {
-            .dashboard-layout {
-                grid-template-columns: 1fr;
-                padding: 70px 0 0 0; /* 0 horizontal padding to permit edge-to-edge cards */
-            }
-            .sidebar-column {
-                display: none;
-            }
-        }
-        /* Override restrictive container */
-        .container {
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-    </style>
-
-    <div id="mainContent">
-        <div id="homePage" class="page active">
-            <%- include('partials/navbar') %>
-
-            <div class="dashboard-layout">
-                <!-- Left Column: Sidebar -->
-                <aside class="sidebar-column">
-                    <%- include('partials/sidebar') %>
-                </aside>
-
-                <!-- Center Column: Feed -->
-                <main class="main-feed-column">
-                    <!-- 🔷 PREMIUM COMPOSER -->
-                    <div class="composer-card" onclick="openCreateModal()">
-                        <div class="composer-input-area">
-                            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="composer-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
-                            <div class="composer-prompt">What's on your mind?</div>
-                        </div>
-                        <div class="composer-actions">
-                            <div class="composer-btn"><i class="fas fa-image" style="color: #4CAF50;"></i> Photo</div>
-                            <div class="composer-btn"><i class="fas fa-video" style="color: #f44336;"></i> Video</div>
-                            <div class="composer-btn"><i class="fas fa-laugh" style="color: #FFC107;"></i> Feeling</div>
-                        </div>
+            <!-- Center Column: Feed -->
+            <main class="main-feed-column">
+                <!-- 🔷 PREMIUM COMPOSER -->
+                <div class="composer-card animate-scale-in" onclick="openCreateModal()">
+                    <div class="composer-input-area">
+                        <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="composer-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                        <div class="composer-prompt">What's on your mind, <%= user.name.split(' ')[0] %>?</div>
                     </div>
-
-                    <!-- 🔷 STORIES ROW (Facebook Style) -->
-                    <div class="stories-section">
-                        <div class="stories-container" id="afterglowStories">
-                            <div class="stories-scroll">
-                            <!-- Instagram Style Custom Upload Button -->
-                            <div class="story-card story-add" onclick="openAfterglowModal()">
-                                <div class="plus-icon"><i class="fas fa-plus"></i></div>
-                                <div style="font-size:0.75rem; font-weight:600;">Afterglow</div>
-                            </div>
-
-                            <!-- Server Stories -->
-                            <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
-                                <% stories.forEach(storyGroup=> { %>
-                                    <% const firstStory=storyGroup.stories[0]; %>
-                                    <div class="story-card" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
-                                        <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
-                                            class="story-media" onerror="this.src='/uploads/avatars/default.png';">
-                                        <div class="story-gradient"></div>
-                                        <% if (storyGroup.stories.length> 1) { %>
-                                            <div class="story-multi-badge-fb"><%= storyGroup.stories.length %></div>
-                                        <% } %>
-                                        <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>" class="story-avatar" style="background: #eee;" onerror="this.src='/uploads/avatars/default.png'">
-                                        <div class="story-name"><%= storyGroup.username %></div>
-                                    </div>
-                                <% }); %>
-                            <% } %>
-                            </div>
-                        </div>
+                    <div class="composer-actions">
+                        <div class="composer-btn"><i class="fas fa-image" style="color: var(--success);"></i> Photo</div>
+                        <div class="composer-btn"><i class="fas fa-video" style="color: var(--accent);"></i> Video</div>
+                        <div class="composer-btn"><i class="fas fa-laugh" style="color: var(--warning);"></i> Feeling</div>
                     </div>
+                </div>
 
-                    <!-- Premium Feed Container -->
-                    <div class="feed-container" id="feed">
-
-                        <!-- 🔷 MOCK TEXT POST (Demo) -->
-                        <div class="post-card" data-post-id="mock-001">
-                            <div class="post-header">
-                                <img src="/uploads/avatars/default.png" class="post-avatar" style="background:#eee;" onerror="this.src='/uploads/avatars/default.png'">
-                                <div class="post-author-info">
-                                    <div class="author-name-row">
-                                        <span class="author-name">Sparkle CEO</span>
-                                        <i class="fas fa-check-circle verified-badge"></i>
-                                        <span class="campus-badge">Nairobi Campus</span>
-                                    </div>
-                                    <div class="post-meta">3d ago • Campus Post</div>
-                                </div>
-                                <button class="post-menu-btn">
-                                    <i class="fas fa-ellipsis-h"></i>
-                                </button>
+                <!-- 🔷 STORIES ROW (AFTERGLOW) -->
+                <div class="stories-section animate-fade-in" style="animation-delay: 0.1s;">
+                    <div class="stories-container" id="afterglowStories">
+                        <!-- Instagram Style Custom Upload Button -->
+                        <div class="story-card story-add" onclick="openAfterglowModal()">
+                            <div class="story-add-bg">
+                                <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" class="story-media" style="filter: blur(5px) brightness(0.7);">
                             </div>
-                            <div class="post-content">
-                                <div class="post-text">
-                                    Happy Birthday @Naty Leila! 🎂🎉 Wishing you endless joy, success, and all the love in the world. May this year be your best one yet! 🎈🌟 <a href="/dashboard/hashtag/HBD" class="hashtag">#HBD</a> <a href="/dashboard/hashtag/Sparkle" class="hashtag">#Sparkle</a>
-                                </div>
-                            </div>
-                            <div class="post-actions">
-                                <div class="actions-left">
-                                    <button class="action-icon like-btn" onclick="event.stopPropagation(); window.toggleLikePremium('mock-001', this)">
-                                        <i class="far fa-heart"></i>
-                                    </button>
-                                    <button class="action-icon" onclick="event.stopPropagation()">
-                                        <i class="far fa-comment"></i>
-                                    </button>
-                                    <button class="action-icon" onclick="event.stopPropagation()">
-                                        <i class="far fa-paper-plane"></i>
-                                    </button>
-                                </div>
-                                <button class="action-icon save-btn" onclick="event.stopPropagation(); this.classList.toggle('bookmarked'); const i=this.querySelector('i'); i.classList.toggle('far'); i.classList.toggle('fas');">
-                                    <i class="far fa-bookmark"></i>
-                                </button>
-                            </div>
-                            <div class="post-stats">
-                                <div class="likes-count">2 likes</div>
-                            </div>
+                            <div class="plus-circle"><i class="fas fa-plus"></i></div>
+                            <div class="story-add-text">Afterglow</div>
                         </div>
-                        <!-- END MOCK POST -->
 
-                        <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
-                            <% feed.forEach(post=> { %>
-                                <%- include('partials/post-card', { post, user }) %>
+                        <!-- Server Stories -->
+                        <% if (typeof stories !=='undefined' && stories && stories.length> 0) { %>
+                            <% stories.forEach(storyGroup=> { %>
+                                <% const firstStory=storyGroup.stories[0]; %>
+                                <div class="story-card animate-scale-in" onclick="openStoryViewer('<%= storyGroup.user_id %>')">
+                                    <img src="<%= (firstStory && firstStory.media_url && firstStory.media_url !== 'undefined') ? firstStory.media_url : (storyGroup.avatar_url || '/uploads/avatars/default.png') %>"
+                                        class="story-media" onerror="this.src='/uploads/avatars/default.png';">
+                                    <div class="story-overlay"></div>
+                                    <% if (storyGroup.stories.length> 1) { %>
+                                        <div class="story-multi-badge-fb" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 800; z-index: 3;"><%= storyGroup.stories.length %></div>
+                                    <% } %>
+                                    <div class="story-avatar-wrapper">
+                                        <img src="<%= storyGroup.avatar_url || '/uploads/avatars/default.png' %>" class="story-avatar" onerror="this.src='/uploads/avatars/default.png'">
+                                    </div>
+                                    <div class="story-name"><%= storyGroup.username %></div>
+                                </div>
                             <% }); %>
-                            <div id="load-more-container" style="text-align: center; padding: 20px;">
-                                <button id="load-more-btn" onclick="loadMorePosts()" class="btn" style="background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
-                                    Load More Posts
-                                </button>
-                            </div>
-                        <% } else { %>
-                            <div class="glass" style="text-align:center; padding: 60px 40px; border-radius: 30px;">
-                                <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
-                                    <i class="fas fa-wind" style="font-size: 30px; color: var(--accent);"></i>
-                                </div>
-                                <h3 style="font-weight: 800; margin-bottom: 10px;">Your feed is quiet</h3>
-                                <p style="color: var(--text-muted); font-size: 14px;">Follow more students or share your own thoughts to start the spark!</p>
-                                <button onclick="window.showCreateOptions()" class="btn" style="margin-top: 25px; background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 15px; font-weight: 700; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
-                                    <i class="fas fa-plus"></i> Create Post
-                                </button>
-                            </div>
                         <% } %>
                     </div>
-                </main>
+                </div>
 
-                <!-- Right Column: Suggestions -->
-                <aside class="suggestions-column">
-                    <div class="suggestions-sidebar-card glass">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h4 style="font-weight: 800; font-size: 15px; margin: 0; color: var(--text-main);">Suggested for you</h4>
-                            <a href="/connect" style="font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none;">See All</a>
+                <!-- Premium Feed -->
+                <div class="feed-container" id="feed">
+                    <% if (typeof feed !=='undefined' && feed && feed.length> 0) { %>
+                        <% feed.forEach((post, index)=> { %>
+                            <div class="animate-fade-in" style="animation-delay: <%= 0.2 + (index * 0.1) %>s">
+                                <%- include('partials/post-card', { post, user }) %>
+                            </div>
+                        <% }); %>
+                        <div id="load-more-container" style="text-align: center; padding: 30px;">
+                            <button id="load-more-btn" onclick="loadMorePosts()" class="premium-btn">
+                                <i class="fas fa-sync-alt"></i> Load More Posts
+                            </button>
                         </div>
+                    <% } else { %>
+                        <div class="glass-card animate-scale-in" style="text-align:center; padding: 80px 40px; border-radius: 30px;">
+                            <div style="width: 100px; height: 100px; background: var(--bg-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px auto;">
+                                <i class="fas fa-wind" style="font-size: 40px; color: var(--primary);"></i>
+                            </div>
+                            <h2 style="font-weight: 800; margin-bottom: 12px;">Your feed is quiet</h2>
+                            <p style="color: var(--text-muted); font-size: 1rem; max-width: 300px; margin: 0 auto;">Follow more students or share your own thoughts to start the spark!</p>
+                            <button onclick="window.showCreateOptions()" class="premium-btn" style="margin-top: 30px;">
+                                <i class="fas fa-plus"></i> Create First Post
+                            </button>
+                        </div>
+                    <% } %>
+                </div>
+            </main>
 
-                        <div class="suggestions-list">
-                            <% if (typeof suggestions !=='undefined' && suggestions && suggestions.length> 0) { %>
-                                <% suggestions.forEach(suggestion=> { %>
-                                    <div class="suggestion-item" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                                        <div style="display: flex; align-items: center; gap: 12px; cursor: pointer;" onclick="window.location.href='/profile/<%= suggestion.user_id %>' ">
-                                            <img src="<%= suggestion.avatar_url || '/uploads/avatars/default.png' %>" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--accent);">
-                                            <div style="overflow: hidden; max-width: 120px;">
-                                                <div style="font-weight: 700; font-size: 13px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center;">
-                                                    <%= suggestion.username %>
-                                                    <%- include('partials/verified-badge', { id: suggestion.user_id }) %>
-                                                </div>
-                                                <div style="font-size: 11px; color: var(--text-muted);"><%= suggestion.campus || 'Sparkler' %></div>
+            <!-- Right Column: Suggestions -->
+            <aside class="suggestions-column animate-slide-in" style="animation-delay: 0.2s;">
+                <div class="sidebar-card">
+                    <div class="sidebar-title">
+                        <span>Suggested for you</span>
+                        <a href="/connect" style="font-size: 0.8rem; color: var(--primary);">See All</a>
+                    </div>
+
+                    <div class="suggestions-list">
+                        <% if (typeof suggestions !=='undefined' && suggestions && suggestions.length> 0) { %>
+                            <% suggestions.forEach(suggestion=> { %>
+                                <div class="suggestion-item">
+                                    <div style="display: flex; align-items: center; gap: 12px; cursor: pointer; flex: 1;" onclick="window.location.href='/profile/<%= suggestion.user_id %>' ">
+                                        <img src="<%= suggestion.avatar_url || '/uploads/avatars/default.png' %>" class="suggestion-avatar" style="border: 2px solid var(--border-light);">
+                                        <div style="overflow: hidden;">
+                                            <div class="suggestion-name">
+                                                <%= suggestion.username %>
+                                                <%- include('partials/verified-badge', { id: suggestion.user_id }) %>
                                             </div>
+                                            <div class="suggestion-meta"><%= suggestion.campus || 'Sparkler' %></div>
                                         </div>
-                                        <button class="follow-btn-suggestion" data-user-id="<%= suggestion.user_id %>" style="background: none; border: none; color: var(--accent); font-weight: 700; font-size: 12px; cursor: pointer; padding: 4px 8px;">Follow</button>
                                     </div>
-                                <% }); %>
-                            <% } else { %>
-                                <p style="font-size: 12px; color: var(--text-muted); text-align: center;">No new suggestions right now</p>
-                            <% } %>
-                        </div>
+                                    <button class="follow-btn-suggestion follow-btn" data-user-id="<%= suggestion.user_id %>">Follow</button>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 20px 0;">No suggestions right now</p>
+                        <% } %>
                     </div>
+                </div>
 
-                    <!-- NEW: Trending Pulse -->
-                    <div class="trending-card" style="margin-top: 20px;">
-                        <div class="trending-header">
+                <!-- Trending Pulse -->
+                <div class="sidebar-card trending-card animate-scale-in" style="animation-delay: 0.4s;">
+                    <div class="sidebar-title" style="color: white; margin-bottom: 25px;">
+                        <span style="display: flex; align-items: center; gap: 10px;">
                             <div class="pulse-dot"></div>
-                            <h4 style="font-weight: 800; font-size: 15px; margin: 0; color: var(--text-main);">Trending Pulse</h4>
-                        </div>
-                        <div class="trending-tags">
-                            <% if (typeof trendingHashtags !== 'undefined' && trendingHashtags && trendingHashtags.length > 0) { %>
-                                <% trendingHashtags.forEach(tag => { %>
-                                    <a href="/dashboard/hashtag/<%= tag.tag %>" class="trending-pill">
-                                        #<%= tag.tag %>
-                                        <span class="trending-count"><%= tag.count %></span>
-                                    </a>
-                                <% }); %>
-                            <% } else { %>
-                                <p style="font-size: 12px; color: var(--text-muted);">Stay tuned for trends...</p>
-                            <% } %>
-                        </div>
+                            Trending Pulse
+                        </span>
                     </div>
-                </aside>
-            </div>
+                    <div class="trending-tags" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                        <% if (typeof trendingHashtags !== 'undefined' && trendingHashtags && trendingHashtags.length > 0) { %>
+                            <% trendingHashtags.forEach(tag => { %>
+                                <a href="/dashboard/hashtag/<%= tag.tag %>" class="trending-pill">
+                                    #<%= tag.tag %>
+                                    <span style="font-size: 0.7rem; opacity: 0.8; margin-left: 4px;"><%= tag.count %></span>
+                                </a>
+                            <% }); %>
+                        <% } else { %>
+                            <p style="font-size: 0.85rem; opacity: 0.8;">Stay tuned for trends...</p>
+                        <% } %>
+                    </div>
+                </div>
+            </aside>
         </div>
-        
-        <!-- Mobile Messenger FAB -->
-        <a href="/messages" class="mobile-messenger-fab">
-            <i class="fas fa-comment-dots"></i>
-        </a>
     </div>
+    
+    <!-- Mobile Messenger FAB -->
+    <a href="/messages" class="mobile-messenger-fab animate-scale-in">
+        <i class="fas fa-comment-dots"></i>
+    </a>
+</div>
 
-        <!-- Scripts & Partials -->
-        <script src="/js/dashboard-interactions.js"></script>
-        <%- include('partials/dashboard-modals') %>
-            <%- include('partials/share-modal') %>
-                <%- include('partials/bottom-nav') %>
-                    <script type="module" src="/js/dynamicPatch/index.js"></script>
-                    <script src="/js/script.js"></script>
+<!-- Scripts & Partials -->
+<script src="/js/dashboard-interactions.js"></script>
+<%- include('partials/dashboard-modals') %>
+<%- include('partials/share-modal') %>
+<%- include('partials/bottom-nav') %>
+<script type="module" src="/js/dynamicPatch/index.js"></script>
+<script src="/js/script.js"></script>
 
-        <!-- SPEC v3: MODE B & C CONTAINERS -->
-        <div class="split-view" id="splitView">
-            <div class="post-preview" id="splitViewMedia"></div>
-            <div class="comments-panel">
-                <div class="comments-header">
-                    <h3 style="font-weight: 800; font-size: 16px;">Comments</h3>
-                    <button class="close-btn" onclick="window.closeCommentSplitView()" style="background:none; border:none; font-size: 20px; cursor:pointer;">✕</button>
-                </div>
-                <div class="comments-list" id="splitViewComments"></div>
-                <!-- Comment Input -->
-                <div style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px;">
-                    <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" style="width: 32px; height: 32px; border-radius: 50%;">
-                    <input type="text" id="splitViewInput" placeholder="Add a comment..." style="flex: 1; border: none; background: #f0f2f5; padding: 8px 15px; border-radius: 20px; outline: none; font-size: 14px;">
-                    <button onclick="window.submitSplitViewComment()" style="background: none; border: none; color: var(--accent); font-weight: 700; cursor: pointer;">Post</button>
-                </div>
-            </div>
+<!-- Spec v3: Mode Containers -->
+<div class="split-view" id="splitView">
+    <div class="post-preview" id="splitViewMedia"></div>
+    <div class="comments-panel glass-card">
+        <div class="comments-header" style="padding: 20px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-weight: 800;">Comments</h3>
+            <button class="close-btn" onclick="window.closeCommentSplitView()" style="background:none; border:none; font-size: 20px; cursor:pointer; color: var(--text-muted);">✕</button>
         </div>
-
-        <div class="image-viewer" id="imageViewer">
-            <div class="top-bar">
-                <i class="fas fa-times" onclick="window.closeImageViewer()"></i>
-                <div style="display: flex; gap: 20px;">
-                    <i class="fas fa-tag" onclick="window.openTagModal()"></i>
-                    <i class="fas fa-ellipsis-v" onclick="window.showViewerMenu()"></i>
-                </div>
-            </div>
-            <img class="full-image" id="viewerImageSrc">
-            <div class="image-stats" id="viewerStats">
-                <!-- Populated by JS -->
-            </div>
+        <div class="comments-list" id="splitViewComments" style="flex: 1; overflow-y: auto; padding: 20px;"></div>
+        <div class="comment-input-area" style="padding: 20px; border-top: 1px solid var(--border-light); display: flex; gap: 12px; align-items: center;">
+            <img src="<%= user.avatar_url || '/uploads/avatars/default.png' %>" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+            <input type="text" id="splitViewInput" placeholder="Add a comment..." style="flex: 1; border: none; background: var(--bg-main); padding: 12px 18px; border-radius: 25px; outline: none; font-size: 0.9rem; font-weight: 500;">
+            <button onclick="window.submitSplitViewComment()" style="background: none; border: none; color: var(--primary); font-weight: 800; cursor: pointer; font-size: 0.9rem;">Post</button>
         </div>
+    </div>
+</div>
 
-        </body>
-        </html>
+<div class="image-viewer" id="imageViewer">
+    <div class="top-bar" style="position: absolute; top: 0; left: 0; right: 0; padding: 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent); z-index: 10;">
+        <i class="fas fa-times" onclick="window.closeImageViewer()" style="color: white; font-size: 24px; cursor: pointer;"></i>
+        <div style="display: flex; gap: 25px; color: white; font-size: 20px;">
+            <i class="fas fa-tag" onclick="window.openTagModal()" style="cursor: pointer;"></i>
+            <i class="fas fa-ellipsis-v" onclick="window.showViewerMenu()" style="cursor: pointer;"></i>
+        </div>
+    </div>
+    <img class="full-image" id="viewerImageSrc" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+    <div class="image-stats" id="viewerStats" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent); color: white;">
+        <!-- Populated by JS -->
+    </div>
+</div>
+
+</body>
+</html>

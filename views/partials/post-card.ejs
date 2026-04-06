@@ -6,89 +6,80 @@
   const sparks = post.spark_count || post.sparks || 0;
   const comments = post.comment_count || post.comments || 0;
   
-  // Truncate logic for caption
   const bufCaption = post.content || post.caption || '';
   const finalCaption = (bufCaption && bufCaption !== 'undefined' && bufCaption !== 'null') ? bufCaption : '';
+
+  const actorId = post.user_id || post.actor_id;
+  const avatarAction = post.has_story ? `openStoryViewer('${actorId}')` : `window.location.href='/profile/${uname}'`;
 %>
 
-<div class="post-card" data-post-id="<%= pId %>">
+<div class="post-card animate-fade-in" data-post-id="<%= pId %>">
     <div class="post-header">
-        <img src="<%= avatar %>" class="post-avatar <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" style="cursor: pointer; background: #eee;" onclick="event.stopPropagation(); <%= post.has_story ? 'openStoryViewer(\'' + (post.user_id || post.actor_id) + '\')' : 'window.location.href=\'/profile/' + uname + '\'' %>" onerror="this.onerror=null; this.src='/uploads/avatars/default.png'">
-        <div class="post-author-info" style="cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
-            <div class="author-name-row">
-                <a href="/profile/<%= uname %>" class="author-name">
-                    <%= uname %>
-                </a>
+        <div class="post-avatar-wrapper" onclick="event.stopPropagation(); <%= avatarAction %>">
+            <img src="<%= avatar %>" class="post-avatar <%= post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : '' %>" onerror="this.src='/uploads/avatars/default.png'">
+        </div>
+        <div class="post-info" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'">
+            <div class="post-author-name">
+                <%= uname %>
                 <%- include('verified-badge', { id: post.user_id || post.actor_id }) %>
                 <% if (post.campus && post.campus !== 'undefined') { %>
-                    <span class="campus-badge"><%= post.campus %></span>
+                    <span class="campus-badge" style="background: var(--bg-main); color: var(--text-muted); font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; margin-left: 5px;"><%= post.campus %></span>
                 <% } %>
             </div>
+            <div class="post-meta"><%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %></div>
         </div>
-        <button class="post-menu-btn" onclick="event.stopPropagation()">
+        <button class="post-options">
             <i class="fas fa-ellipsis-h"></i>
         </button>
     </div>
 
     <% if (post.media_url && post.media_url !== 'undefined' && post.media_url !== 'null' && post.media_url.trim() !== '') { %>
-        <div class="post-media with-vignette" ondblclick="event.stopPropagation(); const btn = this.closest('.post-card').querySelector('.like-btn'); if(btn && !btn.classList.contains('active')) btn.click();">
+        <div class="post-media" ondblclick="event.stopPropagation(); const btn = this.closest('.post-card').querySelector('.like-btn'); if(btn && !btn.classList.contains('liked')) btn.click();">
             <% if (post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) { %>
-                <video src="<%= post.media_url %>" autoplay loop muted playsinline onclick="event.stopPropagation()"></video>
+                <video src="<%= post.media_url %>" autoplay loop muted playsinline></video>
             <% } else { %>
-                <img src="<%= post.media_url %>" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('<%= pId %>', '<%= post.media_url %>')" onerror="this.onerror=null; this.src='/uploads/posts/default.png'">
+                <img src="<%= post.media_url %>" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('<%= pId %>', '<%= post.media_url %>')" onerror="this.src='/uploads/posts/default.png'">
             <% } %>
         </div>
     <% } %>
 
     <div class="post-content">
         <% if (finalCaption) { %>
-            <div class="post-text caption">
-                <span style="font-weight: 600; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'"><%= uname %></span>
-                <% if (finalCaption.length > 100) { %>
-                    <span class="short-text">
-                        <%- finalCaption.slice(0, 100).replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag" onclick="event.stopPropagation()">#$1</a>') %>
-                    </span>
-                    <span class="full-text hidden">
-                        <%- finalCaption.replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag" onclick="event.stopPropagation()">#$1</a>') %>
-                    </span>
-                    <span class="toggle-text" style="color: #888; cursor: pointer; font-weight: 500;" onclick="event.stopPropagation(); const p=this.parentElement; p.querySelector('.short-text').classList.toggle('hidden'); p.querySelector('.full-text').classList.toggle('hidden'); this.textContent = this.textContent === '... more' ? ' less' : '... more';">... more</span>
-                <% } else { %>
-                    <span class="short-text">
-                        <%- finalCaption.replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag" onclick="event.stopPropagation()">#$1</a>') %>
-                    </span>
-                <% } %>
+            <div class="post-text <%= finalCaption.length > 150 ? 'truncated' : '' %>">
+                <strong style="margin-right: 6px; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/<%= uname %>'"><%= uname %></strong>
+                <%- finalCaption.replace(/#(\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag">#$1</a>') %>
             </div>
+            <% if (finalCaption.length > 150) { %>
+                <button class="read-more-btn" onclick="event.stopPropagation(); this.previousElementSibling.classList.toggle('truncated'); this.remove();">
+                    ... more
+                </button>
+            <% } %>
         <% } %>
     </div>
-    
+
     <div class="post-actions">
         <div class="actions-left">
-            <button class="action-icon like-btn <%= isSparked ? 'active' : '' %>" onclick="event.stopPropagation(); window.toggleLikePremium('<%= pId %>', this)">
+            <button class="action-btn like-btn <%= isSparked ? 'liked' : '' %>" onclick="event.stopPropagation(); window.toggleLikePremium('<%= pId %>', this)">
                 <i class="<%= isSparked ? 'fas' : 'far' %> fa-heart"></i>
             </button>
-            <button class="action-icon comment-btn" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
+            <button class="action-btn" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
                 <i class="far fa-comment"></i>
             </button>
-            <button class="action-icon share-btn" onclick="event.stopPropagation(); window.sharePost('<%= pId %>')">
+            <button class="action-btn" onclick="event.stopPropagation(); window.sharePost('<%= pId %>')">
                 <i class="far fa-paper-plane"></i>
             </button>
         </div>
-        <button class="action-icon save-btn" onclick="event.stopPropagation(); this.classList.toggle('bookmarked'); const i = this.querySelector('i'); i.classList.toggle('far'); i.classList.toggle('fas');">
-            <i class="far fa-bookmark"></i>
-        </button>
+        <div class="actions-right">
+            <button class="action-btn">
+                <i class="far fa-bookmark"></i>
+            </button>
+        </div>
     </div>
 
     <div class="post-stats">
-        <div class="likes-count"><%= sparks %> likes</div>
-        <div class="timestamp">
-            <%= typeof timeAgo !== 'undefined' ? timeAgo(post.created_at) : 'recently' %>
-        </div>
+        <span onclick="event.stopPropagation(); showSparksModal('<%= pId %>')"><%= sparks %> sparks</span>
+        <% if (comments > 0) { %>
+            <span onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">View all <%= comments %> comments</span>
+        <% } %>
     </div>
-
-    <% if (comments > 0) { %>
-        <div class="view-comments-link" onclick="event.stopPropagation(); window.openCommentSplitView('<%= pId %>')">
-            View all <%= comments %> comments
-        </div>
-    <% } %>
-
 </div>

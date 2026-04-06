@@ -394,23 +394,21 @@ window.createPostElement = function (post) {
 
     const postId = post.post_id || post.id;
     const postEl = document.createElement('div');
-    postEl.className = 'post';
+    postEl.className = 'post-card animate-fade-in';
     postEl.dataset.postId = postId;
 
-    const displayTime = (post.created_at || post.timestamp) ? timeAgo(post.created_at || post.timestamp) : 'Just now';
+    const displayTime = (post.created_at || post.timestamp) ? timeAgo(post.created_at || post.timestamp) : 'recently';
     
-    // BETTER CAPTION CHECK
     let bufCaption = post.content || post.caption || '';
     if (!bufCaption || bufCaption === 'undefined' || bufCaption === 'null') bufCaption = '';
-    const fullCaption = bufCaption;
+    const finalCaption = bufCaption;
 
-    const isLiked = post.isLiked || post.user_has_liked || post.is_sparked || false;
+    const isSparked = post.isLiked || post.user_has_liked || post.is_sparked || false;
     const sparks = parseInt(post.sparks || post.spark_count || 0);
     const commentsCount = parseInt(post.comments || post.comment_count || 0);
 
-    const username = post.isAnonymous ? 'Anonymous Student' : (post.name || post.username || post.user_name || 'Sparkler');
+    const username = post.isAnonymous ? 'Anonymous Student' : (post.name || post.username || post.user_name || 'sparkler');
     
-    // BETTER AVATAR URL RESOLUTION (Spec v5: Prioritize profilePic)
     const rawAvatar = (post.userId && post.userId.profilePic) ? post.userId.profilePic : (post.avatar || post.avatar_url);
     const avatarUrl = (typeof DashboardAPI !== 'undefined' && DashboardAPI.ensureUrl) 
         ? DashboardAPI.ensureUrl(rawAvatar) 
@@ -420,97 +418,95 @@ window.createPostElement = function (post) {
         ? DashboardAPI.ensureUrl(post.media || post.media_url)
         : (post.media || post.media_url || null);
 
-    // MANDATORY FALLBACK
-    const avatarFallback = "this.onerror=null; this.src='/uploads/avatars/default.png';";
+    const avatarAction = post.has_story ? `openStoryViewer('${post.user_id || post.userId?.id || ''}')` : `window.location.href='/profile/${username}'`;
 
-    // 1. POST HEADER (SPEC v5: Use profilePic from Cloudinary)
+    // 1. POST HEADER (Premium v3)
     const headerHtml = `
         <div class="post-header">
-            <div class="avatar-wrapper" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id || post.userId?.id || ''}'">
-                <img src="${avatarUrl}" class="avatar" onerror="${avatarFallback}">
+            <div class="post-avatar-wrapper" onclick="event.stopPropagation(); ${avatarAction}">
+                <img src="${avatarUrl}" class="post-avatar ${post.has_story ? (post.story_viewed ? 'story-viewed' : 'story-ring') : ''}" onerror="this.src='/uploads/avatars/default.png'">
             </div>
-            <div class="user-info" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id || post.userId?.id || ''}'">
-                <div class="username" style="color:#262626; font-weight:600;">${username}</div>
-                ${(post.campus && post.campus !== 'undefined') ? `<div class="meta" style="color:#8e8e8e; font-size:11px;">${post.campus}</div>` : ''}
+            <div class="post-info" onclick="event.stopPropagation(); window.location.href='/profile/${username}'">
+                <div class="post-author-name">
+                    ${username}
+                    ${post.verified ? '<span class="verified-badge"><i class="fas fa-check"></i></span>' : ''}
+                    ${(post.campus && post.campus !== 'undefined') ? `<span class="campus-badge" style="background: var(--bg-main); color: var(--text-muted); font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; margin-left: 5px;">${post.campus}</span>` : ''}
+                </div>
+                <div class="post-meta">${displayTime}</div>
             </div>
-            <button class="options-btn" style="background:none; border:none; color:#262626; cursor:pointer;" onclick="event.stopPropagation(); window.showPostMenu('${postId}', this)">
+            <button class="post-options">
                 <i class="fas fa-ellipsis-h"></i>
             </button>
         </div>
     `;
 
-    // 5. CAPTION (SPEC v5: Show 'See More' if > 100 chars)
-    let captionHtml = '';
-    if (fullCaption) {
-        const safeCaps = fullCaption.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" style="color:var(--insta-blue); text-decoration:none;" onclick="event.stopPropagation()">#$1</a>');
-        captionHtml = `<div class="post-caption-wrap caption"><span style="font-weight: 600; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/${post.user_id || post.userId?.id || ''}'">${username}</span> `;
-        if (fullCaption.length > 100) {
-            captionHtml += `
-                <span class="short-text">${safeCaps.substring(0, 100)}</span>
-                <span class="full-text hidden">${safeCaps}</span>
-                <span class="toggle-text" style="color: #888; cursor: pointer; font-weight: 500;" onclick="event.stopPropagation(); const p=this.parentElement; p.querySelector('.short-text').classList.toggle('hidden'); p.querySelector('.full-text').classList.toggle('hidden'); this.textContent = this.textContent === '... more' ? ' less' : '... more';">... more</span>
-            `;
-        } else {
-            captionHtml += `<span class="short-text">${safeCaps}</span>`;
-        }
-        captionHtml += `</div>`;
-    }
-
-    // 3. IMAGE / VIDEO (SPEC v5: Feed = IMAGES ONLY, Videos -> Moments Card)
+    // 3. MEDIA (Premium v3)
     let mediaHtml = '';
     if (mediaUrl) {
         const isVideo = mediaUrl.match(/\.(mp4|webm|ogg|mov|m4v)$/i);
         if (isVideo) {
             mediaHtml = `
-                <div class="moments-feed-card" onclick="event.stopPropagation(); window.location.href='/moments'" style="position:relative; cursor:pointer; border-radius:12px; overflow:hidden; margin:10px; background:#000; aspect-ratio:9/16; max-height:400px; display:flex; align-items:center; justify-content:center;">
-                    <video src="${mediaUrl}" style="width:100%; height:100%; object-fit:cover; opacity:0.6;" muted playsinline></video>
-                    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; background:rgba(0,0,0,0.2);">
-                        <div style="background:var(--accent-pink); padding:4px 12px; border-radius:20px; font-weight:800; font-size:11px; margin-bottom:12px; box-shadow:0 4px 15px rgba(255,45,85,0.4);">MOMENTS</div>
-                        <i class="fas fa-play-circle" style="font-size:48px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5));"></i>
-                        <span style="font-size:13px; font-weight:700; margin-top:12px; text-shadow:0 2px 4px rgba(0,0,0,0.5);">Watch on Moments</span>
-                    </div>
+                <div class="post-media">
+                    <video src="${mediaUrl}" autoplay loop muted playsinline></video>
                 </div>`;
         } else {
-            mediaHtml = `<div class="post-media-container" ondblclick="event.stopPropagation(); const btn = this.closest('.post').querySelector('.like-btn'); if(btn && !btn.classList.contains('active')) btn.click();" style="background:#000; display:flex; align-items:center; justify-content:center;">
-                            <img src="${mediaUrl}" class="post-image" style="width:100%; height:auto; object-fit:contain;" onclick="event.stopPropagation(); window.openImageViewer('${postId}', '${mediaUrl}')">
-                         </div>`;
+            mediaHtml = `
+                <div class="post-media" ondblclick="event.stopPropagation(); const btn = this.closest('.post-card').querySelector('.like-btn'); if(btn && !btn.classList.contains('liked')) btn.click();">
+                    <img src="${mediaUrl}" loading="lazy" onclick="event.stopPropagation(); window.openImageViewer('${postId}', '${mediaUrl}')" onerror="this.src='/uploads/posts/default.png'">
+                </div>`;
         }
     }
 
-    // 4. ENGAGEMENT SUMMARY - Standard Likes
-    let likesHtml = `<div class="post-likes">`;
-    likesHtml += `${sparks} likes`;
-    likesHtml += `</div>`;
-
-    // 6. COMMENTS + TIMESTAMP
-    let footerHtml = '';
-    if (commentsCount > 0) {
-        footerHtml += `<div class="post-view-comments" onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">View all ${commentsCount} comments</div>`;
-    }
-    footerHtml += `<div class="post-timestamp">${displayTime}</div>`;
-
+    // 4. ACTIONS (Premium v3)
     const actionsHtml = `
-        <div class="post-actions dark">
-            <div class="left-actions">
-                <button class="icon-btn like-btn ${isLiked ? 'active' : ''}" onclick="event.stopPropagation(); window.toggleSpark('${postId}', this)">
-                    <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+        <div class="post-actions">
+            <div class="actions-left">
+                <button class="action-btn like-btn ${isSparked ? 'liked' : ''}" onclick="event.stopPropagation(); window.toggleLikePremium('${postId}', this)">
+                    <i class="${isSparked ? 'fas' : 'far'} fa-heart"></i>
                 </button>
-                <button class="icon-btn comment-btn" onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">
+                <button class="action-btn" onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">
                     <i class="far fa-comment"></i>
                 </button>
-                <button class="icon-btn share-btn" onclick="event.stopPropagation(); window.sharePost('${postId}')">
+                <button class="action-btn" onclick="event.stopPropagation(); window.sharePost('${postId}')">
                     <i class="far fa-paper-plane"></i>
                 </button>
             </div>
-            <div class="right-actions">
-                <button class="icon-btn save-btn" onclick="event.stopPropagation(); this.classList.toggle('active'); const i = this.querySelector('i'); i.classList.toggle('far'); i.classList.toggle('fas');">
+            <div class="actions-right">
+                <button class="action-btn">
                     <i class="far fa-bookmark"></i>
                 </button>
             </div>
         </div>
     `;
 
-    postEl.innerHTML = headerHtml + mediaHtml + '<div class="post-bottom-container">' + actionsHtml + likesHtml + captionHtml + footerHtml + '</div>';
+    // 5. STATS & CONTENT (Premium v3)
+    let statsHtml = `
+        <div class="post-stats">
+            <span onclick="event.stopPropagation(); showSparksModal('${postId}')">${sparks} sparks</span>
+            ${commentsCount > 0 ? `<span onclick="event.stopPropagation(); window.openCommentSplitView('${postId}')">View all ${commentsCount} comments</span>` : ''}
+        </div>
+    `;
+
+    let captionHtml = '';
+    if (finalCaption) {
+        const safeCaps = finalCaption.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/#(\\w+)/g, '<a href="/dashboard/hashtag/$1" class="hashtag">#$1</a>');
+        captionHtml = `
+            <div class="post-content">
+                <div class="post-text">
+                    <strong style="margin-right: 6px; cursor: pointer;" onclick="event.stopPropagation(); window.location.href='/profile/${username}'">${username}</strong>
+                    ${finalCaption.length > 120 ? `
+                        <span class="caption-truncated">
+                            ${safeCaps.substring(0, 120)}
+                            <span class="read-more" style="color: var(--text-muted); cursor: pointer;" onclick="event.stopPropagation(); this.parentElement.classList.add('hidden'); this.parentElement.nextElementSibling.classList.remove('hidden');">... more</span>
+                        </span>
+                        <span class="caption-full hidden">${safeCaps}</span>
+                    ` : safeCaps}
+                </div>
+            </div>
+        `;
+    }
+
+    postEl.innerHTML = headerHtml + mediaHtml + captionHtml + actionsHtml + statsHtml;
     return postEl;
 };
 

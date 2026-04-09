@@ -23,7 +23,6 @@ import SellItem from './pages/SellItem';
 import SellerProfile from './pages/SellerProfile';
 import Wishlist from './pages/Wishlist';
 import SkillMarket from './pages/SkillMarket';
-import Landing from './pages/Landing';
 import Signup from './pages/Signup';
 import Orders from './pages/Orders';
 import MyListings from './pages/MyListings';
@@ -67,7 +66,7 @@ function App() {
         <GlobalEffects />
         <Routes>
           {/* ── Phase 1: Auth & Core ── */}
-          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Landing />} />
+          <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
           <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />

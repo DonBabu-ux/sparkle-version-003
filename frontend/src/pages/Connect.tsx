@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Search, UserPlus, TrendingUp, Users, UserCheck } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
@@ -57,22 +56,6 @@ export default function Connect() {
     }
   };
 
-  const handleFollow = async (_userId: string, isFollowed: boolean) => {
-    try {
-      if (isFollowed) {
-        await api.delete(`/social/follow/${userId}`);
-      } else {
-        await api.post(`/social/follow/${userId}`);
-      }
-      setUsers(prev => prev.map(u => {
-        const uid = u.user_id || u.id;
-        if (uid === userId) return { ...u, is_followed: !isFollowed };
-        return u;
-      }));
-    } catch (err) {
-      console.error('Follow error:', err);
-    }
-  };
 
   const getTabIcon = (tab: string) => {
     switch (tab) {

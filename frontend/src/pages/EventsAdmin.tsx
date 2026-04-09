@@ -4,14 +4,12 @@ import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { Calendar, Users, QrCode, Power, Settings, Plus, Camera, Check, X, Bell, Trash2, Edit } from 'lucide-react';
-import { useSocket } from '../hooks/useSocket';
 
 export default function EventsAdmin() {
   const { user } = useUserStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetEventId = searchParams.get('id');
-  const _socket = useSocket();
 
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

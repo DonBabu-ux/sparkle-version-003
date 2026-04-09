@@ -5,7 +5,6 @@ import Navbar from '../components/Navbar';
 import NewChatModal from '../components/modals/NewChatModal';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
 
 export default function Messages() {
   const { user } = useUserStore();
@@ -230,11 +229,6 @@ export default function Messages() {
     }
   };
 
-  const _startVoiceNote = () => {
-    setIsRecordingVoice(true);
-    setVoiceRecordTime(0);
-    voiceTimerRef.current = setInterval(() => setVoiceRecordTime(prev => prev + 1), 1000);
-  };
 
   const cancelVoiceNote = () => {
     setIsRecordingVoice(false);

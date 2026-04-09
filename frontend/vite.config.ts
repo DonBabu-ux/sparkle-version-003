@@ -85,7 +85,7 @@ export default defineConfig({
         configure: (proxy) => {
           proxy.on('error', (err, _req, res) => {
             console.warn('[Vite Proxy] Backend not ready:', err.message);
-            if (!res.headersSent) {
+            if (!(res as any).headersSent) {
               (res as any).writeHead(503, { 'Content-Type': 'application/json' });
               (res as any).end(JSON.stringify({ success: false, message: 'Backend is restarting, please retry.' }));
             }

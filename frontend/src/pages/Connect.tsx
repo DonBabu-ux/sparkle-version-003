@@ -22,7 +22,6 @@ interface DiscoverUser {
 }
 
 export default function Connect() {
-  const navigate = useNavigate();
   const [users, setUsers] = useState<DiscoverUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Suggested');
@@ -58,7 +57,7 @@ export default function Connect() {
     }
   };
 
-  const handleFollow = async (userId: string, isFollowed: boolean) => {
+  const handleFollow = async (_userId: string, isFollowed: boolean) => {
     try {
       if (isFollowed) {
         await api.delete(`/social/follow/${userId}`);

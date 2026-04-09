@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { ArrowLeft, Check, Star, Paperclip, AlertCircle, ShoppingBag, Send } from 'lucide-react';
+import { ArrowLeft, Check, Star, AlertCircle, ShoppingBag, Send } from 'lucide-react';
 
 export default function SellerProfile() {
   const { id } = useParams();

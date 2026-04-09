@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import NewChatModal from '../components/modals/NewChatModal';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck, Plus } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function Messages() {
   const { user } = useUserStore();
@@ -32,7 +32,7 @@ export default function Messages() {
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const [showChatSettings, setShowChatSettings] = useState(false);
   const [disappearingDuration, setDisappearingDuration] = useState(0);
-  const [showFabMenu, setShowFabMenu] = useState(false);
+  const [_showFabMenu, _setShowFabMenu] = useState(false);
   const [chatWallpaper, setChatWallpaper] = useState('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -230,7 +230,7 @@ export default function Messages() {
     }
   };
 
-  const startVoiceNote = () => {
+  const _startVoiceNote = () => {
     setIsRecordingVoice(true);
     setVoiceRecordTime(0);
     voiceTimerRef.current = setInterval(() => setVoiceRecordTime(prev => prev + 1), 1000);

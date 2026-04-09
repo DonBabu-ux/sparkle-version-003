@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 
 interface UseInfiniteScrollProps {
   loading: boolean;

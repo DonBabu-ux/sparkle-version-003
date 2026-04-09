@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { MessageSquare, ShoppingBag, ShieldAlert, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Hammer, Zap, Star, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Hammer, Zap, Star, ShieldCheck, ChevronRight } from 'lucide-react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 

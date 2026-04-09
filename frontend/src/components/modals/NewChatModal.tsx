@@ -9,8 +9,7 @@ interface NewChatModalProps {
   onChatSelected: (chatId: string) => void;
 }
 
-export default function NewChatModal({ isOpen, onClose, defaultTab = 'new', onChatSelected }: NewChatModalProps) {
-  const { user } = useUserStore();
+export default function NewChatModal({ isOpen, onClose, defaultTab = 'new' }: NewChatModalProps) {
   const [tab, setTab] = useState<'new' | 'group'>(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);

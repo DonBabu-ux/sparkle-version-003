@@ -6,8 +6,6 @@ import Navbar from '../components/Navbar';
 import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, Ban, Trash2, CheckCircle } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { user } = useUserStore();
-  const navigate = useNavigate();
   
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);

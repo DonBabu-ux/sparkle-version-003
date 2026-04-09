@@ -11,7 +11,7 @@ export default function EventsAdmin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetEventId = searchParams.get('id');
-  const socket = useSocket();
+  const _socket = useSocket();
 
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

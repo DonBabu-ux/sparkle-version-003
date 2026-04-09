@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import PostCard from '../components/PostCard';

@@ -1,0 +1,191 @@
+============================================================
+  SPARKLE PLATFORM - REACT MIGRATION PHASE PLAN
+  Reference: migration-v1.txt
+============================================================
+
+LEGEND:
+  [DONE]    - Already exists as a React component in frontend/src/pages/
+  [PHASE N] - Scheduled for migration in Phase N
+  [SKIP]    - Not needed in React (dev tools / email templates / partials)
+
+============================================================
+CURRENT REACT STATUS (As of migration start)
+============================================================
+
+  frontend/src/pages/
+  ├── AdminDashboard.tsx   [DONE]
+  ├── Confessions.tsx      [DONE]
+  ├── CreateGroup.tsx      [DONE]
+  ├── Dashboard.tsx        [DONE]
+  ├── GroupAdmin.tsx       [DONE]
+  ├── GroupDetail.tsx      [DONE]
+  ├── Groups.tsx           [DONE]
+  ├── ListingDetail.tsx    [DONE]
+  ├── Login.tsx            [DONE]
+  ├── Marketplace.tsx      [DONE]
+  ├── Messages.tsx         [DONE]
+  ├── Notifications.tsx    [DONE]
+  ├── PostDetail.tsx       [DONE]
+  ├── Profile.tsx          [DONE]
+  ├── Search.tsx           [DONE]
+  ├── SellItem.tsx         [DONE]
+  ├── Settings.tsx         [DONE]
+  ├── SkillMarket.tsx      [DONE]
+  ├── StoryViewer.tsx      [DONE]
+  └── Wishlist.tsx         [DONE]
+
+============================================================
+VIEWS FOLDER -> REACT MIGRATION MAP
+============================================================
+
+views/index.ejs            --> [PHASE 1] Landing.tsx        (Public home/splash page)
+views/auth/login.ejs       --> [DONE]    Login.tsx
+views/auth/signup.ejs      --> [PHASE 1] Signup.tsx         (Missing Signup page)
+views/dashboard.ejs        --> [DONE]    Dashboard.tsx
+views/profile.ejs          --> [DONE]    Profile.tsx
+views/messages.ejs         --> [DONE]    Messages.tsx
+views/notifications.ejs    --> [DONE]    Notifications.tsx
+views/search.ejs           --> [DONE]    Search.tsx
+views/settings.ejs         --> [DONE]    Settings.tsx
+views/confessions.ejs      --> [DONE]    Confessions.tsx
+views/post.ejs             --> [DONE]    PostDetail.tsx
+views/groups.ejs           --> [DONE]    Groups.tsx
+views/group-detail.ejs     --> [DONE]    GroupDetail.tsx
+views/marketplace.ejs      --> [DONE]    Marketplace.tsx
+views/skill-marketplace.ejs --> [DONE]   SkillMarket.tsx
+views/clubs.ejs            --> [PHASE 2] Clubs.tsx          (Club discovery & list)
+views/club-detail.ejs      --> [PHASE 2] ClubDetail.tsx     (Individual club page)
+views/events.ejs           --> [PHASE 2] Events.tsx         (Campus events list)
+views/events-admin.ejs     --> [PHASE 2] EventsAdmin.tsx    (Event management)
+views/connect.ejs          --> [PHASE 2] Connect.tsx        (Discover & follow people)
+views/follow-requests.ejs  --> [PHASE 2] FollowRequests.tsx (Pending follow requests)
+views/moments.ejs          --> [PHASE 3] Moments.tsx        (Stories/moments feed)
+views/moment-detail.ejs    --> [PHASE 3] MomentDetail.tsx   (Single moment view)
+views/create-moment.ejs    --> [PHASE 3] CreateMoment.tsx   (Upload a new moment)
+views/polls.ejs            --> [PHASE 3] Polls.tsx          (Active campus polls)
+views/poll-detail.ejs      --> [PHASE 3] PollDetail.tsx     (Vote on a single poll)
+views/hashtag.ejs          --> [PHASE 3] Hashtag.tsx        (Posts by hashtag)
+views/lost-found.ejs       --> [PHASE 4] LostFound.tsx      (Lost & found board)
+views/streams.ejs          --> [PHASE 4] Streams.tsx        (Live streams viewer)
+views/professional-dashboard.ejs --> [PHASE 4] Professional.tsx (Professional mode)
+views/support.ejs          --> [PHASE 4] Support.tsx        (Help & support page)
+views/about.ejs            --> [PHASE 5] About.tsx          (Public about page)
+views/admin/               --> [PHASE 5] AdminPanel.tsx     (Extended admin routes)
+views/404.ejs              --> [PHASE 5] NotFound.tsx       (404 error page)
+views/error.ejs            --> [PHASE 5] ErrorPage.tsx      (General error page)
+views/api-tester.ejs       --> [SKIP]    Dev/debug tool only
+views/cache-buster.ejs     --> [SKIP]    Dev/debug tool only
+views/groups-prototype.ejs --> [SKIP]    Prototype draft
+views/emails/              --> [SKIP]    Server-side email templates (stay in backend)
+views/partials/            --> [SKIP]    Now replaced by React components
+
+============================================================
+PHASE BREAKDOWN
+============================================================
+
+--------------------------------------------------------------
+PHASE 1 - Foundation Gaps (Priority: CRITICAL)
+--------------------------------------------------------------
+Goal: Seal any missing entry points in the auth flow.
+
+Pages:
+  1. Landing.tsx   (views/index.ejs)
+     - Public splash page with hero section, features, CTA to Sign Up/Login
+     - No auth required
+     - API: None (static)
+
+  2. Signup.tsx    (views/auth/signup.ejs)
+     - Full registration form: Name, Email, Username, Password, Campus
+     - On success: stores JWT, redirects to /dashboard
+     - API: POST /api/auth/register
+
+Routes to add in App.tsx:
+  /         --> Landing.tsx (public)
+  /signup   --> Signup.tsx  (public)
+
+--------------------------------------------------------------
+PHASE 2 - Social & Community (Priority: HIGH)
+--------------------------------------------------------------
+Goal: Complete the social graph and campus community pages.
+
+Pages:
+  1. Clubs.tsx          (views/clubs.ejs)
+  2. ClubDetail.tsx     (views/club-detail.ejs)
+  3. Events.tsx         (views/events.ejs)
+  4. EventsAdmin.tsx    (views/events-admin.ejs)
+  5. Connect.tsx        (views/connect.ejs)
+  6. FollowRequests.tsx (views/follow-requests.ejs) - may merge into Notifications
+
+APIs:
+  GET /api/clubs
+  GET /api/clubs/:id
+  GET /api/events
+  GET /api/users/suggestions
+
+--------------------------------------------------------------
+PHASE 3 - Content & Discovery (Priority: MEDIUM)
+--------------------------------------------------------------
+Goal: Bring the dynamic content layers to life.
+
+Pages:
+  1. Moments.tsx        (views/moments.ejs)
+  2. MomentDetail.tsx   (views/moment-detail.ejs)
+  3. CreateMoment.tsx   (views/create-moment.ejs)
+  4. Polls.tsx          (views/polls.ejs)
+  5. PollDetail.tsx     (views/poll-detail.ejs)
+  6. Hashtag.tsx        (views/hashtag.ejs)
+
+APIs:
+  GET  /api/moments
+  POST /api/moments
+  GET  /api/moments/:id
+  GET  /api/polls
+  GET  /api/posts?hashtag=xyz
+
+--------------------------------------------------------------
+PHASE 4 - Commerce & Specialized Features (Priority: MEDIUM)
+--------------------------------------------------------------
+Goal: Round out the utility features of the platform.
+
+Pages:
+  1. LostFound.tsx      (views/lost-found.ejs)
+  2. Streams.tsx        (views/streams.ejs)
+  3. Professional.tsx   (views/professional-dashboard.ejs)
+  4. Support.tsx        (views/support.ejs)
+
+APIs:
+  GET /api/lost-found
+  POST /api/lost-found
+  GET /api/streams
+
+--------------------------------------------------------------
+PHASE 5 - Polish & Admin (Priority: LOW)
+--------------------------------------------------------------
+Goal: Production-ready shell pages and error handling.
+
+Pages:
+  1. About.tsx          (views/about.ejs)
+  2. NotFound.tsx       (views/404.ejs)   - Global 404 route in App.tsx
+  3. ErrorPage.tsx      (views/error.ejs) - Error Boundary fallback
+  4. Extended Admin UI  (views/admin/)
+
+============================================================
+SHARED COMPONENTS TO BUILD (Cross-Phase)
+============================================================
+
+  frontend/src/components/
+  ├── [DONE]   Navbar.tsx          - Left sidebar navigation
+  ├── [DONE]   PostCard.tsx        - Individual post item
+  ├── [DONE]   FollowRequestsOverlay.tsx
+  ├── [PHASE 1] AuthLayout.tsx    - Wrapper for Login/Signup pages
+  ├── [PHASE 2] ClubCard.tsx      - Reusable club display card
+  ├── [PHASE 2] EventCard.tsx     - Reusable event display card
+  ├── [PHASE 2] UserCard.tsx      - Suggestion / profile preview card
+  ├── [PHASE 3] MomentCard.tsx    - Stories/moment thumbnail card
+  ├── [PHASE 3] PollWidget.tsx    - Inline voting widget
+  ├── [PHASE 4] LostFoundCard.tsx - Lost & found item card
+  └── [PHASE 5] ErrorBoundary.tsx - [DONE] Global error handler
+
+============================================================
+END OF PLAN
+============================================================

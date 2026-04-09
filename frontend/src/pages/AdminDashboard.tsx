@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
+import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, Ban, Trash2, CheckCircle } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { user } = useUserStore();
@@ -14,25 +15,20 @@ export default function AdminDashboard() {
   const [content, setContent] = useState<any[]>([]);
 
   useEffect(() => {
-    // Basic protection (Backend will enforce)
-    // if (user?.user_role !== 'admin') {
-    //   navigate('/dashboard');
-    //   return;
-    // }
-
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get('/admin/stats');
-        setStats(response.data);
-      } catch (err) {
-        console.error('Failed to fetch admin stats:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStats();
-  }, [user, navigate]);
+  }, []);
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/admin/stats');
+      setStats(response.data);
+    } catch (err) {
+      console.error('Failed to fetch admin stats:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchTabData = async () => {
@@ -45,9 +41,9 @@ export default function AdminDashboard() {
 
       try {
         const response = await api.get(endpoint);
-        if (activeTab === 'log') setContent(response.data.logs);
-        else if (activeTab === 'users') setContent(response.data.users);
-        else if (activeTab === 'reports') setContent(response.data.reports || response.data.reportedItems);
+        if (activeTab === 'logs') setContent(response.data.logs || []);
+        else if (activeTab === 'users') setContent(response.data.users || []);
+        else if (activeTab === 'reports') setContent(response.data.reports || response.data.reportedItems || []);
         else setContent(response.data.data || []);
       } catch (err) {
         console.error(`Failed to fetch ${activeTab}:`, err);
@@ -57,139 +53,214 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9]">
+    <div className="page-wrapper">
       <Navbar />
-      
-      <main className="max-w-7xl mx-auto px-4 pb-20">
-        <div className="flex items-center justify-between mb-10">
-           <div className="flex items-center gap-4">
-             <div className="w-14 h-14 bg-rose-600 rounded-2xl shadow-xl shadow-rose-100 flex items-center justify-center text-white text-3xl">🛡️</div>
-             <div>
-               <h1 className="text-3xl font-black text-slate-900 tracking-tight">Admin Sanctum</h1>
-               <p className="text-xs font-black text-rose-500 uppercase tracking-widest mt-0.5">Control & Oversight</p>
-             </div>
-           </div>
-           
-           <div className="flex gap-2 bg-white p-2 rounded-2xl shadow-sm">
-              {['overview', 'users', 'reports', 'logs'].map(tab => (
-                <button 
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-           </div>
-        </div>
+      <main className="admin-layout">
+        <header className="admin-header">
+          <div className="header-identity">
+            <div className="admin-badge">
+              <Shield size={20} />
+              <span>CORE OVERSIGHT</span>
+            </div>
+            <h1>The Sanctum</h1>
+            <p>Maintain the light of the campus.</p>
+          </div>
+
+          <div className="admin-tabs-nav">
+            {['overview', 'users', 'reports', 'logs'].map(tab => (
+              <button 
+                key={tab} 
+                className={`admin-tab ${activeTab === tab ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === 'overview' && <BarChart3 size={16} />}
+                {tab === 'users' && <Users size={16} />}
+                {tab === 'reports' && <AlertCircle size={16} />}
+                {tab === 'logs' && <Clock size={16} />}
+                <span>{tab}</span>
+              </button>
+            ))}
+          </div>
+        </header>
 
         {loading ? (
-          <div className="h-96 flex flex-col items-center justify-center">
-             <div className="w-10 h-10 border-4 border-rose-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Accessing core metrics...</p>
-          </div>
+          <div className="admin-loader">Accessing core metrics...</div>
         ) : activeTab === 'overview' ? (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-               {[
-                 { label: 'Total Sparklers', value: stats?.users?.total || 0, icon: '👤', color: 'bg-blue-500' },
-                 { label: 'Active Spells', value: stats?.posts?.total || 0, icon: '✨', color: 'bg-indigo-500' },
-                 { label: 'Open Disputes', value: stats?.reports?.pending || 0, icon: '⚖️', color: 'bg-rose-500' },
-                 { label: 'Market Volume', value: stats?.marketplace?.total || 0, icon: '🛍️', color: 'bg-emerald-500' }
-               ].map(stat => (
-                 <div key={stat.label} className="premium-card bg-white border-white p-6 shadow-xl shadow-slate-200/50">
-                    <div className="flex items-start justify-between mb-4">
-                       <span className="text-sm font-black text-slate-400 uppercase tracking-widest">{stat.label}</span>
-                       <div className={`w-10 h-10 ${stat.color} rounded-xl flex items-center justify-center text-white text-xl shadow-lg`}>{stat.icon}</div>
-                    </div>
-                    <div className="text-3xl font-black text-slate-900">{stat.value.toLocaleString()}</div>
-                 </div>
-               ))}
-            </div>
+          <div className="overview-grid">
+            <section className="stats-row">
+              {[
+                { label: 'Sparklers', value: stats?.users?.total || 0, color: '#3b82f6', icon: <Users size={24} /> },
+                { label: 'Spells', value: stats?.posts?.total || 0, color: '#6366f1', icon: <Eye size={24} /> },
+                { label: 'Disputes', value: stats?.reports?.pending || 0, color: '#ef4444', icon: <AlertCircle size={24} /> },
+                { label: 'Market Vol.', value: stats?.marketplace?.total || 0, color: '#10b981', icon: <BarChart3 size={24} /> }
+              ].map(s => (
+                <div key={s.label} className="stat-box premium-card">
+                  <div className="stat-head">
+                    <span className="label">{s.label}</span>
+                    <div className="icon-wrap" style={{ background: s.color + '20', color: s.color }}>{s.icon}</div>
+                  </div>
+                  <div className="value">{s.value.toLocaleString()}</div>
+                </div>
+              ))}
+            </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-               <div className="premium-card bg-white min-h-[300px]">
-                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Recent Activity Pulse</h3>
-                  <div className="space-y-4">
-                     {stats?.recentActivity?.map((act: any, i: number) => (
-                       <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                          <p className="text-xs font-bold text-slate-600 flex-1">{act.message}</p>
-                          <span className="text-[9px] font-black text-slate-300 uppercase">{act.time}</span>
-                       </div>
-                     ))}
+            <div className="overview-details">
+              <div className="activity-feed premium-card">
+                <h3>Activity Pulse</h3>
+                <div className="feed-list">
+                  {stats?.recentActivity?.map((act: any, i: number) => (
+                    <div key={i} className="feed-item">
+                      <div className="dot"></div>
+                      <p className="msg">{act.message}</p>
+                      <span className="time">{act.time}</span>
+                    </div>
+                  ))}
+                  {!stats?.recentActivity?.length && <div className="empty">Quiet in the sector...</div>}
+                </div>
+              </div>
+
+              <div className="system-health premium-card">
+                <h3>System Integrity</h3>
+                <div className="health-metrics">
+                  <div className="m-row">
+                    <span>Database Resonance</span>
+                    <span className="status stable">STABLE</span>
                   </div>
-               </div>
-               <div className="premium-card bg-rose-900 border-none text-white shadow-2xl shadow-rose-200">
-                  <h3 className="text-sm font-black uppercase tracking-widest mb-6 opacity-60">System Integrity</h3>
-                  <div className="space-y-6">
-                     <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold">Database Resonance</span>
-                        <span className="text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg border border-emerald-500/30">Stable</span>
-                     </div>
-                     <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold">Uptime Cycle</span>
-                        <span className="text-[10px] font-black uppercase opacity-60">99.98%</span>
-                     </div>
-                     <div className="pt-6 border-t border-white/10">
-                        <p className="text-xs font-medium text-white/50 leading-relaxed italic">"The light of the campus must never fade. Maintain vigilance over all transmissions."</p>
-                     </div>
+                  <div className="m-row">
+                    <span>Uptime Cycle</span>
+                    <span className="val">99.98%</span>
                   </div>
-               </div>
+                  <blockquote className="m-quote">
+                    "The light of the campus must never fade. Maintain vigilance."
+                  </blockquote>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="premium-card bg-white p-0 overflow-hidden shadow-2xl shadow-slate-200 border-white">
-             <div className="max-h-[600px] overflow-y-auto">
-                <table className="w-full text-left border-collapse">
-                   <thead className="bg-slate-50 sticky top-0 z-10">
-                      <tr className="border-b border-slate-100">
-                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 font-black">Subject</th>
-                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 font-black">Status</th>
-                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 font-black">Timestamp</th>
-                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 font-black">Actions</th>
-                      </tr>
-                   </thead>
-                   <tbody>
-                      {content.length > 0 ? content.map((item, i) => (
-                         <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                            <td className="px-8 py-5">
-                               <div className="flex items-center gap-3">
-                                  {activeTab === 'users' ? (
-                                    <>
-                                      <img src={item.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-lg" alt="" />
-                                      <span className="text-xs font-bold text-slate-800">{item.name || item.username}</span>
-                                    </>
-                                  ) : (
-                                    <span className="text-xs font-bold text-slate-800 line-clamp-1">{item.title || item.type || item.action || 'Event'}</span>
-                                  )}
-                               </div>
-                            </td>
-                            <td className="px-8 py-5">
-                               <span className="text-[9px] font-black uppercase px-2 py-1 bg-slate-100 text-slate-500 rounded-lg">{item.status || 'Active'}</span>
-                            </td>
-                            <td className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                               {new Date(item.created_at || item.timestamp).toLocaleString()}
-                            </td>
-                            <td className="px-8 py-5">
-                               <button className="text-[10px] font-black text-rose-600 hover:text-rose-700 uppercase tracking-widest">Manage</button>
-                            </td>
-                         </tr>
-                      )) : (
-                        <tr>
-                           <td colSpan={4} className="py-20 text-center">
-                              <p className="text-xs font-black text-slate-300 uppercase tracking-widest italic">The registry is currently hollow...</p>
-                           </td>
-                        </tr>
-                      )}
-                   </tbody>
-                </table>
-             </div>
+          <div className="admin-table-container premium-card">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Timestamp</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {content.length > 0 ? content.map((item, i) => (
+                  <tr key={i}>
+                    <td>
+                      <div className="subject-cell">
+                        {activeTab === 'users' ? (
+                          <>
+                            <img src={item.avatar_url || '/uploads/avatars/default.png'} className="sub-img" alt="" />
+                            <div className="sub-info">
+                              <span className="name">{item.name || item.username}</span>
+                              <span className="meta">{item.email}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="sub-info">
+                            <span className="name">{item.title || item.type || item.action || 'Registry Entry'}</span>
+                            <span className="meta">{item.details || 'ID: '+ (item.id || item.listing_id || i)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-tag ${item.status?.toLowerCase() || 'active'}`}>
+                        {item.status || 'Active'}
+                      </span>
+                    </td>
+                    <td className="time">{new Date(item.created_at || item.timestamp).toLocaleDateString()}</td>
+                    <td>
+                      <div className="action-row">
+                        <button className="act-btn" title="Approve"><CheckCircle size={14} /></button>
+                        <button className="act-btn warn" title="Restrict"><Ban size={14} /></button>
+                        <button className="act-btn danger" title="Purge"><Trash2 size={14} /></button>
+                        <button className="act-btn"><MoreVertical size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={4} className="table-empty">
+                      The registry is currently hollow...
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </main>
+
+      <style>{`
+        .page-wrapper { display: flex; background: #f1f5f9; min-height: 100vh; }
+        .admin-layout { flex: 1; padding: 40px 20px 100px; max-width: 1200px; margin: 0 auto; }
+
+        .admin-header { margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; }
+        .admin-badge { display: flex; align-items: center; gap: 8px; background: #be123c; color: white; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 12px; width: fit-content; }
+        .admin-header h1 { font-size: 2.4rem; font-weight: 900; color: #0f172a; margin: 0 0 6px; letter-spacing: -1px; }
+        .admin-header p { color: #64748b; font-size: 1rem; margin: 0; }
+
+        .admin-tabs-nav { display: flex; background: white; padding: 6px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); }
+        .admin-tab { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 14px; border: none; background: transparent; color: #94a3b8; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; cursor: pointer; transition: 0.2s; }
+        .admin-tab:hover { color: #0f172a; }
+        .admin-tab.active { background: #0f172a; color: white; box-shadow: 0 10px 20px rgba(15,23,42,0.2); }
+
+        .admin-loader { text-align: center; padding: 100px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+
+        .overview-grid { display: flex; flex-direction: column; gap: 30px; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+        .stat-box { padding: 24px; }
+        .stat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .stat-head .label { font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .icon-wrap { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+        .stat-box .value { font-size: 2.2rem; font-weight: 950; color: #0f172a; }
+
+        .overview-details { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
+        @media (max-width: 900px) { .overview-details { grid-template-columns: 1fr; } }
+
+        .activity-feed h3, .system-health h3 { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; }
+        .feed-list { display: flex; flex-direction: column; gap: 12px; }
+        .feed-item { display: flex; align-items: center; gap: 14px; padding: 14px; background: #f8fafc; border-radius: 16px; border: 1px solid #f1f5f9; }
+        .feed-item .dot { width: 8px; height: 8px; border-radius: 50%; background: #6366f1; flex-shrink: 0; }
+        .feed-item .msg { flex: 1; font-size: 0.85rem; font-weight: 600; color: #334155; margin: 0; }
+        .feed-item .time { font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
+
+        .health-metrics { display: flex; flex-direction: column; gap: 20px; }
+        .system-health { background: #0f172a; color: white; border: none; }
+        .system-health h3 { color: #475569; }
+        .m-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 0.9rem; }
+        .status.stable { color: #10b981; font-weight: 900; }
+        .m-quote { margin: 20px 0 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); font-style: italic; color: #64748b; font-size: 0.85rem; }
+
+        .admin-table-container { padding: 0; overflow: hidden; }
+        .admin-table { width: 100%; border-collapse: collapse; }
+        .admin-table th { background: #f8fafc; text-align: left; padding: 20px 24px; font-size: 0.75rem; font-weight: 850; text-transform: uppercase; color: #94a3b8; border-bottom: 2px solid #f1f5f9; }
+        .admin-table td { padding: 20px 24px; border-bottom: 1px solid #f1f5f9; }
+        
+        .subject-cell { display: flex; align-items: center; gap: 16px; }
+        .sub-img { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
+        .sub-info { display: flex; flex-direction: column; }
+        .sub-info .name { font-size: 0.95rem; font-weight: 800; color: #1e293b; }
+        .sub-info .meta { font-size: 0.75rem; color: #94a3b8; }
+
+        .status-tag { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; text-transform: uppercase; background: #f1f5f9; color: #64748b; }
+        .status-tag.active { background: #dcfce7; color: #166534; }
+        .status-tag.pending { background: #fef3c7; color: #92400e; }
+        
+        .action-row { display: flex; gap: 6px; }
+        .act-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .act-btn:hover { color: #0f172a; border-color: #0f172a; }
+        .act-btn.warn:hover { color: #f59e0b; border-color: #f59e0b; }
+        .act-btn.danger:hover { color: #ef4444; border-color: #ef4444; }
+
+        .table-empty { padding: 100px; text-align: center; color: #94a3b8; font-weight: 800; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; font-style: italic; opacity: 0.4; }
+      `}</style>
     </div>
   );
 }

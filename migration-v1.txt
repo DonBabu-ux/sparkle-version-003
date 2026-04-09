@@ -1,0 +1,172 @@
+# Sparkle Platform Migration Plan (Legacy EJS to React) v1
+
+This document outlines the legacy `.ejs` views present in the `views/` directory, detailing the data they consume, component placement patterns (UI layout), and documenting the equivalent JSON payloads the React frontend must now fetch. 
+
+---
+
+## 1. Authentication & Onboarding
+**Legacy View:** `views/auth/login.ejs` / `views/auth/signup.ejs`
+**Legacy Layout Strategy:** 
+- Standalone layout wrapper with no shared navigation. 
+- Elements: Centered branding logo top, stacked interactive form fields (email, password), OAuth buttons split at the bottom, layered over a vibrant gradient background.
+**React Component Strategy:** 
+- Extract into a `<AuthLayout>` wrapper. Forms extracted into `<LoginForm>` and `<SignupForm>` components to handle exact React-hook-form state matching the visual flow.
+
+**Example Frontend JSON (POST `/api/auth/login`):**
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR...",
+    "user": {
+      "user_id": "usr_123456",
+      "username": "johndoe",
+      "name": "John Doe",
+      "avatar_url": "/uploads/avatars/default.png"
+    }
+  }
+}
+```
+
+---
+
+## 2. Core Social & Feed
+**Legacy View:** `views/dashboard.ejs`
+**Legacy Layout Strategy:** 
+- A classic 3-column layout. 
+- **Left:** Sticky Sidebar with trending tags and user quick-stats.
+- **Center:** The primary scroll container. At the top sits "Afterglow" (horizontal scrolling stories), immediately followed by a "Create Post" card (input field + Media/Video/Feeling buttons), followed by infinite vertically stacked generated `<PostCard>` elements.
+- **Right:** Suggested Friends, Mini-Marketplace highlights, and groups.
+**React Component Strategy:** 
+- Core grid managed by `Dashboard.tsx`. Break into `<TrendSidebar>`, `<StoryBar>`, `<CreatePostWidget>`, `<FeedList>`, `<RightSidebar>`. 
+
+**Example Frontend JSON (GET `/api/posts/feed?page=1`):**
+```json
+{
+  "success": true,
+  "data": {
+    "posts": [
+      {
+        "post_id": "pst_9876",
+        "user_id": "usr_1234",
+        "username": "janedoe",
+        "name": "Jane Doe",
+        "content": "Just finished my finals! 🎉",
+        "media_url": null,
+        "spark_count": 42,
+        "comment_count": 5
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 3. Profiles & Interaction
+**Legacy View:** `views/profile.ejs`
+**Legacy Layout Strategy:** 
+- **Top:** Huge cover banner spanning the top width. Avatar absolutely positioned overlapping the bottom edge.
+- **Header:** Sticky user meta section storing Bio, Follower/Following counts, and core Action Buttons (Follow/Message).
+- **Body Grid:** Split into two tabs/columns: User timeline posts on left/center, user media gallery on right.
+**React Component Strategy:** 
+- Parent `<ProfilePage>` managing states. Sub-components: `<ProfileHeader>` (Banner & Avatar & Meta), `<ProfileTabs>` (Navigating Posts vs Media), `<GalleryGrid>`.
+
+**Example Frontend JSON (GET `/api/users/janedoe`):**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "username": "janedoe",
+      "bio": "CompSci Junior | Coffee Addict",
+      "followers_count": 128,
+      "following_count": 256,
+      "is_following": true
+    }
+  }
+}
+```
+
+---
+
+## 4. Communities & Groups
+**Legacy View:** `views/groups.ejs` / `views/group-detail.ejs`
+**Legacy Layout Strategy:** 
+- `groups.ejs`: A masonry or grid layout of "Group Cards" globally discoverable.
+- `group-detail.ejs`: Follows an identical layout schema to the Profile page—Header banner with group name/category, followed by an internal feed specific only to that group. Top right often holds a "Members Grid" widget.
+**React Component Strategy:** 
+- Migrate cards into a reusable `<GroupCard>`. Group Detail becomes a specialized version of the standard dashboard feed components.
+
+**Example Frontend JSON (GET `/api/groups`):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "group_id": "grp_555",
+      "name": "Hackers Club",
+      "member_count": 105,
+      "cover_url": "club_cover.jpg",
+      "is_member": true
+    }
+  ]
+}
+```
+
+---
+
+## 5. Direct Messaging
+**Legacy View:** `views/messages.ejs`
+**Legacy Layout Strategy:** 
+- Full-screen height strictly enforced to prevent page scrolling.
+- **Left Panel (30%):** Search bar over a scrollable list of recent `<ConversationItem>`.
+- **Right Panel (70%):** Fixed conversation header (Avatar + Name + Status). Expanding center chat log space. Fixed chat input bar anchored to the bottom.
+**React Component Strategy:** 
+- Managed by `Messages.tsx`. Create `<ChatSidebar>` and `<ActiveChatWindow>`. 
+
+**Example Frontend JSON (GET `/api/messages/conversations`):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "conversation_id": "conv_777",
+      "participant": {
+        "username": "alex_smith",
+        "avatar_url": "/avatars/alex.jpg"
+      },
+      "last_message": {
+        "content": "Are we still studying tonight?"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 6. Commerce & Marketplace
+**Legacy View:** `views/marketplace.ejs`
+**Legacy Layout Strategy:** 
+- **Top:** A Category/Filter chip bar. 
+- **Main:** Dense image-heavy 2x2 or 3x3 Grid Layout displaying item cards.
+- **Cards:** Display large square cropped item photo, title, bold price tag, and seller mini-avatar locked to the bottom left. Focus is almost completely visual.
+**React Component Strategy:** 
+- Filter bar becomes `<MarketplaceFilters>`. Grid is `<ItemMasonry>`, utilizing a reusable `<ProductCard>`.
+
+**Example Frontend JSON (GET `/api/marketplace/items?category=textbooks`):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "item_id": "itm_333",
+      "title": "Calculus 8th Edition",
+      "price": 45.00,
+      "seller": { "username": "math_wizard" },
+      "images": ["/uploads/items/calc.jpg"]
+    }
+  ]
+}
+```

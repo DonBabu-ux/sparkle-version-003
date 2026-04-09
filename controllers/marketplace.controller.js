@@ -4,7 +4,7 @@ const SkillMarket = require('../models/SkillMarket');
 const marketplaceSchemas = require('../schemas/marketplace.schemas');
 const { validate } = require('../middleware/validation.middleware');
 const logger = require('../utils/logger');
-const { upload } = require('../utils/fileUpload');
+const { upload, marketplaceUpload } = require('../utils/fileUpload');
 const crypto = require('crypto');
 const notificationController = require('./notification.controller');
 const pool = require('../config/database');
@@ -17,6 +17,8 @@ const getSafeMediaUrl = (url) => {
     }
     return null;
 };
+
+// ... existing help functions ...
 
 // Simple normalizeUser - just ensures avatar_url exists without changing structure
 const normalizeUser = (user) => {
@@ -985,15 +987,15 @@ const createSkillOffer = [
 const getRecommendations = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
-        const { listings } = await Marketplace.getListingsWithMock({ 
+        const { listings } = await Marketplace.getListings({ 
             limit: 6, 
             campus: user?.campus || 'all',
-            featured: true 
-        }, true);
-        res.json({ success: true, listings });
+            sort: 'popular'
+        }, user?.user_id);
+        res.json({ success: true, listings: listings || [] });
     } catch (error) {
         logger.error('Get recommendations error:', error);
-        res.status(500).json({ success: false, listings: Marketplace.generateMockData(6) });
+        res.status(500).json({ success: false, listings: [] });
     }
 };
 

@@ -15,8 +15,8 @@ api.interceptors.response.use(
     // Check if path is NOT /auth/login to avoid infinite loops
     if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
       // Handle unauthorized (redirect to login)
-      window.localStorage.removeItem('sparkle_user');
-      window.localStorage.removeItem('sparkle_token');
+      localStorage.removeItem('sparkleToken');
+      localStorage.removeItem('user-storage'); // Zustand persisted state
       window.location.href = '/login';
     }
     return Promise.reject(error);

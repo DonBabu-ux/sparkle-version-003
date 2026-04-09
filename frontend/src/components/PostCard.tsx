@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
+import { Link } from 'react-router-dom';
 
 interface PostCardProps {
   post: {
@@ -18,17 +19,17 @@ interface PostCardProps {
     created_at: string;
     campus?: string;
   };
-  onSpark?: (postId: string) => void;
-  onComment?: (postId: string) => void;
 }
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
+  const [isTruncated, setIsTruncated] = useState((post.content || '').length > 150);
 
   const timeAgo = post.created_at ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true }) : 'recently';
 
-  const handleSpark = async () => {
+  const handleSpark = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const originalSparked = isSparked;
     const originalCount = sparkCount;
     
@@ -46,63 +47,82 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
+  const isVideo = post.media_url?.match(/\.(mp4|webm|ogg|mov)$/i);
+  const isTextOnly = !post.media_url || post.media_url === 'undefined' || post.media_url === 'null' || post.media_url.trim() === '';
 
   return (
-    <div className="premium-card bg-white border border-slate-100 rounded-xl p-5 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-start gap-3">
-          <div className="relative group cursor-pointer mt-1">
-            <img 
-              src={post.avatar_url || '/uploads/avatars/default.png'} 
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-50 group-hover:ring-indigo-100 transition-all"
-              alt={post.username}
-            />
+    <div className={`post-card animate-fade-in ${isTextOnly ? 'text-only' : ''}`}>
+      <div className="post-header">
+        <Link to={`/profile/${post.username}`} className="post-avatar-wrapper">
+          <img 
+            src={post.avatar_url || '/uploads/avatars/default.png'} 
+            className="post-avatar"
+            alt={post.username}
+          />
+        </Link>
+        <div className="post-info">
+          <div className="post-author-name">
+            <Link to={`/profile/${post.username}`}>{post.username}</Link>
+            {post.campus && <span className="campus-badge" style={{ background: 'var(--bg-main)', color: 'var(--text-muted)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, marginLeft: '5px' }}>{post.campus}</span>}
           </div>
-          <div className="flex flex-col">
-            <h4 className="font-bold text-[15px] text-slate-800 leading-tight">{post.username}</h4>
-            <div className="flex items-center text-sm text-slate-600 leading-tight mt-0.5">
-              <span>{post.name || post.username}{post.campus}</span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">{timeAgo}</p>
-          </div>
+          <div className="post-meta">{timeAgo}</div>
         </div>
-        <button className="text-slate-400 hover:text-slate-600 p-1">
+        <button className="post-options">
           <MoreHorizontal size={18} />
         </button>
       </div>
 
-      {/* Media */}
-      {post.media_url && (
-        <div className="rounded-xl overflow-hidden my-3 border border-slate-100 bg-slate-50">
-          <img 
-            src={post.media_url} 
-            className="w-full h-auto object-cover max-h-[500px]" 
-            alt="Post content"
-          />
+      {!isTextOnly && post.media_url && (
+        <div className="post-media" onDoubleClick={handleSpark}>
+          {isVideo ? (
+            <video src={post.media_url} autoPlay loop muted playsInline />
+          ) : (
+            <img src={post.media_url} loading="lazy" alt="Post content" />
+          )}
         </div>
       )}
 
-      {/* Content */}
-      <div className="mb-4 text-slate-800 text-sm leading-relaxed whitespace-pre-wrap mt-2">
-        {post.content}
+      <div className="post-content">
+        {post.content && (
+          <>
+            <div className={`post-text ${isTruncated ? 'truncated' : ''}`} style={{ display: isTruncated ? '-webkit-box' : 'block', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: isTruncated ? 'hidden' : 'visible' }}>
+              <strong style={{ marginRight: '6px' }}>{post.username}</strong>
+              {post.content}
+            </div>
+            {isTruncated && (
+              <button className="read-more-btn" onClick={() => setIsTruncated(false)}>
+                ... more
+              </button>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-6 pt-3 border-t border-slate-100 mt-2">
-        <button 
-          onClick={handleSpark}
-          className={`flex items-center gap-1.5 group ${isSparked ? 'text-indigo-600' : 'text-slate-500 hover:text-indigo-600 transition-colors'}`}
-        >
-          <span className="text-sm font-semibold">{sparkCount} sparks</span>
-        </button>
-        <button className="flex items-center gap-1.5 text-slate-500 hover:text-indigo-500">
-          <span className="text-sm font-semibold">{post.comment_count || 0} comments</span>
-        </button>
+      <div className="post-actions">
+        <div className="actions-left">
+          <button className={`action-btn ${isSparked ? 'liked' : ''}`} onClick={handleSpark}>
+            <Heart size={24} fill={isSparked ? 'var(--primary)' : 'none'} stroke={isSparked ? 'var(--primary)' : 'currentColor'} />
+          </button>
+          <button className="action-btn">
+            <MessageCircle size={24} />
+          </button>
+          <button className="action-btn">
+            <Send size={24} />
+          </button>
+        </div>
+        <div className="actions-right">
+          <button className="action-btn">
+            <Bookmark size={24} />
+          </button>
+        </div>
+      </div>
+
+      <div className="post-stats">
+        <span>{sparkCount} sparks</span>
+        {post.comment_count > 0 && <span>View all {post.comment_count} comments</span>}
       </div>
     </div>
   );
 };
-
 
 export default PostCard;

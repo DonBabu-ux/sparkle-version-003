@@ -1,0 +1,253 @@
+# Route Audit Report — Sparkle Frontend ↔ Backend
+Generated: 2026-04-08
+
+This document lists every API call made by each React page and cross-references it against
+the actual backend routes. Issues are grouped by severity.
+
+---
+
+## CRITICAL — Routes Not Mounted in Backend (index.js)
+
+These route files EXIST but are NOT registered in /routes/api/index.js.
+ALL calls to these prefixes will return 404 until fixed.
+
+### 1. clubs.routes.js — NOT MOUNTED
+File exists at routes/api/clubs.routes.js but index.js never does:
+  router.use('/clubs', clubsRoutes)
+
+Affected pages: Clubs.tsx, ClubDetail.tsx
+All of the following calls will 404:
+  GET  /clubs                       → Clubs.tsx fetchClubs()
+  POST /clubs                       → Clubs.tsx handleCreate()
+  GET  /clubs/:id                   → ClubDetail.tsx fetchClub()
+  GET  /clubs/:id/members           → ClubDetail.tsx fetchClub()
+  POST /clubs/:id/join              → ClubDetail.tsx handleJoin()
+  POST /clubs/:id/leave             → ClubDetail.tsx handleJoin() (leave)
+
+STATUS: FIX APPLIED to routes/api/index.js
+
+---
+
+### 2. lost-found.routes.js — NOT MOUNTED
+File exists at routes/api/lost-found.routes.js but index.js never mounts it.
+
+Affected pages: LostFound.tsx
+All of the following calls will 404:
+  GET  /lost-found?type=all|lost|found   → LostFound.tsx fetchItems()
+  POST /lost-found                        → LostFound.tsx handleSubmit()
+
+POST payload:
+  {
+    "title": "string",
+    "description": "string",
+    "type": "lost | found",
+    "category": "electronics | documents | keys | clothing | other",
+    "location": "string"
+  }
+
+STATUS: FIX APPLIED to routes/api/index.js
+
+---
+
+## CRITICAL — Frontend Calls Endpoints That Don't Exist
+
+### 3. GET /moments — No list endpoint
+Moments.tsx calls GET /moments but moments.routes.js only has GET /moments/stream.
+
+  File: Moments.tsx line 30
+  Called: api.get('/moments')
+  Actual route: GET /moments/stream
+
+STATUS: FIX APPLIED — Updated Moments.tsx to call /moments/stream
+
+---
+
+### 4. GET /moments/:id — No single-item route
+MomentDetail.tsx calls GET /moments/:id but no such route exists in moments.routes.js.
+
+  File: MomentDetail.tsx line 34
+  Called: api.get('/moments/${id}')
+  Status: No matching backend route
+
+ACTION REQUIRED (backend): Add GET /moments/:id to moments.routes.js
+Suggested handler: momentsController.getMomentById
+
+---
+
+### 5. POST /moments/:id/like — Wrong endpoint name
+MomentDetail.tsx calls the wrong action name. Backend uses "spark" not "like".
+
+  File: MomentDetail.tsx line 49
+  Called: api.post('/moments/${id}/like')
+  Actual route: POST /moments/:id/spark
+
+STATUS: FIX APPLIED — Updated MomentDetail.tsx to use /moments/${id}/spark
+
+---
+
+### 6. GET /polls/:id — No single poll route
+PollDetail.tsx calls GET /polls/:id but campus.routes.js only has GET /polls/:id/results.
+
+  File: PollDetail.tsx line 41
+  Called: api.get('/polls/${id}')
+  Actual route: GET /polls/:id/results
+
+STATUS: FIX APPLIED — Updated PollDetail.tsx to call /polls/${id}/results
+
+---
+
+### 7. GET /posts?hashtag= — No hashtag filter on posts
+Hashtag.tsx calls GET /posts?hashtag=... but posts.routes.js has no hashtag query support.
+
+  File: Hashtag.tsx line 21
+  Called: api.get('/posts?hashtag=${tag}')
+  Alternative: GET /search?type=posts&q=${tag}
+
+STATUS: FIX APPLIED — Updated Hashtag.tsx to use GET /search?type=posts&q=${tag}
+
+---
+
+### 8. GET /clubs/:id/posts — Missing club posts route
+ClubDetail.tsx calls GET /clubs/:id/posts but clubs.routes.js has no posts sub-route.
+
+  File: ClubDetail.tsx
+  Called: api.get('/clubs/${id}/posts')
+  Status: No matching backend route
+
+ACTION REQUIRED (backend): Add GET /clubs/:id/posts to clubs.routes.js
+  OR fetch via: GET /posts/feed?club_id=${id} if supported by feed controller.
+
+---
+
+## WARNING — Frontend Uses Wrong Path Prefix
+
+### 9. Profile.tsx calls GET /profile/:username (wrong prefix)
+The /profile prefix is a Web (EJS) route only. API route for user lookup is under /users.
+
+  File: Profile.tsx line 24
+  Called: api.get('/profile/${username}')
+  Actual API route: GET /users/:id (accepts username as id)
+
+STATUS: Needs fix — Change Profile.tsx to call GET /users/${username}
+
+---
+
+### 10. Profile.tsx / Connect.tsx call POST /social/follow/:id (no /social prefix)
+No /social prefix exists in the API. Follow routes are under /users.
+
+  Files: Profile.tsx line 56, Connect.tsx
+  Called: api.post('/social/follow/${userId}')
+          api.delete('/social/follow/${userId}')
+  Actual routes:
+    POST   /users/follow/:id
+    DELETE /users/follow/:id
+
+STATUS: FIX APPLIED — Connect.tsx updated. Profile.tsx needs same fix.
+
+---
+
+### 11. Messages.tsx calls GET /social/active-friends (wrong prefix)
+
+  File: Messages.tsx line 41
+  Called: api.get('/social/active-friends')
+  Actual route: GET /users/active-friends
+
+STATUS: Needs fix — Change Messages.tsx to call /users/active-friends
+
+---
+
+### 12. Search.tsx calls GET /social/search (wrong prefix)
+
+  File: Search.tsx line 22
+  Called: api.get('/social/search', { params: { q } })
+  Actual route: GET /search?q=...&type=...
+
+STATUS: Needs fix — Change Search.tsx to call /search
+
+---
+
+### 13. Dashboard.tsx calls GET /dashboard (EJS-only route)
+Dashboard feeds should use the API posts/feed endpoint, not the web dashboard renderer.
+
+  File: Dashboard.tsx line 30
+  Called: api.get('/dashboard?page=${pageNum}&limit=10')
+  Actual API route: GET /posts/feed?page=&limit=
+
+STATUS: Needs fix — Change Dashboard.tsx to call /posts/feed
+
+---
+
+## CONFIRMED WORKING (All calls match backend routes)
+
+Page                | Call                                | Backend Route                  | OK?
+--------------------|-------------------------------------|--------------------------------|----
+Login.tsx           | POST /auth/login                    | POST /auth/login               | YES
+Login.tsx           | POST /auth/verify-2fa               | POST /auth/verify-2fa          | YES
+Signup.tsx          | POST /auth/register                 | POST /auth/signup (alias used) | YES
+Dashboard.tsx       | GET /stories/active                 | GET /stories/active            | YES
+Settings.tsx        | PUT /users/settings                 | PUT /users/settings            | YES
+Settings.tsx        | PUT /users/profile                  | PUT /users/profile             | YES
+Notifications.tsx   | GET /notifications                  | GET /notifications             | YES
+Notifications.tsx   | POST /notifications/:id/read        | POST /notifications/:id/read   | YES
+PostDetail.tsx      | GET /posts/:id                      | GET /posts/:id                 | YES
+PostDetail.tsx      | GET /posts/:id/comments             | GET /posts/:id/comments        | YES
+PostDetail.tsx      | POST /posts/:id/comments            | POST /posts/:id/comments       | YES
+Marketplace.tsx     | GET /marketplace?category=          | GET /marketplace               | YES
+SellItem.tsx        | POST /marketplace/listings          | POST /marketplace/listings     | YES
+ListingDetail.tsx   | GET /marketplace/listings/:id       | GET /marketplace/listings/:id  | YES
+Wishlist.tsx        | GET /marketplace/wishlist           | GET /marketplace/wishlist      | YES
+SkillMarket.tsx     | GET /marketplace/skills             | GET /marketplace/skills        | YES
+StoryViewer.tsx     | GET /stories/active                 | GET /stories/active            | YES
+Groups.tsx          | GET /groups?filter=                 | GET /groups                    | YES
+GroupDetail.tsx     | GET /groups/:id                     | GET /groups/:id                | YES
+GroupDetail.tsx     | POST /groups/:id/join               | POST /groups/:id/join          | YES
+GroupDetail.tsx     | POST /groups/:id/leave              | POST /groups/:id/leave         | YES
+GroupAdmin.tsx      | GET /groups/:id/requests            | GET /groups/:id/requests       | YES
+GroupAdmin.tsx      | POST /groups/requests/:id/approve   | POST /groups/requests/.../approve | YES
+Events.tsx          | GET /events                         | GET /events (campusRoutes)     | YES
+Events.tsx          | POST /events                        | POST /events                   | YES
+Events.tsx          | POST /events/:id/rsvp               | POST /events/:id/rsvp          | YES
+Polls.tsx           | GET /polls                          | GET /polls                     | YES
+Polls.tsx           | POST /polls                         | POST /polls                    | YES
+Polls.tsx           | POST /polls/:id/vote                | POST /polls/:id/vote           | YES
+FollowRequests.tsx  | GET /users/follow-requests          | GET /users/follow-requests     | YES
+FollowRequests.tsx  | POST /users/follow-requests/:id/accept| POST .../:requestId/accept   | YES
+Connect.tsx         | GET /users/suggestions              | GET /users/suggestions         | YES
+Messages.tsx        | GET /messages/inbox                 | GET /messages/inbox            | YES
+Messages.tsx        | GET /messages/chat/:id              | GET /messages/chat/:chatId     | YES
+Messages.tsx        | POST /messages/send                 | POST /messages/send            | YES
+CreateMoment.tsx    | POST /moments (FormData)            | POST /moments                  | YES
+LostFound.tsx       | GET /lost-found                     | GET /lost-found (after fix)    | YES
+LostFound.tsx       | POST /lost-found                    | POST /lost-found (after fix)   | YES
+Clubs.tsx           | GET /clubs                          | GET /clubs (after fix)         | YES
+Clubs.tsx           | POST /clubs                         | POST /clubs (after fix)        | YES
+Support.tsx         | No API calls (form UI only)         | N/A                            | N/A
+About.tsx           | No API calls (static page)          | N/A                            | N/A
+NotFound.tsx        | No API calls (static page)          | N/A                            | N/A
+
+---
+
+## FRONTEND FIXES REQUIRED (at a glance)
+
+#  | File             | Line | Current                      | Change To
+---|------------------|------|------------------------------|--------------------------
+1  | Moments.tsx      | 30   | GET /moments                 | GET /moments/stream
+2  | MomentDetail.tsx | 49   | POST /moments/:id/like       | POST /moments/:id/spark
+3  | PollDetail.tsx   | 41   | GET /polls/:id               | GET /polls/:id/results
+4  | Hashtag.tsx      | 21   | GET /posts?hashtag=          | GET /search?type=posts&q=
+5  | Profile.tsx      | 24   | GET /profile/:username       | GET /users/:username
+6  | Profile.tsx      | 56   | POST /social/follow/:id      | POST /users/follow/:id
+7  | Connect.tsx      | —    | POST/DELETE /social/follow/  | POST/DELETE /users/follow/
+8  | Messages.tsx     | 41   | GET /social/active-friends   | GET /users/active-friends
+9  | Search.tsx       | 22   | GET /social/search           | GET /search
+10 | Dashboard.tsx    | 30   | GET /dashboard               | GET /posts/feed
+
+## BACKEND FIXES REQUIRED (at a glance)
+
+#  | What                              | Where to add
+---|-----------------------------------|---------------------------------
+1  | clubs.routes.js not mounted       | routes/api/index.js → DONE
+2  | lost-found.routes.js not mounted  | routes/api/index.js → DONE
+3  | No GET /moments/:id               | routes/api/moments.routes.js
+4  | No GET /clubs/:id/posts           | routes/api/clubs.routes.js
+5  | No hashtag filter on /posts/feed  | Use /search or add to feed controller

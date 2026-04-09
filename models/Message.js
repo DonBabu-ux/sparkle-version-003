@@ -76,10 +76,9 @@ class Message {
             await db.query(`
                 INSERT INTO messages (
                     message_id, chat_id, conversation_id, sender_id, content, 
-                    type, media_url, reply_to_message_id, marketplace_listing_id, status, sent_at,
-                    view_policy, views_allowed, context
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', ?, ?, ?, ?)
-            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, marketplaceListingId, sentAt, viewPolicy, viewsAllowed, context]);
+                    type, media_url, reply_to_message_id, status, sent_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sent', ?)
+            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, sentAt]);
 
             // Update last_message_time and clear archives/deletions
             if (personalChatId) {
@@ -160,9 +159,8 @@ class Message {
             // Ensure all dates are returned as ISO strings for client-side UTC parsing
             const normalized = messages.map(m => ({
                 ...m,
-                sent_at: m.sent_at ? new Date(m.sent_at).toISOString() : null,
-                delivered_at: m.delivered_at ? new Date(m.delivered_at).toISOString() : null,
-                read_at: m.read_at ? new Date(m.read_at).toISOString() : null
+                sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
+                read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null
             }));
             return { chatId, messages: normalized };
         } else {
@@ -191,9 +189,8 @@ class Message {
             // Ensure all dates are returned as ISO strings for client-side UTC parsing
             const normalized = messages.map(m => ({
                 ...m,
-                sent_at: m.sent_at ? new Date(m.sent_at).toISOString() : null,
-                delivered_at: m.delivered_at ? new Date(m.delivered_at).toISOString() : null,
-                read_at: m.read_at ? new Date(m.read_at).toISOString() : null
+                sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
+                read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null
             }));
             return { chatId, messages: normalized };
         }
@@ -287,8 +284,8 @@ class Message {
 
         return rows.map(conv => ({
             ...conv,
-            last_message_at: conv.last_message_at ? new Date(conv.last_message_at).toISOString() : null,
-            last_seen_at: conv.last_seen_at ? new Date(conv.last_seen_at).toISOString() : null
+            last_message_at: (conv.last_message_at && !isNaN(new Date(conv.last_message_at).getTime())) ? new Date(conv.last_message_at).toISOString() : null,
+            last_seen_at: (conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null
         }));
     }
 

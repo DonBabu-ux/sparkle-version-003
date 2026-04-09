@@ -1,135 +1,243 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, ShoppingBag, Plus, Filter, ShieldCheck, ChevronRight } from 'lucide-react';
+import Navbar from '../components/Navbar';
 import api from '../api/api';
-
+import { useModalStore } from '../store/modalStore';
+import { useUserStore } from '../store/userStore';
 
 export default function Marketplace() {
-  const [data, setData] = useState<any>(null);
-
+  const navigate = useNavigate();
+  const { user } = useUserStore();
+  const { refreshCounter } = useModalStore();
+  const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [category, setCategory] = useState('all');
+  const [campus, setCampus] = useState(user?.campus || 'all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const categories = [
+    { id: 'all', label: 'All Items', icon: <Filter size={14} /> },
+    { id: 'student_market', label: 'Student Market', icon: <ShoppingBag size={14} /> },
+    { id: 'blackmarket', label: 'Black Market', icon: <Search size={14} /> },
+    { id: 'electronics', label: 'Electronics', icon: <Search size={14} /> },
+    { id: 'books', label: 'Books', icon: <Search size={14} /> }
+  ];
 
   useEffect(() => {
-    const fetchMarketplace = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get(`/marketplace?category=${filter}`);
-        setData(response.data);
-      } catch (err) {
-        console.error('Failed to fetch marketplace:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMarketplace();
-  }, [filter]);
+    fetchListings();
+  }, [category, campus, searchQuery, refreshCounter]);
+
+  const fetchListings = async () => {
+    setLoading(true);
+    try {
+      let endpoint = `/marketplace/listings?category=${category}&campus=${campus}`;
+      if (searchQuery) endpoint += `&search=${searchQuery}`;
+      
+      const response = await api.get(endpoint);
+      const resData = response.data;
+      const list = resData.listings || resData.data || (Array.isArray(resData) ? resData : []);
+      setListings(list);
+    } catch (err) {
+      console.error('Failed to fetch marketplace:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchListings();
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 lg:p-8">
-      {/* Search & Header */}
-      <nav className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-indigo-100/50">🛍️</div>
-          <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Campus Marketplace</h1>
-            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none mt-0.5">Exclusive student deals</p>
+    <div className="page-wrapper">
+      <Navbar />
+      <div className="market-layout">
+        <header className="market-hero">
+          <div className="hero-content">
+            <div className="hero-badge">
+              <ShoppingBag size={18} />
+              <span>SPARKLE MARKET</span>
+            </div>
+            <h1>Campus Marketplace</h1>
+            <p>Buy and sell treasures with your fellow Sparklers.</p>
           </div>
-        </div>
-        
-        <div className="flex-1 max-w-xl w-full">
-          <div className="relative group">
+          
+          <form className="market-search-bar" onSubmit={handleSearch}>
+            <Search className="search-icon" size={20} />
             <input 
               type="text" 
               placeholder="Search for books, tech, housing..."
-              className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-50 focus:border-indigo-200 transition-all outline-none text-sm font-medium"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">🔍</span>
-          </div>
-        </div>
+            <button type="submit">Search</button>
+          </form>
+        </header>
 
-        <button className="bg-indigo-600 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5 transition-all active:scale-95 text-sm flex items-center gap-2">
-          <span>+</span> Sell Item
-        </button>
-      </nav>
-
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Sidebar Filters */}
-        <aside className="lg:col-span-3 space-y-6">
-          <div className="premium-card p-6 border-white/80 bg-white/70 backdrop-blur-xl">
-            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Categories</h3>
-            <div className="space-y-2">
-              {['all', 'textbooks', 'electronics', 'furniture', 'clothing', 'housing'].map(cat => (
-                <button 
-                  key={cat}
-                  onClick={() => setFilter(cat)}
-                  className={`w-full text-left px-5 py-3.5 rounded-xl text-sm font-bold capitalize transition-all ${
-                    filter === cat 
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' 
-                    : 'text-slate-500 hover:bg-slate-100/80 active:scale-95'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+        <div className="market-main-grid">
+          <aside className="market-sidebar">
+            <div className="sidebar-section">
+              <h3 className="section-title">Categories</h3>
+              <div className="category-list">
+                {categories.map(cat => (
+                  <button 
+                    key={cat.id}
+                    className={`cat-item ${category === cat.id ? 'active' : ''}`}
+                    onClick={() => setCategory(cat.id)}
+                  >
+                    {cat.icon}
+                    <span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="premium-card p-6 bg-gradient-to-br from-indigo-600 to-violet-700 text-white border-none shadow-2xl shadow-indigo-200">
-             <div className="mb-4 text-3xl">🛡️</div>
-             <h4 className="font-black text-lg mb-2">Safe Trading</h4>
-             <p className="text-white/70 text-xs leading-relaxed">Always meet in public campus areas and verify items before paying. Sparkle verified sellers help ensure a safer community.</p>
-          </div>
-        </aside>
-
-        {/* Listings Grid */}
-        <div className="lg:col-span-9">
-          {loading ? (
-            <div className="h-96 flex flex-col items-center justify-center">
-              <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-[10px] font-black text-slate-400 tracking-tighter uppercase italic">Summoning the grand plaza...</p>
+            <div className="sidebar-section">
+              <h3 className="section-title">Campus</h3>
+              <div className="category-list">
+                {[
+                  { id: 'all', label: 'All Campuses' },
+                  { id: 'Main Campus', label: 'Main Campus' },
+                  { id: 'North Campus', label: 'North Campus' },
+                  { id: 'South Campus', label: 'South Campus' }
+                ].map(c => (
+                  <button 
+                    key={c.id}
+                    className={`cat-item ${campus === c.id ? 'active' : ''}`}
+                    onClick={() => setCampus(c.id)}
+                  >
+                    <span>{c.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {data?.listings?.length > 0 ? (
-                data.listings.map((item: any) => (
-                  <div key={item.listing_id} className="premium-card group hover:-translate-y-1 transition-all duration-300 border-white bg-white/80 overflow-hidden p-0 flex flex-col">
-                    <div className="relative h-48 overflow-hidden bg-slate-100">
-                       <img 
-                        src={item.image_url || '/uploads/defaults/no-image.png'} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                        alt={item.title} 
-                       />
-                       <div className="absolute top-3 left-3 px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl text-[10px] font-black text-slate-800 uppercase tracking-widest shadow-sm">
-                         {item.condition || 'Used'}
-                       </div>
-                    </div>
-                    <div className="p-5 flex-1 flex flex-col">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-2">{item.title}</h3>
-                        <span className="text-lg font-black text-emerald-600 ml-2">₹{item.price}</span>
+            <div className="safety-card premium-card">
+              <ShieldCheck className="safety-icon" size={32} />
+              <h4>Safe Trading</h4>
+              <p>Meet in public campus areas and verify items before paying.</p>
+            </div>
+          </aside>
+
+          <section className="market-listings">
+            <div className="listings-header">
+              <h2>{categories.find(c => c.id === category)?.label}</h2>
+              <button className="sell-btn-premium" onClick={() => {
+                alert('Please use the "+" center button in the Navbar to "Sell Item"!');
+              }}>
+                <Plus size={18} /> Sell Something
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="loader-container">
+                <div className="spinner"></div>
+                <p>Loading marketplace...</p>
+              </div>
+            ) : (
+              <div className="listings-grid">
+                {listings.length > 0 ? (
+                  listings.map((item: any) => (
+                    <div key={item.listing_id} className="market-card premium-card" onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}>
+                      <div className="card-media">
+                        <img src={item.image_url || '/uploads/defaults/no-image.png'} alt={item.title} />
+                        <div className="price-tag">KSh {item.price}</div>
+                        <div className="condition-label">{item.condition || 'Used'}</div>
                       </div>
-                      <p className="text-slate-400 text-[11px] font-medium mb-4 line-clamp-2">{item.description}</p>
-                      
-                      <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                         <div className="flex items-center gap-2">
-                           <img src={item.seller_avatar || '/uploads/avatars/default.png'} className="w-6 h-6 rounded-lg object-cover ring-2 ring-slate-50" alt="" />
-                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{item.seller_name || 'Seller'}</span>
-                         </div>
-                         <button className="p-2.5 rounded-xl bg-slate-50 text-indigo-600 text-xs font-black hover:bg-indigo-600 hover:text-white transition-all">View</button>
+                      <div className="card-info">
+                        <h3 className="title">{item.title}</h3>
+                        <p className="description">{item.description}</p>
+                        <div className="card-footer">
+                          <div className="seller">
+                            <img src={item.seller_avatar || '/uploads/avatars/default.png'} alt="" />
+                            <span>{item.seller_name || 'Seller'}</span>
+                          </div>
+                          <ChevronRight size={16} />
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <div className="empty-icon">🏜️</div>
+                    <h3>Nothing here yet</h3>
+                    <p>Try a different category or be the first to sell!</p>
                   </div>
-                ))
-              ) : (
-                <div className="col-span-full h-80 flex flex-col items-center justify-center glass-panel border-dashed p-10">
-                   <div className="text-4xl mb-4 opacity-30">🏜️</div>
-                   <h4 className="text-lg font-bold text-slate-600">No treasures found in this sector</h4>
-                   <p className="text-sm text-slate-400 text-center max-w-xs mt-2">Try adjusting your filters or expanding your search horizon across the cosmic campus.</p>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </section>
         </div>
       </div>
+
+      <style>{`
+        .page-wrapper { display: flex; background: #f8fafc; min-height: 100vh; }
+        .market-layout { flex: 1; overflow-y: auto; padding: 40px 20px 100px; }
+        
+        .market-hero { max-width: 1200px; margin: 0 auto 40px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .hero-badge { display: flex; align-items: center; gap: 8px; background: rgba(255,107,139,0.1); color: var(--primary); padding: 8px 16px; border-radius: 20px; font-weight: 800; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 20px; }
+        .market-hero h1 { font-size: 3rem; font-weight: 900; margin: 0 0 10px; color: #0f172a; letter-spacing: -1px; }
+        .market-hero p { color: #64748b; font-size: 1.1rem; max-width: 600px; margin-bottom: 30px; }
+
+        .market-search-bar { width: 100%; max-width: 700px; background: white; border-radius: 24px; display: flex; align-items: center; padding: 8px 8px 8px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); }
+        .search-icon { color: #94a3b8; }
+        .market-search-bar input { flex: 1; border: none; outline: none; padding: 12px 16px; font-size: 1rem; font-family: inherit; }
+        .market-search-bar button { background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 18px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .market-search-bar button:hover { transform: scale(1.02); }
+
+        .market-main-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 280px 1fr; gap: 40px; }
+
+        .market-sidebar { display: flex; flex-direction: column; gap: 30px; }
+        .section-title { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-left: 12px; }
+        .category-list { display: flex; flex-direction: column; gap: 6px; }
+        .cat-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 16px; border: none; background: transparent; color: #64748b; font-weight: 700; font-size: 0.95rem; text-align: left; cursor: pointer; transition: 0.2s; }
+        .cat-item:hover { background: white; color: var(--primary); }
+        .cat-item.active { background: white; color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+
+        .safety-card { background: var(--primary-gradient); color: white; padding: 30px 24px; border: none; }
+        .safety-icon { margin-bottom: 16px; opacity: 0.9; }
+        .safety-card h4 { font-size: 1.1rem; font-weight: 800; margin: 0 0 10px; }
+        .safety-card p { font-size: 0.85rem; opacity: 0.8; line-height: 1.5; margin: 0; }
+
+        .market-listings { flex: 1; }
+        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .listings-header h2 { font-size: 1.5rem; font-weight: 900; color: #0f172a; }
+        .sell-btn-premium { display: flex; align-items: center; gap: 8px; border: 2px solid #e2e8f0; background: white; padding: 10px 20px; border-radius: 14px; font-weight: 800; font-size: 0.9rem; color: #1e293b; cursor: pointer; transition: 0.2s; }
+        .sell-btn-premium:hover { border-color: var(--primary); color: var(--primary); }
+
+        .listings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+        .market-card { cursor: pointer; padding: 0; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
+        .card-media { position: relative; height: 200px; background: #f1f5f9; }
+        .card-media img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .market-card:hover .card-media img { transform: scale(1.1); }
+        .price-tag { position: absolute; bottom: 12px; right: 12px; background: white; color: #059669; font-weight: 900; font-size: 1.1rem; padding: 6px 14px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        .condition-label { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); color: white; font-size: 0.7rem; font-weight: 800; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
+
+        .card-info { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+        .card-info .title { font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0 0 8px; line-clamp: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        .card-info .description { font-size: 0.85rem; color: #64748b; line-height: 1.4; margin-bottom: 20px; flex: 1; line-clamp: 2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        .card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #f1f5f9; color: #94a3b8; }
+        .card-footer .seller { display: flex; align-items: center; gap: 8px; }
+        .card-footer .seller img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+        .card-footer .seller span { font-size: 0.75rem; font-weight: 700; color: #64748b; }
+
+        .empty-state { grid-column: 1 / -1; height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: white; border-radius: 24px; border: 2px dashed #e2e8f0; }
+        .empty-icon { font-size: 4rem; margin-bottom: 20px; opacity: 0.3; }
+        .empty-state h3 { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0; }
+        .empty-state p { color: #94a3b8; }
+
+        .loader-container { grid-column: 1 / -1; height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f1f5f9; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 1024px) {
+          .market-main-grid { grid-template-columns: 1fr; }
+          .market-sidebar { display: none; }
+          .market-hero h1 { font-size: 2rem; }
+        }
+      `}</style>
     </div>
   );
 }

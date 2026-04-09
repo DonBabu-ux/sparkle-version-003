@@ -270,7 +270,9 @@ class User {
         const [me] = await pool.query('SELECT major, year_of_study, campus FROM users WHERE user_id = ?', [currentUserId]);
         if (!me[0]) return [];
 
-        const sqlSeed = seed ? `(${seed})` : '()';
+        // Convert the string seed into a deterministic 32-bit integer for MySQL RAND()
+        const numericSeed = seed ? parseInt(crypto.createHash('md5').update(String(seed)).digest('hex').substring(0, 8), 16) : null;
+        const sqlSeed = numericSeed ? `(${numericSeed})` : '()';
 
         // Weighted Discovery Algorithm:
         // - Interests (Major) Match: 40 points

@@ -1,142 +1,263 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Lock, Camera, Hash, MessageCircle } from 'lucide-react';
+import api from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { authApi } from '../api/api';
 
 export default function Login() {
-  const navigate = useNavigate();
-  const { setUser } = useUserStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+
+  // 2FA State
+  const [show2FA, setShow2FA] = useState(false);
+  const [pin, setPin] = useState(['', '', '', '', '', '']);
+  const [twofaUserId, setTwofaUserId] = useState<string | null>(null);
+  const [twofaEmail, setTwofaEmail] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
+  const { login } = useUserStore();
+  const navigate = useNavigate();
+
+  const showError = (msg: string) => { setError(msg); setSuccess(''); };
+  const showSuccess = (msg: string) => { setSuccess(msg); setError(''); };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) { showError('Please fill all fields'); return; }
+
     setLoading(true);
-    setError(null);
-    
+    setError('');
     try {
-      const response = await authApi.login(credentials);
-      if (response.data.status === 'success') {
-        const userData = response.data.user;
-        setUser(userData);
-        // Token is handled by httpOnly cookie automatically
-        navigate('/dashboard');
-      } else {
-        setError(response.data.message || 'Login failed');
+      const res = await api.post('/auth/login', { username: email, password });
+      const data = res.data;
+
+      // Case 1: 2FA required
+      if (data?.status === 'twofa_required') {
+        setTwofaUserId(data.userId);
+        setTwofaEmail(data.email);
+        setShow2FA(true);
+        setLoading(false);
+        return;
       }
+
+      // Case 2: Successful login
+      if (data?.status === 'success' && data?.token) {
+        if (rememberMe) {
+          localStorage.setItem('sparkleUserEmail', email);
+        } else {
+          localStorage.removeItem('sparkleUserEmail');
+        }
+        showSuccess('Login successful! Redirecting...');
+        login(data.token, data.user);
+        setTimeout(() => navigate('/dashboard'), 900);
+        return;
+      }
+
+      // Fallback
+      showError(data?.message || 'Login failed. Please try again.');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Connection error. Please try again.');
+      showError(err?.response?.data?.message || err?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value });
+  const handlePinInput = (index: number, value: string) => {
+    const cleaned = value.replace(/[^0-9]/g, '').slice(-1);
+    const newPin = [...pin];
+    newPin[index] = cleaned;
+    setPin(newPin);
+    // Auto-advance
+    if (cleaned && index < 5) {
+      const next = document.getElementById(`pin-${index + 1}`);
+      if (next) (next as HTMLInputElement).focus();
+    }
   };
 
+  const handlePinKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      const prev = document.getElementById(`pin-${index - 1}`);
+      if (prev) (prev as HTMLInputElement).focus();
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    const code = pin.join('');
+    if (code.length < 4) { alert('Please enter your full PIN'); return; }
+
+    setVerifying(true);
+    try {
+      const res = await api.post('/auth/verify-2fa', { userId: twofaUserId, pin: code });
+      if (res.data?.token) {
+        login(res.data.token, res.data.user);
+        showSuccess('Verification successful! Redirecting...');
+        setTimeout(() => navigate('/dashboard'), 900);
+      }
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Invalid PIN');
+      setPin(['', '', '', '', '', '']);
+      const first = document.getElementById('pin-0');
+      if (first) (first as HTMLInputElement).focus();
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleBackToLogin = () => {
+    setShow2FA(false);
+    setPin(['', '', '', '', '', '']);
+    setLoading(false);
+  };
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('sparkleUserEmail');
+    if (saved) { setEmail(saved); setRememberMe(true); }
+  }, []);
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#0f172a] relative overflow-hidden">
-      {/* Decorative ambient blurred blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-pink-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-      <div className="w-full max-w-[420px] bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 sm:p-10 shadow-2xl relative z-10">
-        <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 rounded-[1.25rem] flex items-center justify-center mb-6 shadow-xl shadow-pink-500/20 overflow-hidden border border-white/10 group-hover:scale-105 transition-transform">
-            <img src="/logo.png" alt="Sparkle Logo" className="w-full h-full object-cover" />
-          </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Welcome Back</h1>
-          <p className="text-white/50 text-sm">Log in to your account.</p>
-        </div>
+    <div className="auth-page-wrapper">
+      <div className="auth-container animate-scale-in">
         
-        {error && (
-          <div className="w-full p-3.5 mb-6 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium text-center flex items-center justify-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="w-full space-y-5">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-2 ml-1">Username or Email</label>
-            <input 
-              name="username"
-              className="w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl px-4 py-3.5 text-sm focus:border-primary focus:bg-white/10 focus:ring-4 focus:ring-primary/20 transition-all outline-none" 
-              type="text" 
-              placeholder="e.g. nwaithira74@gmail.com" 
-              value={credentials.username}
-              onChange={handleChange}
-              required
-            />
+        {/* LEFT: Visual Side */}
+        <div className="visual-side">
+          <img src="/auth-bg.png" alt="" className="auth-visual-bg" />
+          
+          <div className="auth-logo-container">
+            <h1 className="auth-logo">Sparkle</h1>
+            <p className="auth-tagline">
+              Connect with friends and the world around you on Sparkle.
+            </p>
           </div>
           
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-2 ml-1">Password</label>
-            <input 
-              name="password"
-              className="w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl px-4 py-3.5 text-sm focus:border-primary focus:bg-white/10 focus:ring-4 focus:ring-primary/20 transition-all outline-none" 
-              type="password" 
-              placeholder="••••••••" 
-              value={credentials.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <ul className="features-list">
+            <li><Camera size={20} /> See photos and updates</li>
+            <li><Hash size={20} /> Follow interests</li>
+            <li><MessageCircle size={20} /> Join the conversation</li>
+          </ul>
+        </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <div className="relative flex items-center justify-center w-5 h-5 rounded bg-white/5 border border-white/20 group-hover:border-primary/50 transition-colors">
-                <input type="checkbox" className="peer w-full h-full opacity-0 cursor-pointer absolute" />
-                <svg className="w-3.5 h-3.5 text-primary opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+        {/* RIGHT: Form Side */}
+        <div className="form-side">
+          {error && <div className="auth-message error show">⚠️ {error}</div>}
+          {success && <div className="auth-message success show">✨ {success}</div>}
+
+          <div className="auth-form-container">
+            {!show2FA ? (
+              <div className="animate-fade-in">
+                <div className="panel-header">
+                  <h1 className="panel-title">Welcome Back</h1>
+                  <p className="panel-subtitle">Log in to your account.</p>
+                </div>
+
+                <form onSubmit={handleLogin}>
+                  <div className="auth-form-group">
+                    <label className="auth-label">Username or Email</label>
+                    <div className="input-with-icon">
+                      <User size={16} className="input-icon" />
+                      <input 
+                        type="text" 
+                        value={email} 
+                        onChange={e => setEmail(e.target.value)} 
+                        placeholder="Phone, username, or email" 
+                        required 
+                        className="auth-input" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-form-group">
+                    <label className="auth-label">Password</label>
+                    <div className="input-with-icon">
+                      <Lock size={16} className="input-icon" />
+                      <input 
+                        type="password" 
+                        value={password} 
+                        onChange={e => setPassword(e.target.value)} 
+                        placeholder="Your secure password" 
+                        required 
+                        className="auth-input" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mb-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={rememberMe} 
+                        onChange={e => setRememberMe(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" 
+                      />
+                      <span className="text-sm font-medium text-slate-600">Remember me</span>
+                    </label>
+                    <Link to="/forgot-password"  className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Forgot Password?</Link>
+                  </div>
+
+                  <button type="submit" className="premium-btn" disabled={loading}>
+                    {loading ? <i className="fas fa-circle-notch fa-spin"></i> : 'Log In'}
+                  </button>
+                </form>
+
+                <div className="relative my-8 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
+                  <span className="relative px-4 bg-white">or</span>
+                </div>
+
+                <button className="social-btn">
+                  <img src="https://www.google.com/favicon.ico" alt="" className="w-4 h-4" />
+                  Continue with Google
+                </button>
+
+                <p className="auth-link">
+                  New to Sparkle? <Link to="/signup">Create an account</Link>
+                </p>
               </div>
-              <span className="text-sm font-medium text-white/60 group-hover:text-white transition-colors">Remember me</span>
-            </label>
-            
-            <a href="#" className="text-sm font-semibold text-primary hover:text-pink-400 transition-colors">Forgot password?</a>
-          </div>
-          
-          <button 
-            type="submit"
-            className="w-full relative overflow-hidden group py-3.5 rounded-xl bg-gradient-to-r from-primary to-pink-500 text-white font-bold shadow-lg shadow-primary/25 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 mt-2" 
-            disabled={loading}
-          >
-            <div className="absolute inset-0 bg-white/20 translate-y-[-100%] group-hover:translate-y-[0%] transition-transform duration-300"></div>
-            <span className="relative z-10 block w-full">{loading ? 'Authenticating...' : 'Log In'}</span>
-          </button>
-        </form>
-        
-        <div className="my-6 flex items-center justify-center gap-4">
-          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
-          <span className="text-xs font-semibold tracking-wider text-white/40 uppercase">OR</span>
-          <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
-        </div>
+            ) : (
+              <div className="animate-fade-in text-center">
+                <div className="panel-header">
+                  <h2 className="panel-title">Security Check</h2>
+                  <p className="panel-subtitle">
+                    Enter the code sent to <span className="text-slate-800 font-bold">{twofaEmail}</span>
+                  </p>
+                </div>
 
-        <button 
-          type="button"
-          onClick={() => alert('Google auth integration pending')}
-          className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 active:scale-[0.98] transition-all"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-          </svg>
-          Log in with Google
-        </button>
-        
-        <p className="mt-8 text-center text-sm text-white/50">
-          Don't have an account? 
-          <span className="text-primary hover:text-pink-400 font-semibold ml-1.5 cursor-pointer transition-colors" onClick={() => navigate('/signup')}>
-            Sign up
-          </span>
-        </p>
+                <div className="flex justify-center gap-3 mb-8">
+                  {pin.map((digit, i) => (
+                    <input
+                      key={i}
+                      id={`pin-${i}`}
+                      type="text"
+                      maxLength={1}
+                      value={digit}
+                      onChange={e => handlePinInput(i, e.target.value)}
+                      onKeyDown={e => handlePinKeyDown(i, e)}
+                      className="w-10 h-14 rounded-lg border-2 border-slate-200 bg-slate-50 text-center text-xl font-bold focus:border-indigo-600 focus:bg-white outline-none transition-all"
+                    />
+                  ))}
+                </div>
+
+                <button 
+                  className="premium-btn mb-6" 
+                  onClick={handleVerify2FA} 
+                  disabled={verifying}
+                >
+                  {verifying ? <i className="fas fa-circle-notch fa-spin"></i> : 'Verify & Continue'}
+                </button>
+
+                <button 
+                  className="text-sm font-bold text-slate-400 hover:text-indigo-600"
+                  onClick={handleBackToLogin}
+                >
+                  Back to Login
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

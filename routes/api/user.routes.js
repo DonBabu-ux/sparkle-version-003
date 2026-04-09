@@ -49,10 +49,10 @@ router.put('/password', authMiddleware, validate(updatePasswordSchema), userCont
 router.delete('/me', authMiddleware, userController.deleteAccount);
 
 // Social & Profile Routes
-router.get('/:id', authMiddleware, validate(userIdSchema, 'params'), userController.getUserProfile);
-router.get('/:id/posts', authMiddleware, validate(userIdSchema, 'params'), userController.getUserPosts);
-router.get('/:id/followers', authMiddleware, validate(userIdSchema, 'params'), userController.getFollowers);
-router.get('/:id/following', authMiddleware, validate(userIdSchema, 'params'), userController.getFollowing);
+router.get('/:id', authMiddleware, userController.getUserProfile);
+router.get('/:id/posts', authMiddleware, userController.getUserPosts);
+router.get('/:id/followers', authMiddleware, userController.getFollowers);
+router.get('/:id/following', authMiddleware, userController.getFollowing);
 router.post('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);
 router.delete('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
 

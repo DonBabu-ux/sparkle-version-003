@@ -269,6 +269,34 @@ const renderMomentDetail = async (req, res) => {
     }
 }
 
+const getMomentById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [moments] = await pool.query(`
+            SELECT 
+                m.*,
+                u.username,
+                u.name as user_name,
+                u.avatar_url,
+                (SELECT COUNT(*) FROM moment_likes WHERE moment_id = m.moment_id AND user_id = ?) as is_liked,
+                (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved,
+                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following
+            FROM moments m 
+            JOIN users u ON m.user_id = u.user_id 
+            WHERE m.moment_id = ?
+        `, [req.user?.user_id, req.user?.user_id, req.user?.user_id, id]);
+
+        if (moments.length === 0) {
+            return res.status(404).json({ error: 'Moment not found' });
+        }
+
+        res.json({ success: true, moment: moments[0] });
+    } catch (error) {
+        logger.error('Error loading moment detail:', error);
+        res.status(500).json({ error: 'Failed to load moment' });
+    }
+}
+
 const getMomentsStream = async (req, res) => {
     try {
         await ensureMomentTables();
@@ -768,5 +796,6 @@ module.exports = {
     followUser,
     trackShare,
     getShareData,
-    likeComment
+    likeComment,
+    getMomentById
 };

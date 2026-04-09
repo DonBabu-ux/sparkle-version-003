@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/api';
 
 import Navbar from '../components/Navbar';
-import { Link } from 'react-router-dom';
+import UserCard from '../components/UserCard';
 
 export default function Search() {
   const [query, setQuery] = useState('');
@@ -117,24 +117,10 @@ export default function Search() {
                     ))
                  ) : results.length > 0 ? (
                     results.map(peer => (
-                      <Link 
-                        to={`/profile/${peer.username}`} 
+                      <UserCard 
                         key={peer.user_id}
-                        className="premium-card bg-white border-white hover:-translate-y-1 transition-all duration-300 p-6 flex items-center gap-5 group"
-                      >
-                        <img src={peer.avatar_url || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-2xl object-cover shadow-lg border-2 border-slate-50 group-hover:border-indigo-100 transition-colors" alt="" />
-                        <div className="flex-1 min-w-0">
-                           <h4 className="font-black text-slate-800 tracking-tight truncate group-hover:text-indigo-600 transition-colors">{peer.name}</h4>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5 truncate">@{peer.username}</p>
-                           <div className="mt-2 flex items-center gap-2">
-                             <span className="text-[9px] font-bold px-2 py-0.5 bg-slate-50 rounded text-slate-500">{peer.campus}</span>
-                             {peer.mutual_connections > 0 && (
-                               <span className="text-[9px] font-black text-indigo-500">+{peer.mutual_connections} Mutuals</span>
-                             )}
-                           </div>
-                        </div>
-                        <div className="text-xl opacity-0 group-hover:opacity-100 transition-opacity">✨</div>
-                      </Link>
+                        u={peer}
+                      />
                     ))
                  ) : (
                     <div className="col-span-full py-32 flex flex-col items-center justify-center bg-white/30 rounded-[40px] border-2 border-dashed border-slate-200">

@@ -539,7 +539,7 @@ const getSuggestions = async (req, res) => {
         
         // Device/User specific seed for variety on refresh (Part 1 & 4)
         const hourlySeed = Math.floor(Date.now() / (1000 * 60 * 60));
-        const seed = currentUserId.split('-')[0]; // Use first part of UUID as deterministic seed
+        const seed = String(currentUserId).split('-')[0]; // Use first part of ID as deterministic seed
 
         const suggestions = await User.getSuggestions(currentUserId, limit, seed + hourlySeed);
         

@@ -1,209 +1,216 @@
-SPARKLE CAMPUS NETWORK - EXHAUSTIVE PAGE & COMPONENT DIRECTORY
+frontend/
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── public
+│   ├── favicon.svg
+│   ├── icons.svg
+│   └── logo.png
+├── README.md
+├── src
+│   ├── api
+│   │   └── api.ts
+│   ├── App.css
+│   ├── App.tsx
+│   ├── assets
+│   │   ├── hero.png
+│   │   ├── react.svg
+│   │   └── vite.svg
+│   ├── components
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── FollowRequestsOverlay.tsx
+│   │   ├── Navbar.tsx
+│   │   └── PostCard.tsx
+│   ├── features
+│   ├── hooks
+│   │   ├── useInfiniteScroll.ts
+│   │   └── useSocket.ts
+│   ├── index.css
+│   ├── main.tsx
+│   ├── pages
+│   │   ├── AdminDashboard.tsx
+│   │   ├── Confessions.tsx
+│   │   ├── CreateGroup.tsx
+│   │   ├── Dashboard.tsx
+│   │   ├── GroupAdmin.tsx
+│   │   ├── GroupDetail.tsx
+│   │   ├── Groups.tsx
+│   │   ├── ListingDetail.tsx
+│   │   ├── Login.tsx
+│   │   ├── Marketplace.tsx
+│   │   ├── Messages.tsx
+│   │   ├── Notifications.tsx
+│   │   ├── PostDetail.tsx
+│   │   ├── Profile.tsx
+│   │   ├── Search.tsx
+│   │   ├── SellItem.tsx
+│   │   ├── Settings.tsx
+│   │   ├── SkillMarket.tsx
+│   │   ├── StoryViewer.tsx
+│   │   └── Wishlist.tsx
+│   ├── store
+│   │   └── userStore.ts
+│   ├── types
+│   └── utils
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
 
-========================================
-PART 1: THE GLOBAL SIDEBAR
-========================================
-1. Sidebar Location & Context
-   - Desktop: Displayed directly on the left side of the `dashboard-layout` grid as a persistently glued column (`position: sticky`).
-   - Mobile/Tablet: Hidden by default and triggered by a hamburger menu icon in the top left header (`nav-bar`), animating in from `-350px` left to cover the screen.
-
-2. Sidebar Styling
-   - Aesthetic: Clean, card-like (`glass` properties or solid white) utilizing large border radiuses (`20px` to `24px`).
-   - Links: Anchor tags structured as `display: flex; align-items: center; gap: 14px;`. Base text color `#64748b` (slate).
-   - Hover States: A soft indigo background (`rgba(99, 102, 241, 0.08)`) and an icon `transform: scale(1.1)`. The active state usually locks the color to the vibrant primary indigo (`#6366f1`).
-   - Badges: Micro-elements (e.g., `<span class="hamburger-badge">`) styled with a primary background and white text for displaying unread message or notification counts.
-
-3. Sidebar Contents & Links
-   - Home / Dashboard
-   - Messages (often with unread count `badge`)
-   - Moments (TikTok clone)
-   - Notifications
-   - Connect (User Discovery)
-   - Groups & Clubs (Sub-communities)
-   - Marketplace (Buying/Selling)
-   - Skill Market (Peer Services)
-   - Confessions (Anonymous Board)
-   - Lost & Found
-   - Events & Polls
-   - Profile & Settings
-
-========================================
-PART 2: EXHAUSTIVE PAGE DIRECTORY (44 PAGES)
-========================================
-
-A. MAIN APPLICATION PAGES (30+)
-
-1. 404.ejs
-   - Contents: Standard graphic informing the user the page doesn't exist.
-   - Backend Data: Receives exact requested `URL` or a generic error string.
-   - Forms/Inputs: A "Back to Dashboard" button.
-
-2. about.ejs
-   - Contents: Marketing text, app philosophy, version specs.
-   - Backend Data: None (Static marketing page).
-
-3. api-tester.ejs
-   - Contents: An internal dev dashboard for pinging backend endpoints.
-   - Backend Data: Raw JSON responses.
-   - Forms/Inputs: Endpoint method (GET/POST/PUT), header configurations, JSON payload textarea, and "Send Request" submit button.
-
-4. cache-buster.ejs
-   - Contents: Utility page to forcefully overwrite old service workers.
-
-5. club-detail.ejs (or clubs/:id)
-   - Contents: Header banner, club logo, description, member list, and an isolated feed of posts restricted to this club.
-   - Backend Data: The `Club` object, `clubPosts` array, `members` array, and the viewer's `isMember` boolean.
-   - Forms/Inputs: "Join Club" button. A scoped `create-post-box` that specifically tags payloads with `clubId`.
-
-6. clubs.ejs
-   - Contents: A masonry or grid directory of all available campus clubs.
-   - Backend Data: Array of `Club` items, potentially paginated or filtered by category.
-   - Forms/Inputs: A specialized search input to filter clubs. A "Create Club" modal/form (expects Title, Description, Visibility [Public/Private], Cover Image).
-
-7. confessions.ejs
-   - Contents: An anonymous, timeline-based board. 
-   - Backend Data: Array of `confession` posts. User identifiers are explicitly hidden or hashed on the backend before sending.
-   - Forms/Inputs: A prominent text-only textarea. Posts expect a `body` string and explicitly do NOT bind to the user's public ID.
-
-8. connect.ejs
-   - Contents: An aggressive discovery page showcasing "Suggested Users" or "People You Might Know".
-   - Backend Data: A large array of `User` objects tailored by mutual connections or shared campus/courses.
-   - Forms/Inputs: Search bar targeting user names. "Follow" / "Request" buttons generating a POST to the followers table.
-
-9. create-moment.ejs
-   - Contents: A dedicated full-page or large modular uploader for short-form clips.
-   - Backend Data: Pre-signed upload URLs if using S3, or standard multipart endpoints.
-   - Forms/Inputs: HTML5 `<video>` preview container. File input strictly limiting formats (`mp4`, `mov`). Caption textarea, hashtag input.
-
-10. dashboard.ejs
-    - Contents: The main hub containing the Create Post box, AfterGlow (Stories) carousel, and the infinite chronological Post feed.
-    - Backend Data: Highly aggregated—`user` object, `stories` (grouped by user), `posts` array, and side-panel `suggestions` array.
-    - Forms/Inputs: "What's on your mind?" trigger, opening the `createPickerModal`. The inline native comment boxes under posts.
-
-11. error.ejs
-    - Contents: Server failure dump (500 Internal Server Error).
-    - Backend Data: The `error` stack trace (displayed if admin/dev) or generic fallback message.
-
-12. events.ejs
-    - Contents: A calendar or list-style view of upcoming campus gatherings.
-    - Backend Data: Array of upcoming `events`, parsed chronologically.
-    - Forms/Inputs: "RSVP" / "Going" toggles (POSTs status to backend). Form to "Create Event" (expects Event Name, Time, Location, Description, Banner).
-
-13. follow-requests.ejs
-    - Contents: A simple list of users who have requested to follow the private account.
-    - Backend Data: Array of `User` objects pending follow approval.
-    - Forms/Inputs: "Accept" (✅) and "Decline" (❌) dual buttons.
-
-14. group-detail.ejs
-    - Contents: Similar to `club-detail` but geared toward tighter utility (study groups, dorm floors). Contains an integrated chat module.
-    - Backend Data: `Group` object, member list, recent chat `messages` list.
-    - Forms/Inputs: Real-time socket.io chat input rooted to the specific Group ID.
-
-15. group-feed.ejs
-    - Contents: Specifically isolated dashboard feed rendering only posts from joined groups.
-
-16. groups.ejs
-    - Contents: List view of groups. Form to "Create Group."
-
-17. index.ejs
-    - Contents: The public landing/splash page shown to unauthenticated traffic.
-    - Backend Data: Rarely any; mostly static HTML/CSS.
-    - Forms/Inputs: Call-To-Action buttons hooking to `/auth/login` and `/auth/signup`.
-
-18. lost-found.ejs
-    - Contents: A utility feed of missing or found items.
-    - Backend Data: Array of `items`, categorized by "Lost" or "Found".
-    - Forms/Inputs: Dedicated "Post Item" form. Expects: Status (Radio: Lost/Found), Title, Description, Last Seen Location, Image.
-
-19. marketplace.ejs
-    - Contents: The commerce hub. Contains a filter sidebar and a responsive grid of product cards.
-    - Backend Data: Array of active `products` / `listings`.
-    - Forms/Inputs: Price sliders (Min/Max), Category dropdowns (Textbooks, Tech, Furniture, Clothing). "Contact Seller" modal triggers.
-
-20. messages.ejs
-    - Contents: Real-time direct messaging interface (Two-pane: Roster left, Active chat right).
-    - Backend Data: Array of `conversations` (showing last message preview), and raw `messages` array for the active thread.
-    - Forms/Inputs: The `chatInput` field anchored at the bottom of the right pane expecting string text or a base64/linked file attachment.
-
-21. moment-detail.ejs
-    - Contents: A standalone view for a single TikTok-style video (e.g., opened via a direct link).
-    - Backend Data: Single `moment` object with pre-loaded comments.
-
-22. moments.ejs
-    - Contents: The primary vertical-scrolling immersive video feed.
-    - Backend Data: An infinitely paginated array of `moments` (videos).
-    - Forms/Inputs: "Like" (heart toggle) sending a POST request. Tapping comments opens a bottom sheet overlay input.
-
-23. notifications.ejs
-    - Contents: A chronological, paginated list of all systemic and social alerts.
-    - Backend Data: Array of `Notification` objects detailing the actor (`user_id`), the action (`type`), and the link (`target_url`).
-    - Forms/Inputs: "Mark all as read" global action button.
-
-24. poll-detail.ejs / 25. polls.ejs
-    - Contents: Interactivity boards for structured questions.
-    - Backend Data: `Poll` objects comprising the Question, a list of `options`, and the integer vote-count tied to each option.
-    - Forms/Inputs: Radio buttons mapping to poll choices, submitting a vote POST to the server. Form to create a poll handles dynamic option adding.
-
-26. post.ejs
-    - Contents: Standalone URL for a single post (`/post/:id`).
-    - Backend Data: Deep fetch of a single `Post` object and all nested threaded `comments`.
-    - Forms/Inputs: The comment input area is expanded permanently in this view.
-
-27. profile.ejs
-    - Contents: A user's public wall (Avatar, bio, followers/following counts) and a grid of their recent posts and marketplace items.
-    - Backend Data: Looked up by `:username`. Returns `profileUser`, `metrics` (counts), and a subset of `posts`.
-    - Forms/Inputs: "Edit Profile" button opening a modal to update Bio text, Campus Name, and Avatar Image upload.
-
-28. search.ejs
-    - Contents: Global query engine results page.
-    - Backend Data: Hits separated by entities (`users`, `posts`, `groups`, `marketplace_items`).
-
-29. settings.ejs
-    - Contents: Account preferences dashboard.
-    - Backend Data: The authenticated `user`'s current preference config.
-    - Forms/Inputs: Numerous boolean toggles (Email Alerts, Private Account) sending immediate background PUT requests. Password change form (Old, New, Confirm).
-
-30. skill-market.ejs / 31. skill-marketplace.ejs
-    - Contents: Freelance hub for digital/academic services (Tutoring, Graphic Design).
-    - Backend Data: Array of service `offerings` or `requests`.
-    - Forms/Inputs: Form to "Offer Skill" expecting: Skill Title, Hourly Rate/Fixed Price, Bio/Portfolio Description.
-
-32. streams.ejs
-    - Contents: Live-video or heavy media directory.
-
-B. ADMIN PAGES (4)
-
-33. admin/dashboard.ejs
-    - Backend Data: High-level systemic aggregates (Daily Active Users, Total Posts, Registration charts).
-34. admin/logs.ejs
-    - Backend Data: Chronological raw server/error dumps or moderation action logs.
-35. admin/reports.ejs
-    - Backend Data: Array of user-flagged items (`reported_posts`, `reported_users`).
-    - Forms/Inputs: Action buttons per row: "Ignore", "Delete Content", "Ban User".
-36. admin/users.ejs
-    - Backend Data: Table of all user accounts.
-    - Forms/Inputs: Inputs to forcefully change user roles (User vs Admin), reset passwords, or suspend accounts.
-
-C. AUTH PAGES (2)
-
-37. auth/login.ejs
-    - Form: Username/Email input, Password input, "Remember Me" checkbox. Expected to POST to passport.js or similar auth middleware.
-38. auth/signup.ejs
-    - Form: Full Name, Email, Custom Username, Password, Password Confirm, and a dropdown/typeahead for selecting University/Campus.
-
-D. MARKETPLACE SPECIFIC PAGES (6)
-
-39. marketplace/listing-detail.ejs
-    - Backend Data: Deep dive on a product (`title`, `price`, `seller_id`, deep image array).
-    - Forms/Inputs: Giant CTA button to "Message Seller" or "Add to Wishlist" (triggers POST to favorites table).
-40. marketplace/my-listings.ejs
-    - Backend Data: Fetches `products` queried explicitly by `seller_id === current_user`.
-    - Forms/Inputs: Edit / Mark as Sold / Delete buttons for each product card.
-41. marketplace/orders.ejs
-    - Backend Data: History of items bought or bids made by the user.
-42. marketplace/sell.ejs
-    - Forms/Inputs: The comprehensive upload form for commerce. Title, Price, Detailed Description, Category Dropdown, and Multiple File Upload inputs for images.
-43. marketplace/seller-profile.ejs
-    - Backend Data: Public aggregate view of another user's commerce activity, including star ratings/reviews.
-44. marketplace/wishlist.ejs
-    - Backend Data: User's saved/starred commerce listings. Forms to remove item.
+backend/
+├── .env
+├── .gitignore
+├── check-admins.js
+├── check-db.js
+├── check-master-schema.js
+├── comprehensive-fix.js
+├── config
+│   ├── constants.js
+│   ├── database.js
+│   ├── email.js
+│   ├── firebase-admin.js
+│   └── firebase.config.js
+├── controllers
+│   ├── admin.controller.js
+│   ├── auth.controller.js
+│   ├── campus.controller.js
+│   ├── clubs.controller.js
+│   ├── confession.controller.js
+│   ├── dashboard.controller.js
+│   ├── email-auth.controller.js
+│   ├── feed.controller.js
+│   ├── groupChat.controller.js
+│   ├── groups.controller.js
+│   ├── lostFound.controller.js
+│   ├── marketplace.controller.js
+│   ├── messages.controller.js
+│   ├── messaging.controller.js
+│   ├── moments.controller.js
+│   ├── notification.controller.js
+│   ├── post.controller.js
+│   ├── professional.controller.js
+│   ├── profile.controller.js
+│   ├── realtime.controller.js
+│   ├── search.controller.js
+│   ├── skillMarket.controller.js
+│   ├── social.controller.js
+│   ├── supabase.controller.js
+│   ├── upload.controller.js
+│   ├── user.controller.js
+│   └── web.controller.js
+├── db-schema.json
+├── db.sql
+├── db_check.json
+├── describe-users.js
+├── dump-schema.js
+├── emergency-migrate.js
+├── helpers
+│   └── userFormat.helper.js
+├── middleware
+│   ├── admin.middleware.js
+│   ├── auth.middleware.js
+│   ├── rateLimiter.middleware.js
+│   ├── security.middleware.js
+│   ├── upload.middleware.js
+│   └── validation.middleware.js
+├── models
+│   ├── Club.js
+│   ├── Confession.js
+│   ├── EmailVerification.js
+│   ├── Group.js
+│   ├── GroupChat.js
+│   ├── GroupMember.js
+│   ├── LostFound.js
+│   ├── Marketplace.js
+│   ├── MemoryMarketplace.js
+│   ├── Message.js
+│   ├── PasswordReset.js
+│   ├── Post.js
+│   ├── SkillMarket.js
+│   └── User.js
+├── package-lock.json
+├── package.json
+├── pnpm-lock.yaml
+├── routes
+│   ├── api
+│   │   ├── admin.routes.js
+│   │   ├── auth.routes.js
+│   │   ├── campus.routes.js
+│   │   ├── clubs.routes.js
+│   │   ├── confession.routes.js
+│   │   ├── groupChat.routes.js
+│   │   ├── groups.routes.js
+│   │   ├── index.js
+│   │   ├── link-preview.routes.js
+│   │   ├── lost-found.routes.js
+│   │   ├── marketplace.routes.js
+│   │   ├── messages.routes.js
+│   │   ├── moments.routes.js
+│   │   ├── notifications.routes.js
+│   │   ├── posts.routes.js
+│   │   ├── realtime.routes.js
+│   │   ├── search.routes.js
+│   │   ├── share.routes.js
+│   │   ├── skill-market.routes.js
+│   │   ├── stories.routes.js
+│   │   ├── support.routes.js
+│   │   ├── upload.routes.js
+│   │   └── user.routes.js
+│   └── web
+│       ├── admin.routes.js
+│       ├── auth.routes.js
+│       ├── campus.routes.js
+│       ├── clubs.routes.js
+│       ├── confession.routes.js
+│       ├── dashboard.routes.js
+│       ├── feed.routes.js
+│       ├── groups.routes.js
+│       ├── index.js
+│       ├── lost-found.routes.js
+│       ├── marketplace.routes.js
+│       ├── messaging.routes.js
+│       ├── moments.routes.js
+│       ├── profile.routes.js
+│       ├── skill-market.routes.js
+│       ├── social.routes.js
+│       └── support.routes.js
+├── schemas
+│   └── marketplace.schemas.js
+├── scripts
+│   ├── find-users.js
+│   ├── fix-assets.js
+│   ├── migrate-avatars.js
+│   ├── migrate-groups-final.js
+│   ├── migrate-groups-production.js
+│   ├── migrate-groups-v5.js
+│   ├── migrate-marketplace.js
+│   ├── migrate-orders-v2.js
+│   ├── migrate_group_chat.js
+│   ├── migrate_messaging_v3.js
+│   ├── seed-moments.js
+│   ├── setup-auth-db.js
+│   ├── setup-social-v2.js
+│   ├── verify-auth-flow.js
+│   └── verify-batch-3.js
+├── server.js
+├── sockets
+│   └── index.js
+├── utils
+│   ├── database
+│   │   ├── init.js
+│   │   ├── migrations
+│   │   │   └── 008_email_verification.sql
+│   │   └── query.js
+│   ├── fileUpload.js
+│   ├── keep-alive.js
+│   ├── logger.js
+│   ├── media.utils.js
+│   ├── route-scanner.js
+│   ├── sms.js
+│   └── user-helpers.js
+└── validators
+    ├── auth.validator.js
+    ├── post.validator.js
+    └── user.validator.js

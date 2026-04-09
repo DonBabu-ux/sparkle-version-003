@@ -4,8 +4,8 @@ import { persist } from 'zustand/middleware';
 interface User {
   id?: string;
   user_id?: string;
-  username: string;
-  name: string;
+  username?: string;
+  name?: string;
   email?: string;
   avatar_url?: string;
   campus?: string;

@@ -39,7 +39,9 @@ export default function Settings() {
   const handleUpdateSetting = async (key: string, value: any) => {
     try {
       await api.put('/users/settings', { [key]: value });
-      setUser({ ...user, [key]: value });
+      if (user) {
+        setUser({ ...user, [key]: value } as any);
+      }
     } catch (err) {
       console.error('Failed to update setting:', err);
     }
@@ -55,7 +57,9 @@ export default function Settings() {
       const response = await api.put('/users/profile', formData);
       if (response.data.success || response.status === 200) {
         setSuccess('Profile updated successfully!');
-        setUser({ ...user, ...formData });
+        if (user) {
+          setUser({ ...user, ...formData } as any);
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update profile');

@@ -9,6 +9,7 @@ import { useModalStore } from '../store/modalStore';
 export default function Dashboard() {
   const { user } = useUserStore();
   const navigate = useNavigate();
+  const { setActiveModal } = useModalStore();
 
   const [newPostContent, setNewPostContent] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);

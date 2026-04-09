@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "name": "sparkle-frontend",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://sparkle-api-production.up.railway.app/api/$1"
+    },
+    {
+      "source": "/socket.io/(.*)",
+      "destination": "https://sparkle-api-production.up.railway.app/socket.io/$1"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "https://sparkle-api-production.up.railway.app/uploads/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

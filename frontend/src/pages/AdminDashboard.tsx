@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, Ban, Trash2, CheckCircle } from 'lucide-react';

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { useUserStore } from '../../store/userStore';
 
 interface NewChatModalProps {
   isOpen: boolean;

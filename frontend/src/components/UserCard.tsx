@@ -40,69 +40,94 @@ export default function UserCard({ u, onRemove }: UserCardProps) {
   };
 
   return (
-    <div className="discover-card group relative bg-white rounded-3xl p-8 min-h-[380px] flex flex-col items-center border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer" 
+    <div className="discover-card group relative bg-white rounded-[2.5rem] p-8 min-h-[420px] flex flex-col items-center border border-[#f1f5f9] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(255,61,109,0.12)] hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden" 
          onClick={() => navigate(`/profile/${u.username}`)}>
       
+      {/* Decorative Background Element */}
+      <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-[#FF3D6D]/5 to-[#FF8E53]/5 -z-0"></div>
+
       {!isFollowed && onRemove && (
         <button onClick={(e) => { e.stopPropagation(); onRemove(u.user_id); }}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-colors">
-          <X size={14} />
+                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md text-slate-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all shadow-sm z-10">
+          <X size={16} />
         </button>
       )}
 
-      <div className="relative inline-block mb-4">
-        <img src={u.avatar_url || u.avatar || '/uploads/avatars/default.png'}
-             alt={u.username} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg group-hover:scale-105 transition-transform" />
+      <div className="relative inline-block mb-6 mt-4 z-10">
+        <div className="p-1 rounded-full bg-gradient-to-tr from-[#FF3D6D] to-[#FF8E53] group-hover:rotate-6 transition-transform duration-500">
+          <img src={u.avatar_url || u.avatar || '/uploads/avatars/default.png'}
+               alt={u.username} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md group-hover:scale-105 transition-transform duration-500" />
+        </div>
         {u.is_online && (
-          <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></div>
+          <div className="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full shadow-sm"></div>
         )}
       </div>
 
-      <div className="flex flex-col items-center justify-center mb-1">
-        <div className="flex items-center gap-1.5">
-          <span className="font-extrabold text-base text-[#111]">{u.username}</span>
-          {u.is_verified ? <Zap size={14} className="fill-[#FF3D6D] text-[#FF3D6D]" /> : null}
+      <div className="flex flex-col items-center justify-center mb-2 z-10 text-center">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="font-black text-xl text-slate-900 tracking-tight">{u.username}</span>
+          {u.is_verified ? (
+            <div className="bg-[#FF3D6D]/10 p-1 rounded-full">
+              <Zap size={14} className="fill-[#FF3D6D] text-[#FF3D6D]" />
+            </div>
+          ) : null}
         </div>
+        
         {(u.name && u.name !== '0' && u.name !== 0) ? (
-          <div className="text-[11px] font-semibold text-slate-500 mt-0.5">{u.name}</div>
+          <div className="text-sm font-semibold text-slate-500">{u.name}</div>
         ) : null}
+
         {u.is_new_user ? (
-          <span className="mt-1 text-[8px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-md uppercase tracking-wider">NEW STAR</span>
+          <div className="mt-3 inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-black uppercase tracking-widest">New Star</span>
+          </div>
         ) : null}
       </div>
 
-      <div className="text-xs font-bold text-slate-400 mb-2 px-4 line-clamp-1">
-        {u.major || 'Sparkler'}
-      </div>
-
-      <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500 mb-4 bg-slate-50 py-1 px-3 rounded-full">
-        <MapPin size={10} className="text-[#FF3D6D]" />
-        {u.campus || 'Global'}
-      </div>
-
-      {(u.mutual_connections && Number(u.mutual_connections) > 0) ? (
-        <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#FF3D6D] font-black uppercase tracking-wider mb-5 bg-[#FF3D6D]/5 py-1.5 px-4 rounded-full">
-          <Users size={10} /> {u.mutual_connections} Mutual Friends
+      <div className="flex flex-col items-center gap-3 w-full mt-4 mb-2 z-10">
+        <div className="text-xs font-bold text-slate-400 px-4 line-clamp-1 bg-slate-50 py-1.5 rounded-lg border border-slate-100/50">
+          {u.major || 'Sparkler'}
         </div>
-      ) : null}
 
-      <div className="mt-auto flex justify-center w-full px-4">
-        {isFollowed ? (
-          <button className={`w-full max-w-[160px] py-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 border-2 border-slate-100 text-slate-500 hover:bg-slate-50 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                  onClick={toggleFollow} disabled={loading}>
-            <Check size={14} strokeWidth={3} /> Following
-          </button>
-        ) : requestStatus === 'pending' ? (
-          <button className="w-full max-w-[160px] py-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-slate-100 text-slate-400 cursor-default" 
-                  disabled onClick={(e) => e.stopPropagation()}>
-            <Clock size={14} strokeWidth={3} /> Requested
-          </button>
-        ) : (
-          <button className={`w-full max-w-[160px] py-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF3D6D] to-[#FF8E53] text-white shadow-lg shadow-[#FF3D6D]/20 hover:shadow-xl hover:translate-y-[-1px] active:translate-y-0 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                  onClick={toggleFollow} disabled={loading}>
-            <Plus size={14} strokeWidth={3} /> Follow
-          </button>
-        )}
+        <div className="flex items-center justify-center gap-1.5 text-[11px] font-extrabold text-[#FF3D6D] uppercase tracking-wider">
+          <MapPin size={12} strokeWidth={3} />
+          {u.campus || 'Global'}
+        </div>
+      </div>
+
+      <div className="mt-auto w-full z-10">
+        {(u.mutual_connections && Number(u.mutual_connections) > 0) ? (
+          <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">
+            <div className="flex -space-x-2">
+               {[...Array(3)].map((_, i) => (
+                 <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
+                    <img src={`https://i.pravatar.cc/100?img=${(u.user_id?.charCodeAt(0) || 0) + i}`} alt="" className="w-full h-full object-cover" />
+                 </div>
+               ))}
+            </div>
+            <span>{u.mutual_connections} Mutual Friends</span>
+          </div>
+        ) : null}
+
+        <div className="flex justify-center w-full">
+          {isFollowed ? (
+            <button className={`w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 border-2 border-slate-100 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all duration-300 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                    onClick={toggleFollow} disabled={loading}>
+              <Check size={18} strokeWidth={3} /> Following
+            </button>
+          ) : requestStatus === 'pending' ? (
+            <button className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-slate-50 text-slate-400 cursor-default border-2 border-dashed border-slate-200" 
+                    disabled onClick={(e) => e.stopPropagation()}>
+              <Clock size={18} strokeWidth={3} /> Requested
+            </button>
+          ) : (
+            <button className={`w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF3D6D] to-[#FF8E53] text-white shadow-[0_10px_25px_rgba(255,61,109,0.3)] hover:shadow-[0_15px_30px_rgba(255,61,109,0.4)] hover:translate-y-[-2px] active:translate-y-0 transition-all duration-300 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                    onClick={toggleFollow} disabled={loading}>
+              <Plus size={18} strokeWidth={3} /> Follow
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

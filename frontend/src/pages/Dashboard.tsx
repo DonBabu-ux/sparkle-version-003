@@ -5,7 +5,44 @@ import PostCard from '../components/PostCard';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useModalStore } from '../store/modalStore';
+import { Plus, Check } from 'lucide-react';
 
+function SuggestionItem({ s, navigate }: { s: any, navigate: any }) {
+  const [following, setFollowing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleFollow = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLoading(true);
+    try {
+      await api.post(`/users/${s.user_id}/follow`);
+      setFollowing(true);
+    } catch (err) {
+      console.error('Failed to follow', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="suggestion-item">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }} onClick={() => navigate(`/profile/${s.user_id}`)}>
+        <img src={s.avatar_url || '/uploads/avatars/default.png'} className="suggestion-avatar" alt="" />
+        <div style={{ overflow: 'hidden' }}>
+          <div className="suggestion-name">{s.username}</div>
+          <div className="suggestion-meta">{s.campus || 'Sparkler'}</div>
+        </div>
+      </div>
+      <button 
+        className={`follow-btn ${following ? 'following' : ''}`} 
+        onClick={handleFollow}
+        disabled={loading || following}
+      >
+        {loading ? '...' : following ? <Check size={14} /> : 'Follow'}
+      </button>
+    </div>
+  );
+}
 export default function Dashboard() {
   const { user } = useUserStore();
   const navigate = useNavigate();
@@ -217,16 +254,7 @@ export default function Dashboard() {
 
             <div className="suggestions-list">
               {suggestions.length > 0 ? suggestions.map(s => (
-                <div key={s.user_id} className="suggestion-item">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }} onClick={() => navigate(`/profile/${s.user_id}`)}>
-                    <img src={s.avatar_url || '/uploads/avatars/default.png'} className="suggestion-avatar" alt="" />
-                    <div style={{ overflow: 'hidden' }}>
-                      <div className="suggestion-name">{s.username}</div>
-                      <div className="suggestion-meta">{s.campus || 'Sparkler'}</div>
-                    </div>
-                  </div>
-                  <button className="follow-btn">Follow</button>
-                </div>
+                <SuggestionItem key={s.user_id} s={s} navigate={navigate} />
               )) : (
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>No suggestions right now</p>
               )}
@@ -372,15 +400,45 @@ export default function Dashboard() {
         }
         .story-add-text { padding: 12px 6px; font-size: 0.8rem; font-weight: 800; }
 
-        .sidebar-card { background: white; border-radius: 20px; padding: 24px; border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); }
-        .sidebar-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .suggestion-item { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-        .suggestion-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .suggestion-name { font-weight: 700; font-size: 0.9rem; }
-        .suggestion-meta { font-size: 0.75rem; color: var(--text-muted); }
-        .follow-btn { color: var(--primary); font-weight: 700; font-size: 0.85rem; background: none; cursor: pointer; }
+        .sidebar-card { background: white; border-radius: 24px; padding: 24px; border: 1px solid var(--border-light); box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+        .sidebar-title { font-size: 1rem; font-weight: 800; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; color: #1e293b; }
+        .suggestion-item { 
+          display: flex; 
+          align-items: center; 
+          gap: 12px; 
+          margin-bottom: 20px; 
+          padding: 8px;
+          border-radius: 16px;
+          transition: all 0.2s;
+        }
+        .suggestion-item:hover {
+          background: #f8fafc;
+        }
+        .suggestion-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .suggestion-name { font-weight: 700; font-size: 0.9rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .suggestion-meta { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+        .follow-btn { 
+          color: var(--primary); 
+          font-weight: 800; 
+          font-size: 0.8rem; 
+          background: rgba(255,61,109,0.05); 
+          padding: 6px 14px;
+          border-radius: 20px;
+          cursor: pointer; 
+          transition: all 0.2s;
+          border: none;
+        }
+        .follow-btn:hover {
+          background: var(--primary);
+          color: white;
+          transform: scale(1.05);
+        }
+        .follow-btn.following {
+          background: #f1f5f9;
+          color: #94a3b8;
+        }
         
-        .trending-card { background: var(--primary-gradient); color: white; border: none; }
+        .trending-card { background: var(--primary-gradient); color: white; border: none; box-shadow: 0 10px 30px rgba(255,61,109,0.2); }
         .pulse-dot { width: 10px; height: 10px; background: white; border-radius: 50%; position: relative; }
         .pulse-dot::after {
           content: ''; position: absolute; inset: 0; background: white; border-radius: 50%;

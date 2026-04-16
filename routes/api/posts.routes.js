@@ -1,4 +1,4 @@
-const express = require('express');
+vconst express = require('express');
 const router = express.Router();
 const postController = require('../../controllers/post.controller');
 const feedController = require('../../controllers/feed.controller');
@@ -11,6 +11,7 @@ const { createPostSchema, addCommentSchema, postIdSchema } = require('../../vali
 
 router.get('/feed', authMiddleware, feedRateLimiter, feedController.getFeedPosts);
 router.get('/liked', authMiddleware, feedRateLimiter, postController.getLikedPosts);
+router.get('/saved', authMiddleware, feedRateLimiter, postController.getSavedPosts);
 router.get('/:id', authMiddleware, validate(postIdSchema, 'params'), postController.getPost);
 router.post('/', authMiddleware, mutationRateLimiter, upload.array('media', 10), validate(createPostSchema), postController.createPost);
 router.post('/:id/spark', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sparkPost);

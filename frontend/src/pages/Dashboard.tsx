@@ -26,7 +26,7 @@ function SuggestionItem({ s, navigate }: { s: any, navigate: any }) {
 
   return (
     <div className="suggestion-item">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }} onClick={() => navigate(`/profile/${s.user_id}`)}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }} onClick={() => navigate(`/profile/${s.username}`)}>
         <img src={s.avatar_url || '/uploads/avatars/default.png'} className="suggestion-avatar" alt="" />
         <div style={{ overflow: 'hidden' }}>
           <div className="suggestion-name">{s.username}</div>

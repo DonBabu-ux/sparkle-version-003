@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import PostCard from '../components/PostCard';
 import Navbar from '../components/Navbar';
+import { Grid, Bookmark, UserSquare, Clapperboard, Settings as SettingsIcon, Link as LinkIcon, Plus } from 'lucide-react';
 
 export default function Profile() {
   const { username } = useParams();
@@ -12,16 +12,26 @@ export default function Profile() {
   
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
+  const [reels, setReels] = useState<any[]>([]);
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>('posts');
   const [isFollowing, setIsFollowing] = useState(false);
   const [isRequested, setIsRequested] = useState(false);
 
+  // List Modal State
+  const [listModal, setListModal] = useState<{ open: boolean; type: 'followers' | 'following'; data: any[] }>({
+    open: false,
+    type: 'followers',
+    data: []
+  });
+
   const fetchProfile = useCallback(async () => {
     setLoading(true);
+    setActiveTab('posts'); // Reset tab when switching profiles
     try {
-      const targetUsername = username === 'me' ? (currentUser?.username || '') : username;
-      const profileRes = await api.get(`/users/${targetUsername}`);
+      const endpoint = username === 'me' ? '/users/me' : `/users/${username}`;
+      const profileRes = await api.get(endpoint);
       if (profileRes.data) {
         const profileData = profileRes.data;
         setProfile(profileData);
@@ -30,238 +40,750 @@ export default function Profile() {
 
         const postsRes = await api.get(`/users/${profileData.id || profileData.user_id}/posts`);
         if (postsRes.data && Array.isArray(postsRes.data)) {
-          setPosts(postsRes.data);
+          const allPosts = postsRes.data;
+          setPosts(allPosts);
+          setReels(allPosts.filter((p: any) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
         }
       }
     } catch (err) {
       console.error('Failed to fetch profile:', err);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
   }, [username, currentUser]);
 
+  const fetchSaved = async () => {
+    try {
+      const res = await api.get('/posts/saved');
+      setSavedPosts(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch saved posts:', err);
+    }
+  };
+
+  const fetchList = async (type: 'followers' | 'following') => {
+    if (!profile) return;
+    try {
+      const res = await api.get(`/users/${profile.id || profile.user_id}/${type}`);
+      setListModal({ open: true, type, data: res.data || [] });
+    } catch (err) {
+      console.error(`Failed to fetch ${type}:`, err);
+    }
+  };
+
   useEffect(() => {
     if (currentUser) fetchProfile();
   }, [fetchProfile, currentUser]);
 
+  useEffect(() => {
+    if (activeTab === 'saved' && isOwnProfile) {
+      fetchSaved();
+    }
+  }, [activeTab]);
+
   const handleFollowToggle = async () => {
-    if (isRequested) return;
-
-    const originalFollowing = isFollowing;
-    const oldFollowersCount = profile.followers_count;
-    
-    // Optimistic Update
-    setIsFollowing(!originalFollowing);
-    setProfile((prev: any) => ({
-      ...prev,
-      followers_count: originalFollowing ? prev.followers_count - 1 : prev.followers_count + 1
-    }));
-
+    if (!profile || isRequested) return;
+    const targetId = profile.user_id || profile.id;
     try {
-      if (originalFollowing) {
-        // Unfollow
-        await api.delete(`/users/${profile.user_id}/follow`);
-      } else {
-        // Follow
-        const res = await api.post(`/users/${profile.user_id}/follow`);
-        if (res.data.status === 'requested') {
-          setIsRequested(true);
-          setIsFollowing(false);
-          setProfile((prev: any) => ({ ...prev, followers_count: oldFollowersCount }));
-          return;
-        }
-      }
+      const res = await api.post(`/users/${targetId}/follow`);
+      if (res.data.status === 'requested') setIsRequested(true);
+      else if (res.data.status === 'following') setIsFollowing(true);
+      else if (res.data.status === 'unfollowed') setIsFollowing(false);
+      
+      // Update stats count locally
+      setProfile((prev: any) => ({
+        ...prev,
+        followers_count: res.data.status === 'following' ? (prev.followers_count + 1) : 
+                         res.data.status === 'unfollowed' ? (prev.followers_count - 1) : 
+                         prev.followers_count
+      }));
     } catch (err) {
-      // Revert on failure
-      setIsFollowing(originalFollowing);
-      setProfile((prev: any) => ({ ...prev, followers_count: oldFollowersCount }));
-      console.error('Follow action failed:', err);
+      console.error('Follow toggle failed:', err);
+    }
+  };
+
+  const handleListFollowToggle = async (userId: string, currentIndex: number) => {
+    try {
+      const res = await api.post(`/users/${userId}/follow`);
+      const newData = [...listModal.data];
+      newData[currentIndex] = {
+        ...newData[currentIndex],
+        is_followed_by_me: res.data.status === 'following'
+      };
+      setListModal(prev => ({ ...prev, data: newData }));
+    } catch (err) {
+      console.error('List follow toggle failed:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="profile-loading">
-        <div className="spinner"></div>
-        <p>Fetching Sparkler Data...</p>
+      <div className="profile-loading-screen">
+        <i className="fas fa-sparkles animate-pulse text-4xl text-[#FF3D6D]"></i>
       </div>
     );
   }
 
-  const isOwnProfile = profile?.user_id === currentUser?.id || profile?.user_id === currentUser?.user_id;
+  if (!profile) {
+    return (
+      <div className="ig-profile-root">
+        <Navbar />
+        <div className="ig-main-scroll flex items-center justify-center flex-col gap-4">
+           <h2 className="text-2xl font-bold">Sorry, this page isn't available.</h2>
+           <p className="text-slate-400">The link you followed may be broken, or the page may have been removed. <Link to="/" className="text-blue-500">Go back to Sparkle.</Link></p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentId = currentUser?.id || currentUser?.user_id;
+  const profileId = profile?.id || profile?.user_id;
+  const isOwnProfile = !!currentId && !!profileId && String(currentId) === String(profileId);
+  const isMeAlias = username === 'me';
+  const showOwnerActions = isOwnProfile || isMeAlias;
 
   return (
-    <div className="page-wrapper">
+    <div className="ig-profile-root">
       <Navbar />
-      <div className="profile-main-content">
-        <main className="profile-container">
-          <div className="profile-header-card">
-            <div className="profile-header-top">
-              <div className="avatar-section">
-                <div className="profile-avatar-container">
-                  <img src={profile?.avatar_url || '/uploads/avatars/default.png'} alt={profile?.name} />
-                </div>
-              </div>
-
-              <div className="profile-stats">
-                <div className="stat-item">
-                  <div className="stat-value">{posts.length}</div>
-                  <div className="stat-label">Posts</div>
-                </div>
-                <div className="stat-item clickable">
-                  <div className="stat-value">{profile?.followers_count || 0}</div>
-                  <div className="stat-label">Followers</div>
-                </div>
-                <div className="stat-item clickable">
-                  <div className="stat-value">{profile?.following_count || 0}</div>
-                  <div className="stat-label">Following</div>
-                </div>
+      
+      <div className="ig-main-scroll">
+        <div className="ig-profile-container">
+          {/* Header Section */}
+          <header className="ig-profile-header">
+            <div className="ig-avatar-column">
+              <div className="ig-avatar-ring">
+                <img src={profile?.avatar_url || '/uploads/avatars/default.png'} alt="" className="ig-avatar-img" />
               </div>
             </div>
 
-            <div className="profile-identity">
-              <div className="username-row">
-                <span className="profile-username">@{profile?.username}</span>
-                {profile?.is_verified && <i className="fas fa-check-circle verified-icon"></i>}
-              </div>
-              <h1 className="profile-headline">{profile?.headline || profile?.name || profile?.username}</h1>
-              {profile?.bio && (
-                <div className="profile-bio">
-                  {profile.bio}
-                </div>
-              )}
-              {profile?.website && (
-                <a href={`https://${profile.website.replace(/^https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="profile-website">
-                  <i className="fas fa-link"></i> {profile.website.replace(/^https?:\/\//, '')}
-                </a>
-              )}
-            </div>
-
-            <div className="profile-actions-row">
-              {isOwnProfile ? (
-                <>
-                  <button onClick={() => navigate('/settings')} className="action-btn-primary">Edit Profile</button>
-                  <button onClick={() => navigate('/settings')} className="action-btn-icon"><i className="fas fa-cog"></i></button>
-                </>
-              ) : (
-                <>
-                  {isFollowing ? (
-                    <button onClick={handleFollowToggle} className="action-btn-secondary">Following</button>
-                  ) : isRequested ? (
-                    <button className="action-btn-disabled" disabled>Requested</button>
+            <section className="ig-info-column">
+              <div className="ig-username-row">
+                <h2 className="ig-username">{profile?.username}</h2>
+                {profile?.is_verified && <i className="fas fa-certificate ig-verified-check"></i>}
+                <div className="ig-action-btns">
+                  {showOwnerActions ? (
+                    <>
+                      <button onClick={() => navigate('/settings')} className="ig-btn-subtle">Edit Profile</button>
+                      <button className="ig-btn-subtle">View Archive</button>
+                      <button className="ig-cog-btn"><SettingsIcon size={20} /></button>
+                    </>
                   ) : (
-                    <button onClick={handleFollowToggle} className="action-btn-primary">Follow</button>
+                    <>
+                      {isFollowing ? (
+                        <button onClick={handleFollowToggle} className="ig-btn-secondary">Following</button>
+                      ) : isRequested ? (
+                        <button className="ig-btn-secondary" disabled>Requested</button>
+                      ) : (
+                        <button onClick={handleFollowToggle} className="ig-btn-primary">Follow</button>
+                      )}
+                      <button onClick={() => navigate(`/messages/${profile?.user_id || profile?.id}`)} className="ig-btn-secondary">Message</button>
+                    </>
                   )}
-                  <button onClick={() => navigate(`/messages?chat=${profile.user_id}`)} className="action-btn-secondary">Message</button>
-                  <button className="action-btn-icon"><i className="fas fa-ellipsis-h"></i></button>
-                </>
-              )}
-            </div>
-
-            <div className="profile-details-list">
-              {(profile?.campus || profile?.major) && (
-                <div className="detail-item">
-                  <i className="fas fa-graduation-cap"></i>
-                  <span>{profile?.major ? `${profile.major} • ` : ''}{profile?.campus || 'Sparkle Campus'}</span>
                 </div>
-              )}
-              {profile?.email && (
-                <div className="detail-item">
-                  <i className="fas fa-envelope"></i>
-                  <span>{profile.email}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="profile-content-section">
-            <div className="profile-tabs">
-              <div className={`tab ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>
-                <i className="fas fa-th"></i> POSTS
               </div>
-              {isOwnProfile && (
-                <>
-                  <div className={`tab ${activeTab === 'liked' ? 'active' : ''}`} onClick={() => setActiveTab('liked')}>
-                    <i className="fas fa-heart"></i> LIKED
-                  </div>
-                  <div className={`tab ${activeTab === 'saved' ? 'active' : ''}`} onClick={() => setActiveTab('saved')}>
-                    <i className="fas fa-bookmark"></i> SAVED
-                  </div>
-                </>
-              )}
-            </div>
 
-            <div className="posts-grid-container">
-              {posts.length > 0 ? (
-                <div className="posts-list">
-                  {posts.map(post => <PostCard key={post.post_id} post={post} />)}
+              <div className="ig-stats-row">
+                <span><strong>{posts.length}</strong> posts</span>
+                <span onClick={() => fetchList('followers')} className="cursor-pointer"><strong>{profile?.followers_count || 0}</strong> followers</span>
+                <span onClick={() => fetchList('following')} className="cursor-pointer"><strong>{profile?.following_count || 0}</strong> following</span>
+              </div>
+
+              <div className="ig-bio-section">
+                <h1 className="ig-full-name">{profile?.name || profile?.username}</h1>
+                {profile?.major && <p className="ig-category text-[#a8a8a8]">{profile.major}</p>}
+                <div className="ig-bio-text whitespace-pre-wrap">
+                  {profile?.bio || (showOwnerActions ? "Add a bio to your profile." : "")}
                 </div>
-              ) : (
-                <div className="empty-state">
-                  <i className="fas fa-camera"></i>
-                  <h3>No Posts Yet</h3>
-                  <p>When {isOwnProfile ? 'you' : profile?.username} share sparkles, they'll appear here.</p>
+                {profile?.website && (
+                  <a href={`https://${profile.website.replace(/^https?:\/\//, '')}`} target="_blank" rel="noreferrer" className="ig-website-link">
+                    <LinkIcon size={12} style={{marginRight: 4}} />
+                    {profile.website.replace(/^https?:\/\//, '')}
+                  </a>
+                )}
+              </div>
+            </section>
+          </header>
+
+          {/* Highlights Section */}
+          <div className="ig-highlights-row">
+            {profile?.highlights?.map((h: any) => (
+              <div key={h.id} className="ig-highlight-item">
+                <div className="ig-highlight-circle">
+                  <div className="ig-highlight-inner">
+                    <img src={h.img} alt="" />
+                  </div>
                 </div>
+                <span>{h.title}</span>
+              </div>
+            ))}
+            {showOwnerActions && (
+              <div className="ig-highlight-item" onClick={() => navigate('/afterglow/create')}>
+                <div className="ig-highlight-circle ig-new-highlight">
+                  <Plus size={44} strokeWidth={1} />
+                </div>
+                <span>New</span>
+              </div>
+            )}
+          </div>
+
+          {/* Tabs Section */}
+          <div className="ig-tabs-border">
+            <div className="ig-tabs-list">
+              <button className={`ig-tab-item ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>
+                <Grid size={12} /> POSTS
+              </button>
+              <button className={`ig-tab-item ${activeTab === 'reels' ? 'active' : ''}`} onClick={() => setActiveTab('reels')}>
+                <Clapperboard size={12} /> REELS
+              </button>
+              {showOwnerActions && (
+                <button className={`ig-tab-item ${activeTab === 'saved' ? 'active' : ''}`} onClick={() => setActiveTab('saved')}>
+                  <Bookmark size={12} /> SAVED
+                </button>
               )}
+              <button className={`ig-tab-item ${activeTab === 'tagged' ? 'active' : ''}`} onClick={() => setActiveTab('tagged')}>
+                <UserSquare size={12} /> TAGGED
+              </button>
             </div>
           </div>
-        </main>
+
+          {/* Grid Section */}
+          <div className="ig-posts-grid">
+            {(activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).length > 0 ? (activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).map(post => (
+              <div key={post.post_id} className="ig-post-square animate-fade-in" onClick={() => navigate(`/post/${post.post_id}`)}>
+                {post.media_type === 'video' || (post.media_url && post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) ? (
+                  <video src={post.media_url} className="w-full h-full object-cover" />
+                ) : (
+                  <img src={post.media_url || post.image_url || '/uploads/posts/default.png'} alt="" />
+                )}
+                
+                {(post.media_type === 'video' || (post.media_url && post.media_url.match(/\.(mp4|webm|ogg|mov)$/i))) && <div className="ig-post-type-icon"><Clapperboard size={18} /></div>}
+                <div className="ig-post-overlay">
+                  <div className="ig-overlay-stats">
+                    <span><i className="fas fa-heart"></i> {post.likes_count || post.sparks || 0}</span>
+                    <span><i className="fas fa-comment"></i> {post.comments_count || post.comments || 0}</span>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="ig-empty-posts col-span-3">
+                <div className="ig-empty-camera">
+                  {activeTab === 'posts' ? <Grid size={48} /> : 
+                   activeTab === 'reels' ? <Clapperboard size={48} /> : 
+                   activeTab === 'saved' ? <Bookmark size={48} /> : 
+                   <UserSquare size={48} />}
+                </div>
+                <h3>{activeTab === 'posts' ? 'Start Sparking' : 
+                     activeTab === 'reels' ? 'Capture Moments' :
+                     activeTab === 'saved' ? 'Save for Later' :
+                     'No Photos of You'}</h3>
+                <p>{activeTab === 'posts' ? 'Share your campus moments with friends and your community.' :
+                    activeTab === 'reels' ? 'Share videos with your campus community.' :
+                    activeTab === 'saved' ? 'Save posts you want to see again here.' :
+                    'When people tag you in photos, they\'ll appear here.'}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <footer className="ig-footer">
+          <div className="ig-footer-links">
+            <span>Sparkle</span><span>About</span><span>Support</span><span>Press</span><span>API</span><span>Privacy</span><span>Terms</span><span>Safety</span>
+          </div>
+          <div className="ig-footer-copy">
+            © 2026 Sparkle by DonBabu Tech
+          </div>
+        </footer>
       </div>
 
+      {/* User List Modal (Followers/Following) */}
+      {listModal.open && (
+        <div className="ig-modal-overlay" onClick={() => setListModal(prev => ({ ...prev, open: false }))}>
+          <div className="ig-list-modal" onClick={e => e.stopPropagation()}>
+            <div className="ig-modal-header">
+              <h3>{listModal.type === 'followers' ? 'Followers' : 'Following'}</h3>
+              <button onClick={() => setListModal(prev => ({ ...prev, open: false }))} className="ig-modal-close"><Plus size={32} style={{ transform: 'rotate(45deg)' }} /></button>
+            </div>
+            <div className="ig-modal-search">
+              <input type="text" placeholder="Search" />
+            </div>
+            <div className="ig-modal-list scrollbar-hide">
+              {listModal.data.length > 0 ? listModal.data.map((u, i) => (
+                <div key={u.user_id} className="ig-user-row">
+                  <div className="ig-user-info" onClick={() => { setListModal(prev => ({ ...prev, open: false })); navigate(`/profile/${u.username}`); }}>
+                    <img src={u.avatar_url || '/uploads/avatars/default.png'} alt="" className="ig-user-avatar" />
+                    <div className="ig-user-names">
+                      <span className="ig-username-sm">{u.username}</span>
+                      <span className="ig-fullname-sm">{u.name}</span>
+                    </div>
+                  </div>
+                  {u.user_id !== currentUser?.id && u.user_id !== currentUser?.user_id && (
+                    <button 
+                      onClick={() => handleListFollowToggle(u.user_id, i)}
+                      className={u.is_followed_by_me ? "ig-btn-secondary-sm" : "ig-btn-primary-sm"}
+                    >
+                      {u.is_followed_by_me ? 'Following' : 'Follow'}
+                    </button>
+                  )}
+                </div>
+              )) : (
+                <div className="ig-empty-list">
+                  <p>No {listModal.type} found.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main); min-height: 100vh; }
-        .profile-main-content { flex: 1; padding: 40px 20px; }
-        .profile-container { max-width: 630px; margin: 0 auto; }
+        .ig-profile-root {
+          display: flex;
+          background: #000;
+          color: #fff;
+          min-height: 100vh;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .ig-main-scroll {
+          flex: 1;
+          height: 100vh;
+          overflow-y: auto;
+          scrollbar-width: none;
+        }
+        .ig-main-scroll::-webkit-scrollbar { display: none; }
         
-        .profile-header-card { background: white; border-radius: 20px; padding: 25px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); margin-bottom: 25px; }
-        .profile-header-top { display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-bottom: 20px; }
+        .ig-profile-container {
+          max-width: 935px;
+          margin: 0 auto;
+          padding: 30px 20px 0;
+        }
+
+        .ig-profile-header {
+          display: flex;
+          margin-bottom: 44px;
+          gap: 30px;
+        }
+        .ig-avatar-column {
+          flex: 1;
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+        }
+        .ig-avatar-ring {
+          width: 156px;
+          height: 156px;
+          border-radius: 50%;
+          padding: 4px;
+          background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .ig-avatar-img {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          border: 4px solid #000;
+          object-fit: cover;
+          background: #262626;
+        }
+
+        .ig-info-column {
+          flex: 2;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .ig-username-row {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+        .ig-username {
+          font-size: 20px;
+          font-weight: 400;
+          color: #fff;
+        }
+        .ig-verified-check {
+          color: #0095f6;
+          font-size: 18px;
+          margin-left: -12px;
+        }
+        .ig-action-btns {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .ig-btn-primary {
+          background: #0095f6;
+          color: #fff;
+          border: none;
+          padding: 6px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+        }
+        .ig-btn-primary-sm {
+          background: #0095f6;
+          color: #fff;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+        }
+        .ig-btn-secondary {
+          background: #363636;
+          color: #fff;
+          border: none;
+          padding: 6px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+        }
+        .ig-btn-secondary-sm {
+          background: #363636;
+          color: #fff;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+        }
+        .ig-btn-secondary:hover { background: #262626; }
+        .ig-btn-subtle {
+          background: transparent;
+          color: #fff;
+          border: 1px solid #363636;
+          padding: 6px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .ig-btn-subtle:hover { background: rgba(255,255,255,0.05); border-color: #a8a8a8; }
+        .ig-cog-btn {
+          background: none;
+          border: none;
+          color: #fff;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          padding: 4px;
+          opacity: 0.7;
+          transition: opacity 0.2s;
+        }
+        .ig-cog-btn:hover { opacity: 1; }
+
+        .ig-stats-row {
+          display: flex;
+          gap: 40px;
+          font-size: 16px;
+        }
+        .ig-stats-row span { cursor: pointer; }
+        .ig-stats-row strong { font-weight: 600; }
+
+        .ig-bio-section {
+          font-size: 14px;
+          line-height: 1.5;
+        }
+        .ig-full-name {
+          font-weight: 600;
+          margin-bottom: 2px;
+        }
+        .ig-category {
+          color: #a8a8a8;
+          margin-bottom: 2px;
+        }
+        .ig-bio-text { color: #fff; white-space: pre-line; }
+        .ig-website-link {
+          color: #e0f1ff;
+          font-weight: 600;
+          text-decoration: none;
+          display: flex;
+          align-items: center;
+          margin-top: 4px;
+        }
+        .ig-website-link:hover { text-decoration: underline; }
+
+        .ig-highlights-row {
+          display: flex;
+          gap: 45px;
+          padding: 0 40px;
+          margin-bottom: 52px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .ig-highlight-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+          min-width: 80px;
+        }
+        .ig-highlight-circle {
+          width: 77px;
+          height: 77px;
+          border-radius: 50%;
+          border: 1px solid #262626;
+          padding: 3px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .ig-highlight-inner {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          overflow: hidden;
+          background: #121212;
+        }
+        .ig-highlight-inner img { width: 100%; height: 100%; object-fit: cover; }
+        .ig-new-highlight {
+          border: 1px solid #363636;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .ig-highlight-item span {
+          font-size: 12px;
+          font-weight: 600;
+          color: #fff;
+        }
+
+        .ig-tabs-border {
+          border-top: 1px solid #262626;
+          display: flex;
+          justify-content: center;
+        }
+        .ig-tabs-list {
+          display: flex;
+          gap: 60px;
+        }
+        .ig-tab-item {
+          background: none;
+          border: none;
+          border-top: 1px solid transparent;
+          color: #a8a8a8;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 1px;
+          padding: 16px 0;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: -1px;
+        }
+        .ig-tab-item.active {
+          color: #fff;
+          border-top: 1px solid #fff;
+        }
+
+        .ig-posts-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 4px;
+          margin-bottom: 40px;
+        }
+        .ig-post-square {
+          aspect-ratio: 1 / 1;
+          background: #262626;
+          position: relative;
+          cursor: pointer;
+          overflow: hidden;
+        }
+        .ig-post-square img, .ig-post-square video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .ig-post-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        .ig-post-square:hover .ig-post-overlay { opacity: 1; }
+        .ig-overlay-stats {
+          display: flex;
+          gap: 30px;
+          font-weight: 700;
+          font-size: 18px;
+        }
+        .ig-overlay-stats span { display: flex; align-items: center; gap: 8px; }
+        .ig-post-type-icon {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          color: #fff;
+          text-shadow: 0 0 4px rgba(0,0,0,0.5);
+        }
+
+        .ig-empty-posts {
+          padding: 60px 0;
+          text-align: center;
+          color: #fff;
+        }
+        .ig-empty-camera {
+          width: 62px;
+          height: 62px;
+          border: 2px solid #fff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 16px;
+        }
+        .ig-empty-posts h3 { font-size: 30px; font-weight: 800; margin-bottom: 8px; }
+        .ig-empty-posts p { font-size: 14px; }
+
+        /* Modal Styles */
+        .ig-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.65);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .ig-list-modal {
+          background: #262626;
+          width: 400px;
+          max-height: 400px;
+          border-radius: 12px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .ig-modal-header {
+          display: flex;
+          align-items: center;
+          border-bottom: 1px solid #363636;
+          padding: 8px 16px;
+        }
+        .ig-modal-header h3 { flex: 1; text-align: center; font-size: 16px; font-weight: 600; margin-left: 32px; }
+        .ig-modal-close { background: none; border: none; color: #fff; cursor: pointer; padding: 0; }
         
-        .profile-avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; border: 3px solid var(--primary); background: #eee; }
-        .profile-avatar-container img { width: 100%; height: 100%; object-fit: cover; }
+        .ig-modal-search { padding: 12px 16px; }
+        .ig-modal-search input {
+          width: 100%;
+          background: #363636;
+          border: none;
+          border-radius: 8px;
+          padding: 8px 12px;
+          color: #fff;
+          font-size: 14px;
+          outline: none;
+        }
         
-        .profile-stats { flex: 1; display: flex; justify-content: space-around; }
-        .stat-item { text-align: center; }
-        .stat-value { font-size: 1.25rem; font-weight: 800; color: var(--text-main); }
-        .stat-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
-        .stat-item.clickable { cursor: pointer; transition: opacity 0.2s; }
-        .stat-item.clickable:hover { opacity: 0.7; }
-        
-        .profile-identity { margin-bottom: 20px; }
-        .username-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-        .profile-username { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
-        .verified-icon { color: var(--primary); font-size: 0.9rem; }
-        .profile-headline { font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px; }
-        .profile-bio { font-size: 0.95rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px; }
-        .profile-website { font-size: 0.9rem; color: var(--primary); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-        
-        .profile-actions-row { display: flex; gap: 10px; margin-bottom: 20px; }
-        .action-btn-primary { flex: 1; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; cursor: pointer; }
-        .action-btn-secondary { flex: 1; background: #f1f5f9; color: var(--text-main); border: none; padding: 10px; border-radius: 10px; font-weight: 700; cursor: pointer; }
-        .action-btn-disabled { flex: 1; background: #e2e8f0; color: #94a3b8; border: none; padding: 10px; border-radius: 10px; font-weight: 700; cursor: not-allowed; }
-        .action-btn-icon { background: #f1f5f9; color: var(--text-main); border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; }
-        
-        .profile-details-list { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #f8fafc; pt: 15px; }
-        .detail-item { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; }
-        .detail-item i { color: var(--text-muted); width: 16px; text-align: center; }
-        
-        .profile-tabs { display: flex; justify-content: space-around; border-bottom: 1px solid var(--border-light); margin-bottom: 20px; }
-        .tab { padding: 15px 0; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
-        .tab.active { color: var(--text-main); border-bottom: 2px solid var(--text-main); }
-        
-        .posts-list { display: flex; flex-direction: column; gap: 20px; }
-        
-        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-        .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.3; }
-        .empty-state h3 { font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px; }
-        
-        .profile-loading { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-main); }
-        .spinner { width: 40px; height: 40px; border: 4px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 15px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .ig-modal-list {
+          flex: 1;
+          overflow-y: auto;
+          padding: 8px 16px 16px;
+        }
+        .ig-user-row {
+          display: flex;
+          align-items: center;
+          padding: 8px 0;
+          justify-content: space-between;
+        }
+        .ig-user-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+        }
+        .ig-user-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          object-fit: cover;
+          background: #121212;
+        }
+        .ig-user-names {
+          display: flex;
+          flex-direction: column;
+        }
+        .ig-username-sm { font-size: 14px; font-weight: 600; }
+        .ig-fullname-sm { font-size: 14px; color: #a8a8a8; }
+        .ig-empty-list { text-align: center; padding: 40px 0; color: #a8a8a8; }
+
+        .ig-footer {
+          padding: 40px 16px;
+          max-width: 935px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .ig-footer-links {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 16px;
+          font-size: 12px;
+          color: #a8a8a8;
+          margin-bottom: 20px;
+        }
+        .ig-footer-links span { cursor: pointer; }
+        .ig-footer-links span:hover { text-decoration: underline; }
+        .ig-footer-copy {
+          font-size: 12px;
+          color: #a8a8a8;
+        }
+
+        .profile-loading-screen {
+          height: 100vh;
+          background: #000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Navbar Overrides for Dark Mode */
+        .ig-profile-root .sidebar-column {
+          background: #000;
+          border-right: 1px solid #262626;
+        }
+        .ig-profile-root .sidebar-item { color: #fff; }
+        .ig-profile-root .sidebar-item:hover { background: rgba(255,255,255,0.05); }
+        .ig-profile-root .sidebar-icon-box { color: #fff; }
+        .ig-profile-root .sidebar-item.active .sidebar-icon-box { color: #fff; }
+        .ig-profile-root .logo-text { -webkit-text-fill-color: #fff; }
+        .ig-profile-root .hub-dropdown { background: #121212; border: 1px solid #262626; }
+        .ig-profile-root .hub-sub-item { color: #a8a8a8; }
+        .ig-profile-root .hub-sub-item:hover { background: #262626; color: #fff; }
+        .ig-profile-root .hub-divider { background: #262626; }
 
         @media (max-width: 768px) {
-          .profile-main-content { padding: 0; }
-          .profile-header-card { border-radius: 0; border: none; border-bottom: 1px solid #f1f5f9; }
-          .profile-container { width: 100%; }
+          .ig-profile-header {
+            flex-direction: column;
+            gap: 20px;
+            padding: 0 16px;
+          }
+          .ig-avatar-ring { width: 77px; height: 77px; }
+          .ig-username-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .ig-stats-row { border-top: 1px solid #262626; padding: 12px 0; justify-content: space-around; width: 100%; border-bottom: 1px solid #262626; }
+          .ig-posts-grid { gap: 1px; }
+          .ig-highlights-row { padding: 0 16px; gap: 12px; }
+          .ig-tabs-list { gap: 0; width: 100%; }
+          .ig-tab-item { flex: 1; justify-content: center; font-size: 0; }
+          .ig-tab-item svg { width: 24px; height: 24px; }
         }
       `}</style>
     </div>

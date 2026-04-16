@@ -470,15 +470,7 @@ const getUserProfile = async (req, res) => {
         const identifier = req.params.id; // Could be ID or Username
         const currentUserId = req.user.userId || req.user.user_id;
 
-        let user;
-        // Basic check if it's a UUID (very loose but enough for Sparkle's UUIDs)
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
-
-        if (isUuid) {
-            user = await User.findById(identifier);
-        } else {
-            user = await User.getProfileWithStats(identifier, currentUserId);
-        }
+        const user = await User.getProfileWithStats(identifier, currentUserId);
 
         if (!user) return res.status(404).json({ error: 'User not found' });
 

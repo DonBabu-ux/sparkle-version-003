@@ -209,6 +209,18 @@ const getLikedPosts = async (req, res) => {
     }
 };
 
+const getSavedPosts = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const limit = parseInt(req.query.limit) || 20;
+        const posts = await Post.getSavedPosts(userId, limit);
+        res.json(posts);
+    } catch (error) {
+        logger.error('Get saved posts error:', error);
+        res.status(500).json({ error: 'Failed to get saved posts' });
+    }
+};
+
 const sharePost = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
@@ -285,6 +297,7 @@ module.exports = {
     getComments,
     addComment,
     savePost,
+    getSavedPosts,
     getLikedPosts,
     sharePost,
     likeComment,

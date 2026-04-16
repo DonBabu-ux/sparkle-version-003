@@ -352,7 +352,7 @@ class User {
     /**
      * Get user with profile stats
      */
-    static async getProfileWithStats(username, currentUserId) {
+    static async getProfileWithStats(identifier, currentUserId) {
         const [users] = await pool.query(
             `SELECT u.*, 
                     (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
@@ -361,8 +361,8 @@ class User {
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
                     (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as is_requested_by_me
              FROM users u 
-             WHERE u.username = ?`,
-            [currentUserId, currentUserId, username]
+             WHERE u.username = ? OR u.user_id = ?`,
+            [currentUserId, currentUserId, identifier, identifier]
         );
         const user = users[0] || null;
         if (user) {

@@ -18,11 +18,19 @@ export default function UserCard({ u, onRemove }: UserCardProps) {
     e.stopPropagation();
     setLoading(true);
     try {
-      const res = await api.post(`/users/${u.user_id}/follow`);
-      if (res.data.status === 'requested') {
+      const targetId = u.user_id || u.id;
+      const res = await api.post(`/users/${targetId}/follow`);
+      const { status } = res.data;
+      
+      if (status === 'requested') {
         setRequestStatus('pending');
-      } else {
-        setIsFollowed(res.data.is_following);
+        setIsFollowed(false);
+      } else if (status === 'following') {
+        setIsFollowed(true);
+        setRequestStatus(null);
+      } else if (status === 'unfollowed') {
+        setIsFollowed(false);
+        setRequestStatus(null);
       }
     } catch (err) {
       console.error('Follow toggle failed', err);
@@ -32,7 +40,7 @@ export default function UserCard({ u, onRemove }: UserCardProps) {
   };
 
   return (
-    <div className="discover-card group relative bg-white rounded-3xl p-6 text-center border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer" 
+    <div className="discover-card group relative bg-white rounded-3xl p-8 min-h-[380px] flex flex-col items-center border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer" 
          onClick={() => navigate(`/profile/${u.username}`)}>
       
       {!isFollowed && onRemove && (
@@ -50,45 +58,47 @@ export default function UserCard({ u, onRemove }: UserCardProps) {
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-1.5 mb-1">
-        <span className="font-extrabold text-[#111]">{u.username}</span>
-        {u.is_verified && <Zap size={12} className="fill-[#FF3D6D] text-[#FF3D6D]" />}
-        {u.is_new_user && (
-          <span className="text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider">NEW</span>
-        )}
-        {u.is_developer && (
-            <div title="Sparkle Developer" className="text-indigo-500"><Check size={12} strokeWidth={4} /></div>
-        )}
+      <div className="flex flex-col items-center justify-center mb-1">
+        <div className="flex items-center gap-1.5">
+          <span className="font-extrabold text-base text-[#111]">{u.username}</span>
+          {u.is_verified ? <Zap size={14} className="fill-[#FF3D6D] text-[#FF3D6D]" /> : null}
+        </div>
+        {(u.name && u.name !== '0' && u.name !== 0) ? (
+          <div className="text-[11px] font-semibold text-slate-500 mt-0.5">{u.name}</div>
+        ) : null}
+        {u.is_new_user ? (
+          <span className="mt-1 text-[8px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-md uppercase tracking-wider">NEW STAR</span>
+        ) : null}
       </div>
 
-      <div className="text-xs font-bold text-slate-400 mb-2">
+      <div className="text-xs font-bold text-slate-400 mb-2 px-4 line-clamp-1">
         {u.major || 'Sparkler'}
       </div>
 
-      <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500 mb-3">
+      <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500 mb-4 bg-slate-50 py-1 px-3 rounded-full">
         <MapPin size={10} className="text-[#FF3D6D]" />
         {u.campus || 'Global'}
       </div>
 
-      {u.mutual_connections > 0 && (
-        <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#FF3D6D] font-black uppercase tracking-wider mb-4 bg-[#FF3D6D]/5 py-1 px-3 rounded-full">
-          <Users size={10} /> {u.mutual_connections} mutual connections
+      {(u.mutual_connections && Number(u.mutual_connections) > 0) ? (
+        <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#FF3D6D] font-black uppercase tracking-wider mb-5 bg-[#FF3D6D]/5 py-1.5 px-4 rounded-full">
+          <Users size={10} /> {u.mutual_connections} Mutual Friends
         </div>
-      )}
+      ) : null}
 
-      <div className="mt-auto">
+      <div className="mt-auto flex justify-center w-full px-4">
         {isFollowed ? (
-          <button className={`w-full py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 border-2 border-slate-100 text-slate-500 hover:bg-slate-50 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
+          <button className={`w-full max-w-[160px] py-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 border-2 border-slate-100 text-slate-500 hover:bg-slate-50 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
                   onClick={toggleFollow} disabled={loading}>
             <Check size={14} strokeWidth={3} /> Following
           </button>
         ) : requestStatus === 'pending' ? (
-          <button className="w-full py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-slate-100 text-slate-400 cursor-default" 
+          <button className="w-full max-w-[160px] py-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-slate-100 text-slate-400 cursor-default" 
                   disabled onClick={(e) => e.stopPropagation()}>
             <Clock size={14} strokeWidth={3} /> Requested
           </button>
         ) : (
-          <button className={`w-full py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF3D6D] to-[#FF8E53] text-white shadow-lg shadow-[#FF3D6D]/20 hover:shadow-xl hover:translate-y-[-1px] active:translate-y-0 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
+          <button className={`w-full max-w-[160px] py-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF3D6D] to-[#FF8E53] text-white shadow-lg shadow-[#FF3D6D]/20 hover:shadow-xl hover:translate-y-[-1px] active:translate-y-0 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
                   onClick={toggleFollow} disabled={loading}>
             <Plus size={14} strokeWidth={3} /> Follow
           </button>

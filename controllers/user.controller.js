@@ -382,16 +382,26 @@ const followUser = async (req, res) => {
             [followerId, followingId]
         );
 
+        // Toggle off (unfollow)
         if (existing.length > 0) {
-            // Toggle off (unfollow)
             await User.unfollow(followerId, followingId);
-            return res.json({ success: true, status: 'unfollowed', message: 'User unfollowed' });
+            return res.json({ 
+                success: true, 
+                status: 'unfollowed', 
+                is_following: false,
+                message: 'User unfollowed' 
+            });
         }
 
         // Toggle on (follow)
         const result = await User.follow(followerId, followingId);
 
-        res.json({ success: true, status: result.status, message: result.status === 'requested' ? 'Follow request sent' : 'User followed' });
+        res.json({ 
+            success: true, 
+            status: result.status, 
+            is_following: result.status === 'following',
+            message: result.status === 'requested' ? 'Follow request sent' : 'User followed' 
+        });
     } catch (error) {
         logger.error('Follow user error:', error);
         res.status(500).json({ error: error.message || 'Failed to follow user' });
@@ -403,7 +413,12 @@ const unfollowUser = async (req, res) => {
         const followerId = req.user.userId || req.user.user_id;
         const followingId = req.params.id;
         await User.unfollow(followerId, followingId);
-        res.json({ success: true, message: 'User unfollowed' });
+        res.json({ 
+            success: true, 
+            status: 'unfollowed', 
+            is_following: false,
+            message: 'User unfollowed' 
+        });
     } catch (error) {
         logger.error('Unfollow user error:', error);
         res.status(500).json({ error: 'Failed to unfollow user' });

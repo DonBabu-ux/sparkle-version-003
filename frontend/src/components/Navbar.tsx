@@ -55,7 +55,7 @@ export default function Navbar() {
 
             <div className={`sidebar-hub-container ${activeHub === 'discover' ? 'active' : ''}`}>
               <div className="sidebar-item hub-trigger" onClick={() => toggleHub('discover')}>
-                <div className="sidebar-icon-box"><i className="fas fa-compass"></i></div>
+                <div className="sidebar-icon-box"><i className="fas fa-user-friends"></i></div>
                 <span>Discover</span>
                 <i className="fas fa-chevron-right hub-chevron"></i>
               </div>

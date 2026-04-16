@@ -130,7 +130,7 @@ export default function Connect() {
               <p>Try switching tabs or adjusting filters</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
               {users.map(u => (
                 <UserCard 
                   key={(u.user_id || u.id) as string}
@@ -145,7 +145,7 @@ export default function Connect() {
 
       <style>{`
         .page-wrapper { display: flex; background: white; min-height: 100vh; }
-        .connect-wrapper { flex: 1; max-width: 620px; margin: 0 auto; padding: 0 16px; min-height: 100vh; }
+        .connect-wrapper { flex: 1; max-width: 900px; margin: 0 auto; padding: 0 16px; min-height: 100vh; }
 
         .connect-sticky-header { position: sticky; top: 0; background: white; z-index: 900; padding-top: 16px; margin-bottom: 16px; }
 

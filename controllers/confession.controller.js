@@ -32,22 +32,28 @@ const renderConfessions = async (req, res) => {
 // API Routes
 const createConfession = async (req, res) => {
     try {
-        const { content, category } = req.body;
-        const affiliation = req.user.campus;
+        const { content, category = 'general', campus } = req.body;
+        const affiliation = campus || req.user.campus || 'Global';
 
-        if (!content) return res.status(400).json({ error: 'Content is required' });
+        if (!content || !content.trim()) return res.status(400).json({ error: 'Content is required' });
 
         // Basic "AI" Filter (Keyword based for now)
-        const badWords = ['hate', 'violence', 'kill', 'stupid', 'idiot']; // Expand as needed
+        const badWords = ['hate', 'violence', 'kill', 'suicide']; // Community safety
         const hasBadWords = badWords.some(word => content.toLowerCase().includes(word));
 
         if (hasBadWords) {
-            return res.status(400).json({ error: 'Your confession matches our community guidelines. Please be kind!' });
+            return res.status(400).json({ error: 'Your confession matches our community guidelines flag. Please be kind!' });
         }
 
         const userId = req.user.user_id || req.user.userId;
-        const id = await Confession.create(userId, content, affiliation, category);
-        res.status(201).json({ message: 'Confession submitted anonymously', id });
+        const id = await Confession.create(userId, content.trim(), affiliation, category);
+        
+        res.status(201).json({ 
+            status: 'success', 
+            success: true,
+            message: 'Confession submitted anonymously', 
+            id 
+        });
     } catch (error) {
         logger.error('Create Confession Error:', error);
         res.status(500).json({ error: 'Failed to submit confession' });

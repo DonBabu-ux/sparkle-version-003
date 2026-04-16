@@ -534,14 +534,21 @@ const getUserPosts = async (req, res) => {
 // return a small batch of users that the current user might want to follow
 const getSuggestions = async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 5;
+        const limit = parseInt(req.query.limit) || 20;
         const currentUserId = req.user.userId || req.user.user_id;
+        const { tab = 'suggested', filter = null, q = null } = req.query;
         
         // Device/User specific seed for variety on refresh (Part 1 & 4)
         const hourlySeed = Math.floor(Date.now() / (1000 * 60 * 60));
         const seed = String(currentUserId).split('-')[0]; // Use first part of ID as deterministic seed
 
-        const suggestions = await User.getSuggestions(currentUserId, limit, seed + hourlySeed);
+        const suggestions = await User.getSuggestions(currentUserId, {
+            limit,
+            seed: seed + hourlySeed,
+            tab: tab.toLowerCase(),
+            filter: filter ? filter.toLowerCase() : null,
+            query: q
+        });
         
         const sanitizedSuggestions = suggestions.map(u => ({
             ...u,

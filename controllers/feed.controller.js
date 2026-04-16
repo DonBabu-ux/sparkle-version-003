@@ -1,4 +1,5 @@
 const Post = require('../models/Post');
+const User = require('../models/User');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
 const crypto = require('crypto');

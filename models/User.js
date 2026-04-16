@@ -265,26 +265,25 @@ class User {
      * Fetch a small set of users that the current user isn't already following.
      * Uses a weighted matching algorithm for discovery.
      */
-    static async getSuggestions(currentUserId, limit = 5, seed = null) {
+    static async getSuggestions(currentUserId, options = {}) {
+        const { limit = 20, seed = null, tab = 'suggested', filter = null, query = null } = options;
+
         // Fetch current user details for ranking
         const [me] = await pool.query('SELECT major, year_of_study, campus FROM users WHERE user_id = ?', [currentUserId]);
         if (!me[0]) return [];
 
-        // Convert the string seed into a deterministic 32-bit integer for MySQL RAND()
         const numericSeed = seed ? parseInt(crypto.createHash('md5').update(String(seed)).digest('hex').substring(0, 8), 16) : null;
         const sqlSeed = numericSeed ? `(${numericSeed})` : '()';
 
-        // Weighted Discovery Algorithm:
-        // - Interests (Major) Match: 40 points
-        // - Affiliation (Campus) Match: 30 points
-        // - Experience Level (Year) Match: 20 points
-        // - Random Noise: 0-25 points (ensure variety)
-        
-        const [users] = await pool.query(
-            `
+        const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
+
+        let sql = `
             SELECT 
                 u.*,
+                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+                (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
                 (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count,
+                ${mutualQuery} as mutual_connections,
                 (
                     (CASE WHEN u.major = ? THEN 40 ELSE 0 END) +
                     (CASE WHEN u.campus = ? THEN 30 ELSE 0 END) +
@@ -293,14 +292,58 @@ class User {
                 ) as discovery_score
             FROM users u
             WHERE u.user_id != ? 
-            AND u.user_id NOT IN (
-                SELECT following_id FROM follows WHERE follower_id = ?
-            )
-            ORDER BY discovery_score DESC
-            LIMIT ?
-        `,
-            [me[0].major, me[0].campus, me[0].year_of_study, currentUserId, currentUserId, limit]
-        );
+        `;
+
+        const params = [currentUserId, currentUserId, currentUserId, me[0].major, me[0].campus, me[0].year_of_study, currentUserId];
+
+        // Apply Tab Logic
+        if (tab === 'following') {
+            sql += ` AND u.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+            params.push(currentUserId);
+        } else if (tab === 'trending') {
+            // Trending prioritizes high follower count
+            sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+            params.push(currentUserId);
+        } else if (tab === 'similar') {
+            // Similar prioritizes same major/campus
+            sql += ` AND (u.major = ? OR u.campus = ?)`;
+            sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+            params.push(me[0].major, me[0].campus, currentUserId);
+        } else {
+            // Default: Suggested (weighted discovery)
+            sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+            params.push(currentUserId);
+        }
+
+        // Apply Filter Logic
+        if (filter === 'campus') {
+            sql += ` AND u.campus = ?`;
+            params.push(me[0].campus);
+        } else if (filter === 'interests') {
+            sql += ` AND u.major = ?`;
+            params.push(me[0].major);
+        } else if (filter === 'level') {
+            sql += ` AND u.year_of_study = ?`;
+            params.push(me[0].year_of_study);
+        }
+
+        // Apply Search Query
+        if (query && query.trim()) {
+            sql += ` AND (u.name LIKE ? OR u.username LIKE ? OR u.major LIKE ? OR u.campus LIKE ?)`;
+            params.push(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
+        }
+
+        // Apply Sorting
+        if (tab === 'trending') {
+            sql += ` ORDER BY follower_count DESC`;
+        } else {
+            sql += ` ORDER BY discovery_score DESC`;
+        }
+
+        sql += ` LIMIT ?`;
+        params.push(limit);
+
+        const [users] = await pool.query(sql, params);
         
         // Map fields for application layer consistency
         return users.map(u => this.mapGeneralizedFields(u));

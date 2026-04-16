@@ -314,15 +314,13 @@ const getMomentsStream = async (req, res) => {
             SELECT 
                 m.*,
                 u.username, u.name as user_name, u.avatar_url,
-                m.like_count as likes, m.comment_count as comments, m.share_count as shares,
+                IFNULL(m.like_count, 0) as likes, IFNULL(m.comment_count, 0) as comments, IFNULL(m.share_count, 0) as shares,
                 (SELECT COUNT(*) FROM moment_likes WHERE moment_id = m.moment_id AND user_id = ?) as is_liked,
                 (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved,
                 (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following,
-                (SELECT COUNT(*) FROM moments m2 WHERE m2.moment_id = m.moment_id AND EXISTS (
-                    SELECT 1 FROM moment_likes ml 
-                    JOIN follows f ON ml.user_id = f.following_id 
-                    WHERE ml.moment_id = m.moment_id AND f.follower_id = ?
-                )) as friend_interaction_count
+                (SELECT COUNT(*) FROM moment_likes ml 
+                 JOIN follows f ON ml.user_id = f.following_id 
+                 WHERE ml.moment_id = m.moment_id AND f.follower_id = ?) as friend_interaction_count
             FROM moments m
             JOIN users u ON m.user_id = u.user_id
         `;

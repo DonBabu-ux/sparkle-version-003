@@ -56,4 +56,8 @@ router.get('/:id/following', authMiddleware, userController.getFollowing);
 router.post('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);
 router.delete('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
 
+// DashboardAPI Compatibility Aliases
+router.post('/:id/follow', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);
+router.delete('/:id/follow', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
+
 module.exports = router;

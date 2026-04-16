@@ -58,11 +58,18 @@ export default function Profile() {
     }));
 
     try {
-      const res = await api.post(`/social/follow/${profile.user_id}`);
-      if (res.data.status === 'requested') {
-        setIsRequested(true);
-        setIsFollowing(false);
-        setProfile((prev: any) => ({ ...prev, followers_count: oldFollowersCount }));
+      if (originalFollowing) {
+        // Unfollow
+        await api.delete(`/users/${profile.user_id}/follow`);
+      } else {
+        // Follow
+        const res = await api.post(`/users/${profile.user_id}/follow`);
+        if (res.data.status === 'requested') {
+          setIsRequested(true);
+          setIsFollowing(false);
+          setProfile((prev: any) => ({ ...prev, followers_count: oldFollowersCount }));
+          return;
+        }
       }
     } catch (err) {
       // Revert on failure

@@ -550,7 +550,7 @@ const initMarketplaceTables = async () => {
                 description TEXT,
                 price DECIMAL(10, 2) NOT NULL,
                 category VARCHAR(50) DEFAULT 'other',
-                ${'`'}condition${'`'} ENUM('new', 'like_new', 'good', 'fair', 'poor') DEFAULT 'good',
+                \`condition\` ENUM('new', 'like_new', 'good', 'fair', 'poor') DEFAULT 'good',
                 campus VARCHAR(100) NOT NULL,
                 location VARCHAR(255) DEFAULT NULL,
                 is_sold TINYINT(1) DEFAULT 0,
@@ -800,6 +800,19 @@ const initConfessionTables = async () => {
                 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (confession_id) REFERENCES confessions(confession_id) ON DELETE CASCADE,
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS confession_reports (
+                report_id       CHAR(36) PRIMARY KEY,
+                confession_id   CHAR(36) NOT NULL,
+                reporter_id     CHAR(36) NOT NULL,
+                reason          TEXT NOT NULL,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_confession_report (reporter_id, confession_id),
+                FOREIGN KEY (confession_id) REFERENCES confessions(confession_id) ON DELETE CASCADE,
+                FOREIGN KEY (reporter_id) REFERENCES users(user_id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 

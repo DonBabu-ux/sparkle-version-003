@@ -326,7 +326,6 @@ export default function Messages() {
                 {conversations.filter(c => c.is_archived).length > 0 ? (
                    conversations.filter(c => c.is_archived).map(chat => (
                     <div key={chat.chat_id} className="chat-item" onClick={() => setSelectedChat(chat)}>
-                       {/* Simplified item render */}
                        <img src={chat.partner_avatar || '/uploads/avatars/default.png'} className="w-10 h-10 rounded-full" alt="" />
                        <div className="flex-1 min-w-0">
                          <div className="text-white font-bold text-sm truncate">{chat.partner_name}</div>
@@ -342,62 +341,94 @@ export default function Messages() {
                 )}
               </div>
             ) : inboxTab === 'settings' ? (
-              <div className="settings-sidebar-pane animate-fade-in flex flex-col h-full bg-[#111b21]">
-                <div className="p-4 border-b border-white/5 bg-[#202c33]">
-                   <h3 className="text-white font-bold">Settings</h3>
+              <div className="settings-sidebar-pane animate-fade-in flex flex-col h-full bg-[#111b21] overflow-hidden">
+                <div className="p-6 flex items-center justify-between border-b border-white/5 bg-[#202c33]/80 backdrop-blur-xl">
+                   <div className="flex items-center gap-4">
+                     <button onClick={() => setInboxTab('all')} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-[#8696a0] hover:text-[#00a884] hover:bg-[#00a884]/10 transition-all">
+                       <i className="fas fa-arrow-left"></i>
+                     </button>
+                     <h3 className="text-white font-black text-xl tracking-tight">Settings</h3>
+                   </div>
+                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF3D6D] to-[#FF8E53] p-[1.5px] animate-pulse">
+                      <div className="w-full h-full rounded-full bg-[#202c33] flex items-center justify-center text-[10px] text-white font-black italic">PRO</div>
+                   </div>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    {/* User Profile Summary */}
-                    <div className="p-6 flex items-center gap-4 hover:bg-white/5 cursor-pointer transition-colors border-b border-white/5" onClick={() => navigate('/settings')}>
-                       <img src={user?.avatar_url || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-full object-cover border-2 border-white/10" alt="" />
+                <div className="flex-1 overflow-y-auto custom-scrollbar pb-10 sx-settings-scroll">
+                    <div className="mx-4 my-6 p-6 rounded-3xl bg-gradient-to-br from-[#202c33] to-[#111b21] border border-white/5 flex items-center gap-5 hover:border-[#00a884]/30 cursor-pointer transition-all shadow-2xl group relative overflow-hidden" onClick={() => navigate('/settings')}>
+                       <div className="absolute top-0 right-0 w-32 h-32 bg-[#00a884] opacity-[0.03] blur-3xl rotate-45 translate-x-10 -translate-y-10 group-hover:opacity-[0.08] transition-opacity"></div>
+                       <div className="relative">
+                         <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-[#00a884] via-[#00a884]/20 to-transparent group-hover:rotate-180 transition-transform duration-1000">
+                           <img src={user?.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full rounded-full object-cover shadow-2xl" alt="" />
+                         </div>
+                         <div className="absolute bottom-1 right-1 w-6 h-6 bg-[#00a884] rounded-full border-4 border-[#1c2a32] flex items-center justify-center shadow-lg">
+                            <i className="fas fa-pen text-[8px] text-[#111]"></i>
+                         </div>
+                       </div>
                        <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-bold truncate">{user?.name}</h4>
-                          <p className="text-[#8696a0] text-sm truncate">{user?.bio || 'Hey there! I am using Sparkle.'}</p>
+                          <h4 className="text-white font-black text-lg truncate tracking-tight">{user?.name}</h4>
+                          <p className="text-[#8696a0] text-xs truncate opacity-70 font-medium">{user?.bio || 'Hey there! I am using Sparkle.'}</p>
+                          <div className="flex mt-2 gap-1.5">
+                             <span className="text-[9px] bg-[#00a884]/10 text-[#00a884] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Active</span>
+                             <span className="text-[9px] bg-white/5 text-white/40 px-2 py-0.5 rounded-full font-black uppercase tracking-widest">v3.0</span>
+                          </div>
                        </div>
                     </div>
 
-                    {/* Account Section */}
-                    <div className="mt-2">
-                       <div className="px-6 py-3 text-[11px] text-[#00a884] font-bold uppercase tracking-widest opacity-80">Account & Privacy</div>
+                    <div className="mt-8 px-4">
+                       <div className="px-2 pb-4 text-[10px] text-[#00a884] font-black uppercase tracking-[0.25em] opacity-80 flex items-center gap-3">
+                          <span>Account Core</span>
+                          <div className="h-[1px] flex-1 bg-white/5"></div>
+                       </div>
                        {[
-                         { id: 'privacy', icon: 'fa-lock', label: 'Privacy', sub: 'Last seen, Blocked contacts' },
-                         { id: 'security', icon: 'fa-shield-halved', label: 'Security', sub: 'Security notifications' },
-                         { id: 'avatar', icon: 'fa-user-circle', label: 'Avatar', sub: 'Create, edit profile photo' }
+                         { id: 'privacy', icon: 'fa-fingerprint', label: 'Identity & Privacy', sub: 'Biometrics, Stealth mode', color: '#00a884' },
+                         { id: 'security', icon: 'fa-shield-heart', label: 'Vault Security', sub: 'Two-factor, Recovery keys', color: '#3b82f6' },
+                         { id: 'cloud', icon: 'fa-cloud-meatball', label: 'Cloud Sync', sub: 'Backup, Multi-device', color: '#a855f7' }
                        ].map(item => (
-                         <div key={item.id} className="px-6 py-4 flex items-center gap-4 hover:bg-white/5 cursor-pointer border-b border-white/[0.02]">
-                            <i className={`fas ${item.icon} text-[#8696a0] w-6 text-center`}></i>
-                            <div className="flex-1">
-                               <div className="text-white text-sm font-medium">{item.label}</div>
-                               <div className="text-[#8696a0] text-xs">{item.sub}</div>
+                         <div key={item.id} className="p-4 rounded-2xl flex items-center gap-5 hover:bg-white/5 cursor-pointer transition-all group mb-1 border border-transparent hover:border-white/5" onClick={() => navigate('/settings')}>
+                            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform relative overflow-hidden">
+                               <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundColor: item.color }}></div>
+                               <i className={`fas ${item.icon} text-[#8696a0] group-hover:text-white transition-colors`}></i>
                             </div>
+                            <div className="flex-1">
+                               <div className="text-white text-sm font-black tracking-tight group-hover:text-[#00a884] transition-colors">{item.label}</div>
+                               <div className="text-[#8696a0] text-[10px] font-bold opacity-60 group-hover:opacity-100">{item.sub}</div>
+                            </div>
+                            <i className="fas fa-chevron-right text-[#8696a0] text-[10px] opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all"></i>
                          </div>
                        ))}
                     </div>
 
-                    {/* Chat Settings */}
-                    <div className="mt-4">
-                       <div className="px-6 py-3 text-[11px] text-[#00a884] font-bold uppercase tracking-widest opacity-80">Chats</div>
-                       <div className="px-6 py-4 flex flex-col gap-4">
-                          <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-4">
-                                <i className="fas fa-palette text-[#8696a0] w-6 text-center"></i>
-                                <span className="text-white text-sm">Theme</span>
+                    <div className="mt-10 px-4">
+                       <div className="px-2 pb-4 text-[10px] text-[#00a884] font-black uppercase tracking-[0.25em] opacity-80 flex items-center gap-3">
+                          <span>Visual Matrix</span>
+                          <div className="h-[1px] flex-1 bg-white/5"></div>
+                       </div>
+                       
+                       <div className="space-y-6 px-2 mt-4">
+                          <div className="flex items-center justify-between group">
+                             <div className="flex items-center gap-5">
+                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:rotate-12 transition-transform shadow-inner">
+                                   <i className="fas fa-magic text-[#8696a0] group-hover:text-[#00a884]"></i>
+                                </div>
+                                <span className="text-white text-sm font-black tracking-tight">App Interface</span>
                              </div>
-                             <select value={appTheme} onChange={(e) => setAppTheme(e.target.value)} className="bg-[#202c33] text-xs text-white border-none py-1 px-2 rounded">
-                                <option value="wa-standard">Dark</option>
+                             <select value={appTheme} onChange={(e) => setAppTheme(e.target.value)} className="bg-[#1c2a32] text-[10px] text-white border border-white/5 py-2 px-4 rounded-xl font-black uppercase tracking-widest focus:ring-1 ring-[#00a884] cursor-pointer hover:bg-[#2a3942] transition-colors outline-none appearance-none">
+                                <option value="wa-standard">Dark Onyx</option>
                                 <option value="sparkle-pink">Sparkle Pink</option>
-                                <option value="forest">Forest</option>
+                                <option value="forest">Emerald Forest</option>
                                 <option value="dusk">Dusk Blue</option>
                              </select>
                           </div>
                           
-                          <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-4">
-                                <i className="fas fa-image text-[#8696a0] w-6 text-center"></i>
-                                <span className="text-white text-sm">Wallpaper</span>
+                          <div className="flex items-center justify-between group">
+                             <div className="flex items-center gap-5">
+                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-90 transition-transform  shadow-inner">
+                                   <i className="fas fa-panorama text-[#8696a0] group-hover:text-[#00a884]"></i>
+                                </div>
+                                <span className="text-white text-sm font-black tracking-tight">Chat Backdrop</span>
                              </div>
-                             <div className="flex gap-1">
+                             <div className="flex gap-2.5 p-1 bg-white/5 rounded-xl border border-white/5">
                                 {[
                                   'https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png',
                                   'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR63ZfXW9P66e0vFrQzR3zH8-hX-1zF0h-h7A&s',
@@ -406,90 +437,98 @@ export default function Messages() {
                                   <button 
                                     key={i} 
                                     onClick={() => setChatWallpaper(url)}
-                                    className={`w-6 h-6 rounded border ${chatWallpaper === url ? 'border-[#00a884]' : 'border-transparent'}`}
+                                    className={`w-8 h-8 rounded-lg border-2 transition-all relative overflow-hidden ${chatWallpaper === url ? 'border-[#00a884] scale-110 shadow-lg' : 'border-transparent opacity-40 hover:opacity-100 hover:scale-105'}`}
                                     style={{ background: `url(${url})`, backgroundSize: 'cover' }}
-                                  />
+                                  >
+                                    {chatWallpaper === url && <div className="absolute inset-0 bg-[#00a884]/20 flex items-center justify-center"><i className="fas fa-check text-[10px] text-white"></i></div>}
+                                  </button>
                                 ))}
                              </div>
                           </div>
 
-                          <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-4">
-                                <i className="fas fa-arrow-down-a-z text-[#8696a0] w-6 text-center"></i>
-                                <span className="text-white text-sm">Font Size</span>
+                          <div className="flex items-center justify-between group">
+                             <div className="flex items-center gap-5">
+                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shadow-inner">
+                                   <i className="fas fa-text-height text-[#8696a0]"></i>
+                                </div>
+                                <span className="text-white text-sm font-black tracking-tight">Typography</span>
                              </div>
-                             <span className="text-xs text-[#8696a0]">Medium</span>
+                             <div className="px-4 py-2 rounded-xl bg-[#1c2a32] border border-white/5 text-[9px] text-[#00a884] font-black uppercase tracking-[0.3em]">Adaptive</div>
                           </div>
                        </div>
                     </div>
 
-                    {/* Notifications */}
-                    <div className="mt-4">
-                       <div className="px-6 py-3 text-[11px] text-[#00a884] font-bold uppercase tracking-widest opacity-80">General</div>
-                       {[
-                         { id: 'notif', icon: 'fa-bell', label: 'Notifications', sub: 'Message & group tones' },
-                         { id: 'storage', icon: 'fa-database', label: 'Storage and data', sub: 'Network usage, auto-download' },
-                         { id: 'help', icon: 'fa-question-circle', label: 'Help', sub: 'Help center, contact us' }
-                       ].map(item => (
-                         <div key={item.id} className="px-6 py-4 flex items-center gap-4 hover:bg-white/5 cursor-pointer border-b border-white/[0.02]">
-                            <i className={`fas ${item.icon} text-[#8696a0] w-6 text-center`}></i>
-                            <div className="flex-1">
-                               <div className="text-white text-sm font-medium">{item.label}</div>
-                               <div className="text-[#8696a0] text-xs">{item.sub}</div>
-                            </div>
-                         </div>
-                       ))}
-                    </div>
-
-                    <div className="p-8 text-center mt-4">
-                       <p className="text-[10px] text-[#8696a0] uppercase font-bold tracking-[4px] mb-2">from</p>
-                       <div className="flex items-center justify-center gap-2 text-white font-black text-sm">
-                          <i className="fas fa-sparkles text-[#FF3D6D]"></i>
-                          <span>SPARKLE LABS</span>
+                    <div className="mt-12 px-4 mb-10">
+                       <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-[#FF3D6D]/10 to-transparent border border-[#FF3D6D]/10 text-center relative overflow-hidden group">
+                          <div className="absolute -top-10 -left-10 w-32 h-32 bg-[#FF3D6D] opacity-[0.05] blur-3xl rounded-full"></div>
+                          <p className="text-[10px] text-[#FF3D6D] uppercase font-black tracking-[8px] mb-4 opacity-70">distributed by</p>
+                          <div className="flex items-center justify-center gap-4 text-white font-black text-lg tracking-tighter transition-transform group-hover:scale-110 duration-500">
+                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF3D6D] to-[#FF8E53] flex items-center justify-center shadow-[0_0_20px_rgba(255,61,109,0.4)]">
+                                <i className="fas fa-sparkles text-xl text-white"></i>
+                             </div>
+                             <div className="text-left">
+                                <div className="leading-none">SPARKLE</div>
+                                <div className="text-[#8696a0] text-[10px] font-bold tracking-[0.4em]">LABORATORIES</div>
+                             </div>
+                          </div>
+                          <div className="mt-8 flex items-center justify-center gap-6">
+                             <div className="text-[9px] font-black text-[#8696a0] border-r border-white/10 pr-6">BUILD 2026.04</div>
+                             <div className="text-[9px] font-black text-[#00a884] px-3 py-1 bg-[#00a884]/10 rounded-full">STABLE RELEASE</div>
+                          </div>
                        </div>
-                       <p className="text-[9px] text-[#8696a0] mt-4 opacity-40">Version 3.0.4-beta (2026)</p>
                     </div>
                 </div>
               </div>
             ) : loading ? (
-              <div className="loader-box"><div className="spinner"></div></div>
-            ) : conversations.length > 0 ? (
-              conversations.map(chat => (
-                <div 
-                  key={chat.chat_id}
-                  className={`chat-item ${selectedChat?.chat_id === chat.chat_id ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedChat(chat);
-                    navigate(`/messages?chat=${chat.chat_id}`);
-                  }}
-                >
-                  <div className="chat-avatar">
-                    <img src={chat.partner_avatar || '/uploads/avatars/default.png'} alt="" />
-                    {chat.partner_online && <div className="online-indicator"></div>}
-                  </div>
-                  <div className="chat-info">
-                    <div className="chat-meta">
-                      <span className="chat-name">{chat.partner_name}</span>
-                      <span className="chat-time">
-                        {safeTime(chat.last_message_time)}
-                      </span>
-                    </div>
-                    <div className="chat-preview">
-                      <div className="flex items-center gap-1 min-w-0">
-                         {chat.is_archived && <i className="fas fa-archive text-[10px] text-[#00a884] mr-1"></i>}
-                         <p className="last-msg truncate">{chat.last_message || 'Start a conversation'}</p>
-                      </div>
-                      {chat.unread_count > 0 && <span className="unread-badge">{chat.unread_count}</span>}
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="empty-chat-list">
-                <i className="far fa-comments"></i>
-                <p>No conversations yet</p>
+              <div className="loader-box flex items-center justify-center py-20">
+                <div className="w-8 h-8 border-2 border-[#00a884] border-t-transparent rounded-full animate-spin"></div>
               </div>
-            )}
+            ) : (()=>{
+                const filtered = conversations.filter(c => {
+                   if (inboxTab === 'unread') return c.unread_count > 0;
+                   if (inboxTab === 'groups') return c.is_group;
+                   return !c.is_archived;
+                });
+                
+                if (filtered.length === 0) {
+                    return (
+                        <div className="empty-chat-list py-20 flex flex-col items-center justify-center text-center px-10">
+                            <i className={`fas ${inboxTab === 'unread' ? 'fa-envelope-open' : inboxTab === 'groups' ? 'fa-users' : 'fa-comments'} text-4xl text-white/10 mb-5`}></i>
+                            <p className="text-[#8696a0] text-sm font-medium">No {inboxTab === 'all' ? '' : inboxTab} conversations found</p>
+                        </div>
+                    );
+                }
+
+                return filtered.map(chat => (
+                  <div 
+                    key={chat.chat_id}
+                    className={`chat-item ${selectedChat?.chat_id === chat.chat_id ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedChat(chat);
+                      navigate(`/messages?chat=${chat.chat_id}`);
+                    }}
+                  >
+                    <div className="chat-avatar relative">
+                      <img src={chat.partner_avatar || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-full object-cover" alt="" />
+                      {chat.partner_online && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#3c3] border-2 border-white/10 rounded-full shadow-lg"></div>}
+                    </div>
+                    <div className="chat-info flex-1 min-w-0">
+                      <div className="chat-meta flex justify-between items-center mb-1">
+                        <span className="chat-name text-white font-bold text-sm truncate">{chat.partner_name}</span>
+                        <span className={`chat-time text-[10px] font-bold ${chat.unread_count > 0 ? 'text-[#00a884]' : 'text-[#8696a0]'}`}>
+                          {safeTime(chat.last_message_time)}
+                        </span>
+                      </div>
+                      <div className="chat-preview flex justify-between items-center">
+                        <p className={`last-msg text-xs truncate leading-relaxed ${chat.unread_count > 0 ? 'text-white font-bold' : 'text-[#8696a0]'}`}>
+                           {chat.last_message || 'Start a conversation'}
+                        </p>
+                        {chat.unread_count > 0 && <span className="unread-badge bg-[#00a884] text-[#111] text-[10px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 ml-2">{chat.unread_count}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ));
+            })()}
           </div>
         </aside>
 
@@ -599,7 +638,35 @@ export default function Messages() {
                               )}
                             </div>
                           )}
-                          <div className="message-text break-words whitespace-pre-wrap">{msg.content}</div>
+                          {(() => {
+                            try {
+                              const data = JSON.parse(msg.content);
+                              if (data.type === 'marketplace_inquiry') {
+                                const payload = data.payload;
+                                return (
+                                  <div className="marketplace-inquiry-bubble bg-[#2a3942] rounded-xl overflow-hidden border border-white/5 shadow-lg group-hover:scale-[1.02] transition-transform">
+                                    {payload.image && (
+                                      <div className="relative aspect-video">
+                                        <img src={payload.image} className="w-full h-full object-cover" alt="" />
+                                        <div className="absolute top-2 left-2 bg-[#FF3D6D] text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider shadow-lg">
+                                          Marketplace Offer
+                                        </div>
+                                      </div>
+                                    )}
+                                    <div className="p-4">
+                                      <h4 className="text-white font-bold text-sm mb-1">{payload.title}</h4>
+                                      <p className="text-[#FF3D6D] font-black text-xs mb-3">{payload.price}</p>
+                                      <a href={payload.link} className="flex items-center justify-center gap-2 w-full py-2 bg-[#00a884] hover:bg-[#00c99e] text-[#111] rounded-lg font-black text-[10px] uppercase tracking-widest transition-all">
+                                        View Item Details <i className="fas fa-external-link-alt"></i>
+                                      </a>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            } catch (e) { /* Not JSON, render as text */ }
+                            
+                            return <div className="message-text break-words whitespace-pre-wrap">{msg.content}</div>;
+                          })()}
                           <div className="msg-meta">
                             <span className="msg-time">
                               {safeTime(msg.created_at)}

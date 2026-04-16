@@ -39,6 +39,7 @@ import FollowRequests from './pages/FollowRequests';
 import Polls from './pages/Polls';
 import PollDetail from './pages/PollDetail';
 import Hashtag from './pages/Hashtag';
+import Explore from './pages/Explore';
 import Moments from './pages/Moments';
 import MomentDetail from './pages/MomentDetail';
 import CreateMoment from './pages/CreateMoment';
@@ -104,6 +105,7 @@ function App() {
         <Route path="/polls" element={isAuthenticated ? <Polls /> : <Navigate to="/login" />} />
         <Route path="/polls/:id" element={isAuthenticated ? <PollDetail /> : <Navigate to="/login" />} />
         <Route path="/hashtag/:tag" element={isAuthenticated ? <Hashtag /> : <Navigate to="/login" />} />
+        <Route path="/explore" element={isAuthenticated ? <Explore /> : <Navigate to="/login" />} />
         <Route path="/moments" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
         <Route path="/afterglow/create" element={isAuthenticated ? <CreateStory /> : <Navigate to="/login" />} />
         <Route path="/moments/create" element={isAuthenticated ? <CreateMoment /> : <Navigate to="/login" />} />

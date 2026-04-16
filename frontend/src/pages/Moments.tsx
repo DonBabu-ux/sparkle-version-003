@@ -1,24 +1,168 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Eye, Heart, Camera } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, MoreHorizontal, Play } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 
 interface Moment {
   moment_id: string;
-  title?: string;
   username: string;
+  title?: string;
+  caption?: string; 
   avatar_url?: string;
   thumbnail_url?: string;
   video_url?: string;
+  media_url?: string;
   view_count?: number;
   like_count?: number;
+  comment_count?: number;
   created_at: string;
   is_video?: boolean;
+  is_liked?: boolean;
+  is_saved?: boolean;
 }
 
-export default function Moments() {
+const ReelItem = ({ 
+  moment, 
+  onLike, 
+  onSave 
+}: { 
+  moment: Moment; 
+  onLike: (id: string) => void;
+  onSave: (id: string) => void;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting) {
+        if (videoRef.current) {
+          videoRef.current.play().then(() => setPlaying(true)).catch((e) => {
+             console.log('Autoplay blocked', e);
+             setPlaying(false);
+          });
+        }
+      } else {
+        if (videoRef.current) {
+          videoRef.current.pause();
+          setPlaying(false);
+        }
+      }
+    }, { threshold: 0.6 });
+
+    if (containerRef.current) observer.observe(containerRef.current);
+    
+    return () => {
+      if (containerRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        observer.unobserve(containerRef.current);
+      }
+    }
+  }, []);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (playing) {
+        videoRef.current.pause();
+        setPlaying(false);
+      } else {
+        videoRef.current.play().then(() => setPlaying(true)).catch(e => console.log('Play blocked', e));
+      }
+    }
+  };
+
+  const shareReel = () => {
+    const url = `${window.location.origin}/moments/${moment.moment_id}`;
+    if (navigator.share) {
+      navigator.share({ title: 'Sparkle Moment', url }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard!");
+    }
+  };
+
+  const titleCaption = moment.caption || moment.title;
+  const mediaSrc = moment.video_url || moment.media_url;
+  const isVideo = moment.is_video || !!moment.video_url || !!mediaSrc?.match(/\.(mp4|webm|ogg)$/i);
+
+  return (
+    <div className="reel-container" ref={containerRef}>
+      <div className="reel-video-wrapper" onClick={togglePlay}>
+        {isVideo ? (
+          <video 
+            ref={videoRef}
+            src={mediaSrc} 
+            poster={moment.thumbnail_url}
+            loop
+            playsInline
+            className="reel-media"
+          />
+        ) : (
+          <img 
+            src={mediaSrc || moment.thumbnail_url} 
+            alt="Moment" 
+            className="reel-media"
+          />
+        )}
+        {!playing && isVideo && (
+          <div className="reel-play-overlay"><Play size={56} fill="white" /></div>
+        )}
+      </div>
+
+      {/* Side Actions Overlay */}
+      <div className="reel-sidebar">
+        <div className="reel-action-box" onClick={() => navigate(`/profile/${moment.username}`)}>
+          <img 
+            src={moment.avatar_url || '/uploads/avatars/default.png'} 
+            className="reel-avatar" 
+            alt={moment.username}
+            onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/avatars/default.png'; }}
+          />
+        </div>
+        <button className="reel-action-btn" onClick={() => onLike(moment.moment_id)}>
+          <Heart size={28} fill={moment.is_liked ? '#FF3D6D' : 'rgba(255,255,255,0.2)'} color={moment.is_liked ? '#FF3D6D' : 'white'} className={moment.is_liked ? 'liked-bounce' : ''} />
+          <span>{moment.like_count || 0}</span>
+        </button>
+        <button className="reel-action-btn" onClick={() => navigate(`/moments/${moment.moment_id}`)}>
+          <MessageCircle size={28} fill="rgba(255,255,255,0.2)" color="white" />
+          <span>{moment.comment_count || 0}</span>
+        </button>
+        <button className="reel-action-btn" onClick={() => onSave(moment.moment_id)}>
+          {moment.is_saved ? (
+             <BookmarkCheck size={28} fill="#FACC15" color="#FACC15" className="liked-bounce" />
+          ) : (
+             <Bookmark size={28} fill="rgba(255,255,255,0.2)" color="white" />
+          )}
+          <span>Save</span>
+        </button>
+        <button className="reel-action-btn" onClick={shareReel}>
+          <Share2 size={28} fill="rgba(255,255,255,0.2)" color="white" />
+          <span>Share</span>
+        </button>
+        <button className="reel-action-btn">
+          <MoreHorizontal size={28} color="white" />
+        </button>
+      </div>
+
+      {/* Bottom Info Overlay */}
+      <div className="reel-bottom-info">
+        <div className="reel-info-user" onClick={() => navigate(`/profile/${moment.username}`)}>
+          <span className="reel-username">@{moment.username}</span>
+          <button className="reel-follow-btn" onClick={(e) => { e.stopPropagation(); /* TODO: follow */ }}>Follow</button>
+        </div>
+        {titleCaption && (
+          <p className="reel-caption">{titleCaption}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default function Moments() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +172,13 @@ export default function Moments() {
     setLoading(true);
     try {
       const res = await api.get('/moments/stream');
-      setMoments(res.data.moments || res.data || []);
+      const data = res.data.moments || res.data || [];
+      // Optionally fallback data if api is empty for testing:
+      if (data.length === 0) {
+        setMoments([]);
+      } else {
+        setMoments(data);
+      }
     } catch (err) {
       console.error('Moments fetch error:', err);
     } finally {
@@ -36,118 +186,114 @@ export default function Moments() {
     }
   };
 
+  const handleLike = async (id: string) => {
+    const idx = moments.findIndex(m => m.moment_id === id);
+    if (idx === -1) return;
+    const m = moments[idx];
+    const wasLiked = m.is_liked;
+    
+    setMoments(prev => prev.map(item => item.moment_id === id ? {
+      ...item, is_liked: !wasLiked, like_count: (item.like_count || 0) + (wasLiked ? -1 : 1)
+    } : item));
+    
+    try {
+      await api.post(`/moments/${id}/spark`);
+    } catch (err) {
+      setMoments(prev => prev.map(item => item.moment_id === id ? {
+        ...item, is_liked: wasLiked, like_count: (item.like_count || 0) + (wasLiked ? 1 : -1)
+      } : item));
+    }
+  };
+
+  const handleSave = async (id: string) => {
+    const idx = moments.findIndex(m => m.moment_id === id);
+    if (idx === -1) return;
+    const m = moments[idx];
+    const wasSaved = m.is_saved;
+    
+    setMoments(prev => prev.map(item => item.moment_id === id ? {
+      ...item, is_saved: !wasSaved
+    } : item));
+    
+    try {
+      await api.post(`/moments/${id}/save`);
+    } catch (err) {
+       console.log('Save state updated locally (no endpoint found perhaps)', err);
+    }
+  };
+
   return (
-    <div className="page-wrapper">
-      <Navbar />
-      <div className="mom-content">
-        <main className="mom-container">
-          {/* Header */}
-          <div className="mom-header">
-            <div className="mom-header-left">
-              <Camera size={26} className="mom-header-icon" />
-              <div>
-                <h1>Moments</h1>
-                <p>Fleeting glimpses of campus life</p>
+     <div className="page-wrapper">
+       <Navbar />
+       <div className="reels-page-content">
+         {loading ? (
+            <div className="reel-loader">
+               <div className="loader-spinner"></div>
+               <p>Loading Moments...</p>
+            </div>
+         ) : moments.length === 0 ? (
+            <div className="reel-loader" style={{flexDirection: 'column'}}>
+                <h2>No Moments Found</h2>
+                <p>Be the first to create one!</p>
+            </div>
+         ) : (
+            moments.map(m => (
+              <div key={m.moment_id} className="reel-snap-item">
+                <ReelItem 
+                   moment={m} 
+                   onLike={handleLike} 
+                   onSave={handleSave} 
+                />
               </div>
-            </div>
-            <button className="mom-create-btn" onClick={() => navigate('/moments/create')}>
-              <Plus size={18} /> Share Moment
-            </button>
-          </div>
+            ))
+         )}
+       </div>
 
-          {/* Grid */}
-          {loading ? (
-            <div className="mom-grid">
-              {[...Array(9)].map((_, i) => (
-                <div key={i} className="mom-skeleton pulse" />
-              ))}
-            </div>
-          ) : moments.length === 0 ? (
-            <div className="mom-empty">
-              <Camera size={52} />
-              <h3>No moments yet</h3>
-              <p>Be the first to share a moment with your campus!</p>
-              <button className="mom-create-btn" onClick={() => navigate('/moments/create')}>Create Moment</button>
-            </div>
-          ) : (
-            <div className="mom-grid">
-              {moments.map(m => (
-                <div key={m.moment_id} className="mom-card" onClick={() => navigate(`/moments/${m.moment_id}`)}>
-                  <div className="mom-thumb">
-                    <img
-                      src={m.thumbnail_url || m.video_url || 'https://placehold.co/400x600?text=Moment'}
-                      alt={m.title || m.username}
-                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x600?text=Moment'; }}
-                    />
-                    {m.is_video && (
-                      <div className="mom-play-btn"><Play size={20} fill="white" /></div>
-                    )}
-                    <div className="mom-overlay">
-                      <div className="mom-user">
-                        <img
-                          src={m.avatar_url || '/uploads/avatars/default.png'}
-                          className="mom-avatar"
-                          alt={m.username}
-                          onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/avatars/default.png'; }}
-                        />
-                        <span className="mom-username">@{m.username}</span>
-                      </div>
-                      <div className="mom-stats">
-                        {m.view_count !== undefined && (
-                          <span><Eye size={12} /> {m.view_count}</span>
-                        )}
-                        {m.like_count !== undefined && (
-                          <span><Heart size={12} /> {m.like_count}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
-
-      <style>{`
-        .page-wrapper { display: flex; background: #0b0e14; min-height: 100vh; }
-        .mom-content { flex: 1; overflow-y: auto; height: 100vh; }
-        .mom-container { max-width: 1200px; margin: 0 auto; padding: 40px 20px 100px; }
-
-        .mom-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; padding: 30px; margin-bottom: 40px; }
-        .mom-header-left { display: flex; align-items: center; gap: 18px; }
-        .mom-header-icon { color: var(--primary); }
-        .mom-header h1 { font-size: 2rem; font-weight: 900; color: white; margin: 0 0 5px; letter-spacing: -1px; }
-        .mom-header p { font-size: 0.95rem; color: rgba(255,255,255,0.5); margin: 0; }
+       <style>{`
+        .page-wrapper { display: flex; background: #000; min-height: 100vh; overflow: hidden; width: 100%; }
+        .reels-page-content { flex: 1; height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; position: relative; display: flex; flex-direction: column; align-items: center; }
+        .reels-page-content::-webkit-scrollbar { display: none; }
         
-        .mom-create-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--primary-gradient); color: white; border: none; padding: 14px 24px; border-radius: 16px; font-weight: 800; font-size: 0.95rem; cursor: pointer; transition: 0.3s; white-space: nowrap; }
-        .mom-create-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(255, 61, 109, 0.3); }
-
-        .mom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
-        @media (max-width: 600px) { .mom-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
-
-        .mom-card { cursor: pointer; aspect-ratio: 9/16; position: relative; overflow: hidden; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        .mom-thumb { width: 100%; height: 100%; position: relative; background: #1a1b1e; }
-        .mom-thumb img { width: 100%; height: 100%; object-fit: cover; transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1); display: block; }
-        .mom-card:hover .mom-thumb img { transform: scale(1.15); }
+        .reel-snap-item { height: 100vh; width: 100%; max-width: 500px; scroll-snap-align: start; scroll-snap-stop: always; display: flex; align-items: center; justify-content: center; background: #000; position: relative; }
         
-        .mom-play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 1px solid rgba(255,255,255,0.3); }
-        .mom-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 30px 20px 20px; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%); opacity: 0.9; transition: 0.3s; }
-        .mom-user { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-        .mom-avatar { width: 32px; height: 32px; border-radius: 10px; object-fit: cover; border: 1.5px solid white; }
-        .mom-username { color: white; font-size: 0.9rem; font-weight: 800; }
-        .mom-stats { display: flex; gap: 15px; font-size: 0.75rem; color: rgba(255,255,255,0.7); font-weight: 700; }
-        .mom-stats span { display: flex; align-items: center; gap: 6px; }
+        .reel-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #111; overflow: hidden; }
+        @media (min-width: 600px) { .reel-container { height: calc(100vh - 40px); border-radius: 12px; margin: 20px 0; } }
+        
+        .reel-video-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #000; }
+        .reel-media { width: 100%; height: 100%; object-fit: cover; }
+        .reel-play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.3); border-radius: 50%; padding: 16px; pointer-events: none; backdrop-filter: blur(5px); }
 
-        .mom-skeleton { aspect-ratio: 9/16; background: rgba(255,255,255,0.05); border-radius: 20px; }
-        .pulse { animation: momPulse 1.5s ease-in-out infinite; }
-        @keyframes momPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        /* Overlays */
+        .reel-sidebar { position: absolute; bottom: 120px; right: 12px; display: flex; flex-direction: column; align-items: center; gap: 20px; z-index: 10; }
+        .reel-action-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; color: white; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; text-shadow: 0 1px 4px rgba(0,0,0,0.9); transition: transform 0.2s; padding: 0; }
+        .reel-action-btn svg { filter: drop-shadow(0 2px 5px rgba(0,0,0,0.6)); transition: transform 0.2s; }
+        .reel-action-btn:hover svg { transform: scale(1.1); }
+        .liked-bounce { animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        .mom-empty { text-align: center; padding: 100px 40px; color: rgba(255,255,255,0.3); }
-        .mom-empty svg { margin-bottom: 24px; opacity: 0.2; }
-        .mom-empty h3 { font-size: 1.8rem; font-weight: 900; color: white; margin: 0 0 10px; }
-        .mom-empty p { margin: 0 0 30px; font-size: 1.1rem; }
-      `}</style>
-    </div>
+        .reel-action-box { display: flex; flex-direction: column; align-items: center; cursor: pointer; margin-bottom: 8px; border-radius: 50%; padding: 2px; }
+        .reel-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+        .reel-bottom-info { position: absolute; bottom: 0; left: 0; right: 70px; padding: 40px 16px 24px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%); z-index: 9; color: white; }
+        .reel-info-user { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; cursor: pointer; }
+        .reel-username { font-weight: 800; font-size: 1.05rem; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        .reel-follow-btn { border: 1px solid white; background: transparent; color: white; border-radius: 6px; padding: 4px 10px; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: 0.2s; text-shadow: none; }
+        .reel-follow-btn:hover { background: white; color: black; }
+        .reel-caption { font-size: 0.95rem; line-height: 1.4; margin: 0; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        .reel-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100%; color: white; font-weight: 700; font-size: 1.2rem; }
+        .loader-spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+
+        @keyframes bounceIn { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 1024px) {
+           .reels-page-content { padding-bottom: 75px; /* space for mobile nav */ }
+           .reel-snap-item { max-width: 100%; }
+           .reel-container { height: 100%; border-radius: 0; margin: 0; }
+           .reel-sidebar { bottom: 30px; }
+           .reel-bottom-info { bottom: 0; padding-bottom: 30px; right: 60px; }
+        }
+       `}</style>
+     </div>
   );
 }

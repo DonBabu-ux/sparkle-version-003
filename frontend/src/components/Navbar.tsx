@@ -48,6 +48,11 @@ export default function Navbar() {
               <span>Home</span>
             </Link>
 
+            <Link to="/explore" className={`sidebar-item ${isActive('/explore') ? 'active' : ''}`}>
+              <div className="sidebar-icon-box"><i className="fas fa-compass"></i></div>
+              <span>Explore</span>
+            </Link>
+
             <div className={`sidebar-hub-container ${activeHub === 'discover' ? 'active' : ''}`}>
               <div className="sidebar-item hub-trigger" onClick={() => toggleHub('discover')}>
                 <div className="sidebar-icon-box"><i className="fas fa-compass"></i></div>
@@ -56,6 +61,7 @@ export default function Navbar() {
               </div>
               {activeHub === 'discover' && (
                 <div className="hub-dropdown glass-card animate-scale-in" style={{ display: 'block' }}>
+
                   <Link to="/connect" className="hub-sub-item">
                     <i className="fas fa-search"></i>
                     <span>Find Students</span>
@@ -136,13 +142,13 @@ export default function Navbar() {
               )}
             </div>
 
-            <div className={`sidebar-hub-container ${activeHub === 'more' ? 'active' : ''}`} style={{ marginTop: 'auto' }}>
+            <div className={`sidebar-hub-container ${activeHub === 'more' ? 'active' : ''}`} style={{ marginTop: 'auto', position: 'relative' }}>
               <div className="sidebar-item hub-trigger" onClick={() => toggleHub('more')}>
-                <div className="sidebar-icon-box" style={{ fontSize: '1.4rem' }}><i className="fas fa-ellipsis-h"></i></div>
+                <div className="sidebar-icon-box" style={{ fontSize: '1.4rem' }}><i className="fas fa-bars"></i></div>
                 <span>More</span>
               </div>
               {activeHub === 'more' && (
-                <div className="hub-dropdown up glass-card animate-scale-in" style={{ display: 'block', bottom: 'calc(100% + 12px)', left: '10px', position: 'absolute', width: '250px', zIndex: 1000, boxShadow: 'var(--shadow-lg)', padding: '12px' }}>
+                <div className="hub-dropdown up glass-card animate-scale-in" style={{ display: 'block', bottom: 'calc(100% + 12px)', left: '0', position: 'absolute', width: '250px', zIndex: 1000, boxShadow: 'var(--shadow-lg)', padding: '12px' }}>
                   <Link to="/groups" className="hub-sub-item">
                     <i className="fas fa-users"></i>
                     <span>Groups</span>
@@ -192,6 +198,9 @@ export default function Navbar() {
         <Link to="/dashboard" className={`mobile-nav-item ${isActive('/dashboard') ? 'active' : ''}`}>
           <i className="fas fa-house-chimney"></i>
         </Link>
+        <Link to="/explore" className={`mobile-nav-item ${isActive('/explore') ? 'active' : ''}`}>
+          <i className="fas fa-compass"></i>
+        </Link>
         <Link to="/connect" className={`mobile-nav-item ${isActive('/connect') ? 'active' : ''}`}>
           <i className="fas fa-search"></i>
         </Link>
@@ -238,24 +247,37 @@ export default function Navbar() {
       <FloatingAction />
 
       <style>{`
-        .sidebar-column { width: 80px; position: sticky; top: 0; height: 100vh; background: #ffffff; border-right: 1px solid var(--border-light); z-index: 100; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .sidebar-column:hover { width: 250px; }
+        .sidebar-column { width: 250px; position: sticky; top: 0; height: 100vh; background: #ffffff; border-right: 1px solid var(--border-light); z-index: 100; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .desktop-sidebar { padding: 32px 12px; height: 100%; display: flex; flex-direction: column; }
         .sidebar-logo { display: flex; align-items: center; gap: 16px; padding: 0 10px; margin-bottom: 40px; text-decoration: none; }
         .logo-icon-wrapper { background: var(--primary-gradient); min-width: 40px; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; box-shadow: 0 4px 12px rgba(255, 61, 109, 0.3); transition: transform 0.2s; }
         .logo-text { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.6rem; letter-spacing: -0.5px; background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; }
-        .sidebar-nav { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 12px; border-radius: 12px; color: var(--text-main); font-weight: 500; font-size: 1.05rem; transition: all 0.2s; cursor: pointer; text-decoration: none; }
+        .sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 12px; border-radius: 10px; color: var(--text-main); font-weight: 500; font-size: 1.05rem; transition: background-color 0.2s; cursor: pointer; text-decoration: none; }
+        .sidebar-item:hover { background-color: rgba(0,0,0,0.04); }
         .sidebar-item.active { font-weight: 800; }
-        .sidebar-icon-box { min-width: 28px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--text-main); }
+        .sidebar-icon-box { min-width: 28px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--text-main); transition: transform 0.2s; }
+        .sidebar-item:hover .sidebar-icon-box { transform: scale(1.05); }
         .sidebar-item.active .sidebar-icon-box { color: var(--primary); }
         
-        .sidebar-nav span, .logo-text, .hub-chevron { opacity: 0; visibility: hidden; transition: opacity 0.2s; white-space: nowrap; }
-        .sidebar-column:hover .sidebar-nav span, .sidebar-column:hover .logo-text, .sidebar-column:hover .hub-chevron { opacity: 1; visibility: visible; }
+        .sidebar-nav span, .logo-text, .hub-chevron { opacity: 1; visibility: visible; transition: opacity 0.2s; white-space: nowrap; }
         
         .hub-dropdown { padding: 8px; margin-top: 4px; border-radius: 16px; background: white; border: 1px solid var(--border-light); box-shadow: var(--shadow-md); }
-        .hub-sub-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); text-decoration: none; }
+        .hub-sub-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: background-color 0.2s; cursor: pointer; }
+        .hub-sub-item:hover { background-color: rgba(0,0,0,0.04); color: var(--text-main); }
         .hub-divider { height: 1px; background: var(--border-light); margin: 8px 0; }
+
+        .sidebar-hub-container { position: relative; }
+
+        /* Responsive Sidebar for medium screens (like Instagram tablet view) */
+        @media (min-width: 1025px) and (max-width: 1264px) {
+          .sidebar-column { width: 80px; }
+          .sidebar-nav span, .logo-text, .hub-chevron { display: none; }
+          .sidebar-logo { padding: 0; justify-content: center; }
+          .logo-icon-wrapper { margin: 0; }
+          .sidebar-item { justify-content: center; padding: 14px 0; }
+          .hub-dropdown:not(.up) { position: absolute; left: calc(100% + 10px); top: 0; width: 220px; z-index: 100; }
+        }
 
         .mobile-top-bar { display: none; }
         .mobile-bottom-nav { display: none; }

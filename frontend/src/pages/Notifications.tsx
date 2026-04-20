@@ -2,8 +2,17 @@ import { useState, useEffect } from 'react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 
+interface Notification {
+  notification_id: string;
+  type: string;
+  title: string;
+  content: string;
+  created_at: string;
+  is_read: number | boolean;
+}
+
 export default function Notifications() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const [loading, setLoading] = useState(true);
 

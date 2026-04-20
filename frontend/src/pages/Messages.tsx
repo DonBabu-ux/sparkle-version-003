@@ -6,6 +6,37 @@ import NewChatModal from '../components/modals/NewChatModal';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+interface ChatConversation {
+  chat_id: string;
+  partner_id: string;
+  partner_avatar?: string;
+  partner_name: string;
+  partner_online?: boolean;
+  is_archived?: boolean;
+  is_group?: boolean;
+  is_admin?: boolean;
+  unread_count: number;
+  last_message?: string;
+  last_message_time: string;
+}
+
+interface ChatMessage {
+  message_id: string;
+  sender_id: string;
+  content: string;
+  status: string;
+  created_at: string;
+  media_url?: string;
+  media_type?: string;
+}
+
+interface ActiveFriend {
+  user_id: string;
+  username: string;
+  name?: string;
+  avatar_url?: string;
+}
+
 export default function Messages() {
   const { user } = useUserStore();
   const socket = useSocket();
@@ -13,10 +44,10 @@ export default function Messages() {
   const [searchParams] = useSearchParams();
   const targetChatId = searchParams.get('chat');
 
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [activeFriends, setActiveFriends] = useState<any[]>([]);
-  const [selectedChat, setSelectedChat] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [activeFriends, setActiveFriends] = useState<ActiveFriend[]>([]);
+  const [selectedChat, setSelectedChat] = useState<ChatConversation | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
@@ -31,12 +62,11 @@ export default function Messages() {
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const [showChatSettings, setShowChatSettings] = useState(false);
   const [disappearingDuration, setDisappearingDuration] = useState(0);
-  const [_showFabMenu, _setShowFabMenu] = useState(false);
   const [chatWallpaper, setChatWallpaper] = useState('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const voiceTimerRef = useRef<any>(null);
-  const typingTimeoutRef = useRef<any>(null);
+  const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -65,14 +95,13 @@ export default function Messages() {
   }, [messages, user]);
 
   useEffect(() => {
-    // When selectedChat changes, use auto scroll to unread
     if (messages.length > 0) {
         scrollToUnread();
     }
-  }, [selectedChat, messages.length === 0]); // Scroll only on initial load or chat change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChat, scrollToUnread]);
 
   useEffect(() => {
-    // For new incoming messages while active, scroll to bottom
     if (messages.length > 0) {
         scrollToBottom('smooth');
     }
@@ -131,12 +160,12 @@ export default function Messages() {
           c.chat_id === selectedChat.chat_id ? { ...c, unread_count: 0 } : c
         ));
     }
-  }, [selectedChat?.chat_id]);
+  }, [selectedChat?.chat_id, selectedChat?.unread_count]);
 
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('new-message', (data: any) => {
+    socket.on('new-message', (data: ChatMessage & { conversation_id?: string, chat_id?: string }) => {
       const chatId = data.conversation_id || data.chat_id;
       if (selectedChat?.chat_id === chatId) {
         setMessages(prev => [...prev, data]);
@@ -161,7 +190,7 @@ export default function Messages() {
       });
     });
 
-    socket.on('user-typing', (data: any) => {
+    socket.on('user-typing', (data: { chatId: string, isTyping: boolean }) => {
       if (selectedChat?.chat_id === data.chatId && data.isTyping) {
         setPartnerTyping(true);
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -171,13 +200,13 @@ export default function Messages() {
       }
     });
 
-    socket.on('messages-read', (data: any) => {
+    socket.on('messages-read', (data: { chatId: string }) => {
       if (selectedChat?.chat_id === data.chatId) {
         setMessages(prev => prev.map(m => ({ ...m, status: 'read' })));
       }
     });
 
-    socket.on('disappearing_messages_update', (data: any) => {
+    socket.on('disappearing_messages_update', (data: { chatId: string, duration: number }) => {
       if (selectedChat?.chat_id === data.chatId) {
         setDisappearingDuration(data.duration);
       }
@@ -207,7 +236,7 @@ export default function Messages() {
     };
 
     if (socket && socket.connected) {
-      socket.emit('send-message', messageData, (ack: any) => {
+      socket.emit('send-message', messageData, (ack: { success: boolean }) => {
         setSending(false);
         if (!ack?.success) {
           console.error('Socket send failed, trying API...');
@@ -219,7 +248,7 @@ export default function Messages() {
     }
   };
 
-  const sendViaApi = async (data: any) => {
+  const sendViaApi = async (data: Record<string, unknown>) => {
     try {
       await api.post('/messages/send', data);
     } catch (err) {
@@ -663,7 +692,7 @@ export default function Messages() {
                                   </div>
                                 );
                               }
-                            } catch (e) { /* Not JSON, render as text */ }
+                            } catch { /* Not JSON, render as text */ }
                             
                             return <div className="message-text break-words whitespace-pre-wrap">{msg.content}</div>;
                           })()}
@@ -788,7 +817,7 @@ export default function Messages() {
       <NewChatModal 
         isOpen={showNewChatModal} 
         onClose={() => setShowNewChatModal(false)}
-        defaultTab={newChatTab as any}
+        defaultTab={newChatTab as 'new' | 'groups'}
         onChatSelected={(chatId) => {
            setShowNewChatModal(false);
            navigate(`/messages?chat=${chatId}`);

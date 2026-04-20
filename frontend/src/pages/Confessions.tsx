@@ -3,9 +3,17 @@ import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 
+interface Confession {
+  confession_id: string;
+  content: string;
+  campus?: string;
+  react_count?: number;
+  created_at?: string;
+}
+
 export default function Confessions() {
   const { user } = useUserStore();
-  const [confessions, setConfessions] = useState<any[]>([]);
+  const [confessions, setConfessions] = useState<Confession[]>([]);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

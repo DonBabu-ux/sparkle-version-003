@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, Camera, Hash, MessageCircle } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
+import axios from 'axios';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -59,8 +60,12 @@ export default function Login() {
 
       // Fallback
       showError(data?.message || 'Login failed. Please try again.');
-    } catch (err: any) {
-      showError(err?.response?.data?.message || err?.message || 'Login failed. Please try again.');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        showError(err.response?.data?.message || err.message || 'Login failed. Please try again.');
+      } else {
+        showError((err as Error).message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -97,8 +102,12 @@ export default function Login() {
         showSuccess('Verification successful! Redirecting...');
         setTimeout(() => navigate('/dashboard'), 900);
       }
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Invalid PIN');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        alert(err.response?.data?.message || 'Invalid PIN');
+      } else {
+        alert('Invalid PIN');
+      }
       setPin(['', '', '', '', '', '']);
       const first = document.getElementById('pin-0');
       if (first) (first as HTMLInputElement).focus();

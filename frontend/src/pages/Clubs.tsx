@@ -213,14 +213,14 @@ export default function Clubs() {
 
         .clubs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
 
-        .club-card { background: white; border-radius: 32px; overflow: hidden; transition: all 0.4s cubic-bezier(0.175,0.885,0.32,1.275); border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; box-shadow: 0 8px 30px rgba(0,0,0,0.06); text-decoration: none; color: inherit; }
-        .club-card:hover { transform: translateY(-12px) scale(1.01); box-shadow: 0 24px 50px rgba(0,0,0,0.1); }
+        .club-card { background: white; border-radius: 28px; overflow: hidden; transition: all 0.5s var(--ease-out); border: 1px solid rgba(0,0,0,0.04); display: flex; flex-direction: column; box-shadow: var(--shadow-md); text-decoration: none; color: inherit; }
+        .club-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); border-color: rgba(255, 61, 109, 0.1); }
         .club-card-banner { height: 170px; background-size: cover; background-position: center; position: relative; }
         .club-card-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55)); }
         .club-card-logo { width: 72px; height: 72px; border-radius: 22px; border: 5px solid white; position: absolute; bottom: -36px; left: 26px; z-index: 2; object-fit: cover; background: white; box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .club-card-content { padding: 50px 26px 24px; flex-grow: 1; display: flex; flex-direction: column; }
-        .club-card-category { font-size: 0.72rem; font-weight: 900; text-transform: uppercase; color: #FF3D6D; letter-spacing: 1.5px; margin-bottom: 8px; }
-        .club-card-name { font-size: 1.4rem; font-weight: 850; margin: 0 0 10px; color: #111; letter-spacing: -0.5px; }
+        .club-card-category { font-size: 0.72rem; font-weight: 900; text-transform: uppercase; color: var(--primary); letter-spacing: 1.5px; margin-bottom: 8px; }
+        .club-card-name { font-size: 1.4rem; font-weight: 850; margin: 0 0 10px; color: #111; letter-spacing: -0.5px; font-family: 'Outfit', sans-serif; }
         .club-card-bio { font-size: 0.9rem; color: #555; line-height: 1.6; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .club-card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.05); font-size: 0.88rem; color: #666; font-weight: 700; }
         .club-card-footer span { display: flex; align-items: center; gap: 6px; }

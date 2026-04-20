@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, Search, Send, Link, MessageCircle, Share2, MoreHorizontal, PlusCircle, Bookmark, Repeat } from 'lucide-react';
 import api from '../../api/api';
 
+import type { User } from '../../types/user';
+
 interface ShareModalProps {
   onClose: () => void;
   contentUrl?: string;
@@ -10,7 +12,7 @@ interface ShareModalProps {
 
 export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   const [search, setSearch] = useState('');
-  const [recipients, setRecipients] = useState<any[]>([]);
+  const [recipients, setRecipients] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
@@ -50,7 +52,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   };
 
   const filteredRecipients = recipients.filter(r => 
-    r.username.toLowerCase().includes(search.toLowerCase()) || 
+    (r.username || '').toLowerCase().includes(search.toLowerCase()) || 
     (r.name && r.name.toLowerCase().includes(search.toLowerCase()))
   );
 

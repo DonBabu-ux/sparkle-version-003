@@ -5,13 +5,32 @@ import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { Calendar, Users, QrCode, Power, Settings, Plus, Camera, Check, X, Bell, Trash2, Edit } from 'lucide-react';
 
+interface Event {
+  event_id: string;
+  title: string;
+  campus?: string;
+  is_public: boolean;
+  total_rsvps?: number;
+  total_reservations?: number;
+  total_attended?: number;
+  max_attendees: number;
+  requirements?: string;
+}
+
+interface Attendee {
+  user_id: string;
+  username: string;
+  avatar_url?: string;
+  status: string;
+}
+
 export default function EventsAdmin() {
   const { user } = useUserStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetEventId = searchParams.get('id');
 
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
 
@@ -27,11 +46,11 @@ export default function EventsAdmin() {
 
   // Attendee state
   const [activeEventAttendees, setActiveEventAttendees] = useState<string | null>(null);
-  const [attendeesList, setAttendeesList] = useState<any[]>([]);
+  const [attendeesList, setAttendeesList] = useState<Attendee[]>([]);
 
-  useEffect(() => { fetchManagedEvents(); }, []);
+  useEffect(() => { fetchManagedEvents(); }, [fetchManagedEvents]);
 
-  const fetchManagedEvents = async () => {
+  const fetchManagedEvents = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get('/events?filter=managed');
@@ -47,7 +66,7 @@ export default function EventsAdmin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [targetEventId]);
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +81,7 @@ export default function EventsAdmin() {
       alert('Event is now Live!');
       setFormData({ title: '', location: '', event_date: '', capacity: '', requirements: '', campus: user?.campus || 'Main Campus' });
       fetchManagedEvents();
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert('Failed to broadcast event.');
     }
   };
@@ -72,7 +90,7 @@ export default function EventsAdmin() {
     try {
       await api.patch(`/events/${id}/status`, { is_public: !is_public });
       fetchManagedEvents();
-    } catch (err) {
+    } catch {
       alert('Failed to update event status');
     }
   };
@@ -82,7 +100,7 @@ export default function EventsAdmin() {
     try {
       await api.delete(`/events/${id}`);
       fetchManagedEvents();
-    } catch (err) {
+    } catch {
       alert('Failed to delete event');
     }
   };
@@ -96,7 +114,7 @@ export default function EventsAdmin() {
       const res = await api.get(`/events/${id}/attendees`);
       setAttendeesList(res.data || []);
       setActiveEventAttendees(id);
-    } catch (err) {
+    } catch {
       alert('Failed to load attendees');
     }
   };
@@ -105,7 +123,7 @@ export default function EventsAdmin() {
     try {
       await api.patch(`/events/${eventId}/rsvp/${userId}`, { status });
       loadAttendees(eventId); 
-    } catch (err) {
+    } catch {
       alert('Failed to process RSVP');
     }
   };
@@ -117,7 +135,7 @@ export default function EventsAdmin() {
       // Assuming a generic broadcast endpoint exists
       await api.post(`/events/${eventId}/announce`, { message: msg });
       alert('Broadcast Sent!');
-    } catch (err) {
+    } catch {
       alert('Failed to send announcement');
     }
   };

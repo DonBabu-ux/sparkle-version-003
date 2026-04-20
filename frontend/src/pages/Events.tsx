@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, UserCheck, ChevronDown, ChevronUp, Plus, Clock } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -31,9 +31,9 @@ export default function Events() {
   const [activeTab, setActiveTab] = useState('All');
   const [expandedReqs, setExpandedReqs] = useState<Set<string>>(new Set());
 
-  useEffect(() => { fetchEvents(); }, [activeTab]);
+  useEffect(() => { fetchEvents(); }, [activeTab, fetchEvents]);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
@@ -46,7 +46,7 @@ export default function Events() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, user?.campus]);
 
   const handleRSVP = async (eventId: string, status: string) => {
     try {
@@ -60,7 +60,11 @@ export default function Events() {
   const toggleReqs = (id: string) => {
     setExpandedReqs(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -239,8 +243,8 @@ export default function Events() {
 
         .ev-list { display: flex; flex-direction: column; gap: 16px; }
 
-        .ev-card { background: white; border-radius: 20px; padding: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); transition: 0.3s; }
-        .ev-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.09); }
+        .ev-card { background: white; border-radius: 28px; padding: 24px; box-shadow: var(--shadow-md); border: 1px solid rgba(0,0,0,0.04); transition: all 0.5s var(--ease-out); }
+        .ev-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: rgba(255, 61, 109, 0.1); }
         .ev-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .ev-meta-left { display: flex; flex-direction: column; gap: 3px; }
         .ev-organizer { font-size: 11px; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -251,7 +255,7 @@ export default function Events() {
         .ev-manage-btn { background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .ev-manage-btn:hover { background: #f1f5f9; }
 
-        .ev-title { font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 10px; }
+        .ev-title { font-size: 1.3rem; font-weight: 900; color: #0f172a; margin: 0 0 12px; font-family: 'Outfit', sans-serif; letter-spacing: -0.5px; }
         .ev-stats-row { display: flex; gap: 16px; font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; cursor: pointer; }
         .ev-stats-row span { display: flex; align-items: center; gap: 5px; }
         .ev-time { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 14px; }

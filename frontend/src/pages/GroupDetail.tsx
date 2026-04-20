@@ -5,14 +5,16 @@ import api from '../api/api';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 
+import type { Post } from '../types/post';
+import type { Group } from '../types/group';
+
 export default function GroupDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   useUserStore();
 
-  
-  const [group, setGroup] = useState<any>(null);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [group, setGroup] = useState<Group | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [isOwner, setIsOwner] = useState(false);

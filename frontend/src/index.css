@@ -19,7 +19,10 @@
   --text-secondary: #8E8E8E;
   --text-muted: #8E8E8E;
   --border-light: #DBDBDB;
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 20px 50px -15px rgba(0, 0, 0, 0.12);
+  --shadow-primary: 0 15px 35px -10px rgba(255, 61, 109, 0.4);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -63,27 +66,27 @@ h1, h2, h3, h4, .logo-text {
 
 /* Utilities */
 .glass-card {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--shadow-md);
 }
 
 .premium-card {
   background: white;
-  border-radius: 24px;
-  border: 1px solid var(--border-light);
+  border-radius: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
   box-shadow: var(--shadow-md);
-  transition: all 0.3s var(--ease-out);
+  transition: all 0.5s var(--ease-out);
   position: relative;
   overflow: hidden;
 }
 
 .premium-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px) scale(1.005);
   box-shadow: var(--shadow-lg);
-  border-color: var(--primary);
+  border-color: rgba(255, 61, 109, 0.15);
 }
 
 .glass-morphism {
@@ -122,12 +125,19 @@ h1, h2, h3, h4, .logo-text {
 /* Post Card Design */
 .post-card {
   background: white;
-  border-radius: 20px;
-  margin-bottom: 28px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light);
+  border-radius: 28px;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  transition: all 0.3s;
+  transition: all 0.5s var(--ease-out);
+  position: relative;
+}
+
+.post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(255, 61, 109, 0.1);
 }
 
 .post-header {
@@ -157,10 +167,23 @@ h1, h2, h3, h4, .logo-text {
 .post-content { padding: 12px 20px; }
 .post-text { font-size: 1rem; line-height: 1.5; color: var(--text-main); }
 
-.post-actions { display: flex; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #f8fafc; }
-.actions-left, .actions-right { display: flex; gap: 20px; }
-.action-btn { background: none; border: none; padding: 0; cursor: pointer; color: var(--text-secondary); font-size: 1.4rem; transition: all 0.2s; }
-.action-btn:hover { transform: scale(1.15); color: var(--primary); }
+.post-actions { 
+  display: flex; 
+  justify-content: space-between; 
+  padding: 16px 20px; 
+  border-top: 1px solid rgba(0, 0, 0, 0.02); 
+  background: rgba(250, 250, 250, 0.4);
+}
+.actions-left, .actions-right { display: flex; gap: 24px; }
+.action-btn { 
+  background: none; 
+  border: none; 
+  padding: 0; 
+  cursor: pointer; 
+  color: #475569; 
+  transition: all 0.3s var(--ease-out);
+}
+.action-btn:hover { transform: scale(1.2); color: var(--primary); filter: drop-shadow(0 0 8px rgba(255, 61, 109, 0.3)); }
 .action-btn.liked { color: var(--primary); }
 
 .read-more-btn { background: none; border: none; color: var(--text-muted); font-weight: 600; cursor: pointer; padding: 0; margin-top: 4px; font-size: 0.95rem; }

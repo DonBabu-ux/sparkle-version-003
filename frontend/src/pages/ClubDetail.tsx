@@ -5,6 +5,8 @@ import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
+import type { Post } from '../types/post';
+import { useCallback } from 'react';
 
 interface ClubMember {
   user_id: string;
@@ -32,15 +34,13 @@ export default function ClubDetail() {
   const navigate = useNavigate();
   const { user } = useUserStore();
   const [club, setClub] = useState<Club | null>(null);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'members'>('posts');
   const [joining, setJoining] = useState(false);
 
-  useEffect(() => { if (id) fetchClub(); }, [id]);
-
-  const fetchClub = async () => {
+  const fetchClub = useCallback(async () => {
     setLoading(true);
     try {
       const [clubRes, postsRes, membersRes] = await Promise.all([
@@ -56,7 +56,9 @@ export default function ClubDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => { if (id) fetchClub(); }, [id, fetchClub]);
 
   const handleJoin = async () => {
     if (!club) return;

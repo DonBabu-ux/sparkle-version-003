@@ -1,19 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Trash2, Edit3, ExternalLink, ChevronLeft } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import type { Listing } from '../types/listing';
 
 export default function MyListings() {
   const navigate = useNavigate();
-  const [listings, setListings] = useState<any[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchMyListings();
-  }, []);
-
-  const fetchMyListings = async () => {
+  const fetchMyListings = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get('/marketplace/my-listings');
@@ -23,7 +20,11 @@ export default function MyListings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMyListings();
+  }, [fetchMyListings]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this listing?')) return;

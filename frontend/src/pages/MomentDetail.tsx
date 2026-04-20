@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, MessageSquare, Eye, Share2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -26,9 +26,7 @@ export default function MomentDetail() {
   const [loading, setLoading] = useState(true);
   const [liking, setLiking] = useState(false);
 
-  useEffect(() => { if (id) fetchMoment(); }, [id]);
-
-  const fetchMoment = async () => {
+  const fetchMoment = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get(`/moments/${id}`);
@@ -38,7 +36,9 @@ export default function MomentDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => { if (id) fetchMoment(); }, [id, fetchMoment]);
 
   const handleLike = async () => {
     if (!moment || liking) return;

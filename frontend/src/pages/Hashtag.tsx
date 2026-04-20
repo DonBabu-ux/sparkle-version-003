@@ -1,21 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Hash, ArrowLeft } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
+import type { Post } from '../types/post';
 
 export default function Hashtag() {
   const { tag } = useParams();
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (tag) fetchPosts();
-  }, [tag]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get(`/search?type=posts&q=${encodeURIComponent(tag || '')}`);
@@ -25,7 +22,11 @@ export default function Hashtag() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tag]);
+
+  useEffect(() => {
+    if (tag) fetchPosts();
+  }, [tag, fetchPosts]);
 
   return (
     <div className="page-wrapper">

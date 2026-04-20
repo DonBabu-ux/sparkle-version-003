@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { 
   Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, 
@@ -279,26 +279,14 @@ export default function Moments() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { fetchMoments(); }, []);
-
-  useEffect(() => {
-    if (id && moments.length > 0) {
-      const idx = moments.findIndex(m => m.moment_id === id);
-      if (idx !== -1) {
-        setActiveIndex(idx);
-        scrollToIndex(idx);
-      }
-    }
-  }, [id, moments]);
-
-  const fetchMoments = async () => {
+  const fetchMoments = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get('/moments/stream');
       let data = res.data.moments || res.data || [];
       
       // If we are at a specific moment but it's not in the stream, fetch it separately
-      if (id && !data.find((m: any) => m.moment_id === id)) {
+      if (id && !data.find((m: Moment) => m.moment_id === id)) {
         try {
           const detailRes = await api.get(`/moments/${id}`);
           const single = detailRes.data.moment || detailRes.data;
@@ -312,9 +300,11 @@ export default function Moments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const scrollToIndex = (index: number) => {
+  useEffect(() => { fetchMoments(); }, [fetchMoments]);
+
+  const scrollToIndex = useCallback((index: number) => {
     if (scrollRef.current) {
       const container = scrollRef.current;
       const target = container.children[index] as HTMLElement;
@@ -322,7 +312,17 @@ export default function Moments() {
         container.scrollTo({ top: target.offsetTop, behavior: 'smooth' });
       }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (id && moments.length > 0) {
+      const idx = moments.findIndex(m => m.moment_id === id);
+      if (idx !== -1) {
+        setActiveIndex(idx);
+        scrollToIndex(idx);
+      }
+    }
+  }, [id, moments, scrollToIndex]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;

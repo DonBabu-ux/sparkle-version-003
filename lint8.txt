@@ -1,0 +1,139 @@
+﻿
+> backend@1.0.0 lint
+> npm run lint --prefix frontend
+
+
+> frontend@0.0.0 lint
+> eslint .
+
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Explore.tsx
+  32:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\GroupAdmin.tsx
+   9:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  10:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Hashtag.tsx
+  11:38  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  16:6   warning  React Hook useEffect has a missing dependency: 'fetchPosts'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\ListingDetail.tsx
+   13:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   14:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  127:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Login.tsx
+   62:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\LostFound.tsx
+  31:38  warning  React Hook useEffect has a missing dependency: 'fetchItems'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Marketplace.tsx
+   40:6   warning  React Hook useEffect has a missing dependency: 'fetchListings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  152:39  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Messages.tsx
+   16:54  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+   17:54  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+   18:52  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+   19:44  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+   34:10  error    '_showFabMenu' is assigned a value but never used                                                                                          @typescript-eslint/no-unused-vars
+   34:24  error    '_setShowFabMenu' is assigned a value but never used                                                                                       @typescript-eslint/no-unused-vars
+   38:32  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+   39:35  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+   72:6   warning  React Hook useEffect has missing dependencies: 'messages.length' and 'scrollToUnread'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   72:21  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked   react-hooks/exhaustive-deps
+  134:6   warning  React Hook useEffect has a missing dependency: 'selectedChat.unread_count'. Either include it or remove the dependency array               react-hooks/exhaustive-deps
+  139:37  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+  164:37  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+  174:39  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+  180:54  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+  210:54  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+  222:35  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+  666:38  error    'e' is defined but never used                                                                                                              @typescript-eslint/no-unused-vars
+  791:35  error    Unexpected any. Specify a different type                                                                                                   @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\MomentDetail.tsx
+  29:47  warning  React Hook useEffect has a missing dependency: 'fetchMoment'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Moments.tsx
+    5:45  error    'MoreVertical' is defined but never used                                                                         @typescript-eslint/no-unused-vars
+    6:3   error    'Flag' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  270:9   error    'location' is assigned a value but never used                                                                    @typescript-eslint/no-unused-vars
+  282:40  warning  React Hook useEffect has a missing dependency: 'fetchMoments'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  301:32  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  351:14  error    'err' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\MyListings.tsx
+   9:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:14  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Notifications.tsx
+  6:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Orders.tsx
+  9:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\PollDetail.tsx
+  36:6  warning  React Hook useEffect has a missing dependency: 'fetchPoll'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Polls.tsx
+  36:38  warning  React Hook useEffect has a missing dependency: 'fetchPolls'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\PostDetail.tsx
+   10:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Profile.tsx
+   13:42   error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   14:38   error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   15:38   error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   16:48   error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   23:102  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   45:40   error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   54:6    warning  React Hook useCallback has an unnecessary dependency: 'currentUser'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+   83:6    warning  React Hook useEffect has a missing dependency: 'isOwnProfile'. Either include it or remove the dependency array        react-hooks/exhaustive-deps
+   95:25   error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  210:43   error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Search.tsx
+  10:42  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  44:6   warning  React Hook useEffect has a missing dependency: 'handleSearch'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\SellerProfile.tsx
+   12:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  136:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Settings.tsx
+   39:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   64:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  254:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Signup.tsx
+  74:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\SkillMarket.tsx
+  7:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\StoryViewer.tsx
+   8:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  17:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  68:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\src\pages\Wishlist.tsx
+  7:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\frontend\vite.config.ts
+  88:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  89:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 78 problems (65 errors, 13 warnings)
+

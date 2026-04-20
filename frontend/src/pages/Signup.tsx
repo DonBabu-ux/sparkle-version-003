@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, Mail, AtSign, Users, Camera, Heart, MessageCircle, Hash } from 'lucide-react';
+import axios from 'axios';
 import api from '../api/api';
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -71,8 +72,12 @@ export default function Signup() {
       } else {
         showError(res.data?.message || 'Registration failed. Please try again.');
       }
-    } catch (err: any) {
-      showError(err?.response?.data?.message || 'Server error. Please try again.');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        showError(err.response?.data?.message || 'Server error. Please try again.');
+      } else {
+        showError((err as Error).message || 'Server error. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -90,8 +95,12 @@ export default function Signup() {
         showSuccess('Verification successful! You can now log in.');
         setTimeout(() => navigate('/login'), 1500);
       }
-    } catch (err: any) {
-      showError(err?.response?.data?.message || 'Invalid verification code');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        showError(err.response?.data?.message || 'Invalid verification code');
+      } else {
+        showError((err as Error).message || 'Invalid verification code');
+      }
     } finally {
       setVerifying(false);
     }

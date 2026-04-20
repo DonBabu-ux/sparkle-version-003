@@ -23,9 +23,11 @@ api.interceptors.response.use(
   }
 );
 
+import type { LoginCredentials, SignupData } from '../types/auth';
+
 export const authApi = {
-  login: (credentials: any) => api.post('/auth/login', credentials),
-  signup: (userData: any) => api.post('/auth/signup', userData),
+  login: (credentials: LoginCredentials) => api.post('/auth/login', credentials),
+  signup: (userData: SignupData) => api.post('/auth/signup', userData),
   validateToken: () => api.get('/auth/validate'),
   logout: () => api.post('/auth/logout'),
 };

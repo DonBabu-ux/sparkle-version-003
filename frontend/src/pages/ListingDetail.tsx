@@ -4,14 +4,15 @@ import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { ChevronLeft, Share2, Heart, MessageCircle, MapPin, ShieldCheck, Star } from 'lucide-react';
+import type { Listing, Review } from '../types/listing';
 
 export default function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useUserStore();
 
-  const [listing, setListing] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -124,7 +125,7 @@ export default function ListingDetail() {
              
              {media.length > 1 && (
                <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
-                  {media.map((m: any, idx: number) => (
+                  {media.map((m: { media_url: string }, idx: number) => (
                     <button 
                       key={idx}
                       onClick={() => setActiveImage(idx)}

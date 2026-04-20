@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
+import type { Listing } from '../types/listing';
 
 export default function Wishlist() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

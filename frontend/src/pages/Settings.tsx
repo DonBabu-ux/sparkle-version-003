@@ -3,6 +3,8 @@ import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import type { User } from '../types/user';
 
 export default function Settings() {
   const { user, setUser } = useUserStore();
@@ -36,11 +38,11 @@ export default function Settings() {
     setFormData(prev => ({ ...prev, [name]: val }));
   };
 
-  const handleUpdateSetting = async (key: string, value: any) => {
+  const handleUpdateSetting = async (key: string, value: string | boolean) => {
     try {
       await api.put('/users/settings', { [key]: value });
       if (user) {
-        setUser({ ...user, [key]: value } as any);
+        setUser({ ...user, [key]: value } as unknown as User);
       }
     } catch (err) {
       console.error('Failed to update setting:', err);
@@ -61,8 +63,12 @@ export default function Settings() {
           setUser({ ...user, ...formData } as any);
         }
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Failed to update profile');
+      } else {
+        setError((err as Error).message || 'Failed to update profile');
+      }
     } finally {
       setLoading(false);
     }
@@ -251,7 +257,7 @@ export default function Settings() {
                         <input
                           type="checkbox"
                           name={item.k}
-                          checked={(formData as any)[item.k]}
+                          checked={formData[item.k as keyof typeof formData] as boolean}
                           onChange={(e) => {
                             handleChange(e);
                             handleUpdateSetting(item.k, e.target.checked);

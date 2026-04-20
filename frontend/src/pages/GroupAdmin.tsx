@@ -2,12 +2,21 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import type { Group } from '../types/group';
+
+interface GroupRequest {
+  request_id: string;
+  avatar_url?: string;
+  name?: string;
+  username: string;
+  created_at: string;
+}
 
 export default function GroupAdmin() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [requests, setRequests] = useState<any[]>([]);
-  const [group, setGroup] = useState<any>(null);
+  const [requests, setRequests] = useState<GroupRequest[]>([]);
+  const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

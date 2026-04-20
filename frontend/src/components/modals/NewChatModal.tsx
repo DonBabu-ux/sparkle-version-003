@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/api';
 
+import type { User } from '../../types/user';
+
 interface NewChatModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,9 +13,9 @@ interface NewChatModalProps {
 export default function NewChatModal({ isOpen, onClose, defaultTab = 'new' }: NewChatModalProps) {
   const [tab, setTab] = useState<'new' | 'group'>(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<User[]>([]);
   const [groupName, setGroupName] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
 
   useEffect(() => {
     setTab(defaultTab);
@@ -47,7 +49,7 @@ export default function NewChatModal({ isOpen, onClose, defaultTab = 'new' }: Ne
     }
   };
 
-  const handleUserClick = async (u: any) => {
+  const handleUserClick = async (u: User) => {
     if (tab === 'group') {
       if (!selectedUsers.find(x => x.id === u.id)) {
         setSelectedUsers([...selectedUsers, u]);

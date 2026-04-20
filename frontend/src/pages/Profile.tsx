@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
+import type { User } from '../types/user';
+import type { Post } from '../types/post';
 import { Grid, Bookmark, UserSquare, Clapperboard, Settings as SettingsIcon, Link as LinkIcon, Plus } from 'lucide-react';
 
 export default function Profile() {
@@ -10,17 +12,17 @@ export default function Profile() {
   const { user: currentUser } = useUserStore();
   const navigate = useNavigate();
   
-  const [profile, setProfile] = useState<any>(null);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [reels, setReels] = useState<any[]>([]);
-  const [savedPosts, setSavedPosts] = useState<any[]>([]);
+  const [profile, setProfile] = useState<User | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [reels, setReels] = useState<Post[]>([]);
+  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>('posts');
   const [isFollowing, setIsFollowing] = useState(false);
   const [isRequested, setIsRequested] = useState(false);
 
   // List Modal State
-  const [listModal, setListModal] = useState<{ open: boolean; type: 'followers' | 'following'; data: any[] }>({
+  const [listModal, setListModal] = useState<{ open: boolean; type: 'followers' | 'following'; data: User[] }>({
     open: false,
     type: 'followers',
     data: []
@@ -42,7 +44,7 @@ export default function Profile() {
         if (postsRes.data && Array.isArray(postsRes.data)) {
           const allPosts = postsRes.data;
           setPosts(allPosts);
-          setReels(allPosts.filter((p: any) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
+          setReels(allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
         }
       }
     } catch (err) {
@@ -53,14 +55,14 @@ export default function Profile() {
     }
   }, [username, currentUser]);
 
-  const fetchSaved = async () => {
+  const fetchSaved = useCallback(async () => {
     try {
       const res = await api.get('/posts/saved');
       setSavedPosts(res.data || []);
     } catch (err) {
       console.error('Failed to fetch saved posts:', err);
     }
-  };
+  }, []);
 
   const fetchList = async (type: 'followers' | 'following') => {
     if (!profile) return;
@@ -77,10 +79,13 @@ export default function Profile() {
   }, [fetchProfile, currentUser]);
 
   useEffect(() => {
-    if (activeTab === 'saved' && isOwnProfile) {
+    const currentId = currentUser?.id || currentUser?.user_id;
+    const profileId = profile?.id || profile?.user_id;
+    const ownProfile = !!currentId && !!profileId && String(currentId) === String(profileId);
+    if (activeTab === 'saved' && ownProfile) {
       fetchSaved();
     }
-  }, [activeTab]);
+  }, [activeTab, currentUser, profile, fetchSaved]);
 
   const handleFollowToggle = async () => {
     if (!profile || isRequested) return;
@@ -92,12 +97,12 @@ export default function Profile() {
       else if (res.data.status === 'unfollowed') setIsFollowing(false);
       
       // Update stats count locally
-      setProfile((prev: any) => ({
+      setProfile((prev: User | null) => prev ? {
         ...prev,
-        followers_count: res.data.status === 'following' ? (prev.followers_count + 1) : 
-                         res.data.status === 'unfollowed' ? (prev.followers_count - 1) : 
-                         prev.followers_count
-      }));
+        followers_count: res.data.status === 'following' ? ((prev.followers_count || 0) + 1) : 
+                         res.data.status === 'unfollowed' ? ((prev.followers_count || 0) - 1) : 
+                         (prev.followers_count || 0)
+      } : prev);
     } catch (err) {
       console.error('Follow toggle failed:', err);
     }
@@ -207,7 +212,7 @@ export default function Profile() {
 
           {/* Highlights Section */}
           <div className="ig-highlights-row">
-            {profile?.highlights?.map((h: any) => (
+            {profile?.highlights?.map((h: { id: string, img: string, title: string }) => (
               <div key={h.id} className="ig-highlight-item">
                 <div className="ig-highlight-circle">
                   <div className="ig-highlight-inner">

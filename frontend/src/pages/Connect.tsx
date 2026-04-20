@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, UserPlus, TrendingUp, Users, UserCheck } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
@@ -28,19 +28,7 @@ export default function Connect() {
   const [searchQuery, setSearchQuery] = useState('');
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [activeTab, activeFilter]);
-
-  useEffect(() => {
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      fetchUsers();
-    }, 500);
-    return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
-  }, [searchQuery]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = { tab: activeTab.toLowerCase() };
@@ -54,7 +42,19 @@ export default function Connect() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, activeFilter, searchQuery]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [activeTab, activeFilter, fetchUsers]);
+
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      fetchUsers();
+    }, 500);
+    return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
+  }, [searchQuery, fetchUsers]);
 
 
   const getTabIcon = (tab: string) => {
@@ -130,7 +130,7 @@ export default function Connect() {
               <p>Try switching tabs or adjusting filters</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {users.map(u => (
                 <UserCard 
                   key={(u.user_id || u.id) as string}
@@ -145,7 +145,7 @@ export default function Connect() {
 
       <style>{`
         .page-wrapper { display: flex; background: #fcfcfd; min-height: 100vh; }
-        .connect-wrapper { flex: 1; max-width: 1000px; margin: 0 auto; padding: 0 24px; min-height: 100vh; }
+        .connect-wrapper { flex: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px; min-height: 100vh; }
 
         .connect-sticky-header { 
           position: sticky; 
@@ -200,7 +200,7 @@ export default function Connect() {
           background: none; 
           border: none; 
           padding: 12px 4px 20px; 
-          font-size: 15px; 
+          font-size: 14px; 
           font-weight: 800; 
           color: #94a3b8; 
           cursor: pointer; 
@@ -209,9 +209,11 @@ export default function Connect() {
           display: flex; 
           align-items: center; 
           gap: 8px; 
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         .connect-tab:hover { color: #64748b; }
-        .connect-tab.active { color: #1e293b; }
+        .connect-tab.active { color: #FF3D6D; }
         .connect-tab.active::after { 
           content: ''; 
           position: absolute; 
@@ -224,19 +226,6 @@ export default function Connect() {
         }
 
         .connect-feed { padding-bottom: 100px; }
-
-        .connect-user-card { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 14px; background: white; border: 1px solid #f8fafc; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
-        .connect-user-card:hover { background: #fafafa; border-color: #f1f5f9; }
-        .connect-card-left { display: flex; align-items: center; gap: 14px; flex: 1; overflow: hidden; cursor: pointer; }
-        .connect-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #f1f5f9; }
-        .connect-card-info { overflow: hidden; }
-        .connect-card-name { font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
-        .connect-verified { color: var(--primary, #FF3D6D); font-size: 12px; }
-        .connect-card-sub { font-size: 13px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .connect-mutuals { font-size: 12px; color: var(--primary, #FF3D6D); margin-top: 2px; font-weight: 600; }
-        .connect-follow-btn { background: var(--primary, #FF3D6D); color: white; border: none; padding: 8px 20px; border-radius: 25px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
-        .connect-follow-btn.following { background: #f1f5f9; color: #334155; }
-        .connect-follow-btn:hover { opacity: 0.85; }
 
         .connect-skeleton { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; background: white; border: 1px solid #f8fafc; }
         .skel-avatar { width: 48px; height: 48px; border-radius: 50%; background: #f1f5f9; flex-shrink: 0; }

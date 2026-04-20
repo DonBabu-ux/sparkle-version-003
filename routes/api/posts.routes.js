@@ -1,4 +1,4 @@
-vconst express = require('express');
+const express = require('express');
 const router = express.Router();
 const postController = require('../../controllers/post.controller');
 const feedController = require('../../controllers/feed.controller');

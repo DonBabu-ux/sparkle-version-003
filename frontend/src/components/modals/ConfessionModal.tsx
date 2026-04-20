@@ -53,7 +53,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
               key={t} 
               className={`theme-btn ${subType === t ? 'active' : ''}`}
               onClick={() => setSubType(t)}
-              style={{'--theme-color': themes[t].color} as any}
+              style={{'--theme-color': themes[t].color} as React.CSSProperties}
             >
               {themes[t].icon}
               <span>{themes[t].label}</span>

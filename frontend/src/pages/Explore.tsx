@@ -29,7 +29,7 @@ export default function Explore() {
       const res = await api.get('/posts/feed?limit=50&tab=trending');
       const data = Array.isArray(res.data) ? res.data : (res.data.posts || []);
       // Filter out posts without media
-      const itemsWithMedia = data.filter((item: any) => item.media_url && item.media_url !== '/uploads/defaults/no-image.png');
+      const itemsWithMedia = data.filter((item: ExploreMedia) => item.media_url && item.media_url !== '/uploads/defaults/no-image.png');
       setMediaItems(itemsWithMedia);
     } catch (err) {
       console.error('Explore fetch error:', err);
@@ -83,12 +83,6 @@ export default function Explore() {
                     )}
                     <div className="mom-overlay">
                       <div className="mom-user">
-                        <img
-                          src={m.avatar_url || '/uploads/avatars/default.png'}
-                          className="mom-avatar"
-                          alt={m.username}
-                          onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/avatars/default.png'; }}
-                        />
                         <span className="mom-username">@{m.username}</span>
                       </div>
                       <div className="mom-stats">
@@ -140,7 +134,6 @@ export default function Explore() {
         }
 
         .mom-user { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .mom-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.8); }
         .mom-username { color: white; font-size: 0.85rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .mom-stats { display: flex; gap: 12px; font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 700; }
         .mom-stats span { display: flex; align-items: center; gap: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }

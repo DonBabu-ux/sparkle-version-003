@@ -3,12 +3,37 @@ import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, Ban, Trash2, CheckCircle } from 'lucide-react';
 
+interface AdminStats {
+  users?: { total: number };
+  posts?: { total: number };
+  reports?: { pending: number };
+  marketplace?: { total: number };
+  recentActivity?: Array<{ message: string; time: string }>;
+}
+
+interface AdminContentItem {
+  id?: string;
+  user_id?: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  avatar_url?: string;
+  title?: string;
+  type?: string;
+  action?: string;
+  details?: string;
+  listing_id?: string;
+  status?: string;
+  created_at?: string;
+  timestamp?: string;
+}
+
 export default function AdminDashboard() {
   
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [content, setContent] = useState<any[]>([]);
+  const [content, setContent] = useState<AdminContentItem[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -104,7 +129,7 @@ export default function AdminDashboard() {
               <div className="activity-feed premium-card">
                 <h3>Activity Pulse</h3>
                 <div className="feed-list">
-                  {stats?.recentActivity?.map((act: any, i: number) => (
+                  {stats?.recentActivity?.map((act, i) => (
                     <div key={i} className="feed-item">
                       <div className="dot"></div>
                       <p className="msg">{act.message}</p>

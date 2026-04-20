@@ -11,6 +11,7 @@
     "dev": "node --watch server.js",
     "build:css": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css",
     "build:css:watch": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css --watch",
+    "lint": "npm run lint --prefix frontend",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

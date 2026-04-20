@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
+import type { Group } from '../types/group';
 
 export default function Groups() {
   const { user } = useUserStore();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<{ initialGroups: Group[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
@@ -65,7 +66,7 @@ export default function Groups() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {data?.initialGroups?.length > 0 ? (
-              data.initialGroups.map((group: any) => (
+              data.initialGroups.map((group) => (
                 <div key={group.group_id} className="premium-card group hover:-translate-y-2 transition-all duration-500 border-white bg-white/70 backdrop-blur-3xl p-6 flex flex-col">
                   <div className="flex items-start justify-between mb-6">
                     <div className="relative">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import axios from 'axios';
 
 export default function CreateGroup() {
   const navigate = useNavigate();
@@ -27,8 +28,12 @@ export default function CreateGroup() {
       if (response.data.success) {
         navigate(`/groups/${response.data.id}`);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Manifestation failed. Please try again.');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.error || 'Manifestation failed. Please try again.');
+      } else {
+        setError('Manifestation failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -2,10 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/api';
 
+interface Story {
+  story_id: string;
+  media_url: string;
+  media_type: string;
+  caption?: string;
+  created_at: string;
+}
+
+interface UserStoryGroup {
+  user_id: string;
+  user_name: string;
+  avatar_url?: string;
+  stories: Story[];
+}
+
 export default function StoryViewer() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const [userStories, setUserStories] = useState<any>(null);
+  const [userStories, setUserStories] = useState<UserStoryGroup | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -14,7 +29,7 @@ export default function StoryViewer() {
     const fetchStories = async () => {
       try {
         const response = await api.get('/stories/active');
-        const userGroup = response.data.find((g: any) => g.user_id === userId);
+        const userGroup = response.data.find((g: UserStoryGroup) => g.user_id === userId);
         if (userGroup) {
           setUserStories(userGroup);
         } else {
@@ -65,7 +80,7 @@ export default function StoryViewer() {
     <div className="h-screen bg-black flex flex-col relative overflow-hidden">
       {/* Progress Bars */}
       <div className="absolute top-4 left-4 right-4 z-20 flex gap-1.5">
-        {userStories.stories.map((_: any, idx: number) => (
+        {userStories.stories.map((_: Story, idx: number) => (
           <div key={idx} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
             <div 
               className="h-full bg-white transition-all duration-75"

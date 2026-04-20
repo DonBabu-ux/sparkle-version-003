@@ -1,0 +1,35 @@
+export interface User {
+  id?: string;
+  user_id?: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  avatar_url?: string;
+  campus?: string;
+  major?: string;
+  year_of_study?: string;
+  bio?: string;
+  headline?: string;
+  website?: string;
+  phone_number?: string;
+  birthday?: string;
+  two_factor_enabled?: boolean;
+  is_private?: boolean;
+  show_contact_info?: boolean;
+  show_birthday?: boolean;
+  dm_permission?: 'everyone' | 'followers' | 'none';
+  theme?: 'light' | 'dark';
+  email_verified?: boolean;
+  phone_verified?: boolean;
+  is_followed?: boolean;
+  is_followed_by_me?: boolean;
+  is_requested_by_me?: boolean;
+  request_status?: string | null;
+  is_online?: boolean;
+  is_verified?: boolean;
+  mutual_connections?: number;
+  followers_count?: number;
+  following_count?: number;
+  highlights?: { id: string; img: string; title: string }[];
+}

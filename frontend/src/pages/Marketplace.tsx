@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, Filter, ShieldCheck, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -6,11 +6,22 @@ import api from '../api/api';
 import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
 
+interface Listing {
+  listing_id: string;
+  title: string;
+  description: string;
+  price: number | string;
+  image_url?: string;
+  condition?: string;
+  seller_name?: string;
+  seller_avatar?: string;
+}
+
 export default function Marketplace() {
   const navigate = useNavigate();
   const { user } = useUserStore();
   const { refreshCounter } = useModalStore();
-  const [listings, setListings] = useState<any[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
   const [campus, setCampus] = useState(user?.campus || 'all');
@@ -24,11 +35,7 @@ export default function Marketplace() {
     { id: 'books', label: 'Books', icon: <Search size={14} /> }
   ];
 
-  useEffect(() => {
-    fetchListings();
-  }, [category, campus, searchQuery, refreshCounter]);
-
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
       let endpoint = `/marketplace/listings?category=${category}&campus=${campus}`;
@@ -43,7 +50,11 @@ export default function Marketplace() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [category, campus, searchQuery]);
+
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings, refreshCounter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +149,7 @@ export default function Marketplace() {
             ) : (
               <div className="listings-grid">
                 {listings.length > 0 ? (
-                  listings.map((item: any) => (
+                  listings.map((item: Listing) => (
                     <div key={item.listing_id} className="market-card premium-card" onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}>
                       <div className="card-media">
                         <img src={item.image_url || '/uploads/defaults/no-image.png'} alt={item.title} />

@@ -5,9 +5,23 @@ import PostCard from '../components/PostCard';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useModalStore } from '../store/modalStore';
-import { Plus, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
+import type { User } from '../types/user';
+import type { Post } from '../types/post';
 
-function SuggestionItem({ s, navigate }: { s: any, navigate: any }) {
+interface StoryGroup {
+  user_id: string;
+  username?: string;
+  user_name?: string;
+  avatar_url?: string;
+}
+
+interface TrendingTag {
+  tag: string;
+  count: string;
+}
+
+function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => void }) {
   const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -25,20 +39,27 @@ function SuggestionItem({ s, navigate }: { s: any, navigate: any }) {
   };
 
   return (
-    <div className="suggestion-item">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }} onClick={() => navigate(`/profile/${s.username}`)}>
-        <img src={s.avatar_url || '/uploads/avatars/default.png'} className="suggestion-avatar" alt="" />
+    <div className="suggestion-item group">
+      <div 
+        style={{ display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', flex: 1 }} 
+        onClick={() => navigate(`/profile/${s.username}`)}
+      >
+        <div className="relative">
+          <img src={s.avatar_url || '/uploads/avatars/default.png'} className="suggestion-avatar border-2 border-white shadow-sm group-hover:scale-105 transition-transform duration-300" alt="" />
+          {s.is_online && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>}
+        </div>
         <div style={{ overflow: 'hidden' }}>
-          <div className="suggestion-name">{s.username}</div>
+          <div className="suggestion-name" style={{ fontFamily: 'Outfit, sans-serif' }}>{s.username}</div>
           <div className="suggestion-meta">{s.campus || 'Sparkler'}</div>
         </div>
       </div>
       <button 
-        className={`follow-btn ${following ? 'following' : ''}`} 
+        className={`follow-btn ${following ? 'following' : ''} active:scale-95 transition-all`} 
         onClick={handleFollow}
         disabled={loading || following}
+        style={{ padding: '6px 16px', borderRadius: '12px' }}
       >
-        {loading ? '...' : following ? <Check size={14} /> : 'Follow'}
+        {loading ? '...' : following ? <Check size={14} strokeWidth={3} /> : 'Follow'}
       </button>
     </div>
   );
@@ -51,10 +72,10 @@ export default function Dashboard() {
   const [newPostContent, setNewPostContent] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [stories, setStories] = useState<any[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [trendingTags, setTrendingTags] = useState<any[]>([]);
+  const [stories, setStories] = useState<StoryGroup[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [suggestions, setSuggestions] = useState<User[]>([]);
+  const [trendingTags, setTrendingTags] = useState<TrendingTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);

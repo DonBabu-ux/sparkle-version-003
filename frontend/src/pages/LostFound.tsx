@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar, Tag, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
@@ -28,9 +28,7 @@ export default function LostFound() {
   const [form, setForm] = useState({ category: 'electronics', title: '', description: '', location: '' });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { fetchItems(); }, [filter]);
-
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get(`/lost-found?type=${filter}`);
@@ -40,7 +38,9 @@ export default function LostFound() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => { fetchItems(); }, [fetchItems]);
 
   const handleSubmit = async () => {
     setSubmitting(true);

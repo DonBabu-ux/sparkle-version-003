@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { Sparkles, Bug, Home } from 'lucide-react';
 
 interface ErrorPageProps {
@@ -28,9 +27,9 @@ export default function ErrorPage({ error }: ErrorPageProps) {
             </div>
           )}
 
-          <Link to="/dashboard" className="btn-premium inline-flex items-center justify-center gap-2.5 p-[16px_32px] bg-gradient-to-br from-[#FF3D6D] to-[#FF8E53] color-white text-white rounded-2xl font-semibold text-[16px] shadow-[0_10px_20px_rgba(255,61,109,0.2)] transition-all hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_15px_30px_rgba(255,61,109,0.3)] active:translate-y-0">
+          <a href="/dashboard" className="btn-premium inline-flex items-center justify-center gap-2.5 p-[16px_32px] bg-gradient-to-br from-[#FF3D6D] to-[#FF8E53] color-white text-white rounded-2xl font-semibold text-[16px] shadow-[0_10px_20px_rgba(255,61,109,0.2)] transition-all hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_15px_30px_rgba(255,61,109,0.3)] active:translate-y-0">
             <Home size={18} /> Back to Dashboard
-          </Link>
+          </a>
         </div>
       </div>
 

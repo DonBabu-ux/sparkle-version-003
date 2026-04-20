@@ -73,8 +73,24 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const isVideo = post.media_url?.match(/\.(mp4|webm|ogg|mov)$/i);
   const isTextOnly = !post.media_url || post.media_url === 'undefined' || post.media_url === 'null' || post.media_url.trim() === '';
 
+  const isNativeReshare = post.original_post_id && !post.content;
+
   return (
     <div className={`post-card animate-fade-in ${isTextOnly ? 'text-only' : ''}`} style={{ background: '#fff', color: '#262626', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      {/* Repost Header */}
+      {post.original_post_id && (
+        <div className="repost-header" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(0,0,0,0.03)', background: 'rgba(0,0,0,0.01)' }}>
+          <img 
+            src={post.avatar_url || '/uploads/avatars/default.png'} 
+            style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} 
+            alt=""
+          />
+          <span style={{ fontSize: '12px', fontWeight: '600', color: '#8e8e8e' }}>
+            <Link to={`/profile/${post.username}`} style={{ color: 'inherit', fontWeight: '800' }}>{post.username}</Link> reposted
+          </span>
+        </div>
+      )}
+
       <div className="post-header" style={{ padding: '12px 16px', background: '#fff' }}>
         <Link to={`/profile/${post.username}`} className="post-avatar-wrapper group" style={{ position: 'relative' }}>
           <div className="p-[2px] rounded-full bg-gradient-to-tr from-[#FF3D6D] to-[#FF8E53] group-hover:scale-105 transition-transform duration-300">
@@ -103,27 +119,38 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </button>
       </div>
 
-      {!isTextOnly && post.media_url && (
+      {/* Main Media Section */}
+      {(!isTextOnly || (isNativeReshare && post.original_media_url)) && (
         <div className="post-media" style={{ background: '#f8f9fa', maxHeight: 'none' }} onDoubleClick={handleSpark}>
-          {isVideo ? (
-            <video src={post.media_url} autoPlay loop muted playsInline className="w-full h-auto object-contain" />
+          {isNativeReshare && post.original_media_url ? (
+            post.original_media_type === 'video' ? (
+              <video src={post.original_media_url} autoPlay loop muted playsInline className="w-full h-auto object-contain" />
+            ) : (
+              <img src={post.original_media_url} loading="lazy" alt="Original content" className="w-full h-auto object-contain" />
+            )
           ) : (
-            <img src={post.media_url} loading="lazy" alt="Post content" className="w-full h-auto object-contain" />
+            isVideo ? (
+              <video src={post.media_url} autoPlay loop muted playsInline className="w-full h-auto object-contain" />
+            ) : (
+              <img src={post.media_url} loading="lazy" alt="Post content" className="w-full h-auto object-contain" />
+            )
           )}
         </div>
       )}
 
       <div className="post-content" style={{ padding: '0 16px 12px', background: '#fff' }}>
-        {post.content && (
+        {(post.content || (isNativeReshare && post.original_content)) && (
           <div className="post-text" style={{ fontSize: '14px', color: '#262626', lineHeight: '1.4' }}>
-            <span style={{ fontWeight: '700', marginRight: '6px' }}>{post.username}</span>
-            {showTranslated && translatedText ? translatedText : (isTruncated ? post.content.substring(0, 150) : post.content)}
+            <span style={{ fontWeight: '700', marginRight: '6px' }}>
+              {isNativeReshare ? post.original_username : post.username}
+            </span>
+            {showTranslated && translatedText ? translatedText : (isTruncated ? (post.content || post.original_content || '').substring(0, 150) : (post.content || post.original_content))}
             {isTruncated && !showTranslated && <span style={{ color: '#8e8e8e', cursor: 'pointer' }} onClick={() => setIsTruncated(false)}> ... more</span>}
           </div>
         )}
 
-        {/* Reshare Preview */}
-        {post.original_post_id && (
+        {/* Reshare Preview (Only for Quote Reshares) */}
+        {post.original_post_id && post.content && (
           <div className="reshare-preview" style={{ marginTop: '12px', border: '1px solid #efefef', borderRadius: '12px', padding: '12px', background: '#f8f9fa' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <img 
@@ -175,7 +202,19 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }} onClick={handleReshare}>
               <Repeat2 size={25} color="#262626" strokeWidth={1.5} />
             </button>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#262626' }}>{post.reshare_count || 0}</span>
+            <div className="flex items-center -space-x-2 mr-1">
+              {post.resharer_avatars?.slice(0, 3).map((avatar, idx) => (
+                <img 
+                  key={idx}
+                  src={avatar || '/uploads/avatars/default.png'} 
+                  className="w-5 h-5 rounded-full border-2 border-white object-cover" 
+                  alt="" 
+                />
+              ))}
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: '700', color: '#262626' }}>
+              {post.reshare_count > 3 ? `+${post.reshare_count - 3}` : post.reshare_count || 0}
+            </span>
           </div>
 
           <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }}>

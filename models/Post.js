@@ -105,7 +105,8 @@ class Post {
                     orig_p.media_url as original_media_url,
                     orig_p.media_type as original_media_type,
                     orig_u.username as original_username,
-                    orig_u.avatar_url as original_avatar_url
+                    orig_u.avatar_url as original_avatar_url,
+                    (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM posts p2 JOIN users u2 ON p2.user_id = u2.user_id WHERE p2.original_post_id = p.post_id LIMIT 3) as resharer_avatars
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
              LEFT JOIN posts orig_p ON p.original_post_id = orig_p.post_id
@@ -113,7 +114,16 @@ class Post {
              WHERE p.post_id = ?`,
             [postId]
         );
-        return posts[0] || null;
+        const post = posts[0];
+        if (post) {
+            if (typeof post.media_files === 'string') {
+                try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
+            }
+            if (typeof post.resharer_avatars === 'string') {
+                try { post.resharer_avatars = JSON.parse(post.resharer_avatars); } catch(e) { post.resharer_avatars = []; }
+            }
+        }
+        return post || null;
     }
 
     /**
@@ -156,6 +166,7 @@ class Post {
                            orig_p.content as original_content,
                            orig_p.media_url as original_media_url,
                            orig_p.media_type as original_media_type,
+                           (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM posts p2 JOIN users u2 ON p2.user_id = u2.user_id WHERE p2.original_post_id = p.post_id LIMIT 3) as resharer_avatars,
                            0 as discovery_score
                     FROM posts p 
                     JOIN users u ON p.user_id = u.user_id 
@@ -184,7 +195,15 @@ class Post {
                 ];
 
                 const [posts] = await pool.query(feedQuery, feedParams);
-                return posts;
+                return (posts || []).map(post => {
+                    if (typeof post.media_files === 'string') {
+                        try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
+                    }
+                    if (typeof post.resharer_avatars === 'string') {
+                        try { post.resharer_avatars = JSON.parse(post.resharer_avatars); } catch(e) { post.resharer_avatars = []; }
+                    }
+                    return post;
+                });
 
             } catch (err) {
                 console.error('Basic Feed Error:', err);

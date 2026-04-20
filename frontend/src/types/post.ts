@@ -19,4 +19,5 @@ export interface Post {
   original_media_url?: string;
   original_media_type?: string;
   reshare_count?: number;
+  resharer_avatars?: string[];
 }

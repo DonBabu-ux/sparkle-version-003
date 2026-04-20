@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Home, Users, Plus, PlayCircle, MessageSquare } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 
@@ -198,17 +199,15 @@ export default function Navbar() {
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav">
         <Link to="/dashboard" className={`mobile-nav-item ${isActive('/dashboard') ? 'active' : ''}`}>
-          <i className="fas fa-house-chimney"></i>
-        </Link>
-        <Link to="/explore" className={`mobile-nav-item ${isActive('/explore') ? 'active' : ''}`}>
-          <i className="fas fa-compass"></i>
+          <Home size={26} />
         </Link>
         <Link to="/connect" className={`mobile-nav-item ${isActive('/connect') ? 'active' : ''}`}>
-          <i className="fas fa-search"></i>
+          <Users size={26} />
         </Link>
-        <div className="mobile-nav-item create-btn" style={{position: 'relative'}} onClick={() => toggleHub('create-mobile')}>
-          <div className="mobile-create-icon">
-            <i className="fas fa-plus"></i>
+        
+        <div className="mobile-nav-item" onClick={() => toggleHub('create-mobile')}>
+          <div className="mobile-plus-compact">
+            <Plus size={22} color="white" strokeWidth={2.5} />
           </div>
           {activeHub === 'create-mobile' && (
             <div className="hub-dropdown glass-card animate-scale-in" style={{ display: 'flex', flexDirection: 'column', position: 'absolute', bottom: '80px', left: '50%', transform: 'translateX(-50%)', width: '220px', zIndex: 1000, boxShadow: 'var(--shadow-lg)' }}>
@@ -223,11 +222,12 @@ export default function Navbar() {
             </div>
           )}
         </div>
-        <Link to="/messages" className={`mobile-nav-item ${isActive('/messages') ? 'active' : ''}`}>
-          <i className="fas fa-paper-plane"></i>
-        </Link>
+
         <Link to="/moments" className={`mobile-nav-item ${isActive('/moments') ? 'active' : ''}`}>
-          <i className="fas fa-play-circle"></i>
+          <PlayCircle size={26} />
+        </Link>
+        <Link to="/messages" className={`mobile-nav-item ${isActive('/messages') ? 'active' : ''}`}>
+          <i className="fab fa-facebook-messenger" style={{ fontSize: '1.5rem' }}></i>
         </Link>
       </nav>
 
@@ -303,13 +303,21 @@ export default function Navbar() {
           .mobile-search-bar input { background: none; border: none; outline: none; width: 100%; font-size: 0.9rem; color: #1e293b; }
           
           .mobile-bottom-nav {
-            display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 75px;
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px); border-top: 1px solid rgba(255, 255, 255, 0.1);
-            justify-content: space-around; align-items: center; z-index: 1000; padding-bottom: env(safe-area-inset-bottom);
+            display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 65px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(25px); border-top: 1px solid rgba(0, 0, 0, 0.05);
+            justify-content: space-around; align-items: center; z-index: 1000; padding: 0 10px;
+            padding-bottom: env(safe-area-inset-bottom);
           }
-          .mobile-nav-item { color: #94a3b8; font-size: 1.6rem; transition: 0.3s; }
+          .mobile-nav-item { color: #64748b; display: flex; align-items: center; justify-content: center; transition: 0.3s; flex: 1; }
           .mobile-nav-item.active { color: var(--primary); }
-          .mobile-create-icon { width: 58px; height: 58px; background: var(--primary-gradient); border-radius: 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.8rem; transform: translateY(-20px); border: 4px solid white; box-shadow: 0 10px 25px rgba(255, 61, 109, 0.4); }
+          
+          .mobile-plus-compact {
+            width: 38px; height: 38px; background: var(--primary-gradient); border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(255, 61, 109, 0.25); transition: transform 0.2s;
+          }
+          .mobile-plus-compact:active { transform: scale(0.9); }
+          .mobile-plus-button:active { transform: scale(0.9) translateY(-25px); }
         }
 
         .global-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); z-index: 9999; display: flex; alignItems: center; justifyContent: center; padding: 20px; }

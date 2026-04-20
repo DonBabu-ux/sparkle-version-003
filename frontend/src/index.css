@@ -40,6 +40,17 @@ body {
   min-height: 100vh;
 }
 
+/* Mobile Safe Area for Bottom Nav */
+@media (max-width: 1024px) {
+  .ig-main-scroll, 
+  .main-content, 
+  .feed-container,
+  .dashboard-main,
+  .app-container {
+    padding-bottom: 90px !important;
+  }
+}
+
 h1, h2, h3, h4, .logo-text {
   font-family: 'Outfit', sans-serif;
 }

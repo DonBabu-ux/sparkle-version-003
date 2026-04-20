@@ -12,4 +12,11 @@ export interface Post {
   is_saved: boolean;
   created_at: string;
   campus?: string;
+  original_post_id?: string;
+  original_content?: string;
+  original_username?: string;
+  original_avatar_url?: string;
+  original_media_url?: string;
+  original_media_type?: string;
+  reshare_count?: number;
 }

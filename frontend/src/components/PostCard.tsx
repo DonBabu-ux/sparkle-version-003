@@ -3,6 +3,7 @@ import { MoreHorizontal, Heart, MessageCircle, Send, Bookmark, Repeat2 } from 'l
 import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
 import { Link } from 'react-router-dom';
+import { useModalStore } from '../store/modalStore';
 
 import type { Post } from '../types/post';
 
@@ -11,9 +12,13 @@ interface PostCardProps {
 }
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
+  const { setActiveModal } = useModalStore();
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
   const [isTruncated, setIsTruncated] = useState((post.content || '').length > 150);
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const timeAgo = post.created_at ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true }) : 'recently';
 
@@ -34,6 +39,35 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       setSparkCount(originalCount);
       console.error('Failed to spark post:', err);
     }
+  };
+
+  const handleTranslate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showTranslated) {
+      setShowTranslated(false);
+      return;
+    }
+
+    if (translatedText) {
+      setShowTranslated(true);
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const res = await api.get(`/posts/${post.post_id}/translate`);
+      setTranslatedText(res.data.translatedText);
+      setShowTranslated(true);
+    } catch (err) {
+      console.error('Translation failed:', err);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleReshare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveModal('reshare', null, post);
   };
 
   const isVideo = post.media_url?.match(/\.(mp4|webm|ogg|mov)$/i);
@@ -83,13 +117,40 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         {post.content && (
           <div className="post-text" style={{ fontSize: '14px', color: '#262626', lineHeight: '1.4' }}>
             <span style={{ fontWeight: '700', marginRight: '6px' }}>{post.username}</span>
-            {isTruncated ? post.content.substring(0, 150) : post.content}
-            {isTruncated && <span style={{ color: '#8e8e8e', cursor: 'pointer' }} onClick={() => setIsTruncated(false)}> ... more</span>}
+            {showTranslated && translatedText ? translatedText : (isTruncated ? post.content.substring(0, 150) : post.content)}
+            {isTruncated && !showTranslated && <span style={{ color: '#8e8e8e', cursor: 'pointer' }} onClick={() => setIsTruncated(false)}> ... more</span>}
           </div>
         )}
+
+        {/* Reshare Preview */}
+        {post.original_post_id && (
+          <div className="reshare-preview" style={{ marginTop: '12px', border: '1px solid #efefef', borderRadius: '12px', padding: '12px', background: '#f8f9fa' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <img 
+                src={post.original_avatar_url || '/uploads/avatars/default.png'} 
+                alt="" 
+                style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} 
+              />
+              <span style={{ fontWeight: '700', fontSize: '13px', color: '#262626' }}>{post.original_username}</span>
+            </div>
+            {post.original_content && (
+              <p style={{ fontSize: '13px', color: '#444', lineHeight: '1.4', marginBottom: post.original_media_url ? '8px' : '0' }}>{post.original_content}</p>
+            )}
+            {post.original_media_url && (
+              <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #eee' }}>
+                <img src={post.original_media_url} alt="" style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'cover' }} />
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ marginTop: '8px' }}>
-          <button style={{ background: 'none', border: 'none', padding: '0', color: '#8e8e8e', fontSize: '12px', cursor: 'pointer' }}>
-            See Translation
+          <button 
+            onClick={handleTranslate}
+            disabled={isTranslating}
+            style={{ background: 'none', border: 'none', padding: '0', color: '#8e8e8e', fontSize: '12px', cursor: 'pointer', fontWeight: '600' }}
+          >
+            {isTranslating ? 'Translating...' : (showTranslated ? 'See Original' : 'See Translation')}
           </button>
         </div>
       </div>
@@ -111,10 +172,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }}>
+            <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }} onClick={handleReshare}>
               <Repeat2 size={25} color="#262626" strokeWidth={1.5} />
             </button>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#262626' }}>0</span>
+            <span style={{ fontSize: '13px', fontWeight: '700', color: '#262626' }}>{post.reshare_count || 0}</span>
           </div>
 
           <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }}>

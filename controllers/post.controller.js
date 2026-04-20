@@ -289,6 +289,69 @@ const likeComment = async (req, res) => {
     }
 };
 
+const translatePost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const post = await Post.findById(postId);
+        
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+
+        // Mock translation logic - in production use Google Translate / DeepL
+        // For demonstration, we'll just prepend "[Translated] " to the content
+        // if it's not already there.
+        const originalContent = post.content || '';
+        const translatedText = originalContent.startsWith('[Translated]') 
+            ? originalContent 
+            : `[Translated] ${originalContent}`;
+
+        res.json({
+            originalText: originalContent,
+            translatedText: translatedText,
+            targetLanguage: 'en'
+        });
+    } catch (error) {
+        logger.error('Translate post error:', error);
+        res.status(500).json({ error: 'Failed to translate post' });
+    }
+};
+
+const resharePost = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const originalPostId = req.params.id;
+        const { comment } = req.body;
+
+        const reshareId = await Post.reshare(userId, originalPostId, comment);
+
+        // Notify original post owner
+        try {
+            const originalPost = await Post.findById(originalPostId);
+            if (originalPost && originalPost.user_id && originalPost.user_id !== userId) {
+                notificationController.createNotification({
+                    user_id: originalPost.user_id,
+                    actor_id: userId,
+                    type: 'reshare',
+                    title: 'Post Reshared',
+                    content: 'reshared your post',
+                    related_id: reshareId,
+                    related_type: 'post',
+                    action_url: `/posts/${reshareId}`
+                }).catch(() => { });
+            }
+        } catch (_) { }
+
+        res.status(201).json({
+            message: 'Post reshared successfully',
+            post_id: reshareId
+        });
+    } catch (error) {
+        logger.error('Reshare post error:', error);
+        res.status(500).json({ error: 'Failed to reshare post' });
+    }
+};
+
 module.exports = {
     createPost,
     deletePost,
@@ -301,6 +364,8 @@ module.exports = {
     getLikedPosts,
     sharePost,
     likeComment,
+    translatePost,
+    resharePost,
     getCommentReplies: async (req, res) => {
         try {
             const userId = req.user ? (req.user.userId || req.user.user_id) : null;

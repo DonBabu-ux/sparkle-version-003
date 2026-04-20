@@ -19,6 +19,8 @@ router.post('/:id/save', authMiddleware, mutationRateLimiter, validate(postIdSch
 router.get('/:id/comments', authMiddleware, validate(postIdSchema, 'params'), postController.getComments);
 router.post('/:id/comments', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), validate(addCommentSchema), postController.addComment);
 router.post('/:id/share', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sharePost);
+router.post('/:id/reshare', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.resharePost);
+router.get('/:id/translate', authMiddleware, postController.translatePost);
 router.delete('/:id', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.deletePost);
 
 module.exports = router;

@@ -10,6 +10,7 @@ import ListingModal from './modals/ListingModal';
 import ConfessionModal from './modals/ConfessionModal';
 import SettingsModal from './modals/SettingsModal';
 import ShareModal from './modals/ShareModal';
+import ReshareModal from './modals/ReshareModal';
 import FloatingAction from './FloatingAction';
 
 export default function Navbar() {
@@ -240,6 +241,7 @@ export default function Navbar() {
             {activeModal === 'confession' && <ConfessionModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
             {activeModal === 'settings' && <SettingsModal onClose={() => setActiveModal(null)} />}
             {activeModal === 'share' && <ShareModal onClose={() => setActiveModal(null)} />}
+            {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
           </div>
         </div>
       )}

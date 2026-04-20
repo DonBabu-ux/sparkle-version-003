@@ -82,6 +82,30 @@ const repairUsersTable = async () => {
     }
 };
 
+const repairPostsTable = async () => {
+    try {
+        const columnsToAdd = [
+            { name: 'original_post_id', type: 'CHAR(36) DEFAULT NULL' },
+            { name: 'post_type', type: "ENUM('public', 'group', 'reshare') DEFAULT 'public'" },
+            { name: 'language', type: 'VARCHAR(10) DEFAULT "en"' },
+            { name: 'reshare_count', type: 'INT DEFAULT 0' }
+        ];
+
+        for (const col of columnsToAdd) {
+            const [exists] = await pool.query(`
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = ?
+            `, [col.name]);
+            if (exists.length === 0) {
+                await pool.query(`ALTER TABLE posts ADD COLUMN ${col.name} ${col.type}`);
+                logger.info(`Added ${col.name} column to posts table`);
+            }
+        }
+    } catch (err) {
+        logger.error('❌ Failed to repair posts table:', err.message);
+    }
+};
+
 const initNotificationsTable = async () => {
     try {
         await pool.query(`
@@ -852,6 +876,7 @@ const initDB = async () => {
     await retryWithBackoff(async () => {
         // Priority for current feature batch
         try { await initConfessionTables(); } catch (e) { logger.error('Confessions Init Error:', e.message); }
+        try { await repairPostsTable(); } catch (e) { logger.warn('Posts repair failed:', e.message); }
         
         try { await repairUsersTable(); } catch (e) { logger.warn('Users repair failed:', e.message); }
         try { await initNotificationsTable(); } catch (e) { logger.warn('Notifications init failed:', e.message); }

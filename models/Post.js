@@ -99,9 +99,17 @@ class Post {
                     CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
-                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
+                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                    p.original_post_id,
+                    orig_p.content as original_content,
+                    orig_p.media_url as original_media_url,
+                    orig_p.media_type as original_media_type,
+                    orig_u.username as original_username,
+                    orig_u.avatar_url as original_avatar_url
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
+             LEFT JOIN posts orig_p ON p.original_post_id = orig_p.post_id
+             LEFT JOIN users orig_u ON orig_p.user_id = orig_u.user_id
              WHERE p.post_id = ?`,
             [postId]
         );
@@ -138,13 +146,21 @@ class Post {
                            u.campus as user_affiliation, u.major as user_interests,
                            (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                            (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
-                           (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
-                            FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
                            EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
                            EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
+                           (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                            FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                           p.original_post_id,
+                           orig_u.username as original_username,
+                           orig_u.avatar_url as original_avatar_url,
+                           orig_p.content as original_content,
+                           orig_p.media_url as original_media_url,
+                           orig_p.media_type as original_media_type,
                            0 as discovery_score
                     FROM posts p 
                     JOIN users u ON p.user_id = u.user_id 
+                    LEFT JOIN posts orig_p ON p.original_post_id = orig_p.post_id
+                    LEFT JOIN users orig_u ON orig_p.user_id = orig_u.user_id
                     WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
                       AND NOT EXISTS (
                           SELECT 1 FROM user_blocks 
@@ -588,6 +604,25 @@ class Post {
                 logger.error('Mention handling error:', err);
             }
         }
+    }
+    
+    /**
+     * Reshare a post
+     */
+    static async reshare(userId, originalPostId, comment) {
+        const reshareId = crypto.randomUUID();
+        await pool.query(
+            `INSERT INTO posts (post_id, user_id, content, original_post_id, post_type) 
+             VALUES (?, ?, ?, ?, 'reshare')`,
+            [reshareId, userId, comment, originalPostId]
+        );
+        
+        await pool.query(
+            'UPDATE posts SET reshare_count = reshare_count + 1 WHERE post_id = ?',
+            [originalPostId]
+        );
+
+        return reshareId;
     }
 }
 

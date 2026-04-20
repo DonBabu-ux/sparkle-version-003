@@ -383,5 +383,17 @@ module.exports = {
         } catch (error) {
             res.status(500).json({ error: 'Failed' });
         }
+    },
+    updateReshareComment: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const postId = req.params.id;
+            const { comment } = req.body;
+            await Post.updateReshareComment(userId, postId, comment);
+            res.json({ success: true });
+        } catch (error) {
+            logger.error('Update reshare comment error:', error);
+            res.status(500).json({ error: 'Failed to update comment' });
+        }
     }
 };

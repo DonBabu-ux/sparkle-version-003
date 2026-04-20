@@ -5,6 +5,7 @@ import api from '../api/api';
 import { Link } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
+import MentionInput from './MentionInput';
 
 import type { Post } from '../types/post';
 
@@ -19,6 +20,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isReshared, setIsReshared] = useState(post.is_reshared);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
   const [reshareCount, setReshareCount] = useState(post.reshare_count || 0);
+  const [myThought, setMyThought] = useState(post.repost_comment || '');
+  const [isSavingThought, setIsSavingThought] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isTruncated, setIsTruncated] = useState((post.content || '').length > 150);
   const [showTranslated, setShowTranslated] = useState(false);
   const [translatedText, setTranslatedText] = useState<string | null>(null);
@@ -80,11 +85,40 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     setReshareCount(prev => originalReshared ? Math.max(0, prev - 1) : prev + 1);
     
     try {
+      // Toggle on DB
       await api.post(`/posts/${post.post_id}/reshare`);
     } catch (err) {
       setIsReshared(originalReshared);
       setReshareCount(originalCount);
       console.error('Reshare toggle failed:', err);
+    }
+  };
+
+  const handleThoughtSave = async () => {
+    if (!isReshared) return;
+    setIsSavingThought(true);
+    try {
+      await api.patch(`/posts/${post.post_id}/reshare/comment`, { comment: myThought });
+    } catch (err) {
+      console.error('Failed to save thought:', err);
+    } finally {
+      setIsSavingThought(false);
+    }
+  };
+
+  const handleCommentSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newComment.trim()) return;
+
+    setIsSubmittingComment(true);
+    try {
+      await api.post(`/posts/${post.post_id}/comments`, { content: newComment });
+      setNewComment('');
+      // Optionally trigger a refresh or success callback
+    } catch (err) {
+      console.error('Failed to add comment:', err);
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -157,9 +191,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <img src={post.media_url} loading="lazy" alt="Post content" className="w-full h-auto object-contain" />
           )}
 
-          {/* Floating "Add a thought..." bubble (Visible on Reposts or if I reshared) */}
-          {(post.reposter_username || isReshared) && (
-            <div className="absolute bottom-4 left-4 flex items-center gap-3 z-10 pointer-events-none">
+          {/* Floating "Add a thought..." bubble (Visible ONLY if currently reshared or if it's someone else's repost) */}
+          {(isReshared || (post.reposter_username && post.reposter_username !== currentUser?.username)) && (
+            <div className="absolute bottom-4 left-4 flex items-center gap-3 z-30 pointer-events-none">
               <div className="relative pointer-events-auto cursor-pointer group" onClick={(e) => { e.stopPropagation(); handleReshare(e); }}>
                 <img 
                   src={(isReshared ? currentUser?.avatar_url : post.reposter_avatar) || '/uploads/avatars/default.png'} 
@@ -176,10 +210,26 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 </div>
               </div>
               <div 
-                className="bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-2xl text-sm font-medium border border-white/20 shadow-xl pointer-events-auto cursor-pointer active:scale-95 transition-all hover:bg-black/60"
-                onClick={(e) => { e.stopPropagation(); handleReshare(e); }}
+                className="pointer-events-auto min-w-[140px] z-40"
+                onClick={(e) => e.stopPropagation()}
               >
-                {isReshared && !post.reposter_username ? "You reshared this" : "Add a thought..."}
+                <MentionInput
+                  value={(() => {
+                    const originalThought = isReshared ? myThought : (post.repost_comment || "");
+                    // If I am the author (isReshared), I see everything
+                    if (isReshared) return originalThought;
+                    // If I am NOT the author, strip mentions for privacy
+                    // "ur thought only if its a text,,if its mentioning somebody other app users should not see that"
+                    return originalThought.replace(/@\w+/g, '').trim() || "Add a thought...";
+                  })()}
+                  onChange={(val) => {
+                    if (isReshared) setMyThought(val);
+                  }}
+                  onBlur={handleThoughtSave}
+                  className={`bg-black/60 backdrop-blur-xl text-white px-4 py-2 rounded-2xl text-sm font-semibold border border-white/30 shadow-2xl outline-none w-full transition-all focus:ring-2 focus:ring-indigo-400 focus:scale-105 ${isSavingThought ? 'opacity-50' : ''}`}
+                  placeholder={isReshared ? "Add a thought..." : ""}
+                  autoFocus={false}
+                />
               </div>
             </div>
           )}
@@ -272,6 +322,30 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </svg>
           </button>
         </div>
+      </div>
+
+      {/* Direct Comment Input with Mentions */}
+      <div className="px-4 py-3 border-t border-slate-50">
+        <form onSubmit={handleCommentSubmit} className="flex items-center gap-3">
+          <img src={currentUser?.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full object-cover" alt="" />
+          <div className="flex-1">
+            <MentionInput
+              value={newComment}
+              onChange={setNewComment}
+              className="w-full text-sm border-none outline-none py-1 bg-transparent placeholder:text-slate-400 font-medium"
+              placeholder="Add a comment..."
+            />
+          </div>
+          {newComment.trim() && (
+            <button 
+              type="submit" 
+              disabled={isSubmittingComment}
+              className="text-[#0095f6] font-bold text-sm disabled:opacity-50 active:scale-95 transition-transform"
+            >
+              Post
+            </button>
+          )}
+        </form>
       </div>
     </div>
   );

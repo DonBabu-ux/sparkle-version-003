@@ -721,6 +721,14 @@ class Post {
 
         return { action: 'reposted', repostId };
     }
+
+    static async updateReshareComment(userId, postId, comment) {
+        await pool.query(
+            'UPDATE reposts SET comment = ? WHERE user_id = ? AND post_id = ?',
+            [comment, userId, postId]
+        );
+        return { success: true };
+    }
 }
 
 module.exports = Post;

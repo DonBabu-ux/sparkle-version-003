@@ -455,8 +455,26 @@ class Post {
 
         const [comments] = await pool.query(query, finalParams);
         
-        // Return structured comments (Top level only for main request)
-        return comments.filter(c => !c.parent_comment_id);
+        // Build comment tree
+        const commentMap = new Map();
+        const rootComments = [];
+
+        // First pass: map all comments and add a replies array
+        comments.forEach(c => {
+            c.replies = [];
+            commentMap.set(c.comment_id, c);
+        });
+
+        // Second pass: attach replies to their parents
+        comments.forEach(c => {
+            if (c.parent_comment_id && commentMap.has(c.parent_comment_id)) {
+                commentMap.get(c.parent_comment_id).replies.push(c);
+            } else {
+                rootComments.push(c);
+            }
+        });
+
+        return rootComments;
     }
 
     /**

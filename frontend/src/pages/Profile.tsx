@@ -5,7 +5,7 @@ import api from '../api/api';
 import Navbar from '../components/Navbar';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
-import { Grid, Bookmark, UserSquare, Clapperboard, Settings as SettingsIcon, Link as LinkIcon, Plus } from 'lucide-react';
+import { Grid, Bookmark, UserSquare, Clapperboard, Settings as SettingsIcon, Link as LinkIcon, Plus, ArrowLeft, MoreHorizontal } from 'lucide-react';
 
 export default function Profile() {
   const { username } = useParams();
@@ -154,38 +154,54 @@ export default function Profile() {
       
       <div className="ig-main-scroll">
         <div className="ig-profile-container">
+          {/* Top Navigation Bar */}
+          <nav className="ig-top-nav">
+            <div className="ig-nav-left">
+              <button onClick={() => navigate(-1)} className="ig-nav-btn">
+                <ArrowLeft size={24} />
+              </button>
+              <h2 className="ig-nav-title">{profile?.username}</h2>
+            </div>
+            <div className="ig-nav-right">
+              <button className="ig-nav-btn">
+                <MoreHorizontal size={24} />
+              </button>
+            </div>
+          </nav>
+
           {/* Header Section */}
           <header className="ig-profile-header">
             <div className="ig-avatar-column">
-              <div className="ig-avatar-ring">
+              <div className="ig-avatar-wrapper">
                 <img src={profile?.avatar_url || '/uploads/avatars/default.png'} alt="" className="ig-avatar-img" />
               </div>
             </div>
 
             <section className="ig-info-column">
-              <div className="ig-username-row">
+              <div className="ig-username-section">
                 <h2 className="ig-username">{profile?.username}</h2>
                 {profile?.is_verified && <i className="fas fa-certificate ig-verified-check"></i>}
-                <div className="ig-action-btns">
-                  {showOwnerActions ? (
-                    <>
-                      <button onClick={() => navigate('/settings')} className="ig-btn-subtle">Edit Profile</button>
-                      <button className="ig-btn-subtle">View Archive</button>
-                      <button className="ig-cog-btn"><SettingsIcon size={20} /></button>
-                    </>
-                  ) : (
-                    <>
-                      {isFollowing ? (
-                        <button onClick={handleFollowToggle} className="ig-btn-secondary">Following</button>
-                      ) : isRequested ? (
-                        <button className="ig-btn-secondary" disabled>Requested</button>
-                      ) : (
-                        <button onClick={handleFollowToggle} className="ig-btn-primary">Follow</button>
-                      )}
-                      <button onClick={() => navigate(`/messages/${profile?.user_id || profile?.id}`)} className="ig-btn-secondary">Message</button>
-                    </>
-                  )}
-                </div>
+              </div>
+
+              <div className="ig-action-btns">
+                {showOwnerActions ? (
+                  <>
+                    <button onClick={() => navigate('/settings')} className="ig-btn-subtle">Edit Profile</button>
+                    <button className="ig-btn-subtle">View Archive</button>
+                    <button className="ig-cog-btn"><SettingsIcon size={20} /></button>
+                  </>
+                ) : (
+                  <>
+                    {isFollowing ? (
+                      <button onClick={handleFollowToggle} className="ig-btn-secondary">Following</button>
+                    ) : isRequested ? (
+                      <button className="ig-btn-secondary" disabled>Requested</button>
+                    ) : (
+                      <button onClick={handleFollowToggle} className="ig-btn-primary">Follow</button>
+                    )}
+                    <button onClick={() => navigate(`/messages/${profile?.user_id || profile?.id}`)} className="ig-btn-secondary">Message</button>
+                  </>
+                )}
               </div>
 
               <div className="ig-stats-row">
@@ -360,13 +376,34 @@ export default function Profile() {
         .ig-profile-container {
           max-width: 935px;
           margin: 0 auto;
-          padding: 30px 20px 0;
         }
+
+        .ig-top-nav {
+          position: sticky;
+          top: 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 16px;
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-bottom: 1px solid #262626;
+          z-index: 1000;
+          height: 52px;
+        }
+        .ig-nav-left { display: flex; align-items: center; gap: 24px; }
+        .ig-nav-title { font-weight: 700; font-size: 16px; color: #fff; }
+        .ig-nav-right { display: flex; align-items: center; }
+        .ig-nav-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 8px; display: flex; align-items: center; }
+        .ig-nav-btn:hover { opacity: 0.7; }
 
         .ig-profile-header {
           display: flex;
-          margin-bottom: 44px;
-          gap: 30px;
+          margin-top: 30px;
+          margin-bottom: 24px;
+          gap: 40px;
+          padding: 0 16px;
         }
         .ig-avatar-column {
           flex: 1;
@@ -374,24 +411,19 @@ export default function Profile() {
           justify-content: center;
           align-items: flex-start;
         }
-        .ig-avatar-ring {
-          width: 156px;
-          height: 156px;
+        .ig-avatar-wrapper {
+          width: 100px;
+          height: 100px;
           border-radius: 50%;
-          padding: 4px;
-          background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
+          border: 2px solid rgba(255,255,255,0.2);
+          overflow: hidden;
+          background: #121212;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
         .ig-avatar-img {
           width: 100%;
           height: 100%;
-          border-radius: 50%;
-          border: 4px solid #000;
           object-fit: cover;
-          background: #262626;
         }
 
         .ig-info-column {
@@ -400,25 +432,26 @@ export default function Profile() {
           flex-direction: column;
           gap: 20px;
         }
-        .ig-username-row {
+        .ig-username-section {
           display: flex;
           align-items: center;
-          gap: 20px;
+          gap: 12px;
+          margin-bottom: 8px;
         }
         .ig-username {
           font-size: 20px;
-          font-weight: 400;
+          font-weight: 600;
           color: #fff;
+        }
+        .ig-action-btns {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          margin-bottom: 16px;
         }
         .ig-verified-check {
           color: #0095f6;
           font-size: 18px;
-          margin-left: -12px;
-        }
-        .ig-action-btns {
-          display: flex;
-          gap: 8px;
-          align-items: center;
         }
         .ig-btn-primary {
           background: #0095f6;

@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
 import { Link } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
+import { useUserStore } from '../store/userStore';
 
 import type { Post } from '../types/post';
 
@@ -13,8 +14,11 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { setActiveModal } = useModalStore();
+  const { user: currentUser } = useUserStore();
   const [isSparked, setIsSparked] = useState(post.is_sparked);
+  const [isReshared, setIsReshared] = useState(post.is_reshared);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
+  const [reshareCount, setReshareCount] = useState(post.reshare_count || 0);
   const [isTruncated, setIsTruncated] = useState((post.content || '').length > 150);
   const [showTranslated, setShowTranslated] = useState(false);
   const [translatedText, setTranslatedText] = useState<string | null>(null);
@@ -65,9 +69,23 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
-  const handleReshare = (e: React.MouseEvent) => {
+  const handleReshare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveModal('reshare', null, post);
+    
+    // Optimistic toggle
+    const originalReshared = isReshared;
+    const originalCount = reshareCount;
+    
+    setIsReshared(!originalReshared);
+    setReshareCount(prev => originalReshared ? Math.max(0, prev - 1) : prev + 1);
+    
+    try {
+      await api.post(`/posts/${post.post_id}/reshare`);
+    } catch (err) {
+      setIsReshared(originalReshared);
+      setReshareCount(originalCount);
+      console.error('Reshare toggle failed:', err);
+    }
   };
 
   const isVideo = post.media_url?.match(/\.(mp4|webm|ogg|mov)$/i);
@@ -77,17 +95,28 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   return (
     <div className={`post-card animate-fade-in ${isTextOnly ? 'text-only' : ''}`} style={{ background: '#fff', color: '#262626', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-      {/* Repost Header */}
-      {post.original_post_id && (
+      {/* Ghost Repost Header */}
+      {post.reposter_username && (
         <div className="repost-header" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(0,0,0,0.03)', background: 'rgba(0,0,0,0.01)' }}>
           <img 
-            src={post.avatar_url || '/uploads/avatars/default.png'} 
+            src={post.reposter_avatar || '/uploads/avatars/default.png'} 
             style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} 
             alt=""
           />
           <span style={{ fontSize: '12px', fontWeight: '600', color: '#8e8e8e' }}>
-            <Link to={`/profile/${post.username}`} style={{ color: 'inherit', fontWeight: '800' }}>{post.username}</Link> reposted
+            <Link to={`/profile/${post.reposter_username}`} style={{ color: 'inherit', fontWeight: '800' }}>{post.reposter_username}</Link> reposted
           </span>
+          {post.reposter_username === currentUser?.username && (
+             <span className="ml-auto text-[10px] font-black uppercase tracking-wider text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">You</span>
+          )}
+        </div>
+      )}
+
+      {/* Self-Repost Indicator (for original posts) */}
+      {!post.reposter_username && isReshared && (
+        <div className="px-4 py-1.5 bg-green-50/50 flex items-center gap-2 border-b border-green-100/50">
+           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+           <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">You reposted this</span>
         </div>
       )}
 
@@ -120,54 +149,51 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </div>
 
       {/* Main Media Section */}
-      {(!isTextOnly || (isNativeReshare && post.original_media_url)) && (
-        <div className="post-media" style={{ background: '#f8f9fa', maxHeight: 'none' }} onDoubleClick={handleSpark}>
-          {isNativeReshare && post.original_media_url ? (
-            post.original_media_type === 'video' ? (
-              <video src={post.original_media_url} autoPlay loop muted playsInline className="w-full h-auto object-contain" />
-            ) : (
-              <img src={post.original_media_url} loading="lazy" alt="Original content" className="w-full h-auto object-contain" />
-            )
+      {!isTextOnly && post.media_url && (
+        <div className="post-media relative" style={{ background: '#f8f9fa', maxHeight: 'none' }} onDoubleClick={handleSpark}>
+          {isVideo ? (
+            <video src={post.media_url} autoPlay loop muted playsInline className="w-full h-auto object-contain" />
           ) : (
-            isVideo ? (
-              <video src={post.media_url} autoPlay loop muted playsInline className="w-full h-auto object-contain" />
-            ) : (
-              <img src={post.media_url} loading="lazy" alt="Post content" className="w-full h-auto object-contain" />
-            )
+            <img src={post.media_url} loading="lazy" alt="Post content" className="w-full h-auto object-contain" />
+          )}
+
+          {/* Floating "Add a thought..." bubble (Visible on Reposts or if I reshared) */}
+          {(post.reposter_username || isReshared) && (
+            <div className="absolute bottom-4 left-4 flex items-center gap-3 z-10 pointer-events-none">
+              <div className="relative pointer-events-auto cursor-pointer group" onClick={(e) => { e.stopPropagation(); handleReshare(e); }}>
+                <img 
+                  src={(isReshared ? currentUser?.avatar_url : post.reposter_avatar) || '/uploads/avatars/default.png'} 
+                  className="w-10 h-10 rounded-full border-2 border-white shadow-lg object-cover transition-transform group-hover:scale-105"
+                  alt="Avatar"
+                />
+                <div className="absolute -bottom-1 -right-1 bg-[#833AB4] rounded-full p-1 border border-white">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                    <path d="M17 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"></path>
+                    <path d="M3 11V9a4 4 0 014-4h14" strokeLinecap="round" strokeLinejoin="round"></path>
+                    <path d="M7 22l-4-4 4-4" strokeLinecap="round" strokeLinejoin="round"></path>
+                    <path d="M21 13v2a4 4 0 01-4 4H3" strokeLinecap="round" strokeLinejoin="round"></path>
+                  </svg>
+                </div>
+              </div>
+              <div 
+                className="bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-2xl text-sm font-medium border border-white/20 shadow-xl pointer-events-auto cursor-pointer active:scale-95 transition-all hover:bg-black/60"
+                onClick={(e) => { e.stopPropagation(); handleReshare(e); }}
+              >
+                {isReshared && !post.reposter_username ? "You reshared this" : "Add a thought..."}
+              </div>
+            </div>
           )}
         </div>
       )}
 
       <div className="post-content" style={{ padding: '0 16px 12px', background: '#fff' }}>
-        {(post.content || (isNativeReshare && post.original_content)) && (
+        {post.content && (
           <div className="post-text" style={{ fontSize: '14px', color: '#262626', lineHeight: '1.4' }}>
             <span style={{ fontWeight: '700', marginRight: '6px' }}>
-              {isNativeReshare ? post.original_username : post.username}
+              {post.username}
             </span>
-            {showTranslated && translatedText ? translatedText : (isTruncated ? (post.content || post.original_content || '').substring(0, 150) : (post.content || post.original_content))}
+            {showTranslated && translatedText ? translatedText : (isTruncated ? post.content.substring(0, 150) : post.content)}
             {isTruncated && !showTranslated && <span style={{ color: '#8e8e8e', cursor: 'pointer' }} onClick={() => setIsTruncated(false)}> ... more</span>}
-          </div>
-        )}
-
-        {/* Reshare Preview (Only for Quote Reshares) */}
-        {post.original_post_id && post.content && (
-          <div className="reshare-preview" style={{ marginTop: '12px', border: '1px solid #efefef', borderRadius: '12px', padding: '12px', background: '#f8f9fa' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <img 
-                src={post.original_avatar_url || '/uploads/avatars/default.png'} 
-                alt="" 
-                style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} 
-              />
-              <span style={{ fontWeight: '700', fontSize: '13px', color: '#262626' }}>{post.original_username}</span>
-            </div>
-            {post.original_content && (
-              <p style={{ fontSize: '13px', color: '#444', lineHeight: '1.4', marginBottom: post.original_media_url ? '8px' : '0' }}>{post.original_content}</p>
-            )}
-            {post.original_media_url && (
-              <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #eee' }}>
-                <img src={post.original_media_url} alt="" style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'cover' }} />
-              </div>
-            )}
           </div>
         )}
 
@@ -182,25 +208,37 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </div>
       </div>
 
-      <div className="post-actions" style={{ padding: '10px 16px 16px', background: '#fff', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="actions-left" style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <button className={`action-btn ${isSparked ? 'liked' : ''}`} onClick={handleSpark} style={{ display: 'flex', alignItems: 'center' }}>
-              <Heart size={25} color={isSparked ? '#FF3D6D' : '#262626'} fill={isSparked ? '#FF3D6D' : 'none'} strokeWidth={1.5} />
+      <div className="post-actions" style={{ padding: '12px 16px', background: '#fff', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="actions-left" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          {/* Heart Icon */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button onClick={handleSpark} style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <svg aria-label="Like" color={isSparked ? '#FF3D6D' : '#262626'} fill={isSparked ? '#FF3D6D' : 'none'} height="24" role="img" viewBox="0 0 24 24" width="24">
+                <path d="M16.792 3.904A4.989 4.989 0 0121.5 9.122c0 3.072-2.652 4.959-5.197 7.221-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.077 2.5 12.194 2.5 9.122a4.989 4.989 0 014.708-5.218 4.21 4.21 0 013.675 1.941c.325.487.627 1.011.917 1.596.332-.614.653-1.161.992-1.65a4.21 4.21 0 013.675-1.941z" stroke="currentColor" strokeWidth="2"></path>
+              </svg>
             </button>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#262626' }}>{sparkCount}</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#262626' }}>{sparkCount}</span>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }}>
-              <MessageCircle size={25} color="#262626" strokeWidth={1.5} />
+          {/* Comment Icon */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <svg aria-label="Comment" color="#262626" fill="none" height="24" role="img" viewBox="0 0 24 24" width="24">
+                <path d="M20.656 17.008a9.993 9.993 0 10-3.59 3.615L22 22z" stroke="currentColor" strokeLinejoin="round" strokeWidth="2"></path>
+              </svg>
             </button>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#262626' }}>{post.comment_count || 0}</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#262626' }}>{post.comment_count || 0}</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }} onClick={handleReshare}>
-              <Repeat2 size={25} color="#262626" strokeWidth={1.5} />
+          {/* Reshare Icon */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button onClick={handleReshare} style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <svg aria-label="Reshare" color={isReshared ? '#17bf63' : '#262626'} fill="none" height="24" role="img" viewBox="0 0 24 24" width="24">
+                <path d="M17 2l4 4-4 4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={isReshared ? 3 : 2}></path>
+                <path d="M3 11V9a4 4 0 014-4h14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={isReshared ? 3 : 2}></path>
+                <path d="M7 22l-4-4 4-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={isReshared ? 3 : 2}></path>
+                <path d="M21 13v2a4 4 0 01-4 4H3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={isReshared ? 3 : 2}></path>
+              </svg>
             </button>
             <div className="flex items-center -space-x-2 mr-1">
               {post.resharer_avatars?.slice(0, 3).map((avatar, idx) => (
@@ -212,19 +250,26 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 />
               ))}
             </div>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#262626' }}>
-              {post.reshare_count > 3 ? `+${post.reshare_count - 3}` : post.reshare_count || 0}
+            <span style={{ fontSize: '14px', fontWeight: '600', color: isReshared ? '#17bf63' : '#262626' }}>
+              {reshareCount > 3 ? `+${reshareCount - 3}` : reshareCount || 0}
             </span>
           </div>
 
-          <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }}>
-            <Send size={25} color="#262626" strokeWidth={1.5} />
+          {/* Share Icon */}
+          <button style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <svg aria-label="Share Post" color="#262626" fill="none" height="24" role="img" viewBox="0 0 24 24" width="24">
+              <line fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" x1="22" x2="9.218" y1="3" y2="10.083"></line>
+              <polygon fill="none" points="11.698 20.334 22 3.001 2 3.001 9.218 10.084 11.698 20.334" stroke="currentColor" strokeLinejoin="round" strokeWidth="2"></polygon>
+            </svg>
           </button>
         </div>
         
+        {/* Bookmark Icon */}
         <div className="actions-right">
-          <button className="action-btn" style={{ display: 'flex', alignItems: 'center' }}>
-            <Bookmark size={25} color="#262626" strokeWidth={1.5} />
+          <button style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <svg aria-label="Save" color="#262626" fill="none" height="24" role="img" viewBox="0 0 24 24" width="24">
+              <path d="M20 21l-8-7.56L4 21V3h16v18z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
+            </svg>
           </button>
         </div>
       </div>

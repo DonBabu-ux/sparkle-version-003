@@ -20,4 +20,8 @@ export interface Post {
   original_media_type?: string;
   reshare_count?: number;
   resharer_avatars?: string[];
+  reposter_username?: string;
+  reposter_avatar?: string;
+  repost_comment?: string;
+  is_reshared?: boolean;
 }

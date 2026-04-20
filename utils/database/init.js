@@ -82,6 +82,26 @@ const repairUsersTable = async () => {
     }
 };
 
+const initRepostsTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS reposts (
+                repost_id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                post_id CHAR(36) NOT NULL,
+                comment TEXT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_repost (user_id, post_id),
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        logger.debug('✅ Reposts table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init reposts table:', err.message);
+    }
+};
+
 const repairPostsTable = async () => {
     try {
         const columnsToAdd = [
@@ -877,6 +897,7 @@ const initDB = async () => {
         // Priority for current feature batch
         try { await initConfessionTables(); } catch (e) { logger.error('Confessions Init Error:', e.message); }
         try { await repairPostsTable(); } catch (e) { logger.warn('Posts repair failed:', e.message); }
+        try { await initRepostsTable(); } catch (e) { logger.warn('Reposts init failed:', e.message); }
         
         try { await repairUsersTable(); } catch (e) { logger.warn('Users repair failed:', e.message); }
         try { await initNotificationsTable(); } catch (e) { logger.warn('Notifications init failed:', e.message); }

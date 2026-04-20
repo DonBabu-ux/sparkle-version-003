@@ -149,49 +149,82 @@ class Post {
             try {
                 // Fetch unified feed: Followed posts + Public posts, sorted by newest
                 const feedQuery = `
-                    SELECT p.*, 
-                           CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
-                           CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
-                           CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
-                           u.campus as user_affiliation, u.major as user_interests,
-                           (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                           (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
-                           EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
-                           EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
-                           (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
-                            FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
-                           p.original_post_id,
-                           orig_u.username as original_username,
-                           orig_u.avatar_url as original_avatar_url,
-                           orig_p.content as original_content,
-                           orig_p.media_url as original_media_url,
-                           orig_p.media_type as original_media_type,
-                           (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM posts p2 JOIN users u2 ON p2.user_id = u2.user_id WHERE p2.original_post_id = p.post_id LIMIT 3) as resharer_avatars,
-                           0 as discovery_score
-                    FROM posts p 
-                    JOIN users u ON p.user_id = u.user_id 
-                    LEFT JOIN posts orig_p ON p.original_post_id = orig_p.post_id
-                    LEFT JOIN users orig_u ON orig_p.user_id = orig_u.user_id
-                    WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
-                      AND NOT EXISTS (
-                          SELECT 1 FROM user_blocks 
-                          WHERE (blocker_id = ? AND blocked_id = p.user_id)
-                              OR (blocker_id = p.user_id AND blocked_id = ?)
-                      )
-                      AND (
-                          p.user_id = ? 
-                          OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
-                          OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
-                      )
-                    ORDER BY p.created_at DESC
+                    SELECT * FROM (
+                        -- 1. Original Posts
+                        SELECT p.*, 
+                               CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
+                               CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
+                               CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
+                               u.campus as user_affiliation, u.major as user_interests,
+                               (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                               EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
+                               EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
+                               (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                                FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                               (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM reposts r2 JOIN users u2 ON r2.user_id = u2.user_id WHERE r2.post_id = p.post_id LIMIT 3) as resharer_avatars,
+                               EXISTS(SELECT 1 FROM reposts WHERE user_id = ? AND post_id = p.post_id) as is_reshared,
+                               NULL as reposter_username, NULL as reposter_avatar, NULL as repost_comment,
+                               p.created_at as feed_at
+                        FROM posts p 
+                        JOIN users u ON p.user_id = u.user_id 
+                        WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM user_blocks 
+                              WHERE (blocker_id = ? AND blocked_id = p.user_id)
+                                  OR (blocker_id = p.user_id AND blocked_id = ?)
+                          )
+                          AND (
+                              p.user_id = ? 
+                              OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
+                              OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
+                          )
+
+                        UNION ALL
+
+                        -- 2. Ghost Reposts (Numbered references e.g. 1.5, 2.5)
+                        SELECT p.*, 
+                               CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
+                               CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
+                               CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
+                               u.campus as user_affiliation, u.major as user_interests,
+                               (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                               EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
+                               EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
+                               (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                                FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                               (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM reposts r2 JOIN users u2 ON r2.user_id = u2.user_id WHERE r2.post_id = p.post_id LIMIT 3) as resharer_avatars,
+                               EXISTS(SELECT 1 FROM reposts WHERE user_id = ? AND post_id = p.post_id) as is_reshared,
+                               r_u.username as reposter_username, r_u.avatar_url as reposter_avatar, r.comment as repost_comment,
+                               r.created_at as feed_at
+                        FROM reposts r
+                        JOIN posts p ON r.post_id = p.post_id
+                        JOIN users u ON p.user_id = u.user_id
+                        JOIN users r_u ON r.user_id = r_u.user_id
+                        WHERE (r.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR r.user_id = ?)
+                          AND NOT EXISTS (
+                              SELECT 1 FROM user_blocks 
+                              WHERE (blocker_id = ? AND blocked_id = p.user_id)
+                                  OR (blocker_id = p.user_id AND blocked_id = ?)
+                          )
+                    ) combined
+                    ORDER BY feed_at DESC
                     LIMIT ? OFFSET ?`;
 
                 const feedParams = [
-                    currentUserId, currentUserId, // 1, 2 (is_followed, is_sparked)
-                    affiliation, affiliation,       // 3, 4 (campus, 'all')
-                    currentUserId, currentUserId, // 5, 6 (blocker, blocked)
-                    currentUserId, currentUserId, // 7, 8 (owner, following)
-                    limit, offset                  // 9, 10 (limit, offset)
+                    currentUserId, currentUserId, // Original: is_followed, is_sparked
+                    currentUserId,                  // Original: is_reshared
+                    affiliation, affiliation,       // Original: campus, 'all'
+                    currentUserId, currentUserId, // Original: block checks
+                    currentUserId, currentUserId, // Original: owner, following checks
+                    
+                    currentUserId, currentUserId, // Repost: is_followed, is_sparked
+                    currentUserId,                  // Repost: is_reshared
+                    currentUserId, currentUserId, // Repost: following filter OR self
+                    currentUserId, currentUserId, // Repost: block checks
+                    
+                    limit, offset                  // Pagination
                 ];
 
                 const [posts] = await pool.query(feedQuery, feedParams);
@@ -629,19 +662,64 @@ class Post {
      * Reshare a post
      */
     static async reshare(userId, originalPostId, comment) {
-        const reshareId = crypto.randomUUID();
+        // Check if already reshared
+        const [existing] = await pool.query(
+            'SELECT repost_id FROM reposts WHERE user_id = ? AND post_id = ?',
+            [userId, originalPostId]
+        );
+
+        if (existing.length > 0) {
+            // Unrepost
+            await pool.query('DELETE FROM reposts WHERE repost_id = ?', [existing[0].repost_id]);
+            await pool.query(
+                'UPDATE posts SET reshare_count = GREATEST(0, reshare_count - 1) WHERE post_id = ?',
+                [originalPostId]
+            );
+            return { action: 'unreposted' };
+        }
+
+        // Repost
+        const repostId = crypto.randomUUID();
         await pool.query(
-            `INSERT INTO posts (post_id, user_id, content, original_post_id, post_type) 
-             VALUES (?, ?, ?, ?, 'reshare')`,
-            [reshareId, userId, comment, originalPostId]
+            `INSERT INTO reposts (repost_id, user_id, post_id, comment) 
+             VALUES (?, ?, ?, ?)`,
+            [repostId, userId, originalPostId, comment || null]
         );
         
+        // Notify original author
+        const [origPost] = await pool.query('SELECT user_id FROM posts WHERE post_id = ?', [originalPostId]);
+        if (origPost.length > 0 && origPost[0].user_id !== userId) {
+            await pool.query(
+                `INSERT INTO notifications (notification_id, user_id, type, actor_id, target_id) 
+                 VALUES (?, ?, 'share', ?, ?)`,
+                [crypto.randomUUID(), origPost[0].user_id, userId, originalPostId]
+            );
+        }
+
         await pool.query(
             'UPDATE posts SET reshare_count = reshare_count + 1 WHERE post_id = ?',
             [originalPostId]
         );
 
-        return reshareId;
+        // Handle mentions in comment if any
+        if (comment && comment.includes('@')) {
+            const mentions = comment.match(/@(\w+)/g);
+            if (mentions) {
+                for (const mention of mentions) {
+                    const username = mention.substring(1);
+                    const [user] = await pool.query('SELECT user_id FROM users WHERE username = ?', [username]);
+                    if (user.length > 0) {
+                        await pool.query(
+                            `INSERT INTO notifications (notification_id, user_id, type, actor_id, target_id) 
+                             VALUES (?, ?, 'mention', ?, ?)`,
+                            [crypto.randomUUID(), user[0].user_id, userId, originalPostId]
+                        );
+                    }
+                }
+            }
+        }
+
+        return { action: 'reposted', repostId };
     }
 }
 

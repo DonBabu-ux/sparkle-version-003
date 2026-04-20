@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { X, MapPin, Check, Clock, Plus } from 'lucide-react';
+import { X, MapPin, Check, Clock, Plus, Users, BookOpen, Sparkles, GraduationCap } from 'lucide-react';
 import api from '../api/api';
 import { useState } from 'react';
 import type { User } from '../types/user';
@@ -104,21 +104,48 @@ export default function UserCard({ u, onRemove }: UserCardProps) {
         </div>
       </div>
 
-      {/* Mutual Connections Section */}
-      <div className="w-full max-w-[95%] bg-[#F9FBFC] rounded-[2rem] p-4 flex items-center gap-4 mb-8 border border-slate-100/50">
-        <div className="flex -space-x-2.5 shrink-0">
-          {[32, 44, 12].map((img, i) => (
-            <div key={i} className="w-10 h-10 rounded-full border-[3px] border-white bg-slate-200 overflow-hidden shadow-sm">
-              <img alt="" className="w-full h-full object-cover" src={`https://i.pravatar.cc/100?img=${img}`} />
-            </div>
-          ))}
-          <div className="w-10 h-10 rounded-full border-[3px] border-white bg-[#FFF1F2] flex items-center justify-center text-[0.7rem] font-black text-[#FF3D6D] shadow-sm">
-            +2
+      {/* Suggestion Reason Section */}
+      <div className="w-full max-w-[95%] bg-[#F9FBFC] rounded-[2rem] p-4 flex flex-col gap-3 mb-8 border border-slate-100/50 group-hover:bg-white transition-colors duration-300">
+        
+        {/* Top: Icon + Text */}
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-[#FFF1F2] flex items-center justify-center text-[#FF3D6D] shrink-0 shadow-sm">
+            {u.suggestion_reason?.includes('mutual') ? (
+              <Users size={18} strokeWidth={2.5} />
+            ) : u.suggestion_reason?.includes('major') ? (
+              <GraduationCap size={18} strokeWidth={2.5} />
+            ) : u.suggestion_reason?.includes('On ') ? (
+              <MapPin size={18} strokeWidth={2.5} />
+            ) : (
+              <Sparkles size={18} strokeWidth={2.5} />
+            )}
+          </div>
+          <div className="flex-1 text-[0.85rem] font-extrabold text-[#64748b] leading-[1.3] text-left">
+            {u.suggestion_reason || 'Suggested for you'}
           </div>
         </div>
-        <div className="flex-1 text-[0.78rem] font-extrabold text-[#64748b] leading-[1.3] text-left pr-2">
-          {u.mutual_connections || 1} Mutual Friend · 2 more connections
-        </div>
+
+        {/* Bottom: Mutual Avatar Stack (if exists) */}
+        {u.mutual_followers && u.mutual_followers.length > 0 && (
+          <div className="flex items-center gap-2 pl-12 -mt-1">
+            <div className="flex -space-x-2.5">
+              {u.mutual_followers.slice(0, 3).map((m, i) => (
+                <img
+                  key={i}
+                  src={m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name)}&background=random`}
+                  alt={m.name}
+                  className="w-7 h-7 rounded-full border-2 border-white object-cover shadow-sm"
+                />
+              ))}
+            </div>
+            {u.mutual_followers.length > 0 && (
+              <p className="text-[0.75rem] font-bold text-[#94A3B8]">
+                <span className="text-[#64748B]">{u.mutual_followers[0].name.split(' ')[0]}</span>
+                {u.mutual_followers.length > 1 && ` +${u.mutual_followers.length - 1} others`}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Follow Button */}

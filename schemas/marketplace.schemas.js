@@ -12,7 +12,7 @@ exports.createListingSchema = Joi.object({
   price: Joi.number().min(0).max(10000000).required(),
   category: Joi.string().trim().lowercase().valid(
     'electronics', 'books', 'fashion', 'home', 'services', 'other', 'clothing', 'furniture', 'academic',
-    'fashion_lab', 'dorm_life', 'electronics_books', 'fashion_lab', 'fashion lab', 'dorm life', 'electronics & books',
+    'student_market', 'blackmarket', 'fashion_lab', 'dorm_life', 'electronics_books', 'fashion_lab', 'fashion lab', 'dorm life', 'electronics & books',
     'electronics & appliances', 'fashion & beauty', 'home & garden', 'property', 'jobs', 'vehicles'
   ).default('other'),
   condition: Joi.string().trim().lowercase().valid(
@@ -149,7 +149,7 @@ exports.createSkillOfferSchema = Joi.object({
 exports.listingsQuerySchema = Joi.object({
   search: Joi.string().max(100).optional().allow(''),
   category: Joi.string().valid(
-    'electronics', 'books', 'clothing', 'furniture', 'services', 'other', 'all'
+    'electronics', 'books', 'clothing', 'furniture', 'services', 'other', 'all', 'student_market', 'blackmarket'
   ).optional(),
   campus: Joi.string().valid(
     'main_campus', 'north_campus', 'south_campus', 'downtown', 'all'

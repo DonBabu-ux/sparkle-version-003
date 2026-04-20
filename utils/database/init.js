@@ -251,7 +251,7 @@ const initStoriesTable = async () => {
                 story_id CHAR(36) NOT NULL PRIMARY KEY,
                 user_id CHAR(36) NOT NULL,
                 media_url VARCHAR(500) NOT NULL,
-                media_type ENUM('image', 'video') DEFAULT 'image',
+                media_type ENUM('image', 'video', 'text') DEFAULT 'image',
                 caption VARCHAR(255) DEFAULT NULL,
                 view_count INT DEFAULT 0,
                 like_count INT DEFAULT 0,
@@ -263,6 +263,13 @@ const initStoriesTable = async () => {
                 INDEX idx_stories_active (expires_at, created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
+
+        // Migration: ensure media_type supports 'text'
+        try {
+            await pool.query("ALTER TABLE stories MODIFY COLUMN media_type ENUM('image', 'video', 'text') DEFAULT 'image'");
+        } catch (e) {
+            // Might fail if column doesn't exist or other issues, usually OK if already correct
+        }
         logger.debug('✅ Stories table verified');
     } catch (err) {
         logger.error('❌ Failed to init stories table:', err.message);

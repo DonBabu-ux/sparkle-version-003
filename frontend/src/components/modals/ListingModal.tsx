@@ -44,7 +44,7 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
       fd.append('category', category);
       files.forEach(f => fd.append('media', f));
 
-      await api.post('/marketplace', fd, {
+      await api.post('/marketplace/listings', fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       onSuccess();

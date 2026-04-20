@@ -135,7 +135,8 @@ export default function Marketplace() {
             <div className="listings-header">
               <h2>{categories.find(c => c.id === category)?.label}</h2>
               <button className="sell-btn-premium" onClick={() => {
-                alert('Please use the "+" center button in the Navbar to "Sell Item"!');
+                const { setActiveModal } = useModalStore.getState();
+                setActiveModal('listing');
               }}>
                 <Plus size={18} /> Sell Something
               </button>

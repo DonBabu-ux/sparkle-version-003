@@ -285,32 +285,53 @@ class User {
                 (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count,
                 ${mutualQuery} as mutual_connections,
                 (
-                    (CASE WHEN u.major = ? THEN 40 ELSE 0 END) +
-                    (CASE WHEN u.campus = ? THEN 30 ELSE 0 END) +
-                    (CASE WHEN u.year_of_study = ? THEN 20 ELSE 0 END) +
-                    (RAND${sqlSeed} * 25)
+                    -- 1. Mutual Connections (Weight 0.4 -> 40 points max)
+                    (LEAST(${mutualQuery}, 10) * 4) +
+                    
+                    -- 2. Academic Similarity (Weight 0.25 -> 25 points max)
+                    (CASE WHEN u.major = ? THEN 25 WHEN u.major IS NOT NULL THEN 5 ELSE 0 END) +
+                    
+                    -- 3. Campus Proximity (Weight 0.15 -> 15 points max)
+                    (CASE WHEN u.campus = ? THEN 15 ELSE 5 END) +
+                    
+                    -- 4. Activity (Weight 0.1 -> 10 points max)
+                    (CASE WHEN u.is_online = 1 OR u.last_seen_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 10 ELSE 0 END) +
+                    
+                    -- 5. Profile Completeness (Weight 0.1 -> 10 points max)
+                    (CASE WHEN u.bio IS NOT NULL AND u.bio != '' THEN 3 ELSE 0 END) +
+                    (CASE WHEN u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%default%' THEN 3 ELSE 0 END) +
+                    (CASE WHEN u.headline IS NOT NULL AND u.headline != '' THEN 2 ELSE 0 END) +
+                    (CASE WHEN u.major IS NOT NULL THEN 2 ELSE 0 END) +
+                    
+                    -- Variety (5 points)
+                    (RAND${sqlSeed} * 5)
                 ) as discovery_score
             FROM users u
             WHERE u.user_id != ? 
         `;
 
-        const params = [currentUserId, currentUserId, currentUserId, me[0].major, me[0].campus, me[0].year_of_study, currentUserId];
+        const params = [
+            currentUserId, // for is_followed
+            currentUserId, // for request_status
+            currentUserId, // for mutual_connections count
+            currentUserId, // for mutual_connections in score
+            me[0].major,   // for academic similarity
+            me[0].campus,  // for campus proximity
+            currentUserId  // for u.user_id != ?
+        ];
 
         // Apply Tab Logic
         if (tab === 'following') {
             sql += ` AND u.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
             params.push(currentUserId);
-        } else if (tab === 'trending') {
-            // Trending prioritizes high follower count
-            sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
-            params.push(currentUserId);
+        } else if (tab === 'for you') {
+            // "For You" shows everyone (including people you follow)
         } else if (tab === 'similar') {
-            // Similar prioritizes same major/campus
             sql += ` AND (u.major = ? OR u.campus = ?)`;
             sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
             params.push(me[0].major, me[0].campus, currentUserId);
         } else {
-            // Default: Suggested (weighted discovery)
+            // Default: Suggested (people you don't follow)
             sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
             params.push(currentUserId);
         }
@@ -334,19 +355,56 @@ class User {
         }
 
         // Apply Sorting
-        if (tab === 'trending') {
-            sql += ` ORDER BY follower_count DESC`;
-        } else {
-            sql += ` ORDER BY discovery_score DESC`;
-        }
+        sql += ` ORDER BY discovery_score DESC`;
 
         sql += ` LIMIT ?`;
         params.push(limit);
 
         const [users] = await pool.query(sql, params);
         
-        // Map fields for application layer consistency
-        return users.map(u => this.mapGeneralizedFields(u));
+        // Fetch detailed mutual connections for the avatar stack
+        const userIds = users.map(u => u.user_id);
+        let mutualDetailsMap = {};
+        
+        if (userIds.length > 0) {
+            const [mutuals] = await pool.query(`
+                SELECT f2.follower_id as target_user_id, u.user_id, u.username, u.name, u.avatar_url
+                FROM follows f1
+                JOIN follows f2 ON f1.following_id = f2.following_id
+                JOIN users u ON f1.following_id = u.user_id
+                WHERE f1.follower_id = ? AND f2.follower_id IN (?)
+            `, [currentUserId, userIds]);
+            
+            mutuals.forEach(m => {
+                if (!mutualDetailsMap[m.target_user_id]) mutualDetailsMap[m.target_user_id] = [];
+                if (mutualDetailsMap[m.target_user_id].length < 5) {
+                    mutualDetailsMap[m.target_user_id].push({
+                        id: m.user_id,
+                        name: m.name || m.username,
+                        avatar: m.avatar_url
+                    });
+                }
+            });
+        }
+        
+        // Map fields and generate "reason" for suggestion
+        return users.map(u => {
+            const mapped = this.mapGeneralizedFields(u);
+            mapped.mutual_followers = mutualDetailsMap[u.user_id] || [];
+            
+            // Add suggestion reason
+            if (u.mutual_connections > 0) {
+                mapped.suggestion_reason = `${u.mutual_connections} mutual friend${u.mutual_connections > 1 ? 's' : ''}`;
+            } else if (u.major === me[0].major) {
+                mapped.suggestion_reason = `Same major: ${u.major}`;
+            } else if (u.campus === me[0].campus) {
+                mapped.suggestion_reason = `On ${u.campus}`;
+            } else {
+                mapped.suggestion_reason = `Suggested for you`;
+            }
+            
+            return mapped;
+        });
     }
 
     /**

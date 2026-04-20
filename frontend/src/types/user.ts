@@ -29,6 +29,8 @@ export interface User {
   is_online?: boolean;
   is_verified?: boolean;
   mutual_connections?: number;
+  mutual_followers?: { id: string; name: string; avatar: string }[];
+  suggestion_reason?: string;
   followers_count?: number;
   following_count?: number;
   highlights?: { id: string; img: string; title: string }[];

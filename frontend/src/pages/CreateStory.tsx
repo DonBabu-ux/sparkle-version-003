@@ -49,7 +49,7 @@ export default function CreateStory() {
     setUploading(true);
     try {
       const formData = new FormData();
-      if (caption) formData.append('content', caption);
+      if (caption) formData.append('caption', caption);
       if (file) formData.append('media', file);
       formData.append('type', mode);
 

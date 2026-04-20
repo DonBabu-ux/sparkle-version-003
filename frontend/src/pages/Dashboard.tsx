@@ -14,6 +14,7 @@ interface StoryGroup {
   username?: string;
   user_name?: string;
   avatar_url?: string;
+  stories: any[];
 }
 
 interface TrendingTag {
@@ -88,15 +89,25 @@ export default function Dashboard() {
     try {
       const [dashRes, storiesRes, suggestionsRes] = await Promise.all([
         api.get(`/posts/feed?page=${pageNum}&limit=10`),
-        pageNum === 1 ? api.get('/stories/active').catch(() => ({ data: { stories: [] } })) : Promise.resolve({ data: { stories: [] } }),
-        pageNum === 1 ? api.get('/users/suggestions').catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
+        pageNum === 1 ? api.get('/stories/active').catch(err => {
+          console.error('Story fetch failed:', err);
+          return { data: [] };
+        }) : Promise.resolve({ data: [] }),
+        pageNum === 1 ? api.get('/users/suggestions').catch(err => {
+          console.error('Suggestions fetch failed:', err);
+          return { data: { suggestions: [] } };
+        }) : Promise.resolve({ data: { suggestions: [] } })
       ]);
+      
+      console.log('Dashboard Stories Received:', storiesRes.data);
       
       const newPosts = Array.isArray(dashRes.data) ? dashRes.data : (dashRes.data.feed || dashRes.data.posts || []);
       
       if (pageNum === 1) {
         setPosts(newPosts);
-        if (storiesRes.data.stories) setStories(storiesRes.data.stories);
+        if (Array.isArray(storiesRes.data)) {
+          setStories(storiesRes.data);
+        }
         if (suggestionsRes.data.suggestions) setSuggestions(suggestionsRes.data.suggestions);
         setTrendingTags([
           { tag: 'CampusGossip', count: '2.4k' },
@@ -205,16 +216,37 @@ export default function Dashboard() {
                 <div className="story-add-text">Afterglow</div>
               </div>
 
-              {stories.map(group => (
-                <div key={group.user_id} className="story-card animate-scale-in" onClick={() => navigate(`/stories/${group.user_id}`)}>
-                  <img src={group.avatar_url || '/uploads/avatars/default.png'} className="story-media" alt="" />
-                  <div className="story-overlay"></div>
-                  <div className="story-avatar-wrapper">
-                    <img src={group.avatar_url || '/uploads/avatars/default.png'} className="story-avatar" alt="" />
+              {stories.map(group => {
+                const latestStory = group.stories[0];
+                const isText = latestStory.media_type === 'text';
+                const isVideo = latestStory.media_type === 'video';
+                
+                return (
+                  <div key={group.user_id} className="story-card animate-scale-in" onClick={() => navigate(`/stories/${group.user_id}`)}>
+                    {isText ? (
+                      <div className="story-media bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+                        <p className="text-[10px] text-white font-bold text-center line-clamp-4 leading-tight">
+                          {latestStory.caption}
+                        </p>
+                      </div>
+                    ) : (
+                      <img 
+                        src={latestStory.media_url || group.avatar_url || '/uploads/avatars/default.png'} 
+                        className="story-media" 
+                        alt="" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = group.avatar_url || '/uploads/avatars/default.png';
+                        }}
+                      />
+                    )}
+                    <div className="story-overlay"></div>
+                    <div className="story-avatar-wrapper">
+                      <img src={group.avatar_url || '/uploads/avatars/default.png'} className="story-avatar" alt="" />
+                    </div>
+                    <div className="story-name">{group.username || group.user_name}</div>
                   </div>
-                  <div className="story-name">{group.username || group.user_name}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

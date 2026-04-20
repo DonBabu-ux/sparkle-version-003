@@ -180,7 +180,7 @@ const getStories = async (req, res) => {
             }
             map[s.user_id].stories.push({
                 story_id: s.story_id,
-                media_url: s.media_url,
+                media_url: getSafeMediaUrl(s.media_url),
                 media_type: s.media_type,
                 caption: s.caption,
                 created_at: s.created_at,
@@ -250,7 +250,7 @@ const createStory = async (req, res) => {
             console.log('🔗 Story media from URL (media):', media_url);
         }
 
-        if (!media_url) {
+        if (!media_url && req.body.type !== 'text') {
             console.error('❌ No media provided in request:', {
                 hasFile: !!req.file,
                 bodyFields: Object.keys(req.body),
@@ -264,6 +264,11 @@ const createStory = async (req, res) => {
             return res.status(400).json({ error: 'Media is required for story' });
         }
 
+        // For text-only stories, we use a placeholder or special value if the DB requires NOT NULL
+        if (req.body.type === 'text' && !media_url) {
+            media_url = 'text';
+        }
+
         const userId = req.user.userId || req.user.user_id;
         if (!userId) {
             console.error('❌ No user ID found in request:', req.user);
@@ -274,7 +279,9 @@ const createStory = async (req, res) => {
 
         // Determine media type
         let media_type = 'image';
-        if (req.file) {
+        if (req.body.type === 'text') {
+            media_type = 'text';
+        } else if (req.file) {
             media_type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
         } else if (media_url) {
             // Try to determine from URL extension

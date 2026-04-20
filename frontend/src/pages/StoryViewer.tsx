@@ -107,7 +107,7 @@ export default function StoryViewer() {
       </div>
 
       {/* Media Content */}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center w-full">
         {currentStory.media_type === 'video' ? (
           <video 
             src={currentStory.media_url} 
@@ -124,14 +124,20 @@ export default function StoryViewer() {
               }
             }}
           />
+        ) : currentStory.media_type === 'text' ? (
+          <div className="w-full h-full flex items-center justify-center p-12 bg-gradient-to-br from-[#6366f1] via-[#a855f7] to-[#ec4899]">
+             <h2 className="text-white text-3xl md:text-5xl font-black text-center leading-tight drop-shadow-2xl animate-in zoom-in duration-500">
+               {currentStory.caption}
+             </h2>
+          </div>
         ) : (
           <img src={currentStory.media_url} className="max-h-full w-full object-contain" alt="" />
         )}
       </div>
 
-      {/* Caption Overlay */}
-      {currentStory.caption && (
-        <div className="absolute bottom-20 left-0 right-0 p-8 text-center bg-gradient-to-t from-black/80 to-transparent">
+      {/* Caption Overlay (Only for non-text stories) */}
+      {currentStory.caption && currentStory.media_type !== 'text' && (
+        <div className="absolute bottom-20 left-0 right-0 p-8 text-center bg-gradient-to-t from-black/80 to-transparent z-20">
            <p className="text-white text-lg font-bold drop-shadow-lg">{currentStory.caption}</p>
         </div>
       )}

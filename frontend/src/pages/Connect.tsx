@@ -4,10 +4,10 @@ import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
 import api from '../api/api';
 
-const FILTERS = ['For You', 'Campus', 'Interests', 'Level'] as const;
+const FILTERS = ['All', 'Campus', 'Interests', 'Level'] as const;
 const TABS = [
+  { label: 'For You',   icon: Sparkles },
   { label: 'Suggested', icon: UserPlus },
-  { label: 'Trending',  icon: TrendingUp },
   { label: 'Similar',   icon: Users },
   { label: 'Following', icon: UserCheck },
 ] as const;
@@ -31,8 +31,8 @@ interface DiscoverUser {
 export default function Connect() {
   const [users, setUsers]               = useState<DiscoverUser[]>([]);
   const [loading, setLoading]           = useState(true);
-  const [activeTab, setActiveTab]       = useState<string>('Suggested');
-  const [activeFilter, setActiveFilter] = useState<string>('For You');
+  const [activeTab, setActiveTab]       = useState<string>('For You');
+  const [activeFilter, setActiveFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery]   = useState('');
   const [showFilters, setShowFilters]   = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -44,6 +44,8 @@ export default function Connect() {
       const params: Record<string, string> = { tab: activeTab.toLowerCase() };
       if (searchQuery)             params.q      = searchQuery;
       if (activeFilter === 'Campus') params.filter = 'campus';
+      if (activeFilter === 'Interests') params.filter = 'interests';
+      if (activeFilter === 'Level') params.filter = 'level';
       const res = await api.get('/users/suggestions', { params });
       setUsers(res.data.users || res.data || []);
     } catch {

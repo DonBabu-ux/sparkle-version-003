@@ -271,7 +271,7 @@ export default function Dashboard() {
             ) : posts.length > 0 ? (
               <>
                 {posts.map((post) => (
-                  <div key={post.post_id} className="animate-fade-in">
+                  <div key={post.feed_id || post.post_id} className="animate-fade-in">
                     <PostCard post={post} />
                   </div>
                 ))}

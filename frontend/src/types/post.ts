@@ -24,4 +24,10 @@ export interface Post {
   reposter_avatar?: string;
   repost_comment?: string;
   is_reshared?: boolean;
+  feed_id?: string;
+  resharers?: {
+    username: string;
+    avatar: string;
+    comment: string;
+  }[];
 }

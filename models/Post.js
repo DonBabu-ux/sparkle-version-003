@@ -164,8 +164,9 @@ class Post {
                                 FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
                                (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM reposts r2 JOIN users u2 ON r2.user_id = u2.user_id WHERE r2.post_id = p.post_id LIMIT 3) as resharer_avatars,
                                EXISTS(SELECT 1 FROM reposts WHERE user_id = ? AND post_id = p.post_id) as is_reshared,
-                               NULL as reposter_username, NULL as reposter_avatar, NULL as repost_comment,
-                               p.created_at as feed_at
+                               NULL as resharers,
+                               p.created_at as feed_at,
+                               CONCAT(p.post_id, '-orig') as feed_id
                         FROM posts p 
                         JOIN users u ON p.user_id = u.user_id 
                         WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
@@ -181,8 +182,8 @@ class Post {
                           )
 
                         UNION ALL
-
-                        -- 2. Ghost Reposts (Numbered references e.g. 1.5, 2.5)
+    
+                        -- 2. Ghost Reposts (Grouped by post to avoid spam)
                         SELECT p.*, 
                                CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
                                CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
@@ -196,18 +197,24 @@ class Post {
                                 FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
                                (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM reposts r2 JOIN users u2 ON r2.user_id = u2.user_id WHERE r2.post_id = p.post_id LIMIT 3) as resharer_avatars,
                                EXISTS(SELECT 1 FROM reposts WHERE user_id = ? AND post_id = p.post_id) as is_reshared,
-                               r_u.username as reposter_username, r_u.avatar_url as reposter_avatar, r.comment as repost_comment,
-                               r.created_at as feed_at
+                               (SELECT JSON_ARRAYAGG(JSON_OBJECT('username', r_u.username, 'avatar', r_u.avatar_url, 'comment', r2.comment))
+                                FROM reposts r2
+                                JOIN users r_u ON r2.user_id = r_u.user_id
+                                WHERE r2.post_id = p.post_id 
+                                  AND (r2.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR r2.user_id = ?)
+                               ) as resharers,
+                               MAX(r.created_at) as feed_at,
+                               CONCAT(p.post_id, '-repost') as feed_id
                         FROM reposts r
                         JOIN posts p ON r.post_id = p.post_id
                         JOIN users u ON p.user_id = u.user_id
-                        JOIN users r_u ON r.user_id = r_u.user_id
                         WHERE (r.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR r.user_id = ?)
                           AND NOT EXISTS (
                               SELECT 1 FROM user_blocks 
                               WHERE (blocker_id = ? AND blocked_id = p.user_id)
                                   OR (blocker_id = p.user_id AND blocked_id = ?)
                           )
+                        GROUP BY p.post_id
                     ) combined
                     ORDER BY feed_at DESC
                     LIMIT ? OFFSET ?`;
@@ -221,6 +228,7 @@ class Post {
                     
                     currentUserId, currentUserId, // Repost: is_followed, is_sparked
                     currentUserId,                  // Repost: is_reshared
+                    currentUserId, currentUserId, // Repost: resharers subquery (following, self)
                     currentUserId, currentUserId, // Repost: following filter OR self
                     currentUserId, currentUserId, // Repost: block checks
                     
@@ -234,6 +242,9 @@ class Post {
                     }
                     if (typeof post.resharer_avatars === 'string') {
                         try { post.resharer_avatars = JSON.parse(post.resharer_avatars); } catch(e) { post.resharer_avatars = []; }
+                    }
+                    if (typeof post.resharers === 'string') {
+                        try { post.resharers = JSON.parse(post.resharers); } catch(e) { post.resharers = []; }
                     }
                     return post;
                 });

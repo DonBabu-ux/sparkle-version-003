@@ -16,12 +16,15 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { setActiveModal } = useModalStore();
   const { user: currentUser } = useUserStore();
+  
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [isReshared, setIsReshared] = useState(post.is_reshared);
+  const [isSaved, setIsSaved] = useState(post.is_saved || false);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
   const [reshareCount, setReshareCount] = useState(post.reshare_count || 0);
   const [myThought, setMyThought] = useState(post.repost_comment || '');
   const [isSavingThought, setIsSavingThought] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isTruncated, setIsTruncated] = useState((post.content || '').length > 150);
@@ -106,6 +109,32 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const originalSaved = isSaved;
+    setIsSaved(!originalSaved);
+    try {
+      await api.post(`/posts/${post.post_id}/save`);
+    } catch (err) {
+      setIsSaved(originalSaved);
+      console.error('Save failed:', err);
+    }
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Use Web Share API if available, otherwise open a modal
+    if (navigator.share) {
+      navigator.share({
+        title: 'Check out this post on Sparkle',
+        text: post.content,
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      setActiveModal('share', null, { post });
+    }
+  };
+
   const handleCommentSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newComment.trim()) return;
@@ -128,7 +157,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const isNativeReshare = post.original_post_id && !post.content;
 
   return (
-    <div className={`post-card animate-fade-in ${isTextOnly ? 'text-only' : ''}`} style={{ background: '#fff', color: '#262626', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+    <div className={`post-card animate-fade-in ${isTextOnly ? 'text-only' : ''}`} style={{ background: '#fff', color: '#262626', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)', position: 'relative', width: '100%', boxSizing: 'border-box' }}>
       {/* Ghost Repost Header */}
       {post.reposter_username && (
         <div className="repost-header" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(0,0,0,0.03)', background: 'rgba(0,0,0,0.01)' }}>
@@ -189,48 +218,96 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <video src={post.media_url} autoPlay loop muted playsInline className="w-full h-auto object-contain" />
           ) : (
             <img src={post.media_url} loading="lazy" alt="Post content" className="w-full h-auto object-contain" />
-          )}
+          )}          {/* Floating "Social Stack" bubble (Visible if reshared by me or followings) */}
+          {(isReshared || (post.resharers && post.resharers.length > 0)) && (
+            <div className="absolute bottom-4 left-4 flex flex-col items-start gap-2 z-30">
+              {/* The Social Stack */}
+              <div className="flex items-center gap-2 pointer-events-none">
+                <div className="flex -space-x-4 pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowNotes(!showNotes); }}>
+                  {/* My avatar if I reshared */}
+                  {isReshared && (
+                    <div className="relative z-30 transform hover:translate-y-[-2px] transition-transform">
+                      <img 
+                        src={currentUser?.avatar_url || '/uploads/avatars/default.png'} 
+                        className="w-10 h-10 rounded-full border-2 border-white shadow-lg object-cover"
+                        alt="You"
+                      />
+                      <div className="absolute -bottom-1 -right-1 bg-[#17bf63] rounded-full p-1 border border-white">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
+                          <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"></path>
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                  {/* Other resharers from the social stack */}
+                  {post.resharers?.filter(r => r.username !== currentUser?.username).slice(0, 3).map((r, i) => (
+                    <img 
+                      key={i}
+                      src={r.avatar || '/uploads/avatars/default.png'} 
+                      className="w-10 h-10 rounded-full border-2 border-white shadow-lg object-cover transform hover:translate-y-[-2px] transition-transform"
+                      style={{ zIndex: 20 - i }}
+                      alt={r.username}
+                    />
+                  ))}
+                  {post.resharers && post.resharers.length > 3 && (
+                    <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg bg-black/60 backdrop-blur-md flex items-center justify-center text-white text-[10px] font-black z-0">
+                      +{post.resharers.length - 3}
+                    </div>
+                  )}
+                </div>
 
-          {/* Floating "Add a thought..." bubble (Visible ONLY if currently reshared or if it's someone else's repost) */}
-          {(isReshared || (post.reposter_username && post.reposter_username !== currentUser?.username)) && (
-            <div className="absolute bottom-4 left-4 flex items-center gap-3 z-30 pointer-events-none">
-              <div className="relative pointer-events-auto cursor-pointer group" onClick={(e) => { e.stopPropagation(); handleReshare(e); }}>
-                <img 
-                  src={(isReshared ? currentUser?.avatar_url : post.reposter_avatar) || '/uploads/avatars/default.png'} 
-                  className="w-10 h-10 rounded-full border-2 border-white shadow-lg object-cover transition-transform group-hover:scale-105"
-                  alt="Avatar"
-                />
-                <div className="absolute -bottom-1 -right-1 bg-[#833AB4] rounded-full p-1 border border-white">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                    <path d="M17 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"></path>
-                    <path d="M3 11V9a4 4 0 014-4h14" strokeLinecap="round" strokeLinejoin="round"></path>
-                    <path d="M7 22l-4-4 4-4" strokeLinecap="round" strokeLinejoin="round"></path>
-                    <path d="M21 13v2a4 4 0 01-4 4H3" strokeLinecap="round" strokeLinejoin="round"></path>
-                  </svg>
+                {/* Primary Note (Editable if it's mine, or showing the most recent followed one) */}
+                <div 
+                  className="pointer-events-auto min-w-[140px] z-40 relative group"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="absolute -top-2 -right-2 bg-[#17bf63] rounded-full p-1.5 border border-white shadow-lg z-50 animate-bounce-subtle">
+                    <Repeat2 size={10} color="white" strokeWidth={3} />
+                  </div>
+                  <MentionInput
+                    value={isReshared ? myThought : (post.resharers?.[0]?.comment || "")}
+                    onChange={(val) => {
+                      if (isReshared) setMyThought(val);
+                    }}
+                    onBlur={handleThoughtSave}
+                    className={`bg-black/60 backdrop-blur-xl text-white px-4 py-2 rounded-2xl text-sm font-semibold border border-white/30 shadow-2xl outline-none w-full transition-all focus:ring-2 focus:ring-indigo-400 focus:scale-105 ${isSavingThought ? 'opacity-50' : ''}`}
+                    placeholder={isReshared ? "Add a thought..." : ""}
+                    autoFocus={false}
+                  />
                 </div>
               </div>
-              <div 
-                className="pointer-events-auto min-w-[140px] z-40"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MentionInput
-                  value={(() => {
-                    const originalThought = isReshared ? myThought : (post.repost_comment || "");
-                    // If I am the author (isReshared), I see everything
-                    if (isReshared) return originalThought;
-                    // If I am NOT the author, strip mentions for privacy
-                    // "ur thought only if its a text,,if its mentioning somebody other app users should not see that"
-                    return originalThought.replace(/@\w+/g, '').trim() || "Add a thought...";
-                  })()}
-                  onChange={(val) => {
-                    if (isReshared) setMyThought(val);
-                  }}
-                  onBlur={handleThoughtSave}
-                  className={`bg-black/60 backdrop-blur-xl text-white px-4 py-2 rounded-2xl text-sm font-semibold border border-white/30 shadow-2xl outline-none w-full transition-all focus:ring-2 focus:ring-indigo-400 focus:scale-105 ${isSavingThought ? 'opacity-50' : ''}`}
-                  placeholder={isReshared ? "Add a thought..." : ""}
-                  autoFocus={false}
-                />
-              </div>
+
+              {/* Expanded Notes View (Option C) */}
+              {showNotes && (post.resharers?.length || 0) + (isReshared ? 1 : 0) > 1 && (
+                <div className="pointer-events-auto bg-white/90 backdrop-blur-2xl rounded-2xl p-3 shadow-2xl border border-white/50 max-w-[280px] animate-in fade-in zoom-in duration-200">
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1 flex justify-between items-center">
+                    <span>Friend's Thoughts</span>
+                    <button onClick={() => setShowNotes(false)} className="hover:text-slate-600 transition-colors">Close</button>
+                  </div>
+                  <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                    {/* My note if exists */}
+                    {isReshared && (
+                      <div className="flex gap-2">
+                        <img src={currentUser?.avatar_url || '/uploads/avatars/default.png'} className="w-6 h-6 rounded-full object-cover shrink-0" alt="" />
+                        <div className="bg-indigo-50/80 rounded-xl p-2 text-xs font-medium text-slate-700">
+                          <span className="font-bold text-indigo-600 block mb-0.5">You</span>
+                          {myThought || "Reshared this post"}
+                        </div>
+                      </div>
+                    )}
+                    {/* Others notes */}
+                    {post.resharers?.filter(r => r.username !== currentUser?.username).map((r, i) => (
+                      <div key={i} className="flex gap-2">
+                        <img src={r.avatar || '/uploads/avatars/default.png'} className="w-6 h-6 rounded-full object-cover shrink-0" alt="" />
+                        <div className="bg-slate-100/80 rounded-xl p-2 text-xs font-medium text-slate-700">
+                          <span className="font-bold text-slate-900 block mb-0.5">{r.username}</span>
+                          {r.comment || "Reshared this post"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -270,9 +347,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <span style={{ fontSize: '14px', fontWeight: '600', color: '#262626' }}>{sparkCount}</span>
           </div>
           
-          {/* Comment Icon */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <button 
+              onClick={() => setActiveModal('post_comments', null, { post })}
+              style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+            >
               <svg aria-label="Comment" color="#262626" fill="none" height="24" role="img" viewBox="0 0 24 24" width="24">
                 <path d="M20.656 17.008a9.993 9.993 0 10-3.59 3.615L22 22z" stroke="currentColor" strokeLinejoin="round" strokeWidth="2"></path>
               </svg>
@@ -306,7 +385,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
 
           {/* Share Icon */}
-          <button style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+          <button 
+            onClick={handleShare}
+            style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          >
             <svg aria-label="Share Post" color="#262626" fill="none" height="24" role="img" viewBox="0 0 24 24" width="24">
               <line fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" x1="22" x2="9.218" y1="3" y2="10.083"></line>
               <polygon fill="none" points="11.698 20.334 22 3.001 2 3.001 9.218 10.084 11.698 20.334" stroke="currentColor" strokeLinejoin="round" strokeWidth="2"></polygon>
@@ -316,8 +398,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         
         {/* Bookmark Icon */}
         <div className="actions-right">
-          <button style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-            <svg aria-label="Save" color="#262626" fill="none" height="24" role="img" viewBox="0 0 24 24" width="24">
+          <button 
+            onClick={handleSave}
+            style={{ background: 'none', border: 'none', padding: '0', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <svg aria-label="Save" color={isSaved ? '#3897f0' : '#262626'} fill={isSaved ? '#3897f0' : 'none'} height="24" role="img" viewBox="0 0 24 24" width="24">
               <path d="M20 21l-8-7.56L4 21V3h16v18z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
             </svg>
           </button>
@@ -325,7 +410,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </div>
 
       {/* Direct Comment Input with Mentions */}
-      <div className="px-4 py-3 border-t border-slate-50">
+      <div className="px-4 py-3 border-t border-slate-50 relative z-50">
         <form onSubmit={handleCommentSubmit} className="flex items-center gap-3">
           <img src={currentUser?.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full object-cover" alt="" />
           <div className="flex-1">

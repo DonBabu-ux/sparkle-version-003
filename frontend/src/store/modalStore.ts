@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type ModalType = 'post' | 'moment' | 'listing' | 'poll' | 'event' | 'confession' | 'settings' | 'afterglow' | 'share' | 'reshare' | null;
+type ModalType = 'post' | 'post_comments' | 'moment' | 'listing' | 'poll' | 'event' | 'confession' | 'settings' | 'afterglow' | 'share' | 'reshare' | null;
 
 interface ModalState {
   activeModal: ModalType;

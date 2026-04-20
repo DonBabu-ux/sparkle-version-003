@@ -11,11 +11,12 @@ import ConfessionModal from './modals/ConfessionModal';
 import SettingsModal from './modals/SettingsModal';
 import ShareModal from './modals/ShareModal';
 import ReshareModal from './modals/ReshareModal';
+import PostCommentsModal from './modals/PostCommentsModal';
 import FloatingAction from './FloatingAction';
 
 export default function Navbar() {
   const { user, logout } = useUserStore();
-  const { activeModal, setActiveModal, triggerSuccess } = useModalStore();
+  const { activeModal, setActiveModal, modalData, triggerSuccess } = useModalStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeHub, setActiveHub] = useState<string | null>(null);
@@ -242,6 +243,7 @@ export default function Navbar() {
             {activeModal === 'settings' && <SettingsModal onClose={() => setActiveModal(null)} />}
             {activeModal === 'share' && <ShareModal onClose={() => setActiveModal(null)} />}
             {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+            {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}
           </div>
         </div>
       )}

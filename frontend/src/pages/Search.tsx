@@ -118,7 +118,7 @@ export default function Search() {
     if (!query) return;
     const delayDebounce = setTimeout(() => {
       handleSearch(query, activeTab);
-    }, 400);
+    }, 500);
     return () => clearTimeout(delayDebounce);
   }, [query, activeTab, handleSearch]);
 

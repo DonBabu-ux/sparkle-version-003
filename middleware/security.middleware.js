@@ -23,8 +23,9 @@ const authRateLimiter = createRateLimiter(15 * 60 * 1000, 5); // 5 requests per 
 
 /**
  * General API rate limiter
+ * Increased to 300 per minute to handle search autocomplete + feed hammering
  */
-const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 60); // 60 requests per minute
+const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 300); 
 
 /**
  * Listings/feed rate limiter — prevents page hammering the DB

@@ -517,6 +517,24 @@ const getUserProfile = async (req, res) => {
         const identifier = req.params.id; // Could be ID or Username
         const currentUserId = req.user.userId || req.user.user_id;
 
+        // --- ✨ VIRTUAL PROFILE HANDLER ✨ ---
+        if (identifier === 'sparkle_team') {
+            return res.json({
+                id: 'mock-1',
+                username: 'sparkle_team',
+                name: 'Sparkle Team',
+                profile_picture: '/uploads/avatars/default.png',
+                avatar: '/uploads/avatars/default.png',
+                bio: 'The creators of Sparkle. We are here to help you discover the magic! ✨',
+                is_verified: 1,
+                followers: 1000000,
+                following: 1,
+                posts: 42,
+                campus: 'Global',
+                major: 'Engineering',
+                is_followed_by_me: true
+            });
+        }
         const user = await User.getProfileWithStats(identifier, currentUserId);
         
         if (user && user.user_id !== currentUserId) {
@@ -573,6 +591,22 @@ const getUserPosts = async (req, res) => {
     try {
         const userId = req.params.id;
         const currentUserId = req.user.userId || req.user.user_id;
+
+        // --- ✨ VIRTUAL POSTS HANDLER ✨ ---
+        if (userId === 'sparkle_team' || userId === 'mock-1') {
+            return res.json([{
+                id: 'p-mock-1',
+                post_id: 'p-mock-1',
+                content: 'Welcome to Sparkle! This is where discovery happens. ✨',
+                username: 'sparkle_team',
+                user_name: 'Sparkle Team',
+                avatar_url: '/uploads/avatars/default.png',
+                sparks: 9999,
+                comments: 123,
+                created_at: new Date()
+            }]);
+        }
+
         const posts = await Post.getUserPosts(userId, currentUserId);
         
         const mappedPosts = posts.map(post => ({

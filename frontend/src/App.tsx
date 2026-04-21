@@ -61,6 +61,7 @@ import Gallery from './pages/Gallery';
 import Verified from './pages/Verified';
 import Invite from './pages/Invite';
 import Help from './pages/Help';
+import Onboarding from './pages/Onboarding';
 
 import BlockedUsers from './pages/BlockedUsers';
 
@@ -138,6 +139,7 @@ function App() {
         <Route path="/verified" element={isAuthenticated ? <Verified /> : <Navigate to="/login" />} />
         <Route path="/invite" element={isAuthenticated ? <Invite /> : <Navigate to="/login" />} />
         <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
+        <Route path="/onboarding/about" element={isAuthenticated ? <Onboarding /> : <Navigate to="/login" />} />
 
         {/* ── Phase 5: Public & Static ── */}
         <Route path="/about" element={<About />} />

@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { X, MapPin, Check, Clock, Plus, Users, Sparkles, GraduationCap } from 'lucide-react';
+import { MapPin, Check, Clock, Plus, Users, Sparkles, GraduationCap, MoreHorizontal } from 'lucide-react';
 import api from '../api/api';
 import { useState } from 'react';
 import type { User } from '../types/user';
+import UserActionModal from './modals/UserActionModal';
 
 interface UserCardProps {
   u: User;
@@ -14,6 +15,7 @@ export default function UserCard({ u, onRemove }: UserCardProps) {
   const [isFollowed, setIsFollowed] = useState(u.is_followed);
   const [requestStatus, setRequestStatus] = useState(u.request_status);
   const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const toggleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,16 +48,21 @@ export default function UserCard({ u, onRemove }: UserCardProps) {
       onClick={() => navigate(`/profile/${u.username}`)}
     >
       
-      {/* Dismiss button */}
-      {(!isFollowed && onRemove) ? (
-        <button 
-          onClick={(e) => { e.stopPropagation(); onRemove(u.user_id || u.id); }}
-          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-50 text-slate-300 flex items-center justify-center hover:bg-slate-100 hover:text-slate-500 transition-all duration-300 z-20 focus:outline-none"
-          aria-label="Dismiss"
-        >
-          <X size={18} strokeWidth={2.5} />
-        </button>
-      ) : null}
+      {/* 3-Dots Action Menu */}
+      <button 
+        onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
+        className="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 hover:text-slate-900 transition-all duration-300 z-20 focus:outline-none"
+        aria-label="Actions"
+      >
+        <MoreHorizontal size={20} strokeWidth={2.5} />
+      </button>
+
+      {showModal && (
+        <UserActionModal 
+            user={u} 
+            onClose={() => setShowModal(false)} 
+        />
+      )}
 
       {/* Avatar + Status */}
       <div className="relative flex justify-center mt-4 mb-6 z-10">

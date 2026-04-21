@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
 import { Grid, Bookmark, UserSquare, Clapperboard, Settings as SettingsIcon, Link as LinkIcon, Plus, ArrowLeft, MoreHorizontal } from 'lucide-react';
+import UserActionModal from '../components/modals/UserActionModal';
 
 export default function Profile() {
   const { username } = useParams();
@@ -20,6 +21,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>('posts');
   const [isFollowing, setIsFollowing] = useState(false);
   const [isRequested, setIsRequested] = useState(false);
+  const [actionItem, setActionItem] = useState<User | null>(null);
 
   // List Modal State
   const [listModal, setListModal] = useState<{ open: boolean; type: 'followers' | 'following'; data: User[] }>({
@@ -357,14 +359,22 @@ export default function Profile() {
                       <span className="ig-fullname-sm">{u.name}</span>
                     </div>
                   </div>
-                  {u.user_id !== currentUser?.id && u.user_id !== currentUser?.user_id && (
-                    <button 
-                      onClick={() => handleListFollowToggle(u.user_id, i)}
-                      className={u.is_followed_by_me ? "ig-btn-secondary-sm" : "ig-btn-primary-sm"}
-                    >
-                      {u.is_followed_by_me ? 'Following' : 'Follow'}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                      {u.user_id !== currentUser?.id && u.user_id !== currentUser?.user_id && (
+                        <button 
+                          onClick={() => handleListFollowToggle(u.user_id, i)}
+                          className={u.is_followed_by_me ? "ig-btn-secondary-sm" : "ig-btn-primary-sm"}
+                        >
+                          {u.is_followed_by_me ? 'Following' : 'Follow'}
+                        </button>
+                      )}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setActionItem(u); }}
+                        className="p-1.5 hover:bg-[#363636] rounded-full text-[#a8a8a8] hover:text-white transition-colors"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                  </div>
                 </div>
               )) : (
                 <div className="ig-empty-list">
@@ -374,6 +384,10 @@ export default function Profile() {
             </div>
           </div>
         </div>
+      )}
+
+      {actionItem && (
+        <UserActionModal user={actionItem} onClose={() => setActionItem(null)} />
       )}
 
       <style>{`

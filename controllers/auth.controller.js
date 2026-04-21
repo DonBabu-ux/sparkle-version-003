@@ -63,6 +63,13 @@ const signup = async (req, res) => {
             [userId, name, username, email, hashedPassword, campus || null, major || null, year || null, phone_number || null, user_type, student_id || null]
         );
 
+        // --- NEW: System Welcome Notification ---
+        // Automatically insert a pinned welcome notification for new users
+        await query(
+            'INSERT INTO notifications (notification_id, user_id, type, title, content, action_url, is_read) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [crypto.randomUUID(), userId, 'system_welcome', 'Welcome to Sparkle', 'Discover trends, follow creators, and share your first spark.', '/explore', 0]
+        );
+
 
         // --- NEW: Generate email verification code ---
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();

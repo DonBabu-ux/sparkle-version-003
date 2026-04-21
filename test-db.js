@@ -1,11 +1,11 @@
 const pool = require('./config/database');
 async function test() {
     try {
-        const [rows] = await pool.query('SELECT 1');
-        console.log('✅ Database Connection Successful');
+        const [rows] = await pool.query('SHOW TABLES');
+        console.log('✅ Tables:', rows);
         process.exit(0);
     } catch (err) {
-        console.error('❌ Database Connection Failed:', err.message);
+        console.error('❌ Error:', err.message);
         process.exit(1);
     }
 }

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search as SearchIcon, X, Clock, MoreHorizontal,
   ChevronRight, Hash, ChevronLeft, Trash2, 
-  RotateCw, User
+  RotateCw, User, Zap
 } from 'lucide-react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
@@ -33,7 +33,9 @@ export default function Search() {
   const [results, setResults] = useState<any>({});
   const [history, setHistory] = useState<any[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
-  const [discovery, setDiscovery] = useState<{ creators: any[], groups: any[] }>({ creators: [], groups: [] });
+  const [discovery, setDiscovery] = useState<{ creators: any[], groups: any[], historyUpdates: any[] }>({ 
+    creators: [], groups: [], historyUpdates: [] 
+  });
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [actionItem, setActionItem] = useState<any | null>(null);
@@ -43,15 +45,35 @@ export default function Search() {
   const fetchInitialData = useCallback(async () => {
     setInitialLoading(true);
     try {
-      const [historyRes, trendingRes, discoveryRes] = await Promise.all([
+      const [historyRes, trendingRes, discoveryRes] = await Promise.allSettled([
         api.get('/search/history'),
         api.get('/search/trending'),
         api.get('/search/discovery')
       ]);
       
-      if (historyRes.data.status === 'success') setHistory(historyRes.data.data || []);
-      if (trendingRes.data.status === 'success') setTrending(trendingRes.data.data || []);
-      if (discoveryRes.data.status === 'success') setDiscovery(discoveryRes.data.data || { creators: [], groups: [] });
+      if (historyRes.status === 'fulfilled' && historyRes.value.data.status === 'success') {
+          setHistory(historyRes.value.data.data || []);
+      }
+      if (trendingRes.status === 'fulfilled' && trendingRes.value.data.status === 'success') {
+          setTrending(trendingRes.value.data.data || []);
+      }
+      
+      if (discoveryRes.status === 'fulfilled' && discoveryRes.value.data.status === 'success') {
+          setDiscovery(discoveryRes.value.data.data);
+      } else {
+          // Frontend Fallback if discovery fails or is empty
+          setDiscovery(prev => ({
+              ...prev,
+              historyUpdates: [{
+                  user_id: 'mock-1',
+                  username: 'sparkle_team',
+                  name: 'Sparkle Team',
+                  avatar_url: '/uploads/avatars/default.png',
+                  has_story: 1,
+                  updates: ['Welcome to Sparkle!', 'Discovery Active']
+              }]
+          }));
+      }
     } catch (err) {
       console.error('Discovery fetch error:', err);
     } finally {
@@ -135,7 +157,6 @@ export default function Search() {
     <div className="bg-white min-h-screen">
       <Navbar />
       
-      {/* 🏙️ FACEBOOK STYLE DISCOVERY hub 🏙️ */}
       <div className="lg:ml-[80px] xl:ml-[80px] bg-white min-h-screen">
         
         {/* TOP SEARCH HEADER */}
@@ -165,21 +186,61 @@ export default function Search() {
           </div>
         </header>
 
-        {/* CONTENT FLOW */}
         <main className="max-w-2xl mx-auto w-full px-4 md:px-6 py-6 pb-40">
             
             {!query.trim() ? (
                 <div className="space-y-10">
                     
-                    {/* RECENT SECTION */}
+                    {/* 🔥 RECENT UPDATES SECTION 🔥 */}
+                    {discovery.historyUpdates && discovery.historyUpdates.length > 0 && (
+                      <section className="bg-slate-50/50 p-6 rounded-[32px] border border-slate-100">
+                          <div className="flex items-center gap-2 mb-6 px-2">
+                              <Zap size={20} className="text-amber-500 fill-amber-500" />
+                              <h2 className="text-[17px] font-black text-[#111] tracking-tight">Recent Updates</h2>
+                          </div>
+                          
+                          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                              {discovery.historyUpdates.map((u, i) => (
+                                   <div 
+                                       key={`upd-${u.user_id || i}`} 
+                                       className="flex flex-col items-center gap-2 min-w-[100px] cursor-pointer group relative"
+                                   >
+                                       <div className="relative" onClick={() => navigate(`/profile/${u.username}`)}>
+                                           <img src={u.avatar_url || '/uploads/avatars/default.png'} className={`w-16 h-16 rounded-[24px] object-cover ring-2 ring-white shadow-md transition-transform group-hover:scale-105 ${u.has_story ? 'ring-offset-2 ring-blue-500' : ''}`} alt="" />
+                                           {u.updates.length > 0 && (
+                                               <div className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-white shadow-sm">
+                                                   {u.updates.length}
+                                               </div>
+                                           )}
+                                       </div>
+                                       
+                                       <button 
+                                          onClick={(e) => { e.stopPropagation(); setActionItem({ ...u, type: 'user' }); }}
+                                          className="absolute top-0 right-0 p-1.5 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm z-10 hover:bg-white"
+                                       >
+                                          <MoreHorizontal size={14} className="text-slate-900" />
+                                       </button>
+
+                                       <div className="text-center" onClick={() => navigate(`/profile/${u.username}`)}>
+                                           <span className="block text-[13px] font-bold text-slate-800 truncate w-20 leading-tight">{u.name.split(' ')[0]}</span>
+                                           <span className="block text-[10px] font-black text-blue-600 uppercase tracking-tighter mt-0.5">
+                                               {u.updates[0] || 'View Profile'}
+                                           </span>
+                                       </div>
+                                   </div>
+                              ))}
+                          </div>
+                      </section>
+                    )}
+
+                    {/* RECENT SEARCHES */}
                     <section>
                         <div className="flex items-center justify-between mb-4 px-2">
-                            <h2 className="text-[17px] font-bold text-[#111]">Recent</h2>
+                            <h2 className="text-[17px] font-bold text-[#111]">Recent Searches</h2>
                             <button onClick={() => navigate('/search/history')} className="text-[14px] font-bold text-blue-600 hover:opacity-70">See all</button>
                         </div>
                         
                         <div className="divide-y divide-slate-50">
-                            {/* Previous Search Queries */}
                             {Array.isArray(history) && history.slice(0, 5).map((h, i) => (
                                 <div key={`hist-${h.id || i}`} className="group flex items-center gap-4 py-3.5 px-2 hover:bg-slate-50 rounded-xl transition-all">
                                     <div className="flex-1 flex items-center gap-4 cursor-pointer" onClick={() => setQuery(h.query)}>
@@ -190,25 +251,6 @@ export default function Search() {
                                     </div>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setActionItem({ ...h, type: 'history' }); }}
-                                        className="p-2 hover:bg-white rounded-full transition-all text-slate-300 hover:text-slate-900"
-                                    >
-                                        <MoreHorizontal size={20} />
-                                    </button>
-                                </div>
-                            ))}
-
-                            {/* Recent People */}
-                            {Array.isArray(discovery.creators) && discovery.creators.slice(0, 3).map((u, i) => (
-                                <div key={`user-${u.user_id || i}`} className="group flex items-center gap-4 py-3.5 px-2 hover:bg-slate-50 rounded-xl transition-all">
-                                    <div className="flex-1 flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/profile/${u.username}`)}>
-                                        <img src={u.avatar_url || '/uploads/avatars/default.png'} className="w-[44px] h-[44px] rounded-full object-cover shadow-sm" alt="" />
-                                        <div className="min-w-0">
-                                            <div className="text-[15px] font-bold text-slate-900 truncate leading-tight">{u.name}</div>
-                                            <div className="text-[12px] text-slate-400 font-medium truncate">@{u.username}</div>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); setActionItem({ ...u, type: 'user' }); }}
                                         className="p-2 hover:bg-white rounded-full transition-all text-slate-300 hover:text-slate-900"
                                     >
                                         <MoreHorizontal size={20} />
@@ -348,11 +390,9 @@ export default function Search() {
               transition={{ type: "spring", damping: 30, stiffness: 400 }}
               className="fixed bottom-0 sm:bottom-auto sm:relative bg-white w-full sm:max-w-[400px] rounded-t-[40px] sm:rounded-[40px] shadow-2xl z-[5001] overflow-hidden"
             >
-              {/* Header / Grabber for Mobile */}
               <div className="h-1.5 w-16 bg-slate-200 rounded-full mx-auto mt-4 mb-2 sm:hidden" />
               
               <div className="p-10">
-                {/* Item Info */}
                 <div className="flex flex-col items-center mb-10 text-center">
                     {actionItem.type === 'user' ? (
                         <>
@@ -376,7 +416,6 @@ export default function Search() {
                     )}
                 </div>
 
-                {/* Big Action Buttons */}
                 <div className="grid grid-cols-1 gap-4">
                     {actionItem.type === 'user' ? (
                         <>
@@ -408,6 +447,18 @@ export default function Search() {
                                 </div>
                                 <ChevronRight size={22} className="text-slate-200 group-hover:text-black transition-colors" />
                             </button>
+
+                            <button 
+                                onClick={() => setActionItem(null)}
+                                className="w-full flex items-center justify-between p-6 bg-slate-50/30 hover:bg-slate-100/50 rounded-[24px] group transition-all"
+                            >
+                                <div className="flex items-center gap-5">
+                                    <div className="p-3.5 bg-white border-2 border-slate-200 rounded-2xl group-hover:scale-110 transition-all">
+                                        <X size={20} strokeWidth={3} className="text-slate-400" />
+                                    </div>
+                                    <span className="text-[18px] font-black text-slate-400 tracking-tight">Dismiss</span>
+                                </div>
+                            </button>
                         </>
                     ) : (
                         <button 
@@ -425,7 +476,6 @@ export default function Search() {
                     )}
                 </div>
 
-                {/* Cancel Button */}
                 <button 
                     onClick={() => setActionItem(null)}
                     className="w-full mt-8 py-5 text-[15px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-slate-900 transition-colors"

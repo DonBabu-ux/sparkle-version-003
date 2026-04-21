@@ -63,7 +63,7 @@ const notificationController = {
             if (unreadOnly) {
                 baseSql += ` AND n.is_read = 0`;
             }
-            baseSql += ` ORDER BY n.created_at DESC LIMIT ? OFFSET ?`;
+            baseSql += ` ORDER BY CASE WHEN n.type = 'system_welcome' AND n.is_read = 0 THEN 1 ELSE 0 END DESC, n.created_at DESC LIMIT ? OFFSET ?`;
             params.push(limit, offset);
 
             const [rows] = await pool.query(baseSql, params);

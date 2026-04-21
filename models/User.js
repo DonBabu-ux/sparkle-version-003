@@ -45,7 +45,7 @@ class User {
                     (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
                     (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count
              FROM users u
-             WHERE u.user_id = ?`,
+             WHERE u.user_id = ? AND u.account_status != 'suspended'`,
             [userId]
         );
         const user = users[0] || null;
@@ -431,12 +431,22 @@ class User {
     }
 
     /**
-     * Delete user account
+     * Mark account for deletion (Soft Delete - Algorithm 10)
      */
     static async delete(userId) {
-        await pool.query('DELETE FROM users WHERE user_id = ?', [userId]);
+        // Set deletion_marked_at. We keep the record for 30 days for restoration.
+        // We also "soft delete" by setting deleted_at to NOW() for display purposes.
+        await pool.query(
+            `UPDATE users SET 
+                deletion_marked_at = NOW(), 
+                deleted_at = NOW(),
+                account_status = 'deactivated'
+             WHERE user_id = ?`, 
+            [userId]
+        );
         return true;
     }
+
 
     /**
      * Update password

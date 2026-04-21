@@ -1,0 +1,822 @@
+Here's your **ultra-detailed feature breakdown** with access control for each role:
+
+---
+
+## 🔐 1. LOGIN
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 1.1 | Enter email | Any user | Type email into input field |
+| 1.2 | Enter password | Any user | Type password (hidden dots) |
+| 1.3 | Show/hide password | Any user | Click eye icon to see password |
+| 1.4 | Click login button | Any user | Send credentials to server |
+| 1.5 | Validate credentials | System | Check if email + password match database |
+| 1.6 | Create session | System | Generate JWT token + store in cookies |
+| 1.7 | Redirect to dashboard | Any user | Go to /dashboard after success |
+| 1.8 | Show error | Any user | Display "Invalid email or password" |
+| 1.9 | Rate limit attempts | System | Block after 5 failed attempts for 15 min |
+| 1.10 | Remember me | Any user | Keep logged in for 30 days instead of 24hrs |
+
+---
+
+## 📝 2. SIGNUP
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 2.1 | Enter full name | Guest | Type first + last name |
+| 2.2 | Enter email | Guest | Type unique email address |
+| 2.3 | Enter password | Guest | Create password (min 8 chars) |
+| 2.4 | Confirm password | Guest | Re-type password to match |
+| 2.5 | Select role | Guest | Choose: Student / Alumni / Faculty |
+| 2.6 | Enter student ID | Guest | Only if role = Student |
+| 2.7 | Select campus | Guest | Choose from dropdown list |
+| 2.8 | Upload profile photo | Guest | Optional image upload |
+| 2.9 | Accept terms | Guest | Checkbox for Terms of Service |
+| 2.10 | Click signup button | Guest | Send all data to server |
+| 2.11 | Check email unique | System | Verify email not already used |
+| 2.12 | Hash password | System | Encrypt password with bcrypt |
+| 2.13 | Create user record | System | Save to database |
+| 2.14 | Send verification email | System | Email with 6-digit code |
+| 2.15 | Show success message | Guest | "Check your email for verification" |
+
+---
+
+## ✅ 3. EMAIL VERIFICATION
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 3.1 | Enter 6-digit code | New user | Type code from email |
+| 3.2 | Click verify button | New user | Send code to server |
+| 3.3 | Check code matches | System | Compare with database record |
+| 3.4 | Check code not expired | System | Code valid for 15 minutes only |
+| 3.5 | Mark email as verified | System | Set email_verified = true |
+| 3.6 | Activate account | System | User can now login |
+| 3.7 | Redirect to login | New user | Go to /login |
+| 3.8 | Resend code | New user | Click "Resend" - new code emailed |
+| 3.9 | Limit resends | System | Max 3 resends per hour |
+
+---
+
+## 🔓 4. FORGOT PASSWORD
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 4.1 | Click "Forgot Password" | Any user | Go to /forgot-password page |
+| 4.2 | Enter email address | Any user | Type registered email |
+| 4.3 | Click send button | Any user | Submit email to server |
+| 4.4 | Check email exists | System | Verify email in database |
+| 4.5 | Generate reset token | System | Create unique secure token |
+| 4.6 | Store token with expiry | System | Save token (valid 1 hour) |
+| 4.7 | Send reset email | System | Email with link containing token |
+| 4.8 | Show confirmation | Any user | "Reset link sent to your email" |
+| 4.9 | Hide if email not found | System | Same message (security - don't reveal) |
+
+---
+
+## 🔐 5. RESET PASSWORD
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 5.1 | Click email link | Any user | Opens /reset-password?token=xxx |
+| 5.2 | Validate token | System | Check token exists + not expired |
+| 5.3 | Show reset form | Any user | Display new password fields |
+| 5.4 | Enter new password | Any user | Type new password |
+| 5.5 | Confirm new password | Any user | Re-type to match |
+| 5.6 | Click reset button | Any user | Submit new password |
+| 5.7 | Hash new password | System | Encrypt before saving |
+| 5.8 | Update user password | System | Replace old password hash |
+| 5.9 | Invalidate token | System | Delete token so can't reuse |
+| 5.10 | Invalidate all sessions | System | Force logout from all devices |
+| 5.11 | Show success | Any user | "Password changed. Please login." |
+| 5.12 | Redirect to login | Any user | Go to /login |
+
+---
+
+## 👤 6. VIEW PROFILE (OWN)
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 6.1 | Click profile icon | Logged in user | Navigate to /profile |
+| 6.2 | Display name | User | Show full name |
+| 6.3 | Display username | User | Show @username |
+| 6.4 | Display bio | User | Show user's description |
+| 6.5 | Display avatar | User | Show profile picture |
+| 6.6 | Display join date | User | Show "Member since June 2024" |
+| 6.7 | Display post count | User | Show total number of posts |
+| 6.8 | Display follower count | User | Show number of followers |
+| 6.9 | Display following count | User | Show number of following |
+| 6.10 | Display user's posts | User | List of their own posts |
+| 6.11 | Display edit button | User | Show pencil icon to edit |
+| 6.12 | Display settings link | User | Link to /settings |
+
+---
+
+## ✏️ 7. EDIT PROFILE
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 7.1 | Click edit button | Profile owner | Switch to edit mode |
+| 7.2 | Change name | Profile owner | Edit text field |
+| 7.3 | Change username | Profile owner | Edit - check uniqueness live |
+| 7.4 | Change bio | Profile owner | Textarea (max 150 chars) |
+| 7.5 | Change avatar | Profile owner | Upload new image |
+| 7.6 | Crop avatar | Profile owner | Drag square to select area |
+| 7.7 | Add website link | Profile owner | Enter URL |
+| 7.8 | Add location | Profile owner | Enter city/campus |
+| 7.9 | Change cover photo | Profile owner | Upload banner image |
+| 7.10 | Click save | Profile owner | Submit all changes |
+| 7.11 | Validate username | System | Check not taken by other user |
+| 7.12 | Validate image size | System | Avatar max 5MB |
+| 7.13 | Optimize image | System | Compress to 500x500 |
+| 7.14 | Save to storage | System | Upload to cloud storage |
+| 7.15 | Update database | System | Save all new values |
+| 7.16 | Show success | Profile owner | "Profile updated" toast |
+| 7.17 | Cancel edit | Profile owner | Discard changes, exit edit mode |
+
+---
+
+## ⚙️ 8. CHANGE PASSWORD (while logged in)
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 8.1 | Go to Settings > Security | Logged in user | Navigate to password section |
+| 8.2 | Enter current password | User | Verify identity |
+| 8.3 | Enter new password | User | Min 8 chars, strength meter |
+| 8.4 | Confirm new password | User | Must match new password |
+| 8.5 | Click update button | User | Submit to server |
+| 8.6 | Verify current password | System | Check matches database |
+| 8.7 | Hash new password | System | Encrypt new password |
+| 8.8 | Update database | System | Replace password hash |
+| 8.9 | Show success | User | "Password updated" |
+| 8.10 | Keep logged in | User | Session remains active |
+| 8.11 | Wrong current password | System | Show error, no update |
+
+---
+
+## 🔒 9. ACCOUNT SETTINGS
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 9.1 | Privacy - Make profile private | User | Only followers see posts |
+| 9.2 | Privacy - Hide email | User | Email not shown on profile |
+| 9.3 | Privacy - Hide online status | User | Others can't see when online |
+| 9.4 | Notifications - Email notifications | User | Receive email for activity |
+| 9.5 | Notifications - Push notifications | User | Browser push alerts |
+| 9.6 | Notifications - Message alerts | User | Notify when get DM |
+| 9.7 | Notifications - Like alerts | User | Notify when someone likes post |
+| 9.8 | Notifications - Comment alerts | User | Notify when someone comments |
+| 9.9 | Notifications - Follow alerts | User | Notify when someone follows |
+| 9.10 | Theme - Dark/Light mode | User | Switch color scheme |
+| 9.11 | Language | User | Select preferred language |
+| 9.12 | Delete account | User | Request account deletion |
+
+---
+
+## 🗑️ 10. DELETE ACCOUNT
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 10.1 | Click delete account | User | Opens confirmation modal |
+| 10.2 | Enter password | User | Confirm identity |
+| 10.3 | Check "I understand" | User | Confirm data loss accepted |
+| 10.4 | Click permanently delete | User | Submit deletion request |
+| 10.5 | Verify password | System | Check matches database |
+| 10.6 | Soft delete user | System | Set deleted_at timestamp |
+| 10.7 | Anonymize posts | System | Change post author to [Deleted User] |
+| 10.8 | Delete personal data | System | Remove email, name, etc |
+| 10.9 | Delete all sessions | System | Logout from all devices |
+| 10.10 | Redirect to goodbye page | User | Show "Account deleted" message |
+| 10.11 | Grace period | System | 30 days to restore before hard delete |
+
+---
+
+## 📝 11. CREATE POST
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 11.1 | Click create post | Logged in user | Open post composer modal |
+| 11.2 | Type content | User | Write text (max 1000 chars) |
+| 11.3 | Add images | User | Upload up to 5 images |
+| 11.4 | Add hashtags | User | Type #topic (auto-suggest) |
+| 11.5 | Tag friends | User | @mention other users |
+| 11.6 | Add location | User | Tag campus location |
+| 11.7 | Set visibility | User | Choose: Public / Friends / Only me |
+| 11.8 | Schedule post | User | Pick future date/time |
+| 11.9 | Click post button | User | Submit to server |
+| 11.10 | Validate content | System | Check for profanity/spam |
+| 11.11 | Upload images | System | Save to cloud storage |
+| 11.12 | Process hashtags | System | Extract and save #tags |
+| 11.13 | Process mentions | System | Create notifications for @users |
+| 11.14 | Save post | System | Insert into posts table |
+| 11.15 | Update feed | System | Add to followers' feeds |
+| 11.16 | Show in profile | System | Post appears on user's profile |
+
+---
+
+## 📰 12. VIEW FEED
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 12.1 | Go to dashboard | Logged in user | Load /dashboard |
+| 12.2 | Fetch posts | System | Get posts from followed users |
+| 12.3 | Sort by recent | System | Newest posts first |
+| 12.4 | Show 10 posts | System | Load first page |
+| 12.5 | Scroll to load more | User | Infinite scroll triggers next page |
+| 12.6 | Display each post | System | Show: author, content, images, date |
+| 12.7 | Show like count | System | Number of likes on post |
+| 12.8 | Show comment count | System | Number of comments |
+| 12.9 | Show share count | System | Number of shares |
+| 12.10 | Show if user liked | System | Highlight like button if liked |
+| 12.11 | Click on post | User | Go to /post/:id |
+| 12.12 | Refresh feed | User | Pull down to refresh |
+
+---
+
+## ❤️ 13. LIKE POST
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 13.1 | Click heart icon | Any logged in user | Toggle like |
+| 13.2 | Send like request | System | POST /api/posts/:id/like |
+| 13.3 | Check not already liked | System | Verify unique like |
+| 13.4 | Add to likes table | System | Insert user_id + post_id |
+| 13.5 | Increment post like count | System | posts.likes_count +1 |
+| 13.6 | Update UI instantly | User | Heart turns red, count +1 |
+| 13.7 | Create notification | System | Notify post owner "User liked your post" |
+| 13.8 | Unlike if already liked | System | Remove like, count -1 |
+| 13.9 | Cannot like own post | System | Show error, no action |
+
+---
+
+## 💬 14. COMMENT ON POST
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 14.1 | Click comment icon | Any logged in user | Open comment box |
+| 14.2 | Type comment | User | Write text (max 500 chars) |
+| 14.3 | Add image to comment | User | Optional image upload |
+| 14.4 | Click post comment | User | Submit comment |
+| 14.5 | Validate content | System | Check for spam/profanity |
+| 14.6 | Save comment | System | Insert into comments table |
+| 14.7 | Increment comment count | System | posts.comments_count +1 |
+| 14.8 | Display comment | User | Show instantly under post |
+| 14.9 | Create notification | System | Notify post owner "User commented" |
+| 14.10 | Notify mentioned users | System | If @user, notify them |
+| 14.11 | Delete comment | User (owner or admin) | Remove comment, count -1 |
+| 14.12 | Edit comment | User (owner) | Update within 10 min window |
+| 14.13 | Like a comment | Any user | Heart on comment |
+| 14.14 | Reply to comment | Any user | Nested comment thread |
+
+---
+
+## 📤 15. SHARE POST
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 15.1 | Click share icon | Any logged in user | Open share options |
+| 15.2 | Share to feed | User | Repost to own profile |
+| 15.3 | Add own comment | User | Optional text with repost |
+| 15.4 | Share to story | User | Post appears as story |
+| 15.5 | Share in message | User | Send post link to chat |
+| 15.6 | Copy link | User | Copy post URL to clipboard |
+| 15.7 | Share externally | User | Share to WhatsApp/Twitter/etc |
+| 15.8 | Save post | User | Bookmark for later |
+| 15.9 | Report post | User | Flag inappropriate content |
+| 15.10 | Increment share count | System | posts.shares_count +1 |
+
+---
+
+## 🔍 16. SEARCH
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 16.1 | Click search bar | Any user | Focus on input |
+| 16.2 | Type query | Any user | Start typing keyword |
+| 16.3 | Show suggestions | System | Dropdown with recent searches |
+| 16.4 | Press Enter | User | Submit search |
+| 16.5 | Search users | System | Find by name, username |
+| 16.6 | Search posts | System | Find by content, hashtags |
+| 16.7 | Search groups | System | Find groups by name |
+| 16.8 | Filter by type | User | Tabs: Users / Posts / Groups |
+| 16.9 | Filter by campus | User | Only show same campus |
+| 16.10 | Sort by recent | User | Newest first |
+| 16.11 | Sort by relevance | User | Best match first |
+| 16.12 | Save search | System | Add to recent searches |
+| 16.13 | Clear search history | User | Delete all recent searches |
+| 16.14 | Load more results | User | Pagination/infinite scroll |
+
+---
+
+## 👥 17. FOLLOW/UNFOLLOW USER
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 17.1 | Visit user profile | Any logged in user | See profile of another user |
+| 17.2 | Click follow button | User | Send follow request |
+| 17.3 | Check privacy | System | If profile public → follow instantly |
+| 17.4 | If profile private | System | Send follow request (pending) |
+| 17.5 | Create follow record | System | Insert into follows table |
+| 17.6 | Increment follower count | System | user.followers_count +1 |
+| 17.7 | Increment following count | System | user.following_count +1 |
+| 17.8 | Create notification | System | Notify target "User started following you" |
+| 17.9 | Button changes to "Following" | User | Visual feedback |
+| 17.10 | Click unfollow | User | Remove follow relationship |
+| 17.11 | Decrement counts | System | Both counts -1 |
+| 17.12 | Remove from feed | System | Posts from unfollowed user disappear |
+
+---
+
+## ✅ 18. FOLLOW REQUEST (Private Profile)
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 18.1 | Request to follow | Any user | Click follow on private profile |
+| 18.2 | Status = pending | System | Request saved, not yet approved |
+| 18.3 | Notification to target | System | "User wants to follow you" |
+| 18.4 | Target views request | Profile owner | See list of pending requests |
+| 18.5 | Approve request | Profile owner | Click ✓ on request |
+| 18.6 | Follow becomes active | System | Now follower can see posts |
+| 18.7 | Deny request | Profile owner | Click ✗ on request |
+| 18.8 | Request removed | System | Follower can't see private posts |
+| 18.9 | Cancel request | Requester | Withdraw pending follow request |
+
+---
+
+## 💬 19. SEND MESSAGE
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 19.1 | Go to Messages | Logged in user | Navigate to /messages |
+| 19.2 | Select conversation | User | Click on existing chat |
+| 19.3 | Or start new chat | User | Click "+" and search user |
+| 19.4 | Type message | User | Write in input box |
+| 19.5 | Add emoji | User | Click emoji picker |
+| 19.6 | Attach image | User | Upload photo (max 10MB) |
+| 19.7 | Attach file | User | Upload PDF/DOC (max 25MB) |
+| 19.8 | Click send | User | Submit message |
+| 19.9 | Save to database | System | Insert into messages table |
+| 19.10 | Update conversation | System | Update last_message, updated_at |
+| 19.11 | Send realtime | System | Push via WebSocket to recipient |
+| 19.12 | Show in UI | Sender | Message appears instantly |
+| 19.13 | Show delivered status | Sender | ✓ (delivered to server) |
+| 19.14 | Show read status | Sender | ✓✓ (recipient opened) |
+| 19.15 | Create notification | System | If recipient offline, push notification |
+| 19.16 | Increment unread count | System | recipient.unread_messages +1 |
+
+---
+
+## 📖 20. VIEW MESSAGES
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 20.1 | Open conversation | User | Click on chat from list |
+| 20.2 | Load messages | System | Fetch last 50 messages |
+| 20.3 | Scroll up to load more | User | Fetch older messages (pagination) |
+| 20.4 | Display messages | System | Sender messages on right, recipient on left |
+| 20.5 | Show timestamps | System | Time below each message |
+| 20.6 | Show read receipts | System | "Seen" at bottom of conversation |
+| 20.7 | Mark as read | System | When user opens chat, unread → read |
+| 20.8 | Clear unread badge | System | Remove notification badge |
+| 20.9 | Typing indicator | System | Shows "User is typing..." |
+| 20.10 | Online status | System | Green dot if user active |
+| 20.11 | Delete message | User (sender only) | Remove for everyone |
+| 20.12 | Delete for me | User | Remove only from own view |
+| 20.13 | Reply to message | User | Quote specific message |
+
+---
+
+## 👥 21. GROUP CHAT
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 21.1 | Create group | Any user | Click "New Group" |
+| 21.2 | Enter group name | User | Type name (max 50 chars) |
+| 21.3 | Add members | User | Select from friends list |
+| 21.4 | Set group icon | User | Upload image |
+| 21.5 | Click create | User | Submit group |
+| 21.6 | Save group | System | Insert into groups table |
+| 21.7 | Add creator as admin | System | Set role = admin |
+| 21.8 | Add members | System | Insert into group_members table |
+| 21.9 | Notify members | System | "You were added to group" |
+| 21.10 | Send messages | Members | Same as 1-on-1 chat |
+| 21.11 | See all messages | Members | Everyone sees all messages |
+| 21.12 | Leave group | Any member | Remove self from group |
+| 21.13 | Add member (admin only) | Admin | Can add new users |
+| 21.14 | Remove member (admin only) | Admin | Kick user from group |
+| 21.15 | Change group name (admin) | Admin | Update group settings |
+| 21.16 | Promote to admin (admin) | Admin | Make member an admin |
+| 21.17 | Demote admin (admin) | Admin | Remove admin privileges |
+| 21.18 | Delete group (admin) | Admin | Permanently remove group |
+
+---
+
+## 📸 22. CREATE STORY
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 22.1 | Click add story | Logged in user | Open camera/gallery |
+| 22.2 | Take photo/video | User | Use camera or select from gallery |
+| 22.3 | Add text overlay | User | Type text on story |
+| 22.4 | Add stickers | User | Add emoji/GIF stickers |
+| 22.5 | Add music | User | Select background audio |
+| 22.6 | Set visibility | User | Public / Friends / Hide from specific users |
+| 22.7 | Click post story | User | Submit story |
+| 22.8 | Upload media | System | Save to cloud storage |
+| 22.9 | Set expiry | System | Set expires_at = now + 24 hours |
+| 22.10 | Add to story feed | System | Display for allowed viewers |
+| 22.11 | Create notification | System | Notify followers "User posted a story" |
+| 22.12 | Show story ring | System | Colorful ring around avatar |
+
+---
+
+## 👁️ 23. VIEW STORIES
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 23.1 | Go to dashboard | Any user | See story rings at top |
+| 23.2 | Click on avatar | User | Open story viewer |
+| 23.3 | Show story | System | Display media fullscreen |
+| 23.4 | Tap right side | User | Go to next story |
+| 23.5 | Tap left side | User | Go to previous story |
+| 23.6 | Swipe down | User | Close story viewer |
+| 23.7 | Auto-advance | System | Next story after 10 seconds |
+| 23.8 | Show progress bar | System | Top bar fills as time passes |
+| 23.9 | View story (owner) | Owner | See who viewed each story |
+| 23.10 | Reply to story | Viewer | Send message to story poster |
+| 23.11 | React to story | Viewer | Send emoji reaction |
+| 23.12 | Expired stories | System | Hide after 24 hours |
+| 23.13 | Archive stories | System | Save to "Memories" (optional) |
+
+---
+
+## 🛒 24. CREATE MARKETPLACE LISTING
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 24.1 | Click "Sell" | Any logged in user | Open listing form |
+| 24.2 | Enter title | User | Name of item (max 100 chars) |
+| 24.3 | Enter description | User | Details about item |
+| 24.4 | Set price | User | Amount in local currency |
+| 24.5 | Choose category | User | Books / Electronics / Furniture / etc |
+| 24.6 | Upload photos | User | Up to 10 images |
+| 24.7 | Set condition | User | New / Like new / Good / Fair / Poor |
+| 24.8 | Add location | User | Campus pickup location |
+| 24.9 | Allow offers | User | Checkbox for "Accept offers" |
+| 24.10 | Click post listing | User | Submit to server |
+| 24.11 | Validate | System | Check required fields, spam |
+| 24.12 | Save listing | System | Insert into marketplace table |
+| 24.13 | Create notification | System | Notify followers "User listed an item" |
+| 24.14 | Show in marketplace | User | Appears in browse feed |
+
+---
+
+## 🛍️ 25. BROWSE MARKETPLACE
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 25.1 | Go to Marketplace | Any user | Navigate to /marketplace |
+| 25.2 | View listings | User | Grid view of items |
+| 25.3 | Filter by category | User | Dropdown: All / Books / Electronics / etc |
+| 25.4 | Filter by price range | User | Min $ - Max $ slider |
+| 25.5 | Filter by condition | User | Checkboxes for conditions |
+| 25.6 | Sort by newest | User | Recent listings first |
+| 25.7 | Sort by price low-high | User | Cheapest first |
+| 25.8 | Sort by price high-low | User | Expensive first |
+| 25.9 | Search listings | User | Keyword search |
+| 25.10 | Click on listing | User | Go to /listing/:id |
+| 25.11 | View seller profile | User | Click seller name |
+| 25.12 | Save listing | User | Bookmark for later |
+
+---
+
+## 💬 26. MARKETPLACE - CONTACT SELLER
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 26.1 | Click "Contact Seller" | Buyer | On listing page |
+| 26.2 | Open chat | System | Create new DM with seller |
+| 26.3 | Auto-fill message | System | "Hi, I'm interested in [item name]" |
+| 26.4 | Send message | Buyer | Type and send |
+| 26.5 | Create notification | System | Notify seller of new message |
+| 26.6 | Negotiate price | Both | Discuss in chat |
+| 26.7 | Mark as sold | Seller | Click "Mark as Sold" on listing |
+| 26.8 | Listing hidden | System | Removed from marketplace feed |
+| 26.9 | Leave review | Buyer | Rate seller (1-5 stars) after purchase |
+
+---
+
+## 👥 27. CREATE GROUP (Community)
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 27.1 | Click "Create Group" | Any logged in user | Open form |
+| 27.2 | Enter group name | User | Unique name (max 50 chars) |
+| 27.3 | Enter description | User | What group is about |
+| 27.4 | Choose group type | User | Public / Private / Secret |
+| 27.5 | Set campus | User | Which campus (or all) |
+| 27.6 | Upload cover image | User | Group banner photo |
+| 27.7 | Add rules | User | Text for group rules |
+| 27.8 | Click create | User | Submit group |
+| 27.9 | Save group | System | Insert into groups table |
+| 27.10 | Set creator as admin | System | role = admin |
+| 27.11 | Auto-join creator | System | Creator is member |
+| 27.12 | Show in discover | System | Appear in group search |
+
+---
+
+## 👥 28. GROUP MEMBERSHIP
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 28.1 | View group | Any user | See group page |
+| 28.2 | Join group (public) | Any user | Click "Join" → instant member |
+| 28.3 | Join group (private) | Any user | Click "Join" → request sent |
+| 28.4 | Approve request (admin) | Admin | See pending requests → approve |
+| 28.5 | Deny request (admin) | Admin | Reject request |
+| 28.6 | Leave group | Member | Click "Leave" → remove self |
+| 28.7 | Post in group | Member | Create post visible only to members |
+| 28.8 | Comment in group | Member | Interact with group posts |
+| 28.9 | Invite friends | Member | Share group link |
+| 28.10 | Report group | Any user | Flag inappropriate group |
+
+---
+
+## 👑 29. GROUP ADMIN ACTIONS
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 29.1 | Delete any post | Admin | Remove post from group |
+| 29.2 | Remove member | Admin | Kick user from group |
+| 29.3 | Ban member | Admin | Prevent re-joining |
+| 29.4 | Make admin | Admin | Promote member to admin |
+| 29.5 | Demote admin | Admin | Remove admin privileges |
+| 29.6 | Edit group name | Admin | Update group info |
+| 29.7 | Edit description | Admin | Change group description |
+| 29.8 | Change group type | Admin | Public ↔ Private ↔ Secret |
+| 29.9 | Change cover image | Admin | Upload new banner |
+| 29.10 | Pin post | Admin | Stick post to top |
+| 29.11 | Delete group | Admin | Permanently remove group |
+| 29.12 | View join requests | Admin | See pending member requests |
+
+---
+
+## 📊 30. ADMIN (Platform Level)
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 30.1 | View all users | Super Admin | List all registered users |
+| 30.2 | Suspend user | Super Admin | Prevent login, hide content |
+| 30.3 | Delete user | Super Admin | Permanently remove account |
+| 30.4 | View reports | Super Admin | See flagged posts/comments |
+| 30.5 | Delete reported post | Super Admin | Remove inappropriate content |
+| 30.6 | Dismiss report | Super Admin | Mark as resolved, keep content |
+| 30.7 | View platform stats | Super Admin | Users, posts, active users charts |
+| 30.8 | Manage featured posts | Super Admin | Pin posts to explore page |
+| 30.9 | Announcement banner | Super Admin | Create site-wide message |
+| 30.10 | View logs | Super Admin | See user activity logs |
+
+---
+
+## 👁️ 31. PROFILE VISITOR (Viewing someone else's profile)
+
+| # | What visitor sees | Condition |
+|---|-------------------|-----------|
+| 31.1 | Name | Always |
+| 31.2 | Username | Always |
+| 31.3 | Avatar | Always |
+| 31.4 | Bio | Always (if not hidden) |
+| 31.5 | Follower count | Always |
+| 31.6 | Following count | Always |
+| 31.7 | Post count | Always |
+| 31.8 | Posts | If profile is PUBLIC |
+| 31.9 | Posts | If profile PRIVATE + visitor is follower |
+| 31.10 | Posts (blurred) | If profile PRIVATE + visitor NOT follower |
+| 31.11 | "This account is private" message | If private + not follower |
+| 31.12 | Follow button | Always (if not already following) |
+| 31.13 | Message button | Always |
+| 31.14 | Email | Only if user set email as public |
+| 31.15 | Phone | Only if user set phone as public |
+| 31.16 | Join date | Always |
+| 31.17 | Campus | Always |
+| 31.18 | Mutual followers | Always |
+
+---
+
+## 📢 32. NOTIFICATIONS
+
+| # | Event | Who receives | Content |
+|---|-------|--------------|---------|
+| 32.1 | Someone liked your post | Post owner | "John liked your post" |
+| 32.2 | Someone commented | Post owner | "Sarah commented: Nice!" |
+| 32.3 | Someone replied to your comment | Comment owner | "Mike replied to your comment" |
+| 32.4 | Someone mentioned you (@user) | Mentioned user | "Jane mentioned you in a post" |
+| 32.5 | Someone followed you | Target user | "Alex started following you" |
+| 32.6 | Follow request (private profile) | Profile owner | "Emily wants to follow you" |
+| 32.7 | Follow request approved | Requester | "Accepted your follow request" |
+| 32.8 | New message | Message recipient | "New message from Tom" |
+| 32.9 | Added to group | New member | "Added to Study Group" |
+| 32.10 | Someone shared your post | Post owner | "Lisa shared your post" |
+| 32.11 | New story posted | Followers | "User posted a story" |
+| 32.12 | Listing sold | Seller | "Your item has been marked as sold" |
+
+---
+
+## ❓ 33. FORGOT PASSWORD (Extended)
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 33.1 | Request reset | User | Enter email, click send |
+| 33.2 | Generate OTP | System | 6-digit code instead of link |
+| 33.3 | Send to email | System | "Your OTP is 123456" |
+| 33.4 | Enter OTP | User | Type 6-digit code |
+| 33.5 | Verify OTP | System | Check code and expiry |
+| 33.6 | Enter new password | User | After OTP verified |
+| 33.7 | Confirm new password | User | Must match |
+| 33.8 | Update password | System | Save new hash |
+| 33.9 | Send confirmation email | System | "Your password was changed" |
+| 33.10 | Redirect to login | User | Can now login with new password |
+
+---
+
+## 📧 34. EMAIL NOTIFICATIONS
+
+| # | Email type | When sent | Content |
+|---|------------|-----------|---------|
+| 34.1 | Welcome email | After signup | "Welcome to Sparkle!" |
+| 34.2 | Verification email | After signup | "Verify your email: OTP 123456" |
+| 34.3 | Password reset | On request | "Reset link / OTP" |
+| 34.4 | New login alert | Unrecognized device | "New login from Chrome on Windows" |
+| 34.5 | Weekly digest | Every Monday | "You had 45 likes and 12 new followers" |
+| 34.6 | Unread messages | If offline > 1hr | "You have 3 unread messages" |
+| 34.7 | Follow notification | When followed | "John started following you" |
+| 34.8 | Mention notification | When @mentioned | "Sarah mentioned you in a post" |
+
+---
+
+## 🛡️ 35. REPORT & BLOCK
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 35.1 | Report post | Any user | Click flag icon → select reason |
+| 35.2 | Report user | Any user | Go to profile → Report |
+| 35.3 | Reasons | System | Spam / Harassment / Hate speech / Nudity / Other |
+| 35.4 | Save report | System | Insert into reports table |
+| 35.5 | Notify admin | System | Admin sees new report |
+| 35.6 | Block user | Any user | Click block on profile |
+| 35.7 | Block effect | System | Can't see each other's content |
+| 35.8 | Block effect | System | Can't send messages |
+| 35.9 | Unblock user | User | Settings → Blocked list → Unblock |
+| 35.10 | View blocked list | User | See all blocked users |
+
+---
+
+## 📌 36. PIN & SAVE
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 36.1 | Save post | Any user | Click bookmark icon |
+| 36.2 | View saved posts | User | Go to /saved |
+| 36.3 | Remove from saved | User | Click bookmark again |
+| 36.4 | Pin post to profile | Profile owner | Click pin on own post |
+| 36.5 | Pinned post stays on top | System | Always first in profile |
+| 36.6 | Unpin post | Profile owner | Remove from top |
+| 36.7 | Max 3 pinned posts | System | Limit |
+
+---
+
+## 🎯 37. HASHTAG SYSTEM
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 37.1 | Add #hashtag | User | Type # in post |
+| 37.2 | Suggest hashtags | System | Auto-suggest trending tags |
+| 37.3 | Click hashtag | Any user | Go to /hashtag/:tag |
+| 37.4 | View all posts with tag | Any user | Feed filtered by hashtag |
+| 37.5 | Trending hashtags | System | Show top 10 tags today |
+| 37.6 | Follow hashtag | User | Get notified for new posts with tag |
+
+---
+
+## 📅 38. EVENTS
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 38.1 | Create event | Any user | Title, date, location, description |
+| 38.2 | Set event type | User | Party / Study / Sports / Other |
+| 38.3 | Set max attendees | User | Limit number of people |
+| 38.4 | Post event | User | Appears in events feed |
+| 38.5 | RSVP | Any user | Going / Maybe / Not going |
+| 38.6 | View attendees | User | See who is going |
+| 38.7 | Edit event (creator only) | Creator | Change details |
+| 38.8 | Cancel event (creator) | Creator | Notify all RSVP'd users |
+| 38.9 | Add to calendar | User | Download .ics file |
+
+---
+
+## ⭐ 39. REVIEWS & RATINGS
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 39.1 | Rate seller | Buyer | After marketplace purchase |
+| 39.2 | Choose stars | User | 1 to 5 stars |
+| 39.3 | Write review text | User | Optional comment |
+| 39.4 | Submit review | User | Save to database |
+| 39.5 | View seller rating | Any user | Average stars on profile |
+| 39.6 | Edit review | User | Within 7 days |
+| 39.7 | Delete review | User or Admin | Remove rating |
+| 39.8 | Reply to review | Seller | Respond to buyer's review |
+
+---
+
+## 🌐 40. PRIVACY LEVELS (Complete)
+
+| Feature | Public | Friends Only | Only Me |
+|---------|--------|--------------|---------|
+| Profile visibility | Everyone | Friends + Followers | Only you |
+| Posts visibility | Everyone | Friends only | Only you |
+| Story visibility | Everyone | Friends only | Only you |
+| Profile picture | Everyone | Everyone | Everyone (always) |
+| Email visibility | Optional | Optional | Never public |
+| Phone visibility | Optional | Optional | Never public |
+| Online status | Everyone | Friends only | No one |
+| Last seen | Everyone | Friends only | No one |
+| Followers list | Everyone | Friends only | Only you |
+| Following list | Everyone | Friends only | Only you |
+
+---
+
+## 🔄 41. SESSION MANAGEMENT
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 41.1 | View active sessions | User | Settings → Security → Devices |
+| 41.2 | See device info | User | Browser, OS, IP, last active |
+| 41.3 | Logout from device | User | Click "Logout" on specific device |
+| 41.4 | Logout from all devices | User | End all sessions except current |
+| 41.5 | Auto-logout idle | System | After 7 days inactive |
+| 41.6 | Session expires | System | JWT token expires after 24hrs |
+| 41.7 | Refresh token | System | Auto-renew if active |
+
+---
+
+## 📱 42. TWO-FACTOR AUTHENTICATION (2FA)
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 42.1 | Enable 2FA | User | Settings → Security → 2FA |
+| 42.2 | Scan QR code | User | With Google Authenticator |
+| 42.3 | Enter backup codes | User | Save 8 backup codes |
+| 42.4 | Login with 2FA | User | After password, enter 6-digit code |
+| 42.5 | Use backup code | User | If phone lost |
+| 42.6 | Disable 2FA | User | Enter password to disable |
+
+---
+
+## 📊 43. ANALYTICS (For Content Creators)
+
+| # | Metric | Who can see |
+|---|--------|-------------|
+| 43.1 | Total profile views | Profile owner only |
+| 43.2 | Post reach | Post owner only |
+| 43.3 | Post impressions | Post owner only |
+| 43.4 | Engagement rate | Post owner only |
+| 43.5 | Follower growth chart | Profile owner only |
+| 43.6 | Best time to post | Profile owner only |
+| 43.7 | Top posts of month | Profile owner only |
+| 43.8 | Demographics (age/campus) | Profile owner only |
+
+---
+
+## 🗣️ 44. POLLS
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 44.1 | Create poll | Any user | Question + options (2-6) |
+| 44.2 | Set duration | User | 1 day / 3 days / 7 days |
+| 44.3 | Allow multiple answers | User | Checkbox option |
+| 44.4 | Post poll | User | Appears in feed |
+| 44.5 | Vote | Any user | Click option → submit |
+| 44.6 | View results | Anyone | See percentages after voting |
+| 44.7 | Hide results until vote | User | Optional setting |
+| 44.8 | Close poll early | Creator | Stop accepting votes |
+
+---
+
+## 📋 45. LOST & FOUND
+
+| # | Action | Who | What happens |
+|---|--------|-----|---------------|
+| 45.1 | Report lost item | Any user | Title, description, location, date |
+| 45.2 | Upload photo | User | Image of item |
+| 45.3 | Report found item | Any user | Similar form |
+| 45.4 | Search lost/found | Any user | Filter by location, date |
+| 45.5 | Claim item | Finder | Click "I think this is mine" |
+| 45.6 | Notify poster | System | Email/notification to original poster |
+| 45.7 | Mark as resolved | User | Item status → Resolved |
+| 45.8 | Delete listing | User or Admin | Remove from system |
+
+---
+
+This gives you **45 feature categories** with **250+ specific actions**, each with clear **who can do what**. 
+
+Want me to create **database schemas** or **API endpoints** for any of these features?

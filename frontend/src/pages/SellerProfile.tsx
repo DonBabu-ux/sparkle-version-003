@@ -1,31 +1,57 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { ArrowLeft, Check, Star, AlertCircle, ShoppingBag, Send } from 'lucide-react';
 
+interface Seller {
+  user_id: string;
+  username: string;
+  name?: string;
+  avatar_url?: string;
+  bio?: string;
+  location?: string;
+  listings?: unknown[];
+  reviews?: unknown[];
+}
+
 export default function SellerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useUserStore();
-  const [seller, setSeller] = useState<any>(null);
+  const [seller, setSeller] = useState<Seller | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('shop');
 
-  useEffect(() => {
-    const fetchSeller = async () => {
-      try {
-        const res = await api.get(`/marketplace/sellers/${id}`);
-        setSeller(res.data.seller || res.data);
-      } catch (err) {
-        console.error('Failed to fetch seller:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSeller();
+  const fetchSeller = useCallback(async () => {
+    try {
+      const res = await api.get(`/marketplace/sellers/${id}`);
+      setSeller(res.data.seller || res.data);
+    } catch (err) {
+      console.error('Failed to fetch seller:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchSeller();
+  }, [fetchSeller]);
+
+  const handleReply = async (reviewId: string, replyText: string) => {
+    try {
+      const res = await api.post(`/marketplace/reviews/${reviewId}/reply`, { reply: replyText });
+      if (res.data.success) {
+        setSeller({
+          ...seller,
+          reviews: seller.reviews.map((r: { id: string }) => r.id === reviewId ? { ...r, reply: replyText } : r)
+        });
+      }
+    } catch (err) {
+      console.error('Reply failed:', err);
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex flex-col animate-pulse">
@@ -133,7 +159,7 @@ export default function SellerProfile() {
             <div>
                 {seller.listings && seller.listings.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {seller.listings.map((listing: any) => (
+                        {seller.listings.map((listing: { listing_id: string; title: string; price: string; image_url?: string; campus?: string }) => (
                             <div key={listing.listing_id} onClick={() => navigate(`/marketplace/listings/${listing.listing_id}`)} className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm cursor-pointer hover:-translate-y-2 hover:shadow-xl transition-all group">
                                 <div className="h-[200px] overflow-hidden bg-slate-100 relative">
                                     <img src={listing.image_url || '/uploads/defaults/no-image.png'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
@@ -162,7 +188,7 @@ export default function SellerProfile() {
             <div className="max-w-[800px] mx-auto">
                 {seller.reviews && seller.reviews.length > 0 ? (
                     <div className="flex flex-col gap-5">
-                        {seller.reviews.map((rv: any, i: number) => (
+                        {seller.reviews.map((rv: { reviewer_name: string; reviewer_avatar?: string; rating: number; comment: string; created_at: string; reply?: string }, i: number) => (
                             <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-4">
@@ -179,6 +205,25 @@ export default function SellerProfile() {
                                     </div>
                                 </div>
                                 <p className="m-0 text-slate-600 font-medium leading-relaxed">{rv.comment}</p>
+                                
+                                {rv.reply && (
+                                    <div className="mt-4 p-4 bg-slate-50 rounded-2xl border-l-4 border-[#FF3D6D]">
+                                        <div className="text-[10px] font-black text-[#FF3D6D] uppercase tracking-widest mb-1">Seller Response</div>
+                                        <p className="m-0 text-slate-500 text-sm font-medium italic">"{rv.reply}"</p>
+                                    </div>
+                                )}
+
+                                {isOwner && !rv.reply && (
+                                    <button 
+                                        onClick={() => {
+                                            const reply = window.prompt('Enter your response to this review:');
+                                            if (reply) handleReply(rv.id || rv.review_id, reply);
+                                        }}
+                                        className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-[#FF3D6D] transition-colors flex items-center gap-2"
+                                    >
+                                        <Send size={10} /> Reply to Review
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>

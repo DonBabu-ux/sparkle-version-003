@@ -37,6 +37,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchStats();
+    document.title = 'Admin Panel | Sparkle';
   }, []);
 
   const fetchStats = async () => {
@@ -48,6 +49,32 @@ export default function AdminDashboard() {
       console.error('Failed to fetch admin stats:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAdminAction = async (id: string, action: string) => {
+    if (!confirm(`Are you sure you want to ${action} this item?`)) return;
+    try {
+      await api.post(`/admin/actions`, { id, action, type: activeTab });
+      alert(`Action ${action} successful`);
+      // Re-fetch data
+      const response = await api.get(`/admin/${activeTab}`);
+      if (activeTab === 'users') setContent(response.data.users || []);
+      else if (activeTab === 'reports') setContent(response.data.reports || []);
+    } catch {
+      alert(`Failed to perform ${action}`);
+    }
+  };
+
+  const [announcement, setAnnouncement] = useState('');
+  const handleSendAnnouncement = async () => {
+    if (!announcement.trim()) return;
+    try {
+      await api.post('/admin/announcements', { message: announcement });
+      alert('Announcement broadcasted to all Sparklers!');
+      setAnnouncement('');
+    } catch {
+      alert('Failed to broadcast announcement');
     }
   };
 
@@ -156,6 +183,18 @@ export default function AdminDashboard() {
                   </blockquote>
                 </div>
               </div>
+
+              <div className="announcement-control premium-card" style={{ gridColumn: '1 / -1' }}>
+                <h3>Global Broadcast</h3>
+                <div className="announcement-input-group">
+                   <textarea 
+                    value={announcement}
+                    onChange={e => setAnnouncement(e.target.value)}
+                    placeholder="Broadcast a message to all Sparkle users..." 
+                   />
+                   <button onClick={handleSendAnnouncement}>SEND TO ALL</button>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -195,12 +234,12 @@ export default function AdminDashboard() {
                         {item.status || 'Active'}
                       </span>
                     </td>
-                    <td className="time">{new Date(item.created_at || item.timestamp).toLocaleDateString()}</td>
+                    <td className="time">{new Date(item.created_at || item.timestamp || Date.now()).toLocaleDateString()}</td>
                     <td>
                       <div className="action-row">
-                        <button className="act-btn" title="Approve"><CheckCircle size={14} /></button>
-                        <button className="act-btn warn" title="Restrict"><Ban size={14} /></button>
-                        <button className="act-btn danger" title="Purge"><Trash2 size={14} /></button>
+                        <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'approve')} className="act-btn" title="Approve"><CheckCircle size={14} /></button>
+                        <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'restrict')} className="act-btn warn" title="Restrict"><Ban size={14} /></button>
+                        <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'purge')} className="act-btn danger" title="Purge"><Trash2 size={14} /></button>
                         <button className="act-btn"><MoreVertical size={14} /></button>
                       </div>
                     </td>
@@ -258,6 +297,13 @@ export default function AdminDashboard() {
         .m-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 0.9rem; }
         .status.stable { color: #10b981; font-weight: 900; }
         .m-quote { margin: 20px 0 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); font-style: italic; color: #64748b; font-size: 0.85rem; }
+
+        .announcement-control { background: white; margin-top: 10px; }
+        .announcement-input-group { display: flex; flex-direction: column; gap: 15px; }
+        .announcement-input-group textarea { width: 100%; min-height: 100px; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; background: #f8fafc; font-family: inherit; font-size: 0.9rem; font-weight: 600; outline: none; transition: 0.2s; resize: none; }
+        .announcement-input-group textarea:focus { border-color: #be123c; background: white; }
+        .announcement-input-group button { background: #be123c; color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 900; letter-spacing: 1px; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
+        .announcement-input-group button:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(190,18,60,0.2); }
 
         .admin-table-container { padding: 0; overflow: hidden; }
         .admin-table { width: 100%; border-collapse: collapse; }

@@ -4,9 +4,19 @@ import { ShoppingCart, Package, ChevronLeft, CreditCard, Clock } from 'lucide-re
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 
+interface Order {
+  order_id: string;
+  listing_id: string;
+  listing_title?: string;
+  amount?: number;
+  price?: number;
+  status?: string;
+  created_at: string;
+}
+
 export default function Orders() {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

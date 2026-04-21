@@ -33,5 +33,6 @@ export interface User {
   suggestion_reason?: string;
   followers_count?: number;
   following_count?: number;
+  pending_requests_count?: number;
   highlights?: { id: string; img: string; title: string }[];
 }

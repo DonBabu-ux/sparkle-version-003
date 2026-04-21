@@ -1,0 +1,125 @@
+================================================================================
+SPARKLE PLATFORM FEATURE MAP (FRONTEND -> ROUTES -> CONTROLLERS)
+================================================================================
+
+1. AUTHENTICATION & USER PROFILE
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Login.tsx, Signup.tsx, Verified.tsx
+- Profile.tsx, Settings.tsx, AccountsCenter.tsx
+Routes: 
+- backend/routes/api/auth.routes.js
+- backend/routes/api/user.routes.js
+Controllers: 
+- backend/controllers/auth.controller.js
+- backend/controllers/user.controller.js
+- backend/controllers/email-auth.controller.js
+- backend/controllers/profile.controller.js
+
+2. SOCIAL FEED & POSTS
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Dashboard.tsx, Explore.tsx, PostDetail.tsx, Hashtag.tsx
+Routes: 
+- backend/routes/api/posts.routes.js
+- backend/routes/api/link-preview.routes.js
+Controllers: 
+- backend/controllers/feed.controller.js
+- backend/controllers/post.controller.js
+- backend/controllers/dashboard.controller.js
+
+3. MESSAGING & REALTIME CHAT
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Messages.tsx
+Routes: 
+- backend/routes/api/messages.routes.js
+- backend/routes/api/groupChat.routes.js
+- backend/routes/api/realtime.routes.js
+Controllers: 
+- backend/controllers/messages.controller.js
+- backend/controllers/groupChat.controller.js
+- backend/controllers/realtime.controller.js
+- backend/controllers/messaging.controller.js
+
+4. MOMENTS & STORIES (VIDEO & REELS)
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Moments.tsx, MomentDetail.tsx, CreateMoment.tsx
+- StoryViewer.tsx, CreateStory.tsx, Memories.tsx
+Routes: 
+- backend/routes/api/moments.routes.js
+- backend/routes/api/stories.routes.js
+- backend/routes/api/share.routes.js
+Controllers: 
+- backend/controllers/moments.controller.js
+- backend/controllers/social.controller.js
+
+5. MARKETPLACE & SKILL MARKET
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Marketplace.tsx, ListingDetail.tsx, SellItem.tsx, MyListings.tsx
+- SkillMarket.tsx, SellerProfile.tsx, Orders.tsx, Wishlist.tsx
+Routes: 
+- backend/routes/api/marketplace.routes.js
+- backend/routes/api/skill-market.routes.js
+Controllers: 
+- backend/controllers/marketplace.controller.js
+- backend/controllers/skillMarket.controller.js
+
+6. CAMPUS LIFE (GROUPS & CLUBS)
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Groups.tsx, GroupDetail.tsx, CreateGroup.tsx, GroupAdmin.tsx
+- Clubs.tsx, ClubDetail.tsx
+Routes: 
+- backend/routes/api/groups.routes.js
+- backend/routes/api/clubs.routes.js
+- backend/routes/api/campus.routes.js
+Controllers: 
+- backend/controllers/groups.controller.js
+- backend/controllers/clubs.controller.js
+- backend/controllers/campus.controller.js
+
+7. CAMPUS UTILITIES (CONFESSIONS, POLLS, LOST & FOUND)
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Confessions.tsx, Polls.tsx, PollDetail.tsx, LostFound.tsx, Events.tsx
+Routes: 
+- backend/routes/api/confession.routes.js
+- backend/routes/api/lost-found.routes.js
+Controllers: 
+- backend/controllers/confession.controller.js
+- backend/controllers/lostFound.controller.js
+
+8. SEARCH & DISCOVERY
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Search.tsx, Connect.tsx, FollowRequests.tsx
+Routes: 
+- backend/routes/api/search.routes.js
+Controllers: 
+- backend/controllers/search.controller.js
+
+9. NOTIFICATIONS & SUPPORT
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- Notifications.tsx, Support.tsx, Help.tsx, About.tsx, Invite.tsx
+Routes: 
+- backend/routes/api/notifications.routes.js
+- backend/routes/api/support.routes.js
+Controllers: 
+- backend/controllers/notification.controller.js
+
+10. ADMINISTRATION & INFRASTRUCTURE
+--------------------------------------------------------------------------------
+Frontend Pages: 
+- AdminDashboard.tsx, ProfessionalDashboard.tsx, EventsAdmin.tsx
+Routes: 
+- backend/routes/api/admin.routes.js
+- backend/routes/api/upload.routes.js
+Controllers: 
+- backend/controllers/admin.controller.js
+- backend/controllers/upload.controller.js
+- backend/controllers/supabase.controller.js
+- backend/controllers/web.controller.js

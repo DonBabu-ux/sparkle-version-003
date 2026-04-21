@@ -59,9 +59,8 @@ export default function NewChatModal({ isOpen, onClose, defaultTab = 'new' }: Ne
     } else {
       // Create or go to direct chat
       try {
-        // You would typically call an API to create/ensure chat exists:
-        // const res = await api.post('/messages/chat', { partnerId: u.id });
-        // onChatSelected(res.data.chatId);
+        const res = await api.post('/messages/chat', { partnerId: u.id || u.user_id });
+        onChatSelected(res.data.chatId || res.data.chat_id);
         onClose();
       } catch (err) {
         console.error('Failed to create chat', err);
@@ -71,13 +70,16 @@ export default function NewChatModal({ isOpen, onClose, defaultTab = 'new' }: Ne
 
   const handleCreateGroup = async () => {
      if (!groupName || selectedUsers.length === 0) return;
-     // Add group creation API logic
      try {
-       // const res = await api.post('/messages/groups', { name: groupName, members: selectedUsers.map(u => u.id) });
-       // onChatSelected(res.data.groupId);
+       const res = await api.post('/messages/groups', { 
+         name: groupName, 
+         members: selectedUsers.map(u => u.id || u.user_id) 
+       });
+       onChatSelected(res.data.groupId || res.data.chat_id);
        onClose();
      } catch (err) {
        console.error('Failed to create group', err);
+       alert('Failed to create group');
      }
   };
 

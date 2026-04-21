@@ -283,6 +283,76 @@ const suspendUser = async (req, res) => {
     }
 };
 
+const getVerificationRequests = async (req, res) => {
+    try {
+        const [requests] = await pool.query(
+            `SELECT vr.*, u.username, u.name as user_name, u.avatar_url, u.email
+             FROM verification_requests vr
+             JOIN users u ON vr.user_id = u.user_id
+             WHERE vr.status = 'pending'
+             ORDER BY vr.created_at ASC`
+        );
+        res.render('admin/verifications', {
+            title: 'Verification Requests',
+            user: req.user,
+            requests
+        });
+    } catch (error) {
+        logger.error('Admin verification requests error:', error);
+        res.status(500).render('error', { title: 'Error', error: error.message, user: req.user });
+    }
+};
+
+const handleVerificationRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const { status, notes } = req.body; // status: 'approved' or 'rejected'
+        const adminId = req.user.userId || req.user.user_id;
+
+        // Start transaction
+        const connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // Update request
+            await connection.query(
+                'UPDATE verification_requests SET status = ?, reviewed_by = ?, review_notes = ?, reviewed_at = NOW() WHERE request_id = ?',
+                [status, adminId, notes, requestId]
+            );
+
+            if (status === 'approved') {
+                // Get user_id from request
+                const [request] = await connection.query('SELECT user_id FROM verification_requests WHERE request_id = ?', [requestId]);
+                if (request.length > 0) {
+                    // Mark user as verified
+                    await connection.query('UPDATE users SET is_verified = 1 WHERE user_id = ?', [request[0].user_id]);
+                }
+            }
+
+            await connection.commit();
+
+            // Log action
+            await pool.query(
+                `INSERT INTO admin_logs (log_id, admin_id, action, target_type, target_id, details, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+                [crypto.randomUUID(), adminId, `verification_${status}`, 'verification_request', requestId,
+                JSON.stringify({ notes })]
+            );
+
+            res.json({ status: 'success', message: `Verification ${status}` });
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        logger.error('Handle verification error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
 module.exports = {
     getDashboardStats,
     getUsers,
@@ -291,5 +361,7 @@ module.exports = {
     resolveReport,
     getLogs,
     exportLogs,
-    suspendUser
+    suspendUser,
+    getVerificationRequests,
+    handleVerificationRequest
 };

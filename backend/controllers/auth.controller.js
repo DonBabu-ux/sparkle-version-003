@@ -28,12 +28,19 @@ const validateJWTSecret = () => {
 const signup = async (req, res) => {
     try {
         validateJWTSecret();
-        const { name, username, email, password, campus, major, year, phone_number } = req.body;
+        const { name, username, email, password, campus, major, year, phone_number, student_id, terms_accepted } = req.body;
         // Validation
         if (!name || !username || !email || !password) {
             return res.status(400).json({
                 error: 'Required fields missing',
                 message: 'Name, username, email, and password are required'
+            });
+        }
+
+        if (terms_accepted !== true) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'You must accept the terms and conditions'
             });
         }
 
@@ -50,13 +57,13 @@ const signup = async (req, res) => {
         const userId = crypto.randomUUID();
 
         await query(
-            'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, name, username, email, hashedPassword, campus || null, major || null, year || null, phone_number || null]
+            'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study, phone_number, student_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, name, username, email, hashedPassword, campus || null, major || null, year || null, phone_number || null, student_id || null]
         );
 
         // --- NEW: Generate email verification code ---
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes as per checklist 3.4
 
         await query(
             'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE code = ?, expires_at = ?',
@@ -117,7 +124,7 @@ const signup = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { username: loginId, password } = req.body;
+        const { username: loginId, password, rememberMe } = req.body;
 
         if (!loginId || !password) {
             return res.status(400).json({
@@ -158,7 +165,7 @@ const login = async (req, res) => {
             email: user.email, 
             username: user.username,
             tokenVersion: user.token_version || 0
-        }, JWT_SECRET, { expiresIn: '7d' });
+        }, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '7d' });
 
         // CREATE SESSION RECORD
         const sessionId = crypto.randomBytes(16).toString('hex');
@@ -174,7 +181,7 @@ const login = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            maxAge: (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000,
             path: '/'
         });
 
@@ -228,7 +235,7 @@ const verify2FA = async (req, res) => {
             email: user.email, 
             username: user.username,
             tokenVersion: user.token_version || 0
-        }, JWT_SECRET, { expiresIn: '7d' });
+        }, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '7d' });
 
         // CREATE SESSION RECORD
         const sessionId = crypto.randomBytes(16).toString('hex');
@@ -244,7 +251,7 @@ const verify2FA = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            maxAge: (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000,
             path: '/'
         });
 
@@ -314,35 +321,52 @@ const verifyEmail = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, mode } = req.body; // mode: 'link' or 'otp'
         if (!email) return res.status(400).json({ status: 'error', message: 'Email is required' });
 
         const [users] = await query('SELECT user_id, name FROM users WHERE email = ? LIMIT 1', [email]);
         if (users.length === 0) {
             // Security: don't reveal if user exists
-            return res.json({ status: 'success', message: 'If an account exists, you will receive reset instructions.' });
+            return res.json({ status: 'success', message: 'Instructions sent if account exists.' });
         }
 
         const user = users[0];
-        const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-        await query(
-            'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?',
-            [crypto.randomUUID(), user.user_id, email, token, expiresAt, token, expiresAt]
-        );
+        if (mode === 'otp') {
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            await query(
+                'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?',
+                [crypto.randomUUID(), user.user_id, email, otp, expiresAt, otp, expiresAt]
+            );
 
-        sendEmail({
-            to: email,
-            subject: 'Reset Your Password - Sparkle',
-            templateName: 'reset-password',
-            templateData: {
-                name: user.name,
-                resetUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${token}`
-            }
-        }).catch(e => logger.error('Reset email failed:', e));
+            await sendEmail({
+                to: email,
+                subject: 'Password Reset OTP - Sparkle',
+                templateName: 'reset-password-otp',
+                templateData: { name: user.name, otp }
+            }).catch(e => logger.error('OTP reset email failed:', e));
 
-        res.json({ status: 'success', message: 'Password reset instructions sent!' });
+            return res.json({ status: 'success', message: 'OTP sent to your email!', mode: 'otp' });
+        } else {
+            const token = crypto.randomBytes(32).toString('hex');
+            await query(
+                'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?',
+                [crypto.randomUUID(), user.user_id, email, token, expiresAt, token, expiresAt]
+            );
+
+            await sendEmail({
+                to: email,
+                subject: 'Reset Your Password - Sparkle',
+                templateName: 'reset-password',
+                templateData: {
+                    name: user.name,
+                    resetUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${token}`
+                }
+            }).catch(e => logger.error('Reset email failed:', e));
+
+            return res.json({ status: 'success', message: 'Password reset link sent!', mode: 'link' });
+        }
     } catch (error) {
         logger.error('Forgot Password Error:', error);
         res.status(500).json({ status: 'error', message: 'Request failed' });

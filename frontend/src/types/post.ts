@@ -24,10 +24,19 @@ export interface Post {
   reposter_avatar?: string;
   repost_comment?: string;
   is_reshared?: boolean;
+  is_pinned?: boolean;
   feed_id?: string;
   resharers?: {
     username: string;
     avatar: string;
     comment: string;
   }[];
+  // Add missing properties found during build
+  sparks?: any[];
+  media?: string[];
+  media_type?: string;
+  image_url?: string;
+  likes_count?: number;
+  comments_count?: number;
+  comments?: any[];
 }

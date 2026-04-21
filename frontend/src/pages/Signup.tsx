@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, Mail, AtSign, Users, Camera, Heart, MessageCircle, Hash } from 'lucide-react';
-import axios from 'axios';
 import api from '../api/api';
+import { useUserStore } from '../store/userStore';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -60,47 +60,57 @@ export default function Signup() {
         username: form.username,
         email: form.email,
         password: form.password,
-        phone_number: form.phone || undefined,
         campus: form.affiliation_type !== 'None' ? form.campus : undefined,
         major: form.major || undefined,
         year: form.year || undefined,
+        user_type: 'student',
       });
 
-      if (res.data?.status === 'success') {
-        showSuccess('Account created! Please verify your email.');
-        setStep(5);
-      } else {
-        showError(res.data?.message || 'Registration failed. Please try again.');
+      if (res.data?.token) {
+        // Store token temporarily for after verification
+        localStorage.setItem('sparkle_signup_token', res.data.token);
       }
+      
+      showSuccess('Account created! Please verify your email.');
+      setStep(5);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        showError(err.response?.data?.message || 'Server error. Please try again.');
-      } else {
-        showError((err as Error).message || 'Server error. Please try again.');
-      }
+      const e = err as { response?: { data?: { message?: string } } };
+      showError(e.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const { login } = useUserStore();
+
   const handleVerifyOTP = async () => {
     if (!otpCode || otpCode.length < 6) { showError('Please enter the 6-digit code'); return; }
     setVerifying(true);
+    setError('');
     try {
-      const res = await api.post('/auth/verify-email', { 
-        email: form.email, 
+      await api.post('/auth/verify-email', { 
+        email: form.email,
         code: otpCode 
       });
-      if (res.data?.status === 'success') {
-        showSuccess('Verification successful! You can now log in.');
-        setTimeout(() => navigate('/login'), 1500);
+
+      // Log the user in with the signup token
+      const signupToken = localStorage.getItem('sparkle_signup_token');
+      if (signupToken) {
+        // Validate the token and get user data
+        const validateRes = await api.get('/auth/validate', {
+          headers: { Authorization: `Bearer ${signupToken}` }
+        });
+        login(signupToken, validateRes.data.user);
+        localStorage.removeItem('sparkle_signup_token');
+        showSuccess('Verification successful! Logging you in...');
+        setTimeout(() => navigate('/dashboard'), 1500);
+      } else {
+        showSuccess('Email verified! Please log in.');
+        setTimeout(() => navigate('/login'), 2000);
       }
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        showError(err.response?.data?.message || 'Invalid verification code');
-      } else {
-        showError((err as Error).message || 'Invalid verification code');
-      }
+      const e = err as { response?: { data?: { message?: string } } };
+      showError(e.response?.data?.message || 'Invalid verification code');
     } finally {
       setVerifying(false);
     }

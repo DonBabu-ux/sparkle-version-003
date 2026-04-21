@@ -386,6 +386,51 @@ const deletePostAPI = async (req, res) => {
     }
 };
 
+/**
+ * GET group detail API (JSON)
+ * GET /api/groups/:id
+ */
+const getGroupAPI = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const userId = req.user ? req.user.user_id : null;
+        
+        const group = await Group.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ error: 'Group not found' });
+        }
+
+        const memberCount = await Group.getMembersCount(groupId);
+        const memberPreview = await Group.getMemberPreview(groupId, userId);
+        const admins = await Group.getAdmins(groupId);
+        
+        let userRole = null;
+        let memberStatus = null;
+        if (userId) {
+            const member = await Group.getMember(groupId, userId);
+            if (member) {
+                userRole = member.role;
+                memberStatus = member.status;
+            }
+        }
+
+        res.json({
+            success: true,
+            group: {
+                ...group,
+                memberCount,
+                memberPreview,
+                admins,
+                userRole,
+                memberStatus
+            }
+        });
+    } catch (error) {
+        logger.error('API Get Group Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     renderGroups,
     renderGroupDetail,
@@ -403,5 +448,6 @@ module.exports = {
     promoteMemberAPI,
     deletePostAPI,
     updateGroupAPI,
-    getMembersDetailedAPI
+    getMembersDetailedAPI,
+    getGroupAPI
 };

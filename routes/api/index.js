@@ -59,5 +59,6 @@ router.use('/support', require('./support.routes'));
 router.use('/link-preview', linkPreviewRoutes);
 router.use('/clubs', require('./clubs.routes'));
 router.use('/lost-found', require('./lost-found.routes'));
+router.use('/analytics', require('./analytics.routes'));
 
 module.exports = router;

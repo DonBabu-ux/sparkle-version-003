@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -31,11 +31,7 @@ export default function PollDetail() {
   const [voting, setVoting] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (id) fetchPoll();
-  }, [id]);
-
-  const fetchPoll = async () => {
+  const fetchPoll = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get(`/polls/${id}/results`);
@@ -47,7 +43,11 @@ export default function PollDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) fetchPoll();
+  }, [id, fetchPoll]);
 
   const handleVote = async (optionId: string) => {
     if (poll?.user_voted_option || voting) return;

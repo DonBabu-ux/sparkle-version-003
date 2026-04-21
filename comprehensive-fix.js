@@ -42,7 +42,7 @@ async function fixAll() {
                 description TEXT,
                 price DECIMAL(10, 2) NOT NULL,
                 category VARCHAR(100) DEFAULT 'other',
-                \`condition\` VARCHAR(50) DEFAULT 'good',
+                ${'`'}condition${'`'} VARCHAR(50) DEFAULT 'good',
                 campus VARCHAR(100) DEFAULT 'main_campus',
                 location VARCHAR(255),
                 image_url VARCHAR(500),

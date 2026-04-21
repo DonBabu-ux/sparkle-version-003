@@ -1,29 +1,44 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { X, Heart, MessageCircle, Send, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Heart, Loader2 } from 'lucide-react';
 import { useUserStore } from '../../store/userStore';
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
+import { formatCount } from '../../utils/format';
+
+interface Comment {
+  comment_id: string;
+  content: string;
+  user_id: string;
+  username: string;
+  name?: string;
+  avatar_url?: string;
+  created_at: string;
+  like_count: number;
+  is_liked: boolean;
+  replies?: Comment[];
+}
 
 interface PostCommentsModalProps {
-  post: any;
+  post: {
+    post_id: string;
+    content: string;
+    username: string;
+    name?: string;
+    avatar_url?: string;
+  };
   onClose: () => void;
 }
 
 export default function PostCommentsModal({ post, onClose }: PostCommentsModalProps) {
   const { user } = useUserStore();
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchComments();
-  }, [post.post_id]);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get(`/posts/${post.post_id}/comments`);
@@ -33,13 +48,17 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
     } finally {
       setLoading(false);
     }
-  };
+  }, [post.post_id]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   const handleLike = async (commentId: string) => {
     try {
       const res = await api.post(`/comments/${commentId}/like`);
       if (res.data.action === 'liked' || res.data.action === 'unliked') {
-        const updateComments = (list: any[]): any[] => {
+        const updateComments = (list: Comment[]): Comment[] => {
           return list.map(c => {
             if (c.comment_id === commentId) {
               return {
@@ -67,10 +86,12 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
 
     setSubmitting(true);
     try {
-      const payload = {
-        content: commentText.trim(),
-        parentId: replyingTo?.comment_id || null
+      const payload: any = {
+        content: commentText.trim()
       };
+      if (replyingTo?.comment_id) {
+        payload.parent_comment_id = replyingTo.comment_id;
+      }
 
       const res = await api.post(`/posts/${post.post_id}/comments`, payload);
       
@@ -88,7 +109,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
       };
 
       if (replyingTo) {
-        const appendReply = (list: any[]): any[] => {
+        const appendReply = (list: Comment[]): Comment[] => {
           return list.map(c => {
             if (c.comment_id === replyingTo.comment_id) {
               return { ...c, replies: [...(c.replies || []), newComment] };
@@ -191,7 +212,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   );
 }
 
-function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: any, onReply: (c: any) => void, onLike: (id: string) => void, onCloseModal: () => void }) {
+function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comment, onReply: (c: Comment) => void, onLike: (id: string) => void, onCloseModal: () => void }) {
   const [showReplies, setShowReplies] = useState(false);
   const [translated, setTranslated] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -200,12 +221,12 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: any,
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days > 0) return `${days} d`;
+    if (days > 0) return `${days} ${days === 1 ? 'day' : 'days'} ago`;
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours > 0) return `${hours} h`;
+    if (hours > 0) return `${hours} ${hours === 1 ? 'hr' : 'hrs'} ago`;
     const mins = Math.floor(diff / (1000 * 60));
-    if (mins > 0) return `${mins} m`;
-    return 'now';
+    if (mins > 0) return `${mins} ${mins === 1 ? 'min' : 'mins'} ago`;
+    return 'just now';
   };
 
   const handleProfileClick = () => {
@@ -242,7 +263,7 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: any,
             className={`flex items-center gap-1.5 hover:text-rose-500 transition-colors ${comment.is_liked ? 'text-rose-500' : 'text-slate-500'}`}
           >
             <Heart size={13} fill={comment.is_liked ? "currentColor" : "none"} strokeWidth={comment.is_liked ? 0 : 2} />
-            {comment.like_count > 0 && <span>{comment.like_count} likes</span>}
+            {comment.like_count > 0 && <span>{formatCount(comment.like_count)} {comment.like_count === 1 ? 'like' : 'likes'}</span>}
           </button>
           <button onClick={() => onReply(comment)} className="hover:text-slate-800 transition-colors">Reply</button>
           <button onClick={() => setTranslated(!translated)} className="hover:text-slate-800 transition-colors">
@@ -267,7 +288,7 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: any,
               </button>
             ) : (
               <div className="space-y-4 mt-4 mb-2 ml-2 border-l-2 border-slate-200 pl-4">
-                {comment.replies.map((reply: any) => (
+                {comment.replies.map((reply) => (
                   <CommentItem 
                     key={reply.comment_id} 
                     comment={reply} 

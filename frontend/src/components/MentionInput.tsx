@@ -85,7 +85,7 @@ const MentionInput: React.FC<MentionInputProps> = ({ value, onChange, onBlur, pl
   return (
     <div className="relative w-full">
       <input
-        ref={inputRef as any}
+        ref={inputRef as React.RefObject<HTMLInputElement>}
         type="text"
         className={className}
         placeholder={placeholder}

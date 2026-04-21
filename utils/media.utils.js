@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
+const sharp = require('sharp');
+
 
 /**
  * Downloads an external image and saves it to local storage.
@@ -58,6 +60,31 @@ async function downloadExternalImage(url, folder = 'avatars') {
     }
 }
 
+/**
+ * Processes an image (resize, compress, convert to webp/jpg)
+ * @param {string} inputPath - Absolute path to input file
+ * @param {string} outputPath - Absolute path to output file
+ * @param {Object} options - Resize options { width, height, quality }
+ */
+async function processImage(inputPath, outputPath, options = { width: 800, quality: 80 }) {
+    try {
+        await sharp(inputPath)
+            .resize(options.width, options.height, {
+                fit: 'cover',
+                withoutEnlargement: true
+            })
+            .jpeg({ quality: options.quality })
+            .toFile(outputPath);
+        
+        return true;
+    } catch (error) {
+        logger.error('Error processing image:', error);
+        return false;
+    }
+}
+
 module.exports = {
-    downloadExternalImage
+    downloadExternalImage,
+    processImage
 };
+

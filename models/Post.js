@@ -8,9 +8,20 @@ class Post {
     static async create(userId, postData) {
         const postId = crypto.randomUUID();
         const affiliation = postData.affiliation || postData.campus || null;
+        
+        // --- NEW: Spam Filter (Algorithm 11.10) ---
+        const badWords = ['spam', 'offensive', 'badword']; // Simplified for demo
+        const contentLower = (postData.content || '').toLowerCase();
+        if (badWords.some(word => contentLower.includes(word))) {
+            throw new Error('Post contains prohibited content or spam.');
+        }
+
+        const scheduledAt = postData.scheduled_at || null;
+        const commentsEnabled = postData.comments_enabled !== undefined ? postData.comments_enabled : 1;
+
         await pool.query(
-            `INSERT INTO posts (post_id, user_id, content, media_url, media_type, post_type, campus, group_id, location) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO posts (post_id, user_id, content, media_url, media_type, post_type, campus, group_id, location, scheduled_at, comments_enabled) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 postId,
                 userId,
@@ -20,9 +31,13 @@ class Post {
                 postData.post_type || 'public',
                 affiliation,
                 postData.group_id || null,
-                postData.location || null
+                postData.location || null,
+                scheduledAt,
+                commentsEnabled
             ]
         );
+
+
 
         // Handle multi-media (carousels)
         if (postData.media && Array.isArray(postData.media)) {
@@ -94,9 +109,22 @@ class Post {
     static async findById(postId) {
         const [posts] = await pool.query(
             `SELECT p.*, 
-                    CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
-                    CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
-                    CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
+                    CASE 
+                        WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'DeletedUser'
+                        WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' 
+                        ELSE u.username 
+                    END as username,
+                    CASE 
+                        WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'Deleted User'
+                        WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' 
+                        ELSE u.name 
+                    END as user_name,
+                    CASE 
+                        WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN '/uploads/avatars/deleted.png'
+                        WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' 
+                        ELSE u.avatar_url 
+                    END as avatar_url,
+
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
@@ -141,8 +169,8 @@ class Post {
      * @param {number} randomSeed
      * @param {string|string[]} excludeIds
      */
-    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, randomSeed = 0, excludeIds = []) {
-        const algorithmEnabled = false; // DISABLED until platform scales as requested
+    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, randomSeed = 0, excludeIds = [], mode = 'for_you') {
+        const algorithmEnabled = true; 
 
         if (!algorithmEnabled) {
             // --- BASIC STABLE FEED LOGIC (UNIFIED CHRONOLOGICAL) ---
@@ -152,9 +180,22 @@ class Post {
                     SELECT * FROM (
                         -- 1. Original Posts
                         SELECT p.*, 
-                               CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
-                               CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
-                               CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
+                               CASE 
+                                   WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'DeletedUser'
+                                   WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' 
+                                   ELSE u.username 
+                               END as username,
+                               CASE 
+                                   WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'Deleted User'
+                                   WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' 
+                                   ELSE u.name 
+                               END as user_name,
+                               CASE 
+                                   WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN '/uploads/avatars/deleted.png'
+                                   WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' 
+                                   ELSE u.avatar_url 
+                               END as avatar_url,
+
                                u.campus as user_affiliation, u.major as user_interests,
                                (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                                (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
@@ -169,7 +210,9 @@ class Post {
                                CONCAT(p.post_id, '-orig') as feed_id
                         FROM posts p 
                         JOIN users u ON p.user_id = u.user_id 
-                        WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+                        WHERE (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
+                          AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+
                           AND NOT EXISTS (
                               SELECT 1 FROM user_blocks 
                               WHERE (blocker_id = ? AND blocked_id = p.user_id)
@@ -255,7 +298,7 @@ class Post {
             }
         }
 
-        // --- OLD ALGORITHM LAYER (Stashed/Disabled) ---
+        // --- ADVANCED SCORING ENGINE (Algorithm 44) ---
         // Fetch top 20 recent hashtags from user's posts to use in discovery scoring
         const [recentTags] = await pool.query(`
             SELECT DISTINCT tag FROM post_hashtags ph2 
@@ -270,6 +313,8 @@ class Post {
         const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
         const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
 
+        // Velocity Scoring: (Score / (Time + 2)^1.5)
+        // Score = (Likes*1 + Comments*2 + Shares*4)
         const query = `
             SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                     u.campus as user_affiliation, u.major as user_interests,
@@ -280,21 +325,24 @@ class Post {
                     EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
                     EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
                     (
-                        CASE 
-                            WHEN p.user_id = ? THEN 8.0 
-                            WHEN p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) THEN 5.0
-                            WHEN p.campus = ? THEN 3.0
-                            ELSE 1.0 
-                        END +
-                        (p.spark_count * 0.2) + 
-                        (p.comment_count * 0.3) + 
-                        (p.share_count * 0.4) +
-                        COALESCE((SELECT COUNT(*) * 0.5 FROM post_hashtags ph 
-                         WHERE ph.post_id = p.post_id ${tagFilter}), 0)
+                        (
+                            CASE 
+                                WHEN p.user_id = ? THEN 10.0 
+                                WHEN p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) THEN 7.0
+                                WHEN p.campus = ? THEN 4.0
+                                ELSE 1.0 
+                            END +
+                            (p.spark_count * 1.0) + 
+                            (p.comment_count * 2.0) + 
+                            (p.share_count * 4.0) +
+                            COALESCE((SELECT COUNT(*) * 0.5 FROM post_hashtags ph 
+                             WHERE ph.post_id = p.post_id ${tagFilter}), 0)
+                        ) / POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.5)
                     ) as discovery_score
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
-             WHERE (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+             WHERE (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
+               AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
                 ${excludeFilter}
                AND NOT EXISTS (
                    SELECT 1 FROM user_blocks 
@@ -306,20 +354,26 @@ class Post {
                    OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
                    OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
                )
-             ORDER BY discovery_score DESC, RAND(${randomSeed})
+             ORDER BY discovery_score DESC, p.created_at DESC
              LIMIT ? OFFSET ?`;
 
-        const queryParams = [
+        const params = [
             currentUserId, currentUserId, currentUserId, currentUserId, affiliation,
             ...tags,
             affiliation, affiliation,
             ...excluded,
-            currentUserId, currentUserId, currentUserId, currentUserId,
+            currentUserId, currentUserId,
+            currentUserId, currentUserId,
             limit, offset
         ];
 
-        const [posts] = await pool.query(query, queryParams);
-        return posts;
+        const [posts] = await pool.query(query, params);
+        return (posts || []).map(post => {
+            if (typeof post.media_files === 'string') {
+                try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
+            }
+            return post;
+        });
     }
 
     /**
@@ -339,6 +393,7 @@ class Post {
              JOIN groups g ON p.group_id = g.group_id
              JOIN group_members gm ON g.group_id = gm.group_id
              WHERE gm.user_id = ? AND gm.status = 'active' AND p.post_type = 'group'
+               AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
              ORDER BY p.created_at DESC 
              LIMIT ?`,
             [userId, limit]
@@ -369,9 +424,10 @@ class Post {
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
              FROM posts p 
              WHERE p.user_id = ? 
+               AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW() OR p.user_id = ?)
              ORDER BY p.created_at DESC 
              LIMIT ?`,
-            [userId, limit]
+            [userId, currentUserId, limit]
         );
         return posts;
     }
@@ -440,9 +496,22 @@ class Post {
 
         query = `
             SELECT c.*, 
-                   CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
-                   CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as name,
-                   CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
+                   CASE 
+                       WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'DeletedUser'
+                       WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' 
+                       ELSE u.username 
+                   END as username,
+                   CASE 
+                       WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'Deleted User'
+                       WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' 
+                       ELSE u.name 
+                   END as name,
+                   CASE 
+                       WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN '/uploads/avatars/deleted.png'
+                       WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' 
+                       ELSE u.avatar_url 
+                   END as avatar_url,
+
                    (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) as like_count
                    ${currentUserId ? `, (SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.comment_id AND cl2.user_id = ?) as is_liked ` : ''}
             FROM comments c
@@ -538,18 +607,41 @@ class Post {
      * Add comment to post
      */
     static async addComment(postId, userId, content, parentId = null) {
+        // --- NEW: Check if comments are enabled (Algorithm 15.6) ---
+        const [posts] = await pool.query('SELECT comments_enabled, user_id FROM posts WHERE post_id = ?', [postId]);
+        if (posts.length > 0 && posts[0].comments_enabled === 0) {
+            throw new Error('Comments are disabled for this post.');
+        }
+
         const commentId = crypto.randomUUID();
         await pool.query(
             'INSERT INTO comments (comment_id, post_id, user_id, content, parent_comment_id) VALUES (?, ?, ?, ?, ?)',
             [commentId, postId, userId, content, parentId]
         );
+
+        // --- NEW: Mentions Notification (Algorithm 15.11) ---
+        const mentions = content.match(/@(\w+)/g);
+        if (mentions) {
+            const User = require('./User'); // Lazy load to avoid circular dependency
+            for (const mention of mentions) {
+                const username = mention.substring(1);
+                const mentionedUser = await User.findByUsername(username);
+                if (mentionedUser && mentionedUser.user_id !== userId) {
+                    // Create notification logic would go here
+                    // e.g., Notification.create(...)
+                    console.log(`Mentioned user ${username} (${mentionedUser.user_id}) in post ${postId}`);
+                }
+            }
+        }
+
         await pool.query(
             'UPDATE posts SET comment_count = comment_count + 1 WHERE post_id = ?',
             [postId]
         );
 
-        return commentId;
+        return { commentId, success: true };
     }
+
 
     /**
      * Get posts by hashtag
@@ -646,17 +738,17 @@ class Post {
         return true;
     }
 
-    static async getTrendingHashtags(limit = 10) {
+    static async getTrendingHashtags(limit = 10, intervalHours = 24) {
         const query = `
             SELECT ph.tag, COUNT(*) as count
             FROM post_hashtags ph
             JOIN posts p ON ph.post_id = p.post_id
-            WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
+            WHERE p.created_at > DATE_SUB(NOW(), INTERVAL ? HOUR)
             GROUP BY ph.tag
             ORDER BY count DESC
             LIMIT ?
         `;
-        const [rows] = await pool.query(query, [limit]);
+        const [rows] = await pool.query(query, [intervalHours, limit]);
         return rows;
     }
 
@@ -716,13 +808,17 @@ class Post {
         );
         
         // Notify original author
-        const [origPost] = await pool.query('SELECT user_id FROM posts WHERE post_id = ?', [originalPostId]);
-        if (origPost.length > 0 && origPost[0].user_id !== userId) {
-            await pool.query(
-                `INSERT INTO notifications (notification_id, user_id, type, actor_id, target_id) 
-                 VALUES (?, ?, 'share', ?, ?)`,
-                [crypto.randomUUID(), origPost[0].user_id, userId, originalPostId]
-            );
+        try {
+            const [origPost] = await pool.query('SELECT user_id FROM posts WHERE post_id = ?', [originalPostId]);
+            if (origPost.length > 0 && origPost[0].user_id !== userId) {
+                await pool.query(
+                    `INSERT INTO notifications (notification_id, user_id, type, actor_id, target_id) 
+                     VALUES (?, ?, 'share', ?, ?)`,
+                    [crypto.randomUUID(), origPost[0].user_id, userId, originalPostId]
+                );
+            }
+        } catch(e) {
+            console.error('Failed to notify author of reshare', e);
         }
 
         await pool.query(
@@ -735,14 +831,18 @@ class Post {
             const mentions = comment.match(/@(\w+)/g);
             if (mentions) {
                 for (const mention of mentions) {
-                    const username = mention.substring(1);
-                    const [user] = await pool.query('SELECT user_id FROM users WHERE username = ?', [username]);
-                    if (user.length > 0) {
-                        await pool.query(
-                            `INSERT INTO notifications (notification_id, user_id, type, actor_id, target_id) 
-                             VALUES (?, ?, 'mention', ?, ?)`,
-                            [crypto.randomUUID(), user[0].user_id, userId, originalPostId]
-                        );
+                    try {
+                        const username = mention.substring(1);
+                        const [user] = await pool.query('SELECT user_id FROM users WHERE username = ?', [username]);
+                        if (user.length > 0) {
+                            await pool.query(
+                                `INSERT INTO notifications (notification_id, user_id, type, actor_id, target_id) 
+                                 VALUES (?, ?, 'mention', ?, ?)`,
+                                [crypto.randomUUID(), user[0].user_id, userId, originalPostId]
+                            );
+                        }
+                    } catch (e) {
+                        console.error('Failed to notify mentioned user in reshare', e);
                     }
                 }
             }

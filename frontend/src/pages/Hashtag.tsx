@@ -11,6 +11,16 @@ export default function Hashtag() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  const handleFollow = async () => {
+    try {
+      await api.post(`/search/hashtags/${tag}/follow`);
+      setIsFollowing(!isFollowing);
+    } catch (err) {
+      console.error('Failed to follow hashtag:', err);
+    }
+  };
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
@@ -41,10 +51,16 @@ export default function Hashtag() {
             <div className="htag-icon-wrap">
               <Hash size={30} />
             </div>
-            <div>
+            <div style={{ flex: 1 }}>
               <h1 className="htag-title">#{tag}</h1>
               <p className="htag-count">{posts.length} posts</p>
             </div>
+            <button 
+              onClick={handleFollow}
+              className={`follow-tag-btn ${isFollowing ? 'active' : ''}`}
+            >
+              {isFollowing ? 'Following' : 'Follow'}
+            </button>
           </div>
 
           {loading ? (
@@ -95,6 +111,27 @@ export default function Hashtag() {
         .htag-empty-icon { color: #cbd5e1; margin-bottom: 16px; }
         .htag-empty h3 { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 8px; }
         .htag-empty p { color: #64748b; }
+
+        .follow-tag-btn {
+          background: #FF3D6D;
+          color: white;
+          border: none;
+          padding: 8px 24px;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .follow-tag-btn.active {
+          background: #f1f5f9;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+        }
+        .follow-tag-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 61, 109, 0.2);
+        }
       `}</style>
     </div>
   );

@@ -1,31 +1,58 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api/api';
 
 export default function ProfessionalDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  // Mock stats mapping directly from standard EJS layout
-  const stats = {
-    profileViews: 1420,
-    followersGrowth: 15.4,
-    accountReach: 5200,
-    followers: 890,
-    likesRecv: 430,
-    commentsRecv: 112,
-    followerLikes: 350,
-    nonFollowerLikes: 192
-  };
+  const [stats, setStats] = useState({
+    profileViews: 0,
+    followersGrowth: 0,
+    accountReach: 0,
+    followers: 0,
+    totalSparks: 0,
+    totalComments: 0,
+    totalShares: 0
+  });
 
-  const dist = {
-    videos: 25,
-    photos: 60,
-    stories: 15
-  };
+  const [dist, setDist] = useState({
+    videos: 0,
+    photos: 0,
+    stories: 0
+  });
 
   useEffect(() => {
-    // Simulate API load
-    setTimeout(() => setLoading(false), 600);
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/analytics/creator');
+        const data = res.data;
+        setStats({
+          profileViews: data.profileViews,
+          followersGrowth: data.followersGrowth,
+          accountReach: data.accountReach,
+          followers: data.followers,
+          totalSparks: data.totalSparks,
+          totalComments: data.totalComments,
+          totalShares: data.totalShares
+        });
+
+        // Distribution from counts
+        const totalPosts = (data.distribution.video || 0) + (data.distribution.image || 0) + (data.distribution.text || 0) || 1;
+        setDist({
+          videos: Math.round(((data.distribution.video || 0) / totalPosts) * 100),
+          photos: Math.round(((data.distribution.image || 0) / totalPosts) * 100),
+          stories: 0 // Fetching stories might need another count
+        });
+
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch analytics:', err);
+        setLoading(false);
+      }
+    };
+    fetchStats();
+    document.title = 'Professional Dashboard | Sparkle';
   }, []);
 
   return (
@@ -84,8 +111,8 @@ export default function ProfessionalDashboard() {
                   <div className="flex justify-between items-center text-[11px] font-black tracking-widest text-slate-400 uppercase mb-2">
                     Interactions <i className="fas fa-heart text-rose-500 text-sm"></i>
                   </div>
-                  <div className="text-3xl font-black text-slate-800">{(stats.likesRecv + stats.commentsRecv).toLocaleString()}</div>
-                  <div className="text-xs font-bold text-emerald-500 mt-2"><i className="fas fa-arrow-up"></i> +12.4%</div>
+                  <div className="text-3xl font-black text-slate-800">{(stats.totalSparks + stats.totalComments).toLocaleString()}</div>
+                  <div className="text-xs font-bold text-emerald-500 mt-2"><i className="fas fa-arrow-up"></i> +{stats.followersGrowth}%</div>
                 </div>
 
               </div>
@@ -127,15 +154,15 @@ export default function ProfessionalDashboard() {
                 </div>
 
                 <div className="pt-5 border-t border-slate-200">
-                  <h3 className="text-sm font-black text-slate-800 mb-3">Audience Makeup</h3>
+                  <h3 className="text-sm font-black text-slate-800 mb-3">Audience Engagement</h3>
                   <div className="flex justify-between">
                     <div>
-                      <div className="text-2xl font-black text-slate-800">{(stats.followerLikes / (stats.followerLikes + stats.nonFollowerLikes) * 100).toFixed(1)}%</div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">From Followers</div>
+                      <div className="text-2xl font-black text-slate-800">{stats.totalSparks.toLocaleString()}</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Sparks</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-black text-slate-800">{(stats.nonFollowerLikes / (stats.followerLikes + stats.nonFollowerLikes) * 100).toFixed(1)}%</div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">From Non-Followers</div>
+                      <div className="text-2xl font-black text-slate-800">{stats.totalComments.toLocaleString()}</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Comments</div>
                     </div>
                   </div>
                 </div>

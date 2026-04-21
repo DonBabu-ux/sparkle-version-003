@@ -3,8 +3,16 @@ import { Hammer, Zap, Star, ShieldCheck, ChevronRight } from 'lucide-react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 
+interface SkillOffer {
+  title: string;
+  description: string;
+  provider_name?: string;
+  provider_avatar?: string;
+  price_display?: string;
+}
+
 export default function SkillMarket() {
-  const [skills, setSkills] = useState<any[]>([]);
+  const [skills, setSkills] = useState<SkillOffer[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

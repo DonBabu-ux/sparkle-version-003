@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import type { User } from '../types/user';
 
+
 export default function Settings() {
   const { user, setUser } = useUserStore();
   const navigate = useNavigate();
@@ -13,6 +14,11 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Security States
+  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isSigningOutOthers, setIsSigningOutOthers] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -29,7 +35,11 @@ export default function Settings() {
     show_contact_info: user?.show_contact_info || false,
     show_birthday: user?.show_birthday || false,
     dm_permission: user?.dm_permission || 'everyone',
-    theme: user?.theme || 'light'
+    theme: user?.theme || 'light',
+    email_welcome: true,
+    email_verification: true,
+    email_digest: false,
+    email_alerts: true
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -60,7 +70,7 @@ export default function Settings() {
       if (response.data.success || response.status === 200) {
         setSuccess('Profile updated successfully!');
         if (user) {
-          setUser({ ...user, ...formData } as any);
+          setUser({ ...user, ...formData } as User);
         }
       }
     } catch (err) {
@@ -77,6 +87,67 @@ export default function Settings() {
   const handleLogout = () => {
     localStorage.removeItem('sparkleToken');
     navigate('/login');
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    if (!passwords.current) return setError('Please enter your current password.');
+    if (!passwords.new || passwords.new.length < 8) return setError('New password must be at least 8 characters.');
+    if (passwords.new !== passwords.confirm) return setError('New passwords do not match.');
+    
+    setIsUpdatingPassword(true);
+    try {
+      await api.put('/users/password', {
+        currentPassword: passwords.current,
+        newPassword: passwords.new
+      });
+      setSuccess('Password updated successfully!');
+      setPasswords({ current: '', new: '', confirm: '' });
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string; error?: string } } };
+      setError(e.response?.data?.error || e.response?.data?.message || 'Failed to update password.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleSignOutOthers = async () => {
+    setIsSigningOutOthers(true);
+    setSuccess(null);
+    setError(null);
+    try {
+      await api.post('/users/logout-all');
+      setSuccess('Successfully signed out from all other devices.');
+    } catch {
+      setError('Failed to sign out from other devices.');
+    } finally {
+      setIsSigningOutOthers(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "Are you absolutely sure you want to delete your account? This action is irreversible, and all your data, posts, and connections will be permanently lost."
+    );
+    
+    if (!confirmDelete) return;
+
+    const password = window.prompt('Enter your password to confirm deletion:');
+    if (!password) return;
+
+    setLoading(true);
+    try {
+      await api.delete('/users/me', { data: { password } });
+      localStorage.removeItem('sparkleToken');
+      navigate('/login');
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string; error?: string } } };
+      setError(e.response?.data?.error || e.response?.data?.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -199,6 +270,9 @@ export default function Settings() {
                   <p className="section-desc">Keep your account safe and monitored.</p>
                 </div>
 
+                {success && <div className="alert-success animate-fade-in">✨ {success}</div>}
+                {error && <div className="alert-error animate-fade-in">⚠️ {error}</div>}
+
                 <div className="input-group">
                   <label className="label">Email Address (Primary)</label>
                   <input type="email" className="input" value={user?.email || ''} disabled />
@@ -225,12 +299,49 @@ export default function Settings() {
                   </div>
                 </div>
 
-                <div className="mt-8">
+                <form className="mt-8" onSubmit={handleUpdatePassword}>
                   <span className="group-label">Update Password</span>
-                  <input type="password" className="input mb-4" placeholder="Current Password" />
-                  <input type="password" className="input mb-4" placeholder="New Password" />
-                  <input type="password" className="input mb-4" placeholder="Confirm New Password" />
-                  <button className="premium-btn w-full mt-4">Update Password</button>
+                  <input 
+                    type="password" 
+                    className="input mb-4" 
+                    placeholder="Current Password" 
+                    value={passwords.current}
+                    onChange={e => setPasswords({...passwords, current: e.target.value})}
+                  />
+                  <input 
+                    type="password" 
+                    className="input mb-4" 
+                    placeholder="New Password (min 8 characters)" 
+                    value={passwords.new}
+                    onChange={e => setPasswords({...passwords, new: e.target.value})}
+                  />
+                  <input 
+                    type="password" 
+                    className="input mb-4" 
+                    placeholder="Confirm New Password" 
+                    value={passwords.confirm}
+                    onChange={e => setPasswords({...passwords, confirm: e.target.value})}
+                  />
+                  <button type="submit" disabled={isUpdatingPassword} className="premium-btn w-full mt-4">
+                    {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                </form>
+
+                <div className="mt-8" style={{ paddingTop: '2rem', borderTop: '1px solid var(--border-light)' }}>
+                  <span className="group-label">Session Management</span>
+                  <div className="flex-between" style={{ background: '#f8fafc', padding: 20, borderRadius: 16 }}>
+                    <div>
+                      <h4 className="card-title" style={{ color: 'var(--text-main)' }}>Sign out of all other devices</h4>
+                      <p className="card-desc">Log out of every other device or browser you are currently logged into.</p>
+                    </div>
+                    <button 
+                      onClick={handleSignOutOthers}
+                      disabled={isSigningOutOthers}
+                      style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '10px 20px', borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      {isSigningOutOthers ? 'Signing Out...' : 'Sign Out All'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -247,6 +358,98 @@ export default function Settings() {
                     { k: 'is_private', l: 'Private Profile', d: 'Only mutual followers can see posts.' },
                     { k: 'show_contact_info', l: 'Show Contact Info', d: 'Allow discovery by phone/email.' },
                     { k: 'show_birthday', l: 'Show Birthday', d: 'Visible on your public profile.' }
+                  ].map(item => (
+                    <div key={item.k} className="flex-between py-4 border-b border-slate-50">
+                      <div>
+                        <h4 className="font-bold text-slate-800">{item.l}</h4>
+                        <p className="text-xs text-slate-400">{item.d}</p>
+                      </div>
+                      <label className="switch">
+                        <input
+                          type="checkbox"
+                          name={item.k}
+                          checked={formData[item.k as keyof typeof formData] as boolean}
+                          onChange={(e) => {
+                            handleChange(e);
+                            handleUpdateSetting(item.k, e.target.checked);
+                          }}
+                        />
+                        <span className="slider"></span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8" style={{ paddingTop: '2rem', borderTop: '1px solid var(--border-light)' }}>
+                  <span className="group-label">Blocked Users</span>
+                  <div className="flex-between" style={{ background: '#f8fafc', padding: 20, borderRadius: 16 }}>
+                    <div>
+                      <h4 className="card-title" style={{ color: 'var(--text-main)' }}>Manage Block List</h4>
+                      <p className="card-desc">View and unblock users you have previously blocked.</p>
+                    </div>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          const res = await api.get('/users/me/blocks');
+                          const blocks = res.data.blocks || [];
+                          if (blocks.length === 0) {
+                            alert("You haven't blocked anyone.");
+                          } else {
+                            const unblockId = window.prompt(`Blocked users: ${blocks.map((b: { username: string }) => b.username).join(', ')}\n\nEnter the username to unblock:`);
+                            if (unblockId) {
+                              const target = blocks.find((b: { username: string; blocked_user_id: string }) => b.username === unblockId);
+                              if (target) {
+                                await api.post(`/users/${target.blocked_user_id}/unblock`);
+                                alert(`Unblocked ${unblockId}`);
+                              } else {
+                                alert("User not found in block list.");
+                              }
+                            }
+                          }
+                        } catch (err) {
+                          console.error("Failed to fetch block list", err);
+                          alert("Failed to load block list.");
+                        }
+                      }}
+                      style={{ background: 'white', color: 'var(--text-main)', border: '1.5px solid var(--border-light)', padding: '10px 20px', borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      View Blocked
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-8" style={{ paddingTop: '2rem', borderTop: '1px solid var(--border-light)' }}>
+                  <span className="group-label" style={{ color: '#ef4444' }}>Danger Zone</span>
+                  <div className="flex-between" style={{ background: '#fff1f2', padding: 20, borderRadius: 16, border: '1px solid #fecdd3' }}>
+                    <div>
+                      <h4 className="card-title" style={{ color: '#e11d48' }}>Delete Account</h4>
+                      <p className="card-desc" style={{ color: '#fb7185' }}>Permanently remove your account and all data.</p>
+                    </div>
+                    <button 
+                      onClick={handleDeleteAccount}
+                      disabled={loading}
+                      style={{ background: '#e11d48', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Delete Account
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'notifications' && (
+              <div className="settings-section animate-fade-in">
+                <div className="section-header">
+                  <h2 className="section-title">Notification Settings</h2>
+                  <p className="section-desc">Choose what you want to be notified about via email.</p>
+                </div>
+
+                <div className="settings-list">
+                  {[
+                    { k: 'email_welcome', l: 'Welcome Emails', d: 'Receive a warm welcome when you join.' },
+                    { k: 'email_verification', l: 'Security Alerts', d: 'Get notified about login attempts and password changes.' },
+                    { k: 'email_digest', l: 'Daily Digest', d: 'A summary of trending campus news.' },
+                    { k: 'email_alerts', l: 'Activity Alerts', d: 'Emails for new followers and mentions.' }
                   ].map(item => (
                     <div key={item.k} className="flex-between py-4 border-b border-slate-50">
                       <div>

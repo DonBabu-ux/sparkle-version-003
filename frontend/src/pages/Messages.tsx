@@ -582,10 +582,46 @@ export default function Messages() {
                   <button className="icon-btn"><i className="fas fa-phone"></i></button>
                   <button className="icon-btn"><i className="fas fa-video"></i></button>
                   
-                  {/* Group Admin Actions */}
-                  {selectedChat.is_group && selectedChat.is_admin && (
-                    <button className="icon-btn text-[#00a884] ml-2" title="Edit Group">
-                      <i className="fas fa-user-gear"></i>
+                  {/* Group Actions */}
+                  {selectedChat.is_group && (
+                    <button 
+                      className="icon-btn text-[#00a884] ml-2" 
+                      title="Group Members"
+                      onClick={async () => {
+                        const action = window.prompt(`Group: ${selectedChat.partner_name}\n\nType 'add' to invite a user, 'leave' to leave the group${selectedChat.is_admin ? ", 'remove' to kick a user, or 'delete' to delete the group." : "."}`);
+                        if (!action) return;
+                        
+                        try {
+                          if (action === 'leave') {
+                            await api.post(`/messages/groups/${selectedChat.chat_id}/leave`);
+                            setSelectedChat(null);
+                            fetchInbox();
+                          } else if (action === 'add') {
+                            const username = window.prompt("Enter the username to add to the group:");
+                            if (username) {
+                              await api.post(`/messages/groups/${selectedChat.chat_id}/add`, { username });
+                              alert('User added to group.');
+                            }
+                          } else if (selectedChat.is_admin && action === 'remove') {
+                            const username = window.prompt("Enter the username to remove from the group:");
+                            if (username) {
+                              await api.post(`/messages/groups/${selectedChat.chat_id}/remove`, { username });
+                              alert('User removed from group.');
+                            }
+                          } else if (selectedChat.is_admin && action === 'delete') {
+                            if (window.confirm("Are you sure you want to completely delete this group?")) {
+                              await api.delete(`/messages/groups/${selectedChat.chat_id}`);
+                              setSelectedChat(null);
+                              fetchInbox();
+                            }
+                          }
+                        } catch (err) {
+                          const e = err as { response?: { data?: { message?: string } } };
+                          alert(e.response?.data?.message || 'Action failed.');
+                        }
+                      }}
+                    >
+                      <i className="fas fa-users"></i>
                     </button>
                   )}
 
@@ -612,7 +648,6 @@ export default function Messages() {
                           </span>
                         </button>
                         
-                        {/* New Actions inspired by EJS */}
                         <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-lg text-sm text-[#e9edef]">
                             <i className="bi bi-info-circle text-[#8696a0]"></i>
                             <span>Contact Info</span>

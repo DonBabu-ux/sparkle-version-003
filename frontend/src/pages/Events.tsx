@@ -31,8 +31,6 @@ export default function Events() {
   const [activeTab, setActiveTab] = useState('All');
   const [expandedReqs, setExpandedReqs] = useState<Set<string>>(new Set());
 
-  useEffect(() => { fetchEvents(); }, [activeTab, fetchEvents]);
-
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
@@ -47,6 +45,8 @@ export default function Events() {
       setLoading(false);
     }
   }, [activeTab, user?.campus]);
+
+  useEffect(() => { fetchEvents(); }, [activeTab, fetchEvents]);
 
   const handleRSVP = async (eventId: string, status: string) => {
     try {

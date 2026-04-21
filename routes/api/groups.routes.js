@@ -10,6 +10,7 @@ router.use(csrfProtection);
 
 // Match spec: GET /api/groups
 router.get('/', authMiddleware, groupsController.getGroupsAPI);
+router.get('/:id', authMiddleware, groupsController.getGroupAPI);
 
 // Match spec: POST /api/groups
 router.post('/', authMiddleware, upload.single('pfp'), groupsController.createGroup);

@@ -52,11 +52,41 @@ const authMiddleware = async (req, res, next) => {
             return res.status(401).json({ error: 'Session expired: Global logout performed' });
         }
         
-        // UPDATE CACHE
+        // --- NEW: Session Refresh Logic (Algorithm 41.7) ---
+        // If the token is valid, we can optionally refresh it to extend the session
+        // if it's more than half-way to expiry.
+        const now = Math.floor(Date.now() / 1000);
+        const tokenAge = now - decoded.iat;
+        const tokenDuration = decoded.exp - decoded.iat;
+        
+        if (tokenAge > tokenDuration / 2) {
+            const newToken = jwt.sign({ 
+                userId: user.user_id, 
+                email: user.email, 
+                username: user.username,
+                tokenVersion: user.token_version || 0,
+                iat: now // Refresh iat
+            }, JWT_SECRET, { expiresIn: tokenDuration }); // Keep same duration (24h or 30d)
+
+            // Update cookie if it was provided via cookie
+            if (req.cookies && req.cookies.sparkleToken) {
+                res.cookie('sparkleToken', newToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'strict',
+                    maxAge: tokenDuration * 1000,
+                    path: '/'
+                });
+            }
+            // Also send in header for SPA compatibility
+            res.setHeader('x-refresh-token', newToken);
+        }
+
         userCache.set(decoded.userId, { user: userData, timestamp: Date.now() });
         
         req.user = userData;
         next();
+
     } catch (err) {
         console.error('❌ Auth Middleware Error:', err.message);
         res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });

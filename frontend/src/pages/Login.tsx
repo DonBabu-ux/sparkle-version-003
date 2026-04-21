@@ -37,9 +37,9 @@ export default function Login() {
       const data = res.data;
 
       // Case 1: 2FA required
-      if (data?.status === 'twofa_required') {
+      if (data?.status === 'requires_2fa' || data?.status === 'twofa_required') {
         setTwofaUserId(data.userId);
-        setTwofaEmail(data.email);
+        setTwofaEmail(data.email || (data.message?.includes('@') ? data.message.split(' ').pop() : 'your email'));
         setShow2FA(true);
         setLoading(false);
         return;
@@ -96,7 +96,11 @@ export default function Login() {
 
     setVerifying(true);
     try {
-      const res = await api.post('/auth/verify-2fa', { userId: twofaUserId, pin: code });
+      const res = await api.post('/auth/verify-2fa', { 
+        userId: twofaUserId, 
+        code, 
+        rememberMe 
+      });
       if (res.data?.token) {
         login(res.data.token, res.data.user);
         showSuccess('Verification successful! Redirecting...');
@@ -120,6 +124,19 @@ export default function Login() {
     setShow2FA(false);
     setPin(['', '', '', '', '', '']);
     setLoading(false);
+  };
+
+  const handleLost2FA = async () => {
+    if (!twofaUserId) return;
+    try {
+      setVerifying(true);
+      const res = await api.post('/auth/request-2fa-recovery', { userId: twofaUserId });
+      showSuccess(res.data.message || 'Recovery code sent to your email!');
+    } catch (err) {
+      showError('Failed to send recovery code. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
   };
 
   React.useEffect(() => {
@@ -255,6 +272,14 @@ export default function Login() {
                   disabled={verifying}
                 >
                   {verifying ? <i className="fas fa-circle-notch fa-spin"></i> : 'Verify & Continue'}
+                </button>
+
+                <button 
+                  className="text-sm font-bold text-slate-400 hover:text-indigo-600 mb-4 block w-full"
+                  onClick={handleLost2FA}
+                  disabled={verifying}
+                >
+                  Lost your device? Get a recovery code
                 </button>
 
                 <button 

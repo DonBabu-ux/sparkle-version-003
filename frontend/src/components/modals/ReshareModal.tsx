@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Repeat2, Loader2, AtSign } from 'lucide-react';
 import api from '../../api/api';
 import { useModalStore } from '../../store/modalStore';
-import { Link } from 'react-router-dom';
 
 interface User {
   user_id: string;

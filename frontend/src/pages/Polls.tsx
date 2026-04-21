@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart2, Plus, ChevronRight, Hash, Calendar } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -33,9 +33,7 @@ export default function Polls() {
   const [loading, setLoading] = useState(true);
   const [campusFilter, setCampusFilter] = useState<'all' | 'campus'>('all');
 
-  useEffect(() => { fetchPolls(); }, [campusFilter]);
-
-  const fetchPolls = async () => {
+  const fetchPolls = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
@@ -47,7 +45,9 @@ export default function Polls() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [campusFilter, user?.campus]);
+
+  useEffect(() => { fetchPolls(); }, [fetchPolls]);
 
   return (
     <div className="page-wrapper">

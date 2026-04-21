@@ -1,0 +1,245 @@
+Here are all **45 features grouped into 8 logical categories** (not phases - permanent organization):
+
+---
+
+## GROUP 1: AUTHENTICATION & SECURITY (Features 1-5, 8, 33, 41, 42)
+*Everything related to login, passwords, and account security*
+
+| # | Feature | What it does |
+|---|---------|---------------|
+| 1 | Login | ✅ Improved with Remember Me (30d) & Session Recording |
+| 2 | Signup | ✅ Improved with Student ID & Terms Acceptance |
+| 3 | Email Verification | ✅ Done with 15min expiry & secure OTP |
+| 4 | Forgot Password | ✅ Done with Link & OTP support |
+| 5 | Reset Password | ✅ Fully implemented |
+| 8 | Change Password | ✅ Implemented in User Settings |
+| 33 | Forgot Password (Extended) | ✅ OTP option added |
+| 41 | Session Management | ✅ View/Logout sessions implemented |
+| 42 | Two-Factor Authentication | ✅ Verification logic implemented |
+
+**Access Control:**
+- User: Manage own security settings
+- Admin: Can force logout/reset for any user
+
+---
+
+## GROUP 2: USER PROFILE (Features 6-7, 9-10, 31, 40)
+*Profile viewing, editing, and privacy*
+
+| # | Feature | What it does |
+|---|---------|---------------|
+| 6 | View Profile (Own) | See your own info and posts |
+| 7 | Edit Profile | Change name, bio, avatar, etc |
+| 9 | Account Settings | Privacy toggles, theme, language |
+| 10 | Delete Account | Request permanent deletion |
+| 31 | Profile Visitor | What others see on your profile |
+| 40 | Privacy Levels | Public / Friends Only / Only Me |
+
+**Access Control:**
+- Profile Owner: Full CRUD, can set privacy
+- Follower: See what privacy allows
+- Non-follower: See only public content
+- Blocked User: Cannot see profile at all
+- Admin: Can view any profile, can edit/delete
+
+---
+
+## GROUP 3: CONTENT CREATION & FEED (Features 11-15, 22-23, 36-37, 44)
+*Posts, stories, and interactive content*
+
+| # | Feature | What it does |
+|---|---------|---------------|
+| 11 | Create Post | Text + images + hashtags + mentions |
+| 12 | View Feed | Scroll through posts from followed users |
+| 13 | Like Post | Toggle like on any post |
+| 14 | Comment on Post | Add/edit/delete comments, reply to comments |
+| 15 | Share Post | Repost to own feed or share externally |
+| 22 | Create Story | 24-hour photo/video with stickers/music |
+| 23 | View Stories | Story rings, viewer with progress bar |
+| 36 | Pin & Save | Bookmark posts, pin to profile top |
+| 37 | Hashtag System | #tags, trending, follow hashtags |
+| 44 | Polls | Create poll, vote, view results |
+
+**Access Control:**
+- Content Owner: Edit/delete own posts, stories, polls
+- Follower: Like, comment, share, save
+- Non-follower: View only (if public)
+- Group Admin: Delete posts in group
+- Platform Admin: Delete any content, pin featured posts
+
+---
+
+## GROUP 4: SOCIAL INTERACTIONS (Features 16-18, 32, 35)
+*Connecting with other users*
+
+| # | Feature | What it does |
+|---|---------|---------------|
+| 16 | Search | Find users, posts, groups, hashtags |
+| 17 | Follow/Unfollow | Follow users, see their content |
+| 18 | Follow Request | Private profile approval system |
+| 32 | Notifications | In-app alerts for likes, comments, follows, messages |
+| 34 | Email Notifications | Welcome, verification, digest, alerts |
+| 35 | Report & Block | Flag content, block users, view block list |
+
+**Access Control:**
+- Any User: Search, follow/unfollow, send follow requests, report content, block users
+- Profile Owner: Approve/deny follow requests, view followers list
+- Admin: View reports, delete flagged content, suspend users
+
+---
+
+## GROUP 5: MESSAGING & GROUPS (Features 19-21, 27-29)
+*Chat and communities*
+
+| # | Feature | What it does |
+|---|---------|---------------|
+| 19 | Send Message | 1-on-1 text, images, files, emojis |
+| 20 | View Messages | Chat history, read receipts, typing indicator |
+| 21 | Group Chat | Multiple people in one conversation |
+| 27 | Create Group (Community) | New group with name, description, rules, type |
+| 28 | Group Membership | Join/leave public/private groups, invite friends |
+| 29 | Group Admin Actions | Remove members, ban, promote admins, delete group |
+
+**Access Control:**
+
+| Role | Can do |
+|------|--------|
+| **Group Member** | Send messages, view history, leave group, invite friends |
+| **Group Admin** | All member actions + remove members, ban, promote/demote admins, edit group info, delete any message, pin posts, delete group |
+| **Group Creator** | All admin actions + can delete group permanently |
+| **Non-member (Public Group)** | View content, request to join |
+| **Non-member (Private Group)** | Cannot see anything, can request to join |
+| **Platform Admin** | Delete any group, remove any member, ban any user from all groups |
+
+---
+
+## GROUP 6: MARKETPLACE (Features 24-26, 39)
+*Buying, selling, and ratings*
+
+| # | Feature | What it does |
+|---|---------|---------------|
+| 24 | Create Listing | Post item with title, price, photos, condition, location |
+| 25 | Browse Marketplace | Search, filter by category/price/condition, sort |
+| 26 | Contact Seller | DM about item, negotiate, mark as sold |
+| 39 | Reviews & Ratings | Rate sellers 1-5 stars, write review, reply |
+
+**Access Control:**
+
+| Role | Can do |
+|------|--------|
+| **Buyer** | Browse listings, search/filter, contact sellers, save listings, rate sellers after purchase |
+| **Seller** | Create/edit/delete own listings, mark as sold, reply to reviews, see interested buyers |
+| **Both** | Negotiate price in chat |
+| **Platform Admin** | Remove any listing, ban sellers, delete reviews |
+
+---
+
+## GROUP 7: CAMPUS UTILITIES (Features 38, 45)
+*Practical campus life features*
+
+| # | Feature | What it does |
+|---|---------|---------------|
+| 38 | Events | Create event, RSVP (Going/Maybe/Not), add to calendar, cancel |
+| 45 | Lost & Found | Report lost/found items, search, claim items, mark resolved |
+
+**Access Control:**
+
+| Role | Events | Lost & Found |
+|------|--------|---------------|
+| **Creator** | Edit, cancel, view attendees | Edit/delete own listing, mark resolved |
+| **Any User** | Create events, RSVP, view events | Report lost/found items, search, claim items |
+| **Claimer (Lost)** | N/A | Click "I think this is mine" → notifies original poster |
+| **Admin** | Delete any event, remove any listing | Delete any listing, resolve disputes |
+
+---
+
+## GROUP 8: ADMIN & ANALYTICS (Features 30, 43)
+*Platform control and insights*
+
+| # | Feature | What it does |
+|---|---------|---------------|
+| 30 | Admin (Platform Level) | View all users, suspend/delete users, view reports, platform stats, announcements, logs |
+| 43 | Analytics | Profile views, post reach, engagement rate, follower growth, best time to post, demographics |
+
+**Access Control:**
+
+| Role | Admin | Analytics |
+|------|-------|-----------|
+| **Regular User** | Cannot access | Can see own analytics only |
+| **Content Creator** | Cannot access | Can see own detailed analytics |
+| **Super Admin** | Full access: manage users, delete content, view all reports, platform stats, announcements, logs | Can see all analytics, platform-wide trends |
+| **Moderator Admin** | Limited: view reports, delete content, suspend users (cannot delete users or view logs) | Can see platform-wide trends only |
+
+---
+
+## COMPLETE REFERENCE TABLE: 45 Features → 8 Groups
+
+| Group | Features | Focus |
+|-------|----------|-------|
+| **Group 1: Auth & Security** | 1,2,3,4,5,8,33,41,42 | Login, passwords, security |
+| **Group 2: Profile** | 6,7,9,10,31,40 | Profile viewing, editing, privacy |
+| **Group 3: Content & Feed** | 11,12,13,14,15,22,23,36,37,44 | Posts, stories, polls, hashtags |
+| **Group 4: Social Interactions** | 16,17,18,32,34,35 | Search, follow, notifications, block |
+| **Group 5: Messaging & Groups** | 19,20,21,27,28,29 | Chat, group chat, communities |
+| **Group 6: Marketplace** | 24,25,26,39 | Buy, sell, ratings |
+| **Group 7: Campus Utilities** | 38,45 | Events, lost & found |
+| **Group 8: Admin & Analytics** | 30,43 | Platform control, insights |
+
+---
+
+## ACCESS CONTROL SUMMARY (Who can do what across all groups)
+
+| Action | Profile Owner | Follower | Non-follower | Group Admin | Platform Admin |
+|--------|---------------|----------|--------------|-------------|----------------|
+| View own profile | ✅ | N/A | N/A | N/A | ✅ |
+| View others' public profile | ✅ | ✅ | ✅ | ✅ | ✅ |
+| View others' private profile | N/A | ✅ | ❌ | N/A | ✅ |
+| Edit own profile | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Delete own account | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Create post | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Delete own post | ✅ | ❌ | ❌ | ✅ (in group) | ✅ (any) |
+| Like/comment on post | ✅ (others' posts) | ✅ | ✅ | ✅ | ✅ |
+| Send message | ✅ | ✅ (mutuals) | ❌ | ✅ | ✅ |
+| Create group | ✅ | ✅ | ✅ | N/A | ✅ |
+| Remove member from group | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Create marketplace listing | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Delete any listing | ❌ | ❌ | ❌ | ❌ | ✅ |
+| View analytics | ✅ (own only) | ❌ | ❌ | ❌ | ✅ (all) |
+| Suspend user | ❌ | ❌ | ❌ | ❌ | ✅ |
+| View platform stats | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+---
+
+## QUICK REFERENCE: What each role can do
+
+### 👤 REGULAR USER (Logged in)
+- Manage own profile and account
+- Create posts, stories, polls
+- Like, comment, share
+- Follow/unfollow users
+- Send/receive messages
+- Create/join groups
+- Buy/sell on marketplace
+- Create events, report lost items
+- Block users, report content
+
+### 👑 GROUP ADMIN (Within their group only)
+- All regular user actions
+- Remove members from group
+- Ban users from group
+- Promote/demote admins
+- Delete any post in group
+- Edit group info
+- Delete group
+
+### 🛡️ PLATFORM ADMIN (Global)
+- All regular user actions
+- View all profiles (even private)
+- Delete any content (posts, comments, stories)
+- Suspend or delete any user
+- View all reports and resolve them
+- View platform-wide analytics
+- Send site-wide announcements
+- View activity logs
+- Manage featured content
+

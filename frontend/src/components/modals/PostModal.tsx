@@ -7,6 +7,8 @@ interface PostModalProps {
   onSuccess: () => void;
 }
 
+import MentionInput from '../MentionInput';
+
 export default function PostModal({ onClose, onSuccess }: PostModalProps) {
   const [content, setContent] = useState('');
   const [postType, setPostType] = useState('public');
@@ -65,12 +67,12 @@ export default function PostModal({ onClose, onSuccess }: PostModalProps) {
       </div>
 
       <div className="modal-body">
-        <textarea
+        <MentionInput
+          value={content}
+          onChange={setContent}
           className="post-input"
           placeholder="What's happening on campus?"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          autoFocus
+          autoFocus={true}
         />
 
         {previews.length > 0 && (

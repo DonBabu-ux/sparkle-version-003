@@ -49,6 +49,15 @@ body {
   .app-container {
     padding-bottom: 90px !important;
   }
+  
+  h1 { font-size: 1.75rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.25rem !important; }
+}
+
+.mobile-friendly-p {
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 h1, h2, h3, h4, .logo-text {
@@ -544,4 +553,27 @@ h1, h2, h3, h4, .logo-text {
   .auth-visual-side { display: none; }
   .auth-form-side { padding: 40px 30px; }
   .auth-container-card { max-width: 500px; border-radius: 30px; }
+}
+
+/* Global Mobile Responsiveness for New Pages */
+@media (max-width: 640px) {
+  .responsive-container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    margin-top: 20px !important;
+  }
+  
+  .responsive-card {
+    border-radius: 20px !important;
+    padding: 20px !important;
+  }
+  
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .mobile-full-btn {
+    width: 100% !important;
+  }
 }

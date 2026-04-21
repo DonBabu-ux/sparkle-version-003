@@ -57,7 +57,8 @@ const repairUsersTable = async () => {
             { name: 'bio', type: 'TEXT DEFAULT NULL' },
             { name: 'campus', type: 'VARCHAR(100) DEFAULT NULL' },
             { name: 'major', type: 'VARCHAR(100) DEFAULT NULL' },
-            { name: 'year_of_study', type: 'VARCHAR(50) DEFAULT NULL' }
+            { name: 'year_of_study', type: 'VARCHAR(50) DEFAULT NULL' },
+            { name: 'profile_views', type: 'INT DEFAULT 0' }
         ];
 
         for (const col of columnsToAdd) {
@@ -592,35 +593,35 @@ const initSkillMarketTable = async () => {
 
 const initMarketplaceTables = async () => {
     try {
-        // 1. Listings Table (Escaping `condition` which is a reserved keyword in some SQL dialects)
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS marketplace_listings (
-                listing_id CHAR(36) NOT NULL PRIMARY KEY,
-                seller_id CHAR(36) NOT NULL,
-                title VARCHAR(255) NOT NULL,
-                description TEXT,
-                price DECIMAL(10, 2) NOT NULL,
-                category VARCHAR(50) DEFAULT 'other',
-                \`condition\` ENUM('new', 'like_new', 'good', 'fair', 'poor') DEFAULT 'good',
-                campus VARCHAR(100) NOT NULL,
-                location VARCHAR(255) DEFAULT NULL,
-                is_sold TINYINT(1) DEFAULT 0,
-                status ENUM('active', 'sold', 'pending', 'deleted') DEFAULT 'active',
-                sold_at TIMESTAMP NULL DEFAULT NULL,
-                tags JSON DEFAULT NULL,
-                view_count INT DEFAULT 0,
-                image_url VARCHAR(500) DEFAULT NULL,
-                boost_count INT DEFAULT 0,
-                last_boosted_at TIMESTAMP NULL DEFAULT NULL,
-                is_promoted TINYINT(1) DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (seller_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                INDEX idx_marketplace_campus (campus, status, created_at),
-                INDEX idx_marketplace_category (category, status),
-                INDEX idx_marketplace_seller (seller_id, created_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        `);
+        // 1. Listings Table
+        const createListingsTable = 'CREATE TABLE IF NOT EXISTS marketplace_listings (' +
+            'listing_id CHAR(36) NOT NULL PRIMARY KEY, ' +
+            'seller_id CHAR(36) NOT NULL, ' +
+            'title VARCHAR(255) NOT NULL, ' +
+            'description TEXT, ' +
+            'price DECIMAL(10, 2) NOT NULL, ' +
+            'category VARCHAR(50) DEFAULT "other", ' +
+            '`condition` ENUM("new", "like_new", "good", "fair", "poor") DEFAULT "good", ' +
+            'campus VARCHAR(100) NOT NULL, ' +
+            'location VARCHAR(255) DEFAULT NULL, ' +
+            'is_sold TINYINT(1) DEFAULT 0, ' +
+            'status ENUM("active", "sold", "pending", "deleted") DEFAULT "active", ' +
+            'sold_at TIMESTAMP NULL DEFAULT NULL, ' +
+            'tags JSON DEFAULT NULL, ' +
+            'view_count INT DEFAULT 0, ' +
+            'image_url VARCHAR(500) DEFAULT NULL, ' +
+            'boost_count INT DEFAULT 0, ' +
+            'last_boosted_at TIMESTAMP NULL DEFAULT NULL, ' +
+            'is_promoted TINYINT(1) DEFAULT 0, ' +
+            'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ' +
+            'updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, ' +
+            'FOREIGN KEY (seller_id) REFERENCES users(user_id) ON DELETE CASCADE, ' +
+            'INDEX idx_marketplace_campus (campus, status, created_at), ' +
+            'INDEX idx_marketplace_category (category, status), ' +
+            'INDEX idx_marketplace_seller (seller_id, created_at) ' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;';
+        
+        await pool.query(createListingsTable);
 
         // 2. Listing Media
         await pool.query(`
@@ -874,6 +875,57 @@ const initConfessionTables = async () => {
     }
 };
 
+const initSearchTables = async () => {
+    try {
+        // 1. Search History
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS search_history (
+                id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                query VARCHAR(255) NOT NULL,
+                searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                UNIQUE KEY unique_user_search (user_id, query)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 2. Hashtags (Global)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS hashtags (
+                tag_id CHAR(36) PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                post_count INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 3. Post Hashtags (Mapping)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS post_hashtags (
+                post_id CHAR(36) NOT NULL,
+                tag_id CHAR(36) NOT NULL,
+                PRIMARY KEY (post_id, tag_id),
+                FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+                FOREIGN KEY (tag_id) REFERENCES hashtags(tag_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 4. Moment Hashtags (Legacy compatibility for suggestions)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS moment_hashtags (
+                moment_id CHAR(36) NOT NULL,
+                hashtag VARCHAR(100) NOT NULL,
+                PRIMARY KEY (moment_id, hashtag),
+                FOREIGN KEY (moment_id) REFERENCES moments(moment_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        logger.debug('✅ Search & Hashtag tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init search tables:', err.message);
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -914,6 +966,7 @@ const initDB = async () => {
         try { await initLostFoundTable(); } catch (e) { logger.warn('LostFound init failed:', e.message); }
         try { await initSkillMarketTable(); } catch (e) { logger.warn('SkillMarket init failed:', e.message); }
         try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }
+        try { await initSearchTables(); } catch (e) { logger.error('Search Tables Init Error:', e.message); }
     });
     
     logger.debug('✅ Database initialization process complete');

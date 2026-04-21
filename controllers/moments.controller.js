@@ -153,9 +153,9 @@ const renderMoments = async (req, res) => {
             JOIN users u ON m.user_id = u.user_id
             LEFT JOIN (SELECT moment_id, 1 as liked FROM moment_likes WHERE user_id = ?) ml ON ml.moment_id = m.moment_id
             LEFT JOIN (SELECT moment_id, 1 as saved FROM saved_moments WHERE user_id = ?) sm ON sm.moment_id = m.moment_id
-            ORDER BY 
-                CASE WHEN m.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 2 END,
-                m.created_at DESC
+            WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            ORDER BY m.created_at DESC
+
             LIMIT 50
         `, [req.user.user_id, req.user.user_id, req.user.user_id]);
 
@@ -336,10 +336,13 @@ const getMomentsStream = async (req, res) => {
             params.push(category);
         }
 
+        whereClauses.push(`m.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`);
+
         if (excludeIds.length > 0) {
             whereClauses.push(`m.moment_id NOT IN (${excludeIds.map(() => '?').join(',')})`);
             params.push(...excludeIds);
         }
+
 
         if (whereClauses.length > 0) {
             poolQuery += ` WHERE ` + whereClauses.join(' AND ');

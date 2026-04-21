@@ -1,0 +1,238 @@
+# COMPLETE EXPLANATION OF ALL 45 FEATURES IN PLAIN ENGLISH
+
+---
+
+## PART 1: LOGGING IN AND CREATING AN ACCOUNT
+
+### 1. LOGIN - How you sign into your account
+
+When you want to use the app, you need to prove who you are. You type your email address and password into boxes on the screen. The app checks if what you typed matches what's stored in the database. If it matches, you get a digital key called a token that proves you're logged in, and you're sent to the main page. If you type it wrong five times in a row, the app locks you out for 15 minutes to stop hackers from guessing your password. There's also a "remember me" box you can check that keeps you logged in for 30 days instead of just one day.
+
+### 2. SIGNUP - How you create a new account
+
+When you're new to the app, you fill out a form with your full name, email address, and a password that's at least 8 characters long. You have to type the password twice to make sure you didn't make a mistake. You also pick what you are - a student, someone who already graduated, or a teacher. If you're a student, you need to enter your student ID number. You choose which campus you're on, and you can upload a picture of yourself if you want. You have to agree to the rules of using the app. When you click submit, the app checks that nobody else already used that email, then it scrambles your password so nobody can read it even if they break into the database, and saves your information. Then it sends you an email with a special code to prove you own that email address.
+
+### 3. EMAIL VERIFICATION - Proving your email is real
+
+After you sign up, you get an email with a six-digit code. You have to type that code into the app within 15 minutes. The app checks that the code matches what it sent you and that it hasn't expired. Once you type it correctly, your account becomes active and you can finally log in. If you didn't get the email or lost the code, you can ask for a new one, but you can only do this three times per hour to prevent spam.
+
+### 4. FORGOT PASSWORD - What to do when you can't remember your password
+
+On the login screen, there's a link that says "Forgot Password." You click that and type in your email address. The app looks up if that email exists in its records. For security reasons, it tells you the same message whether the email exists or not - this stops bad guys from checking if an email is registered. If the email does exist, the app creates a special one-time link or a six-digit code and emails it to you. This link only works for one hour. You click the link in your email to go to a page where you can create a new password.
+
+### 5. RESET PASSWORD - Actually changing your forgotten password
+
+When you click the link from your email, the app checks that the link hasn't expired and hasn't been used before. If it's valid, you get to type a new password twice to make sure you didn't make a typo. When you save it, the app scrambles your new password and replaces the old one. It also logs you out of every device you were logged into, just in case someone else was using your account. Then you go back to the login screen and sign in with your new password.
+
+---
+
+## PART 2: YOUR PROFILE AND SETTINGS
+
+### 6. VIEW PROFILE (OWN) - Seeing your own page
+
+When you click on your profile picture or name, you go to your own page. Here you can see your name, your username (which starts with @), your bio (a short description about yourself), your profile picture, the date you joined the app, and three numbers: how many posts you've made, how many people follow you, and how many people you follow. Below that, you see all the posts you've ever made. There are also buttons to edit your profile and change your settings.
+
+### 7. EDIT PROFILE - Changing your information
+
+On your profile page, there's an edit button. When you click it, you can change your name, your username, your bio, your profile picture, your cover photo (the big background picture), add a website link, and add your location. When you change your username, the app checks that nobody else already has that username. When you upload a new picture, the app makes sure it's not too big (under 5 megabytes) and shrinks it down to a standard size. You can also crop your picture to focus on your face. When you're done, you click save and everything updates.
+
+### 8. CHANGE PASSWORD - Updating your password while logged in
+
+In your settings under the security section, you can change your password anytime. You have to type your current password first to prove it's really you. Then you type your new password twice. The app checks that your current password is correct, then scrambles your new password and saves it. Unlike when you forgot your password, this doesn't log you out of other devices - you stay logged in everywhere.
+
+### 9. ACCOUNT SETTINGS - All the switches and toggles
+
+This is where you control how the app behaves for you. You can make your profile private so only people who follow you can see your posts. You can hide your email address from your profile. You can turn off your online status so people don't know when you're using the app. You can decide which notifications you want to receive - email alerts, push notifications on your phone, alerts for new messages, alerts when someone likes your post, alerts when someone comments, and alerts when someone follows you. You can switch between dark mode and light mode, change the language of the app, and find the button to delete your account.
+
+### 10. DELETE ACCOUNT - Permanently leaving the app
+
+If you want to leave forever, you go to settings and click delete account. A warning box appears telling you that everything will be lost. You have to type your password to confirm it's really you, and check a box saying you understand. When you confirm, the app doesn't actually delete you right away - it marks your account as deleted and changes your name to "Deleted User" so your old posts don't show your real name. Your email and personal information are removed. You have 30 days to change your mind and restore your account. After 30 days, everything is permanently erased.
+
+### 31. PROFILE VISITOR - What other people see when they look at your profile
+
+When someone else visits your profile, they can always see your name, username, profile picture, bio, how many followers you have, how many people you follow, how many posts you've made, when you joined, and which campus you're on. But what they see about your posts depends on your privacy settings. If your profile is public, they see all your posts. If your profile is private, they only see your posts if they follow you. If they don't follow you, they see a message saying "This account is private" and all your posts are blurred out. They also see a follow button and a message button. They can only see your email address if you've chosen to show it publicly.
+
+### 40. PRIVACY LEVELS - Who can see what
+
+You have three levels of privacy for different things. "Public" means everyone can see it, even people who don't have accounts. "Friends only" means only people who follow you can see it. "Only me" means only you can see it. You can set different privacy for your profile, your posts, your stories, your online status, when you were last online, your followers list, and who you follow. Your profile picture is always public no matter what.
+
+---
+
+## PART 3: MAKING POSTS AND SEEING CONTENT
+
+### 11. CREATE POST - Sharing something with everyone
+
+When you want to share something, you click a button that opens a box where you can type your thoughts. You can write up to 1000 characters. You can add up to five pictures. You can add hashtags by typing the # symbol followed by a word, which helps people find your post when searching. You can tag friends by typing @ followed by their username, which sends them a notification. You can add a location like which campus you're at. You can choose who can see this post - everyone, just your friends, or only yourself. You can even schedule it to post at a future time instead of right now. When you click post, the app checks for bad words or spam, saves your pictures to storage, finds all the hashtags and saves them, creates notifications for anyone you mentioned, saves the post to the database, and shows it in the feed of everyone who follows you.
+
+### 12. VIEW FEED - Scrolling through posts from people you follow
+
+When you open the app's main page called the dashboard, it shows you posts from people you follow, with the newest ones at the top. It loads ten posts at first. As you scroll down, it automatically loads the next ten, and keeps doing this forever. Each post shows the author's name and picture, the content, any images, the date it was posted, how many likes it has, how many comments, and how many shares. The like button is highlighted in red if you already liked it. You can click on any post to see it by itself on its own page.
+
+### 13. LIKE POST - Showing you enjoyed something
+
+When you see a post you like, you can click the heart icon. The app sends a message to the server saying you liked this post. It checks that you haven't already liked it. Then it adds your like to the database, increases the like count on the post by one, makes the heart turn red instantly on your screen, and sends a notification to the person who made the post saying that you liked it. If you click the heart again, it removes your like and decreases the count. You cannot like your own posts.
+
+### 14. COMMENT ON POST - Adding your thoughts below someone's post
+
+When you want to say something about a post, you click the comment icon. A box opens where you can type up to 500 characters. You can also add a picture to your comment. When you post it, the app checks for bad words, saves your comment to the database, increases the comment count on the post by one, shows your comment instantly below the post, sends a notification to the post owner that you commented, and if you mentioned anyone with the @ symbol, it sends them a notification too. You can delete your own comments, edit them within 10 minutes of posting, like other people's comments, and reply to comments to create a thread of conversation.
+
+### 15. SHARE POST - Spreading someone else's post
+
+When you see a post you want to share, you click the share icon. A menu pops up with options. You can repost it to your own profile, which makes it show up in your followers' feeds. You can add your own comment above the repost. You can share it to your story so it disappears after 24 hours. You can send the post link to someone in a chat message. You can copy the link to your clipboard and paste it anywhere. You can share it to other apps like WhatsApp or Twitter. You can save the post to look at later, or report it if it's inappropriate. When you share, the app increases the share count on the post by one.
+
+### 36. PIN & SAVE - Keeping posts for later or putting them at the top
+
+When you see a post you want to remember, you can click the bookmark icon to save it. You can find all your saved posts in a special "Saved" section. Clicking the bookmark again removes it from your saved list. You can also pin your own posts to the top of your profile. Pinned posts stay at the very top so everyone sees them first. You can only pin up to three posts at a time. You can unpin them anytime.
+
+### 37. HASHTAG SYSTEM - Organizing posts by topic
+
+When you type a word with the # symbol in front of it, that becomes a hashtag. The app automatically finds all the hashtags in your post and saves them. When someone clicks on a hashtag, they see all posts that used that tag. The app shows trending hashtags - the ten most popular tags from the last 24 hours. You can also follow hashtags, which means you'll get notified when new posts use that tag, and those posts will show up in your feed even if you don't follow the person who posted them.
+
+### 44. POLLS - Asking questions with multiple choice answers
+
+You can create a poll by writing a question and adding two to six answer options. You choose how long the poll stays open - one day, three days, or seven days. You can decide if people can pick multiple answers or just one. You can also hide the results until someone votes, so they have to vote before seeing what everyone else thinks. When you post the poll, people can click on an option to vote. After voting, they see the percentages of how everyone voted. As the poll creator, you can close it early if you want.
+
+---
+
+## PART 4: FOLLOWING AND INTERACTING WITH PEOPLE
+
+### 16. SEARCH - Finding people, posts, and groups
+
+At the top of the app, there's a search bar. When you start typing, it shows suggestions based on what you've searched for before. When you press enter, it searches for users by their name or username, posts by their content or hashtags, and groups by their name. You can filter by type - only users, only posts, or only groups. You can filter by campus to only see results from your school. You can sort by newest or by relevance (best match first). The app saves your recent searches, and you can clear this history whenever you want. As you scroll down, more results load automatically.
+
+### 17. FOLLOW/UNFOLLOW USER - Choosing whose posts you want to see
+
+When you visit someone's profile, you see a follow button. When you click it, the app checks if their profile is public or private. If it's public, you start following them immediately. If it's private, you send a follow request that they have to approve. Either way, the app creates a follow record in the database, increases their follower count by one, increases your following count by one, and sends them a notification that you started following them. The button changes from "Follow" to "Following." If you click unfollow, it removes the relationship, decreases both counts by one, and their posts disappear from your feed.
+
+### 18. FOLLOW REQUEST - Getting approved to see private profiles
+
+When you try to follow someone with a private profile, your request goes into a pending state. The person gets a notification saying "So-and-so wants to follow you." They can go to their pending requests list and either approve it or deny it. If they approve, you become a follower and can see their posts. If they deny, nothing happens and you can't see their private content. You can also cancel your request if you change your mind.
+
+### 32. NOTIFICATIONS - Alerts about what's happening
+
+The app keeps you informed about everything that involves you. You get a notification when someone likes your post, comments on your post, replies to your comment, mentions you with the @ symbol, follows you, sends you a follow request (if your profile is private), approves your follow request, sends you a message, adds you to a group, shares your post, posts a new story, or when someone marks an item you're selling as sold. All these notifications appear in a list, and you can mark them as read. Unread notifications show a badge with a number.
+
+### 34. EMAIL NOTIFICATIONS - Getting updates in your inbox
+
+Besides in-app notifications, the app can also send you emails. You get a welcome email when you first sign up. You get a verification email with your code. You get a password reset link when you ask for one. If someone logs into your account from a device you've never used before, you get an alert email. Every Monday, you get a weekly digest telling you how many likes, comments, and new followers you got in the past week. If you haven't opened the app in over an hour and have unread messages, you get an email saying you have messages waiting.
+
+### 35. REPORT & BLOCK - Dealing with bad behavior
+
+If you see something inappropriate, you can report it. For a post, you click the flag icon and choose a reason - spam, harassment, hate speech, nudity, or other. The report goes to the admin team. For a user, you go to their profile and click report. You can also block someone. When you block someone, they can't see your posts, you can't see theirs, you can't message each other, and you automatically unfollow each other if you were following. You can see a list of everyone you've blocked in your settings, and you can unblock them anytime.
+
+---
+
+## PART 5: SENDING MESSAGES AND CHATTING
+
+### 19. SEND MESSAGE - Having a private conversation
+
+You go to the Messages section and either click on an existing conversation or start a new one by searching for a user. You type your message in a box, and you can add emojis, attach a photo (up to 10 megabytes), or attach a file like a PDF or document (up to 25 megabytes). When you click send, the app saves your message to the database, updates the conversation so it moves to the top of your list, sends the message instantly through a WebSocket connection (which is like a direct pipe to the other person), shows the message on your screen immediately, shows a checkmark when the message reaches the server, shows two checkmarks when the other person opens it, sends a notification to the recipient if they're offline, and increases their unread message count.
+
+### 20. VIEW MESSAGES - Reading your conversations
+
+When you open a conversation, the app loads the last 50 messages. As you scroll up, it loads older messages. Your own messages appear on the right side of the screen, and the other person's messages appear on the left. Each message shows the time it was sent. At the bottom of the conversation, you might see "Seen" if the other person has read your messages. When you open the conversation, all unread messages automatically become marked as read, and the notification badge disappears. You can see if the other person is currently typing because it shows "User is typing..." You can also see a green dot next to their name if they're actively using the app. You can delete your own messages - either for everyone (which removes it from both sides) or just for yourself. You can also reply to a specific message to quote it.
+
+### 21. GROUP CHAT - Talking with multiple people at once
+
+You can create a group by clicking "New Group." You give the group a name, pick a group icon picture, and select friends to add as members. When you create it, you automatically become an admin. Everyone in the group can send messages and see all messages. Anyone can leave the group anytime. Only admins can add new members, remove members, change the group name, promote regular members to admin, demote other admins, and delete the group entirely.
+
+### 27. CREATE GROUP (COMMUNITY) - Making a place for people with shared interests
+
+This is different from a group chat. This is a community space like a club. You give it a name, write a description, choose if it's public (anyone can join), private (people have to request to join), or secret (nobody can find it unless invited), pick which campus it belongs to, upload a cover image, and write the group rules. When you create it, you become an admin. The group appears in search results for people to discover.
+
+### 28. GROUP MEMBERSHIP - Joining and participating in communities
+
+Anyone can view a public group's page. To join a public group, you just click "Join" and you're instantly a member. For a private group, you click "Join" and your request goes to the admins. They can approve or deny it. Once you're a member, you can post in the group, comment on posts, and invite your friends. Only members can see posts in private groups. You can leave a group anytime. Anyone can report a group if it breaks the rules.
+
+### 29. GROUP ADMIN ACTIONS - Running a community
+
+As a group admin, you have special powers. You can delete any post in the group, remove members, ban members so they can't rejoin, promote regular members to admin, demote other admins, edit the group name and description, change the group from public to private to secret and back, change the cover image, pin important posts to the top so everyone sees them, delete the entire group, and see the list of people requesting to join.
+
+---
+
+## PART 6: STORIES (TEMPORARY POSTS)
+
+### 22. CREATE STORY - Posting something that disappears in 24 hours
+
+A story is like a post that only lasts for one day. You click "Add Story" which opens your camera or photo gallery. You can take a photo or video, or select one from your phone. You can add text on top of the image, add stickers like emojis or GIFs, and add background music. You choose who can see it - everyone, just your friends, or hide it from specific people. When you post it, the app uploads your media, sets an expiration time of 24 hours from now, adds it to the story feed at the top of the app, and sends a notification to your followers that you posted a story. Your profile picture gets a colorful ring around it to show you have an active story.
+
+### 23. VIEW STORIES - Watching what people posted
+
+At the top of your dashboard, you see circles with profile pictures of people who have stories. You click on a circle to open the story viewer. The story fills your whole screen. You can tap the right side to go to the next story, tap the left side to go back, or swipe down to close the viewer. Stories automatically advance to the next one after 10 seconds. A progress bar at the top shows how much time is left on the current story. As the story's owner, you can see exactly who viewed your story. Viewers can reply to a story by sending a message to the poster, or react with an emoji. After 24 hours, stories disappear from the feed, but they might be saved to a "Memories" section if you choose.
+
+---
+
+## PART 7: MARKETPLACE (BUYING AND SELLING)
+
+### 24. CREATE MARKETPLACE LISTING - Selling something you own
+
+You click a "Sell" button to open a form. You enter a title for your item, a description, the price, choose a category like Books or Electronics, upload up to 10 photos, select the condition (New, Like New, Good, Fair, or Poor), add your location for pickup, and check a box if you're willing to accept offers lower than your asking price. When you post it, the app validates everything, saves your listing to the marketplace table, sends a notification to your followers that you listed an item, and shows it in the marketplace feed.
+
+### 25. BROWSE MARKETPLACE - Looking at things for sale
+
+You go to the Marketplace section to see all items for sale in a grid view. You can filter by category, by price range using a slider, and by condition using checkboxes. You can sort by newest first, cheapest first, or most expensive first. You can search for specific items by typing keywords. When you click on a listing, you go to its detail page where you can see all the photos, full description, seller information, and contact buttons. You can save listings to look at later.
+
+### 26. MARKETPLACE - CONTACT SELLER - Messaging about an item
+
+On a listing page, you click "Contact Seller." The app automatically opens a chat conversation with the seller and pre-fills a message saying "Hi, I'm interested in [item name]." You can type your own message and send it. The seller gets a notification. You can negotiate the price through the chat. When the item sells, the seller can click "Mark as Sold" which hides the listing from the marketplace. After you buy something, you can leave a review for the seller with 1 to 5 stars.
+
+### 39. REVIEWS & RATINGS - Telling others about your experience with a seller
+
+After you buy something from someone, you can rate them from 1 to 5 stars and write a comment about your experience. The app checks that you actually completed a purchase before letting you review. You can edit your review within 7 days, or delete it anytime. The seller can reply to your review. Everyone can see the seller's average rating on their profile. If a seller has many good reviews, their average star rating shows up next to their name.
+
+---
+
+## PART 8: EVENTS AND LOST & FOUND
+
+### 38. EVENTS - Creating and joining gatherings
+
+You can create an event by giving it a title, description, location, start time, end time, and choosing an event type like Party, Study, Sports, or Other. You can also set a maximum number of people who can attend. When you post the event, it appears in the events feed. Other people can RSVP with three options: Going, Maybe, or Not Going. The event creator can see the list of who's coming. Only the creator can edit event details or cancel the event. When an event is cancelled, everyone who RSVP'd gets notified. You can also download a calendar file to add the event to your phone's calendar.
+
+### 45. LOST & FOUND - Reporting things you lost or found
+
+If you lose something, you can report it by giving it a title, description, where you lost it, when you lost it, and uploading a photo. If you find something, you report it the same way but as a found item. You can search through lost and found items by filtering by type (lost or found), category, location, and date. If you think a found item belongs to you, you can click "Claim Item" and send a message to the person who found it explaining why it's yours. They get notified. The person who reported the item can mark it as resolved once it's returned. Anyone can delete their own lost/found listings, and admins can delete any listing.
+
+---
+
+## PART 9: ADMINISTRATION AND ANALYTICS
+
+### 30. ADMIN (PLATFORM LEVEL) - Running the whole app
+
+Admins have special powers to keep the app safe. They can see a list of all users, suspend someone so they can't log in, or permanently delete an account. They can see all reports that users have submitted about bad posts or bad users. They can delete any reported post or dismiss the report if it's not actually a problem. They can see platform statistics like how many users, how many posts, and how many active users, shown in charts. They can pin posts to the explore page to feature good content. They can create announcement banners that everyone sees at the top of the app. They can view activity logs to see what users have been doing.
+
+### 43. ANALYTICS - Seeing how your content is performing
+
+If you're a content creator, you can see statistics about your profile and posts. You can see how many people viewed your profile. For each post, you can see its reach (how many unique people saw it) and impressions (how many total times it was viewed, counting the same person multiple times). You can see your engagement rate - the percentage of people who liked, commented, or shared compared to how many saw it. You can see a chart showing how your follower count has grown over time. The app analyzes when your posts get the most engagement and tells you the best times to post. You can see which of your posts were the most popular. You can also see demographics of your audience - which campuses they're from and whether they're students, alumni, or faculty.
+
+---
+
+## PART 10: ADVANCED SECURITY FEATURES
+
+### 33. FORGOT PASSWORD (EXTENDED) - Using a code instead of a link
+
+Instead of sending a link in an email, the app can send you a six-digit code. You type that code into the app to prove you own the email. The code only works for 15 minutes. Once you enter the correct code, you can create a new password. Then you get a confirmation email telling you your password was changed, in case it wasn't you who did it.
+
+### 41. SESSION MANAGEMENT - Seeing where you're logged in
+
+You can see a list of every device that's logged into your account. For each device, you can see what browser it's using, what operating system, what IP address, and when it was last active. You can log out from any specific device remotely, or log out from all devices at once (keeping only your current one). If you don't use the app for 7 days, it automatically logs you out. Your login session expires after 24 hours normally, or 30 days if you checked "Remember Me." The app can automatically refresh your session if you're active.
+
+### 42. TWO-FACTOR AUTHENTICATION (2FA) - Extra security for your account
+
+You can add a second layer of security to your account. When you enable this, the app generates a secret key and shows you a QR code. You scan this QR code with an app like Google Authenticator on your phone. That app starts generating six-digit codes that change every 30 seconds. The app also gives you eight backup codes that you should save somewhere safe. From now on, when you log in, after typing your password, you also have to type the current six-digit code from your authenticator app. If you lose your phone, you can use one of your backup codes instead. You can disable 2FA anytime by typing your password to confirm.
+
+---
+
+## QUICK REFERENCE: WHO CAN DO WHAT
+
+### Regular User (logged in)
+You can manage your own profile, change your password, make posts and stories, like and comment on other people's posts, follow and unfollow people, send and receive messages, create and join groups, buy and sell things on the marketplace, create events and polls, report lost and found items, block annoying people, and report inappropriate content.
+
+### Group Admin (inside their group only)
+Everything a regular user can do, plus you can remove members from your group, ban people from rejoining, promote other members to admin, demote other admins, delete anyone's posts in the group, edit the group's name and description, change whether the group is public or private, and delete the entire group.
+
+### Platform Admin (whole app)
+Everything everyone else can do, plus you can see all user profiles even if they're private, delete any post or comment anywhere, suspend or permanently delete any user's account, see all reports and decide what to do about them, see statistics about the whole platform, send announcements that everyone sees, and view activity logs to see what's happening.
+
+---
+
+This is the complete explanation of all 45 features in plain, everyday language that anyone can understand, regardless of technical background.

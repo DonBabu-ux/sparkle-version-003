@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar, Tag, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import { useUserStore } from '../store/userStore';
 
 type FilterType = 'all' | 'lost' | 'found';
 
@@ -14,11 +15,13 @@ interface LFItem {
   location?: string;
   image_url?: string;
   reporter_username?: string;
+  reporter_id?: string;
   date_lost_found?: string;
   createdAt?: string;
 }
 
 export default function LostFound() {
+  const { user } = useUserStore();
   const [items, setItems] = useState<LFItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -54,6 +57,25 @@ export default function LostFound() {
       console.error('Report submit error:', err);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResolve = async (id: string) => {
+    if (!confirm('Mark this item as resolved? It will be removed from the list.')) return;
+    try {
+      await api.delete(`/lost-found/${id}`);
+      fetchItems();
+    } catch {
+      alert('Failed to resolve item');
+    }
+  };
+
+  const handleClaim = async (item: LFItem) => {
+    try {
+      await api.post(`/lost-found/${item.id}/claim`);
+      alert(`Claim request sent to ${item.reporter_username}! They will be notified.`);
+    } catch {
+      alert('Failed to send claim request');
     }
   };
 
@@ -135,6 +157,26 @@ export default function LostFound() {
                       )}
                     </div>
                     {item.description && <p className="lf-description">{item.description}</p>}
+                    
+                    <div className="lf-card-actions" style={{ marginTop: 'auto', paddingTop: 20 }}>
+                       {(user?.id === item.reporter_id || user?.user_id === item.reporter_id) ? (
+                         <button 
+                          onClick={() => handleResolve(item.id)}
+                          className="lf-action-link"
+                          style={{ color: '#10b981', border: 'none', background: 'none', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                         >
+                           Mark Resolved
+                         </button>
+                       ) : (
+                         <button 
+                          onClick={() => handleClaim(item)}
+                          className="lf-action-link"
+                          style={{ color: '#FF3D6D', border: 'none', background: 'none', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                         >
+                           {item.type === 'lost' ? "I found this" : "This is mine"}
+                         </button>
+                       )}
+                    </div>
                   </div>
                 </div>
               ))}

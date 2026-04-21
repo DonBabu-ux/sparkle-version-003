@@ -35,7 +35,9 @@ router.post('/follow-requests/:requestId/reject', authMiddleware, socialControll
 
 router.put('/settings', authMiddleware, userController.updateSettings);
 router.get('/export-data', authMiddleware, userController.exportUserData);
-router.post('/2fa/toggle', authMiddleware, userController.toggleTwoFactor);
+router.get('/2fa/setup', authMiddleware, userController.generate2FASecret);
+router.post('/2fa/enable', authMiddleware, userController.enableTwoFactor);
+router.post('/2fa/disable', authMiddleware, userController.disableTwoFactor);
 
 // Session Management
 router.get('/sessions', authMiddleware, userController.getActiveSessions);
@@ -59,5 +61,6 @@ router.delete('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), u
 // DashboardAPI Compatibility Aliases
 router.post('/:id/follow', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);
 router.delete('/:id/follow', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
+router.post('/:id/poke', authMiddleware, validate(userIdSchema, 'params'), socialController.pokeUser);
 
 module.exports = router;

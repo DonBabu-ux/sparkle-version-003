@@ -4,6 +4,7 @@ import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { ChevronLeft, Share2, Heart, MessageCircle, MapPin, ShieldCheck, Star } from 'lucide-react';
+import { formatCount } from '../utils/format';
 import type { Listing, Review } from '../types/listing';
 
 export default function ListingDetail() {
@@ -58,6 +59,33 @@ export default function ListingDetail() {
       }
     } catch (err) {
       console.error('Contact failed:', err);
+    }
+  };
+
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewComment.trim() || submittingReview) return;
+    setSubmittingReview(true);
+    try {
+      const res = await api.post(`/marketplace/sellers/${listing?.seller_id}/reviews`, {
+        rating: reviewRating,
+        comment: reviewComment,
+        listing_id: id
+      });
+      if (res.data.success) {
+        setReviews([res.data.review, ...reviews]);
+        setReviewComment('');
+        setReviewRating(5);
+        alert('Review submitted successfully!');
+      }
+    } catch (err) {
+      console.error('Review submission failed:', err);
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -211,11 +239,44 @@ export default function ListingDetail() {
           </div>
         </div>
 
+        {/* Review Submission Form */}
+        {!isOwner && (
+          <div className="mt-20 bg-white p-10 rounded-[2.5rem] border border-white shadow-xl max-w-2xl mx-auto">
+             <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-6">Leave a Review</h2>
+             <form onSubmit={handleSubmitReview} className="space-y-6">
+                <div className="flex gap-2 text-amber-400">
+                   {[1, 2, 3, 4, 5].map(star => (
+                      <Star 
+                        key={star} 
+                        size={32} 
+                        fill={star <= reviewRating ? "currentColor" : "none"} 
+                        className="cursor-pointer transition-transform hover:scale-110"
+                        onClick={() => setReviewRating(star)}
+                      />
+                   ))}
+                </div>
+                <textarea 
+                  value={reviewComment}
+                  onChange={e => setReviewComment(e.target.value)}
+                  placeholder="Share your experience with this seller..." 
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-medium outline-none transition-all focus:bg-white focus:ring-4 focus:ring-indigo-50 min-h-[120px]"
+                />
+                <button 
+                  type="submit" 
+                  disabled={submittingReview}
+                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#FF3D6D] transition-all shadow-lg active:scale-95"
+                >
+                  {submittingReview ? 'Submitting...' : 'Post Review'}
+                </button>
+             </form>
+          </div>
+        )}
+
         {/* Similar Items or Reviews */}
         <div className="mt-20">
             <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-10 flex items-center gap-4">
                 Feedback Archive
-                <span className="bg-[#FF3D6D]/10 text-[#FF3D6D] text-[10px] px-3 py-1 rounded-full font-black">{reviews.length} RECORDS</span>
+                <span className="bg-[#FF3D6D]/10 text-[#FF3D6D] text-[10px] px-3 py-1 rounded-full font-black">{formatCount(reviews.length)} RECORDS</span>
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

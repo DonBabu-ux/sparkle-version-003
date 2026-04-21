@@ -14,7 +14,7 @@ interface StoryGroup {
   username?: string;
   user_name?: string;
   avatar_url?: string;
-  stories: any[];
+  stories: { media_type: string; media_url?: string; caption?: string }[];
 }
 
 interface TrendingTag {
@@ -219,7 +219,6 @@ export default function Dashboard() {
               {stories.map(group => {
                 const latestStory = group.stories[0];
                 const isText = latestStory.media_type === 'text';
-                const isVideo = latestStory.media_type === 'video';
                 
                 return (
                   <div key={group.user_id} className="story-card animate-scale-in" onClick={() => navigate(`/stories/${group.user_id}`)}>

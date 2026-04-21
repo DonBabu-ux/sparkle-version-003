@@ -36,7 +36,7 @@ const feedRateLimiter = createRateLimiter(1 * 60 * 1000, 30);
  * Mutation rate limiter — POST/PUT/DELETE that write to DB
  * 10 requests per minute per IP
  */
-const mutationRateLimiter = createRateLimiter(1 * 60 * 1000, 10);
+const mutationRateLimiter = createRateLimiter(1 * 60 * 1000, 30);
 
 /**
  * Static image rate limiter — stops 400+ identical image requests

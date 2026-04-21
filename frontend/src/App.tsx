@@ -8,9 +8,11 @@ import Profile from './pages/Profile';
 import Marketplace from './pages/Marketplace';
 import Groups from './pages/Groups';
 import Messages from './pages/Messages';
+import MessagesSettings from './pages/MessagesSettings';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import Search from './pages/Search';
+import SearchHistory from './pages/SearchHistory';
 import AdminDashboard from './pages/AdminDashboard';
 import PostDetail from './pages/PostDetail';
 import StoryViewer from './pages/StoryViewer';
@@ -24,6 +26,8 @@ import SellerProfile from './pages/SellerProfile';
 import Wishlist from './pages/Wishlist';
 import SkillMarket from './pages/SkillMarket';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Orders from './pages/Orders';
 import MyListings from './pages/MyListings';
 
@@ -51,6 +55,14 @@ import LoadingBar from './components/LoadingBar';
 // Phase 4 — Utility
 import LostFound from './pages/LostFound';
 import Support from './pages/Support';
+import AccountsCenter from './pages/AccountsCenter';
+import Memories from './pages/Memories';
+import Gallery from './pages/Gallery';
+import Verified from './pages/Verified';
+import Invite from './pages/Invite';
+import Help from './pages/Help';
+
+import BlockedUsers from './pages/BlockedUsers';
 
 // Phase 5 — Public & Static
 import About from './pages/About';
@@ -69,14 +81,19 @@ function App() {
           <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
           <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/dashboard" />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
           <Route path="/profile/:username" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
           <Route path="/marketplace" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
         <Route path="/groups" element={isAuthenticated ? <Groups /> : <Navigate to="/login" />} />
         <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
+        <Route path="/messages/settings" element={isAuthenticated ? <MessagesSettings /> : <Navigate to="/login" />} />
         <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+        <Route path="/settings/blocked" element={isAuthenticated ? <BlockedUsers /> : <Navigate to="/login" />} />
         <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />} />
         <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
+        <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />
         <Route path="/admin" element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />} />
         <Route path="/post/:id" element={isAuthenticated ? <PostDetail /> : <Navigate to="/login" />} />
         <Route path="/stories/:userId" element={isAuthenticated ? <StoryViewer /> : <Navigate to="/login" />} />
@@ -114,7 +131,13 @@ function App() {
 
         {/* ── Phase 4: Utility & Features ── */}
         <Route path="/lost-found" element={isAuthenticated ? <LostFound /> : <Navigate to="/login" />} />
-        <Route path="/support" element={<Support />} />
+        <Route path="/support" element={isAuthenticated ? <Support /> : <Navigate to="/login" />} />
+        <Route path="/settings/accounts" element={isAuthenticated ? <AccountsCenter /> : <Navigate to="/login" />} />
+        <Route path="/memories" element={isAuthenticated ? <Memories /> : <Navigate to="/login" />} />
+        <Route path="/gallery" element={isAuthenticated ? <Gallery /> : <Navigate to="/login" />} />
+        <Route path="/verified" element={isAuthenticated ? <Verified /> : <Navigate to="/login" />} />
+        <Route path="/invite" element={isAuthenticated ? <Invite /> : <Navigate to="/login" />} />
+        <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
 
         {/* ── Phase 5: Public & Static ── */}
         <Route path="/about" element={<About />} />

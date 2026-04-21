@@ -31,8 +31,17 @@ export default function MyListings() {
     try {
       await api.delete(`/marketplace/listings/${id}`);
       setListings(l => l.filter(item => item.listing_id !== id));
-    } catch (err) {
+    } catch {
       alert('Failed to delete listing');
+    }
+  };
+
+  const handleMarkSold = async (id: string) => {
+    try {
+      await api.patch(`/marketplace/listings/${id}/status`, { status: 'sold' });
+      setListings(l => l.map(item => item.listing_id === id ? { ...item, status: 'sold' } : item));
+    } catch {
+      alert('Failed to update status');
     }
   };
 
@@ -66,12 +75,17 @@ export default function MyListings() {
                 <div className="card-details">
                   <h3 className="title">{item.title}</h3>
                   <div className="price">KSh {item.price}</div>
-                  <div className="status-badge">{item.status || 'Active'}</div>
+                  <div className={`status-badge ${item.status === 'sold' ? 'sold' : ''}`}>{item.status || 'Active'}</div>
                 </div>
                 <div className="card-actions">
                   <button onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)} className="action-btn" title="View">
                     <ExternalLink size={18} />
                   </button>
+                  {item.status !== 'sold' && (
+                    <button onClick={() => handleMarkSold(item.listing_id)} className="action-btn sold-btn" title="Mark as Sold">
+                      <Package size={18} />
+                    </button>
+                  )}
                   <button className="action-btn" title="Edit">
                     <Edit3 size={18} />
                   </button>
@@ -104,10 +118,12 @@ export default function MyListings() {
         .card-details .title { font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0 0 4px; }
         .card-details .price { font-weight: 800; color: #059669; font-size: 1rem; margin-bottom: 8px; }
         .status-badge { display: inline-block; background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; }
+        .status-badge.sold { background: #fef2f2; color: #ef4444; }
 
         .card-actions { display: flex; gap: 8px; }
         .action-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
         .action-btn:hover { background: #f8fafc; color: var(--primary); border-color: var(--primary); }
+        .action-btn.sold-btn:hover { background: #ecfdf5; color: #10b981; border-color: #10b981; }
         .action-btn.delete:hover { background: #fef2f2; color: #ef4444; border-color: #ef4444; }
 
         .loader { text-align: center; padding: 100px; color: #64748b; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }

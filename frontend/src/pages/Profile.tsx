@@ -42,7 +42,7 @@ export default function Profile() {
 
         const postsRes = await api.get(`/users/${profileData.id || profileData.user_id}/posts`);
         if (postsRes.data && Array.isArray(postsRes.data)) {
-          const allPosts = postsRes.data;
+          const allPosts = postsRes.data.sort((a: Post, b: Post) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
           setPosts(allPosts);
           setReels(allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
         }
@@ -53,7 +53,7 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  }, [username, currentUser]);
+  }, [username]);
 
   const fetchSaved = useCallback(async () => {
     try {
@@ -163,9 +163,28 @@ export default function Profile() {
               <h2 className="ig-nav-title">{profile?.username}</h2>
             </div>
             <div className="ig-nav-right">
-              <button className="ig-nav-btn">
-                <MoreHorizontal size={24} />
-              </button>
+              {!showOwnerActions && (
+                <button 
+                  className="ig-nav-btn"
+                  onClick={() => {
+                    const action = window.prompt("Type 'report' to report this user, or 'block' to block them:");
+                    if (action === 'report') {
+                      api.post(`/users/${profile?.user_id || profile?.id}/report`, { reason: 'inappropriate' })
+                        .then(() => alert('User reported.'))
+                        .catch(err => console.error(err));
+                    } else if (action === 'block') {
+                      api.post(`/users/${profile?.user_id || profile?.id}/block`)
+                        .then(() => {
+                          alert('User blocked.');
+                          navigate(-1);
+                        })
+                        .catch(err => console.error(err));
+                    }
+                  }}
+                >
+                  <MoreHorizontal size={24} />
+                </button>
+              )}
             </div>
           </nav>
 
@@ -794,9 +813,19 @@ export default function Profile() {
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* Navbar Overrides for Dark Mode */
-        .ig-profile-root .sidebar-column {
+        .ig-profile-root .fb-sidebar {
           background: #000;
           border-right: 1px solid #262626;
+        }
+        .ig-profile-root .nav-items-card, .ig-profile-root .profile-switcher-container {
+          background: #121212;
+          border-color: #262626;
+        }
+        .ig-profile-root .nav-item, .ig-profile-root .profile-name {
+          color: #fff;
+        }
+        .ig-profile-root .nav-item:hover {
+          background: #262626;
         }
         .ig-profile-root .sidebar-item { color: #fff; }
         .ig-profile-root .sidebar-item:hover { background: rgba(255,255,255,0.05); }

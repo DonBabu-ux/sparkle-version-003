@@ -146,6 +146,25 @@ export default function Explore() {
         .mom-empty svg { margin-bottom: 24px; opacity: 0.2; }
         .mom-empty h3 { font-size: 1.8rem; font-weight: 900; color: white; margin: 0 0 10px; }
         .mom-empty p { margin: 0 0 30px; font-size: 1.1rem; }
+
+        /* Sidebar Dark Mode Overrides */
+        .fb-sidebar {
+          background: #0b0e14;
+          border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .nav-items-card, .profile-switcher-container {
+          background: #1a1b1e;
+          border-color: rgba(255,255,255,0.05);
+        }
+        .nav-item, .profile-name, .nav-group-title {
+          color: rgba(255,255,255,0.8);
+        }
+        .nav-item:hover {
+          background: rgba(255,255,255,0.05);
+        }
+        .profile-username {
+          color: rgba(255,255,255,0.4);
+        }
       `}</style>
     </div>
   );

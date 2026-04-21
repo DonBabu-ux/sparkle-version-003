@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserCheck, X, Clock } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -17,11 +17,7 @@ export default function FollowRequests() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get('/users/follow-requests');
@@ -31,7 +27,11 @@ export default function FollowRequests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
 
   const handleRequest = async (requestId: string, action: 'accept' | 'reject') => {
     setProcessing(prev => new Set([...prev, requestId]));

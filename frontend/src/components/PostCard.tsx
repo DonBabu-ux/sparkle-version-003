@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Heart, MessageCircle, Send, Bookmark, Repeat2 } from 'lucide-react';
+import { MoreHorizontal, Repeat2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
 import { Link } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
 import MentionInput from './MentionInput';
+import { formatCount } from '../utils/format';
 
 import type { Post } from '../types/post';
 
@@ -20,6 +21,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [isReshared, setIsReshared] = useState(post.is_reshared);
   const [isSaved, setIsSaved] = useState(post.is_saved || false);
+  const [isPinned, setIsPinned] = useState(post.is_pinned || false);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
   const [reshareCount, setReshareCount] = useState(post.reshare_count || 0);
   const [myThought, setMyThought] = useState(post.repost_comment || '');
@@ -109,6 +111,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
+  const handlePin = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await api.post(`/posts/${post.post_id}/pin`);
+      setIsPinned(!isPinned);
+    } catch (err) {
+      console.error('Pin failed:', err);
+    }
+  };
+
   const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const originalSaved = isSaved;
@@ -154,8 +166,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const isVideo = post.media_url?.match(/\.(mp4|webm|ogg|mov)$/i);
   const isTextOnly = !post.media_url || post.media_url === 'undefined' || post.media_url === 'null' || post.media_url.trim() === '';
 
-  const isNativeReshare = post.original_post_id && !post.content;
-
   return (
     <div className={`post-card animate-fade-in ${isTextOnly ? 'text-only' : ''}`} style={{ background: '#fff', color: '#262626', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)', position: 'relative', width: '100%', boxSizing: 'border-box' }}>
       {/* Ghost Repost Header */}
@@ -195,20 +205,46 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         </Link>
         <div className="post-info" style={{ marginLeft: '4px' }}>
-          <div className="post-author-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Link to={`/profile/${post.username}`} style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: '700', color: '#262626' }}>
-              {post.username}
-            </Link>
-            <span style={{ color: '#8e8e8e', fontSize: '14px' }}>•</span>
-            <span style={{ color: '#8e8e8e', fontSize: '14px' }}>{timeAgo.replace(' ago', '').replace('about ', '')}</span>
+          <div className="post-author-name" style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Link to={`/profile/${post.username}`} style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: '800', color: '#262626' }}>
+                {post.name || post.username}
+              </Link>
+              <span style={{ color: '#8e8e8e', fontSize: '12px' }}>•</span>
+              <span style={{ color: '#8e8e8e', fontSize: '12px' }}>{timeAgo.replace('about ', '')}</span>
+            </div>
+            {post.name && post.name !== post.username && (
+              <span style={{ color: '#8e8e8e', fontSize: '12px', marginTop: '-2px' }}>@{post.username}</span>
+            )}
           </div>
           <div className="post-meta" style={{ color: '#8e8e8e', fontSize: '12px', fontWeight: '400', marginTop: '-2px' }}>
             {post.campus || 'Main Campus'}
           </div>
         </div>
-        <button className="post-options" style={{ color: '#262626' }}>
-          <MoreHorizontal size={24} />
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button 
+            className="post-options" 
+            style={{ color: '#262626', background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              const isOwner = currentUser?.user_id === post.user_id || currentUser?.id === post.user_id || currentUser?.username === post.username;
+              
+              if (isOwner) {
+                const action = window.confirm(isPinned ? "Unpin this post from your profile?" : "Pin this post to the top of your profile?");
+                if (action) handlePin(e);
+              } else {
+                if (window.confirm("Do you want to report this post to the admins?")) {
+                  api.post(`/posts/${post.post_id}/report`, { reason: 'inappropriate' })
+                    .then(() => alert('Post reported to admins.'))
+                    .catch(err => console.error('Failed to report:', err));
+                }
+              }
+            }}
+          >
+            {isPinned && <span className="mr-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-1.5 py-0.5 rounded">Pinned</span>}
+            <MoreHorizontal size={24} />
+          </button>
+        </div>
       </div>
 
       {/* Main Media Section */}
@@ -316,9 +352,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       <div className="post-content" style={{ padding: '0 16px 12px', background: '#fff' }}>
         {post.content && (
           <div className="post-text" style={{ fontSize: '14px', color: '#262626', lineHeight: '1.4' }}>
-            <span style={{ fontWeight: '700', marginRight: '6px' }}>
-              {post.username}
-            </span>
             {showTranslated && translatedText ? translatedText : (isTruncated ? post.content.substring(0, 150) : post.content)}
             {isTruncated && !showTranslated && <span style={{ color: '#8e8e8e', cursor: 'pointer' }} onClick={() => setIsTruncated(false)}> ... more</span>}
           </div>
@@ -344,7 +377,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 <path d="M16.792 3.904A4.989 4.989 0 0121.5 9.122c0 3.072-2.652 4.959-5.197 7.221-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.077 2.5 12.194 2.5 9.122a4.989 4.989 0 014.708-5.218 4.21 4.21 0 013.675 1.941c.325.487.627 1.011.917 1.596.332-.614.653-1.161.992-1.65a4.21 4.21 0 013.675-1.941z" stroke="currentColor" strokeWidth="2"></path>
               </svg>
             </button>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#262626' }}>{sparkCount}</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#262626' }}>{formatCount(sparkCount)}</span>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -356,7 +389,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 <path d="M20.656 17.008a9.993 9.993 0 10-3.59 3.615L22 22z" stroke="currentColor" strokeLinejoin="round" strokeWidth="2"></path>
               </svg>
             </button>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#262626' }}>{post.comment_count || 0}</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#262626' }}>{formatCount(post.comment_count || 0)}</span>
           </div>
 
           {/* Reshare Icon */}
@@ -380,7 +413,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               ))}
             </div>
             <span style={{ fontSize: '14px', fontWeight: '600', color: isReshared ? '#17bf63' : '#262626' }}>
-              {reshareCount > 3 ? `+${reshareCount - 3}` : reshareCount || 0}
+              {reshareCount > 3 ? `+${formatCount(reshareCount - 3)}` : formatCount(reshareCount || 0)}
             </span>
           </div>
 

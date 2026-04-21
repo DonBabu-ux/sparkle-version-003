@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, 
-  MoreHorizontal, Play, Send, X, ArrowLeft, MoreVertical,
-  Flag, Volume2, VolumeX, Loader2
+  MoreHorizontal, Play, Send, X, ArrowLeft,
+  Volume2, VolumeX, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -267,7 +267,6 @@ const ReelItem = ({
 export default function Moments() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -348,7 +347,7 @@ export default function Moments() {
     
     try {
       await api.post(`/moments/${momentId}/spark`);
-    } catch (err) {
+    } catch {
       setMoments(prev => prev.map(item => item.moment_id === momentId ? {
         ...item, is_liked: wasLiked, like_count: (item.like_count || 0) + (wasLiked ? 1 : -1)
       } : item));

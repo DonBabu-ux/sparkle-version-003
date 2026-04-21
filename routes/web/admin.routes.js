@@ -10,7 +10,9 @@ const {
     resolveReport,
     getLogs,
     exportLogs,
-    suspendUser
+    suspendUser,
+    getVerificationRequests,
+    handleVerificationRequest
 } = require('../../controllers/admin.controller');
 
 // All admin routes require authentication and admin privileges
@@ -33,5 +35,7 @@ router.get('/admin/logs/export', exportLogs);
 
 // Additional admin actions
 router.post('/admin/users/:userId/suspend', suspendUser);
+router.get('/admin/verifications', getVerificationRequests);
+router.post('/admin/verifications/:requestId', handleVerificationRequest);
 
 module.exports = router;

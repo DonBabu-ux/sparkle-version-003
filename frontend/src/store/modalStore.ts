@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 
-type ModalType = 'post' | 'post_comments' | 'moment' | 'listing' | 'poll' | 'event' | 'confession' | 'settings' | 'afterglow' | 'share' | 'reshare' | null;
+type ModalType = 'post' | 'post_comments' | 'moment' | 'listing' | 'poll' | 'event' | 'confession' | 'settings' | 'afterglow' | 'share' | 'reshare' | 'creation_hub' | null;
 
 interface ModalState {
   activeModal: ModalType;
-  modalData: any;
+  modalData: unknown;
   onSuccess: (() => void) | null;
   refreshCounter: number;
-  setActiveModal: (type: ModalType, onSuccess?: (() => void) | null, data?: any) => void;
+  setActiveModal: (type: ModalType, onSuccess?: (() => void) | null, data?: unknown) => void;
   closeModal: () => void;
   triggerSuccess: () => void;
   triggerRefresh: () => void;

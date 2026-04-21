@@ -2,8 +2,14 @@ const User = require('../models/User');
 const Post = require('../models/Post');
 const logger = require('../utils/logger');
 const bcrypt = require('bcryptjs');
-const { downloadExternalImage } = require('../utils/media.utils');
+const { downloadExternalImage, processImage } = require('../utils/media.utils');
 const notificationController = require('./notification.controller');
+const crypto = require('crypto');
+const path = require('path');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
+
+
 
 const getCurrentUser = async (req, res) => {
     try {
@@ -106,40 +112,19 @@ const updateSettings = async (req, res) => {
 
         // whitelist allowed settings (this list drives what may be written to DB)
         const allowedSettings = [
-            // privacy / visibility
-            'is_private',
-            'anonymous_mode_enabled',
+            'anonymous_enabled',
+            'dark_mode_enabled',
+            'email_notifications',
+            'push_notifications',
             'profile_visibility',
-            'last_seen_visibility',
-            'message_privacy',
-            'activity_status_enabled',
-            'show_contact_info',
-            'show_birthday',
-
-            // notifications
-            'push_notifications_enabled',
-            'email_notifications_enabled',
-            'notifications_likes',
-            'notifications_comments',
-            'notifications_follows',
-            'notifications_messages',
-
-            // DND
-            'dnd_enabled',
-            'dnd_start_time',
-            'dnd_end_time',
-
-            // appearance / localization
             'theme',
             'font_size',
-            'font_scale',
             'language',
-
-            // account
-            'two_factor_enabled',
-            'security_token',
-            'dm_permission',
-            'last_seen'
+            'last_seen_privacy',
+            'message_privacy',
+            'dnd_start',
+            'dnd_end',
+            'activity_status_enabled' // if added later
         ];
 
         for (const key of Object.keys(req.body)) {
@@ -184,11 +169,24 @@ const uploadAvatar = async (req, res) => {
             }
         }
 
+        if (req.file) {
+            const inputPath = req.file.path;
+            const filename = `processed_${req.file.filename || path.basename(inputPath)}`;
+            const relativePath = `uploads/avatars/${filename}`;
+            const outputPath = path.join(__dirname, '..', 'public', relativePath);
+
+            const success = await processImage(inputPath, outputPath, { width: 400, quality: 80 });
+            if (success) {
+                avatarUrl = `/${relativePath}`;
+            }
+        }
+
         await User.update(userId, { avatar_url: avatarUrl });
         res.json({
             message: 'Avatar updated successfully',
             avatar_url: avatarUrl
         });
+
     } catch (error) {
         logger.error('Upload avatar error:', error);
         res.status(500).json({ error: 'Failed to update avatar' });
@@ -326,38 +324,87 @@ const exportUserData = async (req, res) => {
     }
 };
 
-const toggleTwoFactor = async (req, res) => {
+const generate2FASecret = async (req, res) => {
     try {
-        const userId = req.user.userId || req.user.user_id;
-        const { enabled, pin } = req.body;
+        const secret = speakeasy.generateSecret({
+            name: `Sparkle:${req.user.username}`
+        });
 
-        if (enabled) {
-            if (!pin || pin.length !== 6) {
-                return res.status(400).json({ error: 'PIN must be strictly 6 digits for production security' });
-            }
-            
-            const hashedPin = await bcrypt.hash(pin.toString(), 10);
-            await User.updateSettings(userId, { 
-                two_factor_enabled: 1,
-                two_factor_pin: hashedPin
-            });
-        } else {
-            await User.updateSettings(userId, { 
-                two_factor_enabled: 0,
-                two_factor_pin: null 
-            });
-        }
+        const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
 
         res.json({
-            success: true,
-            message: `Static 6-digit PIN 2FA ${enabled ? 'enabled' : 'disabled'} successfully.`,
-            two_factor_enabled: enabled
+            status: 'success',
+            secret: secret.base32,
+            qrCode: qrCodeUrl
         });
-    } catch (error) {
-        logger.error('Toggle 2FA error:', error);
-        res.status(500).json({ error: 'Failed to update 2FA settings' });
+    } catch (err) {
+        logger.error('2FA Secret Generation Error:', err);
+        res.status(500).json({ status: 'error', message: 'Failed to generate 2FA secret' });
     }
 };
+
+const enableTwoFactor = async (req, res) => {
+    try {
+        const { secret, token } = req.body;
+        const userId = req.user.userId || req.user.user_id;
+
+        const verified = speakeasy.totp.verify({
+            secret: secret,
+            encoding: 'base32',
+            token: token
+        });
+
+        if (!verified) {
+            return res.status(400).json({ status: 'error', message: 'Invalid verification token' });
+        }
+
+        // Generate backup codes (Algorithm 42.10)
+        const backupCodes = [];
+        for (let i = 0; i < 8; i++) {
+            backupCodes.push(crypto.randomBytes(4).toString('hex'));
+        }
+
+        await User.update(userId, {
+            two_factor_enabled: 1,
+            two_factor_secret: secret,
+            two_factor_backup_codes: JSON.stringify(backupCodes)
+        });
+
+        res.json({
+            status: 'success',
+            message: 'Two-factor authentication enabled',
+            backupCodes: backupCodes
+        });
+    } catch (err) {
+        logger.error('2FA Enable Error:', err);
+        res.status(500).json({ status: 'error', message: 'Failed to enable 2FA' });
+    }
+};
+
+const disableTwoFactor = async (req, res) => {
+    try {
+        const { password } = req.body;
+        const userId = req.user.userId || req.user.user_id;
+
+        const user = await User.findById(userId);
+        const match = await bcrypt.compare(password, user.password_hash);
+        if (!match) {
+            return res.status(401).json({ status: 'error', message: 'Incorrect password' });
+        }
+
+        await User.update(userId, {
+            two_factor_enabled: 0,
+            two_factor_secret: null,
+            two_factor_backup_codes: null
+        });
+
+        res.json({ status: 'success', message: 'Two-factor authentication disabled' });
+    } catch (err) {
+        logger.error('2FA Disable Error:', err);
+        res.status(500).json({ status: 'error', message: 'Failed to disable 2FA' });
+    }
+};
+
 
 const generateSecurityToken = async (req, res) => {
     try {
@@ -471,6 +518,13 @@ const getUserProfile = async (req, res) => {
         const currentUserId = req.user.userId || req.user.user_id;
 
         const user = await User.getProfileWithStats(identifier, currentUserId);
+        
+        if (user && user.user_id !== currentUserId) {
+            // Increment profile views
+            const pool = require('../config/database');
+            pool.query('UPDATE users SET profile_views = profile_views + 1 WHERE user_id = ?', [user.user_id])
+                .catch(err => logger.error('Failed to increment profile views:', err));
+        }
 
         if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -567,7 +621,7 @@ const getSuggestions = async (req, res) => {
             experience_level: u.experience_level || u.year_of_study
         }));
 
-        res.json(sanitizedSuggestions);
+        res.json({ suggestions: sanitizedSuggestions });
     } catch (error) {
         logger.error('Get Probabilistic Suggestions Error:', error);
         res.status(500).json({ error: 'Failed to get suggestions' });
@@ -610,7 +664,10 @@ module.exports = {
     getSuggestions,
     updateSettings,
     exportUserData,
-    toggleTwoFactor,
+    disableTwoFactor,
+    enableTwoFactor,
+    generate2FASecret,
+
     getActiveFriends,
     getActiveSessions,
     revokeSession,

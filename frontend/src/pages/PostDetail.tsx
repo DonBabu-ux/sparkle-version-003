@@ -4,11 +4,23 @@ import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 
+import type { Post } from '../types/post';
+
+interface Comment {
+  comment_id: string;
+  content: string;
+  user_id: string;
+  username: string;
+  name?: string;
+  avatar_url?: string;
+  created_at: string;
+}
+
 export default function PostDetail() {
   const { id } = useParams();
   const { user } = useUserStore();
-  const [post, setPost] = useState<any>(null);
-  const [comments, setComments] = useState<any[]>([]);
+  const [post, setPost] = useState<Post | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -109,7 +121,7 @@ export default function PostDetail() {
 
              {post.media?.length > 0 && (
                <div className="grid grid-cols-1 gap-4 mb-8 rounded-3xl overflow-hidden shadow-2xl">
-                 {post.media.map((m: any, i: number) => (
+                 {post.media.map((m: { url: string }, i: number) => (
                    <img key={i} src={m.url} className="w-full object-cover max-h-[600px]" alt="" />
                  ))}
                </div>

@@ -542,34 +542,35 @@ const initSkillMarketTable = async () => {
 const initMarketplaceTables = async () => {
     try {
         // 1. Listings Table (Escaping `condition` which is a reserved keyword in some SQL dialects)
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS marketplace_listings (
-                listing_id CHAR(36) NOT NULL PRIMARY KEY,
-                seller_id CHAR(36) NOT NULL,
-                title VARCHAR(255) NOT NULL,
-                description TEXT,
-                price DECIMAL(10, 2) NOT NULL,
-                category VARCHAR(50) DEFAULT 'other',
-                ${'`'}condition${'`'} ENUM('new', 'like_new', 'good', 'fair', 'poor') DEFAULT 'good',
-                campus VARCHAR(100) NOT NULL,
-                location VARCHAR(255) DEFAULT NULL,
-                is_sold TINYINT(1) DEFAULT 0,
-                status ENUM('active', 'sold', 'pending', 'deleted') DEFAULT 'active',
-                sold_at TIMESTAMP NULL DEFAULT NULL,
-                tags JSON DEFAULT NULL,
-                view_count INT DEFAULT 0,
-                image_url VARCHAR(500) DEFAULT NULL,
-                boost_count INT DEFAULT 0,
-                last_boosted_at TIMESTAMP NULL DEFAULT NULL,
-                is_promoted TINYINT(1) DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (seller_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                INDEX idx_marketplace_campus (campus, status, created_at),
-                INDEX idx_marketplace_category (category, status),
-                INDEX idx_marketplace_seller (seller_id, created_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        `);
+        // 1. Listings Table
+        const createListingsTable = 'CREATE TABLE IF NOT EXISTS marketplace_listings (' +
+            'listing_id CHAR(36) NOT NULL PRIMARY KEY, ' +
+            'seller_id CHAR(36) NOT NULL, ' +
+            'title VARCHAR(255) NOT NULL, ' +
+            'description TEXT, ' +
+            'price DECIMAL(10, 2) NOT NULL, ' +
+            'category VARCHAR(50) DEFAULT "other", ' +
+            '`condition` ENUM("new", "like_new", "good", "fair", "poor") DEFAULT "good", ' +
+            'campus VARCHAR(100) NOT NULL, ' +
+            'location VARCHAR(255) DEFAULT NULL, ' +
+            'is_sold TINYINT(1) DEFAULT 0, ' +
+            'status ENUM("active", "sold", "pending", "deleted") DEFAULT "active", ' +
+            'sold_at TIMESTAMP NULL DEFAULT NULL, ' +
+            'tags JSON DEFAULT NULL, ' +
+            'view_count INT DEFAULT 0, ' +
+            'image_url VARCHAR(500) DEFAULT NULL, ' +
+            'boost_count INT DEFAULT 0, ' +
+            'last_boosted_at TIMESTAMP NULL DEFAULT NULL, ' +
+            'is_promoted TINYINT(1) DEFAULT 0, ' +
+            'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ' +
+            'updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, ' +
+            'FOREIGN KEY (seller_id) REFERENCES users(user_id) ON DELETE CASCADE, ' +
+            'INDEX idx_marketplace_campus (campus, status, created_at), ' +
+            'INDEX idx_marketplace_category (category, status), ' +
+            'INDEX idx_marketplace_seller (seller_id, created_at) ' +
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;';
+        
+        await pool.query(createListingsTable);
 
         // 2. Listing Media
         await pool.query(`

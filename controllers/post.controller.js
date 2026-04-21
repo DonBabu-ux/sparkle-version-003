@@ -146,13 +146,14 @@ const addComment = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
         const postId = req.params.id;
-        const { content, parentId } = req.body;
+        const { content, parent_comment_id: parentId } = req.body;
 
         if (!postId || !content || content.trim() === '') {
             return res.status(400).json({ error: 'Post ID and content are required' });
         }
 
-        const commentId = await Post.addComment(postId, userId, content, parentId);
+        const result = await Post.addComment(postId, userId, content, parentId);
+        const commentId = result.commentId;
 
         // Notify post owner of comment
         try {
@@ -323,7 +324,8 @@ const resharePost = async (req, res) => {
         const originalPostId = req.params.id;
         const { comment } = req.body;
 
-        const reshareId = await Post.reshare(userId, originalPostId, comment);
+        const reshareResult = await Post.reshare(userId, originalPostId, comment);
+        const reshareId = reshareResult.repostId || originalPostId;
 
         // Notify original post owner
         try {
@@ -394,6 +396,18 @@ module.exports = {
         } catch (error) {
             logger.error('Update reshare comment error:', error);
             res.status(500).json({ error: 'Failed to update comment' });
+        }
+    },
+    reportPost: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const postId = req.params.id;
+            const { reason } = req.body;
+            const logger = require('../utils/logger');
+            logger.warn(`Post ${postId} reported by user ${userId} for reason: ${reason}`);
+            res.json({ success: true, message: 'Post reported to admins.' });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to report post' });
         }
     }
 };

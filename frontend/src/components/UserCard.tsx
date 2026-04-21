@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { X, MapPin, Check, Clock, Plus, Users, BookOpen, Sparkles, GraduationCap } from 'lucide-react';
+import { X, MapPin, Check, Clock, Plus, Users, Sparkles, GraduationCap } from 'lucide-react';
 import api from '../api/api';
 import { useState } from 'react';
 import type { User } from '../types/user';
@@ -129,7 +129,7 @@ export default function UserCard({ u, onRemove }: UserCardProps) {
         {u.mutual_followers && u.mutual_followers.length > 0 && (
           <div className="flex items-center gap-2 pl-12 -mt-1">
             <div className="flex -space-x-2.5">
-              {u.mutual_followers.slice(0, 3).map((m, i) => (
+              {u.mutual_followers.slice(0, 3).map((m: { avatar?: string; name: string }, i: number) => (
                 <img
                   key={i}
                   src={m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name)}&background=random`}

@@ -137,14 +137,113 @@ module.exports = {
     renderConnect,
     renderSearch: async (req, res) => res.render('search', { title: 'Search Results', user: req.user, query: req.query.q || '' }),
     renderFollowRequests: async (req, res) => res.render('follow-requests', { title: 'Follow Requests', user: req.user, requests: await User.getPendingFollowRequests(req.user.userId || req.user.user_id) }),
-    blockUser: async (req, res) => res.json({ success: true }), // preservation
-    unblockUser: async (req, res) => res.json({ success: true }),
-    getBlockedUsers: async (req, res) => res.json([]),
-    getFollowRequests: async (req, res) => res.json([]),
-    respondToFollowRequest: async (req, res) => res.json({ success: true }),
-    acceptRequest: async (req, res) => res.json({ success: true }),
-    rejectRequest: async (req, res) => res.json({ success: true }),
-    muteUser: async (req, res) => res.json({ success: true }),
-    unmuteUser: async (req, res) => res.json({ success: true }),
-    reportUser: async (req, res) => res.json({ success: true })
+    blockUser: async (req, res) => {
+        try {
+            const currentUserId = req.user.userId || req.user.user_id;
+            const targetId = req.params.id;
+            await User.blockUser(currentUserId, targetId);
+            res.json({ success: true, message: 'User blocked' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    unblockUser: async (req, res) => {
+        try {
+            const currentUserId = req.user.userId || req.user.user_id;
+            const targetId = req.params.id;
+            await User.unblockUser(currentUserId, targetId);
+            res.json({ success: true, message: 'User unblocked' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    getBlockedUsers: async (req, res) => {
+        try {
+            const currentUserId = req.user.userId || req.user.user_id;
+            const blocks = await User.getBlockedUsers(currentUserId);
+            res.json(blocks);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    getFollowRequests: async (req, res) => {
+        try {
+            const currentUserId = req.user.userId || req.user.user_id;
+            const requests = await User.getPendingFollowRequests(currentUserId);
+            res.json(requests);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    respondToFollowRequest: async (req, res) => {
+        try {
+            const currentUserId = req.user.userId || req.user.user_id;
+            const { requestId, status } = req.body;
+            if (status === 'accepted') {
+                await User.acceptFollowRequest(requestId, currentUserId);
+            } else {
+                await User.rejectFollowRequest(requestId, currentUserId);
+            }
+            res.json({ success: true, status });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    acceptRequest: async (req, res) => {
+        try {
+            const currentUserId = req.user.userId || req.user.user_id;
+            const { requestId } = req.params;
+            await User.acceptFollowRequest(requestId, currentUserId);
+            res.json({ success: true, message: 'Request accepted' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    rejectRequest: async (req, res) => {
+        try {
+            const currentUserId = req.user.userId || req.user.user_id;
+            const { requestId } = req.params;
+            await User.rejectFollowRequest(requestId, currentUserId);
+            res.json({ success: true, message: 'Request rejected' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    muteUser: async (req, res) => res.json({ success: true, message: 'User muted (Placeholder)' }),
+    unmuteUser: async (req, res) => res.json({ success: true, message: 'User unmuted (Placeholder)' }),
+    reportUser: async (req, res) => res.json({ success: true, message: 'Report submitted' }),
+    
+    pokeUser: async (req, res) => {
+        try {
+            const currentUserId = req.user.userId || req.user.user_id;
+            const targetId = req.params.id;
+            
+            if (currentUserId === targetId) {
+                return res.status(400).json({ error: "You can't poke yourself!" });
+            }
+
+            const targetUser = await User.findById(targetId);
+            if (!targetUser) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+
+            const currentUser = await User.findById(currentUserId);
+
+            // Create notification
+            const notificationController = require('./notification.controller');
+            await notificationController.createNotification({
+                user_id: targetId,
+                actor_id: currentUserId,
+                type: 'poke',
+                title: 'You were poked!',
+                content: `${currentUser.name} poked you! 👋`,
+                action_url: `/profile/${currentUser.username}`
+            });
+
+            res.json({ success: true, message: `You poked ${targetUser.name}!` });
+        } catch (error) {
+            console.error('Poke Error:', error);
+            res.status(500).json({ error: 'Failed to send poke' });
+        }
+    }
 };

@@ -28,14 +28,23 @@ const validateJWTSecret = () => {
 const signup = async (req, res) => {
     try {
         validateJWTSecret();
-        const { name, username, email, password, campus, major, year, phone_number } = req.body;
+        const { name, username, email, password, campus, major, year, phone_number, user_type, student_id } = req.body;
         // Validation
-        if (!name || !username || !email || !password) {
+        if (!name || !username || !email || !password || !user_type) {
             return res.status(400).json({
                 error: 'Required fields missing',
-                message: 'Name, username, email, and password are required'
+                message: 'Name, username, email, password, and user type are required'
             });
         }
+
+        // Student ID validation (Algorithm 2.6)
+        if (user_type === 'student' && !student_id) {
+            return res.status(400).json({
+                error: 'Student ID required',
+                message: 'Students must provide a valid student ID'
+            });
+        }
+
 
         // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -50,9 +59,10 @@ const signup = async (req, res) => {
         const userId = crypto.randomUUID();
 
         await query(
-            'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, name, username, email, hashedPassword, campus || null, major || null, year || null, phone_number || null]
+            'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study, phone_number, user_type, student_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, name, username, email, hashedPassword, campus || null, major || null, year || null, phone_number || null, user_type, student_id || null]
         );
+
 
         // --- NEW: Generate email verification code ---
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -117,7 +127,7 @@ const signup = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { username: loginId, password } = req.body;
+        const { username: loginId, password, rememberMe } = req.body;
 
         if (!loginId || !password) {
             return res.status(400).json({
@@ -126,7 +136,22 @@ const login = async (req, res) => {
             });
         }
 
+        // --- NEW: Rate Limiting (Algorithm 1.9) ---
+        const ip = req.ip || req.connection.remoteAddress;
+        const [attempts] = await query(
+            'SELECT COUNT(*) as count FROM login_attempts WHERE (login_id = ? OR ip_address = ?) AND is_successful = 0 AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)',
+            [loginId, ip]
+        );
+
+        if (attempts[0].count >= 5) {
+            return res.status(429).json({
+                status: 'error',
+                message: 'Too many failed attempts. Please try again in 15 minutes.'
+            });
+        }
+
         validateJWTSecret();
+
 
         const [users] = await query(
             'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1',
@@ -139,44 +164,57 @@ const login = async (req, res) => {
 
         const user = users[0];
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
+        
+        // Record attempt
+        await query(
+            'INSERT INTO login_attempts (attempt_id, user_id, login_id, ip_address, is_successful) VALUES (?, ?, ?, ?, ?)',
+            [crypto.randomUUID(), user.user_id, loginId, ip, passwordMatch ? 1 : 0]
+        );
+
         if (!passwordMatch) {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
 
-        // --- NEW: Check for 2FA ---
-        if (user.two_factor_enabled && user.two_factor_pin) {
+
+        // --- NEW: Check for 2FA (Algorithm 42) ---
+        if (user.two_factor_enabled) {
             return res.json({
-                status: 'twofa_required',
-                message: 'Two-factor authentication required',
+                status: 'requires_2fa',
                 userId: user.user_id,
-                email: user.email // for identification in PIN UI
+                email: user.email, // Include email for the frontend to show
+                message: `Please enter your 2FA code sent to ${user.email}`,
+                rememberMe: !!rememberMe
             });
         }
 
+        const sessionDuration = rememberMe ? '30d' : '24h';
         const token = jwt.sign({ 
             userId: user.user_id, 
             email: user.email, 
             username: user.username,
             tokenVersion: user.token_version || 0
-        }, JWT_SECRET, { expiresIn: '7d' });
+        }, JWT_SECRET, { expiresIn: sessionDuration });
+
 
         // CREATE SESSION RECORD
         const sessionId = crypto.randomBytes(16).toString('hex');
         const userAgent = req.headers['user-agent'] || 'Unknown Device';
-        const ip = req.ip || req.connection.remoteAddress;
+        // const ip = req.ip || req.connection.remoteAddress; // Removed duplicate declaration
 
         await query(
             'INSERT INTO user_sessions (session_id, user_id, device_name, ip_address) VALUES (?, ?, ?, ?)',
             [sessionId, user.user_id, userAgent, ip]
         );
 
+        const cookieMaxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
         res.cookie('sparkleToken', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            maxAge: cookieMaxAge,
             path: '/'
         });
+
 
         res.json({
             status: 'success',
@@ -201,9 +239,9 @@ const login = async (req, res) => {
 
 const verify2FA = async (req, res) => {
     try {
-        const { userId, pin } = req.body;
-        if (!userId || !pin) {
-            return res.status(400).json({ status: 'error', message: 'User ID and PIN are required' });
+        const { userId, code, rememberMe } = req.body;
+        if (!userId || !code) {
+            return res.status(400).json({ status: 'error', message: 'User ID and code are required' });
         }
 
         const [users] = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [userId]);
@@ -212,23 +250,47 @@ const verify2FA = async (req, res) => {
         }
 
         const user = users[0];
-        if (!user.two_factor_pin) {
-            return res.status(400).json({ status: 'error', message: '2FA not correctly configured' });
+        if (!user.two_factor_enabled || !user.two_factor_secret) {
+            return res.status(400).json({ status: 'error', message: '2FA not enabled' });
         }
 
-        const pinMatch = await bcrypt.compare(pin.toString(), user.two_factor_pin);
-        if (!pinMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid 2FA PIN' });
+        let verified = speakeasy.totp.verify({
+            secret: user.two_factor_secret,
+            encoding: 'base32',
+            token: code
+        });
+
+        // Check backup codes if TOTP fails (Algorithm 42.11)
+        if (!verified && user.two_factor_backup_codes) {
+            let backupCodes = [];
+            try {
+                backupCodes = typeof user.two_factor_backup_codes === 'string' 
+                    ? JSON.parse(user.two_factor_backup_codes) 
+                    : user.two_factor_backup_codes;
+            } catch (e) { backupCodes = []; }
+
+            const codeIndex = backupCodes.indexOf(code);
+            if (codeIndex !== -1) {
+                verified = true;
+                // Remove used backup code
+                backupCodes.splice(codeIndex, 1);
+                await query('UPDATE users SET two_factor_backup_codes = ? WHERE user_id = ?', [JSON.stringify(backupCodes), userId]);
+            }
         }
 
-        // PIN correct, issue token
+        if (!verified) {
+            return res.status(401).json({ status: 'error', message: 'Invalid 2FA code or backup code' });
+        }
+
+        // Token correct, issue token
         validateJWTSecret();
+        const sessionDuration = rememberMe ? '30d' : '24h';
         const token = jwt.sign({ 
             userId: user.user_id, 
             email: user.email, 
             username: user.username,
             tokenVersion: user.token_version || 0
-        }, JWT_SECRET, { expiresIn: '7d' });
+        }, JWT_SECRET, { expiresIn: sessionDuration });
 
         // CREATE SESSION RECORD
         const sessionId = crypto.randomBytes(16).toString('hex');
@@ -240,11 +302,12 @@ const verify2FA = async (req, res) => {
             [sessionId, user.user_id, userAgent, ip]
         );
 
+        const cookieMaxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
         res.cookie('sparkleToken', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            maxAge: cookieMaxAge,
             path: '/'
         });
 
@@ -264,10 +327,51 @@ const verify2FA = async (req, res) => {
             }
         });
     } catch (error) {
-        logger.error('Verify 2FA Error:', error);
-        res.status(500).json({ status: 'error', message: 'PIN verification failed' });
+        console.error('Verify 2FA Error:', error);
+        res.status(500).json({ status: 'error', message: 'Verification failed' });
     }
 };
+
+const request2FARecovery = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ status: 'error', message: 'User ID is required' });
+
+        const [users] = await query('SELECT user_id, name, email FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        if (users.length === 0) return res.status(404).json({ status: 'error', message: 'User not found' });
+
+        const user = users[0];
+        const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+        // Store this as a temporary backup code
+        let backupCodes = [];
+        try {
+            backupCodes = JSON.parse(user.two_factor_backup_codes || '[]');
+        } catch (e) { backupCodes = []; }
+        
+        backupCodes.push(recoveryCode);
+
+        await query('UPDATE users SET two_factor_backup_codes = ? WHERE user_id = ?', [JSON.stringify(backupCodes), userId]);
+
+        await sendEmail({
+            to: user.email,
+            subject: 'Your 2FA Recovery Code - Sparkle ✨',
+            templateName: 'verify-email', // Reuse verification template
+            templateData: {
+                name: user.name,
+                code: recoveryCode,
+                message: 'Use this code to bypass your 2FA security check. It will expire in 15 minutes.'
+            }
+        });
+
+        res.json({ status: 'success', message: 'Recovery code sent to your email!' });
+    } catch (error) {
+        logger.error('2FA Recovery Error:', error);
+        res.status(500).json({ status: 'error', message: 'Failed to send recovery code' });
+    }
+};
+
 
 const verifyEmail = async (req, res) => {
     try {
@@ -324,21 +428,26 @@ const forgotPassword = async (req, res) => {
         }
 
         const user = users[0];
-        const token = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        const token = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Clear previous resets for this user to avoid confusion/collisions
+        await query('DELETE FROM password_resets WHERE email = ?', [email]);
 
         await query(
-            'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?',
-            [crypto.randomUUID(), user.user_id, email, token, expiresAt, token, expiresAt]
+            'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
+            [crypto.randomUUID(), user.user_id, email, token]
         );
+
+        logger.info(`Password reset requested for ${email}. Code: ${token}`);
 
         sendEmail({
             to: email,
-            subject: 'Reset Your Password - Sparkle',
+            subject: 'Reset Your Password - Sparkle ✨',
             templateName: 'reset-password',
             templateData: {
                 name: user.name,
-                resetUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${token}`
+                code: token,
+                resetUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?email=${encodeURIComponent(email)}&code=${token}`
             }
         }).catch(e => logger.error('Reset email failed:', e));
 
@@ -351,23 +460,49 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
     try {
-        const { token, newPassword } = req.body;
-        if (!token || !newPassword) return res.status(400).json({ status: 'error', message: 'Token and new password are required' });
-
-        const [resets] = await query(
-            'SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW() AND used_at IS NULL LIMIT 1',
-            [token]
-        );
-
-        if (resets.length === 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid or expired reset token' });
+        const { token, email, code, newPassword } = req.body;
+        const resetCode = code || token;
+        if (!resetCode || !newPassword) {
+            return res.status(400).json({ status: 'error', message: 'Verification code and new password are required' });
         }
 
-        const reset = resets[0];
+        // Query by token first (the 6-digit code)
+        // We order by created_at DESC to get the most recent one if there are collisions
+        const [resets] = await query(
+            'SELECT *, NOW() as db_now FROM password_resets WHERE token = ? AND expires_at > NOW() AND used_at IS NULL ORDER BY created_at DESC',
+            [resetCode]
+        );
+
+        logger.info(`Reset attempt: Code=${resetCode}, Email=${email}. Found ${resets.length} active records in DB.`);
+
+        let reset = null;
+        if (resets.length > 0) {
+            // Log details for each record found
+            resets.forEach(r => {
+                const expired = new Date(r.expires_at) < new Date(r.db_now);
+                logger.info(`Checking record: Email=${r.email}, Expires=${r.expires_at}, DB_Now=${r.db_now}, Expired=${expired}`);
+            });
+
+            if (email) {
+                const trimmedEmail = email.trim().toLowerCase();
+                reset = resets.find(r => r.email.trim().toLowerCase() === trimmedEmail);
+            } else {
+                // If no email provided, just take the most recent one (already filtered by SQL)
+                reset = resets[0];
+            }
+        }
+
+        if (!reset) {
+            logger.warn(`Password reset failed for ${email || 'unknown'} - Code: ${resetCode}. Reason: No valid matching/unexpired code found.`);
+            return res.status(400).json({ status: 'error', message: 'Invalid or expired verification code' });
+        }
+
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
         await query('UPDATE users SET password_hash = ? WHERE user_id = ?', [hashedPassword, reset.user_id]);
         await query('UPDATE password_resets SET used_at = NOW() WHERE reset_id = ?', [reset.reset_id]);
+
+        logger.info(`Password reset successful for User ID: ${reset.user_id}`);
 
         res.json({ status: 'success', message: 'Password reset successfully! You can now login.' });
     } catch (error) {
@@ -397,7 +532,27 @@ const resendVerification = async (req, res) => {
             return res.json({ status: 'success', message: 'SMS verification code resent!' });
         }
 
+        // --- NEW: Rate Limiting for Resend (Algorithm 3.3) ---
+        const [resendCount] = await query(
+            'SELECT COUNT(*) as count FROM verification_requests WHERE user_id = ? AND type = "email" AND requested_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)',
+            [user.user_id]
+        );
+
+        if (resendCount[0].count >= 3) {
+            return res.status(429).json({
+                status: 'error',
+                message: 'You can only request a new code 3 times per hour.'
+            });
+        }
+
+        // Log request
+        await query(
+            'INSERT INTO verification_requests (request_id, user_id, type) VALUES (?, ?, ?)',
+            [crypto.randomUUID(), user.user_id, 'email']
+        );
+
         if (user.email_verified) return res.status(400).json({ status: 'error', message: 'Email already verified' });
+
 
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -469,4 +624,4 @@ const switchAccount = async (req, res) => {
     }
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA };
+module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA, request2FARecovery };

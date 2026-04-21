@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, UserPlus, TrendingUp, Users, UserCheck, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { Search, UserPlus, Users, UserCheck, Sparkles, SlidersHorizontal } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
 import api from '../api/api';
@@ -47,7 +47,7 @@ export default function Connect() {
       if (activeFilter === 'Interests') params.filter = 'interests';
       if (activeFilter === 'Level') params.filter = 'level';
       const res = await api.get('/users/suggestions', { params });
-      setUsers(res.data.users || res.data || []);
+      setUsers(res.data.suggestions || res.data.users || res.data || []);
     } catch {
       setUsers([]);
     } finally {

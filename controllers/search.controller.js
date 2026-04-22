@@ -3,208 +3,296 @@ const logger = require('../utils/logger');
 
 /**
  * 🚀 SPARKLE INTENT ENGINE & HIGH-PERFORMANCE SEARCH
- * Designed to handle 100,000+ concurrent searches via:
- * 1. Intent Extraction (Detecting commands like "my posts" or "recent")
- * 2. Pruned Query Execution (Only searching what is needed)
- * 3. Full-Text Indexing & Relevance Weighting
+ * Upgraded Production Version with:
+ * 1. Intent Classification (DISCOVER, NAVIGATE, PERSONAL, TRENDING)
+ * 2. Multi-Factor Ranking (Engagement, Recency, Relationship, Relevance)
+ * 3. In-Memory Cache (Redis polyfill for real-time responsiveness)
+ * 4. Smart Query Expansion (Synonyms)
  */
+
+// ⚡ 1. CACHING LAYER (Redis Polyfill)
+const SearchCache = new Map();
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
+// ⚡ 2. SMART QUERY EXPANSION
+const SYNONYMS = {
+    'dev': 'developer development programming',
+    'uni': 'university campus college',
+    'tech': 'technology it software',
+    'ai': 'artificial intelligence machine learning'
+};
+
 const search = async (req, res) => {
     try {
         const { q, type = 'all', limit = 20, offset = 0, campus } = req.query;
         const currentUserId = req.user ? (req.user.userId || req.user.user_id) : null;
 
-        if (!q || q.length < 1) {
-            return res.json({ status: 'success', data: { results: [] } });
+        if (!q || q.trim().length < 1) {
+            return res.json({ status: 'success', data: { results: {} } });
         }
 
-        let searchTerm = q.trim().toLowerCase();
+        let rawTerm = q.trim().toLowerCase();
+        
+        // --- ⚡ 3. CACHE CHECK ---
+        const cacheKey = `${currentUserId}:${rawTerm}:${type}:${limit}:${offset}:${campus||'global'}`;
+        const cached = SearchCache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+            return res.json({ status: 'success', data: cached.data, cached: true });
+        }
+
         let targetType = type;
         let sortBy = 'relevance';
         let filterUserId = null;
         let filterUsername = null;
-
-        // --- 🧠 1. INTENT EXTRACTION (TikTok Style) 🧠 ---
         
-        // Pattern: "my [type]" -> Filter by current user
-        if (searchTerm.startsWith('my ')) {
-            const parts = searchTerm.split(' ');
+        // --- 🧠 4. ADVANCED INTENT CLASSIFICATION ---
+        let intent = 'DISCOVER'; // Default
+
+        // PERSONAL Intent
+        if (rawTerm.startsWith('my ')) {
+            intent = 'PERSONAL';
+            const parts = rawTerm.split(' ');
             if (['posts', 'groups', 'clubs', 'market', 'history'].includes(parts[1])) {
                 filterUserId = currentUserId;
                 targetType = parts[1] === 'market' ? 'marketplace' : parts[1];
-                searchTerm = parts.slice(2).join(' ') || ''; // Remaining words
+                rawTerm = parts.slice(2).join(' ') || '';
             }
         }
 
-        // Pattern: "recent [topic]" -> Change sort order
-        if (searchTerm.startsWith('recent ')) {
-            sortBy = 'date';
-            searchTerm = searchTerm.replace('recent ', '');
+        // TRENDING Intent
+        if (rawTerm.includes('trending') || rawTerm.includes('popular')) {
+            intent = 'TRENDING';
+            sortBy = 'engagement';
+            rawTerm = rawTerm.replace('trending', '').replace('popular', '').trim();
         }
 
-        // Pattern: "[name]'s [type]" -> Filter by user name
-        const userPostsMatch = searchTerm.match(/^([a-z0-9_.]+)[''’]s\s+(posts|groups|clubs)/);
+        // DISCOVER (Chronological) Intent
+        if (rawTerm.startsWith('recent ')) {
+            intent = 'DISCOVER';
+            sortBy = 'date';
+            rawTerm = rawTerm.replace('recent ', '').trim();
+        }
+
+        // NAVIGATE Intent (Specific User Search)
+        const userPostsMatch = rawTerm.match(/^([a-z0-9_.]+)[''’]s\s+(posts|groups|clubs)/);
         if (userPostsMatch) {
+            intent = 'NAVIGATE';
             filterUsername = userPostsMatch[1];
             targetType = userPostsMatch[2];
-            searchTerm = searchTerm.replace(userPostsMatch[0], '').trim();
+            rawTerm = rawTerm.replace(userPostsMatch[0], '').trim();
 
-            // 🔥 SMART FALLBACK: Resolve fuzzy username if exact match fails
             try {
                 const [users] = await pool.query(
-                    `SELECT user_id, username FROM users 
-                     WHERE username = ? OR username LIKE ? OR name LIKE ?
-                     ORDER BY (username = ?) DESC, LENGTH(username) ASC LIMIT 1`,
-                    [filterUsername, `${filterUsername}%`, `${filterUsername}%`, filterUsername]
+                    `SELECT user_id, username FROM users WHERE username = ? OR username LIKE ? ORDER BY (username = ?) DESC LIMIT 1`,
+                    [filterUsername, `${filterUsername}%`, filterUsername]
                 );
-                
                 if (users.length > 0) {
                     filterUserId = users[0].user_id;
-                    filterUsername = users[0].username; // Update to the found user
+                    filterUsername = users[0].username;
                 }
-            } catch (err) {
-                logger.error('Fuzzy user resolution failed:', err);
-            }
+            } catch (err) {}
         }
 
-        // Prepare search terms
-        const likeTerm = `%${searchTerm}%`;
-        const booleanSearchTerm = searchTerm ? `${searchTerm}*` : '';
+        // Expand Synonyms
+        let searchTerm = rawTerm;
+        const words = rawTerm.split(' ');
+        const expandedWords = words.map(w => SYNONYMS[w] ? `${w} ${SYNONYMS[w]}` : w);
+        const booleanSearchTerm = expandedWords.join(' ').split(' ').filter(Boolean).map(w => `${w}*`).join(' ');
+        const likeTerm = `%${rawTerm}%`;
+
         const results = {};
         const promises = [];
 
-        // --- ⚡ 2. HIGH-PERFORMANCE QUERY EXECUTION ⚡ ---
+        // --- ⚡ 5. MULTI-FACTOR RANKING QUERIES ---
 
-        // Helper to handle User Search
+        // Users
         const searchUsers = async () => {
             if (targetType !== 'all' && targetType !== 'users') return;
             try {
-                const params = [currentUserId, currentUserId, searchTerm, searchTerm, booleanSearchTerm];
-                let campusClause = '';
-                if (campus) { campusClause = 'AND campus = ?'; params.push(campus); }
-                params.push(parseInt(limit), parseInt(offset));
+                const finalParams = [
+                    currentUserId, currentUserId, // For first IF
+                    currentUserId, // For is_followed relationship check
+                    booleanSearchTerm, // MATCH AGAINST in SELECT
+                    rawTerm, // Exact username match
+                    currentUserId, currentUserId, // For relationship boost
+                    booleanSearchTerm, // MATCH in WHERE
+                    likeTerm // LIKE in WHERE
+                ];
+                if (campus) finalParams.push(campus);
+                finalParams.push(parseInt(limit), parseInt(offset));
 
                 const [users] = await pool.query(
                     `SELECT 
-                        user_id as id, user_id, username, name, avatar_url,
-                        'user' as type, name as title, username as subtitle, 
-                        avatar_url as image, bio as extra, campus, is_verified,
-                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = users.user_id)) as is_followed,
-                        (MATCH(username, name, bio) AGAINST(?) * 2 + (username = ?) * 5) as relevance
-                     FROM users
-                     WHERE (MATCH(username, name, bio) AGAINST(? IN BOOLEAN MODE) OR username LIKE ?)
-                       AND account_status = 'active'
-                     ${campusClause}
-                     ORDER BY ${sortBy === 'date' ? 'joined_at DESC' : 'relevance DESC'}
-                     LIMIT ? OFFSET ?`,
-                    [currentUserId, currentUserId, searchTerm, searchTerm, booleanSearchTerm, likeTerm, ...params.slice(5)]
+                        u.user_id, u.username, u.name, u.avatar_url, 'user' as type, 
+                        u.bio, u.is_verified, u.is_online, u.campus,
+                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.user_id)) as is_followed_check,
+                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.user_id)) as is_followed,
+                        (
+                            (MATCH(u.username, u.name, u.bio) AGAINST(? IN BOOLEAN MODE) * 2) + 
+                            ((u.username = ?) * 5) + 
+                            (IF(? IS NULL, 0, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.user_id)) * 2)
+                        ) as relevance
+                    FROM users u
+                    WHERE (MATCH(u.username, u.name, u.bio) AGAINST(? IN BOOLEAN MODE) OR u.username LIKE ?)
+                      AND u.account_status = 'active'
+                    ${campus ? 'AND u.campus = ?' : ''}
+                    ORDER BY ${sortBy === 'date' ? 'u.joined_at DESC' : 'relevance DESC'} LIMIT ? OFFSET ?`,
+                    finalParams
                 );
                 results.users = users;
             } catch (e) { results.users = []; }
         };
 
-        // Helper to handle Post Search
+        // Posts
         const searchPosts = async () => {
             if (targetType !== 'all' && targetType !== 'posts') return;
             try {
                 const params = [];
                 let filterClause = '';
 
-                // Apply Intent Filters
-                if (filterUserId) {
-                    filterClause += ' AND p.user_id = ?';
-                    params.push(filterUserId);
-                }
-                if (filterUsername) {
-                    filterClause += ' AND u.username = ?';
-                    params.push(filterUsername);
-                }
-
-                // Keyword matching if search term remains
+                if (filterUserId) { filterClause += ' AND p.user_id = ?'; params.push(filterUserId); }
+                if (filterUsername) { filterClause += ' AND u.username = ?'; params.push(filterUsername); }
+                
                 let matchClause = '';
-                if (searchTerm) {
+                if (rawTerm) {
                     matchClause = ' AND (MATCH(p.content) AGAINST(? IN BOOLEAN MODE) OR p.content LIKE ?)';
                     params.push(booleanSearchTerm, likeTerm);
                 }
 
                 if (campus) { filterClause += ' AND p.campus = ?'; params.push(campus); }
-                params.push(parseInt(limit), parseInt(offset));
+                
+                // Add sorting params
+                let sortClause = 'relevance DESC';
+                if (sortBy === 'date') sortClause = 'p.created_at DESC';
+                else if (sortBy === 'engagement') sortClause = 'p.spark_count DESC, relevance DESC';
 
                 const [posts] = await pool.query(
                     `SELECT 
-                        p.post_id as id, 'post' as type, LEFT(p.content, 100) as title,
-                        u.username as subtitle, p.media_url as image, p.content as description,
-                        p.campus, p.spark_count as extra, p.created_at as date,
-                        ${searchTerm ? 'MATCH(p.content) AGAINST(?)' : '1'} as relevance
-                     FROM posts p
-                     JOIN users u ON p.user_id = u.user_id
-                     WHERE (p.post_type = 'public' OR p.group_id IS NULL)
-                     ${filterClause} ${matchClause}
-                     ORDER BY ${sortBy === 'date' ? 'p.created_at DESC' : 'relevance DESC'}
-                     LIMIT ? OFFSET ?`,
-                    searchTerm ? [booleanSearchTerm, ...params] : params
+                        p.*, 'post' as type,
+                        u.username, u.name, u.avatar_url, u.is_verified,
+                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM sparks s WHERE s.post_id = p.post_id AND s.user_id = ?)) as is_sparked,
+                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM post_reshares pr WHERE pr.post_id = p.post_id AND pr.user_id = ?)) as is_reshared,
+                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?)) as is_saved,
+                        (
+                            ${rawTerm ? 'MATCH(p.content) AGAINST(? IN BOOLEAN MODE)' : '1'} * 2 + 
+                            (p.spark_count * 0.3) - 
+                            (LEAST(TIMESTAMPDIFF(HOUR, p.created_at, NOW()), 720) * 0.05)
+                        ) as relevance
+                     FROM posts p JOIN users u ON p.user_id = u.user_id
+                     WHERE (p.post_type = 'public' OR p.group_id IS NULL) ${filterClause} ${matchClause}
+                     ORDER BY ${sortClause} LIMIT ? OFFSET ?`,
+                    [
+                        currentUserId, currentUserId,
+                        currentUserId, currentUserId,
+                        currentUserId, currentUserId,
+                        ...(rawTerm ? [booleanSearchTerm] : []),
+                        ...params, 
+                        parseInt(limit), parseInt(offset)
+                    ]
                 );
                 results.posts = posts;
             } catch (e) { results.posts = []; }
         };
 
-        // Helper for Groups
+        // Groups
         const searchGroups = async () => {
             if (targetType !== 'all' && targetType !== 'groups') return;
             try {
-                const params = [booleanSearchTerm, likeTerm, likeTerm];
-                let campusClause = campus ? 'AND g.campus = ?' : '';
+                const params = [booleanSearchTerm, rawTerm, booleanSearchTerm, likeTerm, likeTerm];
                 if (campus) params.push(campus);
                 params.push(parseInt(limit), parseInt(offset));
 
                 const [groups] = await pool.query(
                     `SELECT 
                         g.group_id as id, 'group' as type, g.name as title,
-                        CONCAT(g.category, ' · ', (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.group_id), ' members') as subtitle,
-                        g.icon_url as image, g.description, g.campus,
-                        MATCH(g.name, g.description) AGAINST(?) as relevance
+                        CAST(CONCAT((SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.group_id), ' members') AS CHAR) as subtitle,
+                        g.icon_url as image, g.description,
+                        (MATCH(g.name, g.description) AGAINST(? IN BOOLEAN MODE) * 2 + (g.name = ?) * 3) as relevance
                      FROM \`groups\` g
                      WHERE (MATCH(g.name, g.description) AGAINST(? IN BOOLEAN MODE) OR g.name LIKE ? OR g.description LIKE ?)
-                     ${campusClause}
-                     ORDER BY ${sortBy === 'date' ? 'g.created_at DESC' : 'relevance DESC'}
-                     LIMIT ? OFFSET ?`,
-                    [booleanSearchTerm, ...params]
+                     ${campus ? 'AND g.campus = ?' : ''}
+                     ORDER BY ${sortBy === 'date' ? 'g.created_at DESC' : 'relevance DESC'} LIMIT ? OFFSET ?`,
+                    params
                 );
                 results.groups = groups;
             } catch (e) { results.groups = []; }
         };
 
-        // Parallel execution for zero-lag
-        promises.push(searchUsers(), searchPosts(), searchGroups());
-        
-        // Marketplace & Clubs (Only if all or specific)
-        if (targetType === 'all' || targetType === 'marketplace') {
-            promises.push((async () => {
-                const params = [booleanSearchTerm, likeTerm, likeTerm];
+        // Clubs
+        const searchClubs = async () => {
+            if (targetType !== 'all' && targetType !== 'clubs') return;
+            try {
+                const params = [booleanSearchTerm, rawTerm, booleanSearchTerm, likeTerm, likeTerm];
                 if (campus) params.push(campus);
                 params.push(parseInt(limit), parseInt(offset));
-                const [rows] = await pool.query(
-                    `SELECT listing_id as id, 'marketplace_item' as type, title, CONCAT('$', price) as subtitle, image_url as image, MATCH(title, description) AGAINST(?) as relevance FROM marketplace_listings WHERE (MATCH(title, description) AGAINST(? IN BOOLEAN MODE) OR title LIKE ? OR description LIKE ?) AND status='active' ${campus ? 'AND campus=?' : ''} ORDER BY relevance DESC LIMIT ? OFFSET ?`,
-                    [booleanSearchTerm, ...params]
-                );
-                results.marketplace = rows;
-            })());
-        }
 
+                const [clubs] = await pool.query(
+                    `SELECT 
+                        c.club_id as id, 'club' as type, c.name as title,
+                        c.category as subtitle, c.logo_url as image, c.description,
+                        (MATCH(c.name, c.description) AGAINST(? IN BOOLEAN MODE) * 2 + (c.name = ?) * 3) as relevance
+                     FROM clubs c
+                     WHERE (MATCH(c.name, c.description) AGAINST(? IN BOOLEAN MODE) OR c.name LIKE ? OR c.description LIKE ?)
+                     ${campus ? 'AND c.campus = ?' : ''}
+                     ORDER BY ${sortBy === 'date' ? 'c.created_at DESC' : 'relevance DESC'} LIMIT ? OFFSET ?`,
+                    params
+                );
+                results.clubs = clubs;
+            } catch (e) { results.clubs = []; }
+        };
+
+        // Marketplace
+        const searchMarketplace = async () => {
+            if (targetType !== 'all' && targetType !== 'marketplace') return;
+            try {
+                const params = [booleanSearchTerm, rawTerm, booleanSearchTerm, likeTerm, likeTerm];
+                if (campus) params.push(campus);
+                params.push(parseInt(limit), parseInt(offset));
+
+                const [items] = await pool.query(
+                    `SELECT 
+                        m.listing_id as id, 'marketplace' as type, m.title,
+                        CAST(CONCAT('$', m.price) AS CHAR) as subtitle, m.image_url as image, m.description,
+                        (MATCH(m.title, m.description) AGAINST(? IN BOOLEAN MODE) * 2 + (m.title = ?) * 3) as relevance
+                     FROM marketplace_listings m
+                     WHERE (MATCH(m.title, m.description) AGAINST(? IN BOOLEAN MODE) OR m.title LIKE ? OR m.description LIKE ?)
+                       AND m.status = 'active'
+                     ${campus ? 'AND m.campus = ?' : ''}
+                     ORDER BY ${sortBy === 'date' ? 'm.created_at DESC' : 'relevance DESC'} LIMIT ? OFFSET ?`,
+                    params
+                );
+                results.marketplace = items;
+            } catch (e) { results.marketplace = []; }
+        };
+
+        promises.push(searchUsers(), searchPosts(), searchGroups(), searchClubs(), searchMarketplace());
         await Promise.all(promises);
 
-        // --- 📊 3. RESPONSE AGGREGATION 📊 ---
-        if (targetType !== 'all' && results[targetType]) {
-            return res.json({ status: 'success', data: results[targetType] });
-        }
-
-        res.json({
-            status: 'success',
-            data: {
-                results,
-                total: Object.values(results).reduce((acc, curr) => acc + (curr ? curr.length : 0), 0),
-                intent: { searchTerm, sortBy, targetType, filterUserId, filterUsername }
-            }
+        // --- 📊 6. RESULT BLENDING & CACHING 📊 ---
+        
+        // We preserve the object structure for frontend compatibility, but we also create a master sorted list
+        const blended = [
+            ...(results.users || []), 
+            ...(results.posts || []), 
+            ...(results.groups || []),
+            ...(results.clubs || []),
+            ...(results.marketplace || [])
+        ].sort((a, b) => {
+            if (sortBy === 'date') return new Date(b.date || 0) - new Date(a.date || 0);
+            return (b.relevance || 0) - (a.relevance || 0);
         });
+
+        const finalData = {
+            results,
+            blended,
+            total: blended.length,
+            intent: { intent, rawTerm, sortBy, targetType, filterUserId, filterUsername }
+        };
+
+        // Save to cache
+        SearchCache.set(cacheKey, { timestamp: Date.now(), data: finalData });
+
+        res.json({ status: 'success', data: finalData });
 
     } catch (error) {
         logger.error('Search engine error:', error);

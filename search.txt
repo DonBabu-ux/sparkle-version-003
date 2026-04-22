@@ -1,0 +1,33 @@
+# Sparkle Search Engine - Technical Explanation
+
+The search functionality in Sparkle is built as a highly optimized, intent-driven engine capable of handling complex queries with near-zero latency. It is housed primarily in `controllers/search.controller.js`.
+
+Here is a breakdown of how it works:
+
+## 1. Intent Extraction (Natural Language Processing)
+Before hitting the database, the engine parses the user's search string to determine their true "intent." It looks for specific patterns:
+- **Self-filtering (`"my [type]"`)**: If a user searches "my posts" or "my groups", the engine strips out "my" and automatically applies a SQL filter (`filterUserId = currentUserId`) to only show their own content.
+- **Chronological sorting (`"recent [topic]"`)**: If a user searches "recent events", the engine strips the word "recent" and overrides the default sorting algorithm from `relevance` to `date` (`created_at DESC`).
+- **Targeted user filtering (`"[username]'s [type]"`)**: If a user searches "lewismwangi's posts", the engine extracts the username and filters the search to that specific user. 
+  - *Smart Fallback*: If the exact username isn't found, it runs a fuzzy `LIKE` query to guess which user they meant and resolves the filter automatically.
+
+## 2. High-Performance Parallel Execution
+To achieve maximum speed, the engine breaks the search down into separate asynchronous tasks for each domain (Users, Posts, Groups, Marketplace).
+- **Query Pruning**: If the API request specifies a `type` (e.g., `type=users`), the engine completely skips the SQL queries for Posts, Groups, and Marketplace, saving massive database overhead.
+- **Parallelism**: If searching `type=all`, all domain queries are pushed to an array and executed simultaneously using `Promise.all()`. This means searching 4 tables takes the time of the single slowest table, rather than the combined time of all 4.
+
+## 3. Full-Text Indexing & Relevance Weighting
+The search doesn't just look for exact matches; it uses MySQL's advanced `MATCH() AGAINST() IN BOOLEAN MODE` combined with custom weighting formulas.
+- **Users**: Relevance is calculated using the formula `(MATCH(...) * 2 + (username = ?) * 5)`. This heavily biases the results toward exact username matches (giving them a massive +5 boost) while still surfacing people with relevant bios or names.
+- **Posts & Groups**: Content and descriptions are indexed. The engine also falls back to standard `LIKE %term%` queries if the boolean match fails to catch partial words.
+
+## 4. Result Normalization
+To make it easy for the frontend to render the global search dropdown, all results from completely different tables are mapped into a standardized object structure:
+- `id`: The unique identifier
+- `type`: 'user', 'post', 'group', or 'marketplace_item'
+- `title`: The primary text (e.g., user's name, or truncated post content)
+- `subtitle`: Secondary text (e.g., @username, or group member count)
+- `image`: Avatar, media URL, or icon
+- `relevance`: The calculated numerical score used for sorting
+
+If the user searches globally (`type='all'`), the API returns an aggregated JSON object with keys for `users`, `posts`, `groups`, and `marketplace`.

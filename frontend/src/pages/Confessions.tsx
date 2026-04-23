@@ -2,6 +2,17 @@ import { useState, useEffect } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
+import { 
+  ShieldCheck, 
+  Plus, 
+  Orbit, 
+  MessageSquare, 
+  Heart, 
+  Send,
+  Flag,
+  Globe,
+  Ghost
+} from 'lucide-react';
 
 interface Confession {
   confession_id: string;
@@ -69,387 +80,160 @@ export default function Confessions() {
   };
 
   return (
-    <div className="confessions-root">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
 
-      <div className="confessions-layout">
-        <main className="confessions-main">
-          {/* Hero */}
-          <div className="confessions-hero">
-            <div className="confessions-icon">✨</div>
-            <h1 className="confessions-title">Anonymous Sanctuary</h1>
-            <p className="confessions-subtitle">A safe space for your untold campus stories</p>
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-            <div className="campus-filter">
-              {[
-                { id: 'all', label: 'Global' },
-                { id: 'Main Campus', label: 'Main' },
-                { id: 'North Campus', label: 'North' },
-                { id: 'South Campus', label: 'South' }
-              ].map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setCampus(c.id)}
-                  className={`campus-btn${campus === c.id ? ' active' : ''}`}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pt-20 md:pt-32">
+        
+        {/* Editorial Header */}
+        <header className="flex flex-col items-center text-center mb-24 animate-fade-in relative z-10">
+          <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full mb-10 shadow-xl shadow-primary/5">
+            <Ghost size={18} strokeWidth={3} className="text-primary" />
+            <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Encrypted Transmission</span>
           </div>
+          
+          <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none mb-10 italic uppercase">
+             Village <span className="text-primary italic">Vault.</span>
+          </h1>
+          
+          <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic max-w-2xl border-l-8 border-primary/20 pl-8 text-center mx-auto uppercase tracking-tighter">
+            Synchronize your filtered thoughts — private harmonics in the village network.
+          </p>
 
-          {/* Post Box */}
-          <div className="confession-compose-card">
+          <div className="mt-16 flex flex-wrap justify-center gap-4">
+            {[
+              { id: 'all',          label: 'Omni',  icon: <Globe size={16} strokeWidth={3} /> },
+              { id: 'Main Campus',  label: 'Core',    icon: <Orbit size={16} strokeWidth={3} /> },
+              { id: 'North Campus', label: 'North',   icon: <Plus size={16} strokeWidth={3} /> },
+              { id: 'South Campus', label: 'South',   icon: <Plus size={16} strokeWidth={3} /> }
+            ].map(c => (
+              <button
+                key={c.id}
+                onClick={() => setCampus(c.id)}
+                className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all border shadow-sm italic flex items-center gap-4 ${campus === c.id ? 'bg-white border-white text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 border-white text-black opacity-30 hover:opacity-100 hover:bg-white'}`}
+              >
+                {c.icon}
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </header>
+
+        {/* High-Fidelity Compose Area */}
+        <div className="max-w-4xl mx-auto mb-24 relative z-10">
+          <div className="bg-white/80 backdrop-blur-3xl rounded-[56px] border border-white p-10 shadow-2xl shadow-primary/5 group transition-all">
             <form onSubmit={handlePost}>
-              <textarea
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                placeholder="Share your thoughts with the community, safely and anonymously..."
-                className="confession-textarea"
-              />
-              <div className="confession-compose-footer">
-                <div className="encrypted-badge">
-                  <span className="pulse-dot-green"></span>
-                  <span>Signal Encrypted</span>
+              <div className="relative">
+                <textarea
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  placeholder="Initiate anonymous broadcast..."
+                  className="w-full h-56 bg-black/5 border-4 border-transparent rounded-[40px] p-10 text-2xl font-black text-black placeholder:text-black/10 focus:bg-white focus:border-primary/20 outline-none transition-all resize-none italic shadow-inner"
+                />
+                <div className="absolute top-8 right-8 pointer-events-none opacity-5 animate-pulse">
+                   <Send size={48} strokeWidth={3} />
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-8 gap-8 px-4">
+                <div className="flex items-center gap-4 px-6 py-3 bg-black/5 rounded-full border border-black/[0.03]">
+                  <div className="w-3 h-3 bg-primary rounded-full animate-ping shadow-2xl shadow-primary"></div>
+                  <span className="text-[10px] font-black text-black opacity-30 uppercase tracking-[0.3em] italic">Frequency Shielded</span>
                 </div>
                 <button
                   type="submit"
                   disabled={!content.trim() || submitting}
-                  className="confession-submit-btn"
+                  className="w-full sm:w-auto h-20 px-16 bg-primary text-white rounded-[28px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] hover:shadow-primary/60 transition-all active:scale-95 disabled:opacity-20 flex items-center justify-center gap-6"
                 >
-                  {submitting ? 'Sharing...' : 'Share Anonymously'}
+                  {submitting ? 'Syncing...' : 'Start Pulse'}
+                  <Send size={24} strokeWidth={4} />
                 </button>
               </div>
             </form>
           </div>
+        </div>
 
-          {/* Feed */}
-          <div className="confession-feed">
-            {loading ? (
-              <div className="confession-loading">
-                <div className="confession-spinner"></div>
-                <p>Deciphering Whispers...</p>
-              </div>
-            ) : confessions.length > 0 ? confessions.map((conf, idx) => (
-              <div key={conf.confession_id || idx} className="confession-card">
-                <div className="confession-card-header">
-                  <div className="confession-fragment">
-                    <span className="fragment-dot"></span>
-                    <span>Fragment #{String(idx + 1000).padStart(4, '0')}</span>
+        {/* Premium Feed */}
+        <div className="max-w-4xl mx-auto flex flex-col gap-12 pb-64 relative z-10 px-2">
+          {loading ? (
+            <div className="py-32 flex flex-col items-center gap-8">
+               <Orbit size={64} className="text-primary animate-spin-slow" strokeWidth={4} />
+               <p className="text-[10px] font-black italic text-black/20 uppercase tracking-[0.4em] animate-pulse">Scanning Frequency Sectors...</p>
+            </div>
+          ) : confessions.length > 0 ? (
+            confessions.map((conf, idx) => (
+              <div 
+                key={conf.confession_id || idx} 
+                className="bg-white/80 backdrop-blur-3xl group hover:scale-[1.02] transition-all duration-700 rounded-[56px] border border-white p-12 relative overflow-hidden shadow-2xl shadow-primary/5 animate-fade-in"
+                style={{ animationDelay: `${idx * 100}ms` }}
+              >
+                {/* Background Decor */}
+                <div className="absolute top-0 right-0 p-12 text-primary opacity-[0.02] group-hover:opacity-[0.05] transition-all duration-1000 group-hover:rotate-12 group-hover:scale-150">
+                   <ShieldCheck size={200} strokeWidth={1} />
+                </div>
+
+                <div className="flex items-center justify-between mb-12 relative z-10">
+                  <div className="flex items-center gap-6">
+                    <div className="w-18 h-18 bg-black text-white rounded-[24px] flex items-center justify-center font-black text-[11px] shadow-2xl italic tracking-tighter uppercase group-hover:rotate-6 transition-transform">
+                      {String(idx + 1000).padStart(4, '0')}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[11px] font-black text-black opacity-30 uppercase tracking-[0.3em] italic">Frequency {idx % 2 === 0 ? 'Beta' : 'Gamma'}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[12px] font-black text-black italic uppercase tracking-widest">
+                          {conf.created_at ? new Date(conf.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() : 'RECENT LINK'}
+                        </span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/20" />
+                        <span className="text-[11px] font-black text-primary italic uppercase tracking-widest">{conf.campus || 'Global Spectrum'}</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="confession-date">
-                    Shared {conf.created_at ? new Date(conf.created_at).toLocaleDateString() : 'recently'}
-                  </span>
+                  <button className="w-12 h-12 rounded-2xl bg-black/5 flex items-center justify-center text-black opacity-10 hover:opacity-100 hover:text-red-500 transition-all shadow-inner border border-black/5">
+                     <Flag size={20} strokeWidth={3} />
+                  </button>
                 </div>
-                <p className="confession-content">"{conf.content}"</p>
 
-                <div className="confession-actions">
-                  <button onClick={() => handleReact(conf.confession_id)} className="confession-action-btn">
-                    <div className="action-icon">🤝</div>
-                    <span>{conf.react_count || 0} Supportive</span>
+                <p className="text-3xl font-black text-black leading-tight mb-16 relative z-10 italic uppercase tracking-tighter group-hover:text-primary transition-all duration-700">
+                  {conf.content}
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center gap-8 pt-12 border-t border-black/5 relative z-10">
+                  <button 
+                    onClick={() => handleReact(conf.confession_id)} 
+                    className="w-full sm:w-auto flex items-center justify-center gap-4 px-10 h-16 bg-white border border-black/5 hover:border-primary/20 hover:bg-white rounded-[24px] transition-all shadow-2xl shadow-primary/5 group/react active:scale-95"
+                  >
+                    <Heart size={24} className="text-primary group-hover/react:scale-125 transition-transform" fill={conf.react_count && conf.react_count > 0 ? "currentColor" : "none"} strokeWidth={4} />
+                    <span className="text-[12px] font-black text-black opacity-40 group-hover/react:text-primary transition-colors italic uppercase tracking-widest">{conf.react_count || 0} Village Resonances</span>
                   </button>
-                  <button className="confession-action-btn disabled">
-                    <div className="action-icon">💬</div>
-                    <span>Observe Signals</span>
-                  </button>
+                  <div className="flex items-center gap-4 px-8 h-16 bg-black/[0.02] text-black/20 rounded-[24px] cursor-default border border-black/[0.03]">
+                    <MessageSquare size={18} strokeWidth={3} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">Harmonic Intercept Locked</span>
+                  </div>
                 </div>
               </div>
-            )) : (
-              <div className="confession-empty">
-                <p>The silence is absolute.</p>
-                <p>The space is quiet for now.</p>
+            ))
+          ) : (
+            <div className="py-64 flex flex-col items-center gap-12 text-center bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in group px-8">
+              <Orbit size={140} strokeWidth={2} className="text-primary animate-spin-slow opacity-10 group-hover:opacity-20 transition-opacity" />
+              <div className="space-y-6">
+                <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Vacuum State.</h3>
+                <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No transmissions found in this frequency sector. Initialize the first signal.</p>
+                <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="mt-8 px-12 h-18 bg-primary/10 border-2 border-primary/20 text-primary rounded-[24px] font-black uppercase tracking-widest italic hover:bg-primary hover:text-white transition-all">Start Broadcast</button>
               </div>
-            )}
-          </div>
-        </main>
-      </div>
+            </div>
+          )}
+        </div>
+      </main>
 
       <style>{`
-        .confessions-root {
-          display: flex;
-          min-height: 100vh;
-          background: #1a0b10; /* Soft, deep pink/mauve base */
-          color: #fff1f2;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        /* Drifting background circles - Rosy Hues */
-        .confessions-root::before {
-          content: '';
-          position: absolute;
-          top: -10%; left: -10%; width: 40%; height: 40%;
-          background: radial-gradient(circle, rgba(244, 63, 94, 0.1) 0%, transparent 70%);
-          border-radius: 50%;
-          filter: blur(80px);
-          animation: drift 20s infinite alternate;
-        }
-        .confessions-root::after {
-          content: '';
-          position: absolute;
-          bottom: -10%; right: -10%; width: 50%; height: 50%;
-          background: radial-gradient(circle, rgba(255, 61, 109, 0.08) 0%, transparent 70%);
-          border-radius: 50%;
-          filter: blur(100px);
-          animation: drift 25s infinite alternate-reverse;
-        }
-        @keyframes drift {
-          from { transform: translate(0, 0); }
-          to { transform: translate(100px, 100px); }
-        }
-
-        .confessions-layout {
-          flex: 1;
-          display: flex;
-          justify-content: center;
-          padding: 80px 20px 120px;
-          overflow-y: auto;
-          position: relative;
-          z-index: 10;
-        }
-        .confessions-main {
-          width: 100%;
-          max-width: 680px;
-        }
-
-        /* Hero */
-        .confessions-hero {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          margin-bottom: 60px;
-        }
-        .confessions-icon {
-          width: 72px; height: 72px;
-          background: linear-gradient(135deg, #FF3D6D, #f43f5e);
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 2rem;
-          box-shadow: 0 10px 40px rgba(255, 61, 109, 0.2);
-          border: 1px solid rgba(255,255,255,0.1);
-          margin-bottom: 32px;
-        }
-        .confessions-title {
-          font-family: 'Outfit', sans-serif;
-          font-size: 3.5rem;
-          font-weight: 800;
-          letter-spacing: -0.04em;
-          color: #f8fafc;
-          margin-bottom: 12px;
-          background: linear-gradient(to bottom, #fff, #94a3b8);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .confessions-subtitle {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #FF3D6D;
-          text-transform: uppercase;
-          letter-spacing: 0.25em;
-          margin-bottom: 40px;
-          opacity: 0.9;
-        }
-
-        /* Campus Filter */
-        .campus-filter {
-          display: flex;
-          gap: 4px;
-          background: rgba(15, 23, 42, 0.8);
-          padding: 4px;
-          border-radius: 40px;
-          border: 1px solid rgba(255,255,255,0.05);
-          backdrop-filter: blur(20px);
-        }
-        .campus-btn {
-          padding: 10px 24px;
-          border-radius: 30px;
-          font-size: 11px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          border: none;
-          cursor: pointer;
-          background: transparent;
-          color: #94a3b8;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .campus-btn:hover { color: #f8fafc; background: rgba(255,255,255,0.03); }
-        .campus-btn.active {
-          background: #FF3D6D;
-          color: #fff;
-          box-shadow: 0 8px 16px rgba(255, 61, 109, 0.2);
-        }
-
-        /* Compose Card */
-        .confession-compose-card {
-          background: #4c0519; /* Deep, vibrant pink/burgundy */
-          border-radius: 32px;
-          border: 1px solid rgba(255, 61, 109, 0.2);
-          margin-bottom: 50px;
-          padding: 40px;
-          transition: transform 0.3s;
-          box-shadow: 0 30px 60px rgba(0,0,0,0.4);
-        }
-        .confession-compose-card:focus-within {
-          transform: translateY(-6px);
-          border-color: rgba(255, 61, 109, 0.5);
-        }
-        .confession-textarea {
-          width: 100%;
-          background: #2d0611;
-          border: 1px solid rgba(255, 61, 109, 0.15);
-          border-radius: 24px;
-          padding: 24px;
-          font-size: 1.05rem;
-          font-weight: 400;
-          color: #fff;
-          font-family: inherit;
-          min-height: 160px;
-          resize: none;
-          outline: none;
-          transition: all 0.4s;
-          box-sizing: border-box;
-          line-height: 1.6;
-        }
-        .confession-textarea::placeholder { color: #8c4a5c; }
-        .confession-textarea:focus { 
-          background: #3b0a1a;
-          border-color: #FF3D6D; 
-          box-shadow: 0 0 40px rgba(255, 61, 109, 0.1); 
-        }
-        .confession-compose-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 24px;
-        }
-        .encrypted-badge {
-          display: flex; align-items: center; gap: 10px;
-          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
-          color: #d17a8f;
-        }
-        .pulse-dot-green {
-          width: 10px; height: 10px;
-          background: #ff7eb3;
-          border-radius: 50%;
-          display: inline-block;
-          box-shadow: 0 0 10px rgba(255, 126, 179, 0.6);
-          animation: pulseSafe 2s infinite;
-        }
-        @keyframes pulseSafe { 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:0.4; transform:scale(0.85);} }
-        .confession-submit-btn {
-          padding: 14px 40px;
-          background: #ffffff;
-          color: #4c0519;
-          border: none;
-          border-radius: 100px;
-          font-size: 11px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.2em;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 10px 25px rgba(255, 61, 109, 0.2);
-        }
-        .confession-submit-btn:hover { 
-          transform: translateY(-2px);
-          background: #ff7eb3;
-          color: #fff;
-          box-shadow: 0 15px 30px rgba(255, 61, 109, 0.35);
-        }
-        .confession-submit-btn:disabled { opacity: 0.2; cursor: not-allowed; }
-
-        /* Feed */
-        .confession-feed { display: flex; flex-direction: column; gap: 32px; }
-        .confession-loading {
-          display: flex; flex-direction: column; align-items: center;
-          padding: 100px 0; text-align: center;
-        }
-        .confession-spinner {
-          width: 48px; height: 48px;
-          border: 3px solid rgba(255, 61, 109, 0.1);
-          border-top-color: #ffffff;
-          border-radius: 50%;
-          animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-          margin-bottom: 24px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .confession-loading p {
-          font-size: 11px; font-weight: 600; text-transform: uppercase;
-          letter-spacing: 0.2em; color: #d17a8f;
-        }
-
-        .confession-card {
-          background: #4c0519; /* Deep, vibrant pink/burgundy */
-          border-radius: 32px;
-          border: 1px solid rgba(255, 61, 109, 0.15);
-          padding: 40px;
-          transition: all 0.4s;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-        }
-        .confession-card:hover { 
-          border-color: rgba(255, 61, 109, 0.4); 
-          background: #5e0b21;
-          transform: translateY(-6px);
-          box-shadow: 0 30px 70px rgba(0,0,0,0.45);
-        }
-        .confession-card-header {
-          display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: 24px;
-        }
-        .confession-fragment {
-          display: flex; align-items: center; gap: 10px;
-          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b;
-        }
-        .fragment-dot {
-          width: 8px; height: 8px; background: rgba(255, 61, 109, 0.3); border-radius: 50%;
-        }
-        .confession-date {
-          font-size: 10px; font-weight: 600; text-transform: uppercase; color: #334155; letter-spacing: 0.05em;
-        }
-        .confession-content {
-          font-size: 1.15rem; font-weight: 400; color: #e2e8f0;
-          line-height: 1.8; margin-bottom: 40px;
-        }
-        .confession-actions {
-          display: flex; gap: 24px;
-          padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .confession-action-btn {
-          display: flex; align-items: center; gap: 12px;
-          background: none; border: none; cursor: pointer;
-          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
-          color: #475569; transition: all 0.3s;
-        }
-        .confession-action-btn:hover { color: #FF3D6D; }
-        .confession-action-btn:hover .action-icon { background: rgba(255, 61, 109, 0.1); color: #FF3D6D; }
-        .confession-action-btn.disabled { opacity: 0.3; cursor: default; }
-        .action-icon {
-          width: 44px; height: 44px;
-          background: rgba(2, 6, 23, 0.8);
-          border: 1px solid rgba(255,255,255,0.05);
-          border-radius: 14px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1rem; transition: all 0.3s;
-        }
-
-        .confession-empty {
-          padding: 100px 0; text-align: center;
-          background: rgba(15, 23, 42, 0.2);
-          border-radius: 40px;
-          border: 1px dashed rgba(255,255,255,0.05);
-        }
-        .confession-empty p {
-          font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
-          letter-spacing: 0.2em; color: #475569;
-        }
-
-        @media (max-width: 768px) {
-          .confessions-layout { padding: 100px 16px 120px; }
-          .confessions-title { font-size: 2.5rem; }
-          .confession-card, .confession-compose-card { padding: 24px; }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 20s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

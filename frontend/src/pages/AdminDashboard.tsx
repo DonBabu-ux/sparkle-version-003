@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
-import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, Ban, Trash2, CheckCircle } from 'lucide-react';
+import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, Orbit } from 'lucide-react';
 
 interface AdminStats {
   users?: { total: number };
@@ -101,30 +101,40 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <main className="admin-layout">
-        <header className="admin-header">
-          <div className="header-identity">
-            <div className="admin-badge">
-              <Shield size={20} />
-              <span>CORE OVERSIGHT</span>
+
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-[1400px] mx-auto w-full pt-20 md:pt-32">
+        
+        <header className="flex flex-col xl:flex-row items-center justify-between gap-16 mb-24 animate-fade-in px-4">
+          <div className="max-w-3xl space-y-8 text-center xl:text-left">
+            <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5 mx-auto xl:mx-0">
+              <Shield size={18} strokeWidth={3} className="text-primary" />
+              <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Village Override</span>
             </div>
-            <h1>The Sanctum</h1>
-            <p>Maintain the light of the campus.</p>
+            <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
+              Admin <span className="text-primary italic">Council.</span>
+            </h1>
+            <p className="text-xl font-bold text-black opacity-60 leading-relaxed max-w-xl italic border-l-8 border-primary/20 pl-8 mx-auto xl:mx-0">
+              Synchronize village metrics, enforce harmony protocols, and broadcast consensus directives.
+            </p>
           </div>
 
-          <div className="admin-tabs-nav">
+          <div className="flex bg-white/60 backdrop-blur-3xl border border-white p-3 rounded-[32px] shadow-2xl shadow-primary/5 w-full xl:w-auto overflow-x-auto no-scrollbar">
             {['overview', 'users', 'reports', 'logs'].map(tab => (
               <button 
                 key={tab} 
-                className={`admin-tab ${activeTab === tab ? 'active' : ''}`}
+                className={`flex-1 xl:flex-none px-10 h-16 rounded-[24px] font-black text-[10px] uppercase tracking-[0.3em] transition-all duration-700 flex items-center justify-center gap-4 italic ${activeTab === tab ? 'bg-black text-white shadow-2xl scale-105' : 'text-black opacity-30 hover:opacity-100 hover:bg-white/80'}`}
                 onClick={() => setActiveTab(tab)}
               >
-                {tab === 'overview' && <BarChart3 size={16} />}
-                {tab === 'users' && <Users size={16} />}
-                {tab === 'reports' && <AlertCircle size={16} />}
-                {tab === 'logs' && <Clock size={16} />}
+                {tab === 'overview' && <BarChart3 size={16} strokeWidth={4} />}
+                {tab === 'users' && <Users size={16} strokeWidth={4} />}
+                {tab === 'reports' && <AlertCircle size={16} strokeWidth={4} />}
+                {tab === 'logs' && <Clock size={16} strokeWidth={4} />}
                 <span>{tab}</span>
               </button>
             ))}
@@ -132,201 +142,195 @@ export default function AdminDashboard() {
         </header>
 
         {loading ? (
-          <div className="admin-loader">Accessing core metrics...</div>
+          <div className="py-64 flex flex-col items-center justify-center animate-fade-in bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 mb-40">
+             <Orbit size={80} className="text-primary animate-spin-slow mb-10" strokeWidth={3} />
+             <p className="text-[10px] font-black italic text-black/20 uppercase tracking-[0.4em] animate-pulse">Decrypting Village Telemetry...</p>
+          </div>
         ) : activeTab === 'overview' ? (
-          <div className="overview-grid">
-            <section className="stats-row">
+          <div className="space-y-32 animate-fade-in relative z-10 px-4">
+            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
               {[
-                { label: 'Sparklers', value: stats?.users?.total || 0, color: '#3b82f6', icon: <Users size={24} /> },
-                { label: 'Spells', value: stats?.posts?.total || 0, color: '#6366f1', icon: <Eye size={24} /> },
-                { label: 'Disputes', value: stats?.reports?.pending || 0, color: '#ef4444', icon: <AlertCircle size={24} /> },
-                { label: 'Market Vol.', value: stats?.marketplace?.total || 0, color: '#10b981', icon: <BarChart3 size={24} /> }
+                { label: 'Campus Nodes', value: stats?.users?.total || 0, icon: <Users size={28} strokeWidth={3} /> },
+                { label: 'Sparks Emitted', value: stats?.posts?.total || 0, icon: <Eye size={28} strokeWidth={3} /> },
+                { label: 'Pending Protocols', value: stats?.reports?.pending || 0, icon: <AlertCircle size={28} strokeWidth={3} />, urgent: true },
+                { label: 'Village Capital', value: stats?.marketplace?.total || 0, icon: <BarChart3 size={28} strokeWidth={3} /> }
               ].map(s => (
-                <div key={s.label} className="stat-box premium-card">
-                  <div className="stat-head">
-                    <span className="label">{s.label}</span>
-                    <div className="icon-wrap" style={{ background: s.color + '20', color: s.color }}>{s.icon}</div>
+                <div key={s.label} className={`p-10 rounded-[56px] border-4 transition-all duration-700 bg-white shadow-2xl ${s.urgent ? 'border-primary/20 shadow-primary/10' : 'border-white'} hover:scale-105 group relative overflow-hidden`}>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] pointer-events-none group-hover:opacity-100 opacity-60 transition-opacity"></div>
+                  <div className="flex justify-between items-start mb-10 relative z-10">
+                    <span className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] shrink-0 italic">{s.label}</span>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-700 ${s.urgent ? 'bg-primary text-white shadow-2xl rotate-12' : 'bg-black/5 text-black/20 group-hover:bg-primary group-hover:text-white group-hover:rotate-12'}`}>
+                       {s.icon}
+                    </div>
                   </div>
-                  <div className="value">{s.value.toLocaleString()}</div>
+                  <div className={`text-6xl md:text-7xl font-black italic tracking-tighter leading-none group-hover:text-primary transition-colors uppercase relative z-10 ${s.urgent ? 'text-primary' : 'text-black'}`}>
+                    {s.value > 999 ? `${(s.value / 1000).toFixed(1)}k` : s.value}
+                  </div>
                 </div>
               ))}
             </section>
 
-            <div className="overview-details">
-              <div className="activity-feed premium-card">
-                <h3>Activity Pulse</h3>
-                <div className="feed-list">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+              <div className="bg-white/80 backdrop-blur-3xl p-12 md:p-16 rounded-[64px] border border-white shadow-2xl shadow-primary/5 overflow-hidden relative group">
+                <div className="absolute top-[-50px] right-[-50px] p-20 text-black/[0.02] group-hover:text-primary/[0.05] transition-all duration-[2s] pointer-events-none group-hover:rotate-12 group-hover:scale-150">
+                    <Activity size={300} strokeWidth={1} />
+                </div>
+                <div className="flex items-center gap-6 mb-16 relative z-10">
+                   <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center text-primary animate-pulse">
+                      <Activity size={28} strokeWidth={3} />
+                   </div>
+                   <h3 className="text-4xl font-black text-black italic uppercase tracking-tighter leading-none">Live Telemetry</h3>
+                </div>
+                <div className="space-y-8 relative z-10 max-h-[600px] overflow-y-auto no-scrollbar pr-4">
                   {stats?.recentActivity?.map((act, i) => (
-                    <div key={i} className="feed-item">
-                      <div className="dot"></div>
-                      <p className="msg">{act.message}</p>
-                      <span className="time">{act.time}</span>
+                    <div key={i} className="flex items-start gap-8 p-8 bg-black/5 border border-black/5 rounded-[40px] hover:bg-black hover:text-white transition-all group/item duration-700 hover:scale-[1.02] hover:-rotate-1">
+                      <div className="w-4 h-4 bg-primary rounded-full mt-2 animate-ping shrink-0 shadow-2xl shadow-primary" />
+                      <div className="flex-1">
+                         <p className="text-lg font-bold leading-tight italic uppercase tracking-tight opacity-80 group-hover/item:opacity-100">{act.message}</p>
+                         <div className="flex justify-between items-center mt-6">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">Sync Protocol OK</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/20 group-hover/item:text-white/40">
+                               {act.time}
+                            </span>
+                         </div>
+                      </div>
                     </div>
                   ))}
-                  {!stats?.recentActivity?.length && <div className="empty">Quiet in the sector...</div>}
+                  {!stats?.recentActivity?.length && (
+                    <div className="py-40 text-center opacity-10 uppercase tracking-[0.5em] font-black text-xs italic">Awaiting Signals...</div>
+                  )}
                 </div>
               </div>
 
-              <div className="system-health premium-card">
-                <h3>System Integrity</h3>
-                <div className="health-metrics">
-                  <div className="m-row">
-                    <span>Database Resonance</span>
-                    <span className="status stable">STABLE</span>
+              <div className="flex flex-col gap-16">
+                <div className="bg-black text-white p-12 md:p-16 rounded-[64px] shadow-[0_64px_140px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+                  <div className="absolute -top-10 -right-10 p-12 text-white/5 opacity-40 group-hover:opacity-100 group-hover:text-primary transition-all duration-[3000ms] group-hover:scale-125">
+                     <Shield size={300} fill="currentColor" strokeWidth={0} />
                   </div>
-                  <div className="m-row">
-                    <span>Uptime Cycle</span>
-                    <span className="val">99.98%</span>
+                  <h3 className="text-4xl font-black italic uppercase tracking-tighter leading-none mb-12 relative z-10">Council Core</h3>
+                  <div className="space-y-10 relative z-10">
+                    <div className="bg-white/5 p-8 rounded-[40px] border border-white/10 flex justify-between items-center transition-all hover:bg-white/10 group/item">
+                      <div className="flex flex-col gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/30 italic">Village Latency</span>
+                        <span className="text-sm font-black uppercase tracking-[0.2em] italic">Database Connection</span>
+                      </div>
+                      <span className="px-6 py-2 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 group-hover/item:animate-pulse">Active Sync</span>
+                    </div>
+                    <div className="bg-white/5 p-8 rounded-[40px] border border-white/10 flex justify-between items-center">
+                       <span className="text-sm font-black uppercase tracking-[0.4em] italic text-white/30">Sector Uptime</span>
+                       <span className="text-4xl md:text-5xl font-black italic tracking-[0.05em] text-primary">99.9%</span>
+                    </div>
+                    <p className="text-white/20 text-base font-bold italic leading-tight pt-10 border-t border-white/5 pr-12 uppercase tracking-tighter">
+                       "Every harmonic synchronized. Every student secure. The village breathes as one."
+                    </p>
                   </div>
-                  <blockquote className="m-quote">
-                    "The light of the campus must never fade. Maintain vigilance."
-                  </blockquote>
                 </div>
-              </div>
 
-              <div className="announcement-control premium-card" style={{ gridColumn: '1 / -1' }}>
-                <h3>Global Broadcast</h3>
-                <div className="announcement-input-group">
-                   <textarea 
-                    value={announcement}
-                    onChange={e => setAnnouncement(e.target.value)}
-                    placeholder="Broadcast a message to all Sparkle users..." 
-                   />
-                   <button onClick={handleSendAnnouncement}>SEND TO ALL</button>
+                <div className="bg-white/80 backdrop-blur-3xl p-12 md:p-16 rounded-[64px] border border-white shadow-2xl shadow-primary/5 group relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 blur-[60px] pointer-events-none group-hover:opacity-100 opacity-60"></div>
+                   <div className="flex items-center gap-6 mb-12 relative z-10">
+                      <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30 group-hover:rotate-12 transition-transform">
+                         <Sparkles size={28} strokeWidth={3} />
+                      </div>
+                      <h3 className="text-4xl font-black text-black italic uppercase tracking-tighter leading-none">Council Directive</h3>
+                   </div>
+                   <div className="space-y-10 relative z-10">
+                      <textarea 
+                         value={announcement}
+                         onChange={e => setAnnouncement(e.target.value)}
+                         placeholder="Broadcast consensus to all village nodes..." 
+                         className="w-full min-h-[180px] bg-black/5 border-4 border-transparent rounded-[40px] p-10 text-lg font-black text-black placeholder:text-black/10 focus:bg-white focus:border-primary/20 transition-all outline-none italic resize-none shadow-inner"
+                      />
+                      <button 
+                         onClick={handleSendAnnouncement}
+                         className="w-full h-24 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.5em] shadow-2xl shadow-primary/40 hover:scale-[1.03] hover:shadow-primary/60 transition-all italic active:scale-95"
+                      >
+                         Initialize Broadcast
+                      </button>
+                   </div>
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="admin-table-container premium-card">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Subject</th>
-                  <th>Status</th>
-                  <th>Timestamp</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {content.length > 0 ? content.map((item, i) => (
-                  <tr key={i}>
-                    <td>
-                      <div className="subject-cell">
-                        {activeTab === 'users' ? (
-                          <>
-                            <img src={item.avatar_url || '/uploads/avatars/default.png'} className="sub-img" alt="" />
-                            <div className="sub-info">
-                              <span className="name">{item.name || item.username}</span>
-                              <span className="meta">{item.email}</span>
+          <div className="bg-white/80 backdrop-blur-3xl rounded-[64px] border border-white shadow-2xl shadow-primary/5 overflow-hidden animate-fade-in mb-64 px-4">
+            <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-black/5">
+                    <th className="px-12 py-10 text-[10px] font-black uppercase tracking-[0.5em] italic text-black/20">Protocol Subject</th>
+                    <th className="px-12 py-10 text-[10px] font-black uppercase tracking-[0.5em] italic text-black/20">Frequency Status</th>
+                    <th className="px-12 py-10 text-[10px] font-black uppercase tracking-[0.5em] italic text-black/20">Time Vector</th>
+                    <th className="px-12 py-10 text-[10px] font-black uppercase tracking-[0.5em] italic text-black/20 text-right">Overrides</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {content.length > 0 ? content.map((item, i) => (
+                    <tr key={i} className="border-b border-black/5 hover:bg-black/[0.01] transition-all group">
+                      <td className="px-12 py-12">
+                        <div className="flex items-center gap-8">
+                          {activeTab === 'users' ? (
+                            <>
+                              <div className="relative">
+                                 <img src={item.avatar_url || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-2xl object-cover border-4 border-white group-hover:scale-110 group-hover:rotate-6 transition-all shadow-2xl" alt="" />
+                                 <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-white shadow-lg"></div>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <span className="text-xl font-black italic uppercase tracking-tighter leading-none group-hover:text-primary transition-colors">{item.name || item.username}</span>
+                                <span className="text-[10px] font-black text-black opacity-30 uppercase tracking-widest italic">{item.email}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex flex-col gap-2">
+                              <span className="text-xl font-black italic uppercase tracking-tighter leading-none group-hover:text-primary transition-colors">{item.title || item.type || item.action || 'Management Directive'}</span>
+                              <span className="text-[10px] font-black text-black opacity-30 uppercase tracking-widest truncate max-w-xs italic">{item.details || 'NODE-ID: '+ (item.id || item.listing_id || i).toString().slice(0, 10).toUpperCase()}</span>
                             </div>
-                          </>
-                        ) : (
-                          <div className="sub-info">
-                            <span className="name">{item.title || item.type || item.action || 'Registry Entry'}</span>
-                            <span className="meta">{item.details || 'ID: '+ (item.id || item.listing_id || i)}</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`status-tag ${item.status?.toLowerCase() || 'active'}`}>
-                        {item.status || 'Active'}
-                      </span>
-                    </td>
-                    <td className="time">{new Date(item.created_at || item.timestamp || Date.now()).toLocaleDateString()}</td>
-                    <td>
-                      <div className="action-row">
-                        <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'approve')} className="act-btn" title="Approve"><CheckCircle size={14} /></button>
-                        <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'restrict')} className="act-btn warn" title="Restrict"><Ban size={14} /></button>
-                        <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'purge')} className="act-btn danger" title="Purge"><Trash2 size={14} /></button>
-                        <button className="act-btn"><MoreVertical size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={4} className="table-empty">
-                      The registry is currently hollow...
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-12 py-12">
+                        <span className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
+                            item.status?.toLowerCase() === 'active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-lg shadow-emerald-500/5' : 
+                            item.status?.toLowerCase() === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-lg shadow-amber-500/5' :
+                            'bg-black text-white border-black shadow-lg shadow-black/20'}`}>
+                          {item.status || 'Verified'}
+                        </span>
+                      </td>
+                      <td className="px-12 py-12 text-[11px] font-black uppercase tracking-widest text-black/20 italic">
+                         {new Date(item.created_at || item.timestamp || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+                      </td>
+                      <td className="px-12 py-12">
+                        <div className="flex items-center justify-end gap-5 opacity-40 group-hover:opacity-100 transition-all duration-700">
+                          <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'approve')} className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center hover:scale-125 hover:rotate-12 active:scale-95 transition-all shadow-2xl shadow-emerald-500/30" title="Verify Node"><CheckCircle size={18} strokeWidth={4} /></button>
+                          <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'restrict')} className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center hover:scale-125 hover:-rotate-12 active:scale-95 transition-all shadow-2xl shadow-amber-500/30" title="Isolate Node"><Ban size={18} strokeWidth={4} /></button>
+                          <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'purge')} className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center hover:scale-125 hover:rotate-12 active:scale-95 transition-all shadow-2xl shadow-primary/30" title="Purge Node"><Trash2 size={18} strokeWidth={4} /></button>
+                          <button className="w-12 h-12 rounded-2xl bg-black text-white flex items-center justify-center hover:scale-125 hover:-rotate-12 active:scale-95 transition-all shadow-2xl shadow-black/40"><MoreVertical size={18} strokeWidth={4} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={4} className="py-64 text-center bg-black/[0.01]">
+                        <div className="flex flex-col items-center gap-10">
+                           <Layers size={100} strokeWidth={1} className="text-black/5 animate-pulse" />
+                           <p className="text-[10px] font-black italic uppercase tracking-[0.5em] text-black/20">Sector Stream Empty</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>
 
       <style>{`
-        .page-wrapper { display: flex; background: #f1f5f9; min-height: 100vh; }
-        .admin-layout { flex: 1; padding: 40px 20px 100px; max-width: 1200px; margin: 0 auto; }
-
-        .admin-header { margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; }
-        .admin-badge { display: flex; align-items: center; gap: 8px; background: #be123c; color: white; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 12px; width: fit-content; }
-        .admin-header h1 { font-size: 2.4rem; font-weight: 900; color: #0f172a; margin: 0 0 6px; letter-spacing: -1px; }
-        .admin-header p { color: #64748b; font-size: 1rem; margin: 0; }
-
-        .admin-tabs-nav { display: flex; background: white; padding: 6px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); }
-        .admin-tab { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 14px; border: none; background: transparent; color: #94a3b8; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; cursor: pointer; transition: 0.2s; }
-        .admin-tab:hover { color: #0f172a; }
-        .admin-tab.active { background: #0f172a; color: white; box-shadow: 0 10px 20px rgba(15,23,42,0.2); }
-
-        .admin-loader { text-align: center; padding: 100px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-
-        .overview-grid { display: flex; flex-direction: column; gap: 30px; }
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
-        .stat-box { padding: 24px; }
-        .stat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .stat-head .label { font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-        .icon-wrap { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
-        .stat-box .value { font-size: 2.2rem; font-weight: 950; color: #0f172a; }
-
-        .overview-details { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
-        @media (max-width: 900px) { .overview-details { grid-template-columns: 1fr; } }
-
-        .activity-feed h3, .system-health h3 { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; }
-        .feed-list { display: flex; flex-direction: column; gap: 12px; }
-        .feed-item { display: flex; align-items: center; gap: 14px; padding: 14px; background: #f8fafc; border-radius: 16px; border: 1px solid #f1f5f9; }
-        .feed-item .dot { width: 8px; height: 8px; border-radius: 50%; background: #6366f1; flex-shrink: 0; }
-        .feed-item .msg { flex: 1; font-size: 0.85rem; font-weight: 600; color: #334155; margin: 0; }
-        .feed-item .time { font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
-
-        .health-metrics { display: flex; flex-direction: column; gap: 20px; }
-        .system-health { background: #0f172a; color: white; border: none; }
-        .system-health h3 { color: #475569; }
-        .m-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 0.9rem; }
-        .status.stable { color: #10b981; font-weight: 900; }
-        .m-quote { margin: 20px 0 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); font-style: italic; color: #64748b; font-size: 0.85rem; }
-
-        .announcement-control { background: white; margin-top: 10px; }
-        .announcement-input-group { display: flex; flex-direction: column; gap: 15px; }
-        .announcement-input-group textarea { width: 100%; min-height: 100px; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; background: #f8fafc; font-family: inherit; font-size: 0.9rem; font-weight: 600; outline: none; transition: 0.2s; resize: none; }
-        .announcement-input-group textarea:focus { border-color: #be123c; background: white; }
-        .announcement-input-group button { background: #be123c; color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 900; letter-spacing: 1px; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
-        .announcement-input-group button:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(190,18,60,0.2); }
-
-        .admin-table-container { padding: 0; overflow: hidden; }
-        .admin-table { width: 100%; border-collapse: collapse; }
-        .admin-table th { background: #f8fafc; text-align: left; padding: 20px 24px; font-size: 0.75rem; font-weight: 850; text-transform: uppercase; color: #94a3b8; border-bottom: 2px solid #f1f5f9; }
-        .admin-table td { padding: 20px 24px; border-bottom: 1px solid #f1f5f9; }
-        
-        .subject-cell { display: flex; align-items: center; gap: 16px; }
-        .sub-img { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
-        .sub-info { display: flex; flex-direction: column; }
-        .sub-info .name { font-size: 0.95rem; font-weight: 800; color: #1e293b; }
-        .sub-info .meta { font-size: 0.75rem; color: #94a3b8; }
-
-        .status-tag { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; text-transform: uppercase; background: #f1f5f9; color: #64748b; }
-        .status-tag.active { background: #dcfce7; color: #166534; }
-        .status-tag.pending { background: #fef3c7; color: #92400e; }
-        
-        .action-row { display: flex; gap: 6px; }
-        .act-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .act-btn:hover { color: #0f172a; border-color: #0f172a; }
-        .act-btn.warn:hover { color: #f59e0b; border-color: #f59e0b; }
-        .act-btn.danger:hover { color: #ef4444; border-color: #ef4444; }
-
-        .table-empty { padding: 100px; text-align: center; color: #94a3b8; font-weight: 800; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; font-style: italic; opacity: 0.4; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 20s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

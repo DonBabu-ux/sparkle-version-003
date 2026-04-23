@@ -8,24 +8,28 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
 
-    // Production optimizations
+    // Optimized for shared hosting resilience
     waitForConnections: true,
-    connectionLimit: 50,
+    connectionLimit: 10, // Lowered for shared hosting
     queueLimit: 0,
-    connectTimeout: 60000,
+    connectTimeout: 30000,
 
-    // SSL for production (most cloud DBs require this)
-    ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: false // Often required for shared hosting with self-signed certs
+    // SSL for remote DBs
+    ssl: process.env.DB_SSL === 'true' ? {
+        rejectUnauthorized: false
     } : undefined,
 
     // Performance & Resilience
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
-    idleTimeout: 30000, // Faster recycling of idle connections for low-limit DBs
+    idleTimeout: 30000, 
 
     // Timezone
-    timezone: 'Z' // UTC
+    timezone: 'Z' 
+});
+
+pool.on('error', (err) => {
+    console.error('Unexpected error on idle database connection', err);
 });
 
 // Connection validation

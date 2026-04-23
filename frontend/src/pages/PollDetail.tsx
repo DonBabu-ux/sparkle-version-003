@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart2 } from 'lucide-react';
+import { ArrowLeft, BarChart2, Orbit, CheckCircle2, ChevronLeft } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 
@@ -65,49 +65,85 @@ export default function PollDetail() {
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="pld-content">
-        <main className="pld-container">
-          <button className="pld-back-btn" onClick={() => navigate('/polls')}>
-            <ArrowLeft size={18} /> Back to Polls
-          </button>
 
-          {loading ? (
-            <div className="pld-skeleton">
-              <div className="pld-sk-line pulse" style={{ width: '80%', height: 22, marginBottom: 10 }} />
-              <div className="pld-sk-line pulse" style={{ width: '40%', height: 13, marginBottom: 30 }} />
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="pld-sk-option pulse" />
-              ))}
-            </div>
-          ) : !poll ? (
-            <div className="pld-not-found">
-              <BarChart2 size={48} />
-              <h3>Poll not found</h3>
-              <button onClick={() => navigate('/polls')}>Back to Polls</button>
-            </div>
-          ) : (
-            <div className="pld-card">
-              <div className="pld-header">
-                <BarChart2 size={22} className="pld-icon" />
-                <div>
-                  <div className="pld-meta">
-                    By {poll.is_anonymous ? 'Anonymous' : (poll.creator_name || `@${poll.username}`)}
-                    {' • '}{new Date(poll.created_at).toLocaleDateString()}
-                    {poll.campus && ` • ${poll.campus}`}
-                  </div>
-                  <div className="pld-total">{poll.total_votes || 0} total votes</div>
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pt-16 md:pt-12">
+        <button 
+          onClick={() => navigate('/polls')}
+          className="mb-12 w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all group"
+        >
+          <ArrowLeft size={28} strokeWidth={4} className="group-hover:-translate-x-1.5 transition-transform" />
+        </button>
+
+        {loading ? (
+          <div className="p-12 bg-white/80 backdrop-blur-3xl rounded-[56px] border border-white shadow-2xl space-y-10">
+             <div className="flex items-center gap-6 animate-pulse">
+                <div className="w-16 h-16 bg-black/5 rounded-[22px]" />
+                <div className="space-y-3 flex-1">
+                   <div className="w-32 h-3 bg-black/5 rounded-full" />
+                   <div className="w-1/2 h-4 bg-black/5 rounded-full" />
                 </div>
-              </div>
+             </div>
+             <div className="space-y-6">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-20 bg-black/5 rounded-[28px]" />
+                ))}
+             </div>
+          </div>
+        ) : !poll ? (
+          <div className="py-48 flex flex-col items-center justify-center text-center gap-10 bg-white/60 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in">
+             <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
+             <div className="space-y-4">
+                <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter">Transmission Lost.</h3>
+                <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">This poll harmonic has faded from the village network.</p>
+                <button onClick={() => navigate('/polls')} className="mt-8 px-12 h-18 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl shadow-primary/30">Sector Scan</button>
+             </div>
+          </div>
+        ) : (
+          <div className="bg-white/80 backdrop-blur-3xl border border-white/65 p-12 md:p-20 rounded-[56px] shadow-2xl shadow-primary/5 animate-fade-in relative group overflow-hidden">
+             {/* Background Accent */}
+             <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 blur-[100px] pointer-events-none group-hover:opacity-100 transition-opacity opacity-60"></div>
+             
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-12 mb-16 relative z-10">
+                <div className="flex items-center gap-8">
+                   <div className="w-20 h-20 bg-primary text-white rounded-[32px] flex items-center justify-center shadow-2xl shadow-primary/30 animate-scale-in">
+                      <BarChart2 size={36} strokeWidth={4} />
+                   </div>
+                   <div>
+                      <div className="flex items-center gap-3 text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] mb-3 italic">
+                         Node: <span className="text-primary opacity-100">{poll.is_anonymous ? 'Classified' : (poll.creator_name || `@${poll.username}`)}</span>
+                         <span className="w-1 h-1 bg-black/10 rounded-full mx-2" />
+                         {new Date(poll.created_at).toLocaleDateString()}
+                      </div>
+                      <div className="text-[11px] font-black text-black uppercase tracking-[0.2em] italic">
+                         {poll.total_votes || 0} Harmonics Synchronized
+                      </div>
+                   </div>
+                </div>
+                {poll.campus && (
+                  <div className="px-8 py-3 bg-primary/5 border border-primary/20 text-primary rounded-full text-[10px] font-black uppercase tracking-widest italic animate-pulse">
+                     {poll.campus} Sector
+                  </div>
+                )}
+             </div>
 
-              <h2 className="pld-question">{poll.question}</h2>
+             <h2 className="text-4xl md:text-6xl font-black text-black tracking-tighter uppercase italic leading-none mb-16 relative z-10">
+                {poll.question}
+             </h2>
 
-              {poll.user_voted_option && (
-                <div className="pld-voted-notice">✔ You've already voted on this poll</div>
-              )}
+             {poll.user_voted_option && (
+               <div className="mb-12 flex items-center gap-5 px-8 py-5 bg-emerald-500/5 border-2 border-emerald-500/10 rounded-[28px] animate-fade-in">
+                  <CheckCircle2 size={24} strokeWidth={4} className="text-emerald-500" />
+                  <p className="text-[11px] font-black text-emerald-600 uppercase tracking-[0.2em] italic">Consensus Locked: Your harmonic is synced.</p>
+               </div>
+             )}
 
-              <div className="pld-options">
+             <div className="space-y-6 relative z-10">
                 {poll.options?.map(opt => {
                   const pct = poll.total_votes && poll.total_votes > 0
                     ? Math.round((opt.vote_count / poll.total_votes) * 100) : 0;
@@ -117,65 +153,51 @@ export default function PollDetail() {
                   return (
                     <button
                       key={opt.option_id}
-                      className={`pld-option ${hasVoted ? 'has-voted' : 'can-vote'} ${isSelected ? 'selected' : ''}`}
+                      className={`w-full text-left p-10 md:p-12 rounded-[40px] border-2 transition-all duration-700 relative overflow-hidden group/opt ${hasVoted ? 'cursor-default transition-all duration-1000' : 'cursor-pointer hover:border-primary hover:bg-white hover:scale-[1.02] active:scale-95'} ${isSelected ? 'border-primary bg-white shadow-2xl shadow-primary/10' : 'border-transparent bg-black/5 shadow-inner'}`}
                       onClick={() => handleVote(opt.option_id)}
                       disabled={hasVoted || voting}
                     >
-                      <div className="pld-option-top">
-                        <span className="pld-option-text">{opt.option_text}</span>
-                        {hasVoted && <span className="pld-option-pct">{pct}%</span>}
+                      <div className="flex justify-between items-center mb-6 relative z-10">
+                        <span className={`text-xl font-black uppercase tracking-tighter italic transition-all duration-500 leading-none ${isSelected ? 'text-primary' : hasVoted ? 'text-black opacity-30' : 'text-black opacity-40'}`}>{opt.option_text}</span>
+                        {hasVoted && (
+                          <span className={`text-2xl font-black italic tracking-tighter ${isSelected ? 'text-primary scale-110' : 'text-black opacity-20'}`}>{pct}%</span>
+                        )}
                       </div>
+                      
                       {hasVoted && (
-                        <div className="pld-option-bar-wrap">
-                          <div className="pld-option-bar">
-                            <div className="pld-option-fill" style={{ width: `${pct}%` }} />
+                        <div className="relative z-10 space-y-4">
+                          <div className="h-4 bg-black/5 rounded-full overflow-hidden p-1 shadow-inner">
+                            <div className="h-full bg-primary rounded-full transition-all duration-[2s] ease-out shadow-2xl" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="pld-vote-count">{opt.vote_count} votes</span>
+                          <div className="flex justify-end pr-2 font-black text-[9px] text-black opacity-20 uppercase tracking-widest italic">{opt.vote_count} Nodes Linked</div>
                         </div>
+                      )}
+                      
+                      {/* Interaction Shine */}
+                      {!hasVoted && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] group-hover/opt:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
                       )}
                     </button>
                   );
                 })}
-              </div>
-            </div>
-          )}
-        </main>
-      </div>
+             </div>
+             
+             <div className="mt-20 pt-12 border-t border-black/5 flex items-center justify-center">
+                <button onClick={() => navigate('/polls')} className="flex items-center gap-4 text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] italic hover:opacity-100 hover:text-primary transition-all">
+                   <ChevronLeft size={20} strokeWidth={4} /> Back to Consensus Hub
+                </button>
+             </div>
+          </div>
+        )}
+      </main>
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f8fafc); min-height: 100vh; }
-        .pld-content { flex: 1; }
-        .pld-container { max-width: 640px; margin: 0 auto; padding: 30px 20px 80px; }
-        .pld-back-btn { display: inline-flex; align-items: center; gap: 8px; background: white; border: 1px solid #e2e8f0; padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 14px; color: #334155; cursor: pointer; margin-bottom: 24px; transition: 0.2s; }
-        .pld-back-btn:hover { border-color: #FF3D6D; color: #FF3D6D; }
-        .pld-card { background: white; border-radius: 28px; padding: 36px; box-shadow: 0 8px 30px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.05); }
-        .pld-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px; }
-        .pld-icon { color: var(--primary, #FF3D6D); flex-shrink: 0; margin-top: 2px; }
-        .pld-meta { font-size: 13px; color: #94a3b8; font-weight: 500; margin-bottom: 3px; }
-        .pld-total { font-size: 13px; color: #64748b; font-weight: 700; }
-        .pld-question { font-size: 1.5rem; font-weight: 900; color: #0f172a; margin: 0 0 24px; line-height: 1.3; letter-spacing: -0.5px; }
-        .pld-voted-notice { background: #dcfce7; color: #166534; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; margin-bottom: 20px; }
-        .pld-options { display: flex; flex-direction: column; gap: 12px; }
-        .pld-option { width: 100%; text-align: left; padding: 16px 20px; border-radius: 16px; border: 2px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.25s; }
-        .pld-option.can-vote:hover { border-color: #FF3D6D; background: #fff5f7; transform: translateY(-2px); }
-        .pld-option.has-voted { cursor: default; }
-        .pld-option.selected { border-color: #FF3D6D; background: linear-gradient(135deg, rgba(255,107,139,0.08), rgba(255,61,109,0.05)); }
-        .pld-option:disabled { opacity: 1; }
-        .pld-option-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .pld-option-text { font-weight: 700; font-size: 15px; color: #1e293b; }
-        .pld-option-pct { font-size: 15px; font-weight: 800; color: var(--primary, #FF3D6D); }
-        .pld-option-bar-wrap { display: flex; align-items: center; gap: 10px; }
-        .pld-option-bar { flex: 1; background: #f1f5f9; height: 7px; border-radius: 4px; overflow: hidden; }
-        .pld-option-fill { height: 100%; background: linear-gradient(90deg, #FF6B8B, #FF3D6D); border-radius: 4px; transition: width 0.6s ease; }
-        .pld-vote-count { font-size: 12px; color: #94a3b8; font-weight: 600; white-space: nowrap; }
-        .pld-skeleton { background: white; border-radius: 28px; padding: 36px; border: 1px solid rgba(0,0,0,0.05); }
-        .pld-sk-line { border-radius: 6px; background: #f1f5f9; }
-        .pld-sk-option { height: 60px; border-radius: 16px; background: #f1f5f9; margin-bottom: 12px; }
-        .pulse { animation: pldPulse 1.5s ease-in-out infinite; }
-        @keyframes pldPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        .pld-not-found { text-align: center; padding: 80px; color: #94a3b8; }
-        .pld-not-found h3 { font-size: 1.2rem; font-weight: 800; color: #334155; margin: 16px 0 12px; }
-        .pld-not-found button { background: linear-gradient(135deg,#FF6B8B,#FF3D6D); color: white; border: none; padding: 12px 24px; border-radius: 14px; font-weight: 700; cursor: pointer; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 20s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
       `}</style>
     </div>
   );

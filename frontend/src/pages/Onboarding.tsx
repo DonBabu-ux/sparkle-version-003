@@ -1,157 +1,173 @@
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { Sparkles, Compass, UserPlus, PenSquare, MessageCircle, Shield, Key, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Compass, UserPlus, PenSquare, MessageCircle, Shield, ChevronRight, CheckCircle2 } from 'lucide-react';
 
 export default function Onboarding() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#fdf2f4] text-black font-sans overflow-x-hidden">
       <Navbar />
       
-      <main className="max-w-2xl mx-auto px-4 pt-32 md:pt-40 pb-56">
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="max-w-4xl mx-auto px-6 pt-32 md:pt-48 pb-56 relative z-10">
         
         {/* Header / About */}
-        <div className="mb-12 text-center animate-fade-in relative">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#FF3D6D] to-[#FF7B00] rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-2xl shadow-pink-200/50 transform rotate-3">
-            <Sparkles size={40} className="text-white transform -rotate-3" />
+        <div className="mb-24 text-center animate-fade-in relative">
+          <div className="w-24 h-24 bg-primary text-white rounded-[32px] mx-auto flex items-center justify-center mb-10 shadow-2xl shadow-primary/30 transform group hover:rotate-12 transition-transform duration-700">
+            <Sparkles size={48} strokeWidth={2.5} />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">Welcome to Sparkle</h1>
-          <p className="text-slate-500 text-[16px] leading-relaxed max-w-lg mx-auto font-medium">
-            Sparkle is a social platform where you can discover trending ideas ("sparks"), connect with people, and share your own content. It’s designed to help you stay informed, express yourself, and engage with what matters to you.
+          <h1 className="text-6xl md:text-8xl font-black text-black tracking-tighter leading-none mb-8 italic uppercase">
+            Village <span className="text-primary">Genesis</span>
+          </h1>
+          <p className="text-xl font-bold text-black opacity-60 leading-relaxed max-w-2xl mx-auto italic">
+            Sparkle is the campus network for discovered frequencies. Connect with neighbors, share signals, and amplify the village harmonics.
           </p>
         </div>
 
-        <div className="space-y-6 animate-slide-up">
+        <div className="space-y-12 animate-fade-in delay-200">
           
           {/* What You Can Do */}
-          <section className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-200/20 border border-slate-100/60">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center">
-                <Compass size={24} className="text-indigo-600" />
+          <section className="bg-white/80 backdrop-blur-3xl rounded-[56px] p-12 md:p-20 shadow-2xl shadow-primary/5 border border-white">
+            <div className="flex items-center gap-6 mb-16 px-4">
+              <div className="w-16 h-16 rounded-[28px] bg-primary/5 text-primary flex items-center justify-center border border-primary/10">
+                <Compass size={32} strokeWidth={3} className="animate-spin-slow" />
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">What You Can Do</h2>
+              <div>
+                 <h2 className="text-4xl font-black text-black tracking-tighter uppercase italic leading-none">Your Orbit</h2>
+                 <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Standard operational procedures.</p>
+              </div>
             </div>
             
-            <div className="grid sm:grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <div className="w-10 h-10 rounded-xl bg-blue-50/80 flex items-center justify-center mb-3">
-                  <Compass size={20} className="text-blue-500" />
+            <div className="grid md:grid-cols-2 gap-12 lg:gap-20">
+              <div className="space-y-6 group">
+                <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm border border-black/5">
+                   <Compass size={28} strokeWidth={4} />
                 </div>
-                <h3 className="font-bold text-slate-800 text-lg">Explore Sparks</h3>
-                <p className="text-[14px] text-slate-500 leading-relaxed font-medium">Browse trending topics and discover what people are talking about worldwide.</p>
+                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Scan Signals</h3>
+                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Browse high-frequency topics and discover what neighbors are broadcasting.</p>
               </div>
-              <div className="space-y-2">
-                <div className="w-10 h-10 rounded-xl bg-purple-50/80 flex items-center justify-center mb-3">
-                  <UserPlus size={20} className="text-purple-500" />
+              <div className="space-y-6 group">
+                <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm border border-black/5">
+                   <UserPlus size={28} strokeWidth={4} />
                 </div>
-                <h3 className="font-bold text-slate-800 text-lg">Follow Creators</h3>
-                <p className="text-[14px] text-slate-500 leading-relaxed font-medium">Stay continually updated with fresh posts from people you find interesting.</p>
+                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Sync Nodes</h3>
+                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Synchronize with creators and influencers to stay updated with fresh pulses.</p>
               </div>
-              <div className="space-y-2">
-                <div className="w-10 h-10 rounded-xl bg-rose-50/80 flex items-center justify-center mb-3">
-                  <PenSquare size={20} className="text-rose-500" />
+              <div className="space-y-6 group">
+                <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm border border-black/5">
+                   <PenSquare size={28} strokeWidth={4} />
                 </div>
-                <h3 className="font-bold text-slate-800 text-lg">Share Sparks</h3>
-                <p className="text-[14px] text-slate-500 leading-relaxed font-medium">Post your thoughts, bold ideas, or media content to engage with others.</p>
+                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Broadcast Sparks</h3>
+                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Post your frequencies, bold visions, or visual chronicles to engage with the village.</p>
               </div>
-              <div className="space-y-2">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50/80 flex items-center justify-center mb-3">
-                  <MessageCircle size={20} className="text-emerald-500" />
+              <div className="space-y-6 group">
+                <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm border border-black/5">
+                   <MessageCircle size={28} strokeWidth={4} />
                 </div>
-                <h3 className="font-bold text-slate-800 text-lg">Engage deeply</h3>
-                <p className="text-[14px] text-slate-500 leading-relaxed font-medium">Like, comment, vividly repost, and join the most active conversations.</p>
+                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">High Fidelity</h3>
+                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Like, comment, and echo sparks to solidify active village conversations.</p>
               </div>
             </div>
           </section>
 
           {/* How Your Feed Works */}
-          <section className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-200/20 border border-slate-100/60">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center">
-                <Sparkles size={24} className="text-amber-500" />
+          <section className="bg-white/80 backdrop-blur-3xl rounded-[56px] p-12 md:p-16 shadow-2xl shadow-primary/5 border border-white">
+            <div className="flex items-center gap-6 mb-12 px-4">
+              <div className="w-16 h-16 rounded-[28px] bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/30">
+                <Sparkles size={32} strokeWidth={3} />
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">How Your Feed Works</h2>
+              <div>
+                 <h2 className="text-4xl font-black text-black tracking-tighter uppercase italic leading-none">Algorithm Sync</h2>
+                 <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Your personalized village stream.</p>
+              </div>
             </div>
-            <p className="text-[15px] text-slate-500 leading-relaxed mb-6 font-medium">Your personalized feed is strictly curated based on:</p>
             
-            <div className="bg-slate-50 rounded-2xl p-5 mb-4">
-              <ul className="space-y-4">
-                <li className="flex items-center gap-4 text-[15px] text-slate-700 font-bold">
-                  <CheckCircle2 size={20} className="text-amber-500" /> Who you follow
-                </li>
-                <li className="flex items-center gap-4 text-[15px] text-slate-700 font-bold">
-                  <CheckCircle2 size={20} className="text-amber-500" /> What you interact with
-                </li>
-                <li className="flex items-center gap-4 text-[15px] text-slate-700 font-bold">
-                  <CheckCircle2 size={20} className="text-amber-500" /> Trending sparks in your area
-                </li>
-              </ul>
+            <p className="text-lg font-bold text-black opacity-60 leading-relaxed mb-10 px-4 italic">Your personalized feed is strictly curated based on your unique coordinates:</p>
+            
+            <div className="bg-black/5 rounded-[40px] p-10 mb-8 space-y-6">
+              {[
+                "Who you synchronize with",
+                "Frequencies you echo",
+                "Trending sparks in your sector"
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-6 group">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg border border-primary/20 text-primary">
+                    <CheckCircle2 size={18} strokeWidth={4} />
+                  </div>
+                  <span className="text-xl font-black text-black uppercase tracking-tighter italic opacity-40 group-hover:opacity-100 group-hover:translate-x-2 transition-all">{item}</span>
+                </div>
+              ))}
             </div>
-            <p className="text-sm text-slate-400 font-bold italic">The more you engage, the better your feed becomes.</p>
+            <p className="text-[11px] font-black text-primary uppercase tracking-[0.4em] italic px-8">Increased engagement improves signal clarity.</p>
           </section>
 
           {/* Privacy & Safety */}
-          <section className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-200/20 border border-slate-100/60">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                <Shield size={24} className="text-emerald-500" />
+          <section className="bg-black text-white rounded-[56px] p-12 md:p-16 shadow-2xl shadow-primary/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 blur-[100px] pointer-events-none"></div>
+            <div className="flex items-center gap-6 mb-12 relative z-10">
+              <div className="w-16 h-16 rounded-[28px] bg-white text-black flex items-center justify-center">
+                <Shield size={32} strokeWidth={3} />
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Privacy & Safety</h2>
+              <div>
+                 <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Encrypted</h2>
+                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mt-2 italic">Safety and protocol enforcement.</p>
+              </div>
             </div>
-            <ul className="space-y-4 mb-2">
-              <li className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Shield size={14} className="text-emerald-600" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-800 text-[15px]">You control your content</h4>
-                  <p className="text-[14px] text-slate-500 font-medium">Manage exactly what you share and who gets to see it.</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <UserPlus size={14} className="text-emerald-600" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-800 text-[15px]">Active monitoring</h4>
-                  <p className="text-[14px] text-slate-500 font-medium">Suspicious activity is proactively monitored to protect your account 24/7.</p>
-                </div>
-              </li>
-            </ul>
+            
+            <div className="grid sm:grid-cols-2 gap-12 relative z-10">
+               <div className="space-y-4">
+                  <h4 className="font-black text-primary text-xl uppercase tracking-tighter italic">Total Ownership</h4>
+                  <p className="text-base font-bold text-white/40 italic">Manage exactly what signals you propagate and who receives them.</p>
+               </div>
+               <div className="space-y-4">
+                  <h4 className="font-black text-primary text-xl uppercase tracking-tighter italic">Active Sentry</h4>
+                  <p className="text-base font-bold text-white/40 italic">Suspicious harmonics are proactively filtered to protect your node 24/7.</p>
+               </div>
+            </div>
           </section>
 
-          {/* Getting Started */}
-          <section className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 rounded-[32px] p-8 shadow-2xl shadow-indigo-900/20 text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-            
-            <h2 className="text-2xl font-black text-white tracking-tight mb-8 relative z-10">Ready to begin your journey?</h2>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8 relative z-10">
-              <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl text-white font-bold text-sm flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-white text-indigo-900 flex items-center justify-center text-xs">1</span> 
-                Follow 5 creators
-              </div>
-              <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl text-white font-bold text-sm flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-white text-indigo-900 flex items-center justify-center text-xs">2</span> 
-                Explore trends
-              </div>
-              <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl text-white font-bold text-sm flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-white text-indigo-900 flex items-center justify-center text-xs">3</span> 
-                Post your first spark
-              </div>
-            </div>
-            
-            <button 
-              onClick={() => navigate('/explore')}
-              className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-[#FF3D6D] to-[#FF7B00] text-white text-lg font-black rounded-2xl hover:shadow-xl hover:shadow-pink-500/30 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 mx-auto relative z-10"
+          {/* Final Call */}
+          <section className="text-center py-20 animate-fade-in delay-500">
+             <h2 className="text-5xl md:text-7xl font-black text-black tracking-tighter uppercase italic leading-none mb-12">
+                Ready for <span className="text-primary italic">Lift-off?</span>
+             </h2>
+
+             <div className="flex flex-col sm:flex-row gap-8 justify-center items-center mb-16">
+                 {[
+                   { n: "1", t: "Sync Nodes" },
+                   { n: "2", t: "Scan Trends" },
+                   { n: "3", t: "Broadcast" }
+                 ].map((step, i) => (
+                    <div key={i} className="flex flex-col items-center gap-4 group">
+                       <div className="text-5xl font-black text-black/5 group-hover:text-primary/20 transition-colors leading-none italic">{step.n}</div>
+                       <div className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic leading-none">{step.t}</div>
+                    </div>
+                 ))}
+             </div>
+             
+             <button 
+              onClick={() => navigate('/dashboard')}
+              className="px-16 py-8 bg-primary text-white text-xl font-black rounded-[32px] shadow-2xl shadow-primary/40 hover:scale-[1.05] hover:shadow-primary/60 transition-all active:scale-95 flex items-center justify-center gap-6 mx-auto uppercase tracking-[0.2em] italic"
             >
-              Start Exploring <ChevronRight size={22} strokeWidth={3} />
+              Initialize Orbit <ChevronRight size={32} strokeWidth={4} />
             </button>
           </section>
 
         </div>
       </main>
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-500 { animation-delay: 0.5s; }
+        .animate-spin-slow { animation: spin 15s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

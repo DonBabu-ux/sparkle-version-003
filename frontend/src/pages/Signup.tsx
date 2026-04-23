@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Lock, Mail, AtSign, Users, Camera, Heart, MessageCircle, Hash } from 'lucide-react';
+import {
+  Mail, ArrowRight, ArrowLeft, Check, Users, Heart,
+  Sparkles, Compass, Orbit, GraduationCap, Building2, Briefcase,
+} from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 
 type Step = 1 | 2 | 3 | 4 | 5;
+
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=640&q=80&auto=format';
 
 const UNIVERSITIES = [
   'Karatina University', 'Chuka University', 'Dedan Kimathi University',
@@ -12,43 +17,51 @@ const UNIVERSITIES = [
   'Mount Media University', 'University of Nairobi',
 ];
 
-const AFFILIATION_TYPES = ['University', 'Company', 'Business', 'Community', 'None'];
+const AFFILIATION_TYPES = [
+  { id: 'University', icon: GraduationCap, label: 'University' },
+  { id: 'Company', icon: Building2, label: 'Company' },
+  { id: 'Business', icon: Briefcase, label: 'Business' },
+];
 
 export default function Signup() {
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState({
-    name: '', username: '', email: '', password: '', phone: '',
-    affiliation_type: 'None', campus: '', major: '', year: '',
+    name: '', username: '', email: '', password: '',
+    affiliation_type: 'University', campus: '', major: '', year: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [verifying, setVerifying] = useState(false);
-  
+  const [mounted, setMounted] = useState(false);
+
   const navigate = useNavigate();
+  const { login } = useUserStore();
+
+  useEffect(() => { setMounted(true); }, []);
 
   const update = (field: string, value: string) =>
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: value }));
 
   const showError = (msg: string) => { setError(msg); setSuccess(''); };
   const showSuccess = (msg: string) => { setSuccess(msg); setError(''); };
-
   const prevStep = () => { if (step > 1) setStep((step - 1) as Step); };
   const nextStep = () => { if (step < 5) setStep((step + 1) as Step); };
 
   const validateStep2 = () => {
-    if (!form.name.trim()) return 'Full name is required.';
-    if (!form.username.trim() || form.username.length < 3) return 'Username must be at least 3 characters.';
-    if (!form.email.trim() || !form.email.includes('@')) return 'Valid email is required.';
-    if (!form.password || form.password.length < 6) return 'Password must be at least 6 characters.';
+    if (!form.name.trim()) return 'Name required.';
+    if (!form.username.trim() || form.username.length < 3) return 'Username too short.';
+    if (!form.email.trim() || !form.email.includes('@')) return 'Invalid email address.';
+    if (!form.password || form.password.length < 6) return 'Password too weak.';
     return '';
   };
 
   const handleNextFromStep2 = () => {
     const err = validateStep2();
     if (err) { showError(err); return; }
-    setError(''); setStep(3);
+    setError('');
+    setStep(3);
   };
 
   const handleSubmit = async () => {
@@ -56,294 +69,589 @@ export default function Signup() {
     setError('');
     try {
       const res = await api.post('/auth/signup', {
-        name: form.name,
-        username: form.username,
-        email: form.email,
-        password: form.password,
+        name: form.name, username: form.username,
+        email: form.email, password: form.password,
         campus: form.affiliation_type !== 'None' ? form.campus : undefined,
-        major: form.major || undefined,
-        year: form.year || undefined,
+        major: form.major || undefined, year: form.year || undefined,
         user_type: 'student',
       });
-
-      if (res.data?.token) {
-        // Store token temporarily for after verification
-        localStorage.setItem('sparkle_signup_token', res.data.token);
-      }
-      
-      showSuccess('Account created! Please verify your email.');
+      if (res.data?.token) localStorage.setItem('sparkle_signup_token', res.data.token);
+      showSuccess('Signed up! Verify your email.');
       setStep(5);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      showError(e.response?.data?.message || 'Registration failed. Please try again.');
+      showError(e.response?.data?.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
   };
 
-  const { login } = useUserStore();
-
   const handleVerifyOTP = async () => {
-    if (!otpCode || otpCode.length < 6) { showError('Please enter the 6-digit code'); return; }
+    if (!otpCode || otpCode.length < 6) { showError('6-digit code required'); return; }
     setVerifying(true);
     setError('');
     try {
-      await api.post('/auth/verify-email', { 
-        email: form.email,
-        code: otpCode 
-      });
-
-      // Log the user in with the signup token
+      await api.post('/auth/verify-email', { email: form.email, code: otpCode });
       const signupToken = localStorage.getItem('sparkle_signup_token');
       if (signupToken) {
-        // Validate the token and get user data
         const validateRes = await api.get('/auth/validate', {
-          headers: { Authorization: `Bearer ${signupToken}` }
+          headers: { Authorization: `Bearer ${signupToken}` },
         });
         login(signupToken, validateRes.data.user);
         localStorage.removeItem('sparkle_signup_token');
-        showSuccess('Verification successful! Logging you in...');
+        showSuccess('Verified! Redirecting...');
         setTimeout(() => navigate('/dashboard'), 1500);
       } else {
-        showSuccess('Email verified! Please log in.');
+        showSuccess('Verified! Please login.');
         setTimeout(() => navigate('/login'), 2000);
       }
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      showError(e.response?.data?.message || 'Invalid verification code');
+      showError(e.response?.data?.message || 'Invalid code.');
     } finally {
       setVerifying(false);
     }
   };
 
   return (
-    <div className="auth-page-wrapper">
-      <div className="auth-container animate-scale-in">
-        
-        {/* LEFT Side: Visual/Image */}
-        <div className="visual-side">
-          <img src="/auth-bg.png" alt="" className="auth-visual-bg" />
-          
-          <div className="auth-logo-container">
-            <h1 className="auth-logo">Sparkle</h1>
-            <p className="auth-tagline">Sign up to see photos and videos from your friends on Sparkle.</p>
+    <div className="su-page">
+      <div className="su-orb su-orb--1" />
+      <div className="su-orb su-orb--2" />
+
+      <div className={`su-container ${mounted ? 'is-visible' : ''}`}>
+
+        {/* LEFT: Image + Branding */}
+        <div className="su-left">
+          <div className="su-img-wrap">
+            <img src={HERO_IMAGE} alt="Students on campus" className="su-img" />
+            <div className="su-img-overlay" />
+            <div className="su-img-text">
+              <div className="su-badge">
+                <Sparkles size={14} strokeWidth={2.5} />
+                Join the community
+              </div>
+              <h2 className="su-img-headline">Start something<br />beautiful.</h2>
+            </div>
           </div>
 
-          <ul className="features-list">
-            <li><Users size={20} /> Connect with friends</li>
-            <li><Camera size={20} /> Share photos and videos</li>
-            <li><Heart size={20} /> Like and comment on posts</li>
-            <li><MessageCircle size={20} /> Join group chats</li>
-          </ul>
+          <div className="su-info">
+            <h1 className="su-logo">Sparkle</h1>
+            <p className="su-tagline">
+              It's quick and easy. Join the sweetest campus network and bloom with your people.
+            </p>
+            <div className="su-features">
+              {[
+                { icon: Compass, label: 'Explore campus spots' },
+                { icon: Users, label: 'Find your people' },
+                { icon: Heart, label: 'Share real moments' },
+                { icon: Orbit, label: 'Stay connected' },
+              ].map((f, i) => (
+                <div key={i} className="su-feat" style={{ transitionDelay: `${0.5 + i * 0.1}s` }}>
+                  <div className="su-feat__icon"><f.icon size={16} strokeWidth={2} /></div>
+                  <span className="su-feat__text">{f.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT Side: Form */}
-        <div className="form-side">
-          {/* Progress Tracker remains at the top */}
-          <div className="progress-bar">
-            {[1, 2, 3, 4, 5].map((s, i) => (
-              <React.Fragment key={s}>
-                <div className={`step ${step === s ? 'active' : step > s ? 'completed' : ''}`}>
-                  {step > s ? '✓' : s}
+        {/* RIGHT: Signup card */}
+        <div className="su-card-wrap">
+          <div className="su-card">
+            <div className="su-card__head">
+              <h3 className="su-card__title">Create account</h3>
+              <div className="su-card__step-row">
+                <p className="su-card__sub">Step {step} of 5</p>
+                <div className="su-progress">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <div key={s} className={`su-progress__dot ${s <= step ? 'su-progress__dot--active' : ''}`} />
+                  ))}
                 </div>
-                {i < 4 && <div className={`step-line ${step > s ? 'completed' : ''}`} />}
-              </React.Fragment>
-            ))}
-          </div>
+              </div>
+            </div>
 
-          {error && <div className="auth-message error show">⚠️ {error}</div>}
-          {success && <div className="auth-message success show">✨ {success}</div>}
-
-          {/* Centered Panel content */}
-          <div className="auth-form-container">
-            
-            {/* Step 1: Welcome Options */}
-            {step === 1 && (
-              <div className="form-panel active">
-                <div className="panel-header">
-                  <h1 className="panel-title">Create Account</h1>
-                  <p className="panel-subtitle">Join the Sparkle community today.</p>
-                </div>
-                
-                <button className="social-btn" style={{ marginBottom: '16px' }}>
-                  <img src="https://www.google.com/favicon.ico" alt="" className="social-icon" style={{ width: '18px' }} />
-                  Continue with Google
-                </button>
-
-                <div className="relative my-8 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
-                  <span className="relative px-4 bg-white">or</span>
-                </div>
-
-                <button className="premium-btn" onClick={nextStep}>
-                  Sign up with email or phone
-                </button>
-
-                <p className="auth-link">
-                  Have an account? <Link to="/login">Log in</Link>
-                </p>
+            {(error || success) && (
+              <div className={`su-toast ${error ? 'su-toast--err' : 'su-toast--ok'}`}>
+                <span className="su-toast__dot" />
+                {error || success}
               </div>
             )}
 
-            {/* Step 2: Basic Identity */}
-            {step === 2 && (
-              <div className="form-panel active">
-                 <div className="panel-header">
-                  <h1 className="panel-title">Basic Info</h1>
-                  <p className="panel-subtitle">Tell us who you are.</p>
-                </div>
+            <div className="su-body">
+              {/* Step 1: Welcome */}
+              {step === 1 && (
+                <div className="su-step">
+                  <button className="su-google" type="button">
+                    <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" className="su-google__img" alt="" />
+                    <span>Continue with Google</span>
+                  </button>
 
-                <div className="auth-form-group">
-                  <label className="auth-label">Full Name</label>
-                  <div className="input-with-icon">
-                    <User size={16} className="input-icon" />
-                    <input type="text" value={form.name} onChange={e => update('name', e.target.value)} className="auth-input" placeholder="Enter your full name" required />
+                  <div className="su-sep"><span>or</span></div>
+
+                  <button onClick={nextStep} className="su-btn su-btn--main" type="button">
+                    Get started
+                    <ArrowRight size={18} strokeWidth={2.5} />
+                  </button>
+
+                  <p className="su-link-row">
+                    Already have an account?{' '}
+                    <Link to="/login" className="su-link">Sign in</Link>
+                  </p>
+                </div>
+              )}
+
+              {/* Step 2: Details */}
+              {step === 2 && (
+                <div className="su-step">
+                  <div className="su-grid-2">
+                    <div className="su-field">
+                      <label className="su-label">Full name</label>
+                      <input type="text" value={form.name} onChange={(e) => update('name', e.target.value)} className="su-input" placeholder="Jane Doe" />
+                    </div>
+                    <div className="su-field">
+                      <label className="su-label">Username</label>
+                      <input type="text" value={form.username} onChange={(e) => update('username', e.target.value)} className="su-input" placeholder="janedoe" />
+                    </div>
+                  </div>
+                  <div className="su-field">
+                    <label className="su-label">Email address</label>
+                    <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="su-input" placeholder="you@university.edu" />
+                  </div>
+                  <div className="su-field">
+                    <label className="su-label">Password</label>
+                    <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} className="su-input" placeholder="At least 6 characters" />
+                  </div>
+
+                  <div className="su-nav-row">
+                    <button onClick={prevStep} className="su-nav-back" type="button"><ArrowLeft size={20} /></button>
+                    <button onClick={handleNextFromStep2} className="su-btn su-btn--main" type="button">
+                      Next <ArrowRight size={18} strokeWidth={2.5} />
+                    </button>
                   </div>
                 </div>
+              )}
 
-                <div className="auth-form-group">
-                  <label className="auth-label">Username</label>
-                  <div className="input-with-icon">
-                    <AtSign size={16} className="input-icon" />
-                    <input type="text" value={form.username} onChange={e => update('username', e.target.value)} className="auth-input" placeholder="Choose a username" required />
+              {/* Step 3: Affiliation */}
+              {step === 3 && (
+                <div className="su-step">
+                  <div className="su-affil-grid">
+                    {AFFILIATION_TYPES.map((type) => (
+                      <button
+                        key={type.id}
+                        onClick={() => update('affiliation_type', type.id)}
+                        className={`su-affil ${form.affiliation_type === type.id ? 'su-affil--active' : ''}`}
+                        type="button"
+                      >
+                        <type.icon size={22} strokeWidth={2} />
+                        <span>{type.label}</span>
+                      </button>
+                    ))}
                   </div>
-                </div>
 
-                <div className="auth-form-group">
-                  <label className="auth-label">Email Address</label>
-                  <div className="input-with-icon">
-                    <Mail size={16} className="input-icon" />
-                    <input type="email" value={form.email} onChange={e => update('email', e.target.value)} className="auth-input" placeholder="Enter your email" required />
-                  </div>
-                </div>
-
-                <div className="auth-form-group">
-                  <label className="auth-label">Password</label>
-                  <div className="input-with-icon">
-                    <Lock size={16} className="input-icon" />
-                    <input type="password" value={form.password} onChange={e => update('password', e.target.value)} className="auth-input" placeholder="Create a strong password" required />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 mt-8">
-                  <button className="social-btn flex-1" onClick={prevStep}>Back</button>
-                  <button className="premium-btn flex-1" onClick={handleNextFromStep2}>Continue</button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Affiliation */}
-            {step === 3 && (
-              <div className="form-panel active">
-                 <div className="panel-header">
-                  <h1 className="panel-title">Campus Hub</h1>
-                  <p className="panel-subtitle">Where do you belong?</p>
-                </div>
-
-                <div className="auth-form-group">
-                  <label className="auth-label">Affiliation Type</label>
-                  <select value={form.affiliation_type} onChange={e => update('affiliation_type', e.target.value)} className="auth-input" style={{ paddingLeft: '12px' }}>
-                    {AFFILIATION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-
-                {form.affiliation_type === 'University' ? (
-                  <div className="auth-form-group">
-                    <label className="auth-label">Select Campus</label>
-                    <select value={form.campus} onChange={e => update('campus', e.target.value)} className="auth-input" style={{ paddingLeft: '12px' }}>
-                      <option value="">-- Choose your university --</option>
-                      {UNIVERSITIES.map(u => <option key={u} value={u}>{u}</option>)}
+                  <div className="su-field">
+                    <label className="su-label">Campus</label>
+                    <select value={form.campus} onChange={(e) => update('campus', e.target.value)} className="su-input su-select">
+                      <option value="">Select your campus...</option>
+                      {UNIVERSITIES.map((u) => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
-                ) : form.affiliation_type !== 'None' && (
-                  <div className="auth-form-group">
-                    <label className="auth-label">Organization Name</label>
-                    <input type="text" value={form.campus} onChange={e => update('campus', e.target.value)} className="auth-input" placeholder="Enter organization name" style={{ paddingLeft: '12px' }} />
+
+                  <div className="su-field">
+                    <label className="su-label">Major</label>
+                    <input type="text" value={form.major} onChange={(e) => update('major', e.target.value)} className="su-input" placeholder="Computer Science" />
                   </div>
-                )}
 
-                <div className="auth-form-group">
-                  <label className="auth-label">Major / Field of Study</label>
-                  <input type="text" value={form.major} onChange={e => update('major', e.target.value)} className="auth-input" placeholder="e.g. Software Engineering" style={{ paddingLeft: '12px' }} />
-                </div>
-
-                <div className="flex gap-3 mt-8">
-                  <button className="social-btn flex-1" onClick={prevStep}>Back</button>
-                  <button className="premium-btn flex-1" onClick={nextStep}>Next</button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Final Check */}
-            {step === 4 && (
-              <div className="form-panel active">
-                 <div className="panel-header">
-                  <h1 className="panel-title">Final Check</h1>
-                  <p className="panel-subtitle">Review your details.</p>
-                </div>
-
-                <div className="summary-card" style={{ background: '#f9f9f9', padding: '20px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #eee' }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <span style={{ color: '#8E8E8E', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Identity</span>
-                      <span style={{ fontWeight: '700' }}>{form.name} (@{form.username})</span>
-                   </div>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <span style={{ color: '#8E8E8E', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Email</span>
-                      <span style={{ fontWeight: '700' }}>{form.email}</span>
-                   </div>
-                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#8E8E8E', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Campus</span>
-                      <span style={{ fontWeight: '700' }}>{form.campus || 'None'}</span>
-                   </div>
-                </div>
-
-                <button className="premium-btn" onClick={handleSubmit} disabled={loading}>
-                  {loading ? 'Creating Account...' : 'Sign Up'}
-                </button>
-
-                <p className="text-xs text-center mt-6 text-slate-400 font-medium">
-                  By signing up, you agree to our Terms and Privacy Policy.
-                </p>
-
-                <button className="social-btn mt-4 w-full" onClick={prevStep}>Go Back</button>
-              </div>
-            )}
-
-            {/* Step 5: Verification */}
-            {step === 5 && (
-              <div className="form-panel active text-center">
-                 <div className="panel-header">
-                  <h1 className="panel-title">Verify Device</h1>
-                  <p className="panel-subtitle">Enter the 6-digit code sent to your email.</p>
-                </div>
-
-                <div className="auth-form-group">
-                   <div className="input-with-icon">
-                    <Hash size={16} className="input-icon" />
-                    <input 
-                      type="text" 
-                      value={otpCode} 
-                      maxLength={6}
-                      onChange={e => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))} 
-                      className="auth-input text-center font-black tracking-[8px] py-4 text-2xl" 
-                      placeholder="000000" 
-                      style={{ paddingLeft: '12px' }}
-                    />
+                  <div className="su-nav-row">
+                    <button onClick={prevStep} className="su-nav-back" type="button"><ArrowLeft size={20} /></button>
+                    <button onClick={nextStep} className="su-btn su-btn--main" type="button">
+                      Almost there <ArrowRight size={18} strokeWidth={2.5} />
+                    </button>
                   </div>
                 </div>
+              )}
 
-                <button className="premium-btn" onClick={handleVerifyOTP} disabled={verifying}>
-                  {verifying ? 'Verifying...' : 'Complete Signup'}
-                </button>
+              {/* Step 4: Review */}
+              {step === 4 && (
+                <div className="su-step">
+                  <div className="su-review">
+                    <div className="su-review__row">
+                      <div className="su-review__avatar">
+                        <Check size={28} strokeWidth={3} />
+                      </div>
+                      <div>
+                        <h4 className="su-review__name">{form.name || 'Your Name'}</h4>
+                        <p className="su-review__handle">@{form.username || 'username'}</p>
+                      </div>
+                    </div>
+                    <div className="su-review__detail">
+                      <span className="su-review__label">Campus</span>
+                      <span className="su-review__value">{form.campus || 'Global'}</span>
+                    </div>
+                  </div>
 
-                <button className="auth-link block w-full mt-6 text-indigo-600 font-bold text-sm bg-transparent border-none cursor-pointer">
-                  Resend Verification Code
-                </button>
-              </div>
-            )}
+                  <button onClick={handleSubmit} disabled={loading} className="su-btn su-btn--main su-btn--lg" type="button">
+                    {loading ? <span className="su-spin" /> : 'Create my account'}
+                  </button>
+                  <button onClick={prevStep} className="su-back-text" type="button">Make changes</button>
+                </div>
+              )}
+
+              {/* Step 5: OTP */}
+              {step === 5 && (
+                <div className="su-step su-step--center">
+                  <div className="su-otp-icon">
+                    <Mail size={40} strokeWidth={1.5} />
+                  </div>
+                  <h3 className="su-card__title">Verify email</h3>
+                  <p className="su-card__sub">
+                    Code sent to <strong style={{ color: '#e11d48' }}>{form.email}</strong>
+                  </p>
+
+                  <input
+                    type="text" value={otpCode} maxLength={6}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="su-otp-input"
+                    placeholder="000000"
+                  />
+
+                  <button onClick={handleVerifyOTP} disabled={verifying} className="su-btn su-btn--main" type="button">
+                    {verifying ? <span className="su-spin" /> : 'Complete signup'}
+                  </button>
+                  <button className="su-back-text" type="button">Resend code</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        .su-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem;
+          background: #fdf2f4;
+          position: relative;
+          overflow: hidden;
+          font-family: 'Nunito Sans', system-ui, sans-serif;
+        }
+
+        .su-orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(90px);
+          opacity: 0.4;
+          pointer-events: none;
+          will-change: transform;
+        }
+        .su-orb--1 {
+          width: 480px; height: 480px;
+          background: radial-gradient(circle, #fda4af, transparent 70%);
+          top: -10%; right: -5%;
+          animation: su-drift 20s ease-in-out infinite;
+        }
+        .su-orb--2 {
+          width: 380px; height: 380px;
+          background: radial-gradient(circle, #fbcfe8, transparent 70%);
+          bottom: -8%; left: -4%;
+          animation: su-drift 24s ease-in-out infinite reverse;
+        }
+        @keyframes su-drift {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(20px, -15px); }
+        }
+
+        .su-container {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          max-width: 1100px;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 2rem;
+          align-items: center;
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .su-container.is-visible { opacity: 1; transform: translateY(0); }
+        @media (min-width: 1024px) {
+          .su-container { grid-template-columns: 1.1fr 440px; gap: 4rem; }
+        }
+
+        /* LEFT */
+        .su-left { display: none; }
+        @media (min-width: 1024px) { .su-left { display: flex; flex-direction: column; gap: 1.75rem; } }
+
+        .su-img-wrap {
+          position: relative;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 16px 48px rgba(190, 18, 60, 0.1);
+        }
+        .su-img { width: 100%; height: 260px; object-fit: cover; display: block; }
+        .su-img-overlay {
+          position: absolute; inset: 0;
+          background: linear-gradient(to top, rgba(136, 19, 55, 0.75) 0%, rgba(136, 19, 55, 0.15) 55%, transparent 100%);
+        }
+        .su-img-text {
+          position: absolute; bottom: 0; left: 0; padding: 1.5rem;
+          display: flex; flex-direction: column; gap: 0.5rem;
+        }
+        .su-badge {
+          display: inline-flex; align-items: center; gap: 0.35rem;
+          background: rgba(255,255,255,0.2); backdrop-filter: blur(8px);
+          padding: 0.3rem 0.7rem; border-radius: 8px;
+          font-size: 0.7rem; font-weight: 700; color: #fff;
+          width: fit-content; text-transform: none; font-style: normal;
+        }
+        .su-img-headline {
+          font-family: 'Varela Round', sans-serif;
+          font-weight: 700; font-size: 2rem; line-height: 1.15;
+          color: #fff; text-transform: none; font-style: normal;
+        }
+
+        .su-info { display: flex; flex-direction: column; gap: 0.75rem; }
+        .su-logo {
+          font-family: 'Varela Round', sans-serif;
+          font-weight: 700; font-size: 2.4rem; color: #be123c;
+          text-transform: none; font-style: normal;
+        }
+        .su-tagline {
+          font-size: 1rem; line-height: 1.55; color: #78716c;
+          max-width: 420px; text-transform: none; font-style: normal;
+        }
+
+        .su-features { display: flex; flex-direction: column; gap: 0.55rem; }
+        .su-feat {
+          display: flex; align-items: center; gap: 0.6rem;
+          opacity: 0; transform: translateX(-10px);
+          transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .is-visible .su-feat { opacity: 1; transform: translateX(0); }
+        .su-feat__icon {
+          width: 32px; height: 32px; border-radius: 9px; background: #fff;
+          display: flex; align-items: center; justify-content: center;
+          color: #e11d48; box-shadow: 0 2px 6px rgba(0,0,0,0.04); flex-shrink: 0;
+        }
+        .su-feat__text {
+          font-size: 0.88rem; font-weight: 600; color: #44403c;
+          text-transform: none; font-style: normal;
+        }
+
+        /* RIGHT */
+        .su-card-wrap { display: flex; justify-content: center; }
+        @media (min-width: 1024px) { .su-card-wrap { justify-content: flex-end; } }
+
+        .su-card {
+          width: 100%; max-width: 440px;
+          background: rgba(255,255,255,0.88);
+          backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255,255,255,0.65);
+          border-radius: 22px; padding: 2rem;
+          box-shadow: 0 20px 60px rgba(190,18,60,0.08), 0 4px 14px rgba(0,0,0,0.03);
+          transition: box-shadow 0.35s ease;
+        }
+        .su-card:hover {
+          box-shadow: 0 24px 68px rgba(190,18,60,0.12), 0 6px 20px rgba(0,0,0,0.04);
+        }
+
+        .su-card__head { margin-bottom: 1.25rem; }
+        .su-card__title {
+          font-family: 'Varela Round', sans-serif;
+          font-weight: 700; font-size: 1.5rem; color: #1c1917;
+          text-transform: none; font-style: normal; margin-bottom: 0.15rem;
+        }
+        .su-card__sub { font-size: 0.82rem; color: #a8a29e; text-transform: none; font-style: normal; }
+        .su-card__step-row {
+          display: flex; align-items: center; justify-content: space-between; margin-top: 0.25rem;
+        }
+        .su-progress { display: flex; gap: 0.3rem; }
+        .su-progress__dot {
+          width: 8px; height: 8px; border-radius: 50%;
+          background: #fecdd3; transition: background 0.3s ease;
+        }
+        .su-progress__dot--active { background: #e11d48; }
+
+        .su-toast {
+          display: flex; align-items: center; gap: 0.5rem;
+          padding: 0.6rem 0.85rem; border-radius: 11px;
+          font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem;
+          text-transform: none; font-style: normal;
+        }
+        .su-toast--err { background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; }
+        .su-toast--ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; }
+        .su-toast__dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+        .su-toast--err .su-toast__dot { background: #e11d48; }
+        .su-toast--ok .su-toast__dot { background: #10b981; }
+
+        .su-body { min-height: 300px; display: flex; flex-direction: column; justify-content: center; }
+        .su-step { display: flex; flex-direction: column; gap: 0.9rem; }
+        .su-step--center { align-items: center; text-align: center; }
+
+        .su-field { display: flex; flex-direction: column; gap: 0.3rem; }
+        .su-label {
+          font-size: 0.72rem; font-weight: 700; color: #78716c;
+          text-transform: none; font-style: normal;
+        }
+        .su-input {
+          width: 100%; padding: 0.75rem 0.9rem;
+          background: rgba(255,241,242,0.35); border: 1.5px solid #fecdd3;
+          border-radius: 12px; font-size: 0.9rem; font-weight: 500;
+          color: #1c1917; outline: none;
+          transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+          text-transform: none; font-style: normal;
+        }
+        .su-input::placeholder { color: #d4d4d4; text-transform: none; font-style: normal; }
+        .su-input:focus {
+          border-color: #fb7185; background: #fff;
+          box-shadow: 0 0 0 3px rgba(251,113,133,0.12);
+        }
+        .su-select { cursor: pointer; }
+        .su-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+        /* Affiliation */
+        .su-affil-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+        .su-affil {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 0.35rem; padding: 0.9rem 0.5rem;
+          border: 2px solid #fecdd3; border-radius: 12px;
+          background: rgba(255,241,242,0.3); color: #a8a29e;
+          font-size: 0.72rem; font-weight: 700; cursor: pointer;
+          transition: all 0.2s ease; text-transform: none; font-style: normal;
+        }
+        .su-affil:hover { border-color: #fda4af; }
+        .su-affil--active {
+          background: linear-gradient(135deg, #fb7185, #e11d48);
+          border-color: #e11d48; color: #fff;
+          box-shadow: 0 4px 14px rgba(225,29,72,0.2);
+        }
+
+        /* Review */
+        .su-review {
+          background: rgba(255,241,242,0.4); border: 1px solid #fecdd3;
+          border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;
+        }
+        .su-review__row { display: flex; align-items: center; gap: 0.75rem; }
+        .su-review__avatar {
+          width: 48px; height: 48px; border-radius: 14px;
+          background: linear-gradient(135deg, #fb7185, #e11d48);
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; flex-shrink: 0;
+        }
+        .su-review__name {
+          font-family: 'Varela Round', sans-serif;
+          font-weight: 700; font-size: 1.15rem; color: #1c1917;
+          text-transform: none; font-style: normal;
+        }
+        .su-review__handle { font-size: 0.78rem; color: #a8a29e; text-transform: none; font-style: normal; }
+        .su-review__detail {
+          display: flex; justify-content: space-between; align-items: center;
+          padding-top: 0.6rem; border-top: 1px solid #fecdd3;
+        }
+        .su-review__label { font-size: 0.7rem; font-weight: 700; color: #a8a29e; text-transform: none; font-style: normal; }
+        .su-review__value { font-size: 0.85rem; font-weight: 600; color: #44403c; text-transform: none; font-style: normal; }
+
+        /* Buttons */
+        .su-btn {
+          display: flex; align-items: center; justify-content: center; gap: 0.45rem;
+          width: 100%; padding: 0.8rem; border-radius: 12px;
+          font-size: 0.92rem; font-weight: 800; cursor: pointer; border: none;
+          transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+          text-decoration: none; text-transform: none; font-style: normal;
+        }
+        .su-btn:active { transform: scale(0.975); }
+        .su-btn--main {
+          background: linear-gradient(135deg, #fb7185, #e11d48);
+          color: #fff; box-shadow: 0 6px 18px rgba(225,29,72,0.22);
+        }
+        .su-btn--main:hover { box-shadow: 0 8px 26px rgba(225,29,72,0.32); }
+        .su-btn--main:disabled { opacity: 0.65; cursor: not-allowed; }
+        .su-btn--lg { padding: 1rem; font-size: 1rem; }
+
+        .su-nav-row { display: flex; gap: 0.6rem; align-items: center; padding-top: 0.25rem; }
+        .su-nav-back {
+          width: 48px; height: 48px; border-radius: 12px;
+          border: 1.5px solid #fecdd3; background: #fff;
+          display: flex; align-items: center; justify-content: center;
+          color: #a8a29e; cursor: pointer; flex-shrink: 0;
+          transition: border-color 0.2s ease, color 0.2s ease;
+        }
+        .su-nav-back:hover { border-color: #fda4af; color: #e11d48; }
+
+        .su-google {
+          display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+          width: 100%; padding: 0.75rem; border-radius: 12px;
+          border: 1.5px solid #fecdd3; background: #fff;
+          font-size: 0.88rem; font-weight: 700; color: #44403c;
+          cursor: pointer; transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          text-transform: none; font-style: normal;
+        }
+        .su-google:hover { border-color: #fda4af; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .su-google__img { width: 20px; height: 20px; }
+
+        .su-sep {
+          display: flex; align-items: center; gap: 0.8rem; margin: 0.25rem 0;
+        }
+        .su-sep::before, .su-sep::after { content: ''; flex: 1; height: 1px; background: #fecdd3; }
+        .su-sep span {
+          font-size: 0.7rem; font-weight: 700; color: #d6d3d1;
+          text-transform: uppercase; letter-spacing: 0.1em; font-style: normal;
+        }
+
+        .su-link-row {
+          text-align: center; font-size: 0.85rem; color: #78716c;
+          text-transform: none; font-style: normal;
+        }
+        .su-link { color: #e11d48; font-weight: 700; cursor: pointer; text-transform: none; font-style: normal; }
+        .su-link:hover { text-decoration: underline; }
+
+        .su-back-text {
+          font-size: 0.78rem; font-weight: 700; color: #a8a29e;
+          background: none; border: none; cursor: pointer;
+          transition: color 0.2s ease; text-transform: none; font-style: normal;
+          align-self: center;
+        }
+        .su-back-text:hover { color: #e11d48; }
+
+        .su-otp-icon {
+          width: 64px; height: 64px; border-radius: 18px;
+          background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+          display: flex; align-items: center; justify-content: center;
+          color: #e11d48;
+        }
+        .su-otp-input {
+          width: 100%; max-width: 220px; padding: 0.9rem;
+          background: rgba(255,241,242,0.35); border: 2px solid #fecdd3;
+          border-radius: 14px; font-size: 2rem; font-weight: 800;
+          color: #e11d48; letter-spacing: 0.2em; text-align: center;
+          outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          text-transform: none; font-style: normal;
+        }
+        .su-otp-input:focus {
+          border-color: #fb7185;
+          box-shadow: 0 0 0 3px rgba(251,113,133,0.12);
+        }
+        .su-otp-input::placeholder { color: #d4d4d4; }
+
+        .su-spin {
+          width: 18px; height: 18px;
+          border: 2.5px solid rgba(255,255,255,0.3);
+          border-top-color: #fff; border-radius: 50%;
+          animation: su-spin 0.6s linear infinite;
+        }
+        @keyframes su-spin { to { transform: rotate(360deg); } }
+
+        @media (prefers-reduced-motion: reduce) {
+          .su-orb { animation: none; }
+          .su-container { transition: none; }
+          .su-feat { transition: none; opacity: 1; transform: none; }
+          .su-card { transition: none; }
+        }
+      `}</style>
     </div>
   );
 }

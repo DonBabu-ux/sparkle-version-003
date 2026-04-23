@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ShoppingBag, Plus, Filter, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Search, ShoppingBag, Plus, ShieldCheck, ChevronRight, Grid, Orbit, Tag, Store } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useModalStore } from '../store/modalStore';
@@ -28,11 +28,10 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
-    { id: 'all', label: 'All Items', icon: <Filter size={14} /> },
-    { id: 'student_market', label: 'Student Market', icon: <ShoppingBag size={14} /> },
-    { id: 'blackmarket', label: 'Black Market', icon: <Search size={14} /> },
-    { id: 'electronics', label: 'Electronics', icon: <Search size={14} /> },
-    { id: 'books', label: 'Books', icon: <Search size={14} /> }
+    { id: 'all', label: 'Everything', icon: <Grid size={20} strokeWidth={3} /> },
+    { id: 'electronics', label: 'Tech Space', icon: <Orbit size={20} strokeWidth={3} /> },
+    { id: 'books', label: 'Library', icon: <Tag size={20} strokeWidth={3} /> },
+    { id: 'other', label: 'Bazaar', icon: <Store size={20} strokeWidth={3} /> }
   ];
 
   const fetchListings = useCallback(async () => {
@@ -62,119 +61,185 @@ export default function Marketplace() {
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
-      <div className="market-layout">
-        <header className="market-hero">
-          <div className="hero-content">
-            <div className="hero-badge">
-              <ShoppingBag size={18} />
-              <span>SPARKLE MARKET</span>
-            </div>
-            <h1>Campus Marketplace</h1>
-            <p>Buy and sell treasures with your fellow Sparklers.</p>
+
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <div className="flex-1 px-6 py-20 lg:ml-72 lg:px-12 lg:py-24 max-w-7xl mx-auto w-full relative z-10 pt-20 md:pt-12">
+        <header className="flex flex-col items-center text-center mb-32 animate-fade-in px-4">
+          <div className="inline-flex items-center gap-4 px-8 py-3 bg-white/80 backdrop-blur-3xl border border-white rounded-full mb-12 shadow-xl shadow-primary/5">
+            <ShoppingBag size={20} strokeWidth={3} className="text-primary" />
+            <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">The Village Exchange</span>
           </div>
           
-          <form className="market-search-bar" onSubmit={handleSearch}>
-            <Search className="search-icon" size={20} />
+          <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none mb-10 italic uppercase">
+            Campus <span className="text-primary">Bazaar</span>
+          </h1>
+          
+          <p className="text-black font-bold max-w-2xl text-lg leading-relaxed italic opacity-60">
+            A safe, high-frequency space for campus trading. Re-synchronize your belongings with the village.
+          </p>
+          
+          <form className="w-full max-w-4xl mt-20 relative group" onSubmit={handleSearch}>
+            <div className="absolute inset-y-0 left-8 flex items-center pointer-events-none transition-colors group-focus-within:text-primary">
+              <Search className="text-black/10" size={28} strokeWidth={4} />
+            </div>
             <input 
               type="text" 
-              placeholder="Search for books, tech, housing..."
+              placeholder="Scan for available signals..."
+              className="w-full h-24 bg-white/80 backdrop-blur-3xl border border-white rounded-[40px] pl-20 pr-52 outline-none focus:bg-white focus:border-primary transition-all font-black text-xl text-black placeholder:text-black/10 shadow-2xl shadow-primary/5 italic"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button type="submit">Search</button>
+            <button 
+              type="submit"
+              className="absolute right-4 top-4 bottom-4 bg-primary text-white px-12 rounded-[28px] font-black text-sm uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-2xl shadow-primary/30 italic"
+            >
+              Search
+            </button>
           </form>
         </header>
 
-        <div className="market-main-grid">
-          <aside className="market-sidebar">
-            <div className="sidebar-section">
-              <h3 className="section-title">Categories</h3>
-              <div className="category-list">
+        <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-16">
+          {/* Sidebar */}
+          <aside className="flex flex-col gap-12 animate-fade-in">
+            <div className="bg-white/80 backdrop-blur-3xl border border-white rounded-[48px] p-10 shadow-xl shadow-primary/5">
+              <h3 className="text-[10px] font-black text-pink-600 uppercase tracking-[0.4em] mb-8 italic">Categories</h3>
+              <div className="space-y-4">
                 {categories.map(cat => (
                   <button 
                     key={cat.id}
-                    className={`cat-item ${category === cat.id ? 'active' : ''}`}
+                    className={`w-full flex items-center gap-5 px-6 py-5 rounded-3xl font-black text-sm transition-all duration-500 italic uppercase tracking-wider ${category === cat.id ? 'bg-primary text-white shadow-2xl shadow-primary/30 scale-105' : 'bg-white/40 text-black/20 hover:bg-white hover:text-black hover:shadow-xl'}`}
                     onClick={() => setCategory(cat.id)}
                   >
-                    {cat.icon}
-                    <span>{cat.label}</span>
+                    <span className={category === cat.id ? 'text-white' : 'text-primary'}>{cat.icon}</span>
+                    {cat.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="sidebar-section">
-              <h3 className="section-title">Campus</h3>
-              <div className="category-list">
+            <div className="bg-white/80 backdrop-blur-3xl border border-white rounded-[48px] p-10 shadow-xl shadow-primary/5">
+              <h3 className="text-[10px] font-black text-pink-600 uppercase tracking-[0.4em] mb-8 italic">Frequency (Campus)</h3>
+              <div className="space-y-4">
                 {[
-                  { id: 'all', label: 'All Campuses' },
-                  { id: 'Main Campus', label: 'Main Campus' },
-                  { id: 'North Campus', label: 'North Campus' },
-                  { id: 'South Campus', label: 'South Campus' }
+                  { id: 'all', label: 'All Signals' },
+                  { id: 'Main Campus', label: 'Main Pulse' },
+                  { id: 'North Campus', label: 'North Node' },
+                  { id: 'South Campus', label: 'South Node' }
                 ].map(c => (
                   <button 
                     key={c.id}
-                    className={`cat-item ${campus === c.id ? 'active' : ''}`}
+                    className={`w-full flex items-center justify-between px-6 py-5 rounded-3xl font-black text-sm transition-all duration-500 italic uppercase tracking-widest ${campus === c.id ? 'bg-primary/5 text-primary border border-primary/10 shadow-inner' : 'text-black/20 hover:bg-white/60 hover:text-black'}`}
                     onClick={() => setCampus(c.id)}
                   >
-                    <span>{c.label}</span>
+                    {c.label}
+                    {campus === c.id && <ChevronRight size={18} strokeWidth={4} />}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="safety-card premium-card">
-              <ShieldCheck className="safety-icon" size={32} />
-              <h4>Safe Trading</h4>
-              <p>Meet in public campus areas and verify items before paying.</p>
+
+            <div className="bg-black text-white rounded-[48px] p-12 relative overflow-hidden shadow-2xl group cursor-default">
+               <div className="absolute -top-12 -right-12 text-primary/20 transition-transform duration-700 group-hover:rotate-12">
+                <ShieldCheck size={200} strokeWidth={1} />
+               </div>
+               <h4 className="text-3xl font-black mb-6 relative z-10 italic uppercase tracking-tighter">Safe Sync</h4>
+               <p className="text-xs font-bold text-white/40 leading-loose relative z-10 uppercase tracking-widest">
+                Always establish synchronization in public village slots. Verify signal credentials before exchange.
+               </p>
             </div>
           </aside>
 
-          <section className="market-listings">
-            <div className="listings-header">
-              <h2>{categories.find(c => c.id === category)?.label}</h2>
-              <button className="sell-btn-premium" onClick={() => {
-                const { setActiveModal } = useModalStore.getState();
-                setActiveModal('listing');
-              }}>
-                <Plus size={18} /> Sell Something
+          {/* Main Listings */}
+          <section className="flex flex-col gap-16 pb-48">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8 px-6">
+              <div className="flex items-center gap-4">
+                 <div className="w-2 h-10 bg-primary rounded-full"></div>
+                 <h2 className="text-4xl font-black text-black uppercase tracking-tighter italic">
+                   {categories.find(c => c.id === category)?.label} Pulse
+                 </h2>
+              </div>
+              <button 
+                className="flex items-center gap-4 px-10 py-5 bg-primary text-white rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.05] transition-all active:scale-95 italic" 
+                onClick={() => {
+                  const { setActiveModal } = useModalStore.getState();
+                  setActiveModal('listing');
+                }}
+              >
+                <Plus size={22} strokeWidth={4} /> Transmit Item
               </button>
             </div>
 
             {loading ? (
-              <div className="loader-container">
-                <div className="spinner"></div>
-                <p>Loading marketplace...</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="aspect-[4/5] bg-white/40 border-4 border-dashed border-white rounded-[48px] animate-pulse" />
+                ))}
               </div>
             ) : (
-              <div className="listings-grid">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 {listings.length > 0 ? (
                   listings.map((item: Listing) => (
-                    <div key={item.listing_id} className="market-card premium-card" onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}>
-                      <div className="card-media">
-                        <img src={item.image_url || '/uploads/defaults/no-image.png'} alt={item.title} />
-                        <div className="price-tag">KSh {item.price}</div>
-                        <div className="condition-label">{item.condition || 'Used'}</div>
+                    <div 
+                      key={item.listing_id} 
+                      className="bg-white/80 backdrop-blur-3xl border border-white group hover:scale-[1.03] transition-all duration-700 cursor-pointer flex flex-col rounded-[48px] overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-primary/5 relative animate-fade-in" 
+                      onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden m-3 rounded-[38px] shadow-sm border border-black/5">
+                        <img 
+                          src={item.image_url || '/uploads/defaults/no-image.png'} 
+                          alt={item.title} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                        />
+                        <div className="absolute top-5 right-5 bg-black/80 backdrop-blur-xl text-white px-6 py-3 rounded-2xl text-lg font-black shadow-2xl border border-white/20 italic">
+                          KSh {item.price}
+                        </div>
                       </div>
-                      <div className="card-info">
-                        <h3 className="title">{item.title}</h3>
-                        <p className="description">{item.description}</p>
-                        <div className="card-footer">
-                          <div className="seller">
-                            <img src={item.seller_avatar || '/uploads/avatars/default.png'} alt="" />
-                            <span>{item.seller_name || 'Seller'}</span>
+                      
+                      <div className="p-10 flex flex-col flex-1">
+                        <h3 className="text-2xl font-black text-black mb-4 group-hover:text-primary transition-colors duration-500 uppercase tracking-tighter italic leading-none">
+                          {item.title}
+                        </h3>
+                        <p className="text-base text-black font-semibold leading-relaxed mb-8 line-clamp-2 italic opacity-60">
+                          {item.description}
+                        </p>
+                        
+                        <div className="mt-auto flex items-center justify-between pt-8 border-t border-black/[0.03]">
+                          <div className="flex items-center gap-4">
+                            <div className="p-1 rounded-2xl bg-white shadow-lg border border-black/5">
+                               <img src={item.seller_avatar || '/uploads/avatars/default.png'} className="w-10 h-10 rounded-xl object-cover" alt="" />
+                            </div>
+                            <div className="flex flex-col">
+                               <p className="text-[10px] font-black text-black uppercase tracking-widest italic">{item.seller_name || 'Incognito'}</p>
+                               <p className="text-[8px] font-bold text-black/20 uppercase tracking-[0.3em] mt-1 italic">Verified Signal</p>
+                            </div>
                           </div>
-                          <ChevronRight size={16} />
+                          <div className="w-12 h-12 bg-primary/5 text-primary rounded-[18px] flex items-center justify-center scale-0 group-hover:scale-100 transition-all shadow-sm border border-primary/10">
+                            <ChevronRight size={22} strokeWidth={4} />
+                          </div>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="empty-state">
-                    <div className="empty-icon">🏜️</div>
-                    <h3>Nothing here yet</h3>
-                    <p>Try a different category or be the first to sell!</p>
+                  <div className="col-span-full py-48 flex flex-col items-center gap-12 text-center bg-white/20 border-4 border-dashed border-white rounded-[56px] shadow-inner animate-fade-in px-10">
+                    <Orbit size={140} strokeWidth={1} className="text-black/5 animate-spin-slow" />
+                    <div className="space-y-6">
+                      <h3 className="text-5xl font-black text-black/20 italic uppercase tracking-tighter leading-none">Quiet Frequency.</h3>
+                      <p className="text-[11px] font-black text-black/30 uppercase tracking-[0.4em] max-w-xs mx-auto leading-loose italic">No commercial signals detected in this sector. Amplify the first listing!</p>
+                      <button 
+                        onClick={() => {
+                          const { setActiveModal } = useModalStore.getState();
+                          setActiveModal('listing');
+                        }}
+                        className="mt-6 px-12 py-6 bg-primary text-white rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.05] transition-all italic"
+                      >
+                         Initialize Listing
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -184,71 +249,11 @@ export default function Marketplace() {
       </div>
 
       <style>{`
-        .page-wrapper { display: flex; background: #f8fafc; min-height: 100vh; }
-        .market-layout { flex: 1; overflow-y: auto; padding: 40px 20px 100px; }
-        
-        .market-hero { max-width: 1200px; margin: 0 auto 40px; display: flex; flex-direction: column; align-items: center; text-align: center; }
-        .hero-badge { display: flex; align-items: center; gap: 8px; background: rgba(255,107,139,0.1); color: var(--primary); padding: 8px 16px; border-radius: 20px; font-weight: 800; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 20px; }
-        .market-hero h1 { font-size: 3rem; font-weight: 900; margin: 0 0 10px; color: #0f172a; letter-spacing: -1px; }
-        .market-hero p { color: #64748b; font-size: 1.1rem; max-width: 600px; margin-bottom: 30px; }
-
-        .market-search-bar { width: 100%; max-width: 700px; background: white; border-radius: 24px; display: flex; align-items: center; padding: 8px 8px 8px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); }
-        .search-icon { color: #94a3b8; }
-        .market-search-bar input { flex: 1; border: none; outline: none; padding: 12px 16px; font-size: 1rem; font-family: inherit; }
-        .market-search-bar button { background: var(--primary-gradient); color: white; border: none; padding: 12px 30px; border-radius: 18px; font-weight: 800; cursor: pointer; transition: 0.2s; }
-        .market-search-bar button:hover { transform: scale(1.02); }
-
-        .market-main-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 280px 1fr; gap: 40px; }
-
-        .market-sidebar { display: flex; flex-direction: column; gap: 30px; }
-        .section-title { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-left: 12px; }
-        .category-list { display: flex; flex-direction: column; gap: 6px; }
-        .cat-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 16px; border: none; background: transparent; color: #64748b; font-weight: 700; font-size: 0.95rem; text-align: left; cursor: pointer; transition: 0.2s; }
-        .cat-item:hover { background: white; color: var(--primary); }
-        .cat-item.active { background: white; color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-
-        .safety-card { background: var(--primary-gradient); color: white; padding: 30px 24px; border: none; }
-        .safety-icon { margin-bottom: 16px; opacity: 0.9; }
-        .safety-card h4 { font-size: 1.1rem; font-weight: 800; margin: 0 0 10px; }
-        .safety-card p { font-size: 0.85rem; opacity: 0.8; line-height: 1.5; margin: 0; }
-
-        .market-listings { flex: 1; }
-        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .listings-header h2 { font-size: 1.5rem; font-weight: 900; color: #0f172a; }
-        .sell-btn-premium { display: flex; align-items: center; gap: 8px; border: 2px solid #e2e8f0; background: white; padding: 10px 20px; border-radius: 14px; font-weight: 800; font-size: 0.9rem; color: #1e293b; cursor: pointer; transition: 0.2s; }
-        .sell-btn-premium:hover { border-color: var(--primary); color: var(--primary); }
-
-        .listings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
-        .market-card { cursor: pointer; padding: 0; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
-        .card-media { position: relative; height: 200px; background: #f1f5f9; }
-        .card-media img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
-        .market-card:hover .card-media img { transform: scale(1.1); }
-        .price-tag { position: absolute; bottom: 12px; right: 12px; background: white; color: #059669; font-weight: 900; font-size: 1.1rem; padding: 6px 14px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
-        .condition-label { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); color: white; font-size: 0.7rem; font-weight: 800; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
-
-        .card-info { padding: 20px; flex: 1; display: flex; flex-direction: column; }
-        .card-info .title { font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0 0 8px; line-clamp: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-        .card-info .description { font-size: 0.85rem; color: #64748b; line-height: 1.4; margin-bottom: 20px; flex: 1; line-clamp: 2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        
-        .card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #f1f5f9; color: #94a3b8; }
-        .card-footer .seller { display: flex; align-items: center; gap: 8px; }
-        .card-footer .seller img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
-        .card-footer .seller span { font-size: 0.75rem; font-weight: 700; color: #64748b; }
-
-        .empty-state { grid-column: 1 / -1; height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: white; border-radius: 24px; border: 2px dashed #e2e8f0; }
-        .empty-icon { font-size: 4rem; margin-bottom: 20px; opacity: 0.3; }
-        .empty-state h3 { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0; }
-        .empty-state p { color: #94a3b8; }
-
-        .loader-container { grid-column: 1 / -1; height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f1f5f9; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        @media (max-width: 1024px) {
-          .market-main-grid { grid-template-columns: 1fr; }
-          .market-sidebar { display: none; }
-          .market-hero h1 { font-size: 2rem; }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .animate-spin-slow { animation: spin 15s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

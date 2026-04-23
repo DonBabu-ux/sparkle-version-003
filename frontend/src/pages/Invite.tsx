@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Share2, Copy, Check, MessageCircle, Mail, Send, Smartphone } from 'lucide-react';
+import { ArrowLeft, Share2, Copy, Check, MessageCircle, Mail, Send, Smartphone, Sparkles, Orbit, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 
 export default function Invite() {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
-  const inviteLink = "https://sparkle.app/join/ref=donbabu";
-  const inviteMessage = `Let’s connect on Sparkle — fast, lightweight, and saves data. Download here: ${inviteLink}`;
+  const inviteLink = "https://sparkle.app/join/ref=village_node";
+  const inviteMessage = `Join the village frequency on Sparkle — fast, high-fidelity, and saves data. Sync here: ${inviteLink}`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(inviteMessage);
@@ -19,12 +19,12 @@ export default function Invite() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join Sparkle',
+          title: 'Synchronize with Sparkle',
           text: inviteMessage,
           url: inviteLink,
         });
       } catch (err) {
-        console.error('Share failed:', err);
+        console.error('Transmission failed:', err);
       }
     } else {
       copyToClipboard();
@@ -35,124 +35,134 @@ export default function Invite() {
     { name: 'WhatsApp', icon: MessageCircle, color: '#25D366', action: () => window.open(`https://wa.me/?text=${encodeURIComponent(inviteMessage)}`) },
     { name: 'Telegram', icon: Send, color: '#0088cc', action: () => window.open(`https://t.me/share/url?url=${inviteLink}&text=${encodeURIComponent(inviteMessage)}`) },
     { name: 'Messenger', icon: MessageCircle, color: '#0084FF', action: () => window.open(`fb-messenger://share/?link=${encodeURIComponent(inviteLink)}`) },
-    { name: 'Email', icon: Mail, color: '#EA4335', action: () => window.open(`mailto:?subject=Join me on Sparkle&body=${encodeURIComponent(inviteMessage)}`) }
+    { name: 'Email', icon: Mail, color: '#EA4335', action: () => window.open(`mailto:?subject=Join the village on Sparkle&body=${encodeURIComponent(inviteMessage)}`) }
   ];
 
   return (
-    <div className="invite-root">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
-      <div className="invite-content">
-        <div className="invite-container responsive-container">
-          <header className="invite-header">
-            <button onClick={() => navigate(-1)} className="back-btn">
-              <ArrowLeft size={24} />
-            </button>
-            <div className="header-info">
-              <h1>Invite Friends</h1>
-              <p>Grow your Sparkle circle and earn premium rewards.</p>
-            </div>
-          </header>
 
-          <div className="invite-main">
-            <div className="invite-hero-card responsive-card">
-              <div className="hero-icon">
-                <Share2 size={48} className="text-white" />
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pt-16 md:pt-12">
+        {/* Header */}
+        <header className="mb-24 animate-fade-in px-4">
+           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+              <div className="max-w-3xl space-y-8">
+                 <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
+                    <Share2 size={18} strokeWidth={3} className="text-primary" />
+                    <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Amplify Signal</span>
+                 </div>
+                 <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
+                    Invite <span className="text-primary">Neighbors</span>
+                 </h1>
+                  <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic max-w-2xl">
+                    Grow your village orbit. Everything is better when the frequency is shared.
+                  </p>
               </div>
-              <h2>Everything is better with friends</h2>
-              <p>Sparkle is fast, lightweight, and saves data. Perfect for campus life!</p>
-            </div>
+              
+              <button 
+                onClick={() => navigate(-1)}
+                className="w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all"
+              >
+                <ArrowLeft size={28} strokeWidth={4} />
+              </button>
+           </div>
+        </header>
 
-            <div className="invite-link-section">
-              <h3 className="section-title">Your Personal Link</h3>
-              <div className="link-box responsive-card">
-                <div className="link-text truncate">{inviteLink}</div>
-                <button onClick={copyToClipboard} className={`copy-btn ${copied ? 'copied' : ''}`}>
-                  {copied ? <Check size={18} /> : <Copy size={18} />}
-                  <span>{copied ? 'Copied' : 'Copy'}</span>
+        <div className="space-y-16 animate-fade-in">
+          {/* Hero Card */}
+          <section className="bg-black text-white rounded-[56px] p-16 shadow-2xl shadow-primary/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 blur-[100px] pointer-events-none transition-opacity group-hover:opacity-100 opacity-60"></div>
+            <div className="relative z-10 flex flex-col md:flex-row items-center gap-12 text-center md:text-left">
+              <div className="w-24 h-24 rounded-[32px] bg-white text-black flex items-center justify-center shadow-2xl transform group-hover:rotate-12 transition-transform duration-700">
+                <Sparkles size={40} strokeWidth={3} className="text-primary" />
+              </div>
+              <div className="flex-1 space-y-4">
+                <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Shared Harmonics</h2>
+                <p className="text-lg font-bold text-white/50 italic max-w-md">Sparkle is fast, high-fidelity, and optimized for campus networks. Sync your circle today!</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Link Section */}
+          <section className="bg-white/80 backdrop-blur-3xl rounded-[48px] p-10 md:p-12 shadow-2xl shadow-primary/5 border border-white">
+             <h3 className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-8 mb-8 italic">Transmission ID</h3>
+             <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex-1 bg-black/5 rounded-[28px] h-20 px-10 flex items-center shadow-inner border border-black/5">
+                   <span className="text-lg font-black text-black opacity-40 italic truncate">{inviteLink}</span>
+                </div>
+                <button 
+                  onClick={copyToClipboard} 
+                  className={`px-12 h-20 rounded-[28px] font-black text-sm uppercase tracking-[0.2em] italic flex items-center justify-center gap-4 transition-all duration-500 shadow-2xl ${copied ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-primary text-white shadow-primary/30 hover:scale-105 active:scale-95'}`}
+                >
+                  {copied ? <Check size={24} strokeWidth={4} /> : <Copy size={24} strokeWidth={4} />}
+                  <span>{copied ? 'Synced' : 'Clone'}</span>
                 </button>
-              </div>
-            </div>
+             </div>
+          </section>
 
-            <div className="share-methods">
-              <h3 className="section-title">Share via</h3>
-              <div className="methods-grid">
+          {/* Share Grid */}
+          <section>
+             <h3 className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-8 mb-10 italic">Broadcast Channels</h3>
+             <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
                 {shareOptions.map(option => (
-                  <button key={option.name} className="method-item group" onClick={option.action}>
-                    <div className="method-icon" style={{ backgroundColor: option.color }}>
-                      <option.icon size={24} className="text-white" />
+                  <button key={option.name} className="flex flex-col items-center gap-6 p-8 bg-white/60 backdrop-blur-3xl border border-white rounded-[40px] shadow-xl shadow-primary/5 group hover:scale-[1.05] transition-all duration-500 hover:shadow-primary/10 active:scale-95" onClick={option.action}>
+                    <div className="w-16 h-16 rounded-[22px] flex items-center justify-center shadow-xl transition-all duration-500 group-hover:rotate-6 text-white" style={{ backgroundColor: option.color }}>
+                      <option.icon size={28} strokeWidth={3} />
                     </div>
-                    <span>{option.name}</span>
+                    <span className="text-[10px] font-black text-black/40 uppercase tracking-[0.2em] italic group-hover:text-black transition-colors">{option.name}</span>
                   </button>
                 ))}
-                <button className="method-item group" onClick={handleNativeShare}>
-                  <div className="method-icon bg-slate-800">
-                    <Smartphone size={24} className="text-white" />
+                <button className="flex flex-col items-center gap-6 p-8 bg-black text-white rounded-[40px] shadow-2xl shadow-black/10 group hover:scale-[1.05] transition-all duration-500 active:scale-95" onClick={handleNativeShare}>
+                  <div className="w-16 h-16 rounded-[22px] bg-white/10 flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform">
+                    <Smartphone size={28} strokeWidth={3} className="text-primary" />
                   </div>
-                  <span>System Share</span>
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] italic group-hover:text-white transition-colors">Aura</span>
                 </button>
-              </div>
-            </div>
+             </div>
+          </section>
 
-            <div className="invite-rewards">
-              <h3 className="section-title">Grow & Earn</h3>
-              <div className="rewards-card responsive-card">
-                <div className="reward-item">
-                  <div className="reward-circle">1</div>
-                  <p>Send your link to 5 friends</p>
+          {/* Rewards */}
+          <section className="bg-white/80 backdrop-blur-3xl rounded-[56px] p-12 md:p-16 border border-white shadow-2xl shadow-primary/5">
+             <div className="flex items-center gap-6 mb-12">
+                <div className="w-14 h-14 bg-primary/5 rounded-[22px] flex items-center justify-center text-primary animate-pulse">
+                   <Sparkles size={28} strokeWidth={3} />
                 </div>
-                <div className="reward-item">
-                  <div className="reward-circle">2</div>
-                  <p>Wait for them to join Sparkle</p>
-                </div>
-                <div className="reward-item">
-                  <div className="reward-circle">3</div>
-                  <p>Unlock <strong>Sparkle Plus</strong> for 1 month!</p>
-                </div>
-              </div>
-            </div>
-          </div>
+                <h3 className="text-4xl font-black text-black uppercase tracking-tighter italic">Grow & Earn</h3>
+             </div>
+             
+             <div className="space-y-8 px-4">
+                {[
+                  "Propagate link to 5 neighbors",
+                  "Wait for node synchronization",
+                  "Unlock Sparkle Plus for 30 cycles"
+                ].map((step, i) => (
+                  <div key={i} className="flex items-center gap-8 group">
+                    <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-black italic shadow-xl group-hover:bg-primary transition-all">
+                       {i + 1}
+                    </div>
+                    <span className="text-xl font-black text-black opacity-30 group-hover:opacity-100 group-hover:translate-x-3 transition-all italic uppercase tracking-tighter">{step}</span>
+                  </div>
+                ))}
+             </div>
+             
+             <div className="mt-16 w-full py-8 bg-black/5 rounded-[32px] flex items-center justify-center gap-6 group cursor-pointer hover:bg-black hover:text-white transition-all duration-700">
+                <Orbit size={24} strokeWidth={4} className="text-primary animate-spin-slow" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] italic">Check Status Board</span>
+                <ChevronRight size={20} strokeWidth={4} className="group-hover:translate-x-3 transition-transform" />
+             </div>
+          </section>
         </div>
-      </div>
+      </main>
 
       <style>{`
-        .invite-root { display: flex; background: #F0F2F5; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .invite-content { flex: 1; height: 100vh; overflow-y: auto; padding: 20px; }
-        .invite-container { max-width: 600px; margin: 40px auto; padding-bottom: 100px; }
-        .invite-header { display: flex; gap: 20px; margin-bottom: 40px; align-items: flex-start; }
-        .back-btn { background: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e293b; shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s; }
-        .back-btn:active { transform: scale(0.9); }
-        .header-info h1 { font-size: 2.2rem; font-weight: 800; color: #0f172a; margin-bottom: 8px; font-family: 'Outfit', sans-serif; }
-        .header-info p { color: #64748b; font-size: 1.1rem; line-height: 1.5; }
-
-        .invite-hero-card { background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%); border-radius: 28px; padding: 40px; text-align: center; color: white; margin-bottom: 40px; box-shadow: 0 20px 40px rgba(255, 61, 109, 0.2); }
-        .hero-icon { width: 80px; height: 80px; border-radius: 24px; background: rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; backdrop-filter: blur(10px); }
-        .invite-hero-card h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 12px; }
-        .invite-hero-card p { opacity: 0.9; line-height: 1.6; }
-
-        .section-title { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-left: 8px; }
-        .link-box { display: flex; background: white; border-radius: 20px; padding: 10px; border: 1.5px solid #e2e8f0; align-items: center; margin-bottom: 40px; }
-        .link-text { flex: 1; padding: 0 15px; color: #1e293b; font-weight: 600; font-size: 0.9rem; }
-        .copy-btn { display: flex; align-items: center; gap: 8px; background: #1e293b; color: white; border: none; padding: 12px 20px; border-radius: 14px; font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
-        .copy-btn.copied { background: #10b981; }
-        .copy-btn:hover { transform: scale(1.05); }
-
-        .methods-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 16px; margin-bottom: 40px; }
-        .method-item { display: flex; flex-direction: column; align-items: center; gap: 10px; background: white; border: none; padding: 20px 10px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: 1px solid #f1f5f9; }
-        .method-item:hover { transform: translateY(-5px); border-color: #e2e8f0; }
-        .method-icon { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
-        .method-item:hover .method-icon { transform: scale(1.1); }
-        .method-item span { font-size: 0.75rem; font-weight: 800; color: #64748b; }
-
-        .rewards-card { background: white; border-radius: 24px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 20px; }
-        .reward-item { display: flex; align-items: center; gap: 16px; }
-        .reward-circle { width: 32px; height: 32px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0; }
-        .reward-item p { color: #1e293b; font-weight: 700; font-size: 0.95rem; }
-        .reward-item strong { color: #FF3D6D; }
-
-        @media (max-width: 480px) {
-          .methods-grid { grid-template-columns: repeat(3, 1fr); }
-          .invite-hero-card { padding: 30px 20px; }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 15s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

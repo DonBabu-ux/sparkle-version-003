@@ -1,715 +1,224 @@
-<meta charset="UTF-8">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log In | Sparkle</title>
-    <script>
-        // Check if we arrived here due to a server redirect (e.g. expired token)
-        // We clean up the URL to avoid user confusion
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const isAddAccount = urlParams.has('add_account');
-
-            // ── MULTI-ACCOUNT: Save current session BEFORE clearing it ──────────
-            // When adding a new account, back up Account A into sparkleAccounts
-            // so we can switch back to it later.
-            (function backupCurrentSession() {
-                try {
-                    const token = localStorage.getItem('sparkleToken');
-                    const userJson = localStorage.getItem('sparkleUser');
-                    if (!token || !userJson) return;
-
-                    const user = JSON.parse(userJson);
-                    const userId = user.user_id || user.id;
-                    if (!userId) return;
-
-                    const accounts = JSON.parse(localStorage.getItem('sparkleAccounts') || '[]');
-                    const existingIdx = accounts.findIndex(a => String(a.userId) === String(userId));
-                    const acctObj = {
-                        userId: userId,
-                        username: user.username,
-                        avatar: user.avatar_url || '/uploads/avatars/default.png',
-                        token: token
-                    };
-
-                    if (existingIdx >= 0) {
-                        accounts[existingIdx] = acctObj; // refresh token
-                    } else {
-                        accounts.push(acctObj);
-                    }
-                    localStorage.setItem('sparkleAccounts', JSON.stringify(accounts));
-                    console.log('[MultiAccount] Backed up current session before login. Accounts:', accounts.map(a => a.username));
-                } catch (e) {
-                    console.warn('[MultiAccount] Failed to back up session:', e);
-                }
-            })();
-            // ────────────────────────────────────────────────────────────────────
-
-            if (urlParams.has('reason')) {
-                // Determine reason message
-                const reason = urlParams.get('reason');
-                let message = 'Please log in to continue.';
-                if (reason === 'no_token') message = 'Your session has expired. Please log in again.';
-                
-                // Show message to user
-                const el = document.getElementById('login-message');
-                if (el) {
-                    el.textContent = message;
-                    el.className = 'auth-message error show';
-                }
-                
-                // Clean the URL without causing a reload
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-            
-            // If user has a saved token but server redirected, clear local storage to sync state
-            if (urlParams.has('reason')) {
-                localStorage.removeItem('sparkleToken');
-                localStorage.removeItem('sparkleUser');
-            } else if (!isAddAccount && localStorage.getItem('sparkleToken')) {
-                // Only auto-redirect if there wasn't a server auth failure and not adding an account
-                // window.location.href = '/dashboard'; // Disabled to prevent any loop possibilities
-            }
-
-            // Show banner when adding a new account
-            if (isAddAccount) {
-                const el = document.getElementById('login-message');
-                if (el) {
-                    el.textContent = 'Log into another account. Your current account is saved.';
-                    el.className = 'auth-message success show';
-                }
-            }
-        });
-    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap');
         body {
-            background-color: #FAFAFA;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-            opacity: 0;
-            animation: pageFadeIn 0.4s ease-out forwards;
-        }
-
-        @keyframes pageFadeIn {
-            from {
-                opacity: 0;
-                background-color: #ffe6f0;
-            }
-
-            to {
-                opacity: 1;
-                background-color: #FAFAFA;
-            }
-        }
-
-        .auth-container {
-            display: flex;
-            max-width: 1000px;
-            width: 100%;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .visual-side {
-            flex: 1;
-            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
-            padding: 60px 40px;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .auth-logo-container {
-            margin-bottom: 40px;
-        }
-
-        .auth-logo {
-            font-size: 48px;
-            font-weight: 800;
-            margin-bottom: 16px;
-        }
-
-        .auth-tagline {
-            font-size: 18px;
-            opacity: 0.95;
-            line-height: 1.5;
-        }
-
-        .features-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .features-list li {
-            padding: 12px 0;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .features-list i {
-            font-size: 20px;
-        }
-
-        .form-side {
-            flex: 1;
-            padding: 60px 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .panel-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .panel-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: #262626;
-            margin-bottom: 8px;
-        }
-
-        .panel-subtitle {
-            color: #8E8E8E;
-            font-size: 14px;
-        }
-
-        .auth-message {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .auth-message.show {
-            display: block;
-        }
-
-        .auth-message.error {
-            background: #fee;
-            color: #c33;
-            border: 1px solid #fcc;
-        }
-
-        .auth-message.success {
-            background: #efe;
-            color: #3c3;
-            border: 1px solid #cfc;
-        }
-
-        .auth-form-group {
-            margin-bottom: 20px;
-        }
-
-        .auth-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #262626;
-            font-size: 14px;
-        }
-
-        .input-with-icon {
-            position: relative;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #8E8E8E;
-        }
-
-        .auth-input {
-            width: 100%;
-            padding: 12px 12px 12px 40px;
-            border: 1px solid #DBDBDB;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .auth-input:focus {
-            outline: none;
-            border-color: #FF3D6D;
-        }
-
-        .btn-auth-primary {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .btn-auth-primary:hover {
-            opacity: 0.9;
-        }
-
-        .btn-auth-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .auth-divider {
-            display: flex;
-            align-items: center;
-            margin: 24px 0;
-            color: #8E8E8E;
-            font-size: 13px;
-        }
-
-        .auth-divider::before,
-        .auth-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #DBDBDB;
-        }
-
-        .auth-divider span {
-            padding: 0 16px;
-        }
-
-        .social-login {
-            margin-bottom: 20px;
-        }
-
-        .social-btn {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #DBDBDB;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
-
-        .social-btn:hover {
-            background: #f9f9f9;
-        }
-
-        .social-icon {
-            font-size: 18px;
-        }
-
-        .google-icon {
-            color: #4285f4;
-        }
-
-        .auth-link {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #8E8E8E;
-        }
-
-        .auth-link a {
-            color: #FF3D6D;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .auth-link a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-                align-items: flex-start;
-            }
-
-            .auth-container {
-                flex-direction: column;
-                box-shadow: none;
-                background: transparent;
-            }
-
-            .visual-side {
-                display: none;
-            }
-
-            .form-side {
-                background: white;
-                border-radius: 12px;
-                padding: 40px 20px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            }
-
-            .panel-title {
-                font-size: 24px;
-            }
-        }
-
-        /* 2FA PIN Styles */
-        .twofa-section {
-            display: none;
-            text-align: center;
-        }
-
-        .twofa-section.active {
-            display: block;
-            animation: slideIn 0.4s ease-out;
-        }
-
-        .pin-container {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin: 30px 0;
-        }
-
-        .pin-input-field {
-            width: 45px;
-            height: 55px;
-            border: 2px solid #DBDBDB;
-            border-radius: 10px;
-            font-size: 24px;
-            font-weight: 700;
-            text-align: center;
-            color: #262626;
-            transition: all 0.2s;
-        }
-
-        .pin-input-field:focus {
-            border-color: #FF3D6D;
-            box-shadow: 0 0 0 4px rgba(255, 61, 109, 0.1);
-            outline: none;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            font-family: 'Nunito Sans', sans-serif;
+            background-color: #fce7f3;
         }
     </style>
-
-    <div class="auth-container">
-        <!-- Left Side: Visual/Image -->
-        <div class="visual-side">
-            <div class="auth-logo-container">
-                <div class="auth-logo">Sparkle</div>
-                <p class="auth-tagline">Connect with friends and the world around you on Sparkle.</p>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8">
+    <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
+        
+        <!-- Left: Branding (Facebook Style) -->
+        <div class="text-center lg:text-left space-y-6 animate-fade-in">
+            <h1 class="text-6xl lg:text-7xl font-black text-pink-600 tracking-tighter italic uppercase border-b-8 border-pink-400 inline-block">SPARKLE</h1>
+            <p class="text-2xl lg:text-4xl font-bold text-pink-900 leading-tight max-w-lg mt-4">
+                Sparkle helps you connect and share with the people in your life.
+            </p>
+            <div class="hidden lg:flex flex-col gap-6 mt-12">
+                <div class="flex items-center gap-5 text-pink-800 font-bold text-lg">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-pink-500 shadow-lg">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <span>Share your pink moments and glow together.</span>
+                </div>
+                <div class="flex items-center gap-5 text-pink-800 font-bold text-lg">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-pink-500 shadow-lg">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <span>Build lasting friendships across campus.</span>
+                </div>
             </div>
-
-            <ul class="features-list">
-                <li><i class="fas fa-images"></i> See photos and updates</li>
-                <li><i class="fas fa-hashtag"></i> Follow interests</li>
-                <li><i class="fas fa-comment-dots"></i> Join the conversation</li>
-            </ul>
         </div>
 
-        <!-- Right Side: Form -->
-        <div class="form-side">
-            <div class="panel-header">
-                <h1 class="panel-title">Welcome Back</h1>
-                <p class="panel-subtitle">Log in to your account.</p>
-            </div>
+        <!-- Right: Login Card -->
+        <div class="w-full max-w-[420px] mx-auto lg:mx-0">
+            <div class="bg-white p-8 rounded-2xl shadow-2xl border border-white/50 space-y-6">
+                <!-- Message Box -->
+                <div id="login-message" class="hidden p-3 rounded-xl text-center font-bold text-sm border-2 animate-fade-in"></div>
 
-            <div id="login-message" class="auth-message"></div>
+                <form id="loginForm" class="space-y-4">
+                    <input type="text" id="login-email" 
+                        class="w-full p-4 bg-pink-50 border-2 border-pink-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-pink-200 transition-all font-bold text-pink-900 placeholder:text-pink-300"
+                        placeholder="Email or username" required>
+                    
+                    <input type="password" id="login-password" 
+                        class="w-full p-4 bg-pink-50 border-2 border-pink-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-pink-200 transition-all font-bold text-pink-900 placeholder:text-pink-300"
+                        placeholder="Password" required>
+                    
+                    <button type="submit" id="login-submit"
+                        class="w-full p-4 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-black text-xl transition-all active:scale-95 shadow-xl shadow-pink-200 uppercase tracking-widest">
+                        Log In
+                    </button>
 
-            <form id="loginForm">
-                <div class="auth-form-group">
-                    <label class="auth-label" for="login-email">Username or Email</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-user input-icon"></i>
-                        <input type="text" id="login-email" class="auth-input" placeholder="Phone, username, or email"
-                            required>
+                    <div class="text-center">
+                        <a href="/forgot-password" class="text-pink-600 hover:underline text-sm font-bold tracking-tight">Forgotten password?</a>
                     </div>
-                </div>
 
-                <div class="auth-form-group">
-                    <label class="auth-label" for="login-password">Password</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-lock input-icon"></i>
-                        <input type="password" id="login-password" class="auth-input" placeholder="Password" required>
+                    <div class="border-t border-pink-100 my-8"></div>
+
+                    <div class="text-center pt-2">
+                        <a href="/signup" 
+                            class="inline-block px-10 py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-lg transition-all active:scale-95 shadow-xl shadow-emerald-100 uppercase tracking-widest">
+                            Create New Account
+                        </a>
                     </div>
-                </div>
+                </form>
 
-                <div class="auth-form-group">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center;">
-                            <input type="checkbox" id="remember-me" style="margin-right: 8px;">
-                            <label for="remember-me" style="font-size: 13px; color: #262626;">Remember
-                                me</label>
-                        </div>
-                        <a href="#" style="font-size: 13px; color: #0095F6; text-decoration: none;">Forgot
-                            password?</a>
+                <!-- 2FA Section (Hidden by default) -->
+                <div id="twofaSection" class="hidden space-y-8 text-center animate-fade-in">
+                    <div class="w-24 h-24 bg-pink-100 rounded-[32px] flex items-center justify-center text-pink-600 mx-auto shadow-inner">
+                        <i class="fas fa-shield-halved text-4xl"></i>
                     </div>
+                    <div>
+                        <h3 class="text-3xl font-black text-pink-900 uppercase italic tracking-tighter">Pink Guard</h3>
+                        <p class="text-pink-400 text-xs font-black uppercase tracking-[0.2em] mt-2 px-6">
+                            Security Pulse. Enter the 6-digit PIN for <span id="twofaEmail" class="text-pink-600"></span>
+                        </p>
+                    </div>
+                    
+                    <div class="flex justify-center gap-2" id="pinContainer">
+                        <input type="text" maxlength="1" class="pin-input w-11 h-16 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all shadow-sm">
+                        <input type="text" maxlength="1" class="pin-input w-11 h-16 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all shadow-sm">
+                        <input type="text" maxlength="1" class="pin-input w-11 h-16 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all shadow-sm">
+                        <input type="text" maxlength="1" class="pin-input w-11 h-16 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all shadow-sm">
+                        <input type="text" maxlength="1" class="pin-input w-11 h-16 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all shadow-sm">
+                        <input type="text" maxlength="1" class="pin-input w-11 h-16 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all shadow-sm">
+                    </div>
+
+                    <button type="button" id="verifyPinBtn"
+                        class="w-full p-5 bg-pink-600 text-white rounded-xl font-black text-lg transition-all active:scale-95 shadow-xl shadow-pink-100 uppercase tracking-widest">
+                        Confirm Pulse
+                    </button>
+
+                    <button id="backToLogin" class="text-pink-300 hover:text-pink-600 font-black text-[10px] uppercase tracking-[0.3em] mt-4">
+                        Nevermind
+                    </button>
                 </div>
-
-                <button type="submit" class="btn-auth-primary" id="login-submit">
-                    <i class="fas fa-sign-in-alt"></i> Log In
-                </button>
-
-            </form>
-
-            <div id="twofaSection" class="twofa-section">
-                <div class="panel-header">
-                    <h1 class="panel-title">Security Check</h1>
-                    <p class="panel-subtitle">Enter the 2FA PIN for <span id="twofaEmail" style="font-weight: 600; color: #262626;"></span></p>
-                </div>
-
-                <div class="pin-container" id="pinContainer">
-                    <input type="text" maxlength="1" class="pin-input-field" data-index="1">
-                    <input type="text" maxlength="1" class="pin-input-field" data-index="2">
-                    <input type="text" maxlength="1" class="pin-input-field" data-index="3">
-                    <input type="text" maxlength="1" class="pin-input-field" data-index="4">
-                    <input type="text" maxlength="1" class="pin-input-field" data-index="5">
-                    <input type="text" maxlength="1" class="pin-input-field" data-index="6">
-                </div>
-
-                <button type="button" class="btn-auth-primary" id="verifyPinBtn">
-                    Verify & Log In
-                </button>
-
-                <p class="auth-link" style="margin-top: 25px;">
-                    <a href="javascript:void(0)" id="backToLogin">Back to Login</a>
-                </p>
             </div>
-
-            <div class="auth-divider"><span>OR</span></div>
-
-            <div class="social-login">
-                <button class="social-btn google">
-                    <i class="fab fa-google social-icon google-icon"></i>
-                    Log in with Google
-                </button>
-            </div>
-
-            <div class="auth-link">
-                Don't have an account? <a href="/signup">Sign up</a>
-            </div>
+            
+            <p class="text-center mt-12 text-pink-900 font-bold text-sm">
+                <span class="text-pink-600 hover:underline cursor-pointer">Create a Page</span> for a celebrity, brand or business.
+            </p>
         </div>
     </div>
 
-    <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/authAPI.js"></script>
-
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize Supabase
-            const supabaseUrl = '<%= supabaseConfig.url || "" %>';
-            const supabaseAnonKey = '<%= supabaseConfig.key || "" %>';
-            let supabase = null;
+            const loginForm = document.getElementById('loginForm');
+            const twofaSection = document.getElementById('twofaSection');
+            const loginMessage = document.getElementById('login-message');
 
-            if (supabaseUrl && supabaseAnonKey) {
-                supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-            }
-
-            // Google Login Handler
-            document.querySelector('.social-btn.google').addEventListener('click', async () => {
-                if (!supabase) {
-                    alert('Supabase is not configured. Please add SUPABASE_URL and SUPABASE_ANON_KEY to your .env file.');
-                    return;
-                }
-
-                try {
-                    const { data, error } = await supabase.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: {
-                            redirectTo: window.location.origin + '/auth/google/callback'
-                        }
-                    });
-                    if (error) throw error;
-                } catch (err) {
-                    console.error('Google Auth Error:', err);
-                    alert('Failed to start Google login: ' + err.message);
-                }
-            });
-
-            // Handle callback if URL has it
-            const handleAuthCallback = async () => {
-                if (!supabase) return;
-
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) {
-                    console.error('Error getting session:', error);
-                    return;
-                }
-
-                if (session) {
-                    const { user } = session;
-                    try {
-                        const response = await fetch('/api/auth/google/sync', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                supabaseToken: session.access_token,
-                                profile: {
-                                    email: user.email,
-                                    full_name: user.user_metadata.full_name,
-                                    avatar_url: user.user_metadata.avatar_url
-                                }
-                            })
-                        });
-
-                        const result = await response.json();
-                        if (result.status === 'success') {
-                            window.location.href = '/dashboard';
-                        } else {
-                            throw new Error(result.message);
-                        }
-                    } catch (err) {
-                        console.error('User Sync Error:', err);
-                        alert('Your Google login worked, but we couldn\'t sync it with our database: ' + err.message);
-                    }
-                }
+            const showMessage = (msg, type) => {
+                loginMessage.textContent = msg;
+                loginMessage.className = `p-4 rounded-xl text-sm font-bold text-center border-2 mb-6 block animate-fade-in ${type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-emerald-50 border-emerald-100 text-emerald-500'}`;
+                loginMessage.classList.remove('hidden');
             };
 
-            handleAuthCallback();
-
-            // ... (rest of the login script)
-            const savedEmail = localStorage.getItem('sparkleUserEmail');
-            if (savedEmail) {
-                document.getElementById('login-email').value = savedEmail;
-                document.getElementById('remember-me').checked = true;
-            }
-
-            document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-
-                const emailInput = document.getElementById('login-email').value.trim();
+                const username = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
-                const loginBtn = document.getElementById('login-submit');
+                const btn = document.getElementById('login-submit');
 
-                if (!emailInput || !password) {
-                    showMessage('Please fill all fields', 'error');
-                    return;
-                }
-
-                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
-                loginBtn.disabled = true;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> LOGGING IN...';
 
                 try {
-                    const data = await AuthAPI.login(emailInput, password);
-
-                    if (data.status === 'twofa_required') {
-                        // Switch to 2FA View
-                        window.twofaUserId = data.userId;
-                        document.getElementById('loginForm').style.display = 'none';
-                        document.querySelector('.social-login').style.display = 'none';
-                        document.querySelector('.auth-divider').style.display = 'none';
-                        document.getElementById('twofaEmail').textContent = data.email;
-                        document.getElementById('twofaSection').classList.add('active');
-                        
-                        // Focus first field
-                        setTimeout(() => document.querySelector('.pin-input-field').focus(), 100);
+                    const res = await axios.post('/api/v1/auth/login', { username, password });
+                    const data = res.data;
+                    
+                    if (data.status === 'twofa_required' || data.status === 'requires_2fa') {
+                        window.twofaUserId = data.userId || data.id;
+                        loginForm.classList.add('hidden');
+                        document.getElementById('twofaEmail').textContent = data.email || 'your device';
+                        twofaSection.classList.remove('hidden');
                         return;
                     }
 
-                    if (document.getElementById('remember-me').checked) {
-                        localStorage.setItem('sparkleUserEmail', emailInput);
+                    if (data.status === 'success' || data.token) {
+                        // Store in local storage
+                        localStorage.setItem('sparkleToken', data.token);
+                        localStorage.setItem('sparkleUser', JSON.stringify(data.user));
+                        
+                        showMessage('Welcome back! ❤️', 'success');
+                        setTimeout(() => window.location.href = '/dashboard', 1000);
                     } else {
-                        localStorage.removeItem('sparkleUserEmail');
+                        throw new Error(data.message || 'Login failed');
                     }
-
-                    showMessage('Login successful! Redirecting...', 'success');
-
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1000);
-
-                } catch (error) {
-                    console.error('Login error:', error);
-                    showMessage(error.message || 'Login failed', 'error');
-                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
-                    loginBtn.disabled = false;
+                } catch (err) {
+                    showMessage(err.response?.data?.message || err.message, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'LOG IN';
                 }
             });
 
-            // 2FA PIN Input Interactivity
-            const pinInputs = document.querySelectorAll('.pin-input-field');
-            pinInputs.forEach((input, index) => {
-                // Handle forward navigation on typing
-                input.addEventListener('input', (e) => {
-                    // Only allow numbers
-                    input.value = input.value.replace(/[^0-9]/g, '');
-                    
-                    if (input.value && index < pinInputs.length - 1) {
-                        pinInputs[index + 1].focus();
-                    }
+            // PIN logic
+            const pins = document.querySelectorAll('.pin-input');
+            pins.forEach((p, idx) => {
+                p.addEventListener('input', () => {
+                    p.value = p.value.replace(/[^0-9]/g, '');
+                    if (p.value && idx < pins.length - 1) pins[idx+1].focus();
                 });
-
-                // Handle backward navigation on Backspace
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Backspace' && !input.value && index > 0) {
-                        pinInputs[index - 1].focus();
-                    }
+                p.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !p.value && idx > 0) pins[idx-1].focus();
                 });
             });
 
             document.getElementById('verifyPinBtn').addEventListener('click', async () => {
-                const pin = Array.from(pinInputs).map(input => input.value).join('');
-                if (pin.length < 4) {
-                    alert('Please enter your full PIN');
-                    return;
-                }
-
+                const pin = Array.from(pins).map(p => p.value).join('');
+                if (pin.length < 6) return alert('Enter full PIN');
+                
                 const btn = document.getElementById('verifyPinBtn');
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
                 btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> VERIFYING...';
 
                 try {
-                    await AuthAPI.verify2FA(window.twofaUserId, pin);
-                    showMessage('Verification successful! Redirecting...', 'success');
-                    setTimeout(() => window.location.href = '/dashboard', 1000);
+                    const res = await axios.post('/api/v1/auth/2fa/verify', { 
+                        userId: window.twofaUserId, 
+                        pin: pin 
+                    });
+                    const data = res.data;
+                    
+                    localStorage.setItem('sparkleToken', data.token);
+                    localStorage.setItem('sparkleUser', JSON.stringify(data.user));
+                    window.location.href = '/dashboard';
                 } catch (err) {
-                    alert(err.message || 'Invalid PIN');
-                    btn.innerHTML = 'Verify & Log In';
+                    alert(err.response?.data?.message || err.message);
                     btn.disabled = false;
-                    // Clear inputs on failure
-                    pinInputs.forEach(i => i.value = '');
-                    pinInputs[0].focus();
+                    btn.textContent = 'CONFIRM PULSE';
+                    pins.forEach(p => p.value = '');
+                    pins[0].focus();
                 }
             });
 
             document.getElementById('backToLogin').addEventListener('click', () => {
-                document.getElementById('twofaSection').classList.remove('active');
-                document.getElementById('loginForm').style.display = 'block';
-                document.querySelector('.social-login').style.display = 'block';
-                document.querySelector('.auth-divider').style.display = 'block';
+                twofaSection.classList.add('hidden');
+                loginForm.classList.remove('hidden');
                 document.getElementById('login-submit').disabled = false;
-                document.getElementById('login-submit').innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
+                document.getElementById('login-submit').textContent = 'LOG IN';
             });
-
-            function showMessage(message, type) {
-                const el = document.getElementById('login-message');
-                el.textContent = message;
-                el.className = `auth-message ${type} show`;
-            }
         });
     </script>
+    
+    <style>
+        .animate-fade-in {
+            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </body>
-
 </html>

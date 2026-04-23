@@ -14,7 +14,7 @@ const { securityHeaders, apiRateLimiter, sanitizeInput, imageLimiter } = require
 const logger = require('./utils/logger');
 const { startKeepAlive } = require('./utils/keep-alive');
 const firebaseConfig = require('./config/firebase.config');
-const { initializeSocket } = require('./sockets');
+const { initializeSocket } = require('./socket');
 const { initializeEmail } = require('./config/email');
 
 const app = express();
@@ -78,32 +78,17 @@ app.use((req, res) => {
 });
 
 // Enhanced Error Handler (always JSON)
+// Global Error Handler
 app.use((err, req, res, next) => {
-    const errorMessage = err?.stack || err?.message || err || 'Unknown Error';
-    console.error('❌ Server Error:', errorMessage);
-
-    res.status(err.status || 500).json({
-        success: false,
-        message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err : {}
-    });
-});
-
-
-// =============================================
-// SERVER STARTUP / EXPORTS
-// =============================================
-
-// Create HTTP server and attach Socket.IO
-// CSRF and General Error Handler
-app.use((err, req, res, next) => {
+    const status = err.status || 500;
+    
+    // CSRF specifically
     if (err.code === 'EBADCSRFTOKEN') {
         logger.error('❌ CSRF Validation Error:', {
             url: req.url,
             method: req.method,
             ip: req.ip,
-            token_in_header: req.headers['x-csrf-token'] ? 'Present' : 'Missing',
-            token_in_body: req.body?._csrf ? 'Present' : 'Missing'
+            token_in_header: req.headers['x-csrf-token'] ? 'Present' : 'Missing'
         });
         return res.status(403).json({
             success: false,
@@ -111,12 +96,14 @@ app.use((err, req, res, next) => {
             error: 'invalid csrf token'
         });
     }
-    
-    logger.error('🔥 Server Error:', err);
-    res.status(err.status || 500).json({
+
+    const errorMessage = err?.stack || err?.message || err || 'Unknown Error';
+    logger.error('🔥 Server Error:', errorMessage);
+
+    res.status(status).json({
         success: false,
-        message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'production' ? null : err.message
+        message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message,
+        error: process.env.NODE_ENV === 'development' ? err : {}
     });
 });
 

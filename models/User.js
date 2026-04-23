@@ -266,11 +266,12 @@ class User {
      * Uses a weighted matching algorithm for discovery.
      */
     static async getSuggestions(currentUserId, options = {}) {
-        const { limit = 20, seed = null, tab = 'suggested', filter = null, query = null } = options;
+        try {
+            const { limit = 20, seed = null, tab = 'suggested', filter = null, query = null } = options;
 
-        // Fetch current user details for ranking
-        const [me] = await pool.query('SELECT major, year_of_study, campus FROM users WHERE user_id = ?', [currentUserId]);
-        if (!me[0]) return [];
+            // Fetch current user details for ranking
+            const [me] = await pool.query('SELECT major, year_of_study, campus FROM users WHERE user_id = ?', [currentUserId]);
+            if (!me[0]) return [];
 
         const numericSeed = seed ? parseInt(crypto.createHash('md5').update(String(seed)).digest('hex').substring(0, 8), 16) : null;
         const sqlSeed = numericSeed ? `(${numericSeed})` : '()';
@@ -300,7 +301,6 @@ class User {
                     -- 5. Profile Completeness (Weight 0.1 -> 10 points max)
                     (CASE WHEN u.bio IS NOT NULL AND u.bio != '' THEN 3 ELSE 0 END) +
                     (CASE WHEN u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%default%' THEN 3 ELSE 0 END) +
-                    (CASE WHEN u.headline IS NOT NULL AND u.headline != '' THEN 2 ELSE 0 END) +
                     (CASE WHEN u.major IS NOT NULL THEN 2 ELSE 0 END) +
                     
                     -- Variety (5 points)
@@ -402,10 +402,13 @@ class User {
             } else {
                 mapped.suggestion_reason = `Suggested for you`;
             }
-            
             return mapped;
         });
+    } catch (error) {
+        console.error('[User Model] getSuggestions error:', error.message, error.stack);
+        throw error;
     }
+}
 
     /**
      * Get user with profile stats
@@ -506,7 +509,7 @@ class User {
             try {
                 const requestId = crypto.randomUUID();
                 await pool.query(
-                    'INSERT INTO follow_requests (id, requester_id, target_user_id, status) VALUES (?, ?, ?, "pending")',
+                    'INSERT INTO follow_requests (request_id, requester_id, target_user_id, status) VALUES (?, ?, ?, "pending")',
                     [requestId, followerId, followingId]
                 );
 
@@ -680,14 +683,14 @@ class User {
      */
     static async acceptFollowRequest(requestId, userId) {
         const [request] = await pool.query(
-            'SELECT * FROM follow_requests WHERE id = ? AND target_user_id = ?',
+            'SELECT * FROM follow_requests WHERE request_id = ? AND target_user_id = ?',
             [requestId, userId]
         );
 
         if (!request[0]) throw new Error('Request not found or unauthorized');
 
         // Update request status to accepted
-        await pool.query('UPDATE follow_requests SET status = "accepted" WHERE id = ?', [requestId]);
+        await pool.query('UPDATE follow_requests SET status = "accepted" WHERE request_id = ?', [requestId]);
 
         try {
             // Create follower relationship
@@ -714,7 +717,7 @@ class User {
      */
     static async rejectFollowRequest(requestId, userId) {
         await pool.query(
-            'UPDATE follow_requests SET status = "rejected" WHERE id = ? AND target_user_id = ?',
+            'UPDATE follow_requests SET status = "declined" WHERE request_id = ? AND target_user_id = ?',
             [requestId, userId]
         );
         return true;

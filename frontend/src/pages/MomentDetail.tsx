@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageSquare, Eye, Share2 } from 'lucide-react';
+import { ArrowLeft, Heart, MessageSquare, Share2, Sparkles, Orbit, ChevronLeft } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import clsx from 'clsx';
 
 interface MomentData {
   moment_id: string;
@@ -55,107 +56,126 @@ export default function MomentDetail() {
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
-      <div className="md-content">
-        <main className="md-container">
-          <button className="md-back-btn" onClick={() => navigate('/moments')}>
-            <ArrowLeft size={16} /> Moments
+      
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="flex-1 lg:ml-72 p-6 md:p-12 relative z-10 flex flex-col items-center pt-16 md:pt-12">
+        <div className="w-full max-w-[550px]">
+          <button 
+            onClick={() => navigate('/moments')} 
+            className="mb-12 w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all group"
+          >
+            <ArrowLeft size={28} strokeWidth={4} className="group-hover:-translate-x-1.5 transition-transform" /> 
           </button>
 
           {loading ? (
-            <div className="md-skeleton">
-              <div className="mds-media pulse" />
-              <div className="mds-info">
-                <div className="mds-line pulse" style={{ width: '40%', height: 14, marginBottom: 10 }} />
-                <div className="mds-line pulse" style={{ width: '80%', height: 11 }} />
-              </div>
+            <div className="w-full flex flex-col items-center justify-center py-48 bg-white/40 backdrop-blur-3xl border border-white rounded-[56px] shadow-2xl">
+               <Orbit className="w-16 h-16 text-primary animate-spin-slow mb-8" strokeWidth={4} />
+               <p className="text-[10px] font-black italic text-black/20 uppercase tracking-[0.4em] animate-pulse">Syncing Moment Pulse...</p>
             </div>
           ) : !moment ? (
-            <div className="md-not-found">
-              <p>Moment not found or has expired.</p>
-              <button onClick={() => navigate('/moments')}>Browse Moments</button>
+            <div className="bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white p-24 rounded-[80px] text-center shadow-2xl shadow-primary/5 animate-fade-in flex flex-col items-center gap-10">
+              <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center text-black opacity-10">
+                 <Orbit size={64} strokeWidth={1.5} className="animate-spin-slow" />
+              </div>
+              <div className="space-y-4">
+                 <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Frequency <span className="text-primary">Faded.</span></h2>
+                 <p className="text-base font-bold text-black opacity-30 italic leading-relaxed">This moment harmonic is no longer broadcasting in the village network.</p>
+              </div>
+              <button 
+                onClick={() => navigate('/moments')}
+                className="px-12 h-18 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic text-sm shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
+              >
+                Scan Sectors
+              </button>
             </div>
           ) : (
-            <div className="md-card">
-              {/* Media */}
-              <div className="md-media-wrap">
+            <div className="relative group animate-fade-in shadow-[0_48px_120px_rgba(225,29,72,0.15)] rounded-[56px] overflow-hidden bg-black border-[10px] border-white ring-1 ring-black/5">
+              {/* Media Container */}
+              <div className="relative w-full aspect-[9/16] max-h-[85vh] bg-black">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none z-10" />
+                
                 {moment.is_video ? (
-                  <video src={moment.media_url} className="md-media" controls autoPlay poster={moment.thumbnail_url} />
+                  <video 
+                    src={moment.media_url} 
+                    className="w-full h-full object-cover" 
+                    controls 
+                    autoPlay 
+                    loop
+                    poster={moment.thumbnail_url} 
+                  />
                 ) : (
-                  <img src={moment.media_url || moment.thumbnail_url} className="md-media" alt="Moment" />
+                  <img 
+                    src={moment.media_url || moment.thumbnail_url} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]" 
+                    alt="Moment" 
+                  />
                 )}
 
-                {/* Side Actions */}
-                <div className="md-side-actions">
-                  <button className={`md-action-btn ${moment.is_liked ? 'liked' : ''}`} onClick={handleLike}>
-                    <Heart size={24} fill={moment.is_liked ? 'currentColor' : 'none'} />
-                    <span>{moment.like_count || 0}</span>
+                {/* Glass Side Actions Overlay */}
+                <div className="absolute right-6 bottom-40 flex flex-col items-center gap-8 z-30">
+                  <button className="flex flex-col items-center gap-3 group/btn" onClick={handleLike}>
+                    <div className={clsx("w-16 min-w-16 h-16 rounded-[24px] backdrop-blur-3xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-2xl border-2", moment.is_liked ? "bg-primary border-primary text-white" : "bg-white/10 border-white/20 text-white hover:bg-white hover:text-primary")}>
+                      <Heart size={32} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={3} />
+                    </div>
+                    <span className="text-[11px] font-black text-white uppercase tracking-[0.2em] italic drop-shadow-2xl">{moment.like_count || 0}</span>
                   </button>
-                  <button className="md-action-btn">
-                    <MessageSquare size={24} />
-                    <span>{moment.comment_count || 0}</span>
+
+                  <button className="flex flex-col items-center gap-3 group/btn">
+                    <div className="w-16 min-w-16 h-16 rounded-[24px] bg-white/10 backdrop-blur-3xl border-2 border-white/20 flex items-center justify-center text-white transition-all group-hover/btn:scale-110 hover:bg-white hover:text-primary shadow-2xl">
+                      <MessageSquare size={32} strokeWidth={3} />
+                    </div>
+                    <span className="text-[11px] font-black text-white uppercase tracking-[0.2em] italic drop-shadow-2xl">{moment.comment_count || 0}</span>
                   </button>
-                  <button className="md-action-btn">
-                    <Share2 size={24} />
-                    <span>Share</span>
+
+                  <button className="w-16 min-w-16 h-16 rounded-[24px] bg-white/10 backdrop-blur-3xl border-2 border-white/20 flex items-center justify-center text-white transition-all hover:bg-white hover:text-primary group-hover:scale-110 shadow-2xl">
+                    <Share2 size={28} strokeWidth={3} />
                   </button>
                 </div>
 
-                {/* Bottom Info */}
-                <div className="md-bottom-info">
-                  <div className="md-user-row" onClick={() => navigate(`/profile/${moment.username}`)}>
-                    <img
-                      src={moment.avatar_url || '/uploads/avatars/default.png'}
-                      className="md-avatar"
-                      alt={moment.username}
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/avatars/default.png'; }}
-                    />
-                    <span className="md-username">@{moment.username}</span>
+                {/* Editorial Bottom Info Overlay */}
+                <div className="absolute inset-x-0 bottom-0 p-10 pb-12 z-20 flex flex-col gap-5 pointer-events-none bg-gradient-to-t from-black via-black/40 to-transparent">
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-2xl font-black text-white italic tracking-tighter pointer-events-auto cursor-pointer flex items-center gap-3 transition-colors hover:text-primary leading-none uppercase" onClick={() => navigate(`/profile/${moment.username}`)}>
+                      @{moment.username}
+                      <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-2xl shadow-primary/50 border border-white/20">
+                         <Sparkles size={10} className="text-white fill-white" />
+                      </div>
+                    </h3>
                   </div>
-                  {moment.caption && <p className="md-caption">{moment.caption}</p>}
-                  <div className="md-view-count">
-                    <Eye size={13} /> {moment.view_count || 0} views
+                  
+                  {moment.caption && (
+                    <p className="text-lg font-black text-white leading-tight drop-shadow-2xl pr-20 line-clamp-3 italic uppercase tracking-tighter opacity-80">
+                      {moment.caption}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center gap-4 mt-2 px-1">
+                     <Orbit size={16} strokeWidth={3} className="animate-spin-slow text-primary" />
+                     <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] italic">{moment.view_count || 0} Village Nodes Synced</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
-        </main>
-      </div>
+          
+          <div className="mt-16 text-center">
+             <button onClick={() => navigate('/moments')} className="flex items-center justify-center gap-4 text-black opacity-20 hover:opacity-100 hover:text-primary text-[10px] font-black uppercase tracking-[0.5em] transition-all italic mx-auto">
+                <ChevronLeft size={20} strokeWidth={4} /> Back to Signal Sector
+             </button>
+          </div>
+        </div>
+      </main>
 
       <style>{`
-        .page-wrapper { display: flex; background: #000; min-height: 100vh; }
-        .md-content { flex: 1; overflow-y: auto; }
-        .md-container { max-width: 480px; margin: 0 auto; padding: 20px 16px 80px; }
-        .md-back-btn { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border: none; padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; color: white; cursor: pointer; margin-bottom: 16px; transition: 0.2s; }
-        .md-back-btn:hover { background: rgba(255,255,255,0.15); }
-
-        .md-card { position: relative; }
-        .md-media-wrap { position: relative; border-radius: 20px; overflow: hidden; background: #111; aspect-ratio: 9/16; max-height: 85vh; }
-        .md-media { width: 100%; height: 100%; object-fit: contain; display: block; }
-        
-        .md-side-actions { position: absolute; right: 14px; bottom: 100px; display: flex; flex-direction: column; gap: 18px; }
-        .md-action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: white; cursor: pointer; font-size: 11px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.8); transition: 0.2s; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
-        .md-action-btn.liked { color: #FF3D6D; }
-        .md-action-btn:hover { transform: scale(1.1); }
-
-        .md-bottom-info { position: absolute; bottom: 0; left: 0; right: 60px; padding: 20px 16px; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%); }
-        .md-user-row { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 8px; }
-        .md-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid white; }
-        .md-username { color: white; font-weight: 800; font-size: 14px; }
-        .md-caption { color: rgba(255,255,255,0.9); font-size: 13px; line-height: 1.5; margin: 0 0 8px; }
-        .md-view-count { display: flex; align-items: center; gap: 5px; font-size: 12px; color: rgba(255,255,255,0.6); font-weight: 600; }
-
-        .md-skeleton { border-radius: 20px; overflow: hidden; aspect-ratio: 9/16; max-height: 85vh; }
-        .mds-media { height: 80%; background: rgba(255,255,255,0.08); }
-        .mds-info { padding: 16px; }
-        .mds-line { border-radius: 6px; background: rgba(255,255,255,0.1); }
-        .pulse { animation: mdPulse 1.5s ease-in-out infinite; }
-        @keyframes mdPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-        .md-not-found { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.5); }
-        .md-not-found button { background: linear-gradient(135deg,#FF6B8B,#FF3D6D); color: white; border: none; padding: 12px 24px; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 15s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

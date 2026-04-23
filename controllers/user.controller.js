@@ -657,8 +657,11 @@ const getSuggestions = async (req, res) => {
 
         res.json({ suggestions: sanitizedSuggestions });
     } catch (error) {
-        logger.error('Get Probabilistic Suggestions Error:', error);
-        res.status(500).json({ error: 'Failed to get suggestions' });
+        console.error('[User Controller] getSuggestions error:', error.message, error.stack);
+        res.status(500).json({ 
+            error: 'Failed to get suggestions',
+            debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 

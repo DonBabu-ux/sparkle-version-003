@@ -21,7 +21,7 @@ const { initializeEmail } = require('./config/email');
 const app = express();
 
 // Database Initialization
-initDB().catch(err => logger.error('Database initialization failed:', err));
+// initDB deferred to server.listen callback
 
 // Security & Performance Middleware
 app.use(securityHeaders);

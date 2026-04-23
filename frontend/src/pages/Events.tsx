@@ -1,12 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, UserCheck, ChevronDown, ChevronUp, Plus, Clock } from 'lucide-react';
+import { 
+  Calendar, 
+  Users, 
+  UserCheck, 
+  ChevronDown, 
+  Plus, 
+  Clock, 
+  Search, 
+  Ticket, 
+  Sparkles, 
+  X, 
+  Orbit
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 
-const TABS = ['All', 'My Campus', 'My Events', 'Trending'];
+const TABS = ['all', 'my campus', 'my events', 'trending'];
 
 interface CampusEvent {
   event_id: string;
@@ -28,15 +40,15 @@ export default function Events() {
   const navigate = useNavigate();
   const [events, setEvents] = useState<CampusEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('All');
+  const [activeTab, setActiveTab] = useState('all');
   const [expandedReqs, setExpandedReqs] = useState<Set<string>>(new Set());
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
-      if (activeTab === 'My Campus' && user?.campus) params.campus = user.campus;
-      if (activeTab === 'My Events') params.filter = 'managed';
+      if (activeTab === 'my campus' && user?.campus) params.campus = user.campus;
+      if (activeTab === 'my events') params.filter = 'managed';
       const res = await api.get('/events', { params });
       setEvents(res.data.events || res.data || []);
     } catch (err) {
@@ -71,231 +83,246 @@ export default function Events() {
 
   const statusBadge = (status: string | null | undefined) => {
     if (!status) return null;
-    const map: Record<string, { label: string; cls: string }> = {
-      pending: { label: '⏳ Pending Approval', cls: 'ev-status-pending' },
-      accepted: { label: '✔ Accepted', cls: 'ev-status-accepted' },
-      rejected: { label: '❌ Rejected', cls: 'ev-status-rejected' },
-      attended: { label: '⭐ Attended', cls: 'ev-status-accepted' },
+    const map: Record<string, { label: string; cls: string; icon: typeof Calendar }> = {
+      pending: { label: 'PENDING SYNC', cls: 'bg-black/5 text-black/40 border-black/5', icon: Clock },
+      accepted: { label: 'SYNCHRONIZED', cls: 'bg-primary text-white border-primary shadow-2xl shadow-primary/30', icon: Sparkles },
+      rejected: { label: 'REJECTED', cls: 'bg-red-500 text-white border-red-500 shadow-xl shadow-red-500/20', icon: X },
+      attended: { label: 'ATTENDED', cls: 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/20', icon: UserCheck },
     };
-    const s = map[status];
-    return s ? <span className={`ev-status-badge ${s.cls}`}>{s.label}</span> : null;
+    const s = map[status] || { label: status.toUpperCase(), cls: 'bg-black/5 text-black border-black/5', icon: Sparkles };
+    return (
+      <div className={`inline-flex items-center gap-3 px-8 py-3 rounded-2xl border text-[10px] font-black tracking-[0.2em] shadow-lg animate-fade-in italic ${s.cls}`}>
+        <s.icon size={16} strokeWidth={4} />
+        {s.label}
+      </div>
+    );
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
-      <div className="ev-content">
-        <main className="ev-container">
-          {/* Header */}
-          <div className="ev-page-header">
-            <div className="ev-header-left">
-              <Calendar size={28} className="ev-header-icon" />
-              <div>
-                <h1>Campus Events</h1>
-                <p>Discover, RSVP, and attend events around you</p>
+      
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-16 md:pt-12">
+        {/* Header */}
+        <header className="mb-24 animate-fade-in px-4">
+           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+              <div className="max-w-4xl space-y-8">
+                 <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
+                    <Calendar size={18} strokeWidth={3} className="text-primary" />
+                    <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">The Village Gatherings</span>
+                 </div>
+                 <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
+                    Village <span className="text-primary">Live</span>
+                 </h1>
+                  <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic max-w-2xl">
+                    Experience the village vibe. Upcoming workshops, social gathering harmonics, and memories at <span className="text-primary">{user?.campus || 'the village'}</span>.
+                  </p>
               </div>
-            </div>
-            <button className="ev-create-btn" onClick={() => setActiveModal('event', fetchEvents)}>
-              <Plus size={18} /> Host Event
-            </button>
-          </div>
-
-          {/* Tabs */}
-          <div className="ev-tabs">
-            {TABS.map(tab => (
-              <button key={tab} className={`ev-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-                {tab}
+              
+              <button 
+                onClick={() => setActiveModal('event', fetchEvents)}
+                className="flex items-center gap-4 px-12 py-6 bg-primary text-white rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.05] transition-all active:scale-95 italic whitespace-nowrap"
+              >
+                <Plus size={24} strokeWidth={4} />
+                Host Gathering
               </button>
-            ))}
-          </div>
+           </div>
+        </header>
 
-          {/* Events List */}
-          {loading ? (
-            <div className="ev-list">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="ev-skeleton">
-                  <div className="evs-header">
-                    <div className="evs-line pulse" style={{ width: '30%', height: 10 }} />
-                    <div className="evs-dot pulse" />
-                  </div>
-                  <div className="evs-line pulse" style={{ width: '70%', height: 18, margin: '10px 0 8px' }} />
-                  <div className="evs-line pulse" style={{ width: '50%', height: 12 }} />
-                  <div className="evs-line pulse" style={{ width: '100%', height: 8, marginTop: 16 }} />
-                </div>
+        {/* Controls */}
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-10 mb-20 px-4">
+           <div className="flex items-center gap-4 overflow-x-auto pb-4 lg:pb-0 no-scrollbar w-full lg:w-auto">
+              {TABS.map(tab => (
+                 <button 
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-10 py-4.5 rounded-[22px] font-black text-[11px] uppercase tracking-widest transition-all duration-500 whitespace-nowrap shadow-lg border flex items-center gap-3 italic ${activeTab === tab ? 'bg-white border-primary text-primary scale-105 shadow-primary/5' : 'bg-white/40 border-white text-black/20 hover:bg-white hover:text-black'}`}
+                 >
+                   <span className={activeTab === tab ? 'text-primary' : 'text-black/10'}>{activeTab === tab ? <Orbit size={18} strokeWidth={3} className="animate-spin-slow" /> : <Calendar size={18} strokeWidth={3} />}</span>
+                   {tab}
+                 </button>
               ))}
-            </div>
+           </div>
+
+           <div className="relative w-full lg:w-[400px] group">
+              <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
+              <input 
+                type="text" 
+                placeholder="Scan for event signals..." 
+                className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
+              />
+           </div>
+        </div>
+
+        {/* List */}
+        <div className="space-y-12 pb-48 px-2">
+          {loading ? (
+             [1,2,3].map(i => (
+                <div key={i} className="h-72 bg-white/40 border-4 border-dashed border-white rounded-[56px] animate-pulse shadow-sm" />
+             ))
           ) : events.length === 0 ? (
-            <div className="ev-empty">
-              <Calendar size={48} className="ev-empty-icon" />
-              <h3>No upcoming events</h3>
-              <p>Check back later, or host one yourself!</p>
-              <button className="ev-create-btn" onClick={() => setActiveModal('event', fetchEvents)}>Create Event</button>
-            </div>
+             <div className="py-48 flex flex-col items-center text-center px-8 bg-white/20 border-4 border-dashed border-white rounded-[64px] shadow-inner animate-fade-in mx-4">
+                <Ticket size={140} strokeWidth={1} className="text-black/5 animate-spin-slow" />
+                <h3 className="text-5xl font-black text-black/10 italic mb-8 uppercase tracking-tighter">Quiet Frequency.</h3>
+                <p className="text-[11px] font-black text-black/30 uppercase tracking-[0.4em] max-w-sm mx-auto mb-12 italic leading-loose">
+                   No gathering signals detected in this sector. Initialize a new event pulse!
+                </p>
+                <button 
+                  onClick={() => setActiveModal('event', fetchEvents)}
+                  className="px-12 py-6 bg-primary text-white rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 italic transition-all hover:scale-[1.05]"
+                >
+                   Host Pulse
+                </button>
+             </div>
           ) : (
-            <div className="ev-list">
-              {events.map(ev => {
-                const progress = ev.max_attendees && ev.max_attendees > 0
-                  ? Math.min(100, Math.round(((ev.total_rsvps || 0) / ev.max_attendees) * 100))
-                  : 0;
-                const spotsLeft = ev.max_attendees ? Math.max(0, ev.max_attendees - (ev.total_rsvps || 0)) : null;
-                const isExpanded = expandedReqs.has(ev.event_id);
+             <div className="flex flex-col gap-12">
+               {events.map((ev) => {
+                  const progress = ev.max_attendees && ev.max_attendees > 0
+                    ? Math.min(100, Math.round(((ev.total_rsvps || 0) / ev.max_attendees) * 100))
+                    : 0;
+                  const isExpanded = expandedReqs.has(ev.event_id);
 
-                return (
-                  <div key={ev.event_id} className="ev-card">
-                    <div className="ev-card-top">
-                      <div className="ev-meta-left">
-                        <span className="ev-organizer">{ev.username}</span>
-                        <span className="ev-campus-badge">{ev.campus || 'Campus Wide'}</span>
-                      </div>
-                      <div className="ev-top-right">
-                        <span className="ev-live-dot" title="Live Updates Active" />
-                        {ev.is_creator && (
-                          <button className="ev-manage-btn" onClick={() => navigate(`/events/admin?id=${ev.event_id}`)}>Manage</button>
-                        )}
-                      </div>
+                  return (
+                    <div 
+                      key={ev.event_id} 
+                      className="bg-white/80 backdrop-blur-3xl p-10 md:p-16 rounded-[56px] group transition-all duration-700 hover:scale-[1.01] border border-white shadow-2xl shadow-primary/5 relative overflow-hidden animate-fade-in"
+                    >
+                       {/* Context Accent */}
+                       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                       <div className="flex flex-col lg:flex-row justify-between gap-12 relative z-10">
+                          <div className="flex-1 space-y-10">
+                             <div className="flex items-center gap-8">
+                                <div className="w-24 h-24 bg-primary/5 rounded-[32px] flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-700 border border-primary/10 shadow-sm group-hover:rotate-6">
+                                   <Calendar size={36} strokeWidth={3} />
+                                </div>
+                                <div className="space-y-4">
+                                   <div className="flex items-center gap-4">
+                                      <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] italic">TRANSMISSION BY @{ev.username}</span>
+                                      <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                                      <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] italic">{ev.campus || 'VILLAGE NODE'}</span>
+                                   </div>
+                                   <h3 className="text-4xl md:text-5xl font-black text-black tracking-tighter leading-none italic uppercase group-hover:text-primary transition-colors duration-700">{ev.title}</h3>
+                                </div>
+                             </div>
+
+                             <div className="flex flex-wrap items-center gap-8">
+                                <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5">
+                                   <Clock size={20} strokeWidth={4} className="text-primary" />
+                                   <span className="text-sm font-black text-black uppercase tracking-widest italic">
+                                      {new Date(ev.start_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                   </span>
+                                </div>
+                                <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5">
+                                   <Users size={20} strokeWidth={4} className="text-primary" />
+                                   <span className="text-sm font-black text-black uppercase tracking-widest italic">{ev.total_rsvps || 0} CONVERGED</span>
+                                </div>
+                                {ev.max_attendees && ev.max_attendees > 0 && (
+                                   <div className="flex-1 min-w-[250px] pt-2">
+                                      <div className="flex items-center justify-between mb-3 text-[9px] font-black uppercase text-black/20 tracking-[0.3em] italic">
+                                         <span>Frequency Load</span>
+                                         <span>{progress}%</span>
+                                      </div>
+                                      <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden p-[2px]">
+                                         <div 
+                                           className={`h-full rounded-full transition-all duration-1000 ${progress >= 90 ? 'bg-red-500' : 'bg-primary shadow-[0_0_10px_rgba(225,29,72,0.5)]'}`}
+                                           style={{ width: `${progress}%` }}
+                                         />
+                                      </div>
+                                   </div>
+                                )}
+                             </div>
+                          </div>
+
+                          <div className="flex flex-col items-center lg:items-end justify-between gap-10 shrink-0">
+                             <div className="flex items-center gap-4">
+                                {ev.is_creator && (
+                                   <button 
+                                    onClick={() => navigate(`/events/admin?id=${ev.event_id}`)}
+                                    className="px-8 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-all shadow-xl shadow-black/10 italic"
+                                   >
+                                      Tune
+                                   </button>
+                                )}
+                                {statusBadge(ev.user_status)}
+                             </div>
+
+                             <div className="flex items-center gap-6 w-full lg:w-auto">
+                                {!ev.user_status && (
+                                   <button 
+                                    onClick={() => handleRSVP(ev.event_id, 'pending')}
+                                    className="flex-1 lg:px-16 h-20 bg-primary text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.05] transition-all active:scale-95 italic"
+                                   >
+                                      Join Signal
+                                   </button>
+                                )}
+                                {ev.user_status === 'accepted' && (
+                                   <div className="flex items-center gap-4 flex-1 lg:flex-none">
+                                      <button className="flex-1 px-12 h-20 bg-black text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-black/30 hover:scale-[1.05] transition-all flex items-center justify-center gap-4 italic">
+                                         <Ticket size={24} strokeWidth={4} className="text-primary" />
+                                         Access Pass
+                                      </button>
+                                      <button 
+                                        onClick={() => handleRSVP(ev.event_id, 'not_going')}
+                                        className="w-20 h-20 bg-black/5 hover:bg-red-500 hover:text-white text-black/10 rounded-[28px] flex items-center justify-center transition-all duration-500 shadow-sm group/close"
+                                      >
+                                         <X size={32} strokeWidth={4} className="group-hover/close:rotate-90 transition-transform" />
+                                      </button>
+                                   </div>
+                                )}
+                                {ev.user_status && ev.user_status !== 'accepted' && (
+                                   <button 
+                                     onClick={() => handleRSVP(ev.event_id, 'not_going')}
+                                     className="px-12 h-20 bg-black/5 text-black/20 rounded-[28px] font-black text-xs uppercase tracking-[0.2em] hover:text-black transition-all italic border border-black/5"
+                                   >
+                                      Cancel Signal
+                                   </button>
+                                )}
+                                <button 
+                                  onClick={() => toggleReqs(ev.event_id)}
+                                  className={`w-20 h-20 rounded-[28px] flex items-center justify-center transition-all duration-500 border-2 ${isExpanded ? 'bg-black border-black text-white shadow-2xl' : 'bg-white border-white text-black/10 hover:text-black hover:shadow-xl'}`}
+                                >
+                                   <ChevronDown size={32} strokeWidth={4} className={`transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                             </div>
+                          </div>
+                       </div>
+
+                       {isExpanded && (
+                          <div className="mt-12 pt-12 border-t border-black/[0.03] animate-scale-in">
+                             <div className="flex items-center gap-6 mb-8 px-2">
+                                <div className="w-1.5 h-12 bg-primary rounded-full" />
+                                <div>
+                                   <h4 className="text-3xl font-black text-black italic uppercase tracking-tighter">Mission Requirements</h4>
+                                   <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Critical gathering harmonics.</p>
+                                </div>
+                              </div>
+                              <div className="bg-white/40 backdrop-blur-3xl rounded-[40px] p-10 border border-white shadow-inner">
+                                 <p className="text-lg font-bold text-black leading-loose italic opacity-70 whitespace-pre-wrap">
+                                    {ev.requirements || 'No specific signal requirements listed for this gathering.'}
+                                 </p>
+                              </div>
+                          </div>
+                       )}
                     </div>
-
-                    <h3 className="ev-title">{ev.title}</h3>
-
-                    <div className="ev-stats-row">
-                      <span><Users size={13} /> {ev.total_rsvps || 0} RSVP</span>
-                      <span><UserCheck size={13} /> {ev.total_attended || 0} Present</span>
-                    </div>
-
-                    <div className="ev-time">
-                      <Clock size={13} />
-                      {new Date(ev.start_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                    </div>
-
-                    {ev.max_attendees && ev.max_attendees > 0 && (
-                      <div className="ev-progress-wrap">
-                        <div className="ev-progress-bar">
-                          <div
-                            className="ev-progress-fill"
-                            style={{ width: `${progress}%`, background: progress >= 90 ? '#ef4444' : 'var(--primary-gradient)' }}
-                          />
-                        </div>
-                        <div className="ev-progress-labels">
-                          <span>{progress}% FULL</span>
-                          <span>{spotsLeft} SPOTS LEFT</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {ev.user_status && (
-                      <div style={{ marginBottom: 12 }}>{statusBadge(ev.user_status)}</div>
-                    )}
-
-                    <div className="ev-actions">
-                      {!ev.user_status && (
-                        <button className="ev-btn-primary" onClick={() => handleRSVP(ev.event_id, 'pending')}>RSVP</button>
-                      )}
-                      {ev.user_status === 'accepted' && (
-                        <>
-                          <button className="ev-btn-secondary">🎫 Entry Pass</button>
-                          <button className="ev-btn-cancel" onClick={() => handleRSVP(ev.event_id, 'not_going')}>Cancel</button>
-                        </>
-                      )}
-                      {ev.user_status && ev.user_status !== 'accepted' && (
-                        <button className="ev-btn-cancel" onClick={() => handleRSVP(ev.event_id, 'not_going')}>Withdraw</button>
-                      )}
-                      <button className="ev-btn-expand" onClick={() => toggleReqs(ev.event_id)}>
-                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="ev-requirements">
-                        <strong>EVENT REQUIREMENTS</strong>
-                        <p>{ev.requirements || '- No specific requirements'}</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+               })}
+             </div>
           )}
-        </main>
-      </div>
-
-      {/* FAB */}
-      <button className="ev-fab" onClick={() => setActiveModal('event', fetchEvents)}><Plus size={24} /></button>
+        </div>
+      </main>
 
       <style>{`
-        .page-wrapper { display: flex; background: #f8fafc; min-height: 100vh; }
-        .ev-content { flex: 1; overflow-y: auto; }
-        .ev-container { max-width: 820px; margin: 0 auto; padding: 30px 20px 100px; }
-
-        .ev-page-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; background: white; border-radius: 24px; padding: 26px 30px; margin-bottom: 24px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
-        .ev-header-left { display: flex; align-items: center; gap: 16px; }
-        .ev-header-icon { color: var(--primary, #FF3D6D); }
-        .ev-page-header h1 { font-size: 1.5rem; font-weight: 900; margin: 0 0 4px; color: #1e293b; letter-spacing: -0.5px; }
-        .ev-page-header p { font-size: 0.88rem; color: #64748b; margin: 0; }
-
-        .ev-create-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--primary-gradient); color: white; border: none; padding: 12px 22px; border-radius: 14px; font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 14px rgba(255,61,109,0.25); white-space: nowrap; }
-        .ev-create-btn:hover { opacity: 0.9; transform: translateY(-2px); }
-
-        .ev-tabs { display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-        .ev-tabs::-webkit-scrollbar { display: none; }
-        .ev-tab { padding: 10px 22px; border-radius: 14px; background: white; border: 1px solid rgba(0,0,0,0.08); color: #64748b; font-weight: 700; cursor: pointer; transition: 0.25s; white-space: nowrap; font-size: 0.88rem; }
-        .ev-tab:hover { border-color: #FF3D6D; color: #FF3D6D; }
-        .ev-tab.active { background: var(--primary-gradient); color: white; border-color: transparent; box-shadow: 0 4px 14px rgba(255,61,109,0.2); }
-
-        .ev-list { display: flex; flex-direction: column; gap: 16px; }
-
-        .ev-card { background: white; border-radius: 28px; padding: 24px; box-shadow: var(--shadow-md); border: 1px solid rgba(0,0,0,0.04); transition: all 0.5s var(--ease-out); }
-        .ev-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: rgba(255, 61, 109, 0.1); }
-        .ev-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .ev-meta-left { display: flex; flex-direction: column; gap: 3px; }
-        .ev-organizer { font-size: 11px; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-        .ev-campus-badge { display: inline-block; background: var(--primary-gradient); color: white; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; width: fit-content; }
-        .ev-top-right { display: flex; align-items: center; gap: 10px; }
-        .ev-live-dot { width: 10px; height: 10px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 0 rgba(16,185,129,0.7); animation: livePulse 2s infinite; }
-        @keyframes livePulse { 0%{box-shadow:0 0 0 0 rgba(16,185,129,0.7)} 70%{box-shadow:0 0 0 8px rgba(16,185,129,0)} 100%{box-shadow:0 0 0 0 rgba(16,185,129,0)} }
-        .ev-manage-btn { background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .ev-manage-btn:hover { background: #f1f5f9; }
-
-        .ev-title { font-size: 1.3rem; font-weight: 900; color: #0f172a; margin: 0 0 12px; font-family: 'Outfit', sans-serif; letter-spacing: -0.5px; }
-        .ev-stats-row { display: flex; gap: 16px; font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; cursor: pointer; }
-        .ev-stats-row span { display: flex; align-items: center; gap: 5px; }
-        .ev-time { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 14px; }
-
-        .ev-progress-wrap { margin-bottom: 14px; }
-        .ev-progress-bar { height: 7px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
-        .ev-progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
-        .ev-progress-labels { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; font-weight: 800; color: #94a3b8; }
-
-        .ev-status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 9px; text-transform: uppercase; margin-bottom: 12px; }
-        .ev-status-pending { background: #fef3c7; color: #92400e; }
-        .ev-status-accepted { background: #dcfce7; color: #166534; }
-        .ev-status-rejected { background: #fee2e2; color: #991b1b; }
-
-        .ev-actions { display: flex; gap: 8px; }
-        .ev-btn-primary { flex: 3; background: var(--primary-gradient); color: white; border: none; padding: 10px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .ev-btn-primary:hover { opacity: 0.9; }
-        .ev-btn-secondary { flex: 2; background: #f8fafc; color: #334155; border: 1px solid #e2e8f0; padding: 10px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 13px; }
-        .ev-btn-cancel { flex: 1; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; padding: 10px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 13px; }
-        .ev-btn-expand { background: #f1f5f9; color: #475569; border: none; padding: 10px 14px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-        .ev-requirements { margin-top: 14px; padding: 14px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 13px; animation: fadeIn 0.2s ease; }
-        .ev-requirements strong { display: block; margin-bottom: 6px; font-size: 11px; color: #94a3b8; }
-        .ev-requirements p { margin: 0; color: #475569; white-space: pre-line; }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-
-        .ev-skeleton { background: white; border-radius: 20px; padding: 22px; border: 1px solid rgba(0,0,0,0.05); }
-        .evs-header { display: flex; justify-content: space-between; align-items: center; }
-        .evs-dot { width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0; }
-        .evs-line { border-radius: 6px; background: #e2e8f0; }
-        .pulse { animation: evPulse 1.5s ease-in-out infinite; }
-        @keyframes evPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-        .ev-empty { text-align: center; padding: 80px 40px; background: white; border-radius: 24px; border: 1px solid rgba(0,0,0,0.05); }
-        .ev-empty-icon { color: #cbd5e1; margin-bottom: 16px; }
-        .ev-empty h3 { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 8px; }
-        .ev-empty p { color: #64748b; margin: 0 0 24px; }
-
-        .ev-fab { position: fixed; bottom: 36px; right: 36px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary-gradient); color: white; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(255,61,109,0.35); transition: 0.2s; z-index: 100; }
-        .ev-fab:hover { transform: scale(1.1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .animate-spin-slow { animation: spin 15s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

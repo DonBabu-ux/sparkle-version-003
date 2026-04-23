@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ChevronLeft, Clock, Trash2, RotateCw, User, Lock, Search as SearchIcon
+  ChevronLeft, Clock, Trash2, RotateCw, Lock
 } from 'lucide-react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
-import { useUserStore } from '../store/userStore';
 
 export default function SearchHistory() {
   const navigate = useNavigate();
-  const { user: currentUser } = useUserStore();
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<{ id: string; query: string; searched_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchHistory = useCallback(async () => {
@@ -48,7 +46,7 @@ export default function SearchHistory() {
     fetchHistory();
   }, [fetchHistory]);
 
-  const groupedHistory = history.reduce((groups: any, item: any) => {
+  const groupedHistory = history.reduce((groups: Record<string, typeof history>, item) => {
     const date = new Date(item.searched_at).toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
@@ -107,11 +105,11 @@ export default function SearchHistory() {
             </div>
           ) : (
             <div className="space-y-8">
-              {Object.entries(groupedHistory).map(([date, items]: [string, any]) => (
+              {Object.entries(groupedHistory).map(([date, items]) => (
                 <div key={date} className="animate-fade-in">
                   <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 pl-2">{date}</h3>
                   <div className="s-card space-y-1">
-                    {items.map((item: any) => (
+                    {items.map((item) => (
                       <div key={item.id} className="s-hist-item group">
                         <div className="s-hist-icon">
                           <Clock size={18} strokeWidth={2.5} />

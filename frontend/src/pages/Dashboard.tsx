@@ -1,11 +1,26 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import PostCard from '../components/PostCard';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useModalStore } from '../store/modalStore';
-import { Check } from 'lucide-react';
+import { 
+  Check, 
+  Image as ImageIcon, 
+  PlayCircle, 
+  Ghost, 
+  RefreshCw, 
+  Plus, 
+  Sparkles, 
+  Flame,
+  TrendingUp,
+  Orbit,
+  Send,
+  ChevronRight,
+  BarChart3,
+  Calendar
+} from 'lucide-react';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
 
@@ -40,31 +55,36 @@ function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => 
   };
 
   return (
-    <div className="suggestion-item group">
-      <div 
-        style={{ display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', flex: 1 }} 
-        onClick={() => navigate(`/profile/${s.username}`)}
-      >
-        <div className="relative">
-          <img src={s.avatar_url || '/uploads/avatars/default.png'} className="suggestion-avatar border-2 border-white shadow-sm group-hover:scale-105 transition-transform duration-300" alt="" />
-          {s.is_online && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>}
+    <div className="flex items-center gap-5 p-4 rounded-[32px] hover:bg-white/80 transition-all group cursor-pointer border border-transparent" onClick={() => navigate(`/profile/${s.username}`)}>
+      <div className="relative shrink-0">
+        <div className="p-1 bg-white rounded-2xl overflow-hidden shadow-lg border border-black/5 transition-transform duration-500">
+           <img 
+            src={s.avatar_url || '/uploads/avatars/default.png'} 
+            className="w-14 h-14 rounded-xl transition-transform duration-1000 object-cover" 
+            alt="" 
+          />
         </div>
-        <div style={{ overflow: 'hidden' }}>
-          <div className="suggestion-name" style={{ fontFamily: 'Outfit, sans-serif' }}>{s.username}</div>
-          <div className="suggestion-meta">{s.campus || 'Sparkler'}</div>
+        {s.is_online && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-4 border-white rounded-full shadow-lg"></div>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-black text-base text-black truncate leading-none uppercase tracking-tighter italic">
+          {s.username}
         </div>
+        <p className="text-[10px] font-black text-black/20 truncate mt-2 uppercase tracking-[0.2em] italic">
+          {s.campus || 'Main Frequency'}
+        </p>
       </div>
       <button 
-        className={`follow-btn ${following ? 'following' : ''} active:scale-95 transition-all`} 
+        className={`shrink-0 w-11 h-11 rounded-[18px] flex items-center justify-center transition-all duration-500 active:scale-90 ${following ? 'bg-black/5 text-black/10' : 'bg-primary text-white shadow-xl shadow-primary/30 hover:scale-105'}`} 
         onClick={handleFollow}
         disabled={loading || following}
-        style={{ padding: '6px 16px', borderRadius: '12px' }}
       >
-        {loading ? '...' : following ? <Check size={14} strokeWidth={3} /> : 'Follow'}
+        {loading ? '...' : following ? <Check size={18} strokeWidth={4} /> : <Plus size={22} strokeWidth={4} />}
       </button>
     </div>
   );
 }
+
 export default function Dashboard() {
   const { user } = useUserStore();
   const navigate = useNavigate();
@@ -89,34 +109,27 @@ export default function Dashboard() {
     try {
       const [dashRes, storiesRes, suggestionsRes] = await Promise.all([
         api.get(`/posts/feed?page=${pageNum}&limit=10`),
-        pageNum === 1 ? api.get('/stories/active').catch(err => {
-          console.error('Story fetch failed:', err);
-          return { data: [] };
-        }) : Promise.resolve({ data: [] }),
-        pageNum === 1 ? api.get('/users/suggestions').catch(err => {
-          console.error('Suggestions fetch failed:', err);
-          return { data: { suggestions: [] } };
-        }) : Promise.resolve({ data: { suggestions: [] } })
+        pageNum === 1 ? api.get('/stories/active').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+        pageNum === 1 ? api.get('/users/suggestions').catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
       ]);
-      
-      console.log('Dashboard Stories Received:', storiesRes.data);
       
       const newPosts = Array.isArray(dashRes.data) ? dashRes.data : (dashRes.data.feed || dashRes.data.posts || []);
       
       if (pageNum === 1) {
         setPosts(newPosts);
-        if (Array.isArray(storiesRes.data)) {
-          setStories(storiesRes.data);
-        }
+        if (Array.isArray(storiesRes.data)) setStories(storiesRes.data);
         if (suggestionsRes.data.suggestions) setSuggestions(suggestionsRes.data.suggestions);
         setTrendingTags([
-          { tag: 'CampusGossip', count: '2.4k' },
-          { tag: 'MarketplaceSteals', count: '1.8k' },
-          { tag: 'FinalsWeekCry', count: '5.1k' },
-          { tag: 'Sparklev3', count: '942' }
+          { tag: 'campus_life', count: '12.4k' },
+          { tag: 'high_frequency', count: '8.8k' },
+          { tag: 'announcements', count: '5.1k' },
+          { tag: 'village_vibes', count: '942' }
         ]);
       } else {
-        setPosts(prev => [...prev, ...newPosts]);
+        setPosts(prev => {
+          const uniqueNew = newPosts.filter((p: Post) => !prev.some(existing => existing.post_id === p.post_id));
+          return [...prev, ...uniqueNew];
+        });
       }
       
       setHasMore(newPosts.length === 10);
@@ -129,10 +142,29 @@ export default function Dashboard() {
   }, []);
 
   const { refreshCounter } = useModalStore();
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDashboardData(1);
+    setPage(1); // Reset page on refresh
   }, [fetchDashboardData, refreshCounter]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          setPage(p => {
+             const next = p + 1;
+             fetchDashboardData(next);
+             return next;
+          });
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (observerTarget.current) observer.observe(observerTarget.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, fetchDashboardData]);
 
   const handlePublish = async () => {
     if (!newPostContent.trim() && mediaFiles.length === 0) return;
@@ -146,7 +178,6 @@ export default function Dashboard() {
       const response = await api.post('/posts', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      // The API returns 201, or { success: true } depending on which controller
       if (response.status === 201 || response.data.success || response.data) {
         setNewPostContent('');
         setMediaFiles([]);
@@ -160,364 +191,230 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="dashboard-root">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
 
-      <div className="dashboard-layout">
-        {/* Center Column: Feed */}
-        <main className="main-feed-column">
-          {/* 🔷 PREMIUM COMPOSER */}
-          <div className="composer-card animate-scale-in">
-            <div className="composer-input-area">
-              <img 
-                src={user?.avatar_url || '/uploads/avatars/default.png'} 
-                className="composer-avatar" 
-                alt=""
-              />
-              <div className="composer-prompt-wrapper">
-                <input 
-                  type="text"
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] left-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-20 lg:pt-12">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-16 mt-6 lg:mt-0">
+          
+          {/* Main Content Area */}
+          <section className="flex flex-col gap-16">
+            {/* STORIES */}
+            <div className="space-y-10 animate-fade-in">
+              <div className="flex items-center justify-between px-4">
+                <h2 className="text-2xl font-black tracking-tighter text-black uppercase italic flex items-center gap-4">
+                   <div className="w-2.5 h-8 bg-primary rounded-full"></div>
+                   Stories
+                </h2>
+                <div className="w-10 h-10 rounded-2xl bg-white/60 border border-white flex items-center justify-center text-primary shadow-sm hover:bg-white transition-transform">
+                   <Sparkles size={18} className="animate-pulse" />
+                </div>
+              </div>
+              <div className="flex gap-6 overflow-x-auto pb-6 no-scrollbar px-2">
+                {/* Add Story */}
+                <button 
+                  onClick={() => navigate('/afterglow/create')}
+                  className="flex-shrink-0 w-32 h-48 bg-white/80 backdrop-blur-3xl border border-white rounded-[40px] flex flex-col items-center justify-center gap-4 group hover:bg-white transition-all shadow-xl shadow-primary/5 active:scale-95 duration-500"
+                >
+                  <div className="w-14 h-14 bg-primary/10 text-primary rounded-[22px] flex items-center justify-center transition-transform duration-700 shadow-inner">
+                    <Plus size={28} strokeWidth={4} />
+                  </div>
+                  <p className="text-[10px] font-black text-black uppercase tracking-[0.3em] italic">Add Story</p>
+                </button>
+
+                {stories.map(group => (
+                  <button 
+                    key={group.user_id}
+                    onClick={() => navigate(`/stories/${group.user_id}`)}
+                    className="flex-shrink-0 w-32 h-48 bg-white/40 backdrop-blur-3xl border border-white rounded-[40px] p-1.5 group transition-all duration-700 shadow-xl relative overflow-hidden active:scale-95"
+                  >
+                    <div className="w-full h-full rounded-[34px] overflow-hidden relative">
+                        <img 
+                          src={group.stories[0].media_url || group.avatar_url || '/uploads/avatars/default.png'} 
+                          className="w-full h-full object-cover transition-transform duration-1000"
+                          alt=""
+                        />
+                        <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+                          <p className="text-[10px] font-black text-white truncate text-center uppercase tracking-widest italic">{group.username}</p>
+                        </div>
+                        {/* Avatar ring */}
+                        <div className="absolute top-4 left-4 p-0.5 bg-white rounded-xl shadow-2xl border-2 border-primary overflow-hidden">
+                           <img src={group.avatar_url || '/uploads/avatars/default.png'} className="w-6 h-6 rounded-lg object-cover" />
+                        </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* COMPOSER */}
+            <div className="bg-white/80 backdrop-blur-3xl border border-white p-6 lg:p-12 rounded-[32px] lg:rounded-[56px] shadow-2xl shadow-primary/5 transition-all duration-700 hover:shadow-primary/10 animate-fade-in group">
+              <div className="flex gap-8 mb-10">
+                <div className="p-1 rounded-[28px] bg-white shadow-2xl overflow-hidden shrink-0 border border-black/5 transition-transform duration-700">
+                  <img 
+                    src={user?.avatar_url || '/uploads/avatars/default.png'} 
+                    className="w-16 h-16 rounded-[24px] object-cover transition-transform duration-1000 group-hover:scale-110" 
+                    alt="" 
+                  />
+                </div>
+                <textarea 
                   value={newPostContent}
                   onChange={(e) => setNewPostContent(e.target.value)}
-                  placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || 'Sparkler'}?`}
-                  className="composer-input-field"
+                  placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || ''}?`}
+                  className="w-full bg-transparent border-none outline-none text-2xl font-black text-black placeholder:text-black/5 resize-none min-h-[140px] py-4 italic tracking-tighter no-scrollbar"
                 />
               </div>
-            </div>
-            <div className="composer-actions">
-              <label className="composer-btn">
-                <i className="fas fa-image" style={{ color: '#45bd62' }}></i> Photo
-                <input type="file" multiple className="hidden-input" accept="image/*" onChange={(e) => setMediaFiles(prev => [...prev, ...Array.from(e.target.files || [])])} />
-              </label>
-              <div className="composer-btn" onClick={() => navigate('/moments/create')}><i className="fas fa-play-circle" style={{ color: '#f02849' }}></i> Moment</div>
-              <div className="composer-btn" onClick={() => setActiveModal('listing')}><i className="fas fa-store" style={{ color: '#f7b928' }}></i> Sell</div>
-              <div className="composer-btn hidden md:flex"><i className="fas fa-smile" style={{ color: '#f7b928' }}></i> Feeling</div>
-            </div>
-            {(newPostContent.trim() || mediaFiles.length > 0) && (
-              <button 
-                onClick={handlePublish}
-                disabled={isPublishing}
-                className="premium-btn publish-btn"
-                style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }}
-              >
-                {isPublishing ? 'Publishing...' : 'Publish Spark'}
-              </button>
-            )}
-          </div>
 
-          {/* 🔷 STORIES ROW (AFTERGLOW) */}
-          <div className="stories-section animate-fade-in">
-            <div className="stories-container">
-              <div className="story-card story-add" onClick={() => navigate('/afterglow/create')}>
-                <div className="story-add-bg">
-                  <img src={user?.avatar_url || '/uploads/avatars/default.png'} className="story-media" style={{ filter: 'blur(5px) brightness(0.7)' }} />
+              <div className="flex items-center justify-between pt-10 border-t border-black/[0.03]">
+                <div className="flex items-center gap-4">
+                   <label className="p-4.5 bg-primary/5 text-primary rounded-[22px] hover:bg-primary/10 hover:shadow-lg transition-all cursor-pointer active:scale-90 border border-primary/10 shadow-sm">
+                      <ImageIcon size={24} strokeWidth={3} />
+                      <input type="file" multiple className="hidden" accept="image/*" onChange={(e) => setMediaFiles(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                   </label>
+                   <button className="p-4.5 bg-black/5 text-black/20 rounded-[22px] hover:bg-white hover:text-primary hover:shadow-lg transition-all border border-transparent hover:border-primary/20 active:scale-90" onClick={() => navigate('/moments/create')}>
+                      <PlayCircle size={24} strokeWidth={3} />
+                   </button>
+                   <button className="p-4.5 bg-black/5 text-black/20 rounded-[22px] hover:bg-white hover:text-primary hover:shadow-lg transition-all border border-transparent hover:border-primary/20 active:scale-90" onClick={() => setActiveModal('poll')}>
+                      <BarChart3 size={24} strokeWidth={3} />
+                   </button>
                 </div>
-                <div className="plus-circle"><i className="fas fa-plus"></i></div>
-                <div className="story-add-text">Afterglow</div>
-              </div>
 
-              {stories.map(group => {
-                const latestStory = group.stories[0];
-                const isText = latestStory.media_type === 'text';
-                
-                return (
-                  <div key={group.user_id} className="story-card animate-scale-in" onClick={() => navigate(`/stories/${group.user_id}`)}>
-                    {isText ? (
-                      <div className="story-media bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-                        <p className="text-[10px] text-white font-bold text-center line-clamp-4 leading-tight">
-                          {latestStory.caption}
-                        </p>
-                      </div>
-                    ) : (
-                      <img 
-                        src={latestStory.media_url || group.avatar_url || '/uploads/avatars/default.png'} 
-                        className="story-media" 
-                        alt="" 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = group.avatar_url || '/uploads/avatars/default.png';
-                        }}
-                      />
-                    )}
-                    <div className="story-overlay"></div>
-                    <div className="story-avatar-wrapper">
-                      <img src={group.avatar_url || '/uploads/avatars/default.png'} className="story-avatar" alt="" />
-                    </div>
-                    <div className="story-name">{group.username || group.user_name}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="feed-container">
-            {loading ? (
-              Array(3).fill(0).map((_, i) => (
-                <div key={i} className="post-skeleton animate-pulse mb-8 p-6 bg-white rounded-3xl border border-slate-100">
-                  <div className="flex gap-4 mb-4">
-                    <div className="w-12 h-12 bg-slate-100 rounded-full"></div>
-                    <div className="flex-1 space-y-2 py-2">
-                       <div className="h-4 bg-slate-100 rounded w-1/4"></div>
-                       <div className="h-3 bg-slate-100 rounded w-1/6"></div>
-                    </div>
-                  </div>
-                  <div className="h-48 bg-slate-100 rounded-2xl mb-4"></div>
-                  <div className="space-y-2">
-                     <div className="h-3 bg-slate-100 rounded w-full"></div>
-                     <div className="h-3 bg-slate-100 rounded w-5/6"></div>
-                  </div>
-                </div>
-              ))
-            ) : posts.length > 0 ? (
-              <>
-                {posts.map((post) => (
-                  <div key={post.feed_id || post.post_id} className="animate-fade-in">
-                    <PostCard post={post} />
-                  </div>
-                ))}
-                
-                {loadingMore && (
-                  <div className="load-more-spinner">
-                    <i className="fas fa-circle-notch fa-spin"></i>
-                  </div>
-                )}
-
-                {hasMore && (
-                  <button className="premium-btn load-more-btn" onClick={() => { setPage(p => p + 1); fetchDashboardData(page + 1); }}>
-                    <i className="fas fa-sync-alt"></i> Load More
+                <div className="flex items-center gap-6">
+                   {mediaFiles.length > 0 && (
+                      <span className="text-[10px] font-black text-primary uppercase tracking-widest italic">{mediaFiles.length} files attached</span>
+                   )}
+                   <button 
+                    onClick={handlePublish}
+                    disabled={isPublishing || (!newPostContent.trim() && mediaFiles.length === 0)}
+                    className="bg-primary text-white font-black text-sm uppercase tracking-[0.2em] px-12 py-5 rounded-[22px] shadow-2xl shadow-primary/30 hover:scale-[1.03] transition-all active:scale-95 disabled:opacity-50 flex items-center gap-4 italic"
+                  >
+                    {isPublishing ? 'Posting...' : 'Post'} <Send size={20} strokeWidth={4} />
                   </button>
-                )}
-              </>
-            ) : (
-              <div className="empty-feed-state">
-                <i className="fas fa-ghost"></i>
-                <p>No posts yet. Be the first to share something!</p>
+                </div>
               </div>
-            )}
-          </div>
-        </main>
-
-        {/* Right Column: Suggestions & Trending */}
-        <aside className="suggestions-column animate-slide-in">
-          <div className="sidebar-card">
-            <div className="sidebar-title">
-              <span>Suggested for you</span>
-              <Link to="/connect" style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>See All</Link>
             </div>
 
-            <div className="suggestions-list">
-              {suggestions.length > 0 ? suggestions.map(s => (
-                <SuggestionItem key={s.user_id} s={s} navigate={navigate} />
-              )) : (
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>No suggestions right now</p>
+            {/* FEED */}
+            <div className="space-y-12 pb-48 animate-fade-in px-2">
+              <div className="flex items-center justify-between px-4">
+                 <h2 className="text-2xl font-black text-black uppercase tracking-tighter italic flex items-center gap-4">
+                    <div className="w-2.5 h-8 bg-black/5 rounded-full"></div>
+                    Feed
+                 </h2>
+                 <div className="flex items-center gap-4 px-6 py-2.5 bg-white/60 backdrop-blur-3xl border border-white rounded-full text-[10px] font-black text-primary shadow-xl shadow-primary/5 italic">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-ping"></div>
+                    LIVE
+                 </div>
+              </div>
+
+              {loading ? (
+                Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="bg-white/40 border-4 border-dashed border-white h-96 rounded-[56px] animate-pulse"></div>
+                ))
+              ) : posts.length > 0 ? (
+                <>
+                  {posts.map((post) => <PostCard key={post.post_id} post={post} />)}
+                  <div ref={observerTarget} className="h-10 w-full flex items-center justify-center">
+                     {loadingMore && <RefreshCw size={24} className="animate-spin text-primary" />}
+                  </div>
+                </>
+              ) : (
+                <div className="py-48 bg-white/20 border-4 border-dashed border-white rounded-[64px] flex flex-col items-center justify-center gap-10 text-center shadow-inner mx-4">
+                   <Ghost size={120} strokeWidth={1} className="text-black/5 animate-bounce-slow" />
+                   <div className="space-y-6">
+                     <h3 className="text-4xl font-black text-black/10 uppercase tracking-tighter italic leading-none">No Posts Yet.</h3>
+                     <p className="text-[10px] font-black text-black/30 uppercase tracking-[0.3em] max-w-xs mx-auto leading-loose italic">Follow some people to see their posts here.</p>
+                     <button onClick={() => navigate('/connect')} className="mt-8 px-12 py-5 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 italic">Find Friends</button>
+                   </div>
+                </div>
               )}
             </div>
-          </div>
+          </section>
 
-          <div className="sidebar-card trending-card animate-scale-in">
-            <div className="sidebar-title" style={{ color: 'white', marginBottom: '25px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div className="pulse-dot"></div>
-                Trending Pulse
-              </span>
+          {/* Sidebar Area */}
+          <aside className="hidden xl:flex flex-col gap-12 sticky top-32 h-fit animate-fade-in">
+            {/* Suggested People */}
+            <div className="bg-white/80 backdrop-blur-3xl border border-white rounded-[56px] p-10 shadow-2xl shadow-primary/5 transition-all duration-700 hover:shadow-primary/10">
+              <div className="flex items-center justify-between mb-10 px-4">
+                 <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic">Suggested People</h3>
+                 <Link to="/connect" className="text-[9px] font-black text-primary hover:tracking-[0.4em] transition-all uppercase italic">View All</Link>
+              </div>
+              <div className="space-y-4">
+                {suggestions.length > 0 ? suggestions.map(s => (
+                  <SuggestionItem key={s.user_id} s={s} navigate={navigate} />
+                )) : (
+                   <div className="flex flex-col items-center py-12 gap-6 opacity-30">
+                      <Orbit size={48} className="text-black animate-spin-slow" />
+                      <p className="text-[10px] font-black text-black uppercase tracking-[0.3em] text-center italic">No Suggestions</p>
+                   </div>
+                )}
+              </div>
             </div>
-            <div className="trending-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-              {trendingTags.map(tag => (
-                <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="trending-pill">
-                  #{tag.tag} <span style={{ fontSize: '0.7rem', opacity: 0.8, marginLeft: '4px' }}>{tag.count}</span>
-                </Link>
-              ))}
+
+            {/* Trending */}
+            <div className="bg-white/80 backdrop-blur-3xl border border-white rounded-[56px] p-12 relative overflow-hidden shadow-2xl shadow-primary/5 group transition-all duration-700 hover:shadow-primary/10">
+               <div className="absolute -top-16 -right-16 text-primary/5 group-hover:text-primary/10 group-hover:scale-125 transition-all duration-1000">
+                  <Flame size={280} fill="currentColor" strokeWidth={0} />
+               </div>
+               <div className="relative z-10 flex flex-col gap-10">
+                  <h3 className="text-3xl font-black flex items-center gap-5 text-black uppercase tracking-tighter italic leading-none">
+                     <span className="w-2.5 h-10 bg-primary rounded-full"></span>
+                     Trending
+                  </h3>
+                  <div className="space-y-5">
+                    {trendingTags.map(tag => (
+                      <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-6 bg-white/60 border border-white rounded-[32px] hover:bg-white hover:border-black/5 hover:-translate-y-2 transition-all duration-500 group/tag shadow-xl shadow-primary/5 hover:shadow-primary/10">
+                         <div className="flex items-center justify-between">
+                            <p className="text-xl font-black text-black italic uppercase tracking-tighter group-hover/tag:text-primary transition-colors">#{tag.tag}</p>
+                            <TrendingUp size={18} strokeWidth={4} className="text-primary/20 group-hover/tag:text-primary transition-colors opacity-0 group-hover/tag:opacity-100 group-hover/tag:animate-pulse" />
+                         </div>
+                         <p className="text-[10px] font-black text-black/20 mt-3 uppercase tracking-[0.3em] italic">{tag.count} POSTS</p>
+                      </Link>
+                    ))}
+                  </div>
+                  
+                  <Link to="/explore" className="w-full py-5 bg-black/5 rounded-3xl flex items-center justify-center gap-4 text-[10px] font-black text-black/20 uppercase tracking-[0.4em] hover:bg-black hover:text-white transition-all duration-500 italic group/more">
+                      Explore More <ChevronRight size={18} strokeWidth={4} className="group-hover/more:translate-x-2 transition-transform" />
+                  </Link>
+               </div>
             </div>
-          </div>
-        </aside>
-      </div>
+
+            {/* Village Ad-Banner Placeholder */}
+            <div className="bg-black text-white rounded-[56px] p-12 relative overflow-hidden shadow-2xl group cursor-pointer transition-all duration-1000 hover:shadow-primary/20">
+                <div className="absolute inset-0 bg-primary/20 blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative z-10 space-y-6">
+                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
+                       <Calendar size={24} strokeWidth={3} className="text-white fill-white/10" />
+                    </div>
+                    <div className="space-y-2">
+                       <h4 className="text-3xl font-black italic uppercase tracking-tighter leading-none">The Sparkle Ball</h4>
+                       <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] italic">GRAND GATHERING — SOUTH HUB</p>
+                    </div>
+                    <button className="w-full py-5 bg-white text-black rounded-[22px] font-black text-xs uppercase tracking-[0.2em] italic shadow-2xl transition-all hover:scale-[1.05] active:scale-95">
+                        Sync Attendance
+                    </button>
+                </div>
+            </div>
+          </aside>
+        </div>
+      </main>
 
       <style>{`
-        .dashboard-root {
-          display: flex;
-          background-color: var(--bg-main);
-          min-height: 100vh;
-        }
-        .dashboard-layout {
-          display: grid;
-          grid-template-columns: 630px 320px;
-          justify-content: center;
-          gap: 40px;
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 40px 20px;
-          align-items: flex-start;
-          flex: 1;
-        }
-        .main-feed-column {
-          width: 630px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-        .suggestions-column {
-          width: 320px;
-          position: sticky;
-          top: 40px;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-        .composer-card {
-          background: white;
-          border-radius: 18px;
-          padding: 20px;
-          margin-bottom: 24px;
-          box-shadow: var(--shadow-sm);
-          border: 1px solid var(--border-light);
-        }
-        .composer-input-area {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          margin-bottom: 20px;
-        }
-        .composer-avatar {
-          width: 48px; height: 48px; border-radius: 50%; object-fit: cover;
-        }
-        .composer-prompt-wrapper {
-          flex: 1;
-        }
-        .composer-input-field {
-          width: 100%;
-          background: var(--bg-main);
-          padding: 14px 20px;
-          border-radius: 30px;
-          border: none;
-          outline: none;
-          font-family: inherit;
-          font-size: 0.95rem;
-          font-weight: 500;
-        }
-        .composer-actions {
-          display: flex;
-          justify-content: space-around;
-          padding-top: 16px;
-          border-top: 1px solid #f1f5f9;
-        }
-        .composer-btn {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 16px;
-          border-radius: 12px;
-          font-weight: 600;
-          font-size: 0.9rem;
-          color: var(--text-secondary);
-          transition: all 0.2s;
-          cursor: pointer;
-        }
-        .composer-btn:hover {
-          background: #f8fafc;
-          color: var(--primary);
-        }
-        .hidden-input { display: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .stories-section { margin-bottom: 32px; }
-        .stories-container {
-          display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;
-        }
-        .stories-container::-webkit-scrollbar { display: none; }
-        .story-card {
-          position: relative; width: 120px; height: 200px; border-radius: 18px;
-          overflow: hidden; flex-shrink: 0; cursor: pointer; transition: all 0.3s;
-          box-shadow: var(--shadow-md);
-        }
-        .story-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
-        .story-media { width: 100%; height: 100%; object-fit: cover; }
-        .story-overlay {
-          position: absolute; inset: 0;
-          background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%);
-        }
-        .story-avatar-wrapper {
-          position: absolute; top: 12px; left: 12px; padding: 2px;
-          background: var(--primary-gradient); border-radius: 50%;
-          width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-        }
-        .story-avatar { width: 100%; height: 100%; border-radius: 50%; border: 2px solid white; object-fit: cover; }
-        .story-name {
-          position: absolute; bottom: 12px; left: 12px; right: 12px;
-          color: white; font-size: 0.8rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .story-add { background: white; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; border: 1px solid var(--border-light); }
-        .story-add-bg { position: absolute; top: 0; left: 0; width: 100%; height: 75%; background: #f1f5f9; }
-        .plus-circle {
-          width: 32px; height: 32px; background: var(--primary-gradient); border-radius: 50%;
-          border: 3px solid white; display: flex; align-items: center; justify-content: center;
-          color: white; font-size: 14px; position: relative; margin-top: -16px; z-index: 2;
-        }
-        .story-add-text { padding: 12px 6px; font-size: 0.8rem; font-weight: 800; }
-
-        .sidebar-card { background: white; border-radius: 24px; padding: 24px; border: 1px solid var(--border-light); box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
-        .sidebar-title { font-size: 1rem; font-weight: 800; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; color: #1e293b; }
-        .suggestion-item { 
-          display: flex; 
-          align-items: center; 
-          gap: 12px; 
-          margin-bottom: 20px; 
-          padding: 8px;
-          border-radius: 16px;
-          transition: all 0.2s;
-        }
-        .suggestion-item:hover {
-          background: #f8fafc;
-        }
-        .suggestion-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .suggestion-name { font-weight: 700; font-size: 0.9rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .suggestion-meta { font-size: 0.75rem; color: #64748b; font-weight: 500; }
-        .follow-btn { 
-          color: var(--primary); 
-          font-weight: 800; 
-          font-size: 0.8rem; 
-          background: rgba(255,61,109,0.05); 
-          padding: 6px 14px;
-          border-radius: 20px;
-          cursor: pointer; 
-          transition: all 0.2s;
-          border: none;
-        }
-        .follow-btn:hover {
-          background: var(--primary);
-          color: white;
-          transform: scale(1.05);
-        }
-        .follow-btn.following {
-          background: #f1f5f9;
-          color: #94a3b8;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         
-        .trending-card { background: var(--primary-gradient); color: white; border: none; box-shadow: 0 10px 30px rgba(255,61,109,0.2); }
-        .pulse-dot { width: 10px; height: 10px; background: white; border-radius: 50%; position: relative; }
-        .pulse-dot::after {
-          content: ''; position: absolute; inset: 0; background: white; border-radius: 50%;
-          animation: pulse-ring 1.5s infinite;
-        }
-        @keyframes pulse-ring {
-          0% { transform: scale(1); opacity: 0.5; }
-          100% { transform: scale(3); opacity: 0; }
-        }
-        .trending-pill {
-          background: rgba(255,255,255,0.2); color: white; padding: 6px 14px;
-          border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); font-size: 0.85rem; font-weight: 600;
-          text-decoration: none; transition: all 0.2s;
-        }
-        .trending-pill:hover { background: rgba(255,255,255,0.3); }
-
-        .load-more-spinner { text-align: center; padding: 20px; color: var(--primary); font-size: 1.5rem; }
-        .load-more-btn { width: 100%; margin-top: 20px; justify-content: center; }
-
-        @media (max-width: 1024px) {
-          .dashboard-layout { grid-template-columns: 1fr; padding: 100px 15px 120px; }
-          .suggestions-column { display: none; }
-          .main-feed-column { width: 100%; gap: 15px; }
-          .composer-card { border-radius: 24px; padding: 15px; }
-          .composer-input-field { font-size: 0.9rem; padding: 12px 18px; }
-          .composer-btn { padding: 8px 12px; font-size: 0.8rem; }
-        }
+        @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .animate-bounce-slow { animation: bounce-slow 4s infinite ease-in-out; }
+        
+        .animate-spin-slow { animation: spin 15s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

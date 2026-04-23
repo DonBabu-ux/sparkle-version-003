@@ -1,23 +1,20 @@
-require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 async function test() {
     const configs = [
         {
-            name: 'Current .env',
-            host: process.env.DB_HOST,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME,
-            port: process.env.DB_PORT
+            name: 'Original Password (@lilbeeLogics)',
+            host: 'mysql-lilbee.alwaysdata.net',
+            user: 'lilbee',
+            password: '@lilbeeLogics',
+            database: 'lilbee_sparkle'
         },
         {
-            name: 'Line 38 Password',
-            host: process.env.DB_HOST,
-            user: process.env.DB_USER,
+            name: 'Alternative Password (OmOfk93ORsLmT5Du)',
+            host: 'mysql-lilbee.alwaysdata.net',
+            user: 'lilbee',
             password: 'OmOfk93ORsLmT5Du',
-            database: process.env.DB_NAME,
-            port: process.env.DB_PORT
+            database: 'lilbee_sparkle'
         }
     ];
 
@@ -29,7 +26,6 @@ async function test() {
                 user: config.user,
                 password: config.password,
                 database: config.database,
-                port: config.port,
                 connectTimeout: 5000
             });
             console.log(`✅ Success for ${config.name}!`);

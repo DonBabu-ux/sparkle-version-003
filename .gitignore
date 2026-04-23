@@ -4,6 +4,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+node_modules
+.agent/
 
 # Environment variables
 .env
@@ -40,3 +42,9 @@ pids
 # Build outputs (if any)
 dist/
 build/
+
+# Antigravity skills (global, not project-specific)
+.agent/
+AGENTS.md
+diagram-design/
+.agent/

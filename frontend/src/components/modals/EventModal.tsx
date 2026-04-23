@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Calendar, MapPin, Users, Clock, Loader2 } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Clock, Loader2, Orbit, Sparkles, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
 
 interface EventModalProps {
@@ -44,66 +44,125 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
   };
 
   return (
-    <div className="modal-inner">
-      <div className="modal-header">
-        <div className="modal-title">
-          <i className="fas fa-calendar-plus" style={{color: '#ff5722'}}></i> Create Campus Event
-        </div>
-        <button className="close-btn" onClick={onClose}><X size={20} /></button>
+    <div className="flex flex-col bg-white rounded-[64px] border-4 border-black shadow-[0_40px_120px_rgba(0,0,0,0.2)] overflow-hidden relative lowercase">
+      <div className="absolute top-0 right-0 p-12 text-black/[0.01] pointer-events-none">
+          <Orbit size={240} strokeWidth={1} className="animate-spin-slow" />
       </div>
 
-      <div className="modal-body">
-        <div className="input-group">
-          <label>Event Title</label>
-          <input type="text" placeholder="Give your event a name..." value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
-
-        <div className="input-group">
-          <label>Description</label>
-          <textarea placeholder="Tell people what's happening..." value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
-        </div>
-
-        <div className="grid-row">
-          <div className="input-group">
-            <label><Clock size={14} /> Date & Time</label>
-            <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />
+      <div className="p-10 flex items-center justify-between border-b-4 border-black/5 bg-white relative z-10">
+        <div className="flex items-center gap-6">
+          <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white shadow-2xl">
+            <Calendar size={24} strokeWidth={3} />
           </div>
-          <div className="input-group">
-            <label><MapPin size={14} /> Location</label>
-            <input type="text" placeholder="Where is it?" value={location} onChange={(e) => setLocation(e.target.value)} />
+          <div>
+            <h3 className="font-heading font-black text-3xl text-black tracking-tighter uppercase italic leading-none">Temporal rift</h3>
+            <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Schedule Collective Assembly</p>
           </div>
         </div>
+        <button 
+          className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 hover:text-black hover:bg-black/10 transition-all active:rotate-90" 
+          onClick={onClose}
+        >
+          <X size={24} strokeWidth={4} />
+        </button>
+      </div>
 
-        <div className="input-group">
-          <label><Users size={14} /> Capacity (Optional)</label>
-          <input type="number" placeholder="Unlimited" value={capacity === 0 ? '' : capacity} onChange={(e) => setCapacity(parseInt(e.target.value) || 0)} />
-          <p className="hint">Leave empty or 0 for unlimited attendees</p>
+      <div className="p-10 space-y-12 relative z-10 max-h-[75vh] overflow-y-auto no-scrollbar">
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 px-2">
+            <Sparkles size={14} className="text-primary animate-pulse" />
+            <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Signal Label</label>
+          </div>
+          <input 
+            type="text" 
+            placeholder="EVENT DESIGNATION..." 
+            className="w-full p-8 bg-black/5 border-4 border-transparent rounded-[32px] outline-none font-black text-2xl text-black placeholder:text-black/5 focus:bg-white focus:border-black transition-all uppercase italic tracking-tighter" 
+            value={title} 
+            onChange={(e) => setTitle(e.target.value)} 
+          />
         </div>
 
-        <button className="submit-event-btn" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? <Loader2 className="animate-spin" /> : <>Publish Event <Calendar size={18} /></>}
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 px-2">
+            <Orbit size={14} className="text-primary" />
+            <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Mission Briefing</label>
+          </div>
+          <textarea 
+            placeholder="TELL THE TRIBES WHAT'S HAPPENING..." 
+            className="w-full p-10 bg-black/5 border-4 border-transparent rounded-[40px] outline-none font-black text-xl text-black placeholder:text-black/5 focus:bg-white focus:border-black transition-all min-h-[160px] resize-none uppercase italic tracking-tighter leading-tight" 
+            value={desc} 
+            onChange={(e) => setDesc(e.target.value)} 
+            rows={3} 
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 px-2">
+               <Clock size={14} className="text-primary" />
+               <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Time Coordinates</label>
+            </div>
+            <input 
+              type="datetime-local" 
+              className="w-full p-6 bg-black/5 border-2 border-transparent rounded-[24px] outline-none font-black text-[14px] text-black focus:bg-white focus:border-black transition-all uppercase" 
+              value={start} 
+              onChange={(e) => setStart(e.target.value)} 
+            />
+          </div>
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 px-2">
+               <MapPin size={14} className="text-primary" />
+               <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Spatial Node</label>
+            </div>
+            <input 
+              type="text" 
+              placeholder="WHERE IN THE GRID?" 
+              className="w-full p-6 bg-black/5 border-2 border-transparent rounded-[24px] outline-none font-black text-[14px] text-black placeholder:text-black/10 focus:bg-white focus:border-black transition-all uppercase italic tracking-tighter" 
+              value={location} 
+              onChange={(e) => setLocation(e.target.value)} 
+            />
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 px-2">
+             <Users size={14} className="text-primary" />
+             <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Occupancy Target</label>
+          </div>
+          <div className="relative group">
+            <input 
+              type="number" 
+              placeholder="UNLIMITED BANDWIDTH" 
+              className="w-full p-8 bg-black/5 border-4 border-transparent rounded-[32px] outline-none font-black text-2xl text-black placeholder:text-black/5 focus:bg-white focus:border-black transition-all uppercase italic tracking-tighter" 
+              value={capacity === 0 ? '' : capacity} 
+              onChange={(e) => setCapacity(parseInt(e.target.value) || 0)} 
+            />
+            {!capacity && (
+                <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <Sparkles size={24} className="text-black/5" />
+                </div>
+            )}
+          </div>
+        </div>
+
+        <button 
+          className="w-full py-8 mt-4 rounded-[40px] bg-black text-white font-black text-[15px] uppercase tracking-[0.5em] shadow-2xl hover:bg-primary transition-all active:scale-95 disabled:opacity-20 flex items-center justify-center gap-6 group font-heading italic" 
+          onClick={handleSubmit} 
+          disabled={submitting}
+        >
+          {submitting ? <Loader2 className="animate-spin" /> : (
+            <>
+                BROADCAST SPECTRUM 
+                <ArrowRight size={24} strokeWidth={4} className="group-hover:translate-x-3 transition-transform duration-500" />
+            </>
+          )}
         </button>
       </div>
 
       <style>{`
-        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 28px; background: white; overflow: hidden; }
-        .modal-header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #efefef; }
-        .modal-title { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; color: #ff5722; }
-        .close-btn { background: none; border: none; color: #94a3b8; cursor: pointer; }
-        
-        .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
-        
-        .input-group label { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 8px; }
-        .input-group input, .input-group textarea { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-family: inherit; font-size: 0.95rem; outline: none; transition: 0.2s; box-sizing: border-box; }
-        .input-group textarea { resize: none; }
-        .input-group input:focus, .input-group textarea:focus { border-color: #ff5722; background: rgba(255,87,34,0.02); }
-
-        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .hint { font-size: 11px; color: #94a3b8; margin-top: 4px; }
-
-        .submit-event-btn { width: 100%; padding: 16px; border-radius: 16px; background: linear-gradient(135deg, #ff5722, #f44336); color: white; border: none; font-weight: 800; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 20px rgba(244, 67, 54, 0.3); transition: 0.2s; margin-top: 10px; }
-        .submit-event-btn:hover { transform: translateY(-2px); opacity: 0.95; }
-        .submit-event-btn:disabled { opacity: 0.7; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .animate-spin-slow { animation: spin 45s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

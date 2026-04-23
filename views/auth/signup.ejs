@@ -1,879 +1,202 @@
-<meta charset="UTF-8">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up | Sparkle</title>
-    <script>
-        // Check if we arrived here due to a server redirect and clean up the URL
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('reason')) {
-                // If there's an auth failure reason, ensure stale local session is cleared
-                localStorage.removeItem('sparkleToken');
-                localStorage.removeItem('sparkleUser');
-                // Clean the URL without reloading
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        });
-    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap');
         body {
-            background-color: #FAFAFA;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-            opacity: 0;
-            animation: pageFadeIn 0.4s ease-out forwards;
+            font-family: 'Nunito Sans', sans-serif;
+            background-color: #fce7f3;
         }
-
-        @keyframes pageFadeIn {
-            from {
-                opacity: 0;
-                background-color: #ffe6f0;
-            }
-
-            to {
-                opacity: 1;
-                background-color: #FAFAFA;
-            }
-        }
-
-        .auth-container {
-            display: flex;
-            max-width: 1100px;
-            width: 100%;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .visual-side {
-            flex: 1;
-            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
-            padding: 60px 40px;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .auth-logo-container {
-            margin-bottom: 40px;
-        }
-
-        .auth-logo {
-            font-size: 48px;
-            font-weight: 800;
-            margin-bottom: 16px;
-        }
-
-        .auth-tagline {
-            font-size: 18px;
-            opacity: 0.95;
-            line-height: 1.5;
-        }
-
-        .features-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .features-list li {
-            padding: 12px 0;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .features-list i {
-            font-size: 20px;
-        }
-
-        .form-side {
-            flex: 1.2;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .progress-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 32px;
-            gap: 8px;
-        }
-
-        .step {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #f0f0f0;
-            border: 2px solid #ddd;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: #999;
-            transition: all 0.3s;
-        }
-
-        .step.active {
-            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
-            border-color: #FF3D6D;
-            color: white;
-        }
-
-        .step.completed {
-            background: #e8f5e9;
-            border-color: #4caf50;
-            color: #4caf50;
-        }
-
-        .step-line {
-            width: 40px;
-            height: 2px;
-            background: #ddd;
-            transition: all 0.3s;
-        }
-
-        .step-line.completed {
-            background: #4caf50;
-        }
-
-        .form-panels {
-            position: relative;
-            flex: 1;
-            /* Remove fixed min-height to allow content to dictate height */
-            min-height: 480px; 
-        }
-
-        .form-panel {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            opacity: 0;
-            transform: translateX(50px);
-            pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            visibility: hidden; /* Added for better accessibility/prevention of interaction */
-        }
-
-        .form-panel.active {
-            opacity: 1;
-            transform: translateX(0);
-            pointer-events: all;
-            position: relative; /* This allows the parent to expand to the panel's height */
-            visibility: visible;
-        }
-
-        .form-panel.previous {
-            transform: translateX(-50px);
-            opacity: 0;
-        }
-
-        .panel-header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .panel-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #262626;
-            margin-bottom: 8px;
-        }
-
-        .panel-subtitle {
-            color: #8E8E8E;
-            font-size: 14px;
-        }
-
-        .auth-message {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .auth-message.show {
-            display: block;
-        }
-
-        .auth-message.error {
-            background: #fee;
-            color: #c33;
-            border: 1px solid #fcc;
-        }
-
-        .auth-message.success {
-            background: #efe;
-            color: #3c3;
-            border: 1px solid #cfc;
-        }
-
-        .auth-form-group {
-            margin-bottom: 16px;
-        }
-
-        .auth-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #262626;
-            font-size: 14px;
-        }
-
-        .input-with-icon {
-            position: relative;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #8E8E8E;
-        }
-
-        .auth-input,
-        .auth-select {
-            width: 100%;
-            padding: 12px 12px 12px 40px;
-            border: 1px solid #DBDBDB;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .auth-select {
-            padding-left: 12px;
-        }
-
-        .auth-input:focus,
-        .auth-select:focus {
-            outline: none;
-            border-color: #FF3D6D;
-        }
-
-        .btn-auth-primary {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #FF6B8B 0%, #FF3D6D 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-            margin-bottom: 12px;
-        }
-
-        .btn-auth-primary:hover {
-            opacity: 0.9;
-        }
-
-        .btn-auth-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-auth-secondary {
-            width: 100%;
-            padding: 12px;
-            background: white;
-            color: #262626;
-            border: 1px solid #DBDBDB;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-auth-secondary:hover {
-            background: #f9f9f9;
-        }
-
-        .auth-divider {
-            display: flex;
-            align-items: center;
-            margin: 20px 0;
-            color: #8E8E8E;
-            font-size: 13px;
-        }
-
-        .auth-divider::before,
-        .auth-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #DBDBDB;
-        }
-
-        .auth-divider span {
-            padding: 0 16px;
-        }
-
-        .social-login {
-            margin-bottom: 16px;
-        }
-
-        .social-btn {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #DBDBDB;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
-
-        .social-btn:hover {
-            background: #f9f9f9;
-        }
-
-        .social-icon {
-            font-size: 18px;
-        }
-
-        .google-icon {
-            color: #4285f4;
-        }
-
-        .auth-link {
-            text-align: center;
-            margin-top: 16px;
-            font-size: 14px;
-            color: #8E8E8E;
-        }
-
-        .auth-link a {
-            color: #FF3D6D;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .auth-link a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-                align-items: flex-start; /* Start at top for scrolling */
-            }
-
-            .auth-container {
-                flex-direction: column;
-                box-shadow: none;
-                background: transparent;
-            }
-
-            .visual-side {
-                display: none; /* Hide visual-side on very small screens to focus on form */
-            }
-
-            .form-side {
-                background: white;
-                border-radius: 12px;
-                padding: 30px 20px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            }
-
-            .progress-bar {
-                margin-bottom: 24px; scale: 0.9;
-            }
-
-            .panel-title {
-                font-size: 20px;
-            }
-        }
+        .step-active { @apply bg-pink-600 text-white border-pink-600; }
+        .step-completed { @apply bg-emerald-500 text-white border-emerald-500; }
     </style>
-
-    <div class="auth-container">
-        <!-- Left Side: Visual/Image -->
-        <div class="visual-side">
-            <div class="auth-logo-container">
-                <div class="auth-logo">Sparkle</div>
-                <p class="auth-tagline">Sign up to see photos and videos from your friends.</p>
-            </div>
-
-            <ul class="features-list">
-                <li><i class="fas fa-user-friends"></i> Connect with friends</li>
-                <li><i class="fas fa-camera"></i> Share photos and videos</li>
-                <li><i class="fas fa-heart"></i> Like and comment on posts</li>
-                <li><i class="fas fa-lock"></i> Private account options</li>
-            </ul>
-        </div>
-
-        <!-- Right Side: Form -->
-        <div class="form-side">
-            <!-- Progress Bar -->
-            <div class="progress-bar">
-                <div class="step active description" id="step-1">1</div>
-                <div class="step-line" id="line-1"></div>
-                <div class="step" id="step-2">2</div>
-                <div class="step-line" id="line-2"></div>
-                <div class="step" id="step-3">3</div>
-                <div class="step-line" id="line-3"></div>
-                <div class="step" id="step-4">4</div>
-                <div class="step-line" id="line-4"></div>
-                <div class="step" id="step-5">5</div>
-            </div>
-
-            <!-- Form Panels Container -->
-            <div class="form-panels">
-                <!-- Panel 1: Welcome & Login Options -->
-                <div class="form-panel active" id="panel-1">
-                    <div class="panel-header">
-                        <h1 class="panel-title">Welcome to Sparkle</h1>
-                        <p class="panel-subtitle">Create an account or log in with your options below.</p>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8">
+    <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
+        
+        <!-- Left: Branding -->
+        <div class="text-center lg:text-left space-y-6 animate-fade-in">
+            <h1 class="text-6xl lg:text-7xl font-black text-pink-600 tracking-tighter italic uppercase border-b-8 border-pink-400 inline-block cursor-pointer" onclick="window.location.href='/'">SPARKLE</h1>
+            <p class="text-2xl lg:text-4xl font-bold text-pink-900 leading-tight max-w-lg mt-4">
+                Join Sparkle to find your friends and glow together in the campus network.
+            </p>
+            <div class="hidden lg:flex flex-col gap-6 mt-12">
+                <div class="flex items-center gap-5 text-pink-800 font-bold text-lg">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-pink-500 shadow-lg">
+                        <i class="fas fa-camera-retro"></i>
                     </div>
-
-                    <div id="panel1-message" class="auth-message"></div>
-
-                    <div class="social-login">
-                        <button class="social-btn google" id="google-login">
-                            <i class="fab fa-google social-icon google-icon"></i>
-                            Continue with Google
-                        </button>
-                    </div>
-
-                    <div class="auth-divider"><span>OR</span></div>
-
-                    <button class="btn-auth-primary" id="start-signup">
-                        <i class="fas fa-envelope"></i> Sign up with email or phone
-                    </button>
-
-                    <div class="auth-link">
-                        Have an account? <a href="/login">Log in</a>
-                    </div>
+                    <span>Share your pink moments with specific campus groups.</span>
                 </div>
-
-                <!-- Panel 2: Basic Information -->
-                <div class="form-panel" id="panel-2">
-                    <div class="panel-header">
-                        <h1 class="panel-title">Basic Information</h1>
-                        <p class="panel-subtitle">Tell us a little about yourself.</p>
+                <div class="flex items-center gap-5 text-pink-800 font-bold text-lg">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-pink-500 shadow-lg">
+                        <i class="fas fa-graduation-cap"></i>
                     </div>
-
-                    <div id="panel2-message" class="auth-message"></div>
-
-                    <form id="basic-info-form">
-                        <div class="auth-form-group">
-                            <label class="auth-label" for="full-name">Full Name</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-user input-icon"></i>
-                                <input type="text" id="full-name" class="auth-input" placeholder="Enter your full name"
-                                    required>
-                            </div>
-                        </div>
-
-                        <div class="auth-form-group">
-                            <label class="auth-label" for="username">Username</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-at input-icon"></i>
-                                <input type="text" id="username" class="auth-input" placeholder="Choose a username"
-                                    required>
-                            </div>
-                        </div>
-
-                        <div class="auth-form-group">
-                            <label class="auth-label" for="email">Email Address</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-envelope input-icon"></i>
-                                <input type="email" id="email" class="auth-input" placeholder="Enter your email"
-                                    required>
-                            </div>
-                        </div>
-
-                        <div class="auth-form-group">
-                            <label class="auth-label" for="password">Password</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-lock input-icon"></i>
-                                <input type="password" id="password" class="auth-input" placeholder="Create a password"
-                                    required>
-                            </div>
-                        </div>
-
-                        <div class="auth-form-group">
-                            <label class="auth-label" for="phone">Phone Number (Required for OTP)</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-phone input-icon"></i>
-                                <input type="tel" id="phone" class="auth-input" placeholder="+254700000000">
-                            </div>
-                        </div>
-
-                        <button type="button" class="btn-auth-primary" id="next-to-profile">Continue</button>
-                        <button type="button" class="btn-auth-secondary" id="back-to-welcome">Back</button>
-                    </form>
-                </div>
-
-                <!-- Panel 3: Profile & Details -->
-                <div class="form-panel" id="panel-3">
-                    <div class="panel-header">
-                        <h1 class="panel-title">Profile & Details</h1>
-                        <p class="panel-subtitle">Add details to help friends find you.</p>
-                    </div>
-
-                    <div id="panel3-message" class="auth-message"></div>
-
-                    <div class="auth-form-group" style="margin-bottom: 20px;">
-                        <label class="auth-label">Affiliation Type <span style="color:#8E8E8E; font-weight:normal;">(Optional)</span></label>
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="University"> University / School</label>
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="Company"> Company / Workplace</label>
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="Business"> Business / Brand</label>
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="Community"> Community / Organization</label>
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><input type="radio" name="affiliation_type" value="None" checked> None</label>
-                        </div>
-                        
-                        <div id="university-select-container" style="display: none;">
-                            <select id="campus-select" class="auth-select">
-                                <option value="">Select your university</option>
-                                <option value="Karatina University">KARU</option>
-                                <option value="Chuka University">Chuka University</option>
-                                <option value="Dedan Kimathi University">DeKuT</option>
-                                <option value="Mount Kenya University">MKU</option>
-                                <option value="Murang'a University">MUT</option>
-                                <option value="Pwani University">Pwani University</option>
-                                <option value="Mount Media University">M.M.U</option>
-                                <option value="University of Nairobi">UoN</option>
-                            </select>
-                        </div>
-
-                        <div id="other-affiliation-container" style="display: none;">
-                            <input type="text" id="campus-input" class="auth-input" placeholder="Enter your affiliation">
-                        </div>
-                    </div>
-
-                    <div class="auth-form-group">
-                        <label class="auth-label" for="major">Interests / Industry <span style="color:#8E8E8E; font-weight:normal;">(Optional)</span></label>
-                        <select id="major" class="auth-select">
-                            <option value="">Select your primary interest</option>
-                            <option value="Computer Science">Computer Science & IT</option>
-                            <option value="Business Administration">Business & Entrepreneurship</option>
-                            <option value="Medicine">Healthcare & Medicine</option>
-                            <option value="Engineering">Engineering</option>
-                            <option value="Arts & Humanities">Arts, Design & Humanities</option>
-                            <option value="Law">Law & Policy</option>
-                            <option value="Social Sciences">Social Sciences</option>
-                            <option value="Natural Sciences">Natural Sciences</option>
-                            <option value="General Explorer">General Explorer</option>
-                            <option value="Undeclared">Other/Undeclared</option>
-                        </select>
-                    </div>
-
-                    <div class="auth-form-group">
-                        <label class="auth-label" for="year">Experience Level <span style="color:#8E8E8E; font-weight:normal;">(Optional)</span></label>
-                        <select id="year" class="auth-select">
-                            <option value="">Select experience level</option>
-                            <option value="Beginner/Freshman">Beginner / Freshman</option>
-                            <option value="Junior/Student">Junior / Ongoing Student</option>
-                            <option value="Senior">Senior / Final Year</option>
-                            <option value="Graduate">Graduate / Entry-Level</option>
-                            <option value="Professional">Experienced Professional</option>
-                            <option value="Expert">Expert / Lead</option>
-                        </select>
-                    </div>
-
-                    <button type="button" class="btn-auth-primary" id="next-to-final">Continue</button>
-                    <button type="button" class="btn-auth-secondary" id="back-to-basic">Back</button>
-                </div>
-
-                <!-- Panel 4: Final Step & Account Creation -->
-                <div class="form-panel" id="panel-4">
-                    <div class="panel-header">
-                        <h1 class="panel-title">Complete Your Signup</h1>
-                        <p class="panel-subtitle">Review your information and create your account.</p>
-                    </div>
-
-                    <div id="panel4-message" class="auth-message"></div>
-
-                    <div class="auth-form-group">
-                        <div style="background-color: #FAFAFA; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                            <h3 style="font-size: 16px; margin-bottom: 15px; color: #262626;">Account
-                                Summary</h3>
-                            <div id="account-summary"
-                                style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
-                                <!-- Populated via JS -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="auth-form-group">
-                        <div style="display: flex; align-items: flex-start;">
-                            <input type="checkbox" id="terms" style="margin-top: 4px; margin-right: 10px;" required>
-                            <label for="terms" style="font-size: 14px; color: #262626;">
-                                I agree to Sparkle's <a href="/legal" style="color: #0095F6;">Terms</a>
-                                and <a href="/legal" style="color: #0095F6;">Privacy Policy</a>.
-                            </label>
-                        </div>
-                    </div>
-
-                    <button type="button" class="btn-auth-primary" id="create-account">
-                        <i class="fas fa-user-plus"></i> Create Account
-                    </button>
-                    <button type="button" class="btn-auth-secondary" id="back-to-profile">Back</button>
-                </div>
-
-                <!-- Panel 5: OTP Verification (NEW) -->
-                <div class="form-panel" id="panel-5">
-                    <div class="panel-header">
-                        <h1 class="panel-title">Verification</h1>
-                        <p class="panel-subtitle">Enter the 6-digit code sent to your phone/email.</p>
-                    </div>
-
-                    <div id="panel5-message" class="auth-message"></div>
-
-                    <div class="auth-form-group">
-                        <label class="auth-label" for="otp-code">Verification Code</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-key input-icon"></i>
-                            <input type="text" id="otp-code" class="auth-input" placeholder="123456" maxlength="6">
-                        </div>
-                    </div>
-
-                    <p style="font-size: 13px; text-align: center; margin-bottom: 20px; color: #8E8E8E;">
-                        Didn't receive a code? <a href="#" id="resend-otp"
-                            style="color: #FF3D6D; font-weight: 600;">Resend</a>
-                    </p>
-
-                    <button type="button" class="btn-auth-primary" id="verify-otp-btn">Verify & Complete</button>
-                    <button type="button" class="btn-auth-secondary" id="back-to-summary">Back</button>
+                    <span>Discover new spots and lovely friendships daily.</span>
                 </div>
             </div>
         </div>
+
+        <!-- Right: Signup Multi-Step Card -->
+        <div class="w-full max-w-[480px] mx-auto lg:mx-0">
+            <div class="bg-white p-8 rounded-2xl shadow-2xl border border-white/50 space-y-8 min-h-[520px] flex flex-col justify-center">
+                
+                <!-- Progress Header -->
+                <div class="flex items-center justify-center gap-3" id="progress-bar">
+                    <div class="w-8 h-8 rounded-full border-2 border-pink-100 flex items-center justify-center text-xs font-black step-node active" data-step="1">1</div>
+                    <div class="w-8 h-1 bg-pink-50 step-line" data-line="1"></div>
+                    <div class="w-8 h-8 rounded-full border-2 border-pink-100 flex items-center justify-center text-xs font-black step-node" data-step="2">2</div>
+                    <div class="w-8 h-1 bg-pink-50 step-line" data-line="2"></div>
+                    <div class="w-8 h-8 rounded-full border-2 border-pink-100 flex items-center justify-center text-xs font-black step-node" data-step="3">3</div>
+                </div>
+
+                <div id="signup-message" class="hidden p-4 rounded-xl text-center font-bold text-sm border-2 animate-fade-in"></div>
+
+                <!-- Panels -->
+                <div class="relative overflow-visible" id="panels-container">
+                    
+                    <!-- Step 1: Basics -->
+                    <div class="step-panel space-y-4" id="panel-1">
+                        <div class="text-center pb-4">
+                            <h2 class="text-3xl font-black text-pink-900 italic tracking-tighter uppercase">Start Your Glow</h2>
+                            <p class="text-pink-400 text-xs font-bold uppercase tracking-widest mt-1">First, the essential details.</p>
+                        </div>
+                        <input type="text" id="reg-name" class="w-full p-4 bg-pink-50 border-2 border-pink-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-pink-100 font-bold text-pink-950 placeholder:text-pink-300" placeholder="Display Name">
+                        <input type="text" id="reg-username" class="w-full p-4 bg-pink-50 border-2 border-pink-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-pink-100 font-bold text-pink-950 placeholder:text-pink-300" placeholder="Username">
+                        <input type="email" id="reg-email" class="w-full p-4 bg-pink-50 border-2 border-pink-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-pink-100 font-bold text-pink-950 placeholder:text-pink-300" placeholder="Email Address">
+                        <button onclick="nav(2)" class="w-full p-4 bg-pink-600 text-white rounded-xl font-black text-lg transition-all active:scale-95 shadow-xl shadow-pink-100 uppercase tracking-widest mt-4">Continue</button>
+                    </div>
+
+                    <!-- Step 2: Security & Profile -->
+                    <div class="step-panel hidden space-y-4" id="panel-2">
+                        <div class="text-center pb-4">
+                            <h2 class="text-3xl font-black text-pink-900 italic tracking-tighter uppercase">Secure Pulse</h2>
+                            <p class="text-pink-400 text-xs font-bold uppercase tracking-widest mt-1">Password and verification bits.</p>
+                        </div>
+                        <input type="password" id="reg-pass" class="w-full p-4 bg-pink-50 border-2 border-pink-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-pink-100 font-bold text-pink-950 placeholder:text-pink-300" placeholder="Create Secret Key">
+                        <input type="tel" id="reg-phone" class="w-full p-4 bg-pink-50 border-2 border-pink-100 rounded-xl focus:outline-none focus:ring-4 focus:ring-pink-100 font-bold text-pink-950 placeholder:text-pink-300" placeholder="Phone Number (+254...)">
+                        <div class="flex gap-4">
+                            <button onclick="nav(1)" class="flex-1 p-4 bg-white border-2 border-pink-100 text-pink-300 rounded-xl font-black text-lg transition-all active:scale-95 uppercase tracking-widest">Back</button>
+                            <button onclick="nav(3)" class="flex-[2] p-4 bg-pink-600 text-white rounded-xl font-black text-lg transition-all active:scale-95 shadow-xl shadow-pink-100 uppercase tracking-widest">Almost There</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Verification -->
+                    <div class="step-panel hidden space-y-6 text-center" id="panel-3">
+                        <div class="w-24 h-24 bg-pink-50 rounded-[32px] flex items-center justify-center text-pink-400 mx-auto shadow-inner border border-pink-100">
+                            <i class="fas fa-shield-heart text-4xl"></i>
+                        </div>
+                        <h2 class="text-3xl font-black text-pink-900 italic tracking-tighter uppercase">One Last Check</h2>
+                        <p class="text-pink-400 text-xs font-black uppercase tracking-widest">Enter the 6-digit code sent to your phone.</p>
+                        <div class="flex justify-center gap-2">
+                            <input type="text" maxlength="1" class="v-pin w-11 h-14 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all">
+                            <input type="text" maxlength="1" class="v-pin w-11 h-14 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all">
+                            <input type="text" maxlength="1" class="v-pin w-11 h-14 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all">
+                            <input type="text" maxlength="1" class="v-pin w-11 h-14 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all">
+                            <input type="text" maxlength="1" class="v-pin w-11 h-14 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all">
+                            <input type="text" maxlength="1" class="v-pin w-11 h-14 bg-pink-50 border-2 border-pink-100 rounded-xl text-center text-2xl font-black text-pink-600 focus:border-pink-400 outline-none transition-all">
+                        </div>
+                        <button id="final-btn" class="w-full p-5 bg-emerald-500 text-white rounded-xl font-black text-lg transition-all active:scale-95 shadow-xl shadow-emerald-100 uppercase tracking-widest">Finalize Glow</button>
+                        <button onclick="nav(2)" class="text-pink-200 hover:text-pink-400 font-black text-[10px] uppercase tracking-widest">Wait, go back</button>
+                    </div>
+
+                </div>
+
+                <div class="border-t border-pink-50 pt-6 text-center">
+                    <p class="text-pink-300 font-bold text-sm">Already sparkling? <a href="/login" class="text-pink-600 hover:underline">Log In</a></p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- API Script -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/authAPI.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        // Supabase Config for public JS
-        window.SUPABASE_CONFIG = {
-            url: '<%= supabaseConfig.url || "" %>',
-            key: '<%= supabaseConfig.key || "" %>'
-        };
+        let currentStep = 1;
+        const totalSteps = 3;
 
-        // Debug Log
-        console.log('🛡️ Supabase Config Loaded:', {
-            url: window.SUPABASE_CONFIG.url ? 'Present' : 'MISSING',
-            key: window.SUPABASE_CONFIG.key ? 'Present' : 'MISSING'
-        });
-
-        // App State
-        window.appState = {
-            currentStep: 1,
-            totalSteps: 5,
-            userData: JSON.parse(sessionStorage.getItem('signup_userData') || '{}'),
-            isTransitioning: false
-        };
-
-        function saveState() {
-            sessionStorage.setItem('signup_userData', JSON.stringify(appState.userData));
-            sessionStorage.setItem('signup_currentStep', appState.currentStep);
-        }
-
-        const panels = {
-            1: document.getElementById('panel-1'),
-            2: document.getElementById('panel-2'),
-            3: document.getElementById('panel-3'),
-            4: document.getElementById('panel-4'),
-            5: document.getElementById('panel-5')
-        };
-
-        const steps = {
-            1: document.getElementById('step-1'),
-            2: document.getElementById('step-2'),
-            3: document.getElementById('step-3'),
-            4: document.getElementById('step-4'),
-            5: document.getElementById('step-5')
-        };
-
-        const stepLines = {
-            1: document.getElementById('line-1'),
-            2: document.getElementById('line-2'),
-            3: document.getElementById('line-3'),
-            4: document.getElementById('line-4')
-        };
-
-        // Navigation
-        function goToStep(step) {
-            if (appState.isTransitioning) return;
-            appState.isTransitioning = true;
-
-            const currentPanel = panels[appState.currentStep];
-            const nextPanel = panels[step];
-
-            // Update UI
-            updateProgressBar(step);
-
-            currentPanel.classList.add('previous');
-            currentPanel.classList.remove('active');
-
-            setTimeout(() => {
-                nextPanel.classList.add('active');
-                nextPanel.classList.remove('previous');
-                appState.currentStep = step;
-
-                setTimeout(() => {
-                    appState.isTransitioning = false;
-                }, 500);
-            }, 50);
-        }
-
-        window.goToStep = goToStep; // Expose globally for integration script
-
-        function updateProgressBar(step) {
-            for (let i = 1; i <= 5; i++) {
-                steps[i].classList.remove('active', 'completed');
-                if (stepLines[i]) stepLines[i].classList.remove('completed');
+        function nav(step) {
+            if (step < 1 || step > totalSteps) return;
+            
+            // Validate step 1 before going to 2
+            if (step === 2 && currentStep === 1) {
+                const name = document.getElementById('reg-name').value;
+                const user = document.getElementById('reg-username').value;
+                const email = document.getElementById('reg-email').value;
+                if (!name || !user || !email) return alert('Please fill in base details');
             }
-            steps[step].classList.add('active');
-            for (let i = 1; i < step; i++) {
-                steps[i].classList.add('completed');
-                if (stepLines[i]) stepLines[i].classList.add('completed');
-            }
-        }
 
-        // Helpers
-        function showMessage(panelId, msg, type) {
-            const el = document.getElementById(panelId + '-message');
-            if (!el) return; // Prevent errors if panel doesn't have message div
-            el.textContent = msg;
-            el.className = `auth-message ${type} show`;
-            setTimeout(() => el.classList.remove('show'), 5000);
-        }
-
-        // Restore state if available
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedStep = parseInt(sessionStorage.getItem('signup_currentStep'));
-            if (savedStep > 1 && savedStep <= 5) {
-                // Populate fields from userData
-                const u = appState.userData;
-                if (u.name) document.getElementById('full-name').value = u.name;
-                if (u.username) document.getElementById('username').value = u.username;
-                if (u.email) document.getElementById('email').value = u.email;
-                if (u.phone) document.getElementById('phone').value = u.phone;
-                if (u.major) document.getElementById('major').value = u.major;
-                if (u.year) document.getElementById('year').value = u.year;
-
-                // Sync UI to step
-                appState.currentStep = 1; // Temporarily reset to allow transition
-                goToStep(savedStep);
-            }
-        });
-
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', () => {
-
-            // Step 1
-            document.getElementById('start-signup').addEventListener('click', () => goToStep(2));
-            document.getElementById('google-login').addEventListener('click', () => {
-                showMessage('panel1', 'Google Login not configured for local dev yet.', 'error');
+            document.querySelectorAll('.step-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`panel-${step}`).classList.remove('hidden');
+            
+            // Update progress bar
+            document.querySelectorAll('.step-node').forEach((n, idx) => {
+                const sIdx = idx + 1;
+                n.classList.remove('bg-pink-600', 'text-white', 'border-pink-600', 'bg-emerald-500', 'border-emerald-500');
+                if (sIdx === step) n.classList.add('bg-pink-600', 'text-white', 'border-pink-600');
+                else if (sIdx < step) n.classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
             });
+            
+            currentStep = step;
+        }
 
-            // Step 2
-            document.getElementById('next-to-profile').addEventListener('click', () => {
-                const name = document.getElementById('full-name').value;
-                const user = document.getElementById('username').value;
-                const email = document.getElementById('email').value;
-                const pass = document.getElementById('password').value;
-                const phone = document.getElementById('phone').value;
+        // Finalize logic
+        document.getElementById('final-btn').addEventListener('click', async () => {
+            const pin = Array.from(document.querySelectorAll('.v-pin')).map(p => p.value).join('');
+            if (pin.length < 6) return alert('Enter full verification pin');
 
-                if (!name || !user || !email || !pass) {
-                    showMessage('panel2', 'Please fill in all fields.', 'error');
-                    return;
+            const btn = document.getElementById('final-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GLOWING UP...';
+
+            try {
+                const payload = {
+                    name: document.getElementById('reg-name').value,
+                    username: document.getElementById('reg-username').value,
+                    email: document.getElementById('reg-email').value,
+                    password: document.getElementById('reg-pass').value,
+                    phone: document.getElementById('reg-phone').value,
+                    otp: pin
+                };
+                
+                const res = await axios.post('/api/v1/auth/signup', payload);
+                if (res.data.status === 'success' || res.data.token) {
+                    localStorage.setItem('sparkleToken', res.data.token);
+                    localStorage.setItem('sparkleUser', JSON.stringify(res.data.user));
+                    window.location.href = '/dashboard';
                 }
-
-                appState.userData = { ...appState.userData, name, username: user, email, password: pass, phone };
-                saveState();
-                goToStep(3);
-            });
-            document.getElementById('back-to-welcome').addEventListener('click', () => goToStep(1));
-
-            const affiliationRadios = document.querySelectorAll('input[name="affiliation_type"]');
-            affiliationRadios.forEach(radio => {
-                radio.addEventListener('change', (e) => {
-                    const val = e.target.value;
-                    const uniContainer = document.getElementById('university-select-container');
-                    const otherContainer = document.getElementById('other-affiliation-container');
-                    if (val === 'University') {
-                        uniContainer.style.display = 'block';
-                        otherContainer.style.display = 'none';
-                    } else if (val === 'None') {
-                        uniContainer.style.display = 'none';
-                        otherContainer.style.display = 'none';
-                    } else {
-                        uniContainer.style.display = 'none';
-                        otherContainer.style.display = 'block';
-                    }
-                });
-            });
-
-            // Step 3
-            document.getElementById('next-to-final').addEventListener('click', () => {
-                const affiliationType = document.querySelector('input[name="affiliation_type"]:checked').value;
-                let campus = '';
-                if (affiliationType === 'University') {
-                    campus = document.getElementById('campus-select').value;
-                } else if (affiliationType !== 'None') {
-                    campus = document.getElementById('campus-input').value;
-                }
-                const major = document.getElementById('major').value;
-                const year = document.getElementById('year').value;
-
-                // Fields are now optional
-
-
-                appState.userData = { ...appState.userData, campus, major, year };
-                saveState();
-                updateSummary();
-                goToStep(4);
-            });
-            document.getElementById('back-to-basic').addEventListener('click', () => goToStep(2));
-
-            // Step 4 is handled by signupIntegration.js
-            document.getElementById('back-to-profile').addEventListener('click', () => goToStep(3));
+            } catch (err) {
+                alert(err.response?.data?.message || err.message);
+                btn.disabled = false;
+                btn.textContent = 'FINALIZE GLOW';
+            }
         });
 
-        function updateSummary() {
-            const div = document.getElementById('account-summary');
-            const u = appState.userData;
-            div.innerHTML = `
-                <div style="color: #8E8E8E;">Name:</div><div>${u.name}</div>
-                <div style="color: #8E8E8E;">Username:</div><div>@${u.username}</div>
-                <div style="color: #8E8E8E;">Email:</div><div>${u.email}</div>
-                <div style="color: #8E8E8E;">Phone:</div><div>${u.phone || 'Not provided'}</div>
-                <div style="color: #8E8E8E;">Affiliation:</div><div>${u.campus || 'None selected'}</div>
-            `;
-        }
+        // PIN behavior
+        const pins = document.querySelectorAll('.v-pin');
+        pins.forEach((p, idx) => {
+            p.addEventListener('input', () => {
+                p.value = p.value.replace(/[^0-9]/g, '');
+                if (p.value && idx < pins.length - 1) pins[idx+1].focus();
+            });
+            p.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !p.value && idx > 0) pins[idx-1].focus();
+            });
+        });
     </script>
-    <script src="/js/signupIntegration.js"></script>
-</body>
 
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</body>
 </html>

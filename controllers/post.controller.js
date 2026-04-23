@@ -322,7 +322,7 @@ const resharePost = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
         const originalPostId = req.params.id;
-        const { comment } = req.body;
+        const { comment } = req.body || {};
 
         const reshareResult = await Post.reshare(userId, originalPostId, comment);
         const reshareId = reshareResult.repostId || originalPostId;

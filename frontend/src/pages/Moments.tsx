@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
-  Heart, MessageCircle, Share2, Bookmark, BookmarkCheck, 
-  MoreHorizontal, Play, Send, X, ArrowLeft,
-  Volume2, VolumeX, Loader2
+  Heart, MessageCircle, Share2, BookmarkCheck, 
+  Play, Send, X,
+  Volume2, VolumeX, Loader2, Sparkles, Orbit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -35,6 +35,7 @@ interface Moment {
   share_count?: number;
   created_at: string;
   is_video?: boolean;
+  media_type?: string;
   is_liked?: boolean;
   is_saved?: boolean;
   is_following?: boolean;
@@ -42,33 +43,29 @@ interface Moment {
 
 const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: string) => void }) => {
   return (
-    <div className="flex gap-3 mb-4 last:mb-0 group">
+    <div className="flex gap-4 mb-6 group animate-fade-in">
       <img 
         src={comment.avatar_url || '/uploads/avatars/default.png'} 
-        className="w-8 h-8 rounded-full object-cover border border-white/10" 
+        className="w-10 h-10 rounded-2xl object-cover border border-white shadow-sm" 
         alt={comment.username}
       />
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-bold text-white/90">@{comment.username}</span>
-          <span className="text-[10px] text-white/40">
-            {new Date(comment.created_at).toLocaleDateString()}
-          </span>
-        </div>
-        <p className="text-sm text-white/80 leading-relaxed">{comment.content}</p>
-        <div className="flex items-center gap-4 mt-2">
-          <button 
-            className={clsx("flex items-center gap-1 text-[10px] font-bold transition-colors", comment.is_liked ? "text-pink-500" : "text-white/40 hover:text-white/60")}
-            onClick={() => onLike(comment.comment_id)}
-          >
-            {comment.is_liked ? "Liked" : "Like"}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-black text-black italic">@{comment.username}</span>
+            <span className="text-[10px] font-bold text-black/20 uppercase tracking-widest">
+              {new Date(comment.created_at).toLocaleDateString()}
+            </span>
+          </div>
+          <button className="text-black/10 hover:text-primary transition-colors" onClick={() => onLike(comment.comment_id)}>
+            <Heart size={14} className={comment.is_liked ? "fill-primary stroke-primary" : ""} />
           </button>
-          <button className="text-[10px] font-bold text-white/40 hover:text-white/60">Reply</button>
+        </div>
+        <p className="text-sm text-black font-medium leading-relaxed">{comment.content}</p>
+        <div className="flex items-center gap-4 mt-2">
+          <button className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">Reply</button>
         </div>
       </div>
-      <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-        <Heart size={12} className={comment.is_liked ? "fill-pink-500 stroke-pink-500" : "stroke-white/40"} />
-      </button>
     </div>
   );
 };
@@ -81,13 +78,12 @@ const ReelItem = ({
   active
 }: { 
   moment: Moment; 
-  onLike: (id: string) => void;
+  onLike: (id: string) => void; 
   onSave: (id: string) => void;
   onOpenComments: (id: string) => void;
   active: boolean;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
@@ -108,7 +104,7 @@ const ReelItem = ({
         videoRef.current.pause();
         setPlaying(false);
       } else {
-        videoRef.current.play().then(() => setPlaying(true)).catch(e => console.log('Play blocked', e));
+        videoRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
       }
     }
   };
@@ -119,146 +115,138 @@ const ReelItem = ({
     setTimeout(() => setShowHeart(false), 800);
   };
 
-  const shareReel = () => {
-    const url = `${window.location.origin}/moments/${moment.moment_id}`;
-    if (navigator.share) {
-      navigator.share({ title: 'Sparkle Moment', url }).catch(console.error);
-    } else {
-      navigator.clipboard.writeText(url);
-      alert("Link copied to clipboard!");
-    }
-    api.post(`/moments/${moment.moment_id}/share`).catch(() => {});
-  };
-
   const mediaSrc = moment.video_url || moment.media_url;
-  const isVideo = moment.is_video || !!moment.video_url || !!mediaSrc?.match(/\.(mp4|webm|ogg)$/i);
+  const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!mediaSrc?.match(/\.(mp4|webm|ogg|quicktime|mov)$/i);
 
   return (
-    <div className="reel-container" ref={containerRef} onDoubleClick={handleDoubleTap}>
-      <div className="reel-video-wrapper" onClick={togglePlay}>
-        {isVideo ? (
-          <video 
-            ref={videoRef}
-            src={mediaSrc} 
-            poster={moment.thumbnail_url}
-            loop
-            muted={muted}
-            playsInline
-            className="reel-media"
-          />
-        ) : (
-          <img 
-            src={mediaSrc || moment.thumbnail_url} 
-            alt="Moment" 
-            className="reel-media"
-          />
-        )}
+    <div className="relative w-full h-full max-w-[480px] mx-auto bg-black rounded-none md:rounded-[48px] overflow-hidden shadow-2xl transition-all duration-700 active:scale-95 group" onDoubleClick={handleDoubleTap}>
+      <div className="absolute inset-0 cursor-pointer" onClick={togglePlay}>
+        {/* Background Blur Layer */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {isVideo ? (
+            <video 
+              src={mediaSrc} 
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
+            />
+          ) : (
+            <img 
+              src={mediaSrc || moment.thumbnail_url} 
+              className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
+              alt=""
+            />
+          )}
+        </div>
+
+        {/* Primary Content Layer */}
+        <div className="relative w-full h-full flex items-center justify-center z-10">
+          {isVideo ? (
+            <video 
+              ref={videoRef}
+              src={mediaSrc} 
+              poster={moment.thumbnail_url}
+              loop
+              muted={muted}
+              playsInline
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <img 
+              src={mediaSrc || moment.thumbnail_url} 
+              alt="Moment" 
+              className="w-full h-full object-contain"
+            />
+          )}
+        </div>
         
+        {/* Overlays */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
+
         <AnimatePresence>
           {showHeart && (
             <motion.div 
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1.5, opacity: 1 }}
               exit={{ scale: 2, opacity: 0 }}
-              className="absolute pointer-events-none z-50"
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 text-white"
             >
-              <Heart size={100} fill="white" color="white" className="drop-shadow-2xl" />
+              <Heart size={100} fill="currentColor" strokeWidth={0} />
             </motion.div>
           )}
         </AnimatePresence>
 
         {!playing && isVideo && (
-          <div className="reel-play-overlay">
-            <Play size={48} fill="white" className="opacity-80" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+            <Play size={64} fill="white" className="opacity-60 drop-shadow-2xl" />
           </div>
         )}
       </div>
 
-      {/* Side Actions Overlay */}
-      <div className="reel-sidebar">
-        <div className="flex flex-col items-center mb-6">
-          <div className="relative">
-            <img 
-              src={moment.avatar_url || '/uploads/avatars/default.png'} 
-              className="w-12 h-12 rounded-full border-2 border-white object-cover cursor-pointer hover:scale-105 transition-transform" 
-              alt={moment.username}
-              onClick={() => navigate(`/profile/${moment.username}`)}
-            />
-            {!moment.is_following && (
-              <button 
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs border-2 border-black"
-                onClick={(e) => { e.stopPropagation(); /* TODO: Follow */ }}
-              >
-                +
-              </button>
-            )}
-          </div>
+      {/* Side Actions (Pink Soft Styling) */}
+      <div className="absolute right-4 bottom-32 flex flex-col items-center gap-6 z-20">
+        <div className="relative mb-4 group/avatar">
+          <img 
+            src={moment.avatar_url || '/uploads/avatars/default.png'} 
+            className="w-14 h-14 rounded-[22px] border-2 border-white object-cover cursor-pointer shadow-xl transition-all group-hover/avatar:scale-110" 
+            alt=""
+            onClick={() => navigate(`/profile/${moment.username}`)}
+          />
+          {!moment.is_following && (
+            <button className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-125 transition-transform">+</button>
+          )}
         </div>
 
-        <button className="reel-action-btn group" onClick={() => onLike(moment.moment_id)}>
-          <div className={clsx("p-2 rounded-full bg-white/10 backdrop-blur-md mb-1 transition-all group-hover:scale-110", moment.is_liked && "bg-pink-500/20")}>
-            <Heart size={28} fill={moment.is_liked ? '#FF3D6D' : 'none'} color={moment.is_liked ? '#FF3D6D' : 'white'} />
+        <button className="flex flex-col items-center gap-1 group/btn" onClick={() => onLike(moment.moment_id)}>
+          <div className={clsx("w-14 h-14 rounded-[18px] backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_liked ? "bg-primary border-primary text-white" : "bg-white/20 border-white/20 text-white hover:bg-white/40")}>
+            <Heart size={28} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={3} />
           </div>
-          <span>{moment.like_count || 0}</span>
+          <span className="text-[10px] font-black text-white uppercase tracking-widest drop-shadow-md">{moment.like_count || 0}</span>
         </button>
 
-        <button className="reel-action-btn group" onClick={() => onOpenComments(moment.moment_id)}>
-          <div className="p-2 rounded-full bg-white/10 backdrop-blur-md mb-1 transition-all group-hover:scale-110">
-            <MessageCircle size={28} color="white" />
+        <button className="flex flex-col items-center gap-1 group/btn" onClick={() => onOpenComments(moment.moment_id)}>
+          <div className="w-14 h-14 rounded-[18px] bg-white/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all group-hover/btn:scale-110 shadow-lg hover:bg-white/40">
+            <MessageCircle size={28} strokeWidth={3} />
           </div>
-          <span>{moment.comment_count || 0}</span>
+          <span className="text-[10px] font-black text-white uppercase tracking-widest drop-shadow-md">{moment.comment_count || 0}</span>
         </button>
 
-        <button className="reel-action-btn group" onClick={() => onSave(moment.moment_id)}>
-          <div className={clsx("p-2 rounded-full bg-white/10 backdrop-blur-md mb-1 transition-all group-hover:scale-110", moment.is_saved && "bg-yellow-500/20")}>
-            {moment.is_saved ? (
-              <BookmarkCheck size={28} fill="#FACC15" color="#FACC15" />
-            ) : (
-              <Bookmark size={28} color="white" />
-            )}
+        <button className="flex flex-col items-center gap-1 group/btn" onClick={() => onSave(moment.moment_id)}>
+          <div className={clsx("w-14 h-14 rounded-[18px] backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_saved ? "bg-amber-400 border-amber-400 text-white" : "bg-white/20 border-white/20 text-white hover:bg-white/40")}>
+            <BookmarkCheck size={28} fill={moment.is_saved ? "currentColor" : "none"} strokeWidth={3} />
           </div>
-          <span>Save</span>
+          <span className="text-[10px] font-black text-white uppercase tracking-widest drop-shadow-md">{moment.is_saved ? 'Saved' : 'Save'}</span>
         </button>
 
-        <button className="reel-action-btn group" onClick={shareReel}>
-          <div className="p-2 rounded-full bg-white/10 backdrop-blur-md mb-1 transition-all group-hover:scale-110">
-            <Share2 size={24} color="white" />
-          </div>
-          <span>Share</span>
+        <button className="w-14 h-14 rounded-[18px] bg-white/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all hover:bg-white/40 mb-4 shadow-lg group-hover:scale-110">
+          <Share2 size={24} strokeWidth={3} />
         </button>
 
-        <button className="reel-action-btn group">
-          <div className="p-2 rounded-full bg-white/10 backdrop-blur-md transition-all group-hover:scale-110">
-            <MoreHorizontal size={24} color="white" />
-          </div>
-        </button>
-        
-        <button className="reel-action-btn group mt-auto" onClick={() => setMuted(!muted)}>
-          <div className="p-2 rounded-full bg-white/10 backdrop-blur-md transition-all">
-            {muted ? <VolumeX size={20} color="white" /> : <Volume2 size={20} color="white" />}
-          </div>
+        <button className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white transition-all" onClick={() => setMuted(!muted)}>
+          {muted ? <VolumeX size={18} strokeWidth={3} /> : <Volume2 size={18} strokeWidth={3} />}
         </button>
       </div>
 
-      {/* Bottom Info Overlay */}
-      <div className="reel-bottom-info">
-        <div className="flex items-center gap-2 mb-2">
-          <h3 
-            className="text-base font-extrabold text-white cursor-pointer hover:underline"
-            onClick={() => navigate(`/profile/${moment.username}`)}
-          >
+      {/* Info Overlay */}
+      <div className="absolute inset-x-0 bottom-0 p-8 pb-10 z-10 flex flex-col gap-3 pointer-events-none">
+        <div className="flex items-center gap-3">
+          <h3 className="text-xl font-black text-white italic tracking-tight pointer-events-auto cursor-pointer flex items-center gap-2" onClick={() => navigate(`/profile/${moment.username}`)}>
             @{moment.username}
+            <Sparkles size={16} className="text-primary fill-primary" />
           </h3>
-          <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full text-white font-bold backdrop-blur-md uppercase tracking-wider">Original</span>
-          <span className="text-[10px] text-white/60 font-medium ml-auto flex items-center gap-1">
-             <Play size={10} fill="currentColor" /> {moment.view_count || 0}
-          </span>
+          <span className="text-[9px] font-black uppercase tracking-widest bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full border border-white/20">Original Energy</span>
         </div>
         {moment.caption && (
-          <p className="text-sm text-white/90 leading-tight line-clamp-2 pr-12 drop-shadow-lg">
+          <p className="text-base font-bold text-white/90 leading-tight drop-shadow-lg pr-20 line-clamp-3 italic">
             {moment.caption}
           </p>
         )}
+        <div className="flex items-center gap-2 mt-2 opacity-50 px-1">
+           <Orbit size={14} className="animate-spin-slow text-white" />
+           <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">{moment.view_count || 0} signals in orbit</span>
+        </div>
       </div>
     </div>
   );
@@ -284,13 +272,12 @@ export default function Moments() {
       const res = await api.get('/moments/stream');
       let data = res.data.moments || res.data || [];
       
-      // If we are at a specific moment but it's not in the stream, fetch it separately
       if (id && !data.find((m: Moment) => m.moment_id === id)) {
         try {
           const detailRes = await api.get(`/moments/${id}`);
           const single = detailRes.data.moment || detailRes.data;
           if (single) data = [single, ...data];
-        } catch (e) { console.error('Error fetching deep-link moment', e); }
+        } catch (e) { console.error('Error fetching moment', e); }
       }
 
       setMoments(data);
@@ -303,33 +290,12 @@ export default function Moments() {
 
   useEffect(() => { fetchMoments(); }, [fetchMoments]);
 
-  const scrollToIndex = useCallback((index: number) => {
-    if (scrollRef.current) {
-      const container = scrollRef.current;
-      const target = container.children[index] as HTMLElement;
-      if (target) {
-        container.scrollTo({ top: target.offsetTop, behavior: 'smooth' });
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (id && moments.length > 0) {
-      const idx = moments.findIndex(m => m.moment_id === id);
-      if (idx !== -1) {
-        setActiveIndex(idx);
-        scrollToIndex(idx);
-      }
-    }
-  }, [id, moments, scrollToIndex]);
-
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
     const height = e.currentTarget.clientHeight;
     const index = Math.round(scrollTop / height);
     if (index !== activeIndex && index >= 0 && index < moments.length) {
       setActiveIndex(index);
-      // Update URL without reloading
       const currentId = moments[index].moment_id;
       window.history.replaceState(null, '', `/moments/${currentId}`);
     }
@@ -394,7 +360,6 @@ export default function Moments() {
       setComments(prev => [added, ...prev]);
       setNewComment('');
       
-      // Update count in main list
       setMoments(prev => prev.map(m => m.moment_id === activeMomentId ? {
         ...m, comment_count: (m.comment_count || 0) + 1
       } : m));
@@ -406,34 +371,36 @@ export default function Moments() {
   };
 
   return (
-     <div className="moments-universe">
-       <Navbar />
-       
-       <div 
+    <div className="fixed inset-0 bg-[#fdf2f4] flex flex-col font-sans overflow-hidden">
+      <Navbar />
+      
+      <div 
         ref={scrollRef}
-        className="reels-scroller" 
+        className="flex-1 overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar"
         onScroll={handleScroll}
-       >
-         {loading ? (
-            <div className="flex flex-col items-center justify-center h-full text-white/50 bg-[#0a0a0a]">
-               <Loader2 className="w-12 h-12 animate-spin mb-4 text-pink-500" />
-               <p className="font-bold tracking-widest uppercase text-sm">Synchronizing Stream</p>
-            </div>
-         ) : moments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-white/50 bg-[#0a0a0a]">
-                <ArrowLeft className="w-12 h-12 mb-4 text-white/20" />
-                <h2 className="text-2xl font-black text-white mb-2">The Silence of Space</h2>
-                <p>No moments found in your orbit.</p>
+      >
+        {loading ? (
+             <div className="h-screen flex flex-col items-center justify-center">
+                <Orbit className="w-16 h-16 text-primary animate-spin-slow mb-6" />
+                <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] italic animate-pulse">Synchronizing Stream</p>
+             </div>
+        ) : moments.length === 0 ? (
+            <div className="h-screen flex flex-col items-center justify-center p-10 text-center animate-fade-in">
+                <div className="w-32 h-32 bg-white/40 border-4 border-dashed border-white rounded-[48px] flex items-center justify-center mb-10 text-black/5 rotate-12">
+                   <Play size={64} fill="currentColor" stroke="none" />
+                </div>
+                <h2 className="text-4xl font-black text-black mb-4 italic uppercase tracking-tighter">Quiet Frequency.</h2>
+                <p className="text-[11px] font-bold text-black/20 uppercase tracking-widest max-w-[240px] mb-12">No signals captured on campus yet.</p>
                 <button 
-                  onClick={() => navigate('/create')} 
-                  className="mt-6 px-8 py-3 bg-white text-black font-black rounded-full hover:scale-105 transition-transform"
+                  onClick={() => navigate('/dashboard')} 
+                  className="px-10 py-5 bg-primary text-white font-black rounded-[20px] uppercase tracking-widest italic shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-sm"
                 >
-                  Post First Moment
+                  Return to Pulse
                 </button>
             </div>
-         ) : (
+        ) : (
             moments.map((m, idx) => (
-              <div key={m.moment_id} className="reels-page-item">
+              <div key={m.moment_id} className="h-screen w-full snap-start flex items-center justify-center px-0 md:px-10 py-0 md:py-20 lg:ml-72 transition-all">
                 <ReelItem 
                    active={idx === activeIndex}
                    moment={m} 
@@ -443,233 +410,78 @@ export default function Moments() {
                 />
               </div>
             ))
-         )}
-       </div>
+        )}
+      </div>
 
-       {/* Comments Panel */}
-       <AnimatePresence>
-         {showComments && (
-           <>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="comments-backdrop"
-                onClick={() => setShowComments(false)}
-              />
-              <motion.div 
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="comments-panel"
-              >
-                <div className="comments-header">
-                  <span className="text-sm font-black uppercase tracking-wider">Comments</span>
-                  <button onClick={() => setShowComments(false)} className="p-1 hover:bg-white/10 rounded-full">
-                    <X size={20} />
-                  </button>
+      {/* Comments Drawer (Pink Soft) */}
+      <AnimatePresence>
+        {showComments && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[1000] bg-black/40 backdrop-blur-md"
+              onClick={() => setShowComments(false)}
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed bottom-0 left-0 lg:left-72 right-0 h-[65vh] bg-white/95 backdrop-blur-3xl border-t border-white rounded-t-[48px] z-[1001] flex flex-col shadow-2xl overflow-hidden"
+            >
+              <div className="p-8 flex justify-between items-center bg-white/60 border-b border-black/5">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-black text-black italic">Channel Signals</span>
+                  <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">{comments.length}</div>
                 </div>
-                
-                <div className="comments-list">
-                  {comments.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center opacity-40">
-                      <MessageCircle size={40} className="mb-2" />
-                      <p className="text-sm font-bold">No thoughts shared yet.</p>
-                      <p className="text-xs">Be the first to speak!</p>
-                    </div>
-                  ) : (
-                    comments.map(c => <CommentItem key={c.comment_id} comment={c} onLike={() => {}} />)
-                  )}
-                </div>
+                <button onClick={() => setShowComments(false)} className="p-2 bg-black/5 rounded-2xl text-black/20 hover:text-black transition-all">
+                  <X size={20} strokeWidth={4} />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
+                {comments.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-20">
+                    <MessageCircle size={64} strokeWidth={1} className="mb-6" />
+                    <p className="text-[12px] font-black uppercase tracking-widest italic">Signal is quiet...</p>
+                  </div>
+                ) : (
+                  comments.map(c => <CommentItem key={c.comment_id} comment={c} onLike={() => {}} />)
+                )}
+              </div>
 
-                <form className="comments-input-area" onSubmit={handleAddComment}>
+              <form className="p-8 bg-white/90 border-t border-black/5 flex gap-4 items-center" onSubmit={handleAddComment}>
+                <div className="flex-1 relative">
                   <input 
                     type="text" 
-                    placeholder="Add a comment..."
+                    placeholder="Transmit a signal..."
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    disabled={submittingComment}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-pink-500/50"
+                    className="w-full h-14 bg-black/5 border border-transparent rounded-[20px] px-8 text-base font-bold placeholder:text-black/10 focus:bg-white focus:border-primary transition-all outline-none italic"
                   />
-                  <button 
-                    disabled={!newComment.trim() || submittingComment}
-                    className="p-2 text-pink-500 disabled:text-white/20 transition-colors"
-                  >
-                    {submittingComment ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-                  </button>
-                </form>
-              </motion.div>
-           </>
-         )}
-       </AnimatePresence>
+                </div>
+                <button 
+                  type="submit"
+                  disabled={!newComment.trim() || submittingComment}
+                  className="w-14 h-14 bg-primary text-white rounded-[22px] flex items-center justify-center shadow-xl shadow-primary/20 active:scale-95 transition-all disabled:opacity-20"
+                >
+                  {submittingComment ? <Loader2 className="animate-spin" /> : <Send size={20} strokeWidth={3} />}
+                </button>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-       <style>{`
-        .moments-universe { 
-          position: fixed; 
-          inset: 0; 
-          display: flex; 
-          background: #000; 
-          color: white; 
-          overflow: hidden; 
-          font-family: 'Inter', sans-serif;
-        }
-        
-        .reels-scroller { 
-          flex: 1; 
-          height: 100vh; 
-          overflow-y: scroll; 
-          scroll-snap-type: y mandatory; 
-          scroll-behavior: smooth; 
-          background: #000;
-        }
-        .reels-scroller::-webkit-scrollbar { display: none; }
-        
-        .reels-page-item { 
-          height: 100vh; 
-          width: 100%; 
-          scroll-snap-align: start; 
-          scroll-snap-stop: always; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          position: relative;
-        }
-        
-        .reel-container { 
-          position: relative; 
-          width: 100%; 
-          height: 100%; 
-          max-width: 500px;
-          margin: 0 auto;
-          background: #000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-        }
-        
-        @media (min-width: 600px) { 
-          .reel-container { 
-            height: calc(100vh - 40px); 
-            margin: 20px auto; 
-            border-radius: 20px;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.05);
-          } 
-        }
-        
-        .reel-video-wrapper { 
-          position: absolute; 
-          inset: 0; 
-          width: 100%; 
-          height: 100%; 
-          cursor: pointer; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          background: #000; 
-        }
-        .reel-media { 
-          width: 100%; 
-          height: 100%; 
-          object-fit: cover; 
-          transition: transform 0.3s ease;
-        }
-        .reel-play-overlay { 
-          position: absolute; 
-          background: rgba(0,0,0,0.4); 
-          border-radius: 50%; 
-          padding: 24px; 
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .reel-sidebar { 
-          position: absolute; 
-          bottom: 120px; 
-          right: 12px; 
-          display: flex; 
-          flex-direction: column; 
-          align-items: center; 
-          gap: 12px; 
-          z-index: 10; 
-        }
-        .reel-action-btn { 
-          display: flex; 
-          flex-direction: column; 
-          align-items: center; 
-          color: white; 
-          font-size: 11px; 
-          font-weight: 800; 
-          padding: 0;
-          border: none;
-          background: none;
-          cursor: pointer;
-        }
-
-        .reel-bottom-info { 
-          position: absolute; 
-          bottom: 0; 
-          left: 0; 
-          right: 0; 
-          padding: 60px 16px 24px; 
-          background: linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%); 
-          z-index: 9; 
-        }
-
-        /* Comments Panel Styles */
-        .comments-backdrop {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.6);
-          backdrop-filter: blur(4px);
-          z-index: 100;
-        }
-        .comments-panel {
-          position: fixed;
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          max-width: 500px;
-          height: 60vh;
-          background: rgba(20,20,20,0.85);
-          backdrop-filter: blur(20px);
-          border-top: 1px solid rgba(255,255,255,0.1);
-          border-radius: 24px 24px 0 0;
-          z-index: 101;
-          display: flex;
-          flex-direction: column;
-          box-shadow: 0 -20px 40px rgba(0,0,0,0.5);
-        }
-        .comments-header {
-          padding: 16px 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .comments-list {
-          flex: 1;
-          overflow-y: auto;
-          padding: 20px;
-        }
-        .comments-input-area {
-          padding: 16px 20px;
-          border-top: 1px solid rgba(255,255,255,0.05);
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-
-        @media (max-width: 600px) {
-          .reels-scroller { padding-bottom: 74px; }
-          .reel-bottom-info { bottom: 74px; margin-bottom: 16px; font-size: 0.9em; }
-          .reel-sidebar { bottom: 180px; right: 10px; }
-          .comments-panel { height: 75vh; }
-        }
-       `}</style>
-     </div>
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .animate-spin-slow { animation: spin 12s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      `}</style>
+    </div>
   );
 }

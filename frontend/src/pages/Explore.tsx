@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Eye, Heart, Compass } from 'lucide-react';
+import { Play, Eye, Heart, Compass, TrendingUp, Orbit } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 
@@ -20,6 +20,7 @@ export default function Explore() {
   const navigate = useNavigate();
   const [mediaItems, setMediaItems] = useState<ExploreMedia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Trending');
 
   useEffect(() => { fetchExploreMedia(); }, []);
 
@@ -28,7 +29,6 @@ export default function Explore() {
     try {
       const res = await api.get('/posts/feed?limit=50&tab=trending');
       const data = Array.isArray(res.data) ? res.data : (res.data.posts || []);
-      // Filter out posts without media
       const itemsWithMedia = data.filter((item: ExploreMedia) => item.media_url && item.media_url !== '/uploads/defaults/no-image.png');
       setMediaItems(itemsWithMedia);
     } catch (err) {
@@ -39,133 +39,129 @@ export default function Explore() {
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
-      <div className="mom-content">
-        <main className="mom-container">
-          {/* Header */}
-          <div className="mom-header">
-            <div className="mom-header-left">
-              <Compass size={26} className="mom-header-icon" />
-              <div>
-                <h1>Explore</h1>
-                <p>Discover amazing moments from across campus</p>
-              </div>
+
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <div className="flex-1 px-6 py-20 lg:ml-72 lg:px-12 lg:py-24 max-w-7xl mx-auto w-full relative z-10 pt-20 md:pt-12">
+        <header className="flex flex-col items-center text-center mb-32 animate-fade-in px-4">
+          <div className="inline-flex items-center gap-4 px-8 py-3 bg-white/80 backdrop-blur-3xl border border-white rounded-full mb-12 shadow-xl shadow-primary/5">
+            <Compass size={20} strokeWidth={3} className="text-primary" />
+            <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">The Discovery Hub</span>
+          </div>
+          
+          <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none mb-10 italic uppercase">
+            Campus <span className="text-primary">Pulse</span>
+          </h1>
+          
+          <p className="text-xl font-bold text-black opacity-60 max-w-2xl leading-relaxed italic">
+            Discover high-frequency signals and visual chronicles from across the village.
+          </p>
+
+          <div className="flex items-center gap-4 mt-20 p-3 bg-white/60 backdrop-blur-3xl rounded-[40px] border border-white/65 shadow-2xl shadow-primary/5 overflow-x-auto no-scrollbar max-w-full">
+            {['Trending', 'Stories', 'Moments', 'Live'].map((tab) => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-12 py-5 rounded-[30px] font-black text-[11px] uppercase tracking-widest transition-all duration-500 italic ${activeTab === tab ? 'bg-primary text-white shadow-2xl shadow-primary/30 scale-105' : 'text-black/20 hover:bg-white hover:text-black'}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </header>
+
+        {loading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 px-2">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="aspect-[3/5] bg-white/40 border-4 border-dashed border-white rounded-[56px] animate-pulse" />
+            ))}
+          </div>
+        ) : mediaItems.length === 0 ? (
+          <div className="py-48 flex flex-col items-center justify-center text-center gap-12 bg-white/20 border-4 border-dashed border-white rounded-[64px] shadow-inner animate-fade-in mx-4">
+            <div className="relative">
+                <Orbit size={140} strokeWidth={1} className="text-black/5 animate-spin-slow" />
+                <Compass size={60} strokeWidth={1} className="absolute inset-0 m-auto text-black/10" />
+            </div>
+            <div className="space-y-6">
+              <h3 className="text-5xl font-black text-black/10 italic uppercase tracking-tighter">Quiet Frequency.</h3>
+              <p className="text-[11px] font-black text-black/30 uppercase tracking-[0.4em] max-w-xs mx-auto leading-loose italic">No commercial signals detected in this spectrum. Check back soon.</p>
+              <button onClick={fetchExploreMedia} className="mt-8 px-12 py-6 bg-primary text-white rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.05] active:scale-95 transition-all italic">Recalibrate Hub</button>
             </div>
           </div>
-
-          {/* Masonry Grid */}
-          {loading ? (
-            <div className="mom-grid">
-              {[...Array(9)].map((_, i) => (
-                <div key={i} className="mom-skeleton pulse" style={{ height: `${200 + Math.random() * 200}px` }} />
-              ))}
-            </div>
-          ) : mediaItems.length === 0 ? (
-            <div className="mom-empty">
-              <Compass size={52} />
-              <h3>No content yet</h3>
-              <p>Be the first to share something amazing with your campus!</p>
-            </div>
-          ) : (
-            <div className="mom-grid">
-              {mediaItems.map(m => (
-                <div key={m.post_id} className="mom-card" onClick={() => navigate(`/post/${m.post_id}`)}>
-                  <div className="mom-thumb">
-                    <img
-                      src={m.media_url || 'https://placehold.co/400x600?text=Explore'}
-                      alt={m.content || m.username}
-                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x600?text=Explore'; }}
-                      loading="lazy"
-                    />
-                    {m.media_type === 'video' && (
-                      <div className="mom-play-btn"><Play size={20} fill="white" /></div>
-                    )}
-                    <div className="mom-overlay">
-                      <div className="mom-user">
-                        <span className="mom-username">@{m.username}</span>
+        ) : (
+          <div className="columns-2 lg:columns-3 xl:columns-4 gap-10 space-y-10 pb-48 animate-fade-in px-2">
+            {mediaItems.map((m) => (
+              <div 
+                key={m.post_id} 
+                className="break-inside-avoid relative group cursor-pointer rounded-[48px] overflow-hidden border border-white bg-white/80 backdrop-blur-3xl shadow-xl hover:shadow-2xl hover:shadow-primary/5 transition-all duration-700 hover:scale-[1.03] active:scale-95" 
+                onClick={() => navigate(`/post/${m.post_id}`)}
+              >
+                <div className="relative overflow-hidden m-2 rounded-[40px] border border-black/5">
+                  <img
+                    src={m.media_url || 'https://placehold.co/400x600?text=Scan+Error'}
+                    alt={m.content || m.username}
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                  
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 p-10 flex flex-col justify-end gap-8 backdrop-blur-[4px]">
+                    <div className="flex items-center gap-4 translate-y-8 group-hover:translate-y-0 transition-transform duration-500">
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden border-4 border-white shadow-2xl">
+                        <img src={m.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
                       </div>
-                      <div className="mom-stats">
-                        {m.sparks !== undefined && (
-                          <span><Heart size={12} className={m.sparks > 0 ? "fill-white" : ""} /> {m.sparks}</span>
-                        )}
-                        {m.comments !== undefined && m.comments > 0 && (
-                          <span><Eye size={12} /> {m.comments}</span>
-                        )}
+                      <div className="flex flex-col">
+                        <span className="font-black text-sm text-white italic uppercase tracking-tighter">@{m.username}</span>
+                        <span className="text-[9px] font-black text-white/50 uppercase tracking-widest italic leading-none">Signal Creator</span>
                       </div>
                     </div>
+                    
+                    <div className="flex items-center justify-between border-t border-white/20 pt-6 translate-y-8 group-hover:translate-y-0 transition-transform duration-700 delay-100">
+                        <div className="flex items-center gap-8">
+                          <div className="flex items-center gap-3 text-white font-black text-[11px] uppercase tracking-widest italic">
+                            <Heart size={20} fill={m.sparks !== undefined && m.sparks > 0 ? "#e11d48" : "none"} strokeWidth={3} className={m.sparks !== undefined && m.sparks > 0 ? "text-primary" : ""} />
+                            {formatCount(m.sparks || 0)}
+                          </div>
+                          <div className="flex items-center gap-3 text-white font-black text-[11px] uppercase tracking-widest italic">
+                            <Eye size={20} strokeWidth={3} />
+                            {formatCount(m.comments || 0)}
+                          </div>
+                        </div>
+                        <TrendingUp size={20} strokeWidth={4} className="text-primary animate-pulse" />
+                    </div>
                   </div>
+
+                  {m.media_type === 'video' && (
+                    <div className="absolute top-6 right-6 p-4 bg-black/40 backdrop-blur-3xl border border-white/20 rounded-2xl text-white shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 rotate-12 group-hover:rotate-0">
+                      <Play size={20} fill="currentColor" strokeWidth={0} />
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </main>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <style>{`
-        .page-wrapper { display: flex; background: #0b0e14; min-height: 100vh; }
-        .mom-content { flex: 1; overflow-y: auto; height: 100vh; }
-        .mom-container { max-width: 1200px; margin: 0 auto; padding: 40px 20px 100px; }
-
-        .mom-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; padding: 30px; margin-bottom: 40px; }
-        .mom-header-left { display: flex; align-items: center; gap: 18px; }
-        .mom-header-icon { color: var(--primary); }
-        .mom-header h1 { font-size: 2rem; font-weight: 900; color: white; margin: 0 0 5px; letter-spacing: -1px; }
-        .mom-header p { font-size: 0.95rem; color: rgba(255,255,255,0.5); margin: 0; }
+        .columns-2 { column-count: 2; }
+        @media (min-width: 1024px) { .columns-3 { column-count: 3; } }
+        @media (min-width: 1280px) { .columns-4 { column-count: 4; } }
         
-        .mom-grid { column-count: 3; column-gap: 20px; }
-        @media (max-width: 900px) { .mom-grid { column-count: 2; column-gap: 16px; } }
-        @media (max-width: 600px) { .mom-grid { column-count: 2; column-gap: 8px; } }
-
-        .mom-card { cursor: pointer; position: relative; overflow: hidden; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); break-inside: avoid; margin-bottom: 20px; background: #1a1b1e; }
-        @media (max-width: 600px) { .mom-card { margin-bottom: 8px; border-radius: 12px; } }
-
-        .mom-thumb { position: relative; width: 100%; display: block; }
-        .mom-thumb img { width: 100%; height: auto; display: block; transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-        .mom-card:hover .mom-thumb img { transform: scale(1.05); }
-        
-        .mom-play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 1px solid rgba(255,255,255,0.2); }
-        .mom-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 40px 16px 16px; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%); opacity: 0; transition: opacity 0.3s ease; }
-        .mom-card:hover .mom-overlay { opacity: 1; }
-        
-        /* Always show overlay softly on mobile */
-        @media (max-width: 768px) {
-          .mom-overlay { opacity: 1; padding: 30px 12px 12px; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%); }
-        }
-
-        .mom-user { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .mom-username { color: white; font-size: 0.85rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .mom-stats { display: flex; gap: 12px; font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 700; }
-        .mom-stats span { display: flex; align-items: center; gap: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-
-        .mom-skeleton { background: rgba(255,255,255,0.05); border-radius: 20px; break-inside: avoid; margin-bottom: 20px; }
-        .pulse { animation: momPulse 1.5s ease-in-out infinite; }
-        @keyframes momPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-        .mom-empty { text-align: center; padding: 100px 40px; color: rgba(255,255,255,0.3); column-span: all; }
-        .mom-empty svg { margin-bottom: 24px; opacity: 0.2; }
-        .mom-empty h3 { font-size: 1.8rem; font-weight: 900; color: white; margin: 0 0 10px; }
-        .mom-empty p { margin: 0 0 30px; font-size: 1.1rem; }
-
-        /* Sidebar Dark Mode Overrides */
-        .fb-sidebar {
-          background: #0b0e14;
-          border-right: 1px solid rgba(255,255,255,0.05);
-        }
-        .nav-items-card, .profile-switcher-container {
-          background: #1a1b1e;
-          border-color: rgba(255,255,255,0.05);
-        }
-        .nav-item, .profile-name, .nav-group-title {
-          color: rgba(255,255,255,0.8);
-        }
-        .nav-item:hover {
-          background: rgba(255,255,255,0.05);
-        }
-        .profile-username {
-          color: rgba(255,255,255,0.4);
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .animate-spin-slow { animation: spin 15s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
+}
+
+function formatCount(count: number): string {
+  if (count >= 1000000) return (count / 1000000).toFixed(1) + 'M';
+  if (count >= 1000) return (count / 1000).toFixed(1) + 'K';
+  return count.toString();
 }

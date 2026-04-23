@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart2, Plus, ChevronRight, Hash, Calendar } from 'lucide-react';
+import { BarChart2, Plus, ChevronRight, Hash, Calendar, MapPin, Orbit } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -50,144 +50,143 @@ export default function Polls() {
   useEffect(() => { fetchPolls(); }, [fetchPolls]);
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="polls-content">
-        <main className="polls-container">
-          {/* Header */}
-          <div className="polls-page-header">
-            <div className="polls-header-left">
-              <BarChart2 size={28} className="polls-header-icon" />
-              <div>
-                <h1>Campus Polls</h1>
-                <p>Vote on what matters to your campus</p>
-              </div>
+
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-[1400px] mx-auto w-full pt-20 md:pt-32">
+        
+        {/* ── Header ── */}
+        <header className="flex flex-col xl:flex-row items-center justify-between gap-16 mb-24 animate-fade-in px-4">
+          <div className="max-w-3xl space-y-8">
+            <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
+              <BarChart2 size={18} strokeWidth={3} className="text-primary" />
+              <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Village Pulse</span>
             </div>
-            <button className="polls-create-btn" onClick={() => setActiveModal('poll', fetchPolls)}>
-              <Plus size={18} /> New Poll
-            </button>
+            <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
+              Campus <span className="text-primary italic">Consensus.</span>
+            </h1>
+            <p className="text-xl font-bold text-black opacity-60 leading-relaxed max-w-xl italic border-l-8 border-primary/20 pl-8">
+              Cast your vote and synchronize your node with the collective village harmonic.
+            </p>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="polls-filter-tabs">
-            <button className={`polls-filter-tab ${campusFilter === 'all' ? 'active' : ''}`} onClick={() => setCampusFilter('all')}>
-              <Hash size={14} /> All Campuses
-            </button>
-            <button className={`polls-filter-tab ${campusFilter === 'campus' ? 'active' : ''}`} onClick={() => setCampusFilter('campus')}>
-              My Campus
-            </button>
-          </div>
+          <button 
+            onClick={() => setActiveModal('poll', fetchPolls)}
+            className="group w-full xl:w-auto h-24 px-12 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.3em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] hover:shadow-primary/60 transition-all active:scale-95 flex items-center justify-center gap-6"
+          >
+            <Plus size={32} strokeWidth={4} /> Initialize Poll
+          </button>
+        </header>
 
-          {/* Poll List */}
+        {/* Filter Section */}
+        <div className="flex items-center gap-6 mb-20 animate-fade-in px-4">
+          {[
+            { id: 'all', label: 'Universal', icon: Hash },
+            { id: 'campus', label: 'Local Sector', icon: MapPin }
+          ].map(filter => (
+            <button 
+              key={filter.id}
+              onClick={() => setCampusFilter(filter.id as 'all' | 'campus')}
+              className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center gap-4 border shadow-sm italic ${campusFilter === filter.id ? 'bg-white border-white text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 border-white/60 text-black opacity-30 hover:opacity-100 hover:bg-white'}`}
+            >
+              <filter.icon size={16} strokeWidth={3} /> {filter.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative z-10 px-4">
           {loading ? (
-            <div className="polls-list">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="poll-skeleton">
-                  <div className="psk-line pulse" style={{ width: '75%', height: 18, marginBottom: 8 }} />
-                  <div className="psk-line pulse" style={{ width: '40%', height: 11, marginBottom: 18 }} />
-                  <div className="psk-line pulse" style={{ width: '100%', height: 8, marginBottom: 8 }} />
-                  <div className="psk-line pulse" style={{ width: '100%', height: 8 }} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pb-40">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-72 bg-white/40 backdrop-blur-3xl border border-white rounded-[56px] animate-pulse shadow-sm p-12 space-y-6">
+                   <div className="w-1/3 h-4 bg-black/5 rounded-full" />
+                   <div className="w-full h-8 bg-black/5 rounded-full" />
+                   <div className="w-1/2 h-4 bg-black/5 rounded-full" />
                 </div>
               ))}
             </div>
           ) : polls.length === 0 ? (
-            <div className="polls-empty">
-              <BarChart2 size={44} className="polls-empty-icon" />
-              <h3>No active polls</h3>
-              <p>Be the first to start a conversation!</p>
-              <button className="polls-create-btn" onClick={() => setActiveModal('poll', fetchPolls)}>Create Poll</button>
+            <div className="py-64 flex flex-col items-center justify-center text-center gap-8 bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in">
+               <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
+               <div className="space-y-6 px-8">
+                  <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter">Silent Frequency.</h3>
+                  <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No active polls found. Be the first to initiate a consensus harmonic in your sector.</p>
+                  <button onClick={() => setActiveModal('poll', fetchPolls)} className="mt-8 px-12 h-18 bg-primary/10 border-2 border-primary/20 text-primary rounded-[24px] font-black uppercase tracking-widest italic hover:bg-primary hover:text-white transition-all">Start Broadcast</button>
+               </div>
             </div>
           ) : (
-            <div className="polls-list">
-              {polls.map(poll => (
-                <div key={poll.poll_id} className="poll-card" onClick={() => navigate(`/polls/${poll.poll_id}`)}>
-                  <div className="poll-card-top">
-                    <div className="poll-question-area">
-                      <h3 className="poll-question">{poll.question}</h3>
-                      <div className="poll-meta">
-                        By {poll.is_anonymous ? 'Anonymous' : (poll.creator_name || `@${poll.username}`)}
-                        {' • '}
-                        <Calendar size={11} style={{ display: 'inline', verticalAlign: 'middle' }} />
-                        {' '}{new Date(poll.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="poll-votes-badge">{poll.total_votes || 0} votes</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pb-64">
+              {polls.map((poll, idx) => (
+                <div 
+                  key={poll.poll_id} 
+                  onClick={() => navigate(`/polls/${poll.poll_id}`)}
+                  className="group relative bg-white/80 backdrop-blur-3xl border border-white/65 p-12 rounded-[56px] hover:scale-[1.02] transition-all duration-700 cursor-pointer shadow-2xl shadow-primary/5 animate-scale-in"
+                  style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                  {/* Glass Card Gradient Shine */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none rounded-[56px]" />
+
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-12 relative z-10">
+                     <div className="flex items-center gap-4 px-6 py-3 bg-black/5 rounded-full text-[9px] font-black text-black opacity-30 uppercase tracking-[0.2em] italic">
+                        <Calendar size={14} strokeWidth={3} /> {new Date(poll.created_at).toLocaleDateString()}
+                     </div>
+                     <div className="px-8 py-3 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-primary/20 italic">
+                        {poll.total_votes || 0} Harmonics Syncing
+                     </div>
                   </div>
 
-                  {/* Preview Options (first 2) */}
+                  <h3 className="text-3xl font-black text-black mb-6 group-hover:text-primary transition-all duration-500 leading-none tracking-tighter uppercase italic">
+                     {poll.question}
+                  </h3>
+
+                  <div className="flex items-center gap-4 mb-12 px-2 relative z-10">
+                     <span className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.2em] italic">Node</span>
+                     <span className="text-[11px] font-black text-black italic uppercase tracking-widest">{poll.is_anonymous ? 'Classified' : (poll.creator_name || `@${poll.username}`)}</span>
+                     <span className="w-1.5 h-1.5 rounded-full bg-primary/20" />
+                     <span className="text-[11px] font-black text-primary italic uppercase tracking-widest">{poll.campus || 'Global Spectrum'}</span>
+                  </div>
+
+                  <div className="space-y-8 relative z-10">
                   {poll.options && poll.options.slice(0, 2).map(opt => {
-                    const pct = poll.total_votes && poll.total_votes > 0
-                      ? Math.round((opt.vote_count / poll.total_votes) * 100) : 0;
+                    const pct = poll.total_votes && poll.total_votes > 0 ? Math.round((opt.vote_count / poll.total_votes) * 100) : 0;
                     return (
-                      <div key={opt.option_id} className="poll-option-preview">
-                        <div className="poll-option-label">
-                          <span>{opt.option_text}</span>
-                          <span className="poll-option-pct">{pct}%</span>
+                      <div key={opt.option_id} className="space-y-4">
+                        <div className="flex justify-between font-black text-[11px] text-black uppercase tracking-tighter italic">
+                           <span className="truncate pr-4">{opt.option_text}</span>
+                           <span className={pct > 0 ? 'text-primary scale-110' : 'opacity-20'}>{pct}%</span>
                         </div>
-                        <div className="poll-option-bar">
-                          <div className="poll-option-fill" style={{ width: `${pct}%` }} />
+                        <div className="h-3 bg-black/5 rounded-full overflow-hidden shadow-inner p-0.5">
+                           <div className="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     );
                   })}
+                  </div>
 
-                  <button className="poll-vote-btn">
-                    Vote & View All <ChevronRight size={15} />
-                  </button>
+                  <div className="mt-16 pt-10 border-t border-black/5 flex items-center justify-between text-black opacity-10 group-hover:opacity-100 group-hover:text-primary transition-all duration-700 relative z-10">
+                     <p className="text-[11px] font-black italic uppercase tracking-[0.3em]">Join Conversation</p>
+                     <ChevronRight size={28} strokeWidth={4} className="group-hover:translate-x-4 transition-transform duration-500" />
+                  </div>
                 </div>
               ))}
             </div>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
 
       <style>{`
-        .page-wrapper { display: flex; background: #f8fafc; min-height: 100vh; }
-        .polls-content { flex: 1; overflow-y: auto; }
-        .polls-container { max-width: 720px; margin: 0 auto; padding: 30px 20px 100px; }
-
-        .polls-page-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; background: white; border-radius: 24px; padding: 26px 30px; margin-bottom: 24px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
-        .polls-header-left { display: flex; align-items: center; gap: 16px; }
-        .polls-header-icon { color: var(--primary, #FF3D6D); }
-        .polls-page-header h1 { font-size: 1.5rem; font-weight: 900; margin: 0 0 4px; color: #1e293b; letter-spacing: -0.5px; }
-        .polls-page-header p { font-size: 0.88rem; color: #64748b; margin: 0; }
-        .polls-create-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--primary-gradient); color: white; border: none; padding: 12px 22px; border-radius: 14px; font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 14px rgba(255,61,109,0.2); white-space: nowrap; }
-        .polls-create-btn:hover { opacity: 0.9; transform: translateY(-2px); }
-
-        .polls-filter-tabs { display: flex; gap: 8px; margin-bottom: 22px; }
-        .polls-filter-tab { padding: 10px 20px; border-radius: 14px; background: white; border: 1px solid rgba(0,0,0,0.08); color: #64748b; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
-        .polls-filter-tab:hover { border-color: #FF3D6D; color: #FF3D6D; }
-        .polls-filter-tab.active { background: var(--primary-gradient); color: white; border-color: transparent; }
-
-        .polls-list { display: flex; flex-direction: column; gap: 16px; }
-
-        .poll-card { cursor: pointer; background: white; border-radius: 22px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); transition: 0.3s; }
-        .poll-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
-        .poll-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; gap: 16px; }
-        .poll-question { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0 0 6px; line-height: 1.3; }
-        .poll-meta { font-size: 12px; color: #94a3b8; font-weight: 500; display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
-        .poll-votes-badge { background: #f1f5f9; color: #64748b; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
-
-        .poll-option-preview { margin-bottom: 10px; }
-        .poll-option-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 5px; }
-        .poll-option-pct { color: #64748b; font-weight: 700; }
-        .poll-option-bar { background: #f1f5f9; height: 7px; border-radius: 4px; overflow: hidden; }
-        .poll-option-fill { height: 100%; background: var(--primary-gradient); border-radius: 4px; transition: width 0.5s ease; }
-
-        .poll-vote-btn { width: 100%; margin-top: 16px; padding: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; border-radius: 14px; font-weight: 700; cursor: pointer; font-size: 14px; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .poll-card:hover .poll-vote-btn { background: var(--primary-gradient); color: white; border-color: transparent; }
-
-        .poll-skeleton { background: white; border-radius: 22px; padding: 24px; border: 1px solid rgba(0,0,0,0.05); }
-        .psk-line { border-radius: 6px; background: #f1f5f9; }
-        .pulse { animation: pollPulse 1.5s ease-in-out infinite; }
-        @keyframes pollPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-        .polls-empty { text-align: center; padding: 80px 40px; background: white; border-radius: 24px; border: 1px solid rgba(0,0,0,0.05); }
-        .polls-empty-icon { color: #cbd5e1; margin-bottom: 16px; }
-        .polls-empty h3 { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 8px; }
-        .polls-empty p { color: #64748b; margin: 0 0 24px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 20s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
       `}</style>
     </div>
   );
 }
-

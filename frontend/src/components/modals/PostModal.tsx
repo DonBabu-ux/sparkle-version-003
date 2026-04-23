@@ -1,13 +1,12 @@
 import { useState, useRef } from 'react';
-import { X, Image as ImageIcon, MapPin, Globe, Users, Ghost, Loader2 } from 'lucide-react';
+import { X, Image as ImageIcon, MapPin, Globe, Users, Ghost, Loader2, Sparkles } from 'lucide-react';
 import api from '../../api/api';
+import MentionInput from '../MentionInput';
 
 interface PostModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
-
-import MentionInput from '../MentionInput';
 
 export default function PostModal({ onClose, onSuccess }: PostModalProps) {
   const [content, setContent] = useState('');
@@ -60,8 +59,8 @@ export default function PostModal({ onClose, onSuccess }: PostModalProps) {
   return (
     <div className="modal-inner">
       <div className="modal-header">
-        <div className="modal-title">
-          <i className="fas fa-plus-circle"></i> Create New Post
+        <div className="modal-title italic uppercase">
+          <Sparkles size={20} strokeWidth={3} className="text-black" /> Create New Post
         </div>
         <button className="close-btn" onClick={onClose}><X size={20} /></button>
       </div>
@@ -88,28 +87,28 @@ export default function PostModal({ onClose, onSuccess }: PostModalProps) {
 
         <div className="upload-btn-zone" onClick={() => fileRef.current?.click()}>
           <ImageIcon size={20} />
-          <span>Add Photos / Video</span>
+          <span className="text-[10px] uppercase font-black tracking-widest">Add Photos / Video</span>
           <input type="file" ref={fileRef} hidden multiple accept="image/*,video/*" onChange={handleFileChange} />
         </div>
 
         <div className="post-options-grid">
           <div className="option-group">
-            <label><Globe size={14} /> Visibility</label>
+            <label className="text-[10px] uppercase font-black tracking-widest"><Globe size={14} /> Visibility</label>
             <div className="type-chips">
               <div className={`type-chip ${postType === 'public' ? 'active' : ''}`} onClick={() => setPostType('public')}>
-                <Globe size={14} /> Public
+                <Globe size={14} /> <span className="text-[10px] uppercase font-black tracking-widest">Public</span>
               </div>
               <div className={`type-chip ${postType === 'campus_only' ? 'active' : ''}`} onClick={() => setPostType('campus_only')}>
-                <Users size={14} /> Campus
+                <Users size={14} /> <span className="text-[10px] uppercase font-black tracking-widest">Campus</span>
               </div>
               <div className={`type-chip ${postType === 'anonymous' ? 'active' : ''}`} onClick={() => setPostType('anonymous')}>
-                <Ghost size={14} /> Ghost
+                <Ghost size={14} /> <span className="text-[10px] uppercase font-black tracking-widest">Ghost</span>
               </div>
             </div>
           </div>
 
           <div className="option-group">
-            <label><MapPin size={14} /> Where are you?</label>
+            <label className="text-[10px] uppercase font-black tracking-widest"><MapPin size={14} /> Where are you?</label>
             <input 
               type="text" 
               placeholder="Library, Student Center..." 
@@ -121,41 +120,46 @@ export default function PostModal({ onClose, onSuccess }: PostModalProps) {
         </div>
 
         <button className="submit-premium-btn" onClick={handleSubmit} disabled={uploading}>
-          {uploading ? <Loader2 className="animate-spin" /> : <>Spark It! <i className="fas fa-bolt"></i></>}
+          {uploading ? <Loader2 className="animate-spin" /> : <>Spark It! <Sparkles size={16} strokeWidth={3} /></>}
         </button>
       </div>
 
       <style>{`
-        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 28px; background: white; overflow: hidden; }
-        .modal-header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #efefef; }
-        .modal-title { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; color: var(--primary); }
-        .close-btn { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px; }
-        .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 32px; background: white; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); }
+        .modal-header { padding: 24px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.01); }
+        .modal-title { font-weight: 900; font-size: 1.2rem; display: flex; align-items: center; gap: 12px; color: black; letter-spacing: -0.02em; }
+        .close-btn { background: none; border: none; color: rgba(0,0,0,0.2); cursor: pointer; padding: 4px; transition: 0.2s; }
+        .close-btn:hover { color: black; transform: rotate(90deg); }
+        .modal-body { padding: 32px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
         
-        .post-input { width: 100%; min-height: 100px; border: none; font-size: 1.15rem; font-family: inherit; outline: none; background: transparent; padding: 0; resize: none; color: #1e293b; }
-        .post-input::placeholder { color: #94a3b8; }
+        .post-input { width: 100%; min-height: 120px; border: none; font-size: 1.2rem; font-family: inherit; outline: none; background: transparent; padding: 0; resize: none; color: black; font-weight: 600; }
+        .post-input::placeholder { color: rgba(0,0,0,0.1); font-weight: 600; }
 
-        .media-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-        .preview-item { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #f1f5f9; }
+        .media-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
+        .preview-item { position: relative; aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: rgba(0,0,0,0.05); }
         .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-        .remove-media { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border: none; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .remove-media { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.8); color: white; border: none; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .remove-media:hover { transform: scale(1.1); }
 
-        .upload-btn-zone { display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px dashed #e2e8f0; border-radius: 16px; color: #64748b; cursor: pointer; transition: 0.2s; font-weight: 600; }
-        .upload-btn-zone:hover { border-color: var(--primary); background: rgba(255,107,139,0.05); color: var(--primary); }
+        .upload-btn-zone { display: flex; align-items: center; gap: 12px; padding: 20px; border: 1px dashed rgba(0,0,0,0.1); border-radius: 20px; color: rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s; font-weight: 800; }
+        .upload-btn-zone:hover { border-color: black; background: black; color: white; }
 
-        .post-options-grid { display: flex; flex-direction: column; gap: 20px; }
-        .option-group label { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 10px; }
+        .post-options-grid { display: flex; flex-direction: column; gap: 24px; }
+        .option-group label { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 900; color: rgba(0,0,0,0.2); margin-bottom: 12px; }
         
-        .type-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-        .type-chip { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; background: #f1f5f9; color: #64748b; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .type-chip.active { background: var(--primary-gradient); color: white; }
+        .type-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+        .type-chip { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 16px; background: rgba(0,0,0,0.03); color: rgba(0,0,0,0.3); font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .type-chip:hover { background: rgba(0,0,0,0.05); }
+        .type-chip.active { background: black; color: white; border-color: black; }
 
-        .tag-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-family: inherit; outline: none; transition: 0.2s; box-sizing: border-box; }
-        .tag-input:focus { border-color: var(--primary); }
+        .tag-input { width: 100%; padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.02); font-family: inherit; outline: none; transition: 0.2s; box-sizing: border-box; font-weight: 600; color: black; }
+        .tag-input:focus { border-color: black; background: white; }
+        .tag-input::placeholder { color: rgba(0,0,0,0.1); }
 
-        .submit-premium-btn { width: 100%; padding: 16px; border-radius: 16px; background: var(--primary-gradient); color: white; border: none; font-weight: 800; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 20px rgba(255, 61, 109, 0.3); transition: 0.2s; margin-top: 10px; }
-        .submit-premium-btn:hover:not(:disabled) { transform: translateY(-2px); opacity: 0.95; }
-        .submit-premium-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .submit-premium-btn { width: 100%; padding: 20px; border-radius: 20px; background: #e11d48; color: white; border: none; font-weight: 900; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: 0.2s; margin-top: 10px; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 0 15px 35px rgba(225, 29, 72, 0.2); }
+        .submit-premium-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(225, 29, 72, 0.3); }
+        .submit-premium-btn:active { transform: translateY(0); }
+        .submit-premium-btn:disabled { opacity: 0.3; cursor: not-allowed; }
       `}</style>
     </div>
   );

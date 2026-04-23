@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar, Tag, X } from 'lucide-react';
+import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar, Tag, X, Sparkles, Orbit, ChevronRight, Share2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -28,7 +28,7 @@ export default function LostFound() {
   const [showReport, setShowReport] = useState(false);
   const [step, setStep] = useState(1);
   const [reportType, setReportType] = useState<'lost' | 'found'>('lost');
-  const [form, setForm] = useState({ category: 'electronics', title: '', description: '', location: '' });
+  const [form, setForm] = useState({ category: 'Electronics', title: '', description: '', location: '' });
   const [submitting, setSubmitting] = useState(false);
 
   const fetchItems = useCallback(async () => {
@@ -51,7 +51,7 @@ export default function LostFound() {
       await api.post('/lost-found', { ...form, type: reportType });
       setShowReport(false);
       setStep(1);
-      setForm({ category: 'electronics', title: '', description: '', location: '' });
+      setForm({ category: 'Electronics', title: '', description: '', location: '' });
       fetchItems();
     } catch (err) {
       console.error('Report submit error:', err);
@@ -80,258 +80,331 @@ export default function LostFound() {
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="lf-content">
-        <main className="lf-container">
-          {/* Hero */}
-          <div className="lf-hero">
-            <div>
-              <h1>Lost &amp; Found</h1>
-              <p>Sparkle helps you reunite with your belongings. Fast, secure, and campus-wide.</p>
-            </div>
-            <button className="lf-report-btn" onClick={() => { setShowReport(true); setStep(1); }}>
-              <Plus size={18} /> Report Item
-            </button>
-          </div>
 
-          {/* Tabs */}
-          <div className="lf-tabs">
-            {(['all', 'lost', 'found'] as FilterType[]).map(t => (
-              <button key={t} className={`lf-tab ${filter === t ? 'active' : ''}`} onClick={() => setFilter(t)}>
-                {t === 'all' && <Search size={15} />}
-                {t === 'lost' && <AlertCircle size={15} />}
-                {t === 'found' && <CheckCircle2 size={15} />}
-                {t === 'all' ? 'Browse All' : t === 'lost' ? 'Lost Items' : 'Found Items'}
-              </button>
-            ))}
-          </div>
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-          {/* Grid */}
-          {loading ? (
-            <div className="lf-grid">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="lf-skeleton">
-                  <div className="lfs-img pulse" />
-                  <div className="lfs-body">
-                    <div className="lfs-line pulse" style={{ width: '30%', marginBottom: 8 }} />
-                    <div className="lfs-line pulse" style={{ width: '80%', marginBottom: 6 }} />
-                    <div className="lfs-line pulse" style={{ width: '55%' }} />
-                  </div>
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-20 md:pt-32">
+          
+          {/* Editorial Header */}
+          <header className="mb-24 animate-fade-in px-4">
+             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-16">
+                <div className="max-w-4xl space-y-8">
+                   <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full shadow-xl shadow-primary/5">
+                      <PackageOpen size={18} strokeWidth={3} className="text-primary" />
+                       <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Campus Satellite Support</span>
+                   </div>
+                   <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
+                      Lost & <span className="text-primary italic">Sync'd.</span>
+                   </h1>
+                    <p className="text-xl font-bold text-black opacity-60 max-w-2xl leading-relaxed italic border-l-8 border-primary/20 pl-8 uppercase tracking-tighter">
+                      Broadcast missing harmonics or report found signals. Maintaining the village collective organized.
+                    </p>
                 </div>
-              ))}
-            </div>
+                
+                <button 
+                  onClick={() => { setShowReport(true); setStep(1); }}
+                  className="h-24 px-16 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] hover:shadow-primary/60 transition-all active:scale-95 flex items-center justify-center gap-6"
+                >
+                  <Plus size={32} strokeWidth={4} /> Initialize Report
+                </button>
+             </div>
+          </header>
+
+          {/* Precision Controls */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-20 px-4">
+             <div className="flex items-center gap-4 overflow-x-auto pb-4 lg:pb-0 no-scrollbar w-full lg:w-auto">
+                {(['all', 'lost', 'found'] as FilterType[]).map(t => (
+                   <button 
+                    key={t}
+                    onClick={() => setFilter(t)}
+                    className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center gap-4 border shadow-sm italic whitespace-nowrap ${filter === t ? 'bg-white border-white text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 border-white text-black opacity-30 hover:opacity-100 hover:bg-white'}`}
+                   >
+                     {t === 'lost' && <AlertCircle size={16} strokeWidth={3} />}
+                     {t === 'found' && <CheckCircle2 size={16} strokeWidth={3} />}
+                     <span>{t === 'all' ? 'Universal Stream' : `${t} Frequencies`}</span>
+                   </button>
+                ))}
+             </div>
+
+             <div className="relative w-full lg:w-[450px] group">
+                <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
+                <input 
+                  type="text" 
+                  placeholder="Scan village items..." 
+                  className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
+                />
+             </div>
+          </div>
+
+          {/* Premium Grid */}
+          <div className="pb-64 px-4">
+          {loading ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                {[1,2,3,4,5,6].map(i => (
+                   <div key={i} className="h-[500px] bg-white/40 backdrop-blur-3xl border border-white rounded-[56px] animate-pulse shadow-sm" />
+                ))}
+             </div>
           ) : items.length === 0 ? (
-            <div className="lf-empty">
-              <PackageOpen size={52} className="lf-empty-icon" />
-              <h3>Nothing here yet</h3>
-              <p>No {filter === 'all' ? '' : filter} items found. Be the first to report one!</p>
+            <div className="py-64 flex flex-col items-center justify-center text-center gap-12 bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in group">
+               <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
+               <div className="space-y-6">
+                  <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Silent Sector.</h3>
+                  <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No {filter === 'all' ? '' : filter} items intercepted in this harmonic sector yet.</p>
+                  <button onClick={() => setShowReport(true)} className="mt-8 h-18 px-12 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl shadow-primary/30">Start Broadcast</button>
+               </div>
             </div>
           ) : (
-            <div className="lf-grid">
-              {items.map(item => (
-                <div key={item.id} className="lf-card">
-                  <div className="lf-card-image">
-                    <span className={`lf-badge ${item.type === 'lost' ? 'badge-lost' : 'badge-found'}`}>
-                      {item.type}
-                    </span>
-                    <img
-                      src={item.image_url || 'https://placehold.co/400x220?text=No+Photo'}
-                      alt={item.title}
-                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x220?text=No+Photo'; }}
-                    />
-                  </div>
-                  <div className="lf-card-body">
-                    <span className="lf-category"><Tag size={11} /> {item.category || 'General'}</span>
-                    <h3 className="lf-item-title">{item.title}</h3>
-                    <div className="lf-meta-list">
-                      {item.location && <div className="lf-meta-item"><MapPin size={13} /> {item.location}</div>}
-                      <div className="lf-meta-item">
-                        <Calendar size={13} />
-                        {new Date(item.createdAt || item.date_lost_found || Date.now()).toLocaleDateString()}
-                      </div>
-                      {item.reporter_username && (
-                        <div className="lf-meta-item" style={{ color: '#94a3b8', fontSize: 12 }}>
-                          Reported by {item.reporter_username}
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                {items.map((item, i) => (
+                   <div 
+                    key={item.id} 
+                    className="bg-white/80 backdrop-blur-3xl group hover:scale-[1.03] transition-all duration-700 rounded-[56px] border border-white p-4 pb-12 shadow-2xl shadow-primary/5 overflow-hidden flex flex-col animate-scale-in"
+                    style={{ animationDelay: `${i * 50}ms` }}
+                   >
+                     {/* Media Content */}
+                     <div className="relative h-64 overflow-hidden rounded-[42px] bg-black/5 ring-4 ring-white group-hover:ring-primary/10 transition-all duration-700">
+                        {item.image_url ? (
+                          <img 
+                            src={item.image_url} 
+                            className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110"
+                            alt="" 
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-black/5 opacity-40">
+                             <PackageOpen size={80} strokeWidth={1} />
+                             <span className="text-[10px] font-black uppercase tracking-widest italic mt-4">Node Identity Missing</span>
+                          </div>
+                        )}
+                        <div className={`absolute top-6 left-6 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl italic border border-white/20 ${item.type === 'lost' ? 'bg-black text-white' : 'bg-primary text-white'}`}>
+                           {item.type} Frequency
                         </div>
-                      )}
+                        
+                        <div className="absolute top-6 right-6">
+                           <button className="w-12 h-12 bg-white/20 backdrop-blur-3xl border border-white/20 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-primary">
+                              <Share2 size={20} strokeWidth={3} />
+                           </button>
+                        </div>
+                     </div>
+
+                     <div className="px-10 pt-10 flex-grow flex flex-col h-full bg-none">
+                        <div className="flex items-center gap-4 text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-4 italic">
+                           <Tag size={16} strokeWidth={4} />
+                           {item.category || 'General Spectrum'}
+                        </div>
+                        <h3 className="text-3xl font-black text-black mb-4 tracking-tighter italic leading-none group-hover:text-primary transition-colors uppercase">{item.title}</h3>
+                        <p className="text-base font-bold text-black opacity-30 leading-tight line-clamp-2 mb-10 italic uppercase tracking-tighter">{item.description || 'No detailed harmonic data provided.'}</p>
+                        
+                        <div className="space-y-4 mb-12 flex-grow">
+                           <div className="flex items-center gap-5 group/info">
+                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5">
+                                 <MapPin size={20} strokeWidth={4} />
+                              </div>
+                              <span className="text-xs font-black text-black italic uppercase tracking-widest truncate">{item.location || 'GLOBAL SECTOR'}</span>
+                           </div>
+                           <div className="flex items-center gap-5 group/info">
+                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5">
+                                 <Calendar size={20} strokeWidth={4} />
+                              </div>
+                              <span className="text-xs font-black text-black/20 italic uppercase tracking-widest">
+                                 {new Date(item.createdAt || item.date_lost_found || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+                              </span>
+                           </div>
+                        </div>
+
+                        <div className="mt-auto pt-10 border-t border-black/5 flex items-center justify-between">
+                           <div className="flex items-center gap-5">
+                              <div className="relative group/avatar">
+                                 <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.reporter_username || 'A')}&background=e11d48&color=fff&bold=true`} className="w-14 h-14 rounded-2xl object-cover shadow-2xl border-2 border-white group-hover/avatar:rotate-12 transition-transform" alt="" />
+                                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full border-4 border-white shadow-lg"></div>
+                              </div>
+                              <div className="flex flex-col">
+                                  <span className="text-[12px] font-black text-black leading-none uppercase italic tracking-tighter group-hover:text-primary transition-colors cursor-pointer">@{item.reporter_username}</span>
+                                  <span className="text-[9px] font-black text-black opacity-20 uppercase tracking-[0.2em] mt-2 italic">Node Reporter</span>
+                              </div>
+                           </div>
+
+                           {(user?.id === item.reporter_id || user?.user_id === item.reporter_id) ? (
+                             <button 
+                               onClick={() => handleResolve(item.id)}
+                               className="h-14 px-8 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic hover:bg-emerald-600 transition-all shadow-2xl shadow-emerald-500/20 active:scale-95"
+                             >
+                                Resolve Sync
+                             </button>
+                           ) : (
+                             <button 
+                               onClick={() => handleClaim(item)}
+                               className="h-14 px-10 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic hover:scale-110 transition-all shadow-2xl shadow-primary/30 active:scale-95"
+                             >
+                                {item.type === 'lost' ? "Signal Found" : "Claim Sync"}
+                             </button>
+                           )}
+                        </div>
+                     </div>
+                   </div>
+                ))}
+             </div>
+          )}
+          </div>
+        </main>
+      
+
+      {/* High-Fidelity Report Step Modal */}
+      {showReport && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-2xl animate-fade-in" onClick={() => setShowReport(false)}>
+          <div className="bg-white/90 backdrop-blur-3xl w-full max-w-2xl rounded-[56px] shadow-2xl border border-white overflow-hidden animate-scale-in relative" onClick={e => e.stopPropagation()}>
+             
+             {/* Progress Bar Top */}
+             <div className="absolute top-0 inset-x-0 h-3 bg-black/5">
+                <div 
+                  className="h-full bg-primary transition-all duration-1000 ease-out shadow-2xl shadow-primary"
+                  style={{ width: `${(step / 3) * 100}%` }}
+                />
+             </div>
+
+             <div className="p-16 pb-0 flex items-center justify-between">
+                <div>
+                   <h3 className="text-5xl font-black text-black tracking-tighter italic uppercase">Broadcast Report</h3>
+                   <div className="flex items-center gap-4 mt-4">
+                      <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] italic leading-none">Step {step} Vector Scan</span>
+                      <div className="flex gap-1.5">
+                         {[1,2,3].map(i => (
+                            <div key={i} className={`w-3 h-1 rounded-full transition-all duration-500 ${step >= i ? 'bg-primary w-6' : 'bg-black/10'}`} />
+                         ))}
+                      </div>
+                   </div>
+                </div>
+                <button onClick={() => setShowReport(false)} className="w-18 h-18 bg-black/5 rounded-[24px] flex items-center justify-center text-black opacity-10 hover:opacity-100 hover:rotate-90 transition-all duration-500">
+                    <X size={32} strokeWidth={4} />
+                </button>
+             </div>
+
+             <div className="p-16 pt-12">
+                {step === 1 && (
+                  <div className="space-y-12 animate-fade-in">
+                    <div className="grid grid-cols-2 gap-8">
+                       <button 
+                        onClick={() => setReportType('lost')}
+                        className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'lost' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] rotate-2' : 'bg-white border-white text-black opacity-20 hover:border-primary/20 hover:opacity-60'}`}
+                       >
+                         <AlertCircle size={64} strokeWidth={4} className={reportType === 'lost' ? 'animate-pulse' : ''} />
+                         <span className="text-sm font-black uppercase tracking-[0.3em] italic">Lost Harmonic</span>
+                       </button>
+                       <button 
+                        onClick={() => setReportType('found')}
+                        className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'found' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] -rotate-2' : 'bg-white border-white text-black opacity-20 hover:border-primary/20 hover:opacity-60'}`}
+                       >
+                         <CheckCircle2 size={64} strokeWidth={4} className={reportType === 'found' ? 'animate-pulse' : ''} />
+                         <span className="text-sm font-black uppercase tracking-[0.3em] italic">Captured Sync</span>
+                       </button>
                     </div>
-                    {item.description && <p className="lf-description">{item.description}</p>}
-                    
-                    <div className="lf-card-actions" style={{ marginTop: 'auto', paddingTop: 20 }}>
-                       {(user?.id === item.reporter_id || user?.user_id === item.reporter_id) ? (
-                         <button 
-                          onClick={() => handleResolve(item.id)}
-                          className="lf-action-link"
-                          style={{ color: '#10b981', border: 'none', background: 'none', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
-                         >
-                           Mark Resolved
-                         </button>
-                       ) : (
-                         <button 
-                          onClick={() => handleClaim(item)}
-                          className="lf-action-link"
-                          style={{ color: '#FF3D6D', border: 'none', background: 'none', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
-                         >
-                           {item.type === 'lost' ? "I found this" : "This is mine"}
-                         </button>
-                       )}
+
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Sector Category</label>
+                        <select 
+                          value={form.category}
+                          onChange={e => setForm({...form, category: e.target.value})}
+                          className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-lg font-black text-black focus:bg-white focus:border-primary transition-all outline-none appearance-none italic shadow-inner"
+                        >
+                          {['Electronics', 'Documents', 'Keys', 'Clothing', 'Bags', 'Other'].map(c => (
+                              <option key={c} value={c} className="bg-white">{c.toUpperCase()} FREQUENCY</option>
+                          ))}
+                        </select>
+                    </div>
+
+                    <button onClick={() => setStep(2)} className="w-full h-24 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.03] active:scale-95 transition-all flex items-center justify-center gap-4">
+                      Initialize Vector <ChevronRight size={20} strokeWidth={4} />
+                    </button>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-12 animate-fade-in">
+                    <div className="space-y-10">
+                       <div className="space-y-4">
+                          <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Item Designation</label>
+                          <input 
+                            type="text" 
+                            value={form.title}
+                            onChange={e => setForm({...form, title: e.target.value})}
+                            placeholder="e.g. Silver Harmonic Laptop..."
+                            className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-xl font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
+                          />
+                       </div>
+                       <div className="space-y-4">
+                          <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Defragmented Visuals</label>
+                          <textarea 
+                            rows={3} 
+                            value={form.description}
+                            onChange={e => setForm({...form, description: e.target.value})}
+                            placeholder="Describe unique signals, marks, or specific village resonance..."
+                            className="w-full bg-black/5 border-2 border-transparent rounded-[40px] px-10 py-8 text-lg font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic resize-none shadow-inner"
+                          />
+                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                       <button onClick={() => setStep(1)} className="w-40 h-20 rounded-[28px] bg-black/5 text-black opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 hover:opacity-100 italic">Retract</button>
+                       <button onClick={() => setStep(3)} disabled={!form.title} className="flex-1 h-20 bg-primary text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] italic shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-30">Advance Scan</button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
+                )}
 
-      {/* Report Wizard Modal */}
-      {showReport && (
-        <div className="lf-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowReport(false); }}>
-          <div className="lf-modal">
-            <div className="lf-modal-header">
-              <h2>Report an Item</h2>
-              <button className="lf-modal-close" onClick={() => setShowReport(false)}><X size={18} /></button>
-            </div>
+                {step === 3 && (
+                  <div className="space-y-16 animate-fade-in">
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Last Logged Sector</label>
+                        <div className="relative group">
+                          <MapPin className="absolute left-10 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-all scale-125" size={24} strokeWidth={4} />
+                          <input 
+                            type="text" 
+                            value={form.location}
+                            onChange={e => setForm({...form, location: e.target.value})}
+                            placeholder="e.g. Village Core, Sector Blue Cafe..."
+                            className="w-full h-24 bg-black/5 border-2 border-transparent rounded-[32px] pl-20 pr-10 text-xl font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
+                          />
+                        </div>
+                    </div>
 
-            {/* Progress */}
-            <div className="lf-progress-bar">
-              <div className="lf-progress-fill" style={{ width: `${(step / 3) * 100}%` }} />
-            </div>
-            <div className="lf-step-labels">Step {step} of 3</div>
+                    <div className="p-10 bg-primary/5 rounded-[40px] flex items-center gap-8 text-left shadow-inner border border-primary/10 relative overflow-hidden group">
+                       <div className="absolute top-0 right-0 p-8 text-primary opacity-5 group-hover:rotate-12 transition-transform">
+                          <Sparkles size={100} />
+                       </div>
+                       <div className="w-18 h-18 bg-primary/10 rounded-3xl flex items-center justify-center text-primary shrink-0 animate-pulse border border-primary/20"><Sparkles size={32} strokeWidth={4} /></div>
+                       <div className="relative z-10">
+                           <h4 className="text-2xl font-black italic text-black uppercase tracking-tighter leading-none mb-3">Sync Optimized</h4>
+                           <p className="text-[10px] font-black text-black opacity-30 uppercase tracking-[0.4em] italic leading-tight">Broadcast vector will be dispersed to all village nodes immediately.</p>
+                       </div>
+                    </div>
 
-            {/* Step 1 */}
-            {step === 1 && (
-              <div className="lf-step">
-                <h3>What happened?</h3>
-                <div className="lf-type-grid">
-                  <button className={`lf-type-btn ${reportType === 'lost' ? 'active' : ''}`} onClick={() => setReportType('lost')}>
-                    <AlertCircle size={22} /> I Lost Something
-                  </button>
-                  <button className={`lf-type-btn ${reportType === 'found' ? 'active' : ''}`} onClick={() => setReportType('found')}>
-                    <CheckCircle2 size={22} /> I Found Something
-                  </button>
-                </div>
-                <div className="lf-form-field">
-                  <label>Category</label>
-                  <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                    {['Electronics', 'Documents / IDs', 'Keys', 'Clothing / Accessories', 'Other'].map(c => (
-                      <option key={c} value={c.toLowerCase()}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <button className="lf-next-btn" onClick={() => setStep(2)}>Next Step →</button>
-              </div>
-            )}
-
-            {/* Step 2 */}
-            {step === 2 && (
-              <div className="lf-step">
-                <h3>Item Details</h3>
-                <div className="lf-form-field">
-                  <label>Title</label>
-                  <input type="text" placeholder="e.g. Blue Sony Headphones" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
-                </div>
-                <div className="lf-form-field">
-                  <label>Description</label>
-                  <textarea rows={4} placeholder="Brand, color, specific markings..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-                </div>
-                <div className="lf-step-nav">
-                  <button className="lf-back-btn" onClick={() => setStep(1)}>← Back</button>
-                  <button className="lf-next-btn" onClick={() => setStep(3)} disabled={!form.title}>Next Step →</button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3 */}
-            {step === 3 && (
-              <div className="lf-step">
-                <h3>Location &amp; Submit</h3>
-                <div className="lf-form-field">
-                  <label>Where was it?</label>
-                  <input type="text" placeholder="e.g. Student Union, 2nd Floor" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
-                </div>
-                <div className="lf-step-nav">
-                  <button className="lf-back-btn" onClick={() => setStep(2)}>← Back</button>
-                  <button className="lf-submit-btn" onClick={handleSubmit} disabled={submitting}>
-                    {submitting ? 'Submitting...' : 'Submit Report'}
-                  </button>
-                </div>
-              </div>
-            )}
+                    <div className="flex items-center gap-6">
+                       <button onClick={() => setStep(2)} className="w-40 h-24 rounded-[32px] bg-black/5 text-black opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 italic">Sector Back</button>
+                       <button 
+                        onClick={handleSubmit} 
+                        disabled={submitting} 
+                        className="flex-1 h-24 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] active:scale-95 transition-all"
+                       >
+                           {submitting ? 'Transmitting...' : 'Full Broadcast'}
+                       </button>
+                    </div>
+                  </div>
+                )}
+             </div>
           </div>
         </div>
       )}
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f8fafc); min-height: 100vh; }
-        .lf-content { flex: 1; overflow-y: auto; }
-        .lf-container { max-width: 1100px; margin: 0 auto; padding: 30px 24px 100px; }
-
-        .lf-hero { background: linear-gradient(135deg, #FF3D6D 0%, #FF8E9D 100%); border-radius: 32px; padding: 48px 40px; color: white; margin-bottom: 32px; box-shadow: 0 20px 50px rgba(255,61,109,0.18); display: flex; justify-content: space-between; align-items: center; gap: 20px; }
-        .lf-hero h1 { font-size: 2.2rem; font-weight: 900; margin: 0 0 8px; }
-        .lf-hero p { font-size: 1rem; opacity: 0.9; margin: 0; font-weight: 500; }
-        .lf-report-btn { display: inline-flex; align-items: center; gap: 8px; background: white; color: #FF3D6D; border: none; padding: 14px 26px; border-radius: 18px; font-weight: 800; cursor: pointer; transition: 0.2s; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        .lf-report-btn:hover { transform: scale(1.03); }
-
-        .lf-tabs { display: flex; gap: 8px; margin-bottom: 28px; }
-        .lf-tab { flex: 1; padding: 14px; border-radius: 18px; border: none; background: white; color: #64748b; font-weight: 700; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); font-size: 0.9rem; }
-        .lf-tab:hover { color: #FF3D6D; transform: translateY(-2px); }
-        .lf-tab.active { background: white; color: #FF3D6D; box-shadow: 0 8px 20px rgba(0,0,0,0.07); transform: translateY(-2px); border: 2px solid rgba(255,61,109,0.15); }
-
-        .lf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
-
-        .lf-card { background: white; border-radius: 28px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); transition: all 0.4s; box-shadow: 0 8px 24px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
-        .lf-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); border-color: rgba(255,61,109,0.15); }
-        .lf-card-image { height: 200px; position: relative; background: #f1f5f9; overflow: hidden; }
-        .lf-card-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
-        .lf-card:hover .lf-card-image img { transform: scale(1.06); }
-        .lf-badge { position: absolute; top: 14px; right: 14px; padding: 6px 14px; border-radius: 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(8px); }
-        .badge-lost { background: rgba(239,68,68,0.85); color: white; }
-        .badge-found { background: rgba(16,185,129,0.85); color: white; }
-        .lf-card-body { padding: 22px; flex: 1; display: flex; flex-direction: column; }
-        .lf-category { font-size: 11px; font-weight: 800; color: #FF3D6D; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
-        .lf-item-title { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0 0 12px; line-height: 1.35; }
-        .lf-meta-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
-        .lf-meta-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #64748b; font-weight: 600; }
-        .lf-description { font-size: 13px; color: #64748b; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }
-
-        .lf-skeleton { background: white; border-radius: 28px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); }
-        .lfs-img { height: 200px; background: #e2e8f0; }
-        .lfs-body { padding: 22px; }
-        .lfs-line { height: 12px; border-radius: 6px; background: #e2e8f0; margin-bottom: 8px; }
-        .pulse { animation: lfPulse 1.5s ease-in-out infinite; }
-        @keyframes lfPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-        .lf-empty { text-align: center; padding: 80px 40px; background: white; border-radius: 28px; border: 1px solid rgba(0,0,0,0.05); grid-column: 1/-1; }
-        .lf-empty-icon { color: #cbd5e1; margin-bottom: 16px; }
-        .lf-empty h3 { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 8px; }
-        .lf-empty p { color: #64748b; }
-
-        .lf-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .lf-modal { background: white; width: 100%; max-width: 560px; border-radius: 32px; padding: 40px; max-height: 90vh; overflow-y: auto; box-shadow: 0 40px 80px rgba(0,0,0,0.3); animation: lfSlide 0.3s ease; }
-        @keyframes lfSlide { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-        .lf-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .lf-modal-header h2 { font-size: 1.5rem; font-weight: 900; margin: 0; color: #0f172a; }
-        .lf-modal-close { background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: 0.2s; }
-        .lf-modal-close:hover { background: #fee2e2; color: #ef4444; }
-        .lf-progress-bar { height: 5px; background: #f1f5f9; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
-        .lf-progress-fill { height: 100%; background: linear-gradient(90deg, #FF6B8B, #FF3D6D); border-radius: 4px; transition: width 0.4s ease; }
-        .lf-step-labels { font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 24px; }
-        .lf-step h3 { font-size: 1.2rem; font-weight: 900; color: #0f172a; margin: 0 0 20px; }
-        .lf-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .lf-type-btn { padding: 16px; border: 2px solid #e2e8f0; border-radius: 18px; background: white; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px; color: #64748b; font-size: 0.9rem; }
-        .lf-type-btn.active { border-color: #FF3D6D; color: #FF3D6D; background: #fff5f7; }
-        .lf-form-field { margin-bottom: 18px; }
-        .lf-form-field label { display: block; font-weight: 700; font-size: 0.88rem; color: #334155; margin-bottom: 8px; }
-        .lf-form-field input, .lf-form-field select, .lf-form-field textarea { width: 100%; padding: 13px 15px; border: 2px solid #e2e8f0; border-radius: 16px; font-size: 0.95rem; color: #1e293b; background: #f8fafc; transition: 0.2s; box-sizing: border-box; font-family: inherit; }
-        .lf-form-field input:focus, .lf-form-field select:focus, .lf-form-field textarea:focus { border-color: #FF3D6D; outline: none; background: white; }
-        .lf-form-field textarea { resize: none; }
-        .lf-step-nav { display: flex; justify-content: space-between; margin-top: 24px; gap: 12px; }
-        .lf-next-btn, .lf-submit-btn { background: #0f172a; color: white; border: none; padding: 14px 28px; border-radius: 16px; font-weight: 800; cursor: pointer; transition: 0.2s; }
-        .lf-next-btn:hover, .lf-submit-btn:hover { background: #FF3D6D; }
-        .lf-next-btn:disabled, .lf-submit-btn:disabled { opacity: 0.5; cursor: wait; }
-        .lf-back-btn { background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 14px 28px; border-radius: 16px; font-weight: 700; cursor: pointer; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .animate-spin-slow { animation: spin 25s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

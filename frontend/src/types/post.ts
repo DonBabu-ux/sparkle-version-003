@@ -32,11 +32,11 @@ export interface Post {
     comment: string;
   }[];
   // Add missing properties found during build
-  sparks?: any[];
+  sparks?: number | unknown[];
   media?: string[];
   media_type?: string;
   image_url?: string;
   likes_count?: number;
   comments_count?: number;
-  comments?: any[];
+  comments?: number | unknown[];
 }

@@ -96,16 +96,17 @@ const MentionInput: React.FC<MentionInputProps> = ({ value, onChange, onBlur, pl
       />
       
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute bottom-full left-0 w-full mb-2 bg-white border border-slate-100 rounded-xl shadow-2xl overflow-hidden z-[100] animate-in fade-in slide-in-from-bottom-2">
+        <div className="absolute bottom-full left-0 w-full mb-2 bg-white/95 backdrop-blur-xl border border-black/5 rounded-2xl shadow-2xl overflow-hidden z-[100] animate-in fade-in slide-in-from-bottom-2">
           {suggestions.map((u) => (
             <button
               key={u.user_id}
-              className="w-full px-3 py-2 flex items-center gap-3 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-none"
+              className="w-full px-4 py-3 flex items-center gap-4 hover:bg-black/5 transition-all border-b border-black/[0.02] last:border-none group"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); selectMention(u.username); }}
             >
-              <img src={u.avatar_url || '/uploads/avatars/default.png'} className="w-6 h-6 rounded-full" alt="" />
+              <img src={u.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full border border-black/5 group-hover:scale-105 transition-transform" alt="" />
               <div className="text-left">
-                <p className="font-bold text-slate-800 text-xs">@{u.username}</p>
+                <p className="font-black text-black text-[13px] tracking-tight uppercase italic">@{u.username}</p>
+                <p className="text-[10px] font-bold text-black/30 uppercase tracking-widest">{u.name}</p>
               </div>
             </button>
           ))}

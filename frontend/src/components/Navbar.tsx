@@ -1,13 +1,15 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  Home, Users, Plus, ChevronDown, X, User, Compass, Ghost, 
-  ShoppingBag, Settings as SettingsIcon, 
-  LogOut, UserPlus, 
-  Calendar, HelpCircle,
+  Home, Users, Plus, X, User, Ghost, 
+  ShoppingBag, 
+  LogOut, 
+  Calendar,
   Pen, PlayCircle, History, Store, LayoutGrid,
-  Heart, BarChart3, Sparkles, CheckCircle, GraduationCap,
-  Search as SearchIcon, ShieldCheck
+  BarChart3, Sparkles,
+  Search as SearchIcon, Bell, MessageSquare,
+  Zap, Activity, Package, UserPlus, Image as ImageIcon, Send, CheckCircle2, LifeBuoy, HelpCircle, Briefcase, Settings
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
@@ -37,114 +39,129 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Desktop Sidebar (Facebook Style) */}
-      <Sidebar />
+      {/* Desktop Sidebar Shell */}
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
 
-      {/* Mobile Top Navigation Bar */}
+      {/* Mobile Top Navigation Bar — Glass Header */}
       {location.pathname !== '/search' && (
-        <header className="mobile-top-bar">
-          <Link to="/dashboard" className="mobile-top-logo">
-            <div className="mobile-top-logo-icon"><i className="fas fa-sparkles"></i></div>
-            <span className="mobile-top-logo-text">Sparkle</span>
+        <header className="lg:hidden fixed top-0 left-0 w-full h-18 bg-white/60 backdrop-blur-3xl border-b border-white/40 flex justify-between items-center z-[1100] px-5 pt-4 pb-4 shadow-sm">
+          <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-[#fb7185] rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+              <Sparkles size={20} strokeWidth={2.5} />
+            </div>
+            <span className="font-heading font-black text-xl tracking-tighter text-black">Sparkle</span>
           </Link>
-          <div className="mobile-search-wrapper">
-            <div className="mobile-search-bar">
-              <i className="fas fa-search"></i>
-              <input type="text" placeholder="Search Sparkle..." onClick={() => navigate('/search')} readOnly />
+          
+          <div className="flex-1 mx-4">
+            <div 
+              className="bg-black/5 h-10 rounded-2xl flex items-center px-4 gap-3 text-black/30 border border-black/5 transition-all active:bg-white"
+              onClick={() => navigate('/search')}
+            >
+              <SearchIcon size={16} />
+              <span className="text-[12px] font-bold">Search...</span>
             </div>
           </div>
-          <div className="mobile-top-actions">
+          
+          <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="relative">
-              <button 
+            <button 
                 onClick={() => setGridMenuOpen(!gridMenuOpen)}
-                className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-200 transition-colors focus:outline-none shadow-sm"
-              >
+                className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/40 hover:bg-black/10 transition-colors active:scale-90"
+            >
                 <LayoutGrid size={20} strokeWidth={2.5} />
-              </button>
-            </div>
+            </button>
           </div>
         </header>
       )}
 
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="mobile-bottom-nav">
-        <Link to="/dashboard" className={`mobile-nav-item ${isActive('/dashboard') ? 'active' : ''}`}>
-          <Home size={26} />
-        </Link>
-        <Link to="/connect" className={`mobile-nav-item ${isActive('/connect') ? 'active' : ''}`}>
-          <Users size={26} />
-        </Link>
-        
-        <div className="mobile-nav-item" onClick={() => {
-          if (window.innerWidth < 1024) {
-            setShowMobileCreate(!showMobileCreate);
-          } else {
-            setActiveModal('creation_hub');
+      {/* Mobile Bottom Navigation — Glass Bar */}
+      <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] max-w-md h-16 bg-white/80 backdrop-blur-2xl border border-white/65 rounded-[32px] flex justify-around items-center z-[1000] px-2 shadow-2xl">
+        {[
+          { path: '/dashboard', icon: Home },
+          { path: '/connect', icon: Users },
+          { path: '/moments', icon: PlayCircle },
+          { type: 'create' },
+          { path: '/messages', icon: MessageSquare },
+          { path: `/profile/${user?.username}`, icon: 'avatar' },
+        ].map((item) => {
+          if (item.type === 'create') {
+            return (
+              <div key="create" className="relative -top-1" onClick={() => setShowMobileCreate(!showMobileCreate)}>
+                <div className={`w-12 h-12 bg-gradient-to-r from-primary to-[#fb7185] rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 transition-all duration-500 ${showMobileCreate ? 'rotate-45 scale-90' : 'active:scale-95'}`}>
+                  <Plus size={24} color="white" strokeWidth={3} />
+                </div>
+              </div>
+            );
           }
-        }}>
-          <div className={`mobile-plus-compact transition-transform ${showMobileCreate ? 'rotate-45 bg-slate-800' : ''}`}>
-            <Plus size={22} color="white" strokeWidth={2.5} />
-          </div>
-        </div>
 
-        <Link to="/moments" className={`mobile-nav-item ${isActive('/moments') ? 'active' : ''}`}>
-          <PlayCircle size={26} />
-        </Link>
-        <Link to="/messages" className={`mobile-nav-item ${isActive('/messages') ? 'active' : ''}`}>
-          <i className="fab fa-facebook-messenger" style={{ fontSize: '1.5rem' }}></i>
-        </Link>
-        <Link to={`/profile/${user?.username}`} className={`mobile-nav-item ${isActive(`/profile/${user?.username}`) ? 'active' : ''}`}>
-          <div className={`p-[2px] rounded-full ${isActive(`/profile/${user?.username}`) ? 'bg-gradient-to-tr from-[#FF3D6D] to-[#FF8E53]' : 'bg-transparent'}`}>
-            <img 
-              src={user?.avatar_url || '/uploads/avatars/default.png'} 
-              className="w-7 h-7 rounded-full object-cover border border-white"
-              alt="Profile"
-            />
-          </div>
-        </Link>
+          const isCurrent = isActive(item.path!);
+          const Icon = item.icon as React.ElementType;
+
+          return (
+            <Link 
+              key={item.path} 
+              to={item.path!} 
+              className="relative p-2 flex items-center justify-center transition-colors duration-300 z-10"
+            >
+              {isCurrent && (
+                <motion.div 
+                  layoutId="nav-notch"
+                  className="absolute inset-0 bg-primary/10 rounded-2xl -z-10"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              {item.icon === 'avatar' ? (
+                <div className={`p-0.5 rounded-xl border-2 transition-all ${isCurrent ? 'border-primary ring-4 ring-primary/5' : 'border-transparent'}`}>
+                  <img 
+                    src={user?.avatar_url || '/uploads/avatars/default.png'} 
+                    className="w-6 h-6 rounded-lg object-cover"
+                    alt="Profile"
+                  />
+                </div>
+              ) : (
+                <Icon size={22} strokeWidth={isCurrent ? 3 : 2} className={isCurrent ? 'text-primary' : 'text-black/20'} />
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* Mobile Vertical Creation List (Right Edge) */}
+      {/* Mobile Vertical Creation List */}
       {showMobileCreate && (
-        <div className="fixed inset-0 z-[1900]" onClick={() => setShowMobileCreate(false)}>
+        <div className="fixed inset-0 z-[1900] bg-black/10 backdrop-blur-sm animate-fade-in" onClick={() => setShowMobileCreate(false)}>
           <div 
-            className="absolute bottom-[85px] right-4 w-[260px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col animate-slide-up border border-slate-100 z-[1901]"
+            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-60px)] max-w-xs bg-white/95 backdrop-blur-3xl rounded-[40px] shadow-2xl p-2 flex flex-col animate-slide-up border border-white/65 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-2 flex flex-col">
-              {/* Header */}
-              <div className="px-4 pt-4 pb-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Create New</span>
-              </div>
+            <div className="px-5 pt-4 pb-2 border-b border-black/5 mb-2">
+                <span className="text-[11px] font-bold text-black/30 uppercase tracking-widest">Create New</span>
+            </div>
 
-              {/* Main Actions */}
-              <div className="flex flex-col gap-1">
-                {[
-                  { name: 'Create Post', icon: Pen, action: () => setActiveModal('post') },
-                  { name: 'Create AfterGlow', icon: History, action: () => navigate('/afterglow/create') },
-                  { name: 'Create Moment', icon: PlayCircle, action: () => navigate('/moments/create') },
-                  { name: 'Sell Item', icon: Store, action: () => setActiveModal('listing') },
-                  { name: 'Launch Poll', icon: BarChart3, action: () => setActiveModal('poll') },
-                  { name: 'Post Event', icon: Calendar, action: () => setActiveModal('event') },
-                  { name: 'Share Confession', icon: Ghost, action: () => setActiveModal('confession'), isNew: true },
-                ].map((item, idx) => (
-                  <button 
-                    key={idx}
-                    onClick={() => { setShowMobileCreate(false); item.action(); }} 
-                    className="w-full p-3.5 flex items-center gap-3.5 hover:bg-slate-50 active:bg-slate-100 transition-all group rounded-2xl relative"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
-                      <item.icon size={18} strokeWidth={2.5} />
-                    </div>
-                    <span className="font-bold text-slate-700 text-[13px] tracking-tight">{item.name}</span>
-                    {item.isNew && (
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-                    )}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-col gap-1">
+            {[
+                { name: 'Spark Post', icon: Pen, action: () => setActiveModal('post'), color: 'text-primary' },
+                { name: 'Afterglow', icon: History, action: () => navigate('/afterglow/create'), color: 'text-rose-500' },
+                { name: 'Moment', icon: PlayCircle, action: () => navigate('/moments/create'), color: 'text-sky-500' },
+                { name: 'Listing', icon: Store, action: () => setActiveModal('listing'), color: 'text-amber-500' },
+                { name: 'Campus Poll', icon: BarChart3, action: () => setActiveModal('poll'), color: 'text-emerald-500' },
+                { name: 'Event', icon: Calendar, action: () => setActiveModal('event'), color: 'text-indigo-500' },
+                { name: 'Confession', icon: Ghost, action: () => setActiveModal('confession'), color: 'text-slate-500', isNew: true },
+            ].map((item, idx) => (
+                <button 
+                key={idx}
+                onClick={() => { setShowMobileCreate(false); item.action(); }} 
+                className="w-full p-4 flex items-center gap-4 hover:bg-primary/5 active:bg-primary/10 transition-all group rounded-2xl relative"
+                >
+                <div className={`w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
+                    <item.icon size={18} strokeWidth={2.5} />
+                </div>
+                <span className="font-bold text-black text-sm">{item.name}</span>
+                {item.isNew && <div className="absolute right-5 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full animate-pulse" />}
+                </button>
+            ))}
             </div>
           </div>
         </div>
@@ -152,8 +169,8 @@ export default function Navbar() {
 
       {/* Global Modals */}
       {activeModal && (
-        <div className="global-modal-overlay animate-fade-in" onClick={() => setActiveModal(null)}>
-          <div className="global-modal-content animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
+          <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
             {activeModal === 'post' && <PostModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
             {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
             {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
@@ -168,235 +185,97 @@ export default function Navbar() {
         </div>
       )}
 
-
-
-      {/* Grid Mega Menu (Facebook Style) */}
+      {/* Grid Mega Menu */}
       {gridMenuOpen && (
-        <div className="fixed inset-0 z-[2000]" onClick={() => setGridMenuOpen(false)}>
+        <div className="fixed inset-0 z-[2000] bg-black/10 backdrop-blur-sm animate-fade-in" onClick={() => setGridMenuOpen(false)}>
           <div 
-            className="absolute top-[85px] right-4 w-[340px] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col animate-scale-in border border-slate-100 z-[2001]"
+            className="absolute top-20 right-5 w-[calc(100%-40px)] max-w-[460px] bg-white/95 backdrop-blur-3xl border border-white rounded-[40px] shadow-2xl p-6 flex flex-col animate-scale-in z-[2001] max-h-[85vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 flex-1 overflow-y-auto max-h-[80vh] custom-scrollbar">
-              <div className="flex items-center justify-between mb-6 px-1">
-                <span className="font-black text-slate-900 text-xl tracking-tight">Menu</span>
-                <button onClick={() => setGridMenuOpen(false)} className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
-                  <X size={18} strokeWidth={3} />
+            <div className="flex items-center justify-between mb-8 px-4">
+                <div>
+                  <span className="text-3xl font-black text-black tracking-tight italic">Explore</span>
+                  <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mt-1 italic">VILLAGE FREQUENCIES</p>
+                </div>
+                <button onClick={() => setGridMenuOpen(false)} className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/30 hover:text-primary transition-colors">
+                  <X size={20} strokeWidth={3} />
                 </button>
-              </div>
+            </div>
 
-              {/* Primary Features Grid */}
-              <div className="mb-6">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Social & Discovery</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { name: 'Home', icon: Home, color: 'bg-blue-500', path: '/dashboard' },
-                    { name: 'Profile', icon: User, color: 'bg-rose-500', path: `/profile/${user?.username}` },
-                    { name: 'Explore', icon: Compass, color: 'bg-indigo-500', path: '/explore' },
-                    { name: 'Connect', icon: UserPlus, color: 'bg-violet-500', path: '/connect' },
-                    { name: 'Moments', icon: PlayCircle, color: 'bg-amber-500', path: '/moments' },
-                    { name: 'Streams', icon: PlayCircle, color: 'bg-red-500', path: '/streams' },
-                    { name: 'Memories', icon: Heart, color: 'bg-pink-500', path: '/memories' },
-                  ].map((item) => (
-                    <button 
-                      key={item.name}
-                      onClick={() => { setGridMenuOpen(false); navigate(item.path); }}
-                      className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col items-center gap-2 active:scale-95 transition-all hover:bg-slate-50 shadow-sm"
-                    >
-                      <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center text-white shadow-md`}>
-                        <item.icon size={18} strokeWidth={2.5} />
-                      </div>
-                      <span className="font-bold text-slate-800 text-[10px] tracking-tight">{item.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Community Section */}
-              <div className="mb-6">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Community</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { name: 'Groups', icon: Users, color: 'bg-cyan-500', path: '/groups' },
-                    { name: 'Clubs', icon: Sparkles, color: 'bg-fuchsia-500', path: '/clubs' },
-                    { name: 'Events', icon: Calendar, color: 'bg-orange-500', path: '/events' },
-                    { name: 'Polls', icon: BarChart3, color: 'bg-slate-700', path: '/polls' },
-                    { name: 'Confessions', icon: Ghost, color: 'bg-indigo-600', path: '/confessions' },
-                    { name: 'Requests', icon: UserPlus, color: 'bg-violet-500', path: '/follow-requests' },
-                  ].map((item) => (
-                    <button 
-                      key={item.name}
-                      onClick={() => { setGridMenuOpen(false); navigate(item.path); }}
-                      className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col items-center gap-2 active:scale-95 transition-all hover:bg-slate-50 shadow-sm"
-                    >
-                      <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center text-white shadow-md`}>
-                        <item.icon size={18} strokeWidth={2.5} />
-                      </div>
-                      <span className="font-bold text-slate-800 text-[10px] tracking-tight">{item.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tools & Professional Section */}
-              <div className="mb-6">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Tools & Professional</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { name: 'Professional', icon: BarChart3, color: 'bg-slate-900', path: '/professional-dashboard' },
-                    { name: 'Verified', icon: CheckCircle, color: 'bg-blue-600', path: '/verified' },
-                    { name: 'Gallery', icon: History, color: 'bg-rose-600', path: '/gallery' },
-                    { name: 'Invite', icon: UserPlus, color: 'bg-emerald-600', path: '/invite' },
-                    { name: 'Accounts', icon: SettingsIcon, color: 'bg-slate-500', path: '/settings/accounts' },
-                    { name: 'Admin', icon: ShieldCheck, color: 'bg-red-600', path: '/admin', adminOnly: true },
-                  ].filter(item => !item.adminOnly || user?.role === 'admin' || user?.is_admin).map((item) => (
-                    <button 
-                      key={item.name}
-                      onClick={() => { setGridMenuOpen(false); navigate(item.path); }}
-                      className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col items-center gap-2 active:scale-95 transition-all hover:bg-slate-50 shadow-sm"
-                    >
-                      <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center text-white shadow-md`}>
-                        <item.icon size={18} strokeWidth={2.5} />
-                      </div>
-                      <span className="font-bold text-slate-800 text-[10px] tracking-tight">{item.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Services Section */}
-              <div className="mb-8">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Services</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { name: 'Shop', icon: ShoppingBag, color: 'bg-emerald-500', path: '/marketplace' },
-                    { name: 'Skills', icon: GraduationCap, color: 'bg-teal-600', path: '/skill-market' },
-                    { name: 'Lost & Found', icon: SearchIcon, color: 'bg-amber-600', path: '/lost-found' },
-                  ].map((item) => (
-                    <button 
-                      key={item.name}
-                      onClick={() => { setGridMenuOpen(false); navigate(item.path); }}
-                      className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col items-center gap-2 active:scale-95 transition-all hover:bg-slate-50 shadow-sm"
-                    >
-                      <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center text-white shadow-md`}>
-                        <item.icon size={18} strokeWidth={2.5} />
-                      </div>
-                      <span className="font-bold text-slate-800 text-[10px] tracking-tight">{item.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Utility List */}
-              <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-3 gap-3 mb-8 overflow-y-auto no-scrollbar pr-1">
                 {[
-                  { name: 'Message Settings', icon: SettingsIcon, path: '/messages/settings' },
-                  { name: 'General Settings', icon: SettingsIcon, path: '/settings' },
-                  { name: 'Help & Support', icon: HelpCircle, path: '/help' },
+                { name: 'Market', icon: ShoppingBag, color: 'text-amber-500', path: '/marketplace' },
+                { name: 'Groups', icon: Users, color: 'text-sky-500', path: '/groups' },
+                { name: 'Clubs', icon: Sparkles, color: 'text-primary', path: '/clubs' },
+                { name: 'Events', icon: Calendar, color: 'text-rose-500', path: '/events' },
+                { name: 'Polls', icon: BarChart3, color: 'text-emerald-500', path: '/polls' },
+                { name: 'Chat', icon: MessageSquare, color: 'text-indigo-500', path: '/messages' },
+                { name: 'Moments', icon: PlayCircle, color: 'text-sky-400', path: '/moments' },
+                { name: 'The Vault', icon: Ghost, color: 'text-slate-500', path: '/confessions' },
+                { name: 'Skills', icon: Zap, color: 'text-yellow-500', path: '/skill-market' },
+                { name: 'Streams', icon: Activity, color: 'text-red-500', path: '/streams' },
+                { name: 'Search', icon: SearchIcon, color: 'text-black/40', path: '/search' },
+                { name: 'Connect', icon: UserPlus, color: 'text-primary', path: '/connect' },
+                { name: 'Lost Found', icon: Package, color: 'text-orange-500', path: '/lost-found' },
+                { name: 'Memories', icon: History, color: 'text-indigo-400', path: '/memories' },
+                { name: 'Gallery', icon: ImageIcon, color: 'text-pink-500', path: '/gallery' },
+                { name: 'Invite', icon: Send, color: 'text-teal-500', path: '/invite' },
+                { name: 'Verified', icon: CheckCircle2, color: 'text-blue-500', path: '/verified' },
+                { name: 'Pro Hub', icon: Briefcase, color: 'text-orange-600', path: '/professional-dashboard' },
+                { name: 'Chat Opts', icon: Settings, color: 'text-slate-400', path: '/messages/settings' },
+                { name: 'Support', icon: LifeBuoy, color: 'text-gray-400', path: '/help' },
+                ].map((item) => (
+                <button 
+                    key={item.name}
+                    onClick={() => { setGridMenuOpen(false); navigate(item.path); }}
+                    className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-black/[0.02] hover:bg-white hover:border-black/5 hover:shadow-xl hover:shadow-primary/5 transition-all group active:scale-95 border border-transparent"
+                >
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${item.color} transition-transform bg-white shadow-sm border border-black/5`}>
+                        <item.icon size={22} strokeWidth={2.5} />
+                    </div>
+                    <span className="font-bold text-black text-[11px] tracking-tight uppercase italic">{item.name}</span>
+                </button>
+                ))}
+            </div>
+
+            <div className="flex flex-col gap-2 pt-6 border-t border-black/5">
+                {[
+                  { name: 'Account Settings', icon: User, path: '/settings' },
+                  { name: 'Help Center', icon: HelpCircle, path: '/help' },
                 ].map((item) => (
                   <button 
                     key={item.name}
                     onClick={() => { setGridMenuOpen(false); navigate(item.path); }}
-                    className="w-full p-3 flex items-center gap-4 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100"
+                    className="w-full p-4 flex items-center gap-4 hover:bg-primary/5 rounded-2xl transition-all"
                   >
-                    <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-black/30">
                       <item.icon size={18} strokeWidth={2.5} />
                     </div>
-                    <span className="font-bold text-slate-800 text-sm">{item.name}</span>
+                    <span className="font-bold text-black text-sm">{item.name}</span>
                   </button>
                 ))}
-              </div>
-
-              {/* Account Actions in Grid Menu */}
-              <div className="mt-6 pt-6 border-t border-slate-100 flex flex-col gap-3">
+                
                 <button 
-                  onClick={() => { setGridMenuOpen(false); navigate('/login'); }}
-                  className="w-full p-4 bg-slate-50 text-slate-700 font-black text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition-colors"
+                    onClick={() => { logout(); navigate('/login'); }}
+                    className="w-full p-4 mt-4 bg-primary/10 text-primary font-bold text-sm rounded-2xl flex items-center justify-center gap-3 shadow-sm hover:shadow-lg transition-all"
                 >
-                  <Plus size={16} strokeWidth={3} />
-                  Add Account
+                    <LogOut size={18} strokeWidth={2.5} /> Logout
                 </button>
-                <button 
-                  onClick={() => { logout(); navigate('/login'); }}
-                  className="w-full p-4 bg-rose-50 text-rose-600 font-black text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-3 hover:bg-rose-100 transition-colors"
-                >
-                  <LogOut size={16} strokeWidth={3} />
-                  Logout
-                </button>
-              </div>
             </div>
           </div>
         </div>
       )}
 
       <FloatingAction />
-
-      <style>{`
-        .mobile-top-bar { display: none; }
-        .mobile-bottom-nav { display: none; }
-
-        @media (max-width: 1024px) {
-          .mobile-top-bar {
-            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 70px;
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1); justify-content: space-between; align-items: center;
-            z-index: 1000; padding: 0 16px; padding-top: env(safe-area-inset-top); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
-          }
-          .mobile-top-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-          .mobile-top-logo-icon { background: var(--primary-gradient); width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
-          .mobile-top-logo-text { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.3rem; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-          .mobile-top-actions { display: flex; align-items: center; gap: 16px; }
-          .mobile-search-wrapper { flex: 1; margin: 0 15px; }
-          .mobile-search-bar { background: rgba(0,0,0,0.05); height: 40px; border-radius: 20px; display: flex; align-items: center; padding: 0 15px; gap: 10px; color: #64748b; }
-          .mobile-search-bar input { background: none; border: none; outline: none; width: 100%; font-size: 0.9rem; color: #1e293b; }
-          
-          .mobile-bottom-nav {
-            display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 65px;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(25px); border-top: 1px solid rgba(0, 0, 0, 0.05);
-            justify-content: space-around; align-items: center; z-index: 1000; padding: 0 10px;
-            padding-bottom: env(safe-area-inset-bottom);
-          }
-          .mobile-nav-item { color: #64748b; display: flex; align-items: center; justify-content: center; transition: 0.3s; flex: 1; }
-          .mobile-nav-item.active { color: var(--primary); }
-          
-          .mobile-plus-compact {
-            width: 38px; height: 38px; background: var(--primary-gradient); border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(255, 61, 109, 0.25); transition: transform 0.2s;
-          }
-          .mobile-plus-compact:active { transform: scale(0.9); }
-        }
-
-        .global-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(16px); z-index: 9999; display: flex; alignItems: center; justifyContent: center; padding: 20px; }
-        .global-modal-content { width: 100%; maxWidth: 500px; max-height: 90vh; position: relative; overflow-y: auto; }
-
-        @keyframes slide-up {
-          from { transform: translateY(20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fade-in { animation: fade-in 0.3s ease-out; }
-
-        @keyframes scale-in {
-          from { transform: scale(0.95); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        .animate-scale-in { animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-      `}</style>
     </>
   );
 }
 
 function NotificationBell() {
   return (
-    <Link to="/notifications" className="relative text-xl text-slate-800">
-      <i className="fas fa-bell"></i>
-      <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+    <Link to="/notifications" className="relative w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/30 hover:text-primary transition-all active:scale-90">
+      <Bell size={20} strokeWidth={2.5} />
+      <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full ring-2 ring-white"></span>
     </Link>
   );
 }

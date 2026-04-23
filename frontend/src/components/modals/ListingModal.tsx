@@ -61,25 +61,26 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
     <div className="modal-inner">
       <div className="modal-header">
         <div className="modal-title">
-          <i className="fas fa-store" style={{color: '#10b981'}}></i> List for Sale
+          <Store size={22} strokeWidth={3} className="text-black" /> 
+          <span className="font-heading font-black text-2xl text-black tracking-tighter uppercase italic">Marketplace</span>
         </div>
-        <button className="close-btn" onClick={onClose}><X size={20} /></button>
+        <button className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-black/30 hover:bg-black hover:text-white transition-all" onClick={onClose}><X size={18} strokeWidth={3}/></button>
       </div>
 
-      <div className="modal-body">
-        <div className="input-group">
-          <label><Package size={14} /> What are you selling?</label>
-          <input type="text" placeholder="e.g. Psychology Textbook, Lab Coat" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="modal-body p-8 space-y-8">
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Package size={14} strokeWidth={3} /> Item Name</label>
+          <input type="text" placeholder="e.g. Psychology Textbook..." className="w-full p-5 bg-black/[0.02] border border-black/5 rounded-2xl outline-none font-bold text-black focus:bg-white focus:border-black transition-all" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
-        <div className="grid-row">
-          <div className="input-group">
-            <label><DollarSign size={14} /> Price (KSh)</label>
-            <input type="number" placeholder="0.00" value={price} onChange={(e) => setPrice(e.target.value)} />
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><DollarSign size={14} strokeWidth={3} /> Price</label>
+            <input type="number" placeholder="0.00" className="w-full p-5 bg-black/[0.02] border border-black/5 rounded-2xl outline-none font-bold text-black focus:bg-white focus:border-black transition-all" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
-          <div className="input-group">
-            <label><Tag size={14} /> Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="category-select">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Tag size={14} strokeWidth={3} /> Category</label>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-5 bg-black/[0.02] border border-black/5 rounded-2xl outline-none font-bold text-black focus:bg-white focus:border-black transition-all appearance-none cursor-pointer">
               <option value="student_market">Student Market</option>
               <option value="blackmarket">Black Market</option>
               <option value="electronics">Electronics</option>
@@ -88,54 +89,38 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
           </div>
         </div>
 
-        <div className="input-group">
-          <label>Description</label>
-          <textarea placeholder="Condition, location, etc..." value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em]">Detailed description</label>
+          <textarea placeholder="State condition, pick-up location, etc..." className="w-full p-5 bg-black/[0.02] border border-black/5 rounded-2xl outline-none font-bold text-black focus:bg-white focus:border-black transition-all min-h-[120px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
 
-        <div className="upload-container">
-          <label>Photos</label>
-          <div className="media-preview-container">
+        <div className="space-y-4">
+          <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Camera size={14} strokeWidth={3} /> Media Attachments</label>
+          <div className="flex gap-4 flex-wrap">
             {previews.map((p, i) => (
-              <div key={i} className="preview-sq">
-                <img src={p} alt="" />
-                <button className="del-btn" onClick={() => removeFile(i)}><X size={12} /></button>
+              <div key={i} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-black/5 group">
+                <img src={p} alt="" className="w-full h-full object-cover" />
+                <button className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFile(i)}><X size={12} /></button>
               </div>
             ))}
             {previews.length < 4 && (
-              <div className="add-photo-sq" onClick={() => fileRef.current?.click()}>
-                <Camera size={20} />
+              <button className="w-20 h-20 rounded-2xl border-2 border-dashed border-black/10 flex items-center justify-center text-black/20 hover:text-black hover:border-black/20 hover:bg-black/5 transition-all" onClick={() => fileRef.current?.click()}>
+                <Plus size={24} strokeWidth={3} />
                 <input type="file" ref={fileRef} hidden multiple accept="image/*" onChange={handleFile} />
-              </div>
+              </button>
             )}
           </div>
         </div>
 
-        <button className="submit-market-btn" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? <Loader2 className="animate-spin" /> : <>Publish Item <i className="fas fa-check"></i></>}
+        <button className="w-full py-6 rounded-[24px] bg-primary text-white font-black text-[14px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50" onClick={handleSubmit} disabled={submitting}>
+          {submitting ? <Loader2 className="animate-spin" /> : <>List Item <Package size={20} strokeWidth={3}/></>}
         </button>
       </div>
 
       <style>{`
-        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 28px; background: white; overflow: hidden; }
-        .modal-header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #efefef; }
-        .modal-title { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; color: #10b981; }
-        .close-btn { background: none; border: none; color: #94a3b8; cursor: pointer; }
-
-        .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
-        .input-group label { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 8px; }
-        .input-group input, .input-group textarea, .category-select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-family: inherit; font-size: 0.95rem; outline: none; transition: 0.2s; box-sizing: border-box; }
-        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-
-        .media-preview-container { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
-        .preview-sq { width: 70px; height: 70px; border-radius: 10px; overflow: hidden; position: relative; background: #f1f5f9; }
-        .preview-sq img { width: 100%; height: 100%; object-fit: cover; }
-        .del-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; border: none; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .add-photo-sq { width: 70px; height: 70px; border-radius: 10px; border: 2px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; color: #94a3b8; cursor: pointer; }
-        
-        .submit-market-btn { width: 100%; padding: 16px; border-radius: 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; font-weight: 800; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); transition: 0.2s; margin-top: 10px; }
-        .submit-market-btn:hover { transform: translateY(-2px); opacity: 0.95; }
-        .submit-market-btn:disabled { opacity: 0.7; }
+        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 40px; background: white; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); }
+        .modal-header { padding: 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); background: white; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

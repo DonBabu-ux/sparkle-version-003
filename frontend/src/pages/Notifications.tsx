@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
-import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Bird, Hand } from 'lucide-react';
+import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, Orbit, ArrowLeft } from 'lucide-react';
 
 interface Notification {
   notification_id: string;
@@ -11,6 +11,11 @@ interface Notification {
   content: string;
   created_at: string;
   is_read: number | boolean;
+  actor_avatar?: string;
+  actor_id?: string;
+  actor_name?: string;
+  message?: string;
+  id?: string;
 }
 
 export default function Notifications() {
@@ -39,21 +44,30 @@ export default function Notifications() {
   const markAsRead = async (id: string) => {
     try {
       await api.post(`/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, is_read: 1 } : n));
+      setNotifications(prev => prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, is_read: 1 } : n));
     } catch (err) {
       console.error('Failed to mark read:', err);
     }
   };
 
+  const markAllRead = async () => {
+    try {
+      await api.post('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+    } catch (err) {
+      console.error('Failed to mark all read:', err);
+    }
+  };
+
   const getIcon = (type: string) => {
     switch(type) {
-      case 'follow': return <User size={20} className="text-blue-500" />;
-      case 'spark': return <Zap size={20} className="text-yellow-500 fill-yellow-500" />;
-      case 'comment': return <MessageSquare size={20} className="text-emerald-500" />;
-      case 'group': return <Users size={20} className="text-purple-500" />;
-      case 'marketplace': return <ShoppingBag size={20} className="text-rose-500" />;
-      case 'poke': return <Hand size={20} className="text-indigo-500" />;
-      default: return <Bell size={20} className="text-slate-400" />;
+      case 'follow': return <User size={18} className="text-blue-500" strokeWidth={3} />;
+      case 'spark': return <Zap size={18} className="text-amber-500 fill-amber-500" strokeWidth={3} />;
+      case 'comment': return <MessageSquare size={18} className="text-emerald-500" strokeWidth={3} />;
+      case 'group': return <Users size={18} className="text-purple-500" strokeWidth={3} />;
+      case 'marketplace': return <ShoppingBag size={18} className="text-primary" strokeWidth={3} />;
+      case 'poke': return <Hand size={18} className="text-indigo-500" strokeWidth={3} />;
+      default: return <Bell size={18} className="text-black/20" strokeWidth={3} />;
     }
   };
 
@@ -69,111 +83,108 @@ export default function Notifications() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
       
-      <main className="max-w-3xl mx-auto px-4 pt-32 md:pt-40 pb-32">
-        <div className="flex justify-between items-center mb-12">
-           <div className="flex items-center gap-4">
-             <div className="w-12 h-12 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-100 flex items-center justify-center text-white">
-               <Bell size={24} />
-             </div>
-             <div>
-               <h1 className="text-2xl font-black text-slate-800 tracking-tight">Timeline Pulses</h1>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Your cosmic footprint</p>
-             </div>
-           </div>
-           
-           <button onClick={() => {}} className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-all">Mark all read</button>
-        </div>
+      <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-red-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full">
+        <header className="flex flex-col md:flex-row items-center justify-between gap-10 mb-16 animate-fade-in">
+          <div className="flex items-center gap-6">
+            <div className="w-14 h-14 bg-white/60 backdrop-blur-xl border border-white rounded-[20px] shadow-sm flex items-center justify-center">
+              <Bell size={24} className="text-primary" strokeWidth={3} />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black text-black tracking-tight italic">Activity</h1>
+              <p className="text-[11px] font-bold text-black/20 uppercase tracking-widest mt-1">Village Updates</p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={markAllRead} 
+            className="px-8 py-3.5 rounded-2xl bg-white/60 border border-white font-bold text-[11px] uppercase tracking-wider text-black/40 hover:text-black hover:bg-white transition-all active:scale-95 shadow-sm"
+          >
+            Clear Channel
+          </button>
+        </header>
+
+        <div className="flex flex-col gap-5 relative z-10 pb-40 animate-fade-in">
           {loading ? (
-            Array(6).fill(0).map((_, i) => (
-              <div key={i} className="animate-pulse p-4 border-b border-slate-100 flex gap-4 last:border-0">
-                <div className="w-10 h-10 bg-slate-100 rounded-full"></div>
-                <div className="flex-1 space-y-2 mt-1">
-                   <div className="h-3 bg-slate-100 rounded w-1/3"></div>
-                   <div className="h-2 bg-slate-100 rounded w-full"></div>
-                </div>
-              </div>
-            ))
+             <div className="flex justify-center py-20">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+             </div>
           ) : notifications.length > 0 ? (
-            notifications.map((notif: any) => {
-              if (notif.type === 'system_welcome') {
-                return (
-                  <div 
-                    key={notif.notification_id || notif.id}
-                    onClick={() => markAsRead(notif.notification_id || notif.id)}
-                    className={`flex gap-4 p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer ${notif.is_read ? 'opacity-70' : 'bg-[#F5F9FF]'}`}
-                  >
-                    <div className="flex-shrink-0 bg-gradient-to-br from-[#FF3D6D] to-[#FF7B00] w-10 h-10 rounded-xl flex items-center justify-center mt-1 shadow-md shadow-pink-200">
-                      <span className="text-white text-[22px] leading-none">✨</span>
-                    </div>
-                    
-                    <div className="flex-1">
-                       <div className="flex justify-between items-start mb-1">
-                          <h4 className="font-semibold text-slate-900 text-[15px] tracking-tight">{notif.title}</h4>
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{new Date(notif.created_at).toLocaleDateString()}</span>
-                       </div>
-                       <p className="text-[#6e6e6e] text-[13px] font-medium leading-relaxed">{notif.content}</p>
-                       
-                       <div className="mt-3 flex items-center gap-3">
-                           <button onClick={(e) => { e.stopPropagation(); markAsRead(notif.notification_id || notif.id); navigate('/search'); }} className="text-[#0095f6] text-[13px] font-bold hover:underline focus:outline-none">Explore</button>
-                           <span className="text-slate-300 font-bold">•</span>
-                           <button onClick={(e) => { e.stopPropagation(); markAsRead(notif.notification_id || notif.id); navigate('/connect'); }} className="text-[#0095f6] text-[13px] font-bold hover:underline focus:outline-none">Follow creators</button>
-                           <span className="text-slate-300 font-bold">•</span>
-                           <button onClick={(e) => { e.stopPropagation(); markAsRead(notif.notification_id || notif.id); navigate('/onboarding/about'); }} className="text-[#0095f6] text-[13px] font-bold hover:underline focus:outline-none">Learn more</button>
-                       </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
+            notifications.map((notif: Notification) => (
               <div 
-                key={notif.notification_id || notif.id} 
+                key={notif.notification_id || notif.id}
                 onClick={() => markAsRead(notif.notification_id || notif.id)}
-                className={`flex gap-4 p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer ${notif.is_read ? 'opacity-70' : 'bg-indigo-50/20'}`}
+                className={`group transition-all duration-500 cursor-pointer p-6 rounded-[32px] border flex items-start gap-5 backdrop-blur-3xl
+                  ${!notif.is_read 
+                    ? 'border-primary/20 bg-white shadow-xl shadow-primary/5' 
+                    : 'border-white bg-white/60 opacity-80 hover:bg-white hover:opacity-100 shadow-sm'}`}
               >
-                <div className="flex-shrink-0 bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center mt-1">
-                  {getIcon(notif.type)}
+                <div className="relative shrink-0 mt-0.5">
+                  <img src={notif.actor_avatar || '/uploads/avatars/default.png'} className="w-14 h-14 rounded-[20px] object-cover border border-white shadow-sm" alt="" />
+                  <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full shadow-lg flex items-center justify-center border border-black/5 group-hover:scale-110 transition-transform">
+                    {getIcon(notif.type)}
+                  </div>
                 </div>
                 
-                <div className="flex-1">
-                   <div className="flex justify-between items-start mb-1">
-                      <h4 className="font-black text-slate-800 text-sm tracking-tight">{notif.title || (notif.type === 'poke' ? 'You were poked!' : 'Notification')}</h4>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{new Date(notif.created_at).toLocaleDateString()}</span>
+                <div className="flex-1 pt-1">
+                   <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-black text-black text-base tracking-tight italic leading-none uppercase group-hover:text-primary transition-colors">
+                        {notif.title || (notif.type === 'poke' ? 'Someone poked you' : 'New Update')}
+                      </h4>
+                      <span className="text-[9px] font-bold text-black/20 uppercase tracking-widest bg-black/5 px-3 py-1 rounded-full shrink-0">
+                        {new Date(notif.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
                    </div>
-                   <p className="text-slate-500 text-xs font-semibold leading-relaxed">{notif.content || notif.message}</p>
+                   <p className="text-black font-medium text-sm leading-relaxed mb-4">
+                     {notif.content || notif.message}
+                   </p>
                    
                    {notif.type === 'poke' && (
-                       <div className="mt-3">
-                           <button 
-                               onClick={(e) => { e.stopPropagation(); handlePokeBack(notif.actor_id || notif.related_user?.id, notif.actor_name || notif.related_user?.name); }}
-                               className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black hover:bg-slate-800 transition-colors shadow-md"
-                           >
-                               <span>Poke Back</span>
-                               <span className="text-lg leading-none transform -scale-x-100 grayscale contrast-125 brightness-0 inline-block">👉</span>
-                           </button>
-                       </div>
+                     <button 
+                       onClick={(e) => { e.stopPropagation(); handlePokeBack(notif.actor_id, notif.actor_name); }}
+                       className="flex items-center gap-2 bg-primary text-white px-8 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all active:scale-95"
+                     >
+                       Poke Back <Hand size={14} strokeWidth={3} />
+                     </button>
+                   )}
+
+                   {notif.type === 'system_welcome' && (
+                     <div className="flex items-center gap-4 mt-4">
+                       <button onClick={(e) => { e.stopPropagation(); navigate('/explore'); }} className="text-primary font-bold text-[10px] uppercase tracking-widest hover:underline">Explore</button>
+                       <div className="w-1 h-1 bg-black/5 rounded-full"></div>
+                       <button onClick={(e) => { e.stopPropagation(); navigate('/settings'); }} className="text-primary font-bold text-[10px] uppercase tracking-widest hover:underline">Settings</button>
+                     </div>
                    )}
                 </div>
 
                 {!notif.is_read && (
-                  <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full my-auto shadow-lg shadow-indigo-200 flex-shrink-0"></div>
+                  <div className="shrink-0 w-2.5 h-2.5 bg-primary rounded-full mt-2 animate-pulse shadow-sm shadow-primary/20"></div>
                 )}
               </div>
-            )})
+            ))
           ) : (
-            <div className="py-24 flex flex-col items-center justify-center">
-               <Bird size={48} className="text-slate-200 mb-4" />
-               <h3 className="text-xl font-bold text-slate-600">The sector is quiet</h3>
-               <p className="text-xs text-slate-400 mt-2 font-black uppercase tracking-widest">No pulses detected in this sweep</p>
+            <div className="py-40 flex flex-col items-center justify-center text-center gap-10 animate-fade-in bg-white/40 border border-white rounded-[48px] shadow-inner">
+               <Orbit size={100} strokeWidth={1} className="text-black/5" />
+               <div className="space-y-4">
+                 <h3 className="text-3xl font-black text-black/10 italic">Quiet Airwaves.</h3>
+                 <p className="text-[11px] font-bold text-black/20 uppercase tracking-widest max-w-xs mx-auto">No signals detected at the moment.</p>
+               </div>
+               <button onClick={() => navigate('/dashboard')} className="flex items-center gap-3 px-10 py-4 bg-primary text-white shadow-xl shadow-primary/20 rounded-2xl font-bold text-sm hover:scale-105 transition-all active:scale-95">
+                 <ArrowLeft size={18} /> Back to Pulse
+               </button>
             </div>
           )}
         </div>
       </main>
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      `}</style>
     </div>
   );
 }

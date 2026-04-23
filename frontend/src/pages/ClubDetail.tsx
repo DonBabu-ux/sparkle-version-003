@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, MapPin, Settings, UserPlus, UserCheck, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Users, MapPin, Settings, MessageSquare, ChevronRight, Orbit, Sparkles } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
@@ -79,21 +79,27 @@ export default function ClubDetail() {
   };
 
   if (loading) return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="cd-loading">
-        <div className="cd-spinner" />
-        <p>Loading community...</p>
+      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-8">
+        <Orbit size={64} className="text-primary animate-spin-slow" strokeWidth={4} />
+        <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic animate-pulse">Syncing Circle Node...</p>
       </div>
     </div>
   );
 
   if (!club) return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="cd-not-found">
-        <h2>Club not found</h2>
-        <button onClick={() => navigate('/clubs')}>Browse Clubs</button>
+      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 text-center px-6 gap-10">
+        <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center border-4 border-dashed border-black/10">
+           <Users size={40} className="text-black opacity-10" />
+        </div>
+        <div className="space-y-4">
+           <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Node <span className="text-primary">Isolated.</span></h2>
+           <p className="text-base font-bold text-black opacity-30 italic">This circle harmonic is no longer broadcasting.</p>
+        </div>
+        <button onClick={() => navigate('/clubs')} className="px-12 h-18 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-primary/30">Browser Sectors</button>
       </div>
     </div>
   );
@@ -101,152 +107,173 @@ export default function ClubDetail() {
   const isAdmin = club.is_admin || club.creator_id === (user?.id || user?.user_id);
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="cd-content">
-        <main className="cd-container">
-          {/* Back */}
-          <button className="cd-back-btn" onClick={() => navigate('/clubs')}>
-            <ArrowLeft size={16} /> All Communities
-          </button>
+      
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-          {/* Banner */}
-          <div className="cd-banner-wrap">
-            <div className="cd-banner" style={{
-              backgroundImage: `url('${club.banner_url || 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=1200'}')`,
-            }} />
-            <img
-              src={club.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(club.name)}&background=random&color=fff`}
-              className="cd-logo"
-              alt={club.name}
-              onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/avatars/default.png'; }}
-            />
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-16 md:pt-12">
+        <button 
+          onClick={() => navigate('/clubs')}
+          className="mb-12 w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all group"
+        >
+          <ArrowLeft size={28} strokeWidth={4} className="group-hover:-translate-x-1.5 transition-transform" />
+        </button>
+
+        <div className="animate-fade-in space-y-16">
+          {/* Hero Section */}
+          <div className="relative group">
+            <div 
+              className="h-[350px] md:h-[500px] rounded-[56px] bg-cover bg-center border-[6px] border-white shadow-2xl relative overflow-hidden"
+              style={{ backgroundImage: `url(${club.banner_url || 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=1200'})` }}
+            >
+                <div className="absolute inset-0 bg-black/20 backdrop-blur-sm group-hover:backdrop-blur-none transition-all duration-1000"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+            </div>
+            
+            <div className="absolute -bottom-16 left-12 flex items-end gap-10">
+              <div className="p-1 rounded-[40px] bg-white shadow-2xl relative z-20 border-[4px] border-white/50 overflow-hidden group-hover:scale-110 transition-transform duration-700">
+                <img 
+                  src={club.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(club.name)}&background=black&color=fff`} 
+                  className="w-32 h-32 md:w-56 md:h-56 rounded-[32px] object-cover" 
+                  alt="" 
+                />
+              </div>
+            </div>
+
+            <div className="absolute top-8 right-8 z-20">
+               <div className="px-8 py-3 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-full text-[10px] font-black text-white uppercase tracking-[0.4em] italic shadow-2xl">
+                  Circle ID: {club.club_id.split('-')[0].toUpperCase()}
+               </div>
+            </div>
           </div>
 
-          {/* Club Info */}
-          <div className="cd-info-card">
-            <div className="cd-info-top">
-              <div>
-                <span className="cd-category">{club.category}</span>
-                <h1 className="cd-name">{club.name}</h1>
-                <div className="cd-meta-row">
-                  <span><Users size={14} /> {club.member_count} Members</span>
-                  <span><MapPin size={14} /> {club.campus}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 mt-32">
+            {/* Sidebar Info */}
+            <aside className="lg:col-span-4 flex flex-col gap-10 pt-16">
+              <div className="bg-white/80 backdrop-blur-3xl border border-white/65 p-12 rounded-[56px] shadow-2xl shadow-primary/5 space-y-8 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] pointer-events-none"></div>
+                
+                <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-primary/5 border border-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-[0.4em] italic animate-pulse">
+                   <Sparkles size={14} strokeWidth={3} /> {club.category}
                 </div>
-              </div>
-              <div className="cd-actions">
-                {isAdmin && (
-                  <button className="cd-settings-btn" onClick={() => navigate(`/clubs/${id}/settings`)}>
-                    <Settings size={16} />
+                
+                <h1 className="text-4xl md:text-5xl font-black text-black tracking-tighter leading-none italic uppercase underline decoration-primary decoration-8 underline-offset-[12px] group-hover:decoration-primary/40 transition-all">{club.name}</h1>
+                
+                <div className="flex flex-col gap-6 text-[11px] font-black text-black uppercase tracking-widest pt-8 border-t border-black/[0.03]">
+                   <div className="flex items-center gap-4 group/item">
+                      <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-black/5">
+                        <Users size={20} strokeWidth={3} />
+                      </div>
+                      <span className="italic">{club.member_count} Village Synchronized</span>
+                   </div>
+                   <div className="flex items-center gap-4 group/item">
+                      <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-black/5">
+                        <MapPin size={20} strokeWidth={3} />
+                      </div>
+                      <span className="italic">{club.campus} SECTOR</span>
+                   </div>
+                </div>
+                
+                <p className="text-base font-bold text-black opacity-60 leading-relaxed italic border-l-4 border-primary/20 pl-6">
+                   {club.description}
+                </p>
+                
+                <div className="flex flex-col gap-6 pt-10">
+                  <button 
+                    onClick={handleJoin}
+                    disabled={joining}
+                    className={`w-full h-20 rounded-[28px] font-black text-sm uppercase tracking-[0.3em] italic transition-all duration-500 shadow-2xl ${club.is_member ? 'bg-black text-white hover:bg-black/80' : 'bg-primary text-white shadow-primary/30 hover:scale-[1.03] active:scale-95'}`}
+                  >
+                    {joining ? 'Harmonizing...' : club.is_member ? 'Lock Sync' : 'Initialize Sync'}
                   </button>
-                )}
-                <button
-                  className={`cd-join-btn ${club.is_member ? 'leaving' : ''}`}
-                  onClick={handleJoin}
-                  disabled={joining}
-                >
-                  {club.is_member ? (
-                    <><UserCheck size={16} /> Joined</>
-                  ) : (
-                    <><UserPlus size={16} /> Join</>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => navigate(`/clubs/${id}/settings`)}
+                      className="w-full h-20 bg-white border-2 border-dashed border-black/10 text-black/40 rounded-[28px] font-black text-sm uppercase tracking-[0.3em] italic hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center gap-4"
+                    >
+                      <Settings size={20} strokeWidth={4} /> Vector Controls
+                    </button>
                   )}
-                </button>
+                </div>
+              </div>
+            </aside>
+
+            {/* Main Content Area */}
+            <div className="lg:col-span-8 flex flex-col gap-12 pt-16">
+              <div className="bg-white/60 backdrop-blur-3xl border border-white/80 p-2.5 rounded-[32px] flex gap-3 w-fit shadow-2xl shadow-primary/5">
+                {[
+                  { id: 'posts', label: 'Signal Stream', icon: MessageSquare },
+                  { id: 'members', label: 'Nodes', icon: Users }
+                ].map(tab => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as 'posts' | 'members')}
+                    className={`flex items-center gap-4 px-10 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] transition-all italic ${activeTab === tab.id ? 'bg-white text-primary shadow-2xl shadow-primary/10' : 'text-black opacity-30 hover:opacity-100 hover:scale-105'}`}
+                  >
+                    <tab.icon size={18} strokeWidth={4} />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="pb-64 flex flex-col gap-12">
+              {activeTab === 'posts' ? (
+                posts.length === 0 ? (
+                  <div className="py-64 text-center bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] flex flex-col items-center gap-10 shadow-2xl shadow-primary/5 animate-fade-in group">
+                     <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center text-black opacity-10 group-hover:scale-125 transition-transform duration-1000">
+                        <MessageSquare size={48} strokeWidth={2} />
+                     </div>
+                     <div className="space-y-6">
+                        <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Static Noise.</h3>
+                        <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No active signals in this circle. Be the first to synchronize your broadcast.</p>
+                     </div>
+                  </div>
+                ) : (
+                  posts.map(post => <PostCard key={post.post_id} post={post} />)
+                )
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
+                  {members.map(m => (
+                    <div 
+                      key={m.user_id} 
+                      className="p-8 rounded-[40px] bg-white/80 backdrop-blur-3xl border border-white hover:border-primary/40 transition-all flex items-center justify-between group cursor-pointer shadow-2xl shadow-primary/5 hover:scale-[1.05]"
+                      onClick={() => navigate(`/profile/${m.username}`)}
+                    >
+                      <div className="flex items-center gap-6">
+                        <div className="p-0.5 rounded-[20px] bg-white shadow-xl border border-black/5 overflow-hidden group-hover:rotate-6 transition-transform">
+                          <img 
+                            src={m.avatar_url || '/uploads/avatars/default.png'} 
+                            className="w-16 h-16 rounded-2xl object-cover" 
+                            alt="" 
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                           <span className="font-black text-lg text-black uppercase italic tracking-tighter group-hover:text-primary transition-colors leading-none mb-2">@{m.username}</span>
+                           <div className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 italic">{m.role || 'Inhabitant'}</span>
+                           </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={24} strokeWidth={4} className="text-black/10 group-hover:text-primary group-hover:translate-x-3 transition-all" />
+                    </div>
+                  ))}
+                </div>
+              )}
               </div>
             </div>
-            <p className="cd-description">{club.description}</p>
           </div>
-
-          {/* Tabs */}
-          <div className="cd-tabs">
-            <button className={`cd-tab ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>
-              <MessageSquare size={15} /> Posts ({posts.length})
-            </button>
-            <button className={`cd-tab ${activeTab === 'members' ? 'active' : ''}`} onClick={() => setActiveTab('members')}>
-              <Users size={15} /> Members ({members.length})
-            </button>
-          </div>
-
-          {/* Content */}
-          {activeTab === 'posts' ? (
-            <div className="cd-posts">
-              {posts.length === 0 ? (
-                <div className="cd-empty">
-                  <MessageSquare size={40} />
-                  <h3>No posts yet</h3>
-                  <p>Be the first to post in this community!</p>
-                </div>
-              ) : (
-                posts.map(post => <PostCard key={post.post_id} post={post} />)
-              )}
-            </div>
-          ) : (
-            <div className="cd-members-grid">
-              {members.map(m => (
-                <div key={m.user_id} className="cd-member-card" onClick={() => navigate(`/profile/${m.username}`)}>
-                  <img
-                    src={m.avatar_url || '/uploads/avatars/default.png'}
-                    className="cd-member-avatar"
-                    alt={m.username}
-                    onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/avatars/default.png'; }}
-                  />
-                  <div className="cd-member-info">
-                    <div className="cd-member-name">@{m.username}</div>
-                    {m.role && <div className="cd-member-role">{m.role}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
+        </div>
+      </main>
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f8fafc); min-height: 100vh; }
-        .cd-content { flex: 1; overflow-y: auto; }
-        .cd-container { max-width: 820px; margin: 0 auto; padding: 24px 20px 100px; }
-
-        .cd-back-btn { display: inline-flex; align-items: center; gap: 8px; background: white; border: 1px solid #e2e8f0; padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 14px; color: #334155; cursor: pointer; margin-bottom: 20px; transition: 0.2s; }
-        .cd-back-btn:hover { border-color: #FF3D6D; color: #FF3D6D; }
-
-        .cd-banner-wrap { position: relative; margin-bottom: 60px; }
-        .cd-banner { height: 220px; border-radius: 24px; background-size: cover; background-position: center; box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
-        .cd-logo { width: 90px; height: 90px; border-radius: 26px; border: 5px solid white; position: absolute; bottom: -45px; left: 30px; object-fit: cover; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
-
-        .cd-info-card { background: white; border-radius: 24px; padding: 28px; margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
-        .cd-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-        .cd-category { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #FF3D6D; letter-spacing: 1.5px; display: block; margin-bottom: 6px; }
-        .cd-name { font-size: 1.8rem; font-weight: 900; color: #0f172a; margin: 0 0 10px; letter-spacing: -0.8px; }
-        .cd-meta-row { display: flex; gap: 16px; font-size: 14px; color: #64748b; font-weight: 700; }
-        .cd-meta-row span { display: flex; align-items: center; gap: 6px; }
-        .cd-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
-        .cd-settings-btn { background: #f1f5f9; border: none; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: 0.2s; }
-        .cd-settings-btn:hover { background: #e2e8f0; }
-        .cd-join-btn { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #FF6B8B, #FF3D6D); color: white; border: none; padding: 12px 22px; border-radius: 14px; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 14px rgba(255,61,109,0.25); }
-        .cd-join-btn.leaving { background: #f1f5f9; color: #334155; box-shadow: none; }
-        .cd-join-btn:disabled { opacity: 0.6; cursor: wait; }
-        .cd-description { color: #475569; line-height: 1.7; font-size: 0.95rem; margin: 0; }
-
-        .cd-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-        .cd-tab { padding: 11px 22px; border-radius: 14px; background: white; border: 1px solid rgba(0,0,0,0.08); color: #64748b; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 7px; font-size: 0.9rem; }
-        .cd-tab.active { background: linear-gradient(135deg, #FF6B8B, #FF3D6D); color: white; border-color: transparent; }
-
-        .cd-posts { display: flex; flex-direction: column; gap: 16px; }
-        .cd-empty { text-align: center; padding: 60px 40px; background: white; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); color: #94a3b8; }
-        .cd-empty svg { margin-bottom: 16px; }
-        .cd-empty h3 { font-size: 1.2rem; font-weight: 800; color: #334155; margin: 0 0 6px; }
-        .cd-empty p { font-size: 14px; margin: 0; }
-
-        .cd-members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
-        .cd-member-card { background: white; border-radius: 18px; padding: 18px; display: flex; align-items: center; gap: 14px; border: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
-        .cd-member-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-        .cd-member-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-        .cd-member-name { font-weight: 700; font-size: 14px; color: #1e293b; }
-        .cd-member-role { font-size: 12px; color: #FF3D6D; font-weight: 700; text-transform: capitalize; }
-
-        .cd-loading, .cd-not-found { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; color: #64748b; }
-        .cd-spinner { width: 40px; height: 40px; border: 4px solid #f1f5f9; border-top-color: #FF3D6D; border-radius: 50%; animation: cdSpin 0.8s linear infinite; }
-        @keyframes cdSpin { to { transform: rotate(360deg); } }
-        .cd-not-found button { background: linear-gradient(135deg, #FF6B8B, #FF3D6D); color: white; border: none; padding: 12px 24px; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 20s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

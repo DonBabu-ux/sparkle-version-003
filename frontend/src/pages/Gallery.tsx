@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Image as ImageIcon, Grid, Layers, PlayCircle, Eye, Heart } from 'lucide-react';
+import { Orbit, Image as ImageIcon, Grid, Layers, PlayCircle, Eye, Heart } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import type { Post } from '../types/post';
@@ -35,115 +35,117 @@ export default function Gallery() {
   });
 
   return (
-    <div className="gallery-root">
+    <div className="flex bg-white min-h-screen text-black overflow-x-hidden">
       <Navbar />
-      <div className="gallery-content">
-        <div className="gallery-container responsive-container">
-          <header className="gallery-header">
-            <div className="header-top">
-              <button onClick={() => navigate(-1)} className="back-btn">
-                <ArrowLeft size={24} />
-              </button>
-              <div className="header-info">
-                <h1>Media Gallery</h1>
-                <p>{media.length} items shared by you</p>
-              </div>
-            </div>
+      <div className="flex-1 px-8 py-24 md:px-20 md:py-40 max-w-[1400px] mx-auto w-full relative">
+        {/* Subtle ambient glow */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.04] blur-[120px] rounded-full pointer-events-none" />
 
-            <div className="gallery-filters">
-              <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
-                <Grid size={18} />
-                <span>All</span>
-              </button>
-              <button className={`filter-btn ${filter === 'photos' ? 'active' : ''}`} onClick={() => setFilter('photos')}>
-                <ImageIcon size={18} />
-                <span>Photos</span>
-              </button>
-              <button className={`filter-btn ${filter === 'videos' ? 'active' : ''}`} onClick={() => setFilter('videos')}>
-                <PlayCircle size={18} />
-                <span>Videos</span>
-              </button>
+        <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-12 animate-fade-in relative z-10">
+          <div className="max-w-3xl space-y-8">
+            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-black/5 border border-black/5">
+              <Layers size={18} className="text-primary" />
+              <span className="text-[10px] font-black text-black/40 uppercase tracking-[0.4em]">Visual Archive</span>
             </div>
-          </header>
+            <h1 className="font-heading font-black text-7xl md:text-9xl text-black tracking-tighter italic uppercase leading-[0.85]">
+              Media <br /><span className="text-primary italic">Gallery.</span>
+            </h1>
+            <p className="text-lg font-semibold text-black/30 leading-relaxed border-l-4 border-primary/30 pl-8">
+               A curated collection of your shared moments, stories, and visual contributions to the campus spirit.
+            </p>
+          </div>
 
-          <div className="gallery-main">
-            {loading ? (
-              <div className="gallery-grid">
-                {[...Array(12)].map((_, i) => <div key={i} className="gallery-skeleton animate-pulse" />)}
-              </div>
-            ) : filteredMedia.length === 0 ? (
-              <div className="empty-gallery">
-                <Layers size={64} className="text-slate-200" />
-                <h3>No {filter !== 'all' ? filter : 'media'} yet</h3>
-                <p>Start sharing photos and videos to see them here.</p>
-              </div>
-            ) : (
-              <div className="gallery-grid">
-                {filteredMedia.map(m => (
-                  <div key={m.post_id} className="gallery-item group" onClick={() => navigate(`/post/${m.post_id}`)}>
-                    {m.media_type === 'video' || (m.media_url && m.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) ? (
-                      <div className="item-media-container">
-                        <video src={m.media_url} />
-                        <div className="video-icon"><PlayCircle size={20} fill="white" /></div>
+          <div className="flex bg-black/[0.02] border border-black/5 p-2 rounded-[32px] shadow-sm">
+            {( [
+              { key: 'all', icon: Grid, label: 'Everything' },
+              { key: 'photos', icon: ImageIcon, label: 'Photos' },
+              { key: 'videos', icon: PlayCircle, label: 'Videos' }
+            ] as const).map(tab => (
+              <button 
+                key={tab.key}
+                className={`px-10 py-5 rounded-[28px] font-black text-[11px] uppercase tracking-[0.3em] transition-all duration-700 flex items-center gap-4 font-heading italic ${filter === tab.key ? 'bg-black text-white shadow-2xl scale-105' : 'text-black/30 hover:text-black hover:bg-black/5'}`}
+                onClick={() => setFilter(tab.key)}
+              >
+                <tab.icon size={16} />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </header>
+
+        <div className="relative z-10 pb-40">
+          {loading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="aspect-square bg-black/[0.02] border border-black/5 rounded-[48px] animate-pulse" />
+              ))}
+            </div>
+          ) : filteredMedia.length === 0 ? (
+            <div className="py-64 flex flex-col items-center justify-center gap-12 text-center animate-fade-in bg-black/[0.01] border-[12px] border-dashed border-black/5 rounded-[96px] shadow-inner">
+               <div className="relative">
+                  <Orbit size={120} strokeWidth={1} className="text-black/[0.03] animate-spin-slow" />
+                  <Layers size={60} strokeWidth={1} className="absolute inset-0 m-auto text-black/10" />
+               </div>
+               <div className="space-y-6">
+                 <h3 className="font-heading font-black text-5xl text-black/10 italic uppercase tracking-tighter">Archive Empty.</h3>
+                 <p className="text-sm font-medium text-black/20 uppercase tracking-[0.2em] max-w-xs mx-auto">You haven't shared any {filter !== 'all' ? filter : 'media'} yet.</p>
+                 <button onClick={() => navigate('/dashboard')} className="mt-8 px-12 py-5 bg-black text-white rounded-full font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl hover:bg-primary transition-all active:scale-95">Start Sharing</button>
+               </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+              {filteredMedia.map((m, idx) => {
+                const isVideo = m.media_type === 'video' || (m.media_url && m.media_url.match(/\.(mp4|webm|ogg|mov)$/i));
+                return (
+                  <div 
+                    key={m.post_id} 
+                    className="aspect-square relative group cursor-pointer rounded-[48px] md:rounded-[64px] overflow-hidden border border-black/5 bg-white shadow-2xl shadow-black/5 transition-all duration-1000 hover:-translate-y-4 animate-scale-in" 
+                    style={{ animationDelay: `${idx * 80}ms` }}
+                    onClick={() => navigate(`/post/${m.post_id}`)}
+                  >
+                    {isVideo ? (
+                      <div className="w-full h-full relative">
+                        <video src={m.media_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1500ms]" />
+                        <div className="absolute top-8 left-8 p-4 bg-white/20 backdrop-blur-xl border border-white/20 rounded-2xl text-white shadow-2xl z-10">
+                          <PlayCircle size={24} fill="white" strokeWidth={0} />
+                        </div>
                       </div>
                     ) : (
-                      <img src={m.media_url || '/uploads/posts/default.png'} alt="" />
+                      <img
+                        src={m.media_url || 'https://placehold.co/600x600?text=Gallery'}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1500ms]"
+                        loading="lazy"
+                      />
                     )}
-                    <div className="gallery-overlay">
-                      <div className="overlay-stats">
-                        <span><Heart size={16} fill="white" /> {m.sparks || 0}</span>
-                        <span><Eye size={16} fill="white" /> {m.comments || 0}</span>
+                    
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700 p-10 flex flex-col justify-end gap-6 backdrop-blur-[2px]">
+                      <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-3 text-white font-black text-[12px] uppercase tracking-widest font-heading italic">
+                          <Heart size={20} strokeWidth={4} className="fill-primary text-primary" />
+                          {m.sparks || 0}
+                        </div>
+                        <div className="flex items-center gap-3 text-white font-black text-[12px] uppercase tracking-widest font-heading italic">
+                          <Eye size={20} strokeWidth={3} className="text-white/40" />
+                          {m.comments || 0}
+                        </div>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
       <style>{`
-        .gallery-root { display: flex; background: #000; color: #fff; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .gallery-content { flex: 1; height: 100vh; overflow-y: auto; scrollbar-width: none; }
-        .gallery-content::-webkit-scrollbar { display: none; }
-        .gallery-container { max-width: 935px; margin: 40px auto; padding: 0 16px 100px; }
-        
-        .gallery-header { margin-bottom: 40px; }
-        .header-top { display: flex; gap: 24px; align-items: flex-start; margin-bottom: 30px; }
-        .back-btn { background: #262626; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer; transition: background 0.2s; }
-        .back-btn:hover { background: #363636; }
-        .header-info h1 { font-size: 2.2rem; font-weight: 800; color: #fff; margin-bottom: 4px; font-family: 'Outfit', sans-serif; }
-        .header-info p { color: #a8a8a8; font-size: 1.1rem; }
-
-        .gallery-filters { display: flex; gap: 12px; border-top: 1px solid #262626; padding-top: 20px; justify-content: center; }
-        .filter-btn { display: flex; align-items: center; gap: 8px; background: none; border: none; color: #a8a8a8; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; padding: 12px 24px; border-radius: 12px; transition: all 0.2s; }
-        .filter-btn:hover { background: #1a1a1a; color: #fff; }
-        .filter-btn.active { color: #fff; background: #262626; }
-
-        .gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-        .gallery-item { aspect-ratio: 1/1; position: relative; overflow: hidden; background: #262626; cursor: pointer; }
-        .gallery-item img, .gallery-item video { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        .gallery-item:hover img, .gallery-item:hover video { transform: scale(1.05); }
-        
-        .item-media-container { position: relative; width: 100%; height: 100%; }
-        .video-icon { position: absolute; top: 10px; right: 10px; color: #fff; text-shadow: 0 0 4px rgba(0,0,0,0.5); }
-
-        .gallery-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
-        .gallery-item:hover .gallery-overlay { opacity: 1; }
-        .overlay-stats { display: flex; gap: 30px; font-weight: 800; font-size: 1.1rem; }
-        .overlay-stats span { display: flex; align-items: center; gap: 8px; }
-
-        .gallery-skeleton { aspect-ratio: 1/1; background: #1a1a1a; border-radius: 4px; }
-        .empty-gallery { grid-column: 1 / -1; padding: 100px 0; text-align: center; color: #a8a8a8; }
-        .empty-gallery h3 { font-size: 1.5rem; color: #fff; margin: 20px 0 10px; font-weight: 800; }
-
-        @media (max-width: 768px) {
-          .gallery-grid { gap: 2px; }
-          .header-info h1 { font-size: 1.8rem; }
-          .gallery-filters { gap: 0; justify-content: space-around; }
-          .filter-btn { padding: 12px 10px; font-size: 0.7rem; }
-        }
+        .animate-fade-in { animation: fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-spin-slow { animation: spin 40s linear infinite; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

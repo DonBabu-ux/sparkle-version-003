@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Hash, ArrowLeft } from 'lucide-react';
+import { Hash, ArrowLeft, Orbit } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
@@ -39,99 +39,66 @@ export default function Hashtag() {
   }, [tag, fetchPosts]);
 
   return (
-    <div className="page-wrapper">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="htag-content">
-        <main className="htag-container">
-          <button className="htag-back-btn" onClick={() => navigate(-1)}>
-            <ArrowLeft size={16} /> Back
-          </button>
 
-          <div className="htag-header">
-            <div className="htag-icon-wrap">
-              <Hash size={30} />
+      {/* Background orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pt-20 md:pt-32">
+        
+        <button 
+          onClick={() => navigate(-1)}
+          className="mb-12 w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all group"
+        >
+          <ArrowLeft size={28} strokeWidth={4} className="group-hover:-translate-x-1.5 transition-transform" />
+        </button>
+
+        <header className="flex flex-col md:flex-row items-center justify-between gap-12 mb-20 animate-fade-in p-12 bg-white/80 backdrop-blur-3xl border border-white/65 rounded-[56px] shadow-2xl shadow-primary/5">
+            <div className="flex items-center gap-8">
+               <div className="w-24 h-24 bg-primary text-white rounded-[32px] flex items-center justify-center shadow-2xl shadow-primary/30 group-hover:rotate-12 transition-transform duration-700">
+                  <Hash size={48} strokeWidth={4} />
+               </div>
+               <div>
+                  <h1 className="text-5xl md:text-7xl font-black text-black tracking-tighter leading-none italic uppercase underline decoration-primary decoration-8 underline-offset-[16px]">#{tag}</h1>
+                  <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] mt-8 italic px-2">{posts.length} Active Harmonics</p>
+               </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <h1 className="htag-title">#{tag}</h1>
-              <p className="htag-count">{posts.length} posts</p>
-            </div>
+            
             <button 
               onClick={handleFollow}
-              className={`follow-tag-btn ${isFollowing ? 'active' : ''}`}
+              className={`px-12 h-18 rounded-[24px] font-black text-sm uppercase tracking-[0.2em] italic transition-all duration-500 shadow-2xl ${isFollowing ? 'bg-black text-white hover:bg-black/80' : 'bg-primary text-white shadow-primary/30 hover:scale-105 active:scale-95'}`}
             >
-              {isFollowing ? 'Following' : 'Follow'}
+              {isFollowing ? 'Locked Sync' : 'Synchronize'}
             </button>
-          </div>
+        </header>
 
+        <div className="flex flex-col gap-12 animate-fade-in relative z-10 pb-64 px-2">
           {loading ? (
-            <div className="htag-list">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="htag-skeleton">
-                  <div className="htsk-avatar pulse" />
-                  <div className="htsk-content">
-                    <div className="htsk-line pulse" style={{ width: '40%', marginBottom: 8 }} />
-                    <div className="htsk-line pulse" style={{ width: '90%', marginBottom: 6 }} />
-                    <div className="htsk-line pulse" style={{ width: '70%' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="h-72 bg-white/40 backdrop-blur-3xl border border-white rounded-[56px] animate-pulse" />
+            ))
           ) : posts.length === 0 ? (
-            <div className="htag-empty">
-              <Hash size={44} className="htag-empty-icon" />
-              <h3>No posts yet</h3>
-              <p>Be the first to post with <strong>#{tag}</strong>!</p>
+            <div className="py-64 flex flex-col items-center justify-center text-center gap-12 bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5">
+               <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
+               <div className="space-y-6">
+                  <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter">No signals.</h3>
+                  <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">Be the first to initiate a signal using this tag in the village network.</p>
+                  <button onClick={() => navigate('/dashboard')} className="mt-8 px-12 h-18 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl shadow-primary/30">Start Broadcast</button>
+               </div>
             </div>
           ) : (
-            <div className="htag-list">
-              {posts.map(post => <PostCard key={post.post_id} post={post} />)}
-            </div>
+            posts.map(post => <PostCard key={post.post_id} post={post} />)
           )}
-        </main>
-      </div>
+        </div>
+      </main>
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f8fafc); min-height: 100vh; }
-        .htag-content { flex: 1; }
-        .htag-container { max-width: 640px; margin: 0 auto; padding: 30px 20px 80px; }
-        .htag-back-btn { display: inline-flex; align-items: center; gap: 7px; background: white; border: 1px solid #e2e8f0; padding: 9px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; color: #334155; cursor: pointer; margin-bottom: 24px; transition: 0.2s; }
-        .htag-back-btn:hover { border-color: #FF3D6D; color: #FF3D6D; }
-        .htag-header { display: flex; align-items: center; gap: 20px; background: white; border-radius: 24px; padding: 30px; margin-bottom: 24px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
-        .htag-icon-wrap { width: 64px; height: 64px; background: linear-gradient(135deg, #FF6B8B, #FF3D6D); border-radius: 20px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; box-shadow: 0 8px 20px rgba(255,61,109,0.25); }
-        .htag-title { font-size: 2rem; font-weight: 900; color: #0f172a; margin: 0 0 4px; letter-spacing: -1px; }
-        .htag-count { font-size: 14px; color: #64748b; margin: 0; font-weight: 600; }
-        .htag-list { display: flex; flex-direction: column; gap: 16px; }
-        .htag-skeleton { display: flex; gap: 14px; background: white; padding: 20px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); }
-        .htsk-avatar { width: 44px; height: 44px; border-radius: 50%; background: #f1f5f9; flex-shrink: 0; }
-        .htsk-content { flex: 1; }
-        .htsk-line { height: 12px; border-radius: 6px; background: #f1f5f9; }
-        .pulse { animation: htagPulse 1.5s ease-in-out infinite; }
-        @keyframes htagPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        .htag-empty { text-align: center; padding: 80px 40px; background: white; border-radius: 24px; border: 1px solid rgba(0,0,0,0.05); }
-        .htag-empty-icon { color: #cbd5e1; margin-bottom: 16px; }
-        .htag-empty h3 { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 8px; }
-        .htag-empty p { color: #64748b; }
-
-        .follow-tag-btn {
-          background: #FF3D6D;
-          color: white;
-          border: none;
-          padding: 8px 24px;
-          border-radius: 12px;
-          font-weight: 700;
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .follow-tag-btn.active {
-          background: #f1f5f9;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
-        }
-        .follow-tag-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(255, 61, 109, 0.2);
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 20s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

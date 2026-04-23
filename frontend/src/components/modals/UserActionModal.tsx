@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, ChevronRight, X } from 'lucide-react';
+import { User as UserIcon, ChevronRight } from 'lucide-react';
+import type { User } from '../../types/user';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import api from '../../api/api';
@@ -15,7 +16,7 @@ const PointingFingerIcon = () => (
 );
 
 interface Props {
-    user: any;
+    user: User;
     onClose: () => void;
 }
 
@@ -58,41 +59,36 @@ export default function UserActionModal({ user, onClose }: Props) {
                     <div className="p-10">
                         <div className="flex flex-col items-center mb-10 text-center">
                             <div className="relative mb-6">
-                                <img src={user.avatar_url || user.avatar || user.profile_picture || '/uploads/avatars/default.png'} className="w-24 h-24 rounded-[32px] object-cover ring-8 ring-slate-50" alt="" />
+                                <img src={user.avatar_url || user.avatar || user.profile_picture || '/uploads/avatars/default.png'} className="w-24 h-24 rounded-[32px] object-cover ring-8 ring-black/5" alt="" />
                                 <div className="absolute -bottom-2 -right-2 bg-black p-2 rounded-2xl text-white shadow-xl">
-                                    <User size={20} strokeWidth={2.5} />
+                                    <UserIcon size={20} strokeWidth={2.5} />
                                 </div>
                             </div>
-                            <h3 className="text-2xl font-black text-slate-900 leading-tight tracking-tight">{user.name || user.username}</h3>
-                            <p className="text-slate-400 font-bold text-[13px] tracking-[0.1em] uppercase mt-2">@{user.username}</p>
+                            <h3 className="text-2xl font-black text-black leading-tight tracking-tight uppercase italic">{user.name || user.username}</h3>
+                            <p className="text-black/30 font-black text-[13px] tracking-[0.1em] uppercase mt-2">@{user.username}</p>
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
-                            <button onClick={() => { navigate(`/messages?u=${user.username}`); onClose(); }} className="w-full flex items-center justify-between p-6 bg-slate-50 hover:bg-slate-100 rounded-[24px] group transition-all">
+                            <button onClick={() => { navigate(`/messages?u=${user.username}`); onClose(); }} className="w-full flex items-center justify-between p-6 bg-pink-500 hover:bg-pink-600 rounded-[28px] group transition-all shadow-xl shadow-pink-500/10">
                                 <div className="flex items-center gap-5">
-                                    <div className="p-3.5 bg-white border-2 border-black rounded-2xl shadow-xl shadow-slate-100 group-hover:scale-110 group-hover:rotate-6 transition-all">
+                                    <div className="p-3.5 bg-white rounded-2xl shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all">
                                         <MessengerIcon />
                                     </div>
-                                    <span className="text-[18px] font-black text-slate-800 tracking-tight">Message</span>
+                                    <span className="text-[18px] font-black text-white tracking-tight uppercase italic">Message</span>
                                 </div>
-                                <ChevronRight size={22} className="text-slate-300 group-hover:text-black transition-colors" />
+                                <ChevronRight size={22} className="text-white/50 group-hover:text-white transition-colors" />
                             </button>
-                            <button onClick={handlePoke} disabled={poking} className="w-full flex items-center justify-between p-6 bg-slate-50/50 hover:bg-slate-100/50 rounded-[24px] group transition-all disabled:opacity-50">
+                            <button onClick={handlePoke} disabled={poking} className="w-full flex items-center justify-between p-6 bg-black/[0.03] hover:bg-black/[0.05] rounded-[28px] group transition-all disabled:opacity-50">
                                 <div className="flex items-center gap-5">
-                                    <div className="p-3.5 bg-white border-2 border-black rounded-2xl shadow-xl shadow-slate-50 group-hover:scale-110 group-hover:-rotate-6 transition-all flex items-center justify-center">
+                                    <div className="p-3.5 bg-white border border-black/5 rounded-2xl shadow-sm group-hover:scale-110 group-hover:-rotate-6 transition-all flex items-center justify-center">
                                         <PointingFingerIcon />
                                     </div>
-                                    <span className="text-[18px] font-black text-slate-800 tracking-tight">{poking ? 'Sending Poke...' : 'Send Poke'}</span>
+                                    <span className="text-[18px] font-black text-black/60 tracking-tight uppercase italic">{poking ? 'Sent!' : 'Send Poke'}</span>
                                 </div>
-                                <ChevronRight size={22} className="text-slate-200 group-hover:text-black transition-colors" />
+                                <ChevronRight size={22} className="text-black/10 group-hover:text-black transition-colors" />
                             </button>
-                            <button onClick={onClose} className="w-full flex items-center justify-between p-6 bg-slate-50/30 hover:bg-slate-100/50 rounded-[24px] group transition-all">
-                                <div className="flex items-center gap-5">
-                                    <div className="p-3.5 bg-white border-2 border-slate-200 rounded-2xl group-hover:scale-110 transition-all">
-                                        <X size={20} strokeWidth={3} className="text-slate-400" />
-                                    </div>
-                                    <span className="text-[18px] font-black text-slate-400 tracking-tight">Dismiss</span>
-                                </div>
+                            <button onClick={onClose} className="w-full flex items-center justify-center p-6 text-black/30 font-black text-[11px] uppercase tracking-widest hover:text-black transition-all">
+                                Close Menu
                             </button>
                         </div>
                     </div>

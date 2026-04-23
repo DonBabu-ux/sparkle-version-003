@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
+import { Users, Globe, Layers, MessageSquare, Lock, ArrowLeft, Shield, Sparkles, Orbit, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 
@@ -62,118 +63,157 @@ export default function GroupDetail() {
   };
 
   if (loading) return (
-    <div className="h-screen bg-slate-50 flex flex-col">
-       <Navbar /> 
-       <div className="flex-1 flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-       </div>
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+      <Navbar />
+      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-8">
+        <Orbit size={64} className="text-primary animate-spin-slow" strokeWidth={4} />
+        <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic animate-pulse">Synchronizing Collective Hub...</p>
+      </div>
     </div>
   );
 
   if (!group) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
+      
+      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="max-w-6xl mx-auto px-4 pb-20">
-        {/* Cover & Brand Area */}
-        <div className="relative h-64 md:h-80 w-full mb-20">
-           <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[3rem] overflow-hidden shadow-2xl">
-              {group.cover_image && <img src={group.cover_image} className="w-full h-full object-cover opacity-50 blur-sm" alt="" />}
-              <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
-           </div>
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-16 md:pt-12">
+        <button 
+          onClick={() => navigate('/groups')}
+          className="mb-12 w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all group"
+        >
+          <ArrowLeft size={28} strokeWidth={4} className="group-hover:-translate-x-1.5 transition-transform" />
+        </button>
 
-           {/* Brand Center */}
-           <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
-              <div className="w-32 h-32 md:w-36 md:h-36 bg-white p-2 rounded-[2.5rem] shadow-2xl relative">
-                 <img src={group.icon_url || '/uploads/avatars/default.png'} className="w-full h-full rounded-[2rem] object-cover" alt="" />
-                 {group.verified && (
-                   <div className="absolute -bottom-1 -right-1 bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-lg">✓</div>
-                 )}
+        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-16 mb-24 animate-fade-in px-4">
+          <div className="max-w-4xl space-y-8">
+            <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
+              <Users size={18} strokeWidth={3} className="text-primary" />
+              <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Collective Satellite</span>
+            </div>
+            <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase underline decoration-primary decoration-8 underline-offset-[16px]">
+              {group.name} <span className="text-primary italic">Consensus.</span>
+            </h1>
+            <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic max-w-2xl border-l-8 border-primary/20 pl-8">
+               {group.description || 'A synchronized space for deep collaboration and shared village harmonics.'}
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-6 w-full lg:w-auto">
+            <button 
+              onClick={handleJoinLeave}
+              className={`flex-1 sm:flex-none h-20 px-12 rounded-[32px] font-black text-sm uppercase tracking-[0.3em] italic transition-all duration-500 shadow-2xl ${isMember ? 'bg-black text-white hover:bg-black/80' : pendingJoin ? 'bg-black/10 text-black/20 cursor-default shadow-none border border-black/5' : 'bg-primary text-white shadow-primary/30 hover:scale-[1.03] active:scale-95'}`}
+            >
+              {isMember ? 'Linked Hub' : pendingJoin ? 'Syncing...' : 'Link Node'}
+            </button>
+            {isOwner && (
+               <button onClick={() => navigate(`/groups/${id}/settings`)} className="flex-1 sm:flex-none h-20 px-10 bg-white border-2 border-dashed border-black/10 text-black/40 rounded-[32px] font-black text-sm uppercase tracking-[0.3em] italic hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center gap-4">
+                  <Shield size={20} strokeWidth={4} /> Vector Control
+               </button>
+            )}
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 animate-fade-in relative z-10 pb-64 px-4">
+           {/* Stats Sidebar */}
+           <aside className="lg:col-span-4 space-y-12">
+              <div className="grid grid-cols-2 gap-8">
+                 <div className="p-10 bg-white/80 backdrop-blur-3xl border border-white/65 rounded-[56px] flex flex-col items-center justify-center text-center shadow-2xl shadow-primary/5 group hover:scale-[1.05] transition-transform">
+                    <span className="text-5xl font-black text-black tracking-tighter leading-none mb-3 group-hover:text-primary transition-colors">{group.member_count || 0}</span>
+                    <span className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] italic mb-2">Syncs</span>
+                    <Users size={16} strokeWidth={3} className="text-primary/20" />
+                 </div>
+                 <div className="p-10 bg-white/80 backdrop-blur-3xl border border-white/65 rounded-[56px] flex flex-col items-center justify-center text-center shadow-2xl shadow-primary/5 group hover:scale-[1.05] transition-transform">
+                    <span className="text-5xl font-black text-black tracking-tighter leading-none mb-3 group-hover:text-primary transition-colors">{posts.length}</span>
+                    <span className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] italic mb-2">Sparks</span>
+                    <Sparkles size={16} strokeWidth={3} className="text-primary/20" />
+                 </div>
               </div>
-              <div className="text-center mt-6">
-                 <h1 className="text-3xl font-black text-slate-800 tracking-tight">{group.name}</h1>
-                 <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1 bg-white px-3 py-1 rounded-full shadow-sm">
-                   {group.category || 'General Hub'} • {group.campus}
-                 </p>
-              </div>
-           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mt-24">
-           {/* Info Sidebar */}
-           <aside className="lg:col-span-4 space-y-6">
-              <div className="premium-card bg-white p-8">
-                 <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-4">Essence</h3>
-                 <p className="text-slate-600 font-medium leading-relaxed mb-8">{group.description || 'No description provided by the guardians of this collective.'}</p>
-                 
-                 <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div className="p-4 bg-slate-50 rounded-2xl">
-                       <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Acolytes</span>
-                       <span className="text-xl font-black text-slate-800">{group.member_count || 0}</span>
+              <div className="p-12 bg-white/80 backdrop-blur-3xl border border-white/65 rounded-[56px] shadow-2xl shadow-primary/5 space-y-10 relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] pointer-events-none"></div>
+                 <h3 className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] italic">Telemetry</h3>
+                 <div className="space-y-6">
+                    <div className="flex items-center gap-5 group/item">
+                        <div className="w-12 h-12 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-black/5">
+                           <Globe size={20} strokeWidth={3} />
+                        </div>
+                        <span className="text-sm font-black text-black italic uppercase tracking-widest">{group.campus} SECTOR</span>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl">
-                       <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Frequency</span>
-                       <span className="text-xl font-black text-slate-800">{posts.length} S</span>
+                    <div className="flex items-center gap-5 group/item">
+                        <div className="w-12 h-12 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-black/5">
+                           <Layers size={20} strokeWidth={3} />
+                        </div>
+                        <span className="text-sm font-black text-black italic uppercase tracking-widest">{group.category || 'GENERAL SPECTRUM'}</span>
                     </div>
                  </div>
-
-                 <button 
-                  onClick={handleJoinLeave}
-                  className={`w-full py-4 rounded-[1.2rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl ${
-                    isMember 
-                    ? 'bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600' 
-                    : pendingJoin 
-                    ? 'bg-slate-900/50 text-white opacity-50 cursor-not-allowed'
-                    : 'bg-indigo-600 text-white hover:bg-slate-900 shadow-indigo-100'
-                  }`}
-                 >
-                   {isMember ? 'Abandon Frequency' : pendingJoin ? 'Signal Pending' : 'Join Resonance'}
-                 </button>
-
-                 {isOwner && (
-                   <button 
-                     onClick={() => navigate(`/groups/${id}/settings`)}
-                     className="w-full mt-3 py-3 border border-slate-100 text-slate-400 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest hover:text-slate-600 transition-all"
-                   >
-                     Founder Panel
-                   </button>
-                 )}
               </div>
            </aside>
 
-           {/* Collective Feed */}
-           <div className="lg:col-span-8 space-y-10">
+           {/* Main Feed area */}
+           <div className="lg:col-span-8 flex flex-col gap-12 pt-8">
               {isMember ? (
                 <>
-                  <div className="premium-card bg-white p-6 flex items-center justify-between">
-                     <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Share a signal with the tribe...</p>
-                     <button className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-md shadow-indigo-50">Create Entry</button>
+                  <div className="p-12 bg-white/40 border-4 border-dashed border-white rounded-[56px] flex flex-col sm:flex-row items-center justify-between gap-8 shadow-inner animate-fade-in group hover:bg-white/60 transition-all">
+                      <div className="flex items-center gap-6">
+                         <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center text-black opacity-10 group-hover:rotate-12 transition-transform">
+                            <MessageSquare size={24} strokeWidth={3} />
+                         </div>
+                         <p className="text-lg font-black text-black opacity-20 italic uppercase tracking-widest leading-none">Initiate Signal...</p>
+                      </div>
+                      <button className="w-full sm:w-auto h-16 px-10 bg-primary text-white rounded-[24px] text-[10px] font-black uppercase tracking-[0.3em] italic hover:scale-105 transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-4">
+                        Send Spark <ChevronRight size={18} strokeWidth={4} />
+                      </button>
                   </div>
                   
-                  <div className="flex flex-col gap-8">
+                  <div className="flex flex-col gap-12">
                     {posts.length > 0 ? posts.map(post => (
                       <PostCard key={post.post_id} post={post} />
                     )) : (
-                      <div className="text-center py-20 bg-white/50 rounded-[3rem] border-2 border-dashed border-slate-200">
-                         <p className="text-sm font-black text-slate-300 uppercase tracking-widest">The collective feed is silent.</p>
+                      <div className="py-64 text-center bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] flex flex-col items-center gap-10 shadow-2xl shadow-primary/5 animate-fade-in group">
+                         <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center text-black opacity-10 group-hover:scale-125 transition-transform duration-1000">
+                            <MessageSquare size={48} strokeWidth={2} />
+                         </div>
+                         <div className="space-y-6">
+                            <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Silent Frequency.</h3>
+                            <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No active sparks in this collective. Be the first to harmonize the stream.</p>
+                         </div>
                       </div>
                     )}
                   </div>
                 </>
               ) : (
-                <div className="premium-card bg-indigo-900 border-none text-white p-12 text-center h-[400px] flex flex-col items-center justify-center space-y-8 shadow-2xl shadow-indigo-200">
-                    <div className="text-5xl">🗝️</div>
-                    <div>
-                      <h2 className="text-2xl font-black tracking-tight mb-2">Restricted Access</h2>
-                      <p className="text-indigo-200/60 font-black text-[10px] uppercase tracking-[0.2em] max-w-xs mx-auto">This collective requires resonance before signals can be observed.</p>
+                <div className="py-48 flex flex-col items-center justify-center text-center gap-12 bg-black rounded-[80px] shadow-2xl relative overflow-hidden group">
+                    {/* Background Noise */}
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                    <div className="absolute inset-0 bg-primary/20 blur-[150px] animate-pulse"></div>
+                    
+                    <div className="w-40 h-40 bg-white/5 rounded-[48px] flex items-center justify-center text-white opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-1000 relative z-10">
+                       <Lock size={100} strokeWidth={1} />
+                    </div>
+                    
+                    <div className="space-y-6 relative z-10 px-8">
+                      <h2 className="text-5xl md:text-7xl font-black text-white tracking-tight italic uppercase leading-none mb-6">Restricted <span className="text-primary italic">Sector.</span></h2>
+                      <p className="text-white opacity-40 text-xl font-bold italic max-w-md mx-auto leading-relaxed">Join the collective consensus to decrypt and participate in this private broadcast.</p>
+                      <button onClick={handleJoinLeave} className="mt-8 h-24 px-16 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-all">Command Link</button>
                     </div>
                 </div>
               )}
            </div>
         </div>
       </main>
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin 20s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 }

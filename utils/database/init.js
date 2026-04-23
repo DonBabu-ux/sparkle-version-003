@@ -7,6 +7,10 @@ const testConnection = async () => {
         await pool.query('SELECT 1');
         return true;
     } catch (err) {
+        logger.error('Database connection test failed:', {
+            message: err.message,
+            code: err.code
+        });
         return false;
     }
 };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Flame, Snowflake, Ghost, Send, Loader2 } from 'lucide-react';
+import { X, Flame, Snowflake, Ghost, Loader2, Orbit, Sparkles, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
 
 interface ConfessionModalProps {
@@ -32,78 +32,91 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
   };
 
   const themes = {
-    fire: { icon: <Flame size={20} />, label: 'Hot Take', color: '#ff9800', bg: 'rgba(255,152,0,0.1)' },
-    ice: { icon: <Snowflake size={20} />, label: 'Cold Truth', color: '#03a9f4', bg: 'rgba(3,169,244,0.1)' },
-    ghost: { icon: <Ghost size={20} />, label: 'Deep Secret', color: '#9c27b0', bg: 'rgba(156,39,176,0.1)' }
+    fire: { icon: <Flame size={20} />, label: 'HOT TAKE', color: 'text-primary' },
+    ice: { icon: <Snowflake size={20} />, label: 'COLD TRUTH', color: 'text-black' },
+    ghost: { icon: <Ghost size={20} />, label: 'DEEP SECRET', color: 'text-black/50' }
   };
 
   return (
-    <div className="modal-inner">
-      <div className="modal-header">
-        <div className="modal-title">
-          <i className="fas fa-fire" style={{color: themes[subType].color}}></i> Anonymous Confessions
-        </div>
-        <button className="close-btn" onClick={onClose}><X size={20} /></button>
+    <div className="flex flex-col bg-white rounded-[64px] border-4 border-black shadow-[0_40px_120px_rgba(0,0,0,0.2)] overflow-hidden relative lowercase">
+      <div className="absolute top-0 right-0 p-12 text-black/[0.01] pointer-events-none">
+          <Orbit size={240} strokeWidth={1} className="animate-spin-slow" />
       </div>
 
-      <div className="modal-body" style={{background: themes[subType].bg}}>
-        <div className="theme-selector">
+      <div className="p-10 flex items-center justify-between border-b-4 border-black/5 bg-white relative z-10">
+        <div className="flex items-center gap-6">
+          <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white shadow-2xl">
+            <Ghost size={24} strokeWidth={3} />
+          </div>
+          <div>
+            <h3 className="font-heading font-black text-3xl text-black tracking-tighter uppercase italic leading-none">Whisper Vault</h3>
+            <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">ZERO KNOWLEDGE PROXY</p>
+          </div>
+        </div>
+        <button 
+          className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 hover:text-black hover:bg-black/10 transition-all active:rotate-90" 
+          onClick={onClose}
+        >
+          <X size={24} strokeWidth={4} />
+        </button>
+      </div>
+
+      <div className="p-10 space-y-12 relative z-10 max-h-[75vh] overflow-y-auto no-scrollbar">
+        <div className="flex gap-4">
           {(Object.keys(themes) as Array<keyof typeof themes>).map(t => (
             <button 
               key={t} 
-              className={`theme-btn ${subType === t ? 'active' : ''}`}
+              className={`flex-1 flex flex-col items-center gap-4 p-6 rounded-[32px] border-4 transition-all duration-500 group ${subType === t ? 'border-primary bg-primary text-white shadow-2xl shadow-primary/30 scale-105' : 'border-black/5 bg-black/5 text-black/30 hover:border-black/10'}`}
               onClick={() => setSubType(t)}
-              style={{'--theme-color': themes[t].color} as React.CSSProperties}
             >
-              {themes[t].icon}
-              <span>{themes[t].label}</span>
+              <div className={`transition-transform duration-500 ${subType === t ? 'scale-125' : 'group-hover:scale-110'}`}>
+                 {themes[t].icon}
+              </div>
+              <span className={`text-[10px] font-black uppercase tracking-[0.3em] font-heading italic ${subType === t ? 'text-white' : ''}`}>{themes[t].label}</span>
             </button>
           ))}
         </div>
 
-        <textarea
-          className="confession-input"
-          placeholder={`Share your ${themes[subType].label.toLowerCase()}... (Completely Anonymous)`}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={6}
-        />
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 px-2">
+            <Sparkles size={14} className="text-primary animate-pulse" />
+            <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">ENCRYPTED PAYLOAD</label>
+          </div>
+          <textarea
+            className="w-full p-10 bg-black/5 border-4 border-transparent rounded-[40px] outline-none font-black text-2xl text-black placeholder:text-black/5 focus:bg-white focus:border-black transition-all min-h-[220px] resize-none uppercase italic tracking-tighter leading-tight"
+            placeholder={`SHARE YOUR ${themes[subType].label}...`}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
+        </div>
 
-        <div className="anonymous-badge">
-          <Ghost size={14} />
-          <span>Your identity is 100% protected. No one will know it was you.</span>
+        <div className="flex items-center gap-6 p-8 bg-black/[0.02] rounded-[32px] border-4 border-black/5">
+          <div className="w-12 h-12 bg-black/5 rounded-[18px] flex items-center justify-center text-black/20">
+             <Ghost size={20} strokeWidth={3} />
+          </div>
+          <span className="text-[10px] font-black text-black/40 uppercase tracking-[0.4em] leading-relaxed italic">
+            Identity shielded by 256-bit anonymity layer.
+          </span>
         </div>
 
         <button 
-          className="submit-confession-btn" 
+          className="w-full py-8 mt-4 rounded-[40px] bg-black text-white font-black text-[15px] uppercase tracking-[0.5em] shadow-2xl hover:bg-primary transition-all active:scale-95 disabled:opacity-20 flex items-center justify-center gap-6 group font-heading italic"
           onClick={handleSubmit} 
           disabled={submitting}
-          style={{background: themes[subType].color}}
         >
-          {submitting ? <Loader2 className="animate-spin" /> : <>Ignite Confession <Send size={18} /></>}
+          {submitting ? <Loader2 className="animate-spin" /> : (
+            <>
+                FIRE FRAGMENT 
+                <ArrowRight size={24} strokeWidth={4} className="group-hover:translate-x-3 transition-transform duration-500" />
+            </>
+          )}
         </button>
       </div>
 
       <style>{`
-        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 28px; background: white; overflow: hidden; }
-        .modal-header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); background: white; z-index: 10; }
-        .modal-title { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
-        .close-btn { background: none; border: none; color: #94a3b8; cursor: pointer; }
-        
-        .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; flex: 1; transition: background 0.3s ease; }
-        
-        .theme-selector { display: flex; gap: 10px; }
-        .theme-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; border-radius: 16px; border: 2px solid transparent; background: white; color: #64748b; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        .theme-btn.active { border-color: var(--theme-color); color: var(--theme-color); transform: translateY(-2px); box-shadow: 0 10px 15px rgba(0,0,0,0.05); }
-
-        .confession-input { width: 100%; padding: 20px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); background: white; font-family: inherit; font-size: 1.1rem; resize: none; box-sizing: border-box; outline: none; transition: 0.2s; min-height: 200px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-        .confession-input:focus { box-shadow: inset 0 2px 8px rgba(0,0,0,0.05); }
-
-        .anonymous-badge { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(0,0,0,0.05); border-radius: 12px; color: #64748b; font-size: 0.8rem; font-weight: 600; line-height: 1.4; }
-
-        .submit-confession-btn { width: 100%; padding: 16px; border-radius: 16px; color: white; border: none; font-weight: 800; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
-        .submit-confession-btn:hover { transform: translateY(-2px); opacity: 0.9; }
-        .submit-confession-btn:disabled { opacity: 0.7; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .animate-spin-slow { animation: spin 45s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

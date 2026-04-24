@@ -5,6 +5,7 @@ import PostCard from '../components/PostCard';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useModalStore } from '../store/modalStore';
+import { useFeedStore } from '../store/feedStore';
 import { 
   Check, 
   Image, 
@@ -83,14 +84,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
 
+  const { posts, stories, suggestions, setPosts, appendPosts, setStories, setSuggestions, lastFetched } = useFeedStore();
   const [newPostContent, setNewPostContent] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [stories, setStories] = useState<StoryGroup[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [suggestions, setSuggestions] = useState<User[]>([]);
   const [trendingTags, setTrendingTags] = useState<TrendingTag[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!lastFetched); // Only show loader if we have NO cached data
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -110,8 +109,15 @@ export default function Dashboard() {
   }, []);
 
   const fetchDashboardData = useCallback(async (pageNum = 1) => {
-    if (pageNum === 1) setLoading(true);
-    else setLoadingMore(true);
+    // Section 3: Performance - Avoid re-fetching if data is fresh (< 2 mins) and it's page 1
+    const isFresh = lastFetched && (Date.now() - lastFetched < 120000);
+    if (pageNum === 1 && isFresh && posts.length > 0) {
+      setLoading(false);
+      return; 
+    }
+
+    if (pageNum === 1 && !posts.length) setLoading(true);
+    else if (pageNum > 1) setLoadingMore(true);
 
     try {
       const [dashRes, storiesRes, suggestionsRes] = await Promise.all([
@@ -133,10 +139,7 @@ export default function Dashboard() {
           { tag: 'village_vibes', count: '942' }
         ]);
       } else {
-        setPosts(prev => {
-          const uniqueNew = newPosts.filter((p: Post) => !prev.some(existing => existing.post_id === p.post_id));
-          return [...prev, ...uniqueNew];
-        });
+        appendPosts(newPosts);
       }
       
       setHasMore(newPosts.length === 10);
@@ -146,7 +149,7 @@ export default function Dashboard() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [lastFetched, posts.length, setPosts, appendPosts, setStories, setSuggestions]);
 
   const { refreshCounter } = useModalStore();
   const observerTarget = useRef<HTMLDivElement>(null);

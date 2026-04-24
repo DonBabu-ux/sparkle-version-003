@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { capacitorStorage } from './capacitorStorage';
 
 import type { User } from '../types/user';
 
@@ -42,7 +43,6 @@ export const useUserStore = create<UserState>()(
           newAccounts.push({ token, user });
         }
 
-        localStorage.setItem('sparkleToken', token);
         set({ 
           token, 
           user, 
@@ -70,12 +70,9 @@ export const useUserStore = create<UserState>()(
         const activeId = get().activeAccountId;
         const accounts = get().accounts.filter(acc => acc.user.user_id !== activeId);
         
-        localStorage.removeItem('sparkleToken');
-        
         if (accounts.length > 0) {
           // Switch to the first available account
           const nextAccount = accounts[0];
-          localStorage.setItem('sparkleToken', nextAccount.token);
           set({ 
             user: nextAccount.user, 
             token: nextAccount.token, 
@@ -97,7 +94,6 @@ export const useUserStore = create<UserState>()(
       switchAccount: (userId) => {
         const account = get().accounts.find(acc => acc.user.user_id === userId);
         if (account) {
-          localStorage.setItem('sparkleToken', account.token);
           set({ 
             user: account.user, 
             token: account.token, 
@@ -114,7 +110,6 @@ export const useUserStore = create<UserState>()(
         if (isActive) {
           if (accounts.length > 0) {
             const nextAccount = accounts[0];
-            localStorage.setItem('sparkleToken', nextAccount.token);
             set({ 
               user: nextAccount.user, 
               token: nextAccount.token, 
@@ -123,7 +118,6 @@ export const useUserStore = create<UserState>()(
               activeAccountId: nextAccount.user.user_id
             });
           } else {
-            localStorage.removeItem('sparkleToken');
             set({ 
               user: null, 
               token: null, 
@@ -139,6 +133,7 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: 'user-storage',
+      storage: createJSONStorage(() => capacitorStorage),
       partialize: (state) => ({ 
         user: state.user, 
         token: state.token, 

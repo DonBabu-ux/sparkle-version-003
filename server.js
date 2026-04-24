@@ -17,6 +17,7 @@ const { startKeepAlive } = require('./utils/keep-alive');
 const firebaseConfig = require('./config/firebase.config');
 const { initializeSocket } = require('./socket');
 const { initializeEmail } = require('./config/email');
+require('./workers/notification.worker'); // Start the background notification worker
 
 const app = express();
 

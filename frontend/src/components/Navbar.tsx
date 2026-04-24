@@ -7,7 +7,7 @@ import {
   LogOut, 
   Calendar,
   Pen, PlayCircle, History, Store, LayoutGrid,
-  BarChart3, Sparkles,
+  BarChart3, Sparkles, Compass,
   Search as SearchIcon, Bell, MessageSquare,
   Zap, Activity, Package, UserPlus, Image as ImageIcon, Send, CheckCircle2, LifeBuoy, HelpCircle, Briefcase, Settings
 } from 'lucide-react';
@@ -81,55 +81,64 @@ export default function Navbar() {
       )}
 
 
-      {/* Mobile Bottom Navigation — Glass Bar */}
-      <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] max-w-md h-16 bg-white/80 backdrop-blur-2xl border border-white/65 rounded-[32px] flex justify-around items-center z-[1000] px-2 shadow-2xl">
-        {[
-          { path: '/dashboard', icon: Home },
-          { path: '/connect', icon: Users },
-          { path: '/moments', icon: PlayCircle },
-          { type: 'create' },
-          { path: '/messages', icon: MessageSquare },
-          { path: `/profile/${user?.username}`, isProfile: true },
-        ].map((item: any) => {
-          if (item.type === 'create') {
-            return (
-              <div key="create" className="relative -top-1" onClick={() => setShowMobileCreate(!showMobileCreate)}>
-                <div className={`w-12 h-12 bg-gradient-to-r from-primary to-[#fb7185] rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 transition-all duration-500 ${showMobileCreate ? 'rotate-45 scale-90' : 'active:scale-95'}`}>
-                  <Plus size={24} color="white" strokeWidth={3} />
-                </div>
-              </div>
-            );
-          }
+      {/* Mobile Bottom Navigation — 7-column grid guarantees Plus is dead center */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 w-full h-16 bg-white/95 backdrop-blur-2xl border-t border-black/[0.06] rounded-t-[20px] z-[1000] shadow-[0_-4px_24px_rgba(0,0,0,0.07)]"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center' }}
+      >
+        {/* Col 1 — Home */}
+        <Link to="/dashboard" className="relative flex items-center justify-center h-full">
+          {isActive('/dashboard') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <Home size={22} strokeWidth={isActive('/dashboard') ? 2.5 : 1.8} className={isActive('/dashboard') ? 'text-primary' : 'text-slate-400'} />
+        </Link>
 
-          const isCurrent = isActive(item.path!);
-          const Icon = item.icon;
+        {/* Col 2 — Connect */}
+        <Link to="/connect" className="relative flex items-center justify-center h-full">
+          {isActive('/connect') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <Users size={22} strokeWidth={isActive('/connect') ? 2.5 : 1.8} className={isActive('/connect') ? 'text-primary' : 'text-slate-400'} />
+        </Link>
 
-          return (
-            <Link 
-              key={item.path} 
-              to={item.path!} 
-              className="relative p-2 flex items-center justify-center transition-colors duration-300 z-10"
-            >
-              {isCurrent && (
-                <motion.div 
-                  layoutId="nav-notch"
-                  className="absolute inset-0 bg-primary/10 rounded-2xl -z-10"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              {item.isProfile ? (
-                <img 
-                  src={user?.avatar_url || '/uploads/avatars/default.png'} 
-                  className={`w-7 h-7 rounded-full object-cover border-2 transition-all duration-300 ${isCurrent ? "border-primary" : "border-transparent"}`}
-                  alt="Profile"
-                />
-              ) : (
-                <Icon size={22} strokeWidth={isCurrent ? 3 : 2} className={isCurrent ? 'text-primary' : 'text-black/20'} />
-              )}
-            </Link>
-          );
-        })}
+        {/* Col 3 — Moments */}
+        <Link to="/moments" className="relative flex items-center justify-center h-full">
+          {isActive('/moments') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <PlayCircle size={22} strokeWidth={isActive('/moments') ? 2.5 : 1.8} className={isActive('/moments') ? 'text-primary' : 'text-slate-400'} />
+        </Link>
+
+        {/* Col 4 — Plus (column 4 of 7 = exact center) */}
+        <div className="flex items-center justify-center h-full cursor-pointer" onClick={() => setShowMobileCreate(!showMobileCreate)}>
+          <div className={`w-11 h-11 bg-gradient-to-br from-primary to-[#fb7185] rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 transition-all duration-300 ${showMobileCreate ? 'rotate-45 scale-90' : 'active:scale-90'}`}>
+            <Plus size={22} color="white" strokeWidth={2.5} />
+          </div>
+        </div>
+
+        {/* Col 5 — Explore */}
+        <Link to="/explore" className="relative flex items-center justify-center h-full">
+          {isActive('/explore') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <Compass size={22} strokeWidth={isActive('/explore') ? 2.5 : 1.8} className={isActive('/explore') ? 'text-primary' : 'text-slate-400'} />
+        </Link>
+
+        {/* Col 6 — Messages (Meta Messenger style) */}
+        <Link to="/messages" className="relative flex items-center justify-center h-full">
+          {isActive('/messages') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={isActive('/messages') ? 'text-primary' : 'text-slate-400'}>
+            <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.404 5.5 3.6 7.22V22l3.193-1.755A10.86 10.86 0 0 0 12 20.486c5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2Z"
+              fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth={isActive('/messages') ? 2 : 1.8} strokeLinejoin="round" />
+            <path d="m6.5 14 3.5-4 2.5 2.5L16 9" stroke="currentColor" strokeWidth={isActive('/messages') ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+
+        {/* Col 7 — Profile */}
+        <Link to={`/profile/${user?.username}`} className="relative flex items-center justify-center h-full">
+          {isActive(`/profile/${user?.username}`) && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <img
+            src={user?.avatar_url || '/uploads/avatars/default.png'}
+            className={`w-7 h-7 rounded-full object-cover border-2 transition-all duration-300 ${isActive(`/profile/${user?.username}`) ? 'border-primary' : 'border-slate-200'}`}
+            alt="Profile"
+          />
+        </Link>
+
       </nav>
+
 
       {/* Mobile Vertical Creation List */}
       {showMobileCreate && (

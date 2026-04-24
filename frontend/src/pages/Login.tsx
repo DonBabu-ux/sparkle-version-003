@@ -210,6 +210,7 @@ export default function Login() {
               <>
                 <div className="login-card__head">
                   <h3 className="login-card__title">Welcome back</h3>
+                  <p style={{ color: '#ff3d6d', fontSize: '12px', fontWeight: 'bold', textAlign: 'center' }}>VERSION 1.0.999</p>
                   <p className="login-card__sub">Sign in to your Sparkle account</p>
                 </div>
 

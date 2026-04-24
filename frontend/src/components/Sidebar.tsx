@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
+import { getAvatarUrl } from '../utils/imageUtils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -117,7 +118,7 @@ export default function Sidebar() {
               <div className="shrink-0 w-8 h-8 flex items-center justify-center transition-transform group-hover/item:scale-125 group-hover/item:rotate-6">
                 {item.isProfile ? (
                   <img 
-                    src={user?.avatar_url || '/uploads/avatars/default.png'} 
+                    src={getAvatarUrl(user?.avatar_url, user?.username)} 
                     className={cn("w-9 h-9 rounded-full object-cover border-2 transition-all duration-700", isActive(item.path) ? "border-primary/20" : "border-transparent group-hover/item:border-gray-100")}
                     alt="Profile"
                   />

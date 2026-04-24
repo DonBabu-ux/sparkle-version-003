@@ -5,6 +5,7 @@ import api from '../api/api';
 import { X, Send, Orbit, Camera, Plus } from 'lucide-react';
 import StickerRenderer from '../components/stories/StickerRenderer';
 import { useStoryStore } from '../store/storyStore';
+import { getAvatarUrl } from '../utils/imageUtils';
 
 interface Story {
   story_id: string;
@@ -184,7 +185,7 @@ export default function StoryViewer() {
       <div className="absolute top-14 left-8 right-8 z-40 flex items-center justify-between">
         <div className="flex items-center gap-4">
            <div className="p-0.5 rounded-2xl bg-white shadow-2xl border border-white/20 overflow-hidden">
-              <img src={userStories.avatar_url || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-xl object-cover" alt="" />
+              <img src={getAvatarUrl(userStories.avatar_url, userStories.user_name)} className="w-12 h-12 rounded-xl object-cover" alt="" />
            </div>
            <div>
               <h4 className="text-white font-black text-base uppercase tracking-tighter italic leading-none">{userStories.user_name}</h4>
@@ -310,7 +311,7 @@ export default function StoryViewer() {
                      {addYoursData.responses.map((res: any, i: number) => (
                         <div key={i} className="flex flex-col items-center gap-2 group cursor-pointer">
                            <div className="w-16 h-16 rounded-2xl bg-gray-100 overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
-                              <img src={res.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
+                              <img src={getAvatarUrl(res.avatar_url, res.username)} className="w-full h-full object-cover" alt="" />
                            </div>
                            <span className="text-[9px] font-black uppercase tracking-tighter italic truncate w-full text-center">{res.username}</span>
                         </div>

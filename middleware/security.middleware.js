@@ -105,6 +105,8 @@ const securityHeaders = helmet({
             mediaSrc: ["'self'", "blob:", "data:", "https:", "http:"],
         },
     },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false
 });
 
 module.exports = {

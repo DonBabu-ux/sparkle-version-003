@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
+import { getAvatarUrl } from '../utils/imageUtils';
 import Navbar from '../components/Navbar';
 import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, ArrowLeft, CheckCircle2, Search, MoreHorizontal, X, BellOff, AlertOctagon } from 'lucide-react';
 
@@ -273,7 +274,7 @@ export default function Notifications() {
              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4"></div>
              
              <div className="flex flex-col items-center mb-6">
-                <img src={selectedNotif.actor_avatar || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-full object-cover border border-gray-200 shadow-sm" alt="" />
+                <img src={getAvatarUrl(selectedNotif.actor_avatar, selectedNotif.actor_username)} className="w-16 h-16 rounded-full object-cover border border-gray-200 shadow-sm" alt="" />
                 <p className="text-gray-900 text-[15px] mt-3 text-center px-4 leading-tight">
                    {selectedNotif.actor_name ? (
                       <><span className="font-semibold">{selectedNotif.actor_name}</span> {selectedNotif.content || selectedNotif.message}</>

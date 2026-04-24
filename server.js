@@ -38,13 +38,18 @@ app.use(cors({
             'capacitor://localhost',
             'https://sparkle-version-003-1-f4v3.onrender.com'
         ];
+        
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
         
-        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+        // Robust check for localhost and Capacitor origins
+        const isLocalhost = origin.includes('localhost') || origin.startsWith('capacitor://');
+        const isAllowed = allowedOrigins.indexOf(origin) !== -1;
+        
+        if (isLocalhost || isAllowed || process.env.NODE_ENV !== 'production') {
             return callback(null, true);
         }
-        return callback(new Error('CORS not allowed'), false);
+        return callback(new Error(`CORS not allowed for origin: ${origin}`), false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],

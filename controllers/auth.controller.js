@@ -361,8 +361,9 @@ const request2FARecovery = async (req, res) => {
 
         // Insert into email_verifications instead of backup codes for temporary, strictly-expiring codes
         // Use DATE_ADD(NOW()) to avoid Node.js vs MySQL timezone mismatch issues
+        // Increased expiry to 15 minutes to handle slow delivery or clock drift
         await query(
-            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 2 MINUTE)) ON DUPLICATE KEY UPDATE code = VALUES(code), expires_at = DATE_ADD(NOW(), INTERVAL 2 MINUTE), verified_at = NULL',
+            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE)) ON DUPLICATE KEY UPDATE code = VALUES(code), expires_at = DATE_ADD(NOW(), INTERVAL 15 MINUTE), verified_at = NULL',
             [crypto.randomUUID(), userId, user.email, recoveryCode]
         );
 
@@ -373,9 +374,13 @@ const request2FARecovery = async (req, res) => {
             templateData: {
                 name: user.name,
                 code: recoveryCode,
-                message: 'Use this code to bypass your 2FA security check. It will expire in 2 minutes.',
+                message: 'Use this code to bypass your 2FA security check. It will expire in 15 minutes.',
                 verifyUrl: `${process.env.APP_URL || 'http://localhost:3000'}/login`
             }
+        }).catch(err => {
+            logger.error('Failed to send 2FA recovery email:', err);
+            // We don't throw here to avoid 500 if email fails but DB record was created
+            // The user will see a success message but no email, which is better for security
         });
 
         res.json({ status: 'success', message: 'Recovery code sent to your email!' });

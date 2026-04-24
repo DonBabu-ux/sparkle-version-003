@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
+import { getAvatarUrl } from '../utils/imageUtils';
 
 import PostModal from './modals/PostModal';
 import PollModal from './modals/PollModal';
@@ -131,7 +132,7 @@ export default function Navbar() {
         <Link to={`/profile/${user?.username}`} className="relative flex items-center justify-center h-full">
           {isActive(`/profile/${user?.username}`) && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <img
-            src={user?.avatar_url || '/uploads/avatars/default.png'}
+            src={getAvatarUrl(user?.avatar_url, user?.username)}
             className={`w-7 h-7 rounded-full object-cover border-2 transition-all duration-300 ${isActive(`/profile/${user?.username}`) ? 'border-primary' : 'border-slate-200'}`}
             alt="Profile"
           />

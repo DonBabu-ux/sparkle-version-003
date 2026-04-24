@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
+import { getAvatarUrl } from '../utils/imageUtils';
 
 interface StoryGroup {
   user_id: string;
@@ -58,7 +59,7 @@ function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => 
   return (
     <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => navigate(`/profile/${s.username}`)}>
       <img 
-        src={s.avatar_url || '/uploads/avatars/default.png'} 
+        src={getAvatarUrl(s.avatar_url, s.username)} 
         className="w-10 h-10 rounded-full object-cover border border-gray-200" 
         alt="" 
       />
@@ -212,7 +213,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-xl shadow-md p-4 animate-fade-in">
               <div className="flex gap-3 items-center mb-4">
                 <img 
-                  src={user?.avatar_url || '/uploads/avatars/default.png'} 
+                  src={getAvatarUrl(user?.avatar_url, user?.username)} 
                   className="w-10 h-10 rounded-full object-cover border border-gray-100" 
                   alt="" 
                 />
@@ -269,7 +270,7 @@ export default function Dashboard() {
                 >
                   <div className="h-[150px] w-full overflow-hidden">
                     <img 
-                      src={user?.avatar_url || '/uploads/avatars/default.png'} 
+                      src={getAvatarUrl(user?.avatar_url, user?.username)} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                       alt="" 
                     />
@@ -290,14 +291,14 @@ export default function Dashboard() {
                     className="flex-shrink-0 w-[112px] h-[200px] rounded-lg shadow-md cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
                   >
                     <img 
-                      src={group.stories[0].media_url || group.avatar_url || '/uploads/avatars/default.png'} 
+                      src={getAvatarUrl(group.stories[0].media_url || group.avatar_url, group.username)} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       alt=""
                     />
                     <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                     
                     <div className="absolute top-3 left-3 w-10 h-10 rounded-full border-4 border-[#1877F2] overflow-hidden shadow-lg z-10">
-                      <img src={group.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
+                      <img src={getAvatarUrl(group.avatar_url, group.username)} className="w-full h-full object-cover" alt="" />
                     </div>
                     
                     <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">

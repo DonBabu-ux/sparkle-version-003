@@ -26,6 +26,7 @@ import {
   X,
   ShoppingBag
 } from 'lucide-react';
+import { getAvatarUrl } from '../utils/imageUtils';
 
 interface ChatConversation {
   chat_id: string;
@@ -322,7 +323,7 @@ export default function Messages() {
                   className={`p-5 rounded-[28px] transition-all duration-500 cursor-pointer group flex items-center gap-5 border ${selectedChat?.chat_id === chat.chat_id ? 'bg-white border-primary shadow-xl scale-[1.02]' : 'bg-white/40 border-white hover:bg-white/60 hover:scale-[1.01]'}`}
                 >
                   <div className="relative shrink-0">
-                    <img src={chat.partner_avatar || '/uploads/avatars/default.png'} className="w-14 h-14 rounded-[20px] object-cover border border-white shadow-sm" alt="" />
+                    <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-14 h-14 rounded-[20px] object-cover border border-white shadow-sm" alt="" />
                     {chat.partner_online && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></div>}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -357,7 +358,7 @@ export default function Messages() {
                     <ArrowLeft size={20} strokeWidth={3} />
                   </button>
                   <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>
-                    <img src={selectedChat.partner_avatar || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-[18px] object-cover border border-white shadow-sm group-hover:scale-110 transition-transform" alt="" />
+                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-12 h-12 rounded-[18px] object-cover border border-white shadow-sm group-hover:scale-110 transition-transform" alt="" />
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-black tracking-tight italic leading-none group-hover:text-primary transition-colors cursor-pointer uppercase" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>{selectedChat.partner_name}</h3>
@@ -515,7 +516,7 @@ export default function Messages() {
                <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
                  {suggestedContacts.map(contact => (
                     <div key={contact.user_id} onClick={() => startNewChat(contact)} className="flex items-center gap-4 p-4 hover:bg-black/5 rounded-2xl cursor-pointer transition-all active:scale-[0.98]">
-                       <img src={contact.avatar_url || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-xl object-cover border border-black/5 shadow-sm" />
+                       <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-xl object-cover border border-black/5 shadow-sm" />
                        <div>
                          <h4 className="font-black italic uppercase text-sm leading-none">{contact.name || contact.username}</h4>
                          <p className="text-[10px] text-black/40 font-bold uppercase tracking-widest mt-1">@{contact.username}</p>

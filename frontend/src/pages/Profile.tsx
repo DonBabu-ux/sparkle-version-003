@@ -24,6 +24,7 @@ import {
   History,
   Image as ImageIcon
 } from 'lucide-react';
+import { getAvatarUrl } from '../utils/imageUtils';
 
 export default function Profile() {
   const { username } = useParams();
@@ -204,12 +205,12 @@ export default function Profile() {
                 className={`w-32 h-32 md:w-40 md:h-40 rounded-full shadow-xl cursor-pointer ${profile?.has_story ? 'p-1 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}
                 onClick={() => {
                   if (profile?.has_story) setShowAvatarMenu(true);
-                  else setActiveModal('media_preview', null, { url: profile?.avatar_url || '/uploads/avatars/default.png' });
+                  else setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
                 }}
               >
                 <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-[#fdf2f4]' : ''}`}>
                   <img 
-                    src={profile?.avatar_url || '/uploads/avatars/default.png'} 
+                    src={getAvatarUrl(profile?.avatar_url, profile?.username)} 
                     alt="" 
                     className="w-full h-full rounded-full object-cover border border-black/5" 
                   />
@@ -239,7 +240,7 @@ export default function Profile() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowAvatarMenu(false);
-                      setActiveModal('media_preview', null, { url: profile?.avatar_url || '/uploads/avatars/default.png' });
+                      setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
                     }}
                     className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-xl transition-colors flex items-center gap-3"
                   >

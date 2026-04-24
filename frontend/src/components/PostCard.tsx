@@ -7,6 +7,7 @@ import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
 import { formatCount } from '../utils/format';
 import type { Post } from '../types/post';
+import { getAvatarUrl } from '../utils/imageUtils';
 
 interface PostCardProps {
   post: Post;
@@ -120,7 +121,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       <div className="flex items-center gap-3 p-4">
         <Link to={`/profile/${post.username}`} className="shrink-0">
           <img
-            src={post.avatar_url || '/uploads/avatars/default.png'}
+            src={getAvatarUrl(post.avatar_url, post.username)}
             className="w-10 h-10 rounded-full object-cover border border-gray-100"
             alt={post.username}
           />

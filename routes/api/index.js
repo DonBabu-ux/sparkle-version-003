@@ -62,5 +62,7 @@ router.use('/clubs', require('./clubs.routes'));
 router.use('/lost-found', require('./lost-found.routes'));
 router.use('/analytics', require('./analytics.routes'));
 router.use('/highlights', highlightsRoutes);
+router.use('/stickers', require('./stickers.routes'));
+router.use('/audio', require('./audio.routes'));
 
 module.exports = router;

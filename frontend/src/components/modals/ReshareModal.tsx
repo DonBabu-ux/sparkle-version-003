@@ -26,7 +26,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
         return;
       }
       try {
-        const res = await api.get(`/user/search?q=${mentionQuery.replace('@', '')}`);
+        const res = await api.get(`/users/search?q=${mentionQuery.replace('@', '')}`);
         setSuggestions(res.data.users || []);
       } catch (err) {
         console.error('Mention search failed:', err);

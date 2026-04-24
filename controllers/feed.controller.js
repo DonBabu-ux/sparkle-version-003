@@ -166,6 +166,31 @@ const getStories = async (req, res) => {
         // group by user
         const groups = [];
         const map = {};
+        
+        // 1. Get all story IDs to fetch stickers for them
+        const storyIds = rows.map(s => s.story_id);
+        let stickersMap = {};
+        
+        if (storyIds.length > 0) {
+            const [stickers] = await pool.query(
+                'SELECT * FROM story_stickers WHERE story_id IN (?)',
+                [storyIds]
+            );
+            
+            stickers.forEach(st => {
+                if (!stickersMap[st.story_id]) stickersMap[st.story_id] = [];
+                stickersMap[st.story_id].push({
+                    id: st.sticker_id,
+                    type: st.type,
+                    config: typeof st.config === 'string' ? JSON.parse(st.config) : st.config,
+                    x: st.position_x,
+                    y: st.position_y,
+                    scale: st.scale,
+                    rotation: st.rotation
+                });
+            });
+        }
+
         rows.forEach(s => {
             if (!map[s.user_id]) {
                 map[s.user_id] = {
@@ -183,9 +208,15 @@ const getStories = async (req, res) => {
                 media_url: getSafeMediaUrl(s.media_url),
                 media_type: s.media_type,
                 caption: s.caption,
+                background: s.background,
+                audio_url: s.audio_url,
+                audio_source: s.audio_source,
+                audio_start: s.audio_start,
+                audio_duration: s.audio_duration,
                 created_at: s.created_at,
                 like_count: parseInt(s.like_count) || 0,
-                is_liked: parseInt(s.is_liked) === 1 // Only true for story owner
+                is_liked: parseInt(s.is_liked) === 1, // Only true for story owner
+                stickers: stickersMap[s.story_id] || []
             });
         });
 
@@ -239,10 +270,13 @@ const createStory = async (req, res) => {
 
         // Handle both file upload and direct URL with multiple field name support
         let media_url;
-        if (req.file) {
+        if (req.files && req.files.media) {
             // File upload from multipart/form-data
-            media_url = req.file.path;
+            media_url = req.files.media[0].path;
             console.log('📸 Story media from file upload:', media_url);
+        } else if (req.file) {
+            // Fallback for single file upload
+            media_url = req.file.path;
         } else if (req.body.media_url) {
             // Direct URL from JSON
             media_url = req.body.media_url;
@@ -255,14 +289,8 @@ const createStory = async (req, res) => {
 
         if (!media_url && req.body.type !== 'text') {
             console.error('❌ No media provided in request:', {
-                hasFile: !!req.file,
-                bodyFields: Object.keys(req.body),
-                file: req.file ? {
-                    originalname: req.file.originalname,
-                    mimetype: req.file.mimetype,
-                    size: req.file.size,
-                    path: req.file.path
-                } : null
+                hasFiles: !!req.files,
+                bodyFields: Object.keys(req.body)
             });
             return res.status(400).json({ error: 'Media is required for story' });
         }
@@ -284,6 +312,8 @@ const createStory = async (req, res) => {
         let media_type = 'image';
         if (req.body.type === 'text') {
             media_type = 'text';
+        } else if (req.files && req.files.media) {
+            media_type = req.files.media[0].mimetype.startsWith('video') ? 'video' : 'image';
         } else if (req.file) {
             media_type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
         } else if (media_url) {
@@ -301,10 +331,29 @@ const createStory = async (req, res) => {
         });
 
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        const background = req.body.background || null;
+        
+        let audio_url = req.body.audio_url || null;
+        const audio_source = req.body.audio_source || null;
+        const audio_start = parseFloat(req.body.audio_start) || 0.0;
+        const audio_duration = parseFloat(req.body.audio_duration) || 15.0;
+
+        // If a file was uploaded for audio (you'd need to update multer config to handle multiple files or use a specific field)
+        if (req.files && req.files.audio) {
+            audio_url = req.files.audio[0].path;
+        }
 
         await pool.query(
-            'INSERT INTO stories (story_id, user_id, media_url, media_type, caption, like_count, share_count, expires_at) VALUES (?, ?, ?, ?, ?, 0, 0, ?)',
-            [storyId, userId, media_url, media_type, caption || null, expiresAt]
+            `INSERT INTO stories (
+                story_id, user_id, media_url, media_type, caption, 
+                background, audio_url, audio_source, audio_start, audio_duration,
+                like_count, share_count, expires_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
+            [
+                storyId, userId, media_url, media_type, caption || null, 
+                background, audio_url, audio_source, audio_start, audio_duration, 
+                expiresAt
+            ]
         );
 
         console.log('✅ Story created successfully:', storyId);

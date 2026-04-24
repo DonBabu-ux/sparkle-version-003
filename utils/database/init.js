@@ -136,7 +136,12 @@ const repairStoriesTable = async () => {
     try {
         const columnsToAdd = [
             { name: 'is_archived', type: 'TINYINT(1) DEFAULT 0' },
-            { name: 'expires_at', type: 'TIMESTAMP NULL DEFAULT NULL' }
+            { name: 'expires_at', type: 'TIMESTAMP NULL DEFAULT NULL' },
+            { name: 'background', type: 'VARCHAR(255) DEFAULT NULL' },
+            { name: 'audio_url', type: 'VARCHAR(500) DEFAULT NULL' },
+            { name: 'audio_source', type: "ENUM('local', 'online') DEFAULT NULL" },
+            { name: 'audio_start', type: 'FLOAT DEFAULT 0.0' },
+            { name: 'audio_duration', type: 'FLOAT DEFAULT 15.0' }
         ];
 
         for (const col of columnsToAdd) {
@@ -151,6 +156,83 @@ const repairStoriesTable = async () => {
         }
     } catch (err) {
         logger.error('❌ Failed to repair stories table:', err.message);
+    }
+};
+
+const initStickerTables = async () => {
+    try {
+        // 1. Story Stickers Table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS story_stickers (
+                sticker_id CHAR(36) PRIMARY KEY,
+                story_id CHAR(36) NOT NULL,
+                type ENUM('add_yours', 'avatar_loop', 'poll', 'quiz', 'reaction', 'slider') NOT NULL,
+                config JSON NOT NULL,
+                position_x FLOAT DEFAULT 50.0,
+                position_y FLOAT DEFAULT 50.0,
+                scale FLOAT DEFAULT 1.0,
+                rotation FLOAT DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 2. Add Yours Prompts
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS add_yours_prompts (
+                prompt_id CHAR(36) PRIMARY KEY,
+                text VARCHAR(255) NOT NULL,
+                creator_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (creator_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 3. Add Yours Responses
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS add_yours_responses (
+                response_id CHAR(36) PRIMARY KEY,
+                prompt_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                story_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (prompt_id) REFERENCES add_yours_prompts(prompt_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE,
+                UNIQUE KEY unique_response (prompt_id, user_id, story_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 4. Story Reactions
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS story_reactions (
+                reaction_id CHAR(36) PRIMARY KEY,
+                story_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                emoji VARCHAR(10) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 5. Poll Votes
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS poll_votes (
+                vote_id CHAR(36) PRIMARY KEY,
+                sticker_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                option_index TINYINT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (sticker_id) REFERENCES story_stickers(sticker_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                UNIQUE KEY unique_poll_vote (sticker_id, user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        logger.debug('✅ Sticker system tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init sticker tables:', err.message);
     }
 };
 
@@ -325,6 +407,11 @@ const initStoriesTable = async () => {
                 media_url VARCHAR(500) NOT NULL,
                 media_type ENUM('image', 'video', 'text') DEFAULT 'image',
                 caption VARCHAR(255) DEFAULT NULL,
+                background VARCHAR(255) DEFAULT NULL,
+                audio_url VARCHAR(500) DEFAULT NULL,
+                audio_source ENUM('local', 'online') DEFAULT NULL,
+                audio_start FLOAT DEFAULT 0.0,
+                audio_duration FLOAT DEFAULT 15.0,
                 view_count INT DEFAULT 0,
                 like_count INT DEFAULT 0,
                 share_count INT DEFAULT 0,
@@ -1012,6 +1099,7 @@ const initDB = async () => {
         try { await initConfessionTables(); } catch (e) { logger.error('Confessions Init Error:', e.message); }
         try { await repairPostsTable(); } catch (e) { logger.warn('Posts repair failed:', e.message); }
         try { await repairStoriesTable(); } catch (e) { logger.warn('Stories repair failed:', e.message); }
+        try { await initStickerTables(); } catch (e) { logger.warn('Stickers init failed:', e.message); }
         try { await initRepostsTable(); } catch (e) { logger.warn('Reposts init failed:', e.message); }
         
         try { await repairUsersTable(); } catch (e) { logger.warn('Users repair failed:', e.message); }

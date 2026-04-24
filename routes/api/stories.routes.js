@@ -6,7 +6,7 @@ const { upload } = require('../../middleware/upload.middleware');
 
 router.get('/active', authMiddleware, feedController.getStories);
 router.get('/archive', authMiddleware, feedController.getStoryArchive);
-router.post('/', authMiddleware, upload.single('media'), feedController.createStory);
+router.post('/', authMiddleware, upload.fields([{ name: 'media', maxCount: 1 }, { name: 'audio', maxCount: 1 }]), feedController.createStory);
 // interactions
 router.get('/:id/likes', authMiddleware, feedController.getStoryLikes);
 router.post('/:id/like', authMiddleware, feedController.likeStory);

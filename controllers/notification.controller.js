@@ -90,7 +90,8 @@ const notificationController = {
                 actor_name: n.actor_name,
                 actor_username: n.actor_username,
                 actor_avatar: n.actor_avatar,
-                action_url: n.action_url
+                action_url: n.action_url,
+                aggregation_count: n.aggregation_count
             }));
 
             res.json(notifications);
@@ -278,12 +279,70 @@ const notificationController = {
                 }
             }
 
+            // --- AGGREGATION LOGIC ---
+            // Only aggregate certain types (sparks/likes)
+            if (data.type === 'spark' && data.related_id) {
+                const [[existing]] = await connection.query(
+                    `SELECT notification_id, aggregation_count FROM notifications 
+                     WHERE user_id = ? AND related_id = ? AND type = ? AND is_read = 0 
+                     LIMIT 1`,
+                    [data.user_id, data.related_id, data.type]
+                );
+
+                if (existing) {
+                    const newCount = existing.aggregation_count + 1;
+                    const actorName = data.actor_name || 'Someone';
+                    const newContent = `${actorName} and ${newCount - 1} others sparked your post`;
+                    
+                    await connection.query(
+                        `UPDATE notifications 
+                         SET aggregation_count = ?, 
+                             content = ?, 
+                             actor_id = ?, 
+                             created_at = CURRENT_TIMESTAMP 
+                         WHERE notification_id = ?`,
+                        [newCount, newContent, data.actor_id, existing.notification_id]
+                    );
+
+                    // Re-fetch actor info for socket (same as standard flow)
+                    let actorInfo = { actor_name: data.actor_name || '', actor_avatar: '/uploads/avatars/default.png', actor_username: '' };
+                    if (data.actor_id) {
+                        try {
+                            const [[actor]] = await pool.query(
+                                'SELECT name as actor_name, username as actor_username, avatar_url as actor_avatar FROM users WHERE user_id = ?',
+                                [data.actor_id]
+                            );
+                            if (actor) actorInfo = actor;
+                        } catch (_) {}
+                    }
+
+                    // Emit socket with updated info
+                    const emitter = getEmitter();
+                    if (emitter) {
+                        emitter(data.user_id, {
+                            notification_id: existing.notification_id,
+                            id: existing.notification_id,
+                            type: data.type,
+                            title: data.title,
+                            content: newContent,
+                            action_url: data.action_url || null,
+                            actor_id: data.actor_id || null,
+                            ...actorInfo,
+                            is_read: false,
+                            created_at: new Date().toISOString()
+                        });
+                    }
+                    return existing.notification_id;
+                }
+            }
+
+            // --- STANDARD INSERT LOGIC (if no aggregation) ---
             const notificationId = uuidv4();
             await connection.query(`
                 INSERT INTO notifications (
                     notification_id, user_id, type, title, content, 
-                    related_id, related_type, actor_id, action_url
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    related_id, related_type, actor_id, action_url, aggregation_count
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             `, [
                 notificationId,
                 data.user_id,

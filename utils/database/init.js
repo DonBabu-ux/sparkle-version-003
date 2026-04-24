@@ -251,6 +251,7 @@ const initNotificationsTable = async () => {
                 is_actionable TINYINT(1) DEFAULT 1,
                 action_url VARCHAR(500) DEFAULT NULL,
                 actor_id CHAR(36) DEFAULT NULL,
+                aggregation_count INT DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 read_at TIMESTAMP NULL DEFAULT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -258,6 +259,17 @@ const initNotificationsTable = async () => {
             )
         `);
         logger.debug('✅ Notifications table verified');
+
+        // Migration: Add aggregation_count if missing
+        try {
+            const [notifCols] = await pool.query("SHOW COLUMNS FROM notifications LIKE 'aggregation_count'");
+            if (notifCols.length === 0) {
+                await pool.query("ALTER TABLE notifications ADD COLUMN aggregation_count INT DEFAULT 1 AFTER actor_id");
+                logger.info('Added aggregation_count column to notifications table');
+            }
+        } catch (e) {
+            logger.warn('Failed to add aggregation_count column:', e.message);
+        }
     } catch (err) {
         logger.error('❌ Failed to init notifications table:', err.message);
         throw err;

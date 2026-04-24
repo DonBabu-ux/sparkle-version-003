@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import {
-  X, Image as ImageIcon, MapPin, Globe, Users, Ghost,
+  X, Image as ImageIcon, MapPin, Globe, Ghost, Lock,
   Loader2, Smile, Tag, ChevronDown, Check
 } from 'lucide-react';
 import api from '../../api/api';
@@ -14,7 +14,7 @@ interface PostModalProps {
 
 const POST_TYPES = [
   { value: 'public', label: 'Public', icon: Globe, color: 'text-blue-500' },
-  { value: 'campus_only', label: 'Campus Only', icon: Users, color: 'text-green-500' },
+  { value: 'private', label: 'Private', icon: Lock, color: 'text-gray-600' },
   { value: 'friends', label: 'Friends', icon: Ghost, color: 'text-purple-500' },
 ];
 

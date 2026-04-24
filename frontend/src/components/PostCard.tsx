@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, ThumbsUp, MessageCircle, Share2, Globe, Users, Ghost, Pencil, Trash2, Flag, Bookmark } from 'lucide-react';
+import { MoreHorizontal, ThumbsUp, MessageCircle, Share2, Globe, Users, Ghost, Pencil, Trash2, Flag, Bookmark, X, Link as LinkIcon, BellOff, PlusCircle, MinusCircle, Lock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
 import { Link } from 'react-router-dom';
@@ -29,16 +29,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
     : 'recently';
 
-  // Close menu when clicking outside
+  // Prevent background scrolling when modal is open
   useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (menuOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
   }, [menuOpen]);
 
   const handleSpark = async (e: React.MouseEvent) => {
@@ -73,6 +68,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     alert('Post reported. Our team will review it shortly.');
   };
 
+  const handleCopyLink = () => {
+    setMenuOpen(false);
+    navigator.clipboard.writeText(`${window.location.origin}/post/${post.post_id}`);
+    alert('Link copied to clipboard!');
+  };
+
+  const handleNotInterested = () => {
+    setMenuOpen(false);
+    alert('Post hidden. We\'ll show you less of this.');
+  };
+
   const isVideo =
     post.media_type === 'video' ||
     post.media_url?.match(/\.(mp4|webm|ogg|mov|quicktime)$/i);
@@ -81,6 +87,20 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     post.media_url === 'undefined' ||
     post.media_url === 'null' ||
     post.media_url.trim() === '';
+
+  // If this is a private post and not owner, we shouldn't even render it, 
+  // but if backend sent it, let's just make sure.
+  if (post.post_type === 'private' && !isOwner) {
+    return (
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-4 p-6 border border-gray-200 flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+          <Lock size={24} className="text-gray-400" />
+        </div>
+        <h3 className="text-gray-900 font-bold text-[16px] mb-1">Post Unavailable</h3>
+        <p className="text-gray-500 text-[14px]">This post is private and cannot be viewed.</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -110,71 +130,168 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             <span>•</span>
             {post.post_type === 'public' ? (
               <Globe size={12} />
-            ) : post.post_type === 'campus_only' ? (
-              <Users size={12} />
+            ) : post.post_type === 'private' || post.post_type === 'campus_only' ? (
+              <Lock size={12} />
             ) : (
               <Ghost size={12} />
             )}
           </div>
         </div>
 
-        {/* 3-dot menu */}
-        <div className="relative" ref={menuRef}>
+        {/* 3-dot menu Trigger */}
+        <div>
           <button
             onClick={e => {
               e.stopPropagation();
-              setMenuOpen(prev => !prev);
+              setMenuOpen(true);
             }}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <MoreHorizontal size={20} className="text-gray-500" />
           </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 top-11 w-48 bg-white rounded-md shadow-2xl border border-gray-100 z-[500] overflow-hidden">
-              {isOwner ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setActiveModal('post', null, { editPost: post });
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <Pencil size={16} className="text-gray-400" />
-                    Edit Post
-                  </button>
-                  <div className="h-px bg-gray-100 mx-3" />
-                  <button
-                    onClick={handleDelete}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                    Delete Post
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setMenuOpen(false)}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <Bookmark size={16} className="text-gray-400" />
-                    Save Post
-                  </button>
-                  <div className="h-px bg-gray-100 mx-3" />
-                  <button
-                    onClick={handleReport}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <Flag size={16} />
-                    Report Post
-                  </button>
-                </>
-              )}
-            </div>
-          )}
         </div>
+
+        {/* Half Page Bottom Sheet Modal */}
+        {menuOpen && (
+          <div 
+            className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center bg-black/50 backdrop-blur-sm sm:p-4 transition-opacity"
+            onClick={() => setMenuOpen(false)}
+          >
+            <div 
+              className="bg-white w-full sm:max-w-md rounded-t-[24px] sm:rounded-[24px] shadow-2xl flex flex-col overflow-hidden animate-slide-up"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex justify-center p-4 border-b border-gray-100 relative">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full sm:hidden" />
+                <button 
+                  onClick={() => setMenuOpen(false)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <X size={18} className="text-gray-600" />
+                </button>
+              </div>
+
+              {/* Menu Options */}
+              <div className="p-2 overflow-y-auto max-h-[70vh]">
+                <button
+                  onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }}
+                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
+                >
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                    <Bookmark size={20} className="text-gray-700" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[15px] font-semibold text-gray-900">Save Post</p>
+                    <p className="text-[13px] text-gray-500">Add this to your saved items.</p>
+                  </div>
+                </button>
+
+                <div className="h-px bg-gray-100 mx-4 my-1" />
+
+                <button
+                  onClick={handleCopyLink}
+                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
+                >
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                    <LinkIcon size={20} className="text-gray-700" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[15px] font-semibold text-gray-900">Copy link</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => { setMenuOpen(false); alert('Notifications turned off.'); }}
+                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
+                >
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                    <BellOff size={20} className="text-gray-700" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[15px] font-semibold text-gray-900">Turn off notifications for this post</p>
+                  </div>
+                </button>
+
+                {!isOwner && (
+                  <>
+                    <div className="h-px bg-gray-100 mx-4 my-1" />
+                    
+                    <button
+                      onClick={() => { setMenuOpen(false); alert('Noted! We will show you more posts like this.'); }}
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                        <PlusCircle size={20} className="text-gray-700" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[15px] font-semibold text-gray-900">Interested</p>
+                        <p className="text-[13px] text-gray-500">Show more posts like this.</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={handleNotInterested}
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                        <MinusCircle size={20} className="text-gray-700" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[15px] font-semibold text-gray-900">Not interested</p>
+                        <p className="text-[13px] text-gray-500">I don't want to see this.</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={handleReport}
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-red-50 transition-colors rounded-xl"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                        <Flag size={20} className="text-red-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[15px] font-semibold text-red-600">Report Post</p>
+                        <p className="text-[13px] text-red-400">I'm concerned about this post.</p>
+                      </div>
+                    </button>
+                  </>
+                )}
+
+                {isOwner && (
+                  <>
+                    <div className="h-px bg-gray-100 mx-4 my-1" />
+
+                    <button
+                      onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }}
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                        <Pencil size={20} className="text-gray-700" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[15px] font-semibold text-gray-900">Edit Post</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={handleDelete}
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-red-50 transition-colors rounded-xl"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                        <Trash2 size={20} className="text-red-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[15px] font-semibold text-red-600">Delete Post</p>
+                      </div>
+                    </button>
+                  </>
+                )}
+                
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content */}

@@ -3,7 +3,7 @@
 	"appName": "Sparkle",
 	"webDir": "frontend/dist",
 	"server": {
-		"url": "https://sparkle-version-003-1-f4v3.onrender.com",
+		"androidScheme": "https",
 		"cleartext": true
 	}
 }

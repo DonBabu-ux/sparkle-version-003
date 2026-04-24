@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ChevronLeft, Clock, Trash2, RotateCw, Lock
+  ArrowLeft, Clock, Trash2, RotateCw, Lock, Sparkles, X
 } from 'lucide-react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
@@ -10,6 +11,12 @@ export default function SearchHistory() {
   const navigate = useNavigate();
   const [history, setHistory] = useState<{ id: string; query: string; searched_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+      setToast({ message, type });
+      setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -27,18 +34,22 @@ export default function SearchHistory() {
     try {
       await api.delete(`/search/history/${id}`);
       setHistory(prev => prev.filter(item => item.id !== id));
+      showToast('Memory cleared.');
     } catch (err) {
       console.error('Delete item failed:', err);
+      showToast('Failed to clear memory.', 'error');
     }
   };
 
   const clearAll = async () => {
-    if (!window.confirm("Clear all search history? This cannot be undone.")) return;
+    if (!window.confirm("Erase all search memories? This cannot be undone.")) return;
     try {
       await api.delete('/search/history');
       setHistory([]);
+      showToast('All memories erased.');
     } catch (err) {
       console.error('Clear all failed:', err);
+      showToast('Failed to clear history.', 'error');
     }
   };
 
@@ -62,76 +73,102 @@ export default function SearchHistory() {
   };
 
   return (
-    <div className="search-root">
+    <div className="flex bg-white min-h-screen text-black font-sans overflow-x-hidden selection:bg-primary/10">
       <Navbar />
       
-      <div className="search-main">
-        <header className="s-header">
-          <div className="s-header-inner" style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-            <div className="flex items-center gap-4">
-              <button onClick={() => navigate(-1)} className="s-back-btn">
-                <ChevronLeft size={22} strokeWidth={3} />
+      {/* Cinematic Background Elements */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-10%] right-[-5%] w-[60vw] h-[60vw] bg-primary/[0.03] rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] left-[-5%] w-[40vw] h-[40vw] bg-indigo-500/[0.02] rounded-full blur-[100px]" />
+      </div>
+
+      <main className="flex-1 lg:ml-72 flex flex-col relative z-10">
+        
+        {/* Sleek Header */}
+        <header className="sticky top-0 z-[100] bg-white/70 backdrop-blur-3xl border-b border-black/[0.03] px-6 py-8">
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <button 
+                onClick={() => navigate(-1)} 
+                className="w-12 h-12 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white rounded-2xl transition-all active:scale-95 group shadow-sm"
+              >
+                  <ArrowLeft size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
               <div>
-                <h1 className="text-[18px] font-black text-slate-800 leading-none">History</h1>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mt-1.5">Your search activity</p>
+                <h1 className="text-xl font-black text-black uppercase tracking-tight italic leading-none">History</h1>
+                <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.2em] mt-2">Your search signals</p>
               </div>
             </div>
 
             {history.length > 0 && (
-              <button onClick={clearAll} className="s-see-all text-rose-500 hover:text-rose-600">
+              <button 
+                onClick={clearAll} 
+                className="px-6 py-3 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border border-red-100"
+              >
                 Clear All
               </button>
             )}
           </div>
         </header>
 
-        <main className="s-content" style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+        <main className="max-w-3xl mx-auto w-full p-6 lg:p-12 pb-40">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-               <RotateCw className="animate-spin text-slate-300" size={32} />
-               <span className="text-slate-400 font-bold text-sm tracking-widest uppercase">Syncing...</span>
+            <div className="flex flex-col items-center justify-center py-32 gap-6 opacity-20">
+               <RotateCw className="animate-spin" size={40} strokeWidth={2.5} />
+               <span className="text-[10px] font-black uppercase tracking-[0.3em]">Syncing frequencies...</span>
             </div>
           ) : history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-32 text-center">
-              <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center text-slate-300 mb-6">
-                <Clock size={40} />
+            <div className="flex flex-col items-center justify-center py-32 text-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              <div className="w-24 h-24 bg-black/[0.02] rounded-[32px] flex items-center justify-center text-black/10 mb-8 shadow-inner">
+                <Clock size={48} strokeWidth={2.5} />
               </div>
-              <h2 className="text-xl font-black text-slate-800 mb-2">Clean Slate</h2>
-              <p className="text-slate-400 font-medium max-w-[240px]">Your search history is empty. Time to discover something new!</p>
-              <button onClick={() => navigate('/search')} className="mt-8 px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:scale-105 transition-transform">
+              <h2 className="text-2xl font-black text-black italic uppercase tracking-tight mb-3">Clean Slate</h2>
+              <p className="text-black/20 font-bold text-sm max-w-[280px] leading-relaxed">Your search memories are empty. Time to discover new sparks in the village!</p>
+              <button 
+                onClick={() => navigate('/search')} 
+                className="mt-10 px-10 py-5 bg-black text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/10 italic"
+              >
                 Start Searching
               </button>
             </div>
           ) : (
-            <div className="space-y-8">
-              {Object.entries(groupedHistory).map(([date, items]) => (
-                <div key={date} className="animate-fade-in">
-                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 pl-2">{date}</h3>
-                  <div className="s-card space-y-1">
+            <div className="space-y-16 animate-in fade-in duration-700">
+              {Object.entries(groupedHistory).map(([date, items], idx) => (
+                <div key={date} className="animate-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: `${idx * 0.1}s` }}>
+                  <div className="flex items-center gap-4 mb-8">
+                     <h3 className="text-xs font-black text-black italic uppercase tracking-[0.2em] opacity-20">{date}</h3>
+                     <div className="flex-1 h-[1px] bg-black/[0.05]" />
+                  </div>
+                  
+                  <div className="space-y-3">
                     {items.map((item) => (
-                      <div key={item.id} className="s-hist-item group">
-                        <div className="s-hist-icon">
-                          <Clock size={18} strokeWidth={2.5} />
+                      <div 
+                        key={item.id} 
+                        className="flex items-center gap-6 p-6 bg-black/[0.02] hover:bg-black text-black hover:text-white rounded-[32px] transition-all group duration-500 shadow-sm"
+                      >
+                        <div className="w-12 h-12 rounded-2xl bg-black/[0.03] group-hover:bg-white/10 flex items-center justify-center text-black/10 group-hover:text-white transition-all">
+                          <Clock size={20} strokeWidth={2.5} />
                         </div>
-                        <div className="flex-1 cursor-pointer" onClick={() => navigate(`/search?q=${item.query}`)}>
-                          <span className="s-hist-text">"{item.query}"</span>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[11px] font-bold text-slate-400">
+                        
+                        <div className="flex-1 cursor-pointer min-w-0" onClick={() => navigate(`/search?q=${item.query}`)}>
+                          <span className="block text-xl font-black italic leading-none truncate mb-2">"{item.query}"</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
                               {formatTime(item.searched_at)}
                             </span>
-                            <span className="text-slate-300">•</span>
-                            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400">
-                              <Lock size={10} />
-                              <span>Only me</span>
+                            <span className="opacity-10 text-xs">•</span>
+                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:text-primary transition-colors">
+                              <Lock size={12} />
+                              <span>Private Memory</span>
                             </div>
                           </div>
                         </div>
+
                         <button 
                           onClick={() => deleteItem(item.id)}
-                          className="s-hist-more hover:text-rose-500 hover:bg-rose-50"
+                          className="w-10 h-10 flex items-center justify-center text-black/10 hover:text-white hover:bg-red-500 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={18} strokeWidth={2.5} />
                         </button>
                       </div>
                     ))}
@@ -141,39 +178,26 @@ export default function SearchHistory() {
             </div>
           )}
         </main>
-      </div>
+      </main>
+
+      {/* Minimal Toast */}
+      <AnimatePresence>
+          {toast && (
+              <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className={`fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-8 py-4 rounded-2xl shadow-2xl z-[9999] font-black text-[10px] uppercase tracking-widest ${toast.type === 'success' ? 'bg-black text-white' : 'bg-red-500 text-white'}`}
+              >
+                  {toast.type === 'success' ? <Sparkles size={16} className="text-primary" strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
+                  {toast.message}
+              </motion.div>
+          )}
+      </AnimatePresence>
 
       <style>{`
-        .search-root { display:flex; min-height:100vh; background:#f7f8fc; font-family:'Outfit','Inter',system-ui,sans-serif; }
-        .search-main { flex:1; min-width:0; display:flex; flex-direction:column; }
-        .s-header { position:sticky; top:0; z-index:100; background:rgba(255,255,255,0.8); backdrop-filter:blur(20px); border-bottom:1.5px solid rgba(241,245,249,0.8); padding:20px 40px; display:flex; align-items:center; }
-        .s-header-inner { display:flex; align-items:center; justify-content:space-between; width:100%; }
-        .s-back-btn { width:44px; height:44px; border-radius:14px; background:#fff; border:1.5px solid #edf2f7; display:flex; align-items:center; justify-content:center; color:#1e293b; transition:all 0.2s; cursor:pointer; }
-        .s-back-btn:hover { background:#f8fafc; border-color:#FF3D6D; color:#FF3D6D; transform:translateX(-3px); }
-        .s-content { padding:32px 40px 100px; }
-        .s-card { background:#fff; border-radius:28px; padding:12px; border:1px solid #edf0f7; box-shadow:0 10px 30px rgba(0,0,0,0.02); }
-        .s-see-all { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1px; cursor:pointer; transition:all 0.2s; }
-        .s-see-all:hover { transform:translateY(-1px); }
-
-        .s-hist-item { display:flex; align-items:center; gap:16px; padding:12px 16px; border-radius:18px; transition:all 0.2s; }
-        .s-hist-item:hover { background:#f8fafc; }
-        .s-hist-icon { width:42px; height:42px; border-radius:14px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#94a3b8; transition:all 0.2s; }
-        .s-hist-item:hover .s-hist-icon { background:#fff; color:#FF3D6D; box-shadow:0 4px 12px rgba(255,61,109,0.1); }
-        .s-hist-text { font-size:16px; font-weight:700; color:#1e293b; letter-spacing:-0.2px; }
-        .s-hist-more { color:#cbd5e1; padding:10px; border-radius:12px; transition:all 0.2s; }
-        .s-hist-more:hover { color:#ef4444; background:#fff1f2; }
-
-        @keyframes fade-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        .animate-fade-in { animation:fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-        @media (max-width:640px) {
-          .s-header { padding:14px 20px; }
-          .s-content { padding:20px 16px 100px; }
-          .s-card { border-radius:24px; padding:8px; }
-          .s-hist-item { gap:12px; padding:10px; }
-          .s-hist-icon { width:38px; height:38px; }
-          .s-hist-text { font-size:14px; }
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

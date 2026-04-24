@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useUserStore } from '../store/userStore';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://sparkle-version-003-1-f4v3.onrender.com/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

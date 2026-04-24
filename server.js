@@ -34,6 +34,7 @@ app.use(cors({
             'http://localhost:3000',
             'http://localhost:5174',
             'http://localhost',
+            'https://localhost',
             'capacitor://localhost',
             'https://sparkle-version-003-1-f4v3.onrender.com'
         ];

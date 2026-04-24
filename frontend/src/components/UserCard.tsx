@@ -1,17 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Check, Clock, Plus, Sparkles, GraduationCap, MoreHorizontal, Orbit } from 'lucide-react';
+import { MapPin, Check, Clock, Plus, Sparkles, GraduationCap, MoreHorizontal } from 'lucide-react';
 import api from '../api/api';
 import { useState } from 'react';
 import type { User } from '../types/user';
 import UserActionModal from './modals/UserActionModal';
 
-interface MutualFollower {
-  username: string;
-  avatar?: string;
-}
-
 interface UserCardProps {
   u: User;
+  onRemove?: (id: string) => void;
 }
 
 export default function UserCard({ u }: UserCardProps) {
@@ -48,17 +44,15 @@ export default function UserCard({ u }: UserCardProps) {
 
   return (
     <div 
-      className="group relative bg-white/80 backdrop-blur-3xl rounded-[40px] p-8 w-full flex flex-col items-center border border-white shadow-xl hover:shadow-2xl hover:shadow-primary/5 transition-all duration-700 ease-out cursor-pointer overflow-hidden text-center animate-fade-in"
+      className="group relative bg-white rounded-xl p-4 w-full flex flex-col items-center border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden text-center"
       onClick={() => navigate(`/profile/${u.username}`)}
     >
-      
       {/* Action Menu */}
       <button 
         onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
-        className="absolute top-6 right-6 w-11 h-11 rounded-2xl bg-black/5 text-black/20 flex items-center justify-center hover:bg-black hover:text-white transition-all duration-300 z-20 focus:outline-none shadow-sm active:scale-90"
-        aria-label="Actions"
+        className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-gray-100 text-gray-400 transition-colors z-20"
       >
-        <MoreHorizontal size={20} strokeWidth={3} />
+        <MoreHorizontal size={18} />
       </button>
 
       {showModal && (
@@ -69,76 +63,62 @@ export default function UserCard({ u }: UserCardProps) {
       )}
 
       {/* Avatar Section */}
-      <div className="relative flex justify-center mt-4 mb-8 z-10 scale-110">
-        <div className="w-28 h-28 rounded-[38px] p-[2px] bg-gradient-to-tr from-primary to-pink-200 flex items-center justify-center shadow-2xl shadow-primary/20 group-hover:rotate-6 transition-transform duration-700">
-          <div className="relative w-full h-full bg-white rounded-[36px] p-[4px] flex items-center justify-center overflow-hidden">
-            <img 
-              alt={u.username} 
-              className="w-full h-full rounded-[30px] object-cover group-hover:scale-110 transition-transform duration-1000" 
-              src={u.avatar_url || u.avatar || '/uploads/avatars/default.png'} 
-            />
-            {u.is_online && (
-              <span className="absolute bottom-2 right-2 block w-4 h-4 bg-emerald-500 border-4 border-white rounded-full shadow-lg"></span>
-            )}
-          </div>
+      <div className="relative mb-3 pt-2">
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+          <img 
+            alt={u.username} 
+            className="w-full h-full object-cover rounded-full" 
+            src={u.avatar_url || u.avatar || '/uploads/avatars/default.png'} 
+          />
+          {!!u.is_online && (
+            <span className="absolute bottom-1 right-1 block w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
+          )}
         </div>
       </div>
 
       {/* User Info */}
-      <div className="flex flex-col items-center justify-center mb-8 z-10 w-full">
-        <div className="flex items-center gap-2 mb-1 justify-center">
-          <span className="font-black text-2xl text-black tracking-tighter leading-none italic uppercase">
+      <div className="flex flex-col items-center w-full mb-4">
+        <div className="flex items-center gap-1 justify-center w-full">
+          <span className="font-bold text-[15px] text-gray-900 truncate max-w-[80%]">
             {u.username}
           </span>
-          {u.is_verified && (
-             <Sparkles size={18} className="text-primary fill-primary" />
+          {!!u.is_verified && (
+             <Sparkles size={14} className="text-blue-500 fill-blue-500 shrink-0" />
           )}
         </div>
         
-        <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-6 italic">
-          {u.name || 'Incognito Signal'}
+        <p className="text-[13px] font-medium text-gray-500 truncate w-full">
+          {u.name || u.username}
         </p>
 
-        <div className="flex flex-col gap-2 w-full max-w-[200px]">
-           <div className="flex items-center justify-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 border border-primary/10 px-4 py-2.5 rounded-2xl">
-              <GraduationCap size={14} strokeWidth={3.5} /> {u.major || 'Global Citizen'}
+        <div className="mt-2 text-[11px] text-gray-400 font-semibold space-y-0.5">
+           <div className="flex items-center justify-center gap-1">
+              <GraduationCap size={12} /> {u.major || 'Student'}
            </div>
-           <div className="flex items-center justify-center gap-2 text-[10px] font-black text-black/40 uppercase tracking-widest bg-black/5 px-4 py-2.5 rounded-2xl border border-black/5">
-              <MapPin size={14} strokeWidth={3.5} /> {u.campus || 'Main Frequency'}
+           <div className="flex items-center justify-center gap-1">
+              <MapPin size={12} /> {u.campus || 'Main'}
            </div>
         </div>
       </div>
 
-      {/* Social Proof */}
-      <div className="w-full bg-black/5 rounded-[32px] p-5 flex flex-col gap-4 mb-8 border border-white group-hover:bg-white transition-colors duration-500">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-primary shrink-0 shadow-sm">
-             <Orbit size={20} strokeWidth={3} className="animate-spin-slow" />
+      {/* Social Proof (Subtle) */}
+      {(u.mutual_followers && u.mutual_followers.length > 0) ? (
+        <div className="flex items-center gap-1.5 mb-4">
+          <div className="flex -space-x-2">
+            {u.mutual_followers.slice(0, 2).map((m: any, i: number) => (
+              <img
+                key={i}
+                src={m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.username)}&background=random`}
+                className="w-5 h-5 rounded-full border border-white object-cover shadow-xs"
+                alt=""
+              />
+            ))}
           </div>
-          <div className="flex-1 text-[11px] font-black text-black/30 leading-tight text-left uppercase tracking-tight italic">
-            {u.suggestion_reason || 'Matching Energy Signal'}
-          </div>
+          <p className="text-[11px] text-gray-400 font-medium">
+            {u.mutual_followers.length} mutuals
+          </p>
         </div>
-
-        {u.mutual_followers && u.mutual_followers.length > 0 && (
-          <div className="flex items-center gap-2 pl-2">
-            <div className="flex -space-x-3">
-              {u.mutual_followers.slice(0, 3).map((m: MutualFollower, i: number) => (
-                <img
-                  key={i}
-                  src={m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.username)}&background=random`}
-                  className="w-8 h-8 rounded-xl border-2 border-white object-cover shadow-sm ring-2 ring-black/5"
-                  alt=""
-                />
-              ))}
-            </div>
-            <p className="text-[9px] font-black text-black/20 uppercase tracking-widest pl-2">
-              <span className="text-black/60">{u.mutual_followers[0].username}</span>
-              {u.mutual_followers.length > 1 && ` + ${u.mutual_followers.length - 1} Signals`}
-            </p>
-          </div>
-        )}
-      </div>
+      ) : null}
 
       {/* Follow Button */}
       <div className="w-full mt-auto">
@@ -146,34 +126,27 @@ export default function UserCard({ u }: UserCardProps) {
           <button 
             onClick={toggleFollow}
             disabled={loading}
-            className="w-full py-5 rounded-3xl font-black text-[11px] flex items-center justify-center gap-3 border-4 border-black/5 text-black/20 hover:bg-black/5 hover:border-black/10 transition-all duration-300 uppercase tracking-[0.2em] italic"
+            className="w-full py-1.5 rounded-lg font-bold text-[13px] bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
           >
-            <Check size={18} strokeWidth={4} /> Synchronized
+            <Check size={16} /> Following
           </button>
         ) : requestStatus === 'pending' ? (
           <button 
             disabled
-            className="w-full py-5 rounded-3xl font-black text-[11px] flex items-center justify-center gap-3 bg-black/5 text-black/10 cursor-default border-4 border-dashed border-black/5 uppercase tracking-[0.2em] italic"
+            className="w-full py-1.5 rounded-lg font-bold text-[13px] bg-gray-50 text-gray-400 cursor-default border border-dashed border-gray-200 flex items-center justify-center gap-2"
           >
-            <Clock size={18} strokeWidth={4} /> Pending Sync
+            <Clock size={16} /> Pending
           </button>
         ) : (
           <button 
             onClick={toggleFollow}
             disabled={loading}
-            className={`w-full py-5 rounded-3xl font-black text-[11px] flex items-center justify-center gap-3 bg-primary text-white shadow-2xl shadow-primary/30 hover:scale-[1.03] active:scale-[0.97] transition-all duration-500 uppercase tracking-[0.2em] italic ${loading ? 'opacity-50' : ''}`}
+            className={`w-full py-1.5 rounded-lg font-bold text-[13px] bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
           >
-            <Plus size={18} strokeWidth={4} /> Connect Signal
+            <Plus size={16} /> Follow
           </button>
         )}
       </div>
-
-      <style>{`
-         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-spin-slow { animation: spin 8s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 }

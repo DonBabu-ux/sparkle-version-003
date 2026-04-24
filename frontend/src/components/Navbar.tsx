@@ -114,14 +114,12 @@ export default function Navbar() {
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
-              {item.icon === 'avatar' ? (
-                <div className={`p-0.5 rounded-xl border-2 transition-all ${isCurrent ? 'border-primary ring-4 ring-primary/5' : 'border-transparent'}`}>
-                  <img 
-                    src={user?.avatar_url || '/uploads/avatars/default.png'} 
-                    className="w-6 h-6 rounded-lg object-cover"
-                    alt="Profile"
-                  />
-                </div>
+              {item.isProfile ? (
+                <img 
+                  src={user?.avatar_url || '/uploads/avatars/default.png'} 
+                  className={cn("w-7 h-7 rounded-full object-cover border-2 transition-all duration-300", isCurrent ? "border-primary" : "border-transparent")}
+                  alt="Profile"
+                />
               ) : (
                 <Icon size={22} strokeWidth={isCurrent ? 3 : 2} className={isCurrent ? 'text-primary' : 'text-black/20'} />
               )}

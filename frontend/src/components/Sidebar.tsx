@@ -75,8 +75,8 @@ export default function Sidebar() {
           className="flex items-center gap-6 cursor-pointer transition-all active:scale-95 whitespace-nowrap overflow-hidden group"
           onClick={() => navigate('/dashboard')}
         >
-          <div className="shrink-0 w-14 h-14 bg-black text-white rounded-[24px] flex items-center justify-center shadow-2xl group-hover:bg-primary group-hover:rotate-12 transition-all duration-700">
-            <Sparkles size={28} strokeWidth={3} />
+          <div className="shrink-0 w-12 h-12 bg-black text-white rounded-xl flex items-center justify-center shadow-lg group-hover:bg-primary transition-all duration-500">
+            <Sparkles size={24} strokeWidth={2.5} />
           </div>
           <AnimatePresence>
             {isHovered && (
@@ -118,7 +118,7 @@ export default function Sidebar() {
                 {item.isProfile ? (
                   <img 
                     src={user?.avatar_url || '/uploads/avatars/default.png'} 
-                    className={cn("w-9 h-9 rounded-2xl object-cover border-4 transition-all duration-700", isActive(item.path) ? "border-primary/20 rotate-6" : "border-transparent group-hover/item:border-black/5")}
+                    className={cn("w-9 h-9 rounded-full object-cover border-2 transition-all duration-700", isActive(item.path) ? "border-primary/20" : "border-transparent group-hover/item:border-gray-100")}
                     alt="Profile"
                   />
                 ) : (

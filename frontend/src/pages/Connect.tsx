@@ -7,7 +7,6 @@ import api from '../api/api';
 const TABS = [
   { label: 'For You',   icon: Sparkles },
   { label: 'Suggested', icon: UserPlus },
-  { label: 'Similar',   icon: Users },
   { label: 'Following', icon: UserCheck },
 ] as const;
 
@@ -60,58 +59,50 @@ export default function Connect() {
   const SKELETON_COUNT = 6;
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+    <div className="flex bg-[#f0f2f5] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-[1400px] mx-auto w-full pt-20 md:pt-32">
+      <main className="flex-1 lg:ml-72 p-4 md:p-6 relative z-10 max-w-[1200px] mx-auto w-full pt-20">
         
         {/* ── Header ── */}
-        <header className="mb-20 animate-fade-in px-4">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12">
-            <div className="max-w-3xl space-y-8">
-              <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
-                <Sparkles size={18} strokeWidth={3} className="text-primary" />
-                <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Village Network</span>
-              </div>
-              <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-[0.8] italic uppercase">
-                Find your <br /><span className="text-primary italic">Frequency.</span>
-              </h1>
-              <p className="text-xl font-bold text-black opacity-60 leading-relaxed max-w-xl italic">
-                Synchronize with neighbors, creators, and professionals across your sector.
-              </p>
-            </div>
+        <header className="mb-6 animate-fade-in">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Connect</h1>
+            <p className="text-[15px] font-medium text-gray-500">
+              Discover people you may know and follow their journey.
+            </p>
           </div>
         </header>
 
         {/* ── Search + Tabs Bar ── */}
-        <div className="sticky top-24 z-50 mb-20 animate-fade-in">
-          <div className="bg-white/80 backdrop-blur-3xl border border-white rounded-[48px] p-4 shadow-2xl shadow-primary/5 flex flex-col xl:flex-row gap-6 items-center">
+        <div className="sticky top-16 z-50 mb-8 animate-fade-in">
+          <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col md:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full group">
-              <Search className="absolute left-10 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-colors" size={24} strokeWidth={3} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
               <input
                 type="text"
-                placeholder="Scan by name, talent, or location..."
+                placeholder="Search by name or major..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-20 bg-black/5 hover:bg-white border-2 border-transparent focus:border-primary focus:bg-white rounded-[32px] pl-24 pr-10 text-lg font-black text-black placeholder:text-black/10 transition-all outline-none italic uppercase tracking-wider"
+                className="w-full h-11 bg-gray-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-lg pl-12 pr-4 text-[15px] font-medium text-gray-900 transition-all outline-none"
               />
             </div>
             
-            <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto no-scrollbar py-2 px-2">
+            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar px-1">
               {TABS.map(({ label, icon: Icon }) => (
                 <button
                   key={label}
                   onClick={() => setActiveTab(label)}
-                  className={`flex items-center gap-4 h-20 px-10 rounded-[28px] font-black text-[11px] uppercase tracking-[0.3em] transition-all duration-500 whitespace-nowrap italic
+                  className={`flex items-center gap-2 h-10 px-4 rounded-full font-bold text-[13px] transition-all duration-300 whitespace-nowrap
                     ${activeTab === label 
-                      ? 'bg-primary text-white shadow-2xl shadow-primary/40' 
-                      : 'bg-black/5 text-black opacity-20 hover:opacity-100 hover:bg-black/10'}`}
+                      ? 'bg-blue-50 text-blue-600' 
+                      : 'text-gray-500 hover:bg-gray-100'}`}
                 >
-                  <Icon size={18} strokeWidth={3} />
+                  <Icon size={16} />
                   {label}
                 </button>
               ))}
@@ -120,27 +111,27 @@ export default function Connect() {
         </div>
 
         {/* ── Content Grid ── */}
-        <div className="relative z-10 pb-40 px-4">
+        <div className="relative z-10 pb-20">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-              {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                <div key={i} className="bg-white/40 backdrop-blur-3xl border border-white rounded-[56px] p-12 aspect-[4/3] animate-pulse flex flex-col items-center justify-center">
-                   <div className="w-28 h-28 bg-black/5 rounded-[40px] mb-8" />
-                   <div className="w-1/2 h-6 bg-black/5 rounded-full mb-4" />
-                   <div className="w-3/4 h-3 bg-black/5 rounded-full" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white border border-gray-200 rounded-xl p-6 aspect-square animate-pulse flex flex-col items-center justify-center">
+                   <div className="w-16 h-16 bg-gray-100 rounded-full mb-4" />
+                   <div className="w-2/3 h-4 bg-gray-100 rounded-full mb-2" />
+                   <div className="w-1/2 h-3 bg-gray-100 rounded-full" />
                 </div>
               ))}
             </div>
           ) : users.length === 0 ? (
-            <div className="py-64 flex flex-col items-center gap-12 text-center bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in">
-              <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
-              <div className="space-y-6">
-                <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter">Isolated Node.</h3>
-                <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No frequencies detected. Try adjusting your transmission or scanning different sectors.</p>
+            <div className="py-32 flex flex-col items-center gap-6 text-center bg-white border border-gray-200 rounded-2xl shadow-sm animate-fade-in">
+              <Orbit size={80} className="text-gray-200 animate-spin-slow" />
+              <div className="space-y-2 px-4">
+                <h3 className="text-xl font-bold text-gray-900">No results found</h3>
+                <p className="text-[14px] text-gray-500 max-w-xs mx-auto">Try searching for something else or explore different tabs.</p>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {users.map((u, idx) => (
                 <div key={(u.user_id || u.id) as string} className="animate-scale-in" style={{ animationDelay: `${idx * 100}ms` }}>
                   <UserCard

@@ -1,86 +1,190 @@
-import React, { useState } from 'react';
-import { MoreHorizontal, ThumbsUp, MessageCircle, Share2, Globe, Users, Ghost } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { MoreHorizontal, ThumbsUp, MessageCircle, Share2, Globe, Users, Ghost, Pencil, Trash2, Flag, Bookmark } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';
 import { Link } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
 import { formatCount } from '../utils/format';
-
 import type { Post } from '../types/post';
 
 interface PostCardProps {
   post: Post;
+  onDeleted?: (postId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
   const { setActiveModal } = useModalStore();
   const { user: currentUser } = useUserStore();
-  
+
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const timeAgo = post.created_at ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true }) : 'recently';
+  const isOwner = currentUser?.user_id === post.user_id || currentUser?.username === post.username;
+  const timeAgo = post.created_at
+    ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+    : 'recently';
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
 
   const handleSpark = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const originalSparked = isSparked;
     const originalCount = sparkCount;
-    
     setIsSparked(!originalSparked);
-    setSparkCount(prev => originalSparked ? prev - 1 : prev + 1);
-
+    setSparkCount(prev => (originalSparked ? prev - 1 : prev + 1));
     try {
       await api.post(`/posts/${post.post_id}/spark`);
-    } catch (err) {
+    } catch {
       setIsSparked(originalSparked);
       setSparkCount(originalCount);
-      console.error('Failed to spark post:', err);
     }
   };
 
-  const isVideo = post.media_type === 'video' || post.media_url?.match(/\.(mp4|webm|ogg|mov|quicktime)$/i);
-  const isTextOnly = !post.media_url || post.media_url === 'undefined' || post.media_url === 'null' || post.media_url.trim() === '';
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this post? This cannot be undone.')) return;
+    setDeleting(true);
+    setMenuOpen(false);
+    try {
+      await api.delete(`/posts/${post.post_id}`);
+      onDeleted?.(post.post_id);
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+      setDeleting(false);
+    }
+  };
+
+  const handleReport = () => {
+    setMenuOpen(false);
+    alert('Post reported. Our team will review it shortly.');
+  };
+
+  const isVideo =
+    post.media_type === 'video' ||
+    post.media_url?.match(/\.(mp4|webm|ogg|mov|quicktime)$/i);
+  const isTextOnly =
+    !post.media_url ||
+    post.media_url === 'undefined' ||
+    post.media_url === 'null' ||
+    post.media_url.trim() === '';
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden mb-4 animate-fade-in border border-gray-200">
-      {/* Post Header */}
+    <div
+      className={`bg-white rounded-xl shadow-md overflow-hidden mb-4 animate-fade-in border border-gray-200 transition-opacity duration-300 ${
+        deleting ? 'opacity-30 pointer-events-none' : ''
+      }`}
+    >
+      {/* Header */}
       <div className="flex items-center gap-3 p-4">
         <Link to={`/profile/${post.username}`} className="shrink-0">
-          <img 
-            src={post.avatar_url || '/uploads/avatars/default.png'} 
+          <img
+            src={post.avatar_url || '/uploads/avatars/default.png'}
             className="w-10 h-10 rounded-full object-cover border border-gray-100"
             alt={post.username}
           />
         </Link>
-        
+
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1">
-            <Link to={`/profile/${post.username}`} className="font-bold text-[15px] text-gray-900 hover:underline">
-              {post.name || post.username}
-            </Link>
-          </div>
-          <div className="flex items-center gap-1 text-[13px] text-gray-500 font-normal">
-             <span>{timeAgo}</span>
-             <span>•</span>
-             {post.post_type === 'public' ? <Globe size={12} /> : post.post_type === 'campus_only' ? <Users size={12} /> : <Ghost size={12} />}
+          <Link
+            to={`/profile/${post.username}`}
+            className="font-bold text-[15px] text-gray-900 hover:underline"
+          >
+            {post.name || post.username}
+          </Link>
+          <div className="flex items-center gap-1 text-[13px] text-gray-500">
+            <span>{timeAgo}</span>
+            <span>•</span>
+            {post.post_type === 'public' ? (
+              <Globe size={12} />
+            ) : post.post_type === 'campus_only' ? (
+              <Users size={12} />
+            ) : (
+              <Ghost size={12} />
+            )}
           </div>
         </div>
 
-        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <MoreHorizontal size={20} className="text-gray-600" />
-        </button>
+        {/* 3-dot menu */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              setMenuOpen(prev => !prev);
+            }}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <MoreHorizontal size={20} className="text-gray-500" />
+          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 top-11 w-48 bg-white rounded-md shadow-2xl border border-gray-100 z-[500] overflow-hidden">
+              {isOwner ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setActiveModal('post', null, { editPost: post });
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Pencil size={16} className="text-gray-400" />
+                    Edit Post
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3" />
+                  <button
+                    onClick={handleDelete}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    Delete Post
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setMenuOpen(false)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Bookmark size={16} className="text-gray-400" />
+                    Save Post
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3" />
+                  <button
+                    onClick={handleReport}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <Flag size={16} />
+                    Report Post
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Post Content */}
+      {/* Content */}
       <div className="px-4 pb-3">
         {post.content && (
           <div className="text-[15px] text-gray-900 leading-normal whitespace-pre-wrap">
             {post.content.length > 250 && !isExpanded ? (
               <>
-                {post.content.substring(0, 250)}... 
-                <button 
+                {post.content.substring(0, 250)}...{' '}
+                <button
                   onClick={() => setIsExpanded(true)}
                   className="text-gray-500 font-bold hover:underline ml-1"
                 >
@@ -91,7 +195,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               <>
                 {post.content}
                 {post.content.length > 250 && isExpanded && (
-                  <button 
+                  <button
                     onClick={() => setIsExpanded(false)}
                     className="text-gray-500 font-bold hover:underline ml-1"
                   >
@@ -104,21 +208,26 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         )}
       </div>
 
-      {/* Media Section */}
+      {/* Media */}
       {!isTextOnly && post.media_url && (
-        <div 
-          className="relative bg-gray-100 cursor-pointer overflow-hidden flex items-center justify-center max-h-[600px]" 
+        <div
+          className="relative bg-gray-100 cursor-pointer overflow-hidden flex items-center justify-center max-h-[600px]"
           onClick={() => setActiveModal('media_preview', null, { post })}
         >
           {isVideo ? (
             <video src={post.media_url} className="w-full h-auto block" />
           ) : (
-            <img src={post.media_url} loading="lazy" alt="" className="w-full h-auto block object-contain" />
+            <img
+              src={post.media_url}
+              loading="lazy"
+              alt=""
+              className="w-full h-auto block object-contain"
+            />
           )}
         </div>
       )}
 
-      {/* Stats Bar */}
+      {/* Stats */}
       <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 mx-1">
         <div className="flex items-center gap-1">
           <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
@@ -132,17 +241,19 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </div>
       </div>
 
-      {/* Action Bar */}
-      <div className="px-1 py-1 flex items-center justify-between">
-        <button 
+      {/* Actions */}
+      <div className="px-1 py-1 flex items-center">
+        <button
           onClick={handleSpark}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-md transition-colors ${isSparked ? 'text-blue-600' : 'text-gray-600'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-md transition-colors ${
+            isSparked ? 'text-blue-600' : 'text-gray-600'
+          }`}
         >
           <ThumbsUp size={20} className={isSparked ? 'fill-blue-600' : ''} />
           <span className="text-[14px] font-semibold">Like</span>
         </button>
 
-        <button 
+        <button
           onClick={() => setActiveModal('post_comments', null, { post })}
           className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
         >
@@ -150,7 +261,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <span className="text-[14px] font-semibold">Comment</span>
         </button>
 
-        <button 
+        <button
           onClick={() => setActiveModal('share', null, { post })}
           className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
         >

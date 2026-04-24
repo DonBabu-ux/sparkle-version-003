@@ -27,7 +27,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   useEffect(() => {
     const fetchFriends = async () => {
       try {
-        const res = await api.get('/users/me/following');
+        const res = await api.get('/users/following');
         setRecipients(res.data.following || res.data || []);
       } catch (err) {
         console.error('Failed to fetch recipients', err);

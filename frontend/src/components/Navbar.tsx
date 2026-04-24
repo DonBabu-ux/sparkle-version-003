@@ -86,8 +86,8 @@ export default function Navbar() {
           { path: '/moments', icon: PlayCircle },
           { type: 'create' },
           { path: '/messages', icon: MessageSquare },
-          { path: `/profile/${user?.username}`, icon: 'avatar' },
-        ].map((item) => {
+          { path: `/profile/${user?.username}`, isProfile: true },
+        ].map((item: any) => {
           if (item.type === 'create') {
             return (
               <div key="create" className="relative -top-1" onClick={() => setShowMobileCreate(!showMobileCreate)}>
@@ -99,7 +99,7 @@ export default function Navbar() {
           }
 
           const isCurrent = isActive(item.path!);
-          const Icon = item.icon as React.ElementType;
+          const Icon = item.icon;
 
           return (
             <Link 
@@ -117,7 +117,7 @@ export default function Navbar() {
               {item.isProfile ? (
                 <img 
                   src={user?.avatar_url || '/uploads/avatars/default.png'} 
-                  className={cn("w-7 h-7 rounded-full object-cover border-2 transition-all duration-300", isCurrent ? "border-primary" : "border-transparent")}
+                  className={`w-7 h-7 rounded-full object-cover border-2 transition-all duration-300 ${isCurrent ? "border-primary" : "border-transparent"}`}
                   alt="Profile"
                 />
               ) : (

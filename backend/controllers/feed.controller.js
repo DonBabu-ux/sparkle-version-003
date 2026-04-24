@@ -272,11 +272,11 @@ const createStory = async (req, res) => {
         const storyId = crypto.randomUUID();
 
         // Determine media type
-        let media_type = 'image';
+        let media_type = req.body.media_type || 'image';
         if (req.file) {
             media_type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
-        } else if (media_url) {
-            // Try to determine from URL extension
+        } else if (media_url && !req.body.media_type) {
+            // Try to determine from URL extension only if not explicitly provided
             const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.mpg', '.mpeg'];
             media_type = videoExtensions.some(ext => media_url.toLowerCase().includes(ext)) ? 'video' : 'image';
         }

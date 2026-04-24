@@ -43,7 +43,8 @@ class User {
             `SELECT u.*,
                     (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
-                    (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count
+                    (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count,
+                    (SELECT COUNT(*) FROM stories WHERE user_id = u.user_id AND expires_at > NOW()) > 0 as has_story
              FROM users u
              WHERE u.user_id = ?`,
             [userId]
@@ -314,7 +315,8 @@ class User {
                     (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
                     (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
-                    (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as is_requested_by_me
+                    (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as is_requested_by_me,
+                    (SELECT COUNT(*) FROM stories WHERE user_id = u.user_id AND expires_at > NOW()) > 0 as has_story
              FROM users u 
              WHERE u.username = ?`,
             [currentUserId, currentUserId, username]
@@ -457,6 +459,7 @@ class User {
         const [followers] = await pool.query(
             `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+                    (SELECT COUNT(*) FROM stories WHERE user_id = u.user_id AND expires_at > NOW()) > 0 as has_story,
                     ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.follower_id = u.user_id
@@ -474,6 +477,7 @@ class User {
         const [following] = await pool.query(
             `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+                    (SELECT COUNT(*) FROM stories WHERE user_id = u.user_id AND expires_at > NOW()) > 0 as has_story,
                     ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.following_id = u.user_id

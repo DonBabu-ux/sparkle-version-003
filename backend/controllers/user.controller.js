@@ -420,7 +420,8 @@ const getFollowers = async (req, res) => {
             ...f,
             id: f.user_id,
             profile_picture: f.avatar_url || '/uploads/avatars/default.png',
-            is_followed_by_me: !!f.is_followed_by_me
+            is_followed_by_me: !!f.is_followed_by_me,
+            has_story: !!f.has_story
         }));
 
         res.json(mappedFollowers);
@@ -440,7 +441,8 @@ const getFollowing = async (req, res) => {
             ...f,
             id: f.user_id,
             profile_picture: f.avatar_url || '/uploads/avatars/default.png',
-            is_followed_by_me: !!f.is_followed_by_me
+            is_followed_by_me: !!f.is_followed_by_me,
+            has_story: !!f.has_story
         }));
 
         res.json(mappedFollowing);
@@ -498,7 +500,8 @@ const getUserProfile = async (req, res) => {
             experience_level: user.experience_level || user.year_of_study,
             userType: user.userType,
             is_followed_by_me: !!user.is_followed_by_me,
-            is_requested_by_me: !!user.is_requested_by_me
+            is_requested_by_me: !!user.is_requested_by_me,
+            has_story: !!user.has_story
         };
 
         res.json(profile);

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, UserPlus, Users, UserCheck, Sparkles, Orbit } from 'lucide-react';
+import { Search, UserPlus, Users, UserCheck, Sparkles, Orbit, Compass, Zap, CheckCircle2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
 import api from '../api/api';
 
 const TABS = [
-  { label: 'For You',   icon: Sparkles },
-  { label: 'Suggested', icon: UserPlus },
+  { label: 'For You',   icon: Compass },
+  { label: 'Suggested', icon: Zap },
   { label: 'Following', icon: UserCheck },
 ] as const;
 
@@ -82,13 +82,13 @@ export default function Connect() {
         <div className="sticky top-16 z-50 mb-8 animate-fade-in">
           <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col md:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors z-10" size={18} />
               <input
                 type="text"
                 placeholder="Search by name or major..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-11 bg-gray-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-lg pl-12 pr-4 text-[15px] font-medium text-gray-900 transition-all outline-none"
+                className="w-full h-11 bg-gray-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-lg px-12 text-[15px] font-medium text-gray-900 transition-all outline-none text-center"
               />
             </div>
             

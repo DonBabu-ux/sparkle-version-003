@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
+import MomentShareModal from '../components/modals/MomentShareModal';
 import api from '../api/api';
 import clsx from 'clsx';
 
@@ -43,27 +44,27 @@ interface Moment {
 
 const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: string) => void }) => {
   return (
-    <div className="flex gap-4 mb-6 group animate-fade-in">
+    <div className="flex gap-3 mb-5 group animate-fade-in">
       <img 
         src={comment.avatar_url || '/uploads/avatars/default.png'} 
-        className="w-10 h-10 rounded-2xl object-cover border border-white shadow-sm" 
+        className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" 
         alt={comment.username}
       />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-0.5">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-black text-black italic">@{comment.username}</span>
-            <span className="text-[10px] font-bold text-black/20 uppercase tracking-widest">
+            <span className="text-[13px] font-bold text-gray-900">@{comment.username}</span>
+            <span className="text-[10px] font-medium text-gray-400">
               {new Date(comment.created_at).toLocaleDateString()}
             </span>
           </div>
-          <button className="text-black/10 hover:text-primary transition-colors" onClick={() => onLike(comment.comment_id)}>
-            <Heart size={14} className={comment.is_liked ? "fill-primary stroke-primary" : ""} />
+          <button className="text-gray-300 hover:text-primary transition-colors" onClick={() => onLike(comment.comment_id)}>
+            <Heart size={12} className={comment.is_liked ? "fill-primary stroke-primary" : ""} />
           </button>
         </div>
-        <p className="text-sm text-black font-medium leading-relaxed">{comment.content}</p>
-        <div className="flex items-center gap-4 mt-2">
-          <button className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">Reply</button>
+        <p className="text-[13px] text-gray-700 font-medium leading-normal">{comment.content}</p>
+        <div className="flex items-center gap-4 mt-1">
+          <button className="text-[10px] font-bold text-primary uppercase tracking-wider hover:underline">Reply</button>
         </div>
       </div>
     </div>
@@ -75,13 +76,17 @@ const ReelItem = ({
   onLike, 
   onSave,
   onOpenComments,
-  active
+  onShare,
+  active,
+  downloadProgress
 }: { 
   moment: Moment; 
   onLike: (id: string) => void; 
-  onSave: (id: string) => void;
+  onSave: (id: string) => void; 
   onOpenComments: (id: string) => void;
+  onShare: (moment: Moment) => void;
   active: boolean;
+  downloadProgress?: number | null;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -120,6 +125,20 @@ const ReelItem = ({
 
   return (
     <div className="relative w-full h-full max-w-[480px] mx-auto bg-black rounded-none md:rounded-[48px] overflow-hidden shadow-2xl transition-all duration-700 active:scale-95 group" onDoubleClick={handleDoubleTap}>
+      
+      {/* Download Progress Overlay */}
+      {downloadProgress !== null && downloadProgress !== undefined && (
+        <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-none">
+           <div className="relative flex items-center justify-center">
+             <svg className="w-24 h-24 transform -rotate-90">
+                <circle cx="48" cy="48" r="40" stroke="rgba(255,255,255,0.2)" strokeWidth="6" fill="none" />
+                <circle cx="48" cy="48" r="40" stroke="white" strokeWidth="6" fill="none" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * downloadProgress) / 100} className="transition-all duration-300 ease-out" />
+             </svg>
+             <span className="absolute text-white font-bold text-xl">{downloadProgress}%</span>
+           </div>
+        </div>
+      )}
+
       <div className="absolute inset-0 cursor-pointer" onClick={togglePlay}>
         {/* Background Blur Layer */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -185,67 +204,70 @@ const ReelItem = ({
         )}
       </div>
 
-      {/* Side Actions (Pink Soft Styling) */}
-      <div className="absolute right-4 bottom-32 flex flex-col items-center gap-6 z-20">
-        <div className="relative mb-4 group/avatar">
+      {/* Side Actions (Rationalized for mobile) */}
+      <div className="absolute right-3 bottom-24 flex flex-col items-center gap-4 z-20">
+        <div className="relative mb-2 group/avatar">
           <img 
             src={moment.avatar_url || '/uploads/avatars/default.png'} 
-            className="w-14 h-14 rounded-[22px] border-2 border-white object-cover cursor-pointer shadow-xl transition-all group-hover/avatar:scale-110" 
+            className="w-11 h-11 rounded-full border-2 border-white object-cover cursor-pointer shadow-xl transition-all group-hover/avatar:scale-110" 
             alt=""
             onClick={() => navigate(`/profile/${moment.username}`)}
           />
           {!moment.is_following && (
-            <button className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-125 transition-transform">+</button>
+            <button className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-110 transition-transform">+</button>
           )}
         </div>
-
-        <button className="flex flex-col items-center gap-1 group/btn" onClick={() => onLike(moment.moment_id)}>
-          <div className={clsx("w-14 h-14 rounded-[18px] backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_liked ? "bg-primary border-primary text-white" : "bg-white/20 border-white/20 text-white hover:bg-white/40")}>
-            <Heart size={28} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={3} />
+ 
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={() => onLike(moment.moment_id)}>
+          <div className={clsx("w-12 h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_liked ? "bg-primary border-primary text-white" : "bg-black/20 border-white/20 text-white")}>
+            <Heart size={24} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-black text-white uppercase tracking-widest drop-shadow-md">{moment.like_count || 0}</span>
+          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.like_count || 0}</span>
         </button>
-
-        <button className="flex flex-col items-center gap-1 group/btn" onClick={() => onOpenComments(moment.moment_id)}>
-          <div className="w-14 h-14 rounded-[18px] bg-white/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all group-hover/btn:scale-110 shadow-lg hover:bg-white/40">
-            <MessageCircle size={28} strokeWidth={3} />
+ 
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={() => onOpenComments(moment.moment_id)}>
+          <div className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all group-hover/btn:scale-110 shadow-lg">
+            <MessageCircle size={24} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-black text-white uppercase tracking-widest drop-shadow-md">{moment.comment_count || 0}</span>
+          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.comment_count || 0}</span>
         </button>
-
-        <button className="flex flex-col items-center gap-1 group/btn" onClick={() => onSave(moment.moment_id)}>
-          <div className={clsx("w-14 h-14 rounded-[18px] backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_saved ? "bg-amber-400 border-amber-400 text-white" : "bg-white/20 border-white/20 text-white hover:bg-white/40")}>
-            <BookmarkCheck size={28} fill={moment.is_saved ? "currentColor" : "none"} strokeWidth={3} />
+ 
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={() => onSave(moment.moment_id)}>
+          <div className={clsx("w-12 h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_saved ? "bg-amber-400 border-amber-400 text-white" : "bg-black/20 border-white/20 text-white")}>
+            <BookmarkCheck size={24} fill={moment.is_saved ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-black text-white uppercase tracking-widest drop-shadow-md">{moment.is_saved ? 'Saved' : 'Save'}</span>
+          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.is_saved ? 'Saved' : 'Save'}</span>
         </button>
-
-        <button className="w-14 h-14 rounded-[18px] bg-white/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all hover:bg-white/40 mb-4 shadow-lg group-hover:scale-110">
-          <Share2 size={24} strokeWidth={3} />
+ 
+        <button 
+          onClick={() => onShare(moment)}
+          className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all hover:bg-white/40 shadow-lg"
+        >
+          <Share2 size={22} strokeWidth={2.5} />
         </button>
-
-        <button className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white transition-all" onClick={() => setMuted(!muted)}>
-          {muted ? <VolumeX size={18} strokeWidth={3} /> : <Volume2 size={18} strokeWidth={3} />}
+ 
+        <button className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white transition-all mt-2" onClick={() => setMuted(!muted)}>
+          {muted ? <VolumeX size={16} strokeWidth={2.5} /> : <Volume2 size={16} strokeWidth={2.5} />}
         </button>
       </div>
 
-      {/* Info Overlay */}
-      <div className="absolute inset-x-0 bottom-0 p-8 pb-10 z-10 flex flex-col gap-3 pointer-events-none">
-        <div className="flex items-center gap-3">
-          <h3 className="text-xl font-black text-white italic tracking-tight pointer-events-auto cursor-pointer flex items-center gap-2" onClick={() => navigate(`/profile/${moment.username}`)}>
+      {/* Info Overlay (Rationalized) */}
+      <div className="absolute inset-x-0 bottom-0 p-5 pb-6 z-10 flex flex-col gap-2 pointer-events-none">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-bold text-white tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1.5" onClick={() => navigate(`/profile/${moment.username}`)}>
             @{moment.username}
-            <Sparkles size={16} className="text-primary fill-primary" />
+            <Sparkles size={14} className="text-primary fill-primary" />
           </h3>
-          <span className="text-[9px] font-black uppercase tracking-widest bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full border border-white/20">Original Energy</span>
+          <span className="text-[8px] font-black uppercase tracking-widest bg-black/40 backdrop-blur-md text-white px-2.5 py-0.5 rounded-full border border-white/10">Signal</span>
         </div>
         {moment.caption && (
-          <p className="text-base font-bold text-white/90 leading-tight drop-shadow-lg pr-20 line-clamp-3 italic">
+          <p className="text-[14px] font-medium text-white/95 leading-snug drop-shadow-md pr-16 line-clamp-2">
             {moment.caption}
           </p>
         )}
-        <div className="flex items-center gap-2 mt-2 opacity-50 px-1">
-           <Orbit size={14} className="animate-spin-slow text-white" />
-           <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">{moment.view_count || 0} signals in orbit</span>
+        <div className="flex items-center gap-1.5 mt-1 opacity-60">
+           <Orbit size={12} className="animate-spin-slow text-white" />
+           <span className="text-[9px] font-bold text-white uppercase tracking-wider">{moment.view_count || 0} signals</span>
         </div>
       </div>
     </div>
@@ -263,6 +285,8 @@ export default function Moments() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [activeMomentId, setActiveMomentId] = useState<string | null>(null);
+  const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<{ id: string, progress: number } | null>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -370,6 +394,63 @@ export default function Moments() {
     }
   };
 
+  const startDownload = async (moment: Moment) => {
+    setMomentToShare(null);
+    setDownloadProgress({ id: moment.moment_id, progress: 0 });
+
+    try {
+      const url = moment.video_url || moment.media_url;
+      if (!url) throw new Error('No media URL');
+
+      const response = await fetch(url);
+      if (!response.body) throw new Error('ReadableStream not yet supported in this browser.');
+
+      const contentLength = response.headers.get('content-length');
+      const total = parseInt(contentLength || '0', 10);
+      let loaded = 0;
+
+      const reader = response.body.getReader();
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          loaded += value.length;
+          if (total) {
+            setDownloadProgress({ id: moment.moment_id, progress: Math.round((loaded / total) * 100) });
+          } else {
+             setDownloadProgress(prev => ({ id: moment.moment_id, progress: Math.min((prev?.progress || 0) + 10, 90) }));
+          }
+        }
+      }
+
+      setDownloadProgress({ id: moment.moment_id, progress: 100 });
+      
+      const blob = new Blob(chunks);
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `sparkle-moment-${moment.moment_id}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+
+      setTimeout(() => setDownloadProgress(null), 1000);
+    } catch (error) {
+      console.error('Download error:', error);
+      const link = document.createElement('a');
+      link.href = moment.video_url || moment.media_url || '';
+      link.download = `sparkle-moment-${moment.moment_id}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setDownloadProgress(null);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-[#fdf2f4] flex flex-col font-sans overflow-hidden">
       <Navbar />
@@ -407,11 +488,21 @@ export default function Moments() {
                    onLike={handleLike} 
                    onSave={handleSave}
                    onOpenComments={openComments}
+                   onShare={setMomentToShare}
+                   downloadProgress={downloadProgress?.id === m.moment_id ? downloadProgress.progress : null}
                 />
               </div>
             ))
         )}
       </div>
+
+      {momentToShare && (
+        <MomentShareModal 
+          moment={momentToShare} 
+          onClose={() => setMomentToShare(null)} 
+          onDownload={startDownload}
+        />
+      )}
 
       {/* Comments Drawer (Pink Soft) */}
       <AnimatePresence>
@@ -428,46 +519,44 @@ export default function Moments() {
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 lg:left-72 right-0 h-[65vh] bg-white/95 backdrop-blur-3xl border-t border-white rounded-t-[48px] z-[1001] flex flex-col shadow-2xl overflow-hidden"
+              transition={{ type: "spring", damping: 25, stiffness: 250 }}
+              className="fixed bottom-0 left-0 lg:left-72 right-0 h-[60vh] bg-white rounded-t-3xl z-[1001] flex flex-col shadow-2xl overflow-hidden"
             >
-              <div className="p-8 flex justify-between items-center bg-white/60 border-b border-black/5">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-black text-black italic">Channel Signals</span>
-                  <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">{comments.length}</div>
+              <div className="p-4 flex justify-between items-center border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-900">Comments</span>
+                  <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[10px] font-bold">{comments.length}</span>
                 </div>
-                <button onClick={() => setShowComments(false)} className="p-2 bg-black/5 rounded-2xl text-black/20 hover:text-black transition-all">
-                  <X size={20} strokeWidth={4} />
+                <button onClick={() => setShowComments(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-all">
+                  <X size={20} />
                 </button>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
                 {comments.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center opacity-20">
-                    <MessageCircle size={64} strokeWidth={1} className="mb-6" />
-                    <p className="text-[12px] font-black uppercase tracking-widest italic">Signal is quiet...</p>
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
+                    <MessageCircle size={48} strokeWidth={1} className="mb-4" />
+                    <p className="text-[12px] font-bold uppercase tracking-widest">No comments yet</p>
                   </div>
                 ) : (
                   comments.map(c => <CommentItem key={c.comment_id} comment={c} onLike={() => {}} />)
                 )}
               </div>
-
-              <form className="p-8 bg-white/90 border-t border-black/5 flex gap-4 items-center" onSubmit={handleAddComment}>
-                <div className="flex-1 relative">
-                  <input 
-                    type="text" 
-                    placeholder="Transmit a signal..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="w-full h-14 bg-black/5 border border-transparent rounded-[20px] px-8 text-base font-bold placeholder:text-black/10 focus:bg-white focus:border-primary transition-all outline-none italic"
-                  />
-                </div>
+ 
+              <form className="p-4 bg-white border-t border-gray-100 flex gap-3 items-center" onSubmit={handleAddComment}>
+                <input 
+                  type="text" 
+                  placeholder="Add a comment..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="flex-1 h-10 bg-gray-100 rounded-full px-5 text-[14px] font-medium outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all"
+                />
                 <button 
                   type="submit"
                   disabled={!newComment.trim() || submittingComment}
-                  className="w-14 h-14 bg-primary text-white rounded-[22px] flex items-center justify-center shadow-xl shadow-primary/20 active:scale-95 transition-all disabled:opacity-20"
+                  className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all disabled:opacity-50"
                 >
-                  {submittingComment ? <Loader2 className="animate-spin" /> : <Send size={20} strokeWidth={3} />}
+                  {submittingComment ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 </button>
               </form>
             </motion.div>

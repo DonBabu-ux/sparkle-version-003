@@ -64,5 +64,6 @@ router.use('/analytics', require('./analytics.routes'));
 router.use('/highlights', highlightsRoutes);
 router.use('/stickers', require('./stickers.routes'));
 router.use('/audio', require('./audio.routes'));
+router.use('/moderation', require('./moderation.routes'));
 
 module.exports = router;

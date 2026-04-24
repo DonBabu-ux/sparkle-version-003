@@ -3,6 +3,7 @@ const { query } = require('../utils/database/query');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const speakeasy = require('speakeasy');
 const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
 const { downloadExternalImage } = require('../utils/media.utils');
@@ -253,17 +254,20 @@ const verify2FA = async (req, res) => {
         }
 
         const user = users[0];
-        if (!user.two_factor_enabled || !user.two_factor_secret) {
-            return res.status(400).json({ status: 'error', message: '2FA not enabled' });
+        let verified = false;
+
+        // Check if the code matches an unexpired emailed recovery code
+        const [verifications] = await query(
+            'SELECT * FROM email_verifications WHERE user_id = ? AND code = ? AND expires_at > NOW() AND verified_at IS NULL LIMIT 1',
+            [userId, code]
+        );
+
+        if (verifications.length > 0) {
+            verified = true;
+            await query('UPDATE email_verifications SET verified_at = NOW() WHERE verification_id = ?', [verifications[0].verification_id]);
         }
 
-        let verified = speakeasy.totp.verify({
-            secret: user.two_factor_secret,
-            encoding: 'base32',
-            token: code
-        });
-
-        // Check backup codes if TOTP fails (Algorithm 42.11)
+        // If not an emailed code, check permanent backup codes
         if (!verified && user.two_factor_backup_codes) {
             let backupCodes = [];
             try {
@@ -281,8 +285,17 @@ const verify2FA = async (req, res) => {
             }
         }
 
+        // If not verified by backup code, try TOTP (if enabled)
+        if (!verified && user.two_factor_enabled && user.two_factor_secret) {
+            verified = speakeasy.totp.verify({
+                secret: user.two_factor_secret,
+                encoding: 'base32',
+                token: code
+            });
+        }
+
         if (!verified) {
-            return res.status(401).json({ status: 'error', message: 'Invalid 2FA code or backup code' });
+            return res.status(401).json({ status: 'error', message: 'Invalid or expired 2FA code' });
         }
 
         // Token correct, issue token
@@ -345,17 +358,13 @@ const request2FARecovery = async (req, res) => {
 
         const user = users[0];
         const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-        // Store this as a temporary backup code
-        let backupCodes = [];
-        try {
-            backupCodes = JSON.parse(user.two_factor_backup_codes || '[]');
-        } catch (e) { backupCodes = []; }
-        
-        backupCodes.push(recoveryCode);
-
-        await query('UPDATE users SET two_factor_backup_codes = ? WHERE user_id = ?', [JSON.stringify(backupCodes), userId]);
+        // Insert into email_verifications instead of backup codes for temporary, strictly-expiring codes
+        // Use DATE_ADD(NOW()) to avoid Node.js vs MySQL timezone mismatch issues
+        await query(
+            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 2 MINUTE)) ON DUPLICATE KEY UPDATE code = VALUES(code), expires_at = DATE_ADD(NOW(), INTERVAL 2 MINUTE), verified_at = NULL',
+            [crypto.randomUUID(), userId, user.email, recoveryCode]
+        );
 
         await sendEmail({
             to: user.email,
@@ -364,7 +373,8 @@ const request2FARecovery = async (req, res) => {
             templateData: {
                 name: user.name,
                 code: recoveryCode,
-                message: 'Use this code to bypass your 2FA security check. It will expire in 15 minutes.'
+                message: 'Use this code to bypass your 2FA security check. It will expire in 2 minutes.',
+                verifyUrl: `${process.env.APP_URL || 'http://localhost:3000'}/login`
             }
         });
 

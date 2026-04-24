@@ -31,4 +31,7 @@ router.post('/:id/read', (req, res) => {
     return notificationController.markAsRead(req, res);
 });
 
+// Delete specific notification
+router.delete('/:notificationId', notificationController.deleteNotification);
+
 module.exports = router;

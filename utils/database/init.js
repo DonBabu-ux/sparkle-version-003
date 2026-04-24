@@ -1075,6 +1075,83 @@ const initHighlightsTables = async () => {
     }
 };
 
+const initModerationTables = async () => {
+    try {
+        // Ensure posts has status and visibility_score
+        const columnsToAdd = [
+            { name: 'status', type: 'ENUM("active", "limited", "removed") DEFAULT "active"' },
+            { name: 'visibility_score', type: 'FLOAT DEFAULT 1.0' }
+        ];
+
+        for (const col of columnsToAdd) {
+            const [exists] = await pool.query(`
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = ?
+            `, [col.name]);
+            if (exists.length === 0) {
+                await pool.query(`ALTER TABLE posts ADD COLUMN ${col.name} ${col.type}`);
+                logger.debug(`✅ Added ${col.name} column to posts table for moderation`);
+            }
+        }
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS reports (
+                id CHAR(36) PRIMARY KEY,
+                post_id CHAR(36) NOT NULL,
+                reporter_id CHAR(36) NOT NULL,
+                reason VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+                FOREIGN KEY (reporter_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                UNIQUE KEY unique_report (post_id, reporter_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS moderation_scores (
+                post_id CHAR(36) PRIMARY KEY,
+                toxicity_score FLOAT DEFAULT 0,
+                nsfw_score FLOAT DEFAULT 0,
+                violence_score FLOAT DEFAULT 0,
+                spam_score FLOAT DEFAULT 0,
+                confidence FLOAT DEFAULT 0,
+                last_scored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS appeals (
+                id CHAR(36) PRIMARY KEY,
+                post_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                reason TEXT NOT NULL,
+                status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                reviewed_at TIMESTAMP NULL DEFAULT NULL,
+                FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_trust (
+                user_id CHAR(36) PRIMARY KEY,
+                trust_score FLOAT DEFAULT 1.0,
+                false_report_count INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        logger.debug('✅ Moderation tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init moderation tables:', err.message);
+        throw err;
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -1120,6 +1197,7 @@ const initDB = async () => {
         try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }
         try { await initSearchTables(); } catch (e) { logger.error('Search Tables Init Error:', e.message); }
         try { await initHighlightsTables(); } catch (e) { logger.error('Highlights Tables Init Error:', e.message); }
+        try { await initModerationTables(); } catch (e) { logger.error('Moderation Tables Init Error:', e.message); }
     });
     
     logger.debug('✅ Database initialization process complete');

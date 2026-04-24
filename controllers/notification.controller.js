@@ -216,6 +216,28 @@ const notificationController = {
         }
     },
 
+    // Delete a specific notification
+    deleteNotification: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const { notificationId } = req.params;
+
+            const [result] = await pool.query(
+                'DELETE FROM notifications WHERE notification_id = ? AND user_id = ?',
+                [notificationId, userId]
+            );
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Notification not found' });
+            }
+
+            res.json({ message: 'Notification deleted' });
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            res.status(500).json({ error: 'Failed to delete notification' });
+        }
+    },
+
     // Helper function to create a notification (intended for internal use by other controllers)
     createNotification: async (data, connection = pool) => {
         try {

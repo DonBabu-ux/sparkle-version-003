@@ -18,11 +18,21 @@ export default function Login() {
   // 2FA State
   const [show2FA, setShow2FA] = useState(false);
   const [pin, setPin] = useState(['', '', '', '', '', '']);
+  const [twoFactorUserId, setTwoFactorUserId] = useState('');
+  const [cooldown, setCooldown] = useState(0);
 
   const { login } = useUserStore();
   const navigate = useNavigate();
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const showError = (msg: string) => { setError(msg); setSuccess(''); };
   const showSuccess = (msg: string) => { setSuccess(msg); setError(''); };
@@ -39,6 +49,7 @@ export default function Login() {
 
       if (data?.status === 'requires_2fa' || data?.status === 'twofa_required') {
         setShow2FA(true);
+        setTwoFactorUserId(data.userId);
         setLoading(false);
         return;
       }
@@ -59,13 +70,82 @@ export default function Login() {
     }
   };
 
-  const handlePinInput = (index: number, value: string) => {
-    const cleaned = value.replace(/[^0-9]/g, '').slice(-1);
-    const newPin = [...pin];
-    newPin[index] = cleaned;
-    setPin(newPin);
-    if (cleaned && index < 5) {
+  const handlePinInput = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const cleaned = value.replace(/[^0-9]/g, '');
+    if (cleaned.length > 1) {
+      // Handle paste
+      const newPin = [...pin];
+      for (let i = 0; i < cleaned.length && index + i < 6; i++) {
+        newPin[index + i] = cleaned[i];
+      }
+      setPin(newPin);
+      const nextIndex = Math.min(index + cleaned.length, 5);
+      document.getElementById(`pin-${nextIndex}`)?.focus();
+    }
+  };
+
+  const handlePinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      const newPin = [...pin];
+      if (pin[index]) {
+        newPin[index] = '';
+        setPin(newPin);
+      } else if (index > 0) {
+        newPin[index - 1] = '';
+        setPin(newPin);
+        document.getElementById(`pin-${index - 1}`)?.focus();
+      }
+    } else if (/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+      const newPin = [...pin];
+      newPin[index] = e.key;
+      setPin(newPin);
+      if (index < 5) {
+        document.getElementById(`pin-${index + 1}`)?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      document.getElementById(`pin-${index - 1}`)?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
       document.getElementById(`pin-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleSendRecoveryCode = async () => {
+    if (cooldown > 0) return;
+    setLoading(true);
+    try {
+      await api.post('/auth/request-2fa-recovery', { userId: twoFactorUserId });
+      showSuccess('Code sent! It expires in 2 minutes.');
+      setCooldown(60);
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to send code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const code = pin.join('');
+    if (code.length !== 6) {
+      showError('Please enter the full 6-digit code');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/verify-2fa', { userId: twoFactorUserId, code });
+      const data = res.data;
+      if (data?.status === 'success' && data?.token) {
+        showSuccess('Verification successful!');
+        login(data.token, data.user);
+        setTimeout(() => navigate('/dashboard'), 1500);
+      }
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Invalid code');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -196,7 +276,26 @@ export default function Login() {
                   <ShieldCheck size={36} strokeWidth={1.5} />
                 </div>
                 <h3 className="login-card__title">Two-factor auth</h3>
-                <p className="login-card__sub">Enter the 6-digit code sent to your email</p>
+                <p className="login-card__sub" style={{ marginBottom: '0.5rem' }}>
+                  Use your Authenticator App, or send a code to your email.
+                </p>
+
+                {(error || success) && (
+                  <div className={`login-toast ${error ? 'login-toast--err' : 'login-toast--ok'}`} style={{ width: '100%', justifyContent: 'center' }}>
+                    <span className="login-toast__dot" />
+                    {error || success}
+                  </div>
+                )}
+
+                <button 
+                  onClick={handleSendRecoveryCode} 
+                  disabled={loading || cooldown > 0}
+                  type="button" 
+                  className="login-btn login-btn--alt" 
+                  style={{ padding: '0.6rem', fontSize: '0.85rem', marginBottom: '0.5rem' }}
+                >
+                  {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Send code to email'}
+                </button>
 
                 <div className="login-pins">
                   {pin.map((digit, i) => (
@@ -205,21 +304,20 @@ export default function Login() {
                       id={`pin-${i}`}
                       type="text"
                       inputMode="numeric"
-                      maxLength={1}
                       value={digit}
-                      onChange={(e) => handlePinInput(i, e.target.value)}
+                      onChange={(e) => handlePinInput(i, e)}
+                      onKeyDown={(e) => handlePinKeyDown(i, e)}
                       className="login-pin"
                       aria-label={`PIN digit ${i + 1}`}
                     />
                   ))}
                 </div>
 
-                <button className="login-btn login-btn--main">
-                  <span>Verify code</span>
-                  <ArrowRight size={18} strokeWidth={2.5} />
+                <button onClick={handleVerify2FA} disabled={loading} className="login-btn login-btn--main">
+                  {loading ? <span className="login-spin" /> : <><span>Verify code</span><ArrowRight size={18} strokeWidth={2.5} /></>}
                 </button>
 
-                <button onClick={() => setShow2FA(false)} className="login-back" type="button">
+                <button onClick={() => { setShow2FA(false); setPin(['', '', '', '', '', '']); }} className="login-back" type="button">
                   Back to login
                 </button>
               </div>

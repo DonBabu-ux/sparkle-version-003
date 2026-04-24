@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
-import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, Orbit, ArrowLeft } from 'lucide-react';
+import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, ArrowLeft, CheckCircle2, Search, MoreHorizontal, X, BellOff, AlertOctagon } from 'lucide-react';
 
 interface Notification {
   notification_id: string;
@@ -20,9 +20,10 @@ interface Notification {
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const navigate = useNavigate();
-
   const [loading, setLoading] = useState(true);
+  const [seeAll, setSeeAll] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -43,7 +44,7 @@ export default function Notifications() {
 
   const markAsRead = async (id: string) => {
     try {
-      await api.post(`/notifications/${id}/read`);
+      await api.put(`/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, is_read: 1 } : n));
     } catch (err) {
       console.error('Failed to mark read:', err);
@@ -52,22 +53,45 @@ export default function Notifications() {
 
   const markAllRead = async () => {
     try {
-      await api.post('/notifications/read-all');
+      await api.put('/notifications/read-all');
       setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
     } catch (err) {
       console.error('Failed to mark all read:', err);
     }
   };
 
-  const getIcon = (type: string) => {
+  const deleteNotification = async (id: string) => {
+    try {
+      // Assuming a delete endpoint exists. If not, this simply removes it from UI for now.
+      await api.delete(`/notifications/${id}`).catch(() => {});
+      setNotifications(prev => prev.filter(n => (n.notification_id !== id && n.id !== id)));
+      setSelectedNotif(null);
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
+  };
+
+  const getBadgeColor = (type: string) => {
     switch(type) {
-      case 'follow': return <User size={18} className="text-blue-500" strokeWidth={3} />;
-      case 'spark': return <Zap size={18} className="text-amber-500 fill-amber-500" strokeWidth={3} />;
-      case 'comment': return <MessageSquare size={18} className="text-emerald-500" strokeWidth={3} />;
-      case 'group': return <Users size={18} className="text-purple-500" strokeWidth={3} />;
-      case 'marketplace': return <ShoppingBag size={18} className="text-primary" strokeWidth={3} />;
-      case 'poke': return <Hand size={18} className="text-indigo-500" strokeWidth={3} />;
-      default: return <Bell size={18} className="text-black/20" strokeWidth={3} />;
+      case 'follow': return '#1877f2';
+      case 'spark': return '#f59e0b';
+      case 'comment': return '#31a24c';
+      case 'group': return '#8b5cf6';
+      case 'marketplace': return '#14b8a6';
+      case 'poke': return '#6366f1';
+      default: return '#1877f2';
+    }
+  };
+
+  const getFacebookIcon = (type: string) => {
+    switch(type) {
+      case 'follow': return <User size={12} className="text-white" strokeWidth={3} />;
+      case 'spark': return <Zap size={12} className="text-white fill-white" />;
+      case 'comment': return <MessageSquare size={12} className="text-white fill-white" />;
+      case 'group': return <Users size={12} className="text-white" strokeWidth={3} />;
+      case 'marketplace': return <ShoppingBag size={12} className="text-white" strokeWidth={3} />;
+      case 'poke': return <Hand size={12} className="text-white fill-white" />;
+      default: return <Bell size={12} className="text-white fill-white" />;
     }
   };
 
@@ -82,108 +106,238 @@ export default function Notifications() {
     }
   };
 
+  // Categorize notifications
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+  const newNotifs = notifications.filter(n => !n.is_read);
+  const todayNotifs = notifications.filter(n => n.is_read && new Date(n.created_at).getTime() >= todayStart);
+  const earlierNotifs = notifications.filter(n => n.is_read && new Date(n.created_at).getTime() < todayStart);
+
+  const displayedNotifs = seeAll ? notifications : notifications.slice(0, 20);
+
+  const renderSection = (title: string, list: Notification[]) => {
+    // Only filter the 'displayedNotifs' so pagination applies globally across categories
+    const items = list.filter(n => displayedNotifs.includes(n));
+    if (items.length === 0) return null;
+
+    return (
+      <div className="mb-2">
+        <h2 className="px-4 py-2 text-[17px] font-bold text-gray-900">{title}</h2>
+        <div className="flex flex-col">
+          {items.map(notif => renderNotification(notif))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderNotification = (notif: Notification) => (
+    <div 
+      key={notif.notification_id || notif.id}
+      onClick={() => markAsRead(notif.notification_id || notif.id)}
+      className={`flex items-start gap-3 p-3 transition-colors cursor-pointer border-b border-gray-100 last:border-0 hover:bg-gray-50
+        ${!notif.is_read ? 'bg-[#ebf5ff]' : 'bg-white'}`}
+    >
+      <div className="relative shrink-0 mt-1">
+        <img src={notif.actor_avatar || '/uploads/avatars/default.png'} className="w-[56px] h-[56px] rounded-full object-cover border border-black/5" alt="" />
+        <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-sm"
+             style={{ backgroundColor: getBadgeColor(notif.type) }}>
+          {getFacebookIcon(notif.type)}
+        </div>
+      </div>
+      
+      <div className="flex-1 pt-1.5 min-w-0 pr-2">
+         <div className="text-[15px] leading-tight text-gray-900 break-words">
+            {notif.actor_name ? (
+              <>
+                <span className="font-semibold">{notif.actor_name}</span>{' '}
+                <span>{notif.content || notif.message}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{notif.title}</span>{' '}
+                <span>{notif.content || notif.message}</span>
+              </>
+            )}
+         </div>
+         
+         <span className={`text-[13px] font-medium mt-1 block ${!notif.is_read ? 'text-[#1877f2]' : 'text-gray-500'}`}>
+           {new Date(notif.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+         </span>
+         
+         {notif.type === 'poke' && (
+           <button 
+             onClick={(e) => { e.stopPropagation(); handlePokeBack(notif.actor_id, notif.actor_name); }}
+             className="mt-2 bg-gray-200 text-black px-4 py-1.5 rounded-md text-[14px] font-semibold hover:bg-gray-300 transition-colors"
+           >
+             Poke Back
+           </button>
+         )}
+
+         {notif.type === 'system_welcome' && (
+           <div className="flex items-center gap-2 mt-2">
+             <button onClick={(e) => { e.stopPropagation(); navigate('/explore'); }} className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-md text-[14px] font-semibold hover:bg-blue-200">Explore</button>
+             <button onClick={(e) => { e.stopPropagation(); navigate('/settings'); }} className="bg-gray-200 text-black px-4 py-1.5 rounded-md text-[14px] font-semibold hover:bg-gray-300">Settings</button>
+           </div>
+         )}
+      </div>
+
+      <div className="shrink-0 flex items-center gap-2 mt-2">
+        {!notif.is_read && (
+          <div className="w-3 h-3 bg-[#1877f2] rounded-full mr-1"></div>
+        )}
+        <button 
+          onClick={(e) => { e.stopPropagation(); setSelectedNotif(notif); }}
+          className="p-2 rounded-full hover:bg-gray-200 transition-colors text-gray-500"
+        >
+          <MoreHorizontal size={20} />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
+    <div className="flex bg-[#f0f2f5] min-h-screen text-black font-sans">
       <Navbar />
       
-      <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-red-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
-
-      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full">
-        <header className="flex flex-col md:flex-row items-center justify-between gap-10 mb-16 animate-fade-in">
-          <div className="flex items-center gap-6">
-            <div className="w-14 h-14 bg-white/60 backdrop-blur-xl border border-white rounded-[20px] shadow-sm flex items-center justify-center">
-              <Bell size={24} className="text-primary" strokeWidth={3} />
+      <main className="flex-1 lg:ml-72 pt-20 pb-20 max-w-2xl mx-auto w-full">
+        {/* Sticky Header Card */}
+        <header className="sticky top-[70px] z-30 bg-white shadow-sm border-b border-gray-200/60 px-4 py-3">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
+                <ArrowLeft size={24} className="text-gray-900" />
+              </button>
+              <h1 className="text-[24px] font-bold text-gray-900 m-0 leading-none">Notifications</h1>
             </div>
-            <div>
-              <h1 className="text-4xl font-black text-black tracking-tight italic">Activity</h1>
-              <p className="text-[11px] font-bold text-black/20 uppercase tracking-widest mt-1">Village Updates</p>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={markAllRead} 
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+                title="Mark all as read"
+              >
+                <CheckCircle2 size={24} />
+              </button>
+              <button 
+                onClick={() => navigate('/search')} 
+                className="p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+                title="Search notifications"
+              >
+                <Search size={24} />
+              </button>
             </div>
           </div>
-          
-          <button 
-            onClick={markAllRead} 
-            className="px-8 py-3.5 rounded-2xl bg-white/60 border border-white font-bold text-[11px] uppercase tracking-wider text-black/40 hover:text-black hover:bg-white transition-all active:scale-95 shadow-sm"
-          >
-            Clear Channel
-          </button>
         </header>
 
-        <div className="flex flex-col gap-5 relative z-10 pb-40 animate-fade-in">
-          {loading ? (
-             <div className="flex justify-center py-20">
-                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-             </div>
-          ) : notifications.length > 0 ? (
-            notifications.map((notif: Notification) => (
-              <div 
-                key={notif.notification_id || notif.id}
-                onClick={() => markAsRead(notif.notification_id || notif.id)}
-                className={`group transition-all duration-500 cursor-pointer p-6 rounded-[32px] border flex items-start gap-5 backdrop-blur-3xl
-                  ${!notif.is_read 
-                    ? 'border-primary/20 bg-white shadow-xl shadow-primary/5' 
-                    : 'border-white bg-white/60 opacity-80 hover:bg-white hover:opacity-100 shadow-sm'}`}
-              >
-                <div className="relative shrink-0 mt-0.5">
-                  <img src={notif.actor_avatar || '/uploads/avatars/default.png'} className="w-14 h-14 rounded-[20px] object-cover border border-white shadow-sm" alt="" />
-                  <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full shadow-lg flex items-center justify-center border border-black/5 group-hover:scale-110 transition-transform">
-                    {getIcon(notif.type)}
-                  </div>
-                </div>
-                
-                <div className="flex-1 pt-1">
-                   <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-black text-black text-base tracking-tight italic leading-none uppercase group-hover:text-primary transition-colors">
-                        {notif.title || (notif.type === 'poke' ? 'Someone poked you' : 'New Update')}
-                      </h4>
-                      <span className="text-[9px] font-bold text-black/20 uppercase tracking-widest bg-black/5 px-3 py-1 rounded-full shrink-0">
-                        {new Date(notif.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                   </div>
-                   <p className="text-black font-medium text-sm leading-relaxed mb-4">
-                     {notif.content || notif.message}
-                   </p>
-                   
-                   {notif.type === 'poke' && (
-                     <button 
-                       onClick={(e) => { e.stopPropagation(); handlePokeBack(notif.actor_id, notif.actor_name); }}
-                       className="flex items-center gap-2 bg-primary text-white px-8 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all active:scale-95"
-                     >
-                       Poke Back <Hand size={14} strokeWidth={3} />
-                     </button>
-                   )}
-
-                   {notif.type === 'system_welcome' && (
-                     <div className="flex items-center gap-4 mt-4">
-                       <button onClick={(e) => { e.stopPropagation(); navigate('/explore'); }} className="text-primary font-bold text-[10px] uppercase tracking-widest hover:underline">Explore</button>
-                       <div className="w-1 h-1 bg-black/5 rounded-full"></div>
-                       <button onClick={(e) => { e.stopPropagation(); navigate('/settings'); }} className="text-primary font-bold text-[10px] uppercase tracking-widest hover:underline">Settings</button>
-                     </div>
-                   )}
-                </div>
-
-                {!notif.is_read && (
-                  <div className="shrink-0 w-2.5 h-2.5 bg-primary rounded-full mt-2 animate-pulse shadow-sm shadow-primary/20"></div>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="py-40 flex flex-col items-center justify-center text-center gap-10 animate-fade-in bg-white/40 border border-white rounded-[48px] shadow-inner">
-               <Orbit size={100} strokeWidth={1} className="text-black/5" />
-               <div className="space-y-4">
-                 <h3 className="text-3xl font-black text-black/10 italic">Quiet Airwaves.</h3>
-                 <p className="text-[11px] font-bold text-black/20 uppercase tracking-widest max-w-xs mx-auto">No signals detected at the moment.</p>
+        {/* Notifications List Card */}
+        <div className="bg-white min-h-[500px]">
+          <div className="flex flex-col">
+            {loading ? (
+               <div className="flex justify-center py-10">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                </div>
-               <button onClick={() => navigate('/dashboard')} className="flex items-center gap-3 px-10 py-4 bg-primary text-white shadow-xl shadow-primary/20 rounded-2xl font-bold text-sm hover:scale-105 transition-all active:scale-95">
-                 <ArrowLeft size={18} /> Back to Pulse
-               </button>
-            </div>
-          )}
+            ) : notifications.length > 0 ? (
+              <>
+                {renderSection('New', newNotifs)}
+                {renderSection('Today', todayNotifs)}
+                {renderSection('Earlier', earlierNotifs)}
+
+                {!seeAll && notifications.length > 20 && (
+                  <button 
+                    onClick={() => setSeeAll(true)}
+                    className="w-full py-4 text-[#1877f2] font-semibold hover:bg-gray-50 transition-colors border-t border-gray-200/60"
+                  >
+                    See all notifications
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="py-20 flex flex-col items-center justify-center text-center text-gray-500">
+                 <Bell size={48} className="text-gray-300 mb-4" />
+                 <h3 className="text-xl font-bold text-gray-900">No notifications</h3>
+                 <p className="text-[15px] mt-1">We'll let you know when something happens.</p>
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
+      {/* Bottom Sheet Modal for Notification Options */}
+      {selectedNotif && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedNotif(null)}>
+          <div 
+            className="bg-white w-full max-w-lg rounded-t-2xl p-4 transform transition-transform shadow-2xl" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
+          >
+             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4"></div>
+             
+             <div className="flex flex-col items-center mb-6">
+                <img src={selectedNotif.actor_avatar || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-full object-cover border border-gray-200 shadow-sm" alt="" />
+                <p className="text-gray-900 text-[15px] mt-3 text-center px-4 leading-tight">
+                   {selectedNotif.actor_name ? (
+                      <><span className="font-semibold">{selectedNotif.actor_name}</span> {selectedNotif.content || selectedNotif.message}</>
+                   ) : (
+                      <><span className="font-semibold">{selectedNotif.title}</span> {selectedNotif.content || selectedNotif.message}</>
+                   )}
+                </p>
+             </div>
+             
+             <div className="flex flex-col gap-1">
+                <button 
+                  onClick={() => deleteNotification(selectedNotif.notification_id || selectedNotif.id || '')} 
+                  className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg text-left transition-colors"
+                >
+                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                     <X size={22} className="text-gray-700" />
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="font-semibold text-[16px] text-gray-900">Remove this notification</span>
+                     <span className="text-[13px] text-gray-500">Won't show up in your updates anymore</span>
+                   </div>
+                </button>
+                
+                <button 
+                  onClick={() => { alert('Notifications turned off.'); setSelectedNotif(null); }}
+                  className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg text-left transition-colors"
+                >
+                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                     <BellOff size={20} className="text-gray-700" />
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="font-semibold text-[16px] text-gray-900">Turn off notifications about this post</span>
+                     <span className="text-[13px] text-gray-500">Stop receiving updates for this activity</span>
+                   </div>
+                </button>
+
+                <button 
+                  onClick={() => { alert('Report sent to the team.'); setSelectedNotif(null); }}
+                  className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg text-left transition-colors"
+                >
+                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                     <AlertOctagon size={20} className="text-gray-700" />
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="font-semibold text-[16px] text-gray-900">Report issue to Notifications Team</span>
+                     <span className="text-[13px] text-gray-500">Let us know if something is wrong</span>
+                   </div>
+                </button>
+             </div>
+             
+             <button 
+               onClick={() => setSelectedNotif(null)} 
+               className="mt-4 w-full py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-[15px] transition-colors"
+             >
+                Cancel
+             </button>
+          </div>
+        </div>
+      )}
+
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.2s ease forwards; }
       `}</style>
     </div>
   );

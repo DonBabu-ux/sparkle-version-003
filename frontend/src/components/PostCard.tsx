@@ -63,9 +63,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     }
   };
 
-  const handleReport = () => {
+  const handleReport = async () => {
     setMenuOpen(false);
-    alert('Post reported. Our team will review it shortly.');
+    const reason = window.prompt('Why are you reporting this post? (e.g. spam, inappropriate)', 'Inappropriate content');
+    if (!reason) return;
+
+    try {
+      await api.post('/moderation/reports', { post_id: post.post_id, reason });
+      alert('Post reported. Our moderation team and AI engine will review it shortly.');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to report post.');
+    }
   };
 
   const handleCopyLink = () => {

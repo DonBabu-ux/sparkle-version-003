@@ -281,6 +281,9 @@ if (require.main === module) {
 
         // Start keep-alive service to prevent Render from sleeping
         startKeepAlive();
+
+        // Initialize database tables
+        initDB().catch(err => logger.error('Failed to initialize database:', err));
     });
 }
 

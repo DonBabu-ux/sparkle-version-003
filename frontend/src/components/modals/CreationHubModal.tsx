@@ -58,6 +58,7 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
                 { name: 'new spark', icon: Pen, action: () => setActiveModal('post'), desc: 'TRANSMIT BROADCAST', color: 'text-black' },
                 { name: 'afterglow', icon: History, action: () => navigate('/afterglow/create'), desc: 'EPHEMERAL FRAGMENT', color: 'text-primary' },
                 { name: 'moment', icon: PlayCircle, action: () => navigate('/moments/create'), desc: 'PULSE TRANSLATION', color: 'text-primary' },
+                { name: 'highlight', icon: Sparkles, action: () => setActiveModal('highlight'), desc: 'VAULT SELECTION', color: 'text-amber-500' },
             ].map((item, idx) => (
                 <button 
                     key={idx}

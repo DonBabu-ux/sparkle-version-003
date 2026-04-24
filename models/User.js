@@ -23,6 +23,18 @@ class User {
     }
 
     /**
+     * Helper to ensure avatar URLs are properly formatted
+     */
+    static getSafeAvatarUrl(url) {
+        if (!url) return '/uploads/avatars/default.png';
+        if (url.startsWith('http')) return url;
+        if (url.includes('uploads/')) {
+            return url.startsWith('/') ? url : `/${url}`;
+        }
+        return '/uploads/avatars/default.png';
+    }
+
+    /**
      * Helper to map legacy database columns to generalized concepts
      */
     static mapGeneralizedFields(user) {
@@ -30,6 +42,7 @@ class User {
         user.affiliation = user.affiliation || user.campus;
         user.interests = user.interests || user.major;
         user.experience_level = user.experience_level || user.year_of_study;
+        user.avatar_url = this.getSafeAvatarUrl(user.avatar_url || user.profile_picture || user.avatar);
         return user;
     }
 
@@ -43,7 +56,8 @@ class User {
             `SELECT u.*,
                     (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
-                    (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count
+                    (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count,
+                    (SELECT COUNT(*) FROM stories WHERE user_id = u.user_id AND (expires_at > NOW() OR (expires_at IS NULL AND created_at > NOW() - INTERVAL 24 HOUR))) > 0 as has_story
              FROM users u
              WHERE u.user_id = ? AND u.account_status != 'suspended'`,
             [userId]
@@ -419,6 +433,7 @@ class User {
                     (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id) as following_count,
                     (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count,
+                    (SELECT COUNT(*) FROM stories WHERE user_id = u.user_id AND (expires_at > NOW() OR (expires_at IS NULL AND created_at > NOW() - INTERVAL 24 HOUR))) > 0 as has_story,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
                     (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as is_requested_by_me
              FROM users u 

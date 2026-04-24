@@ -12,6 +12,7 @@ const groupsRoutes = require('./groups.routes');
 const marketplaceRoutes = require('./marketplace.routes');
 const confessionRoutes = require('./confession.routes');
 const skillMarketRoutes = require('./skill-market.routes');
+const highlightsRoutes = require('./highlights.routes');
 
 const uploadRoutes = require('./upload.routes');
 const shareRoutes = require('./share.routes');
@@ -60,5 +61,6 @@ router.use('/link-preview', linkPreviewRoutes);
 router.use('/clubs', require('./clubs.routes'));
 router.use('/lost-found', require('./lost-found.routes'));
 router.use('/analytics', require('./analytics.routes'));
+router.use('/highlights', highlightsRoutes);
 
 module.exports = router;

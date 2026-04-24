@@ -62,7 +62,8 @@ const repairUsersTable = async () => {
             { name: 'campus', type: 'VARCHAR(100) DEFAULT NULL' },
             { name: 'major', type: 'VARCHAR(100) DEFAULT NULL' },
             { name: 'year_of_study', type: 'VARCHAR(50) DEFAULT NULL' },
-            { name: 'profile_views', type: 'INT DEFAULT 0' }
+            { name: 'profile_views', type: 'INT DEFAULT 0' },
+            { name: 'note', type: 'VARCHAR(60) DEFAULT NULL' }
         ];
 
         for (const col of columnsToAdd) {
@@ -128,6 +129,28 @@ const repairPostsTable = async () => {
         }
     } catch (err) {
         logger.error('❌ Failed to repair posts table:', err.message);
+    }
+};
+
+const repairStoriesTable = async () => {
+    try {
+        const columnsToAdd = [
+            { name: 'is_archived', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'expires_at', type: 'TIMESTAMP NULL DEFAULT NULL' }
+        ];
+
+        for (const col of columnsToAdd) {
+            const [exists] = await pool.query(`
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stories' AND COLUMN_NAME = ?
+            `, [col.name]);
+            if (exists.length === 0) {
+                await pool.query(`ALTER TABLE stories ADD COLUMN ${col.name} ${col.type}`);
+                logger.info(`Added ${col.name} column to stories table`);
+            }
+        }
+    } catch (err) {
+        logger.error('❌ Failed to repair stories table:', err.message);
     }
 };
 
@@ -930,6 +953,41 @@ const initSearchTables = async () => {
     }
 };
 
+const initHighlightsTables = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS highlights (
+                highlight_id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                title VARCHAR(100) NOT NULL,
+                cover_url VARCHAR(500),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_highlights_user (user_id, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS highlight_stories (
+                id CHAR(36) PRIMARY KEY,
+                highlight_id CHAR(36) NOT NULL,
+                story_id CHAR(36) NOT NULL,
+                position INT DEFAULT 0,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (highlight_id) REFERENCES highlights(highlight_id) ON DELETE CASCADE,
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE,
+                UNIQUE KEY unique_highlight_story (highlight_id, story_id),
+                INDEX idx_highlight_stories (highlight_id, position)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        logger.debug('✅ Highlights tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init highlights tables:', err.message);
+        throw err;
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -953,9 +1011,11 @@ const initDB = async () => {
         // Priority for current feature batch
         try { await initConfessionTables(); } catch (e) { logger.error('Confessions Init Error:', e.message); }
         try { await repairPostsTable(); } catch (e) { logger.warn('Posts repair failed:', e.message); }
+        try { await repairStoriesTable(); } catch (e) { logger.warn('Stories repair failed:', e.message); }
         try { await initRepostsTable(); } catch (e) { logger.warn('Reposts init failed:', e.message); }
         
         try { await repairUsersTable(); } catch (e) { logger.warn('Users repair failed:', e.message); }
+        try { await initHighlightsTables(); } catch (e) { logger.warn('Highlights init failed:', e.message); }
         try { await initNotificationsTable(); } catch (e) { logger.warn('Notifications init failed:', e.message); }
         try { await initUserInteractionsTables(); } catch (e) { logger.warn('Interactions init failed:', e.message); }
         try { await initMomentsTable(); } catch (e) { logger.warn('Moments init failed:', e.message); }
@@ -971,6 +1031,7 @@ const initDB = async () => {
         try { await initSkillMarketTable(); } catch (e) { logger.warn('SkillMarket init failed:', e.message); }
         try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }
         try { await initSearchTables(); } catch (e) { logger.error('Search Tables Init Error:', e.message); }
+        try { await initHighlightsTables(); } catch (e) { logger.error('Highlights Tables Init Error:', e.message); }
     });
     
     logger.debug('✅ Database initialization process complete');

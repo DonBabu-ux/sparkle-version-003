@@ -811,6 +811,49 @@ const initConfessionTables = async () => {
     }
 };
 
+const initHighlightsTables = async () => {
+    try {
+        // Add is_archived to stories if missing
+        try {
+            await pool.query('ALTER TABLE stories ADD COLUMN is_archived TINYINT(1) DEFAULT 0');
+            logger.debug('✅ Added is_archived to stories table');
+        } catch (e) {
+            if (e.code !== 'ER_DUP_FIELDNAME') logger.warn('is_archived column:', e.message);
+        }
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS highlights (
+                highlight_id CHAR(36) NOT NULL PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                title VARCHAR(100) NOT NULL,
+                cover_url VARCHAR(500) DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_highlights_user (user_id, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS highlight_stories (
+                id CHAR(36) NOT NULL PRIMARY KEY,
+                highlight_id CHAR(36) NOT NULL,
+                story_id CHAR(36) NOT NULL,
+                position INT DEFAULT 0,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_highlight_story (highlight_id, story_id),
+                FOREIGN KEY (highlight_id) REFERENCES highlights(highlight_id) ON DELETE CASCADE,
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE,
+                INDEX idx_hs_highlight (highlight_id, position)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        logger.debug('✅ Highlights tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init Highlights tables:', err.message);
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -849,6 +892,7 @@ const initDB = async () => {
         try { await initLostFoundTable(); } catch (e) { logger.warn('LostFound init failed:', e.message); }
         try { await initSkillMarketTable(); } catch (e) { logger.warn('SkillMarket init failed:', e.message); }
         try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }
+        try { await initHighlightsTables(); } catch (e) { logger.warn('Highlights init failed:', e.message); }
     });
     
     logger.debug('✅ Database initialization process complete');

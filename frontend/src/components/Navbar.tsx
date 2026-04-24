@@ -25,6 +25,9 @@ import ReshareModal from './modals/ReshareModal';
 import PostCommentsModal from './modals/PostCommentsModal';
 import CreationHubModal from './modals/CreationHubModal';
 import MediaPreviewModal from './modals/MediaPreviewModal';
+import CreateHighlightModal from './modals/CreateHighlightModal';
+import HighlightPlayerModal from './modals/HighlightPlayerModal';
+import ArchiveModal from './modals/ArchiveModal';
 import FloatingAction from './FloatingAction';
 import Sidebar from './Sidebar';
 
@@ -184,6 +187,32 @@ export default function Navbar() {
                 {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
                 {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}
                 {activeModal === 'creation_hub' && <CreationHubModal onClose={() => setActiveModal(null)} />}
+                {activeModal === 'highlight' && (
+                  <CreateHighlightModal 
+                    isOpen={true} 
+                    onClose={() => setActiveModal(null)} 
+                    onCreated={(h) => {
+                      setActiveModal(null);
+                      triggerSuccess();
+                    }} 
+                  />
+                )}
+                {activeModal === 'highlight_player' && (
+                  <HighlightPlayerModal
+                    isOpen={true}
+                    onClose={() => setActiveModal(null)}
+                    title={modalData?.title}
+                    stories={modalData?.stories}
+                    ownerUsername={modalData?.ownerUsername}
+                    ownerAvatar={modalData?.ownerAvatar}
+                  />
+                )}
+                {activeModal === 'archive' && (
+                  <ArchiveModal 
+                    isOpen={true} 
+                    onClose={() => setActiveModal(null)} 
+                  />
+                )}
               </div>
             </div>
           )}

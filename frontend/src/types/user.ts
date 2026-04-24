@@ -35,5 +35,6 @@ export interface User {
   following_count?: number;
   pending_requests_count?: number;
   has_story?: boolean;
+  note?: string;
   highlights?: { id: string; img: string; title: string }[];
 }

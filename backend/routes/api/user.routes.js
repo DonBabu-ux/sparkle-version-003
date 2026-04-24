@@ -8,6 +8,7 @@ const { upload } = require('../../middleware/upload.middleware');
 const { searchSchema, updateProfileSchema, updatePasswordSchema, userIdSchema } = require('../../validators/user.validator');
 
 const socialController = require('../../controllers/social.controller');
+const { getUserHighlights } = require('../../controllers/highlight.controller');
 
 router.get('/me', authMiddleware, userController.getCurrentUser);
 router.get('/active-friends', authMiddleware, userController.getActiveFriends);
@@ -48,11 +49,12 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), userController.u
 router.put('/password', authMiddleware, validate(updatePasswordSchema), userController.updatePassword);
 router.delete('/me', authMiddleware, userController.deleteAccount);
 
-// Social & Profile Routes
-router.get('/:id', authMiddleware, validate(userIdSchema, 'params'), userController.getUserProfile);
+// Social & Profile Routes — specific subroutes MUST come before /:id catch-all
 router.get('/:id/posts', authMiddleware, validate(userIdSchema, 'params'), userController.getUserPosts);
 router.get('/:id/followers', authMiddleware, validate(userIdSchema, 'params'), userController.getFollowers);
 router.get('/:id/following', authMiddleware, validate(userIdSchema, 'params'), userController.getFollowing);
+router.get('/:id/highlights', authMiddleware, getUserHighlights);
+router.get('/:id', authMiddleware, validate(userIdSchema, 'params'), userController.getUserProfile);
 router.post('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);
 router.delete('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
 

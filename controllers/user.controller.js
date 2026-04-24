@@ -577,7 +577,10 @@ const getUserProfile = async (req, res) => {
             experience_level: user.experience_level || user.year_of_study,
             userType: user.userType,
             is_followed_by_me: !!user.is_followed_by_me,
-            is_requested_by_me: !!user.is_requested_by_me
+            is_requested_by_me: !!user.is_requested_by_me,
+            note: user.note || '',
+            has_story: !!user.has_story,
+            avatar_url: user.avatar_url || '/uploads/avatars/default.png'
         };
 
         res.json(profile);
@@ -665,6 +668,23 @@ const getSuggestions = async (req, res) => {
     }
 };
 
+const updateNote = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { note } = req.body;
+
+        if (note !== undefined && note !== null && note.length > 60) {
+            return res.status(400).json({ error: 'Note too long (max 60 characters)' });
+        }
+
+        await User.update(userId, { note: note || null });
+        res.json({ success: true, message: 'Note updated', note: note || null });
+    } catch (error) {
+        logger.error('Update note error:', error);
+        res.status(500).json({ error: 'Failed to update note' });
+    }
+};
+
 const getActiveFriends = async (req, res) => {
     try {
         const currentUserId = req.user.userId || req.user.user_id;
@@ -709,5 +729,6 @@ module.exports = {
     getActiveSessions,
     revokeSession,
     logoutAllDevices,
-    generateSecurityToken
+    generateSecurityToken,
+    updateNote
 };

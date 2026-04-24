@@ -300,9 +300,11 @@ const createStory = async (req, res) => {
             caption: caption || 'no caption'
         });
 
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
         await pool.query(
-            'INSERT INTO stories (story_id, user_id, media_url, media_type, caption, like_count, share_count) VALUES (?, ?, ?, ?, ?, 0, 0)',
-            [storyId, userId, media_url, media_type, caption || null]
+            'INSERT INTO stories (story_id, user_id, media_url, media_type, caption, like_count, share_count, expires_at) VALUES (?, ?, ?, ?, ?, 0, 0, ?)',
+            [storyId, userId, media_url, media_type, caption || null, expiresAt]
         );
 
         console.log('✅ Story created successfully:', storyId);
@@ -409,6 +411,33 @@ const likeStory = async (req, res) => {
         res.status(500).json({ error: 'Failed to toggle like', details: error.message });
     } finally {
         if (connection) connection.release();
+    }
+};
+
+// get all expired stories for the current user (archive)
+const getStoryArchive = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        
+        // Find stories older than 24 hours
+        const [rows] = await pool.query(`
+            SELECT * FROM stories 
+            WHERE user_id = ? 
+            AND created_at < NOW() - INTERVAL 24 HOUR
+            ORDER BY created_at DESC
+        `, [userId]);
+
+        const sanitizedStories = rows.map(s => ({
+            id: s.story_id,
+            media_url: s.media_url,
+            media_type: s.media_type,
+            created_at: s.created_at
+        }));
+
+        res.json({ success: true, stories: sanitizedStories });
+    } catch (error) {
+        logger.error('Get Story Archive Error:', error);
+        res.status(500).json({ error: 'Failed to fetch archive' });
     }
 };
 
@@ -558,6 +587,7 @@ module.exports = {
     createStory,
     likeStory,
     getStoryLikes,
+    getStoryArchive,
     shareStory,
     deleteStory
 };

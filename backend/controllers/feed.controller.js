@@ -290,7 +290,7 @@ const createStory = async (req, res) => {
         });
 
         await pool.query(
-            'INSERT INTO stories (story_id, user_id, media_url, media_type, caption, like_count, share_count) VALUES (?, ?, ?, ?, ?, 0, 0)',
+            'INSERT INTO stories (story_id, user_id, media_url, media_type, caption, like_count, share_count, expires_at) VALUES (?, ?, ?, ?, ?, 0, 0, DATE_ADD(NOW(), INTERVAL 24 HOUR))',
             [storyId, userId, media_url, media_type, caption || null]
         );
 

@@ -1,5 +1,6 @@
 // controllers/auth.controller.js - PRODUCTION VERSION
 const { query } = require('../utils/database/query');
+const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/constants');
@@ -9,13 +10,8 @@ const logger = require('../utils/logger');
 const { sendEmail } = require('../config/email');
 const { sendSMS } = require('../utils/sms');
 
-// Helper to sanitize avatars
-const getSafeAvatarUrl = (url) => {
-    if (!url) return '/uploads/avatars/default.png';
-    if (url.startsWith('/uploads/')) return url;
-    if (url.startsWith('http')) return url;
-    return '/uploads/avatars/default.png';
-};
+// Helper to sanitize avatars - MOVED TO USER MODEL
+const getSafeAvatarUrl = (url) => User.getSafeAvatarUrl(url);
 
 // Validate JWT secret
 const validateJWTSecret = () => {

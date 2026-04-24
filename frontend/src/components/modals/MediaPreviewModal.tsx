@@ -5,22 +5,28 @@ import type { Post } from '../../types/post';
 
 export default function MediaPreviewModal() {
   const { modalData, closeModal } = useModalStore();
-  const post = modalData as { post: Post } | null;
   const [showMenu, setShowMenu] = useState(false);
 
-  if (!post) return null;
+  if (!modalData) return null;
 
-  const isVideo = post.post.media_type === 'video' || post.post.media_url?.match(/\.(mp4|webm|ogg|mov|quicktime)$/i);
+  // Handle both { post: Post } and { url: string } structures
+  const data = modalData as any;
+  const mediaUrl = data.post?.media_url || data.url;
+  const mediaType = data.post?.media_type || 'image';
+
+  if (!mediaUrl) return null;
+
+  const isVideo = mediaType === 'video' || mediaUrl.match(/\.(mp4|webm|ogg|mov|quicktime)$/i);
 
   const handleDownload = async () => {
-    if (!post?.post.media_url) return;
+    if (!mediaUrl) return;
     try {
-      const response = await fetch(post.post.media_url);
+      const response = await fetch(mediaUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      const filename = post.post.media_url.split('/').pop() || 'sparkle-media';
+      const filename = mediaUrl.split('/').pop() || 'sparkle-media';
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
@@ -28,19 +34,16 @@ export default function MediaPreviewModal() {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Download failed:', err);
-      // Fallback: just open in new tab if blob fetch fails (CORS issues etc)
-      window.open(post.post.media_url, '_blank');
+      window.open(mediaUrl, '_blank');
     }
   };
 
   const handleHide = () => {
-    // Add to a hidden list in localStorage for now so it persists for this user session
-    const hidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
-    if (post) {
-      hidden.push(post.post.post_id);
+    if (data.post) {
+      const hidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
+      hidden.push(data.post.post_id);
       localStorage.setItem('hiddenPostIds', JSON.stringify(hidden));
       closeModal();
-      // Optional: alert or toast
       window.dispatchEvent(new Event('postHidden')); 
     }
   };
@@ -56,20 +59,22 @@ export default function MediaPreviewModal() {
           <X size={24} />
         </button>
         
-        <button 
-          onClick={() => setShowMenu(true)}
-          className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
-        >
-          <MoreHorizontal size={24} />
-        </button>
+        {data.post && (
+          <button 
+            onClick={() => setShowMenu(true)}
+            className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
+          >
+            <MoreHorizontal size={24} />
+          </button>
+        )}
       </div>
 
       {/* Main Content */}
       <div className="w-full h-full flex items-center justify-center p-2">
         {isVideo ? (
-          <video src={post.post.media_url} controls autoPlay className="max-w-full max-h-full object-contain" />
+          <video src={mediaUrl} controls autoPlay className="max-w-full max-h-full object-contain" />
         ) : (
-          <img src={post.post.media_url} className="max-w-full max-h-full object-contain shadow-2xl" alt="" />
+          <img src={mediaUrl} className="max-w-full max-h-full object-contain shadow-2xl" alt="" />
         )}
       </div>
 

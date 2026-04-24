@@ -13,6 +13,7 @@ const marketplaceRoutes = require('./marketplace.routes');
 const confessionRoutes = require('./confession.routes');
 const skillMarketRoutes = require('./skill-market.routes');
 const adminRoutes = require('./admin.routes');
+const highlightsRoutes = require('./highlights.routes');
 
 
 const uploadRoutes = require('./upload.routes');
@@ -60,6 +61,8 @@ router.use('/realtime', require('./realtime.routes'));
 router.use('/support', require('./support.routes'));
 router.use('/link-preview', linkPreviewRoutes);
 router.use('/admin', adminRoutes);
+router.use('/highlights', highlightsRoutes);
 
 
 module.exports = router;
+// Trigger restart

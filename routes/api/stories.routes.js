@@ -5,6 +5,7 @@ const { authMiddleware } = require('../../middleware/auth.middleware');
 const { upload } = require('../../middleware/upload.middleware');
 
 router.get('/active', authMiddleware, feedController.getStories);
+router.get('/archive', authMiddleware, feedController.getStoryArchive);
 router.post('/', authMiddleware, upload.single('media'), feedController.createStory);
 // interactions
 router.get('/:id/likes', authMiddleware, feedController.getStoryLikes);

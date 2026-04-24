@@ -4,6 +4,7 @@ import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import FollowListModal from '../components/modals/FollowListModal';
+import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
 import { 
@@ -19,7 +20,9 @@ import {
   Heart, 
   MapPin,
   GraduationCap,
-  Plus
+  Plus,
+  History,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export default function Profile() {
@@ -36,6 +39,11 @@ export default function Profile() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isRequested, setIsRequested] = useState(false);
   const [modalType, setModalType] = useState<'Followers' | 'Following' | null>(null);
+  const { setActiveModal, refreshCounter } = useModalStore();
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+
+  // Highlights
+  const [highlights, setHighlights] = useState<{ id: string; title: string; cover_url: string; story_count: number }[]>([]);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -64,6 +72,15 @@ export default function Profile() {
     }
   }, [username]);
 
+  const fetchHighlights = useCallback(async (userId: string) => {
+    try {
+      const res = await api.get(`/users/${userId}/highlights`);
+      setHighlights(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch highlights:', err);
+    }
+  }, []);
+
   const fetchSaved = useCallback(async () => {
     try {
       const res = await api.get('/posts/saved');
@@ -75,7 +92,28 @@ export default function Profile() {
 
   useEffect(() => {
     if (currentUser) fetchProfile();
-  }, [fetchProfile, currentUser]);
+  }, [fetchProfile, currentUser, refreshCounter]);
+
+  // Fetch highlights when profile is loaded
+  useEffect(() => {
+    const id = profile?.id || profile?.user_id;
+    if (id) fetchHighlights(id);
+  }, [profile, fetchHighlights]);
+
+  const openHighlight = async (highlightId: string, title: string) => {
+    try {
+      const res = await api.get(`/highlights/${highlightId}`);
+      setActiveModal('highlight_player', null, { 
+        id: highlightId, 
+        title, 
+        stories: res.data.stories || [],
+        ownerUsername: profile?.username,
+        ownerAvatar: profile?.avatar_url
+      });
+    } catch (err) {
+      console.error('Failed to load highlight:', err);
+    }
+  };
 
   useEffect(() => {
     const currentId = currentUser?.id || currentUser?.user_id;
@@ -103,6 +141,17 @@ export default function Profile() {
       } : prev);
     } catch (err) {
       console.error('Follow toggle failed:', err);
+    }
+  };
+
+  const handleUpdateNote = async (noteContent: string | null) => {
+    try {
+      const res = await api.patch('/users/profile/note', { note: noteContent });
+      if (res.data.success) {
+        setProfile((prev: User | null) => prev ? { ...prev, note: noteContent || '' } : prev);
+      }
+    } catch (err) {
+      console.error('Failed to update note:', err);
     }
   };
 
@@ -150,8 +199,14 @@ export default function Profile() {
         <div className="max-w-4xl mx-auto">
           <header className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-16 mb-10 animate-fade-in w-full">
             {/* Avatar Column */}
-            <div className="relative shrink-0 mb-4 md:mb-0 cursor-pointer">
-              <div className={`w-32 h-32 md:w-40 md:h-40 rounded-full shadow-xl ${profile?.has_story ? 'p-1 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}>
+            <div className="relative shrink-0 mb-4 md:mb-0">
+              <div 
+                className={`w-32 h-32 md:w-40 md:h-40 rounded-full shadow-xl cursor-pointer ${profile?.has_story ? 'p-1 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}
+                onClick={() => {
+                  if (profile?.has_story) setShowAvatarMenu(true);
+                  else setActiveModal('media_preview', null, { url: profile?.avatar_url || '/uploads/avatars/default.png' });
+                }}
+              >
                 <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-[#fdf2f4]' : ''}`}>
                   <img 
                     src={profile?.avatar_url || '/uploads/avatars/default.png'} 
@@ -160,7 +215,72 @@ export default function Profile() {
                   />
                 </div>
               </div>
-              <div className="absolute top-0 left-0 bg-[#333] text-white text-[10px] px-3 py-1 rounded-2xl rounded-bl-sm font-medium shadow-md">Note...</div>
+
+              {/* Avatar Action Menu */}
+              {showAvatarMenu && (
+                <>
+                  <div className="fixed inset-0 z-[1000]" onClick={() => setShowAvatarMenu(false)} />
+                  <div className="absolute top-0 left-full ml-4 md:ml-8 z-[1001] bg-white rounded-2xl shadow-2xl border border-black/5 p-2 flex flex-col gap-1 min-w-[180px] animate-fade-in-right max-md:fixed max-md:top-auto max-md:bottom-24 max-md:left-1/2 max-md:-translate-x-1/2 max-md:ml-0">
+                  <div className="px-4 py-2 border-b border-black/5 md:hidden">
+                    <span className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em]">Avatar Options</span>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAvatarMenu(false);
+                      navigate(`/stories/${profile?.id || profile?.user_id}`);
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-xl transition-colors flex items-center gap-3"
+                  >
+                    <History size={18} className="text-primary" />
+                    <span className="text-sm font-bold text-black uppercase tracking-tighter">View Story</span>
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAvatarMenu(false);
+                      setActiveModal('media_preview', null, { url: profile?.avatar_url || '/uploads/avatars/default.png' });
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-xl transition-colors flex items-center gap-3"
+                  >
+                    <ImageIcon size={18} className="text-black/40" />
+                    <span className="text-sm font-bold text-black uppercase tracking-tighter">View Picture</span>
+                  </button>
+                  <div className="h-px bg-black/5 my-1" />
+                  <button 
+                    onClick={() => setShowAvatarMenu(false)}
+                    className="w-full px-4 py-2 text-center text-[10px] font-black text-black/20 uppercase tracking-widest hover:text-black transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                </>
+              )}
+
+              {profile?.note && (
+                <div
+                  title={profile.note}
+                  className={`absolute -top-1 left-0 bg-[#262626] text-white text-[11px] px-3 py-1.5 rounded-2xl rounded-bl-sm font-medium shadow-lg max-w-[120px] truncate cursor-default leading-none ${showOwnerActions ? 'cursor-pointer hover:bg-[#333]' : ''}`}
+                  onClick={() => {
+                    if (!showOwnerActions) return;
+                    const n = prompt('Set your note (max 60 chars):', profile.note || '');
+                    if (n !== null) handleUpdateNote(n.slice(0, 60));
+                  }}
+                >
+                  {profile.note}
+                </div>
+              )}
+              {showOwnerActions && !profile?.note && (
+                <div
+                  className="absolute -top-1 left-0 bg-[#262626]/60 text-white/50 text-[11px] px-3 py-1.5 rounded-2xl rounded-bl-sm font-medium shadow-md cursor-pointer hover:bg-[#262626] hover:text-white transition-colors leading-none"
+                  onClick={() => {
+                    const n = prompt('Set your note (max 60 chars):');
+                    if (n) handleUpdateNote(n.slice(0, 60));
+                  }}
+                >
+                  + Note
+                </div>
+              )}
             </div>
 
             {/* Info Column */}
@@ -214,7 +334,10 @@ export default function Profile() {
                     <button onClick={() => navigate('/settings')} className="flex-1 md:flex-none md:px-8 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-sm font-semibold text-black transition-colors">
                       Edit Profile
                     </button>
-                    <button className="flex-1 md:flex-none md:px-8 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-sm font-semibold text-black transition-colors">
+                    <button 
+                      onClick={() => setActiveModal('archive')}
+                      className="flex-1 md:flex-none md:px-8 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-sm font-semibold text-black transition-colors"
+                    >
                       View archive
                     </button>
                   </>
@@ -245,24 +368,40 @@ export default function Profile() {
 
           {/* Story Highlights Section */}
           <div className="flex gap-4 md:gap-8 overflow-x-auto no-scrollbar w-full mb-10 pb-2 px-2 md:px-0">
-            {/* Mock Highlight */}
-            <div className="flex flex-col items-center gap-2 cursor-pointer group shrink-0">
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full p-0.5 bg-black/10 group-hover:bg-black/20 transition-colors">
-                <div className="w-full h-full bg-white rounded-full p-0.5">
-                  <img src={profile?.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full rounded-full object-cover" />
-                </div>
-              </div>
-              <span className="text-xs font-medium text-black">Highlights</span>
-            </div>
-            {/* New Highlight */}
+            {/* New Highlight button (own profile only) - MOVE TO FRONT */}
             {showOwnerActions && (
-              <div className="flex flex-col items-center gap-2 cursor-pointer group shrink-0">
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border border-black/20 flex items-center justify-center group-hover:bg-black/5 transition-colors">
+              <div
+                className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
+                onClick={() => setActiveModal('highlight')}
+              >
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border border-dashed border-black/30 flex items-center justify-center group-hover:bg-black/5 transition-colors">
                   <Plus size={24} className="text-black/50" />
                 </div>
                 <span className="text-xs font-medium text-black">New</span>
               </div>
             )}
+
+            {/* Real Highlights */}
+            {highlights.map(h => (
+              <div
+                key={h.id}
+                className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
+                onClick={() => openHighlight(h.id, h.title)}
+              >
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full p-0.5 bg-black/10 group-hover:bg-black/20 transition-colors">
+                  <div className="w-full h-full bg-[#fdf2f4] rounded-full p-0.5 overflow-hidden">
+                    {h.cover_url ? (
+                      <img src={h.cover_url} className="w-full h-full rounded-full object-cover" alt={h.title} />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-black/10 flex items-center justify-center">
+                        <span className="text-black/40 text-xl">{h.title[0]?.toUpperCase()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs font-medium text-black truncate max-w-[64px] text-center">{h.title}</span>
+              </div>
+            ))}
           </div>
 
           {/* Tabs */}
@@ -355,17 +494,24 @@ export default function Profile() {
       </main>
 
       {modalType && (
-        <FollowListModal 
-          isOpen={!!modalType} 
-          onClose={() => setModalType(null)} 
-          title={modalType} 
-          profileId={profile?.id || profile?.user_id || ''} 
+        <FollowListModal
+          isOpen={!!modalType}
+          onClose={() => setModalType(null)}
+          title={modalType}
+          profileId={profile?.id || profile?.user_id || ''}
         />
       )}
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        @keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        .animate-fade-in-right { animation: fadeInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .animate-spin-slow { animation: spin 15s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

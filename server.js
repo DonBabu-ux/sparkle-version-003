@@ -25,7 +25,28 @@ const app = express();
 
 // Security & Performance Middleware
 app.use(securityHeaders);
-app.use(cors());
+
+// CORS configuration to allow credentials and specific origins
+app.use(cors({
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'http://localhost:5174',
+            'https://sparkle-version-003-1-f4v3.onrender.com'
+        ];
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS not allowed'), false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-CSRF-Token']
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());

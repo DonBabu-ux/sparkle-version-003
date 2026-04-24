@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { X, Search, Send, Link, MessageCircle, Share2, MoreHorizontal, PlusCircle, Bookmark, Repeat } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
+import { useModalStore } from '../../store/modalStore';
 
 import type { User } from '../../types/user';
+import type { Post } from '../../types/post';
 
 interface ShareModalProps {
   onClose: () => void;
@@ -11,10 +14,15 @@ interface ShareModalProps {
 }
 
 export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
+  const navigate = useNavigate();
+  const { modalData, setActiveModal } = useModalStore();
+  const post = modalData as { post: Post } | null;
+
   const [search, setSearch] = useState('');
   const [recipients, setRecipients] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -31,14 +39,48 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   }, []);
 
   const handleCopyLink = () => {
-    const url = contentUrl || window.location.href;
+    const url = contentUrl || `${window.location.origin}/post/${post?.post.post_id}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleShareToFriend = async (friend: User) => {
+    try {
+      const url = contentUrl || `${window.location.origin}/post/${post?.post.post_id}`;
+      await api.post('/messages', {
+        receiver_id: friend.user_id,
+        content: `Check this out: ${url}`
+      });
+      onClose();
+    } catch (err) {
+      console.error('Failed to share to friend', err);
+    }
+  };
+
+  const handleSavePost = async () => {
+    if (!post) return;
+    try {
+      await api.post(`/posts/${post.post.post_id}/save`);
+      setIsSaved(true);
+      setTimeout(onClose, 1000);
+    } catch (err) {
+      console.error('Failed to save post', err);
+    }
+  };
+
+  const handleRepublish = () => {
+    if (!post) return;
+    setActiveModal('reshare', null, { post: post.post });
+  };
+
+  const handleAddToStory = () => {
+    navigate('/afterglow/create');
+    onClose();
+  };
+
   const shareToExternal = (platform: string) => {
-    const url = encodeURIComponent(contentUrl || window.location.href);
+    const url = encodeURIComponent(contentUrl || `${window.location.origin}/post/${post?.post.post_id}`);
     const text = encodeURIComponent('Check this out on Sparkle!');
     let shareUrl = '';
 
@@ -57,41 +99,44 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   );
 
   return (
-    <div className="bg-white rounded-[32px] w-full max-w-[450px] overflow-hidden shadow-2xl animate-scale-in">
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between relative">
-        <div className="w-12 h-1 bg-slate-200 rounded-full absolute top-2 left-1/2 -translate-x-1/2"></div>
-        <h3 className="text-xl font-black text-[#111] mx-auto">Share</h3>
-        <button onClick={onClose} className="absolute right-6 text-slate-400 hover:text-rose-500 transition-colors">
-          <X size={24} />
+    <div className="bg-white rounded-xl w-full max-w-[450px] overflow-hidden shadow-2xl animate-scale-in border border-gray-200">
+      <div className="p-4 border-b border-gray-100 flex items-center justify-between relative">
+        <h3 className="text-[17px] font-bold text-gray-900 mx-auto">Share</h3>
+        <button onClick={onClose} className="absolute right-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
+          <X size={20} />
         </button>
       </div>
 
       <div className="p-4">
         {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input 
             type="text" 
-            placeholder="Search for people..."
-            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-[#FF3D6D] focus:ring-4 focus:ring-[#FF3D6D]/10 outline-none transition-all"
+            placeholder="Search for friends..."
+            className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-full text-[14px] focus:bg-white border border-transparent focus:border-blue-500 outline-none transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         {/* Recipients */}
-        <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar min-h-[100px]">
+        <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar min-h-[90px]">
           {loading ? (
-            <div className="flex items-center justify-center w-full text-slate-300 animate-pulse font-bold text-xs uppercase tracking-widest">Loading friends...</div>
+            <div className="flex items-center justify-center w-full text-gray-300 font-bold text-xs uppercase tracking-widest">Loading...</div>
           ) : filteredRecipients.length > 0 ? (
             filteredRecipients.map(r => (
-              <div key={r.user_id} className="flex flex-col items-center gap-2 group cursor-pointer min-w-[70px]">
-                 <div className="relative">
-                    <img src={r.avatar_url || '/uploads/avatars/default.png'} className="w-14 h-14 rounded-full border-2 border-white shadow-md group-hover:scale-110 transition-transform" />
-                    <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-4 h-4 rounded-full border-2 border-white"></div>
-                 </div>
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-tight line-clamp-1">{r.username}</span>
-              </div>
+              <button 
+                key={r.user_id} 
+                onClick={() => handleShareToFriend(r)}
+                className="flex flex-col items-center gap-1 group cursor-pointer min-w-[70px] active:scale-95 transition-transform"
+              >
+                <div className="relative">
+                    <img src={r.avatar_url || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm" />
+                    {r.is_online && <div className="absolute bottom-0 right-0 bg-green-500 w-3 h-3 rounded-full border-2 border-white"></div>}
+                </div>
+                <span className="text-[11px] font-semibold text-gray-700 truncate w-16">{r.username}</span>
+              </button>
             ))
           ) : (
             <div className="flex flex-col items-center justify-center w-full py-4 text-slate-300 gap-2">
@@ -102,60 +147,69 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
         </div>
 
         {/* Actions Grid */}
-        <div className="grid grid-cols-5 gap-4 py-6 border-t border-slate-50">
+        <div className="grid grid-cols-5 gap-2 py-4 border-t border-gray-100">
            <button onClick={() => shareToExternal('whatsapp')} className="flex flex-col items-center gap-2 group">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-sm">
-                 <MessageCircle size={22} fill="currentColor" className="fill-transparent group-hover:fill-white" />
+              <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-100 transition-all border border-green-100">
+                 <MessageCircle size={20} />
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">WhatsApp</span>
+              <span className="text-[11px] font-semibold text-gray-600">WhatsApp</span>
            </button>
            <button onClick={() => shareToExternal('twitter')} className="flex flex-col items-center gap-2 group">
-              <div className="w-12 h-12 rounded-2xl bg-black/5 text-slate-900 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
-                 <Share2 size={20} />
+              <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center hover:bg-gray-200 transition-all border border-gray-200">
+                 <Share2 size={18} />
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">X</span>
+              <span className="text-[11px] font-semibold text-gray-600">X</span>
            </button>
            <button onClick={() => shareToExternal('telegram')} className="flex flex-col items-center gap-2 group">
-              <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-all shadow-sm">
-                 <Send size={20} />
+              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-all border border-blue-100">
+                 <Send size={18} />
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Telegram</span>
+              <span className="text-[11px] font-semibold text-gray-600">Telegram</span>
            </button>
            <button onClick={handleCopyLink} className="flex flex-col items-center gap-2 group">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-600 group-hover:bg-slate-900 group-hover:text-white'}`}>
-                 <Link size={20} />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border ${copied ? 'bg-green-500 text-white border-green-500' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200'}`}>
+                 <Link size={18} />
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{copied ? 'Copied' : 'Copy Link'}</span>
+              <span className="text-[11px] font-semibold text-gray-600">{copied ? 'Copied' : 'Copy'}</span>
            </button>
            <button className="flex flex-col items-center gap-2 group">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm font-black">
-                 <MoreHorizontal size={20} />
+              <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-all border border-gray-200">
+                 <MoreHorizontal size={18} />
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">More</span>
+              <span className="text-[11px] font-semibold text-gray-600">More</span>
            </button>
         </div>
 
         {/* Secondary Options */}
-        <div className="flex flex-col gap-2 pt-4 border-t border-slate-50 mb-2">
-            <button className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors w-full text-left group">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform"><PlusCircle size={20}/></div>
+        <div className="flex flex-col gap-1 pt-3 border-t border-gray-100">
+            <button 
+              onClick={handleAddToStory}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group"
+            >
+                <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-100"><PlusCircle size={20}/></div>
                 <div>
-                    <div className="text-sm font-black text-[#111]">Add to Story</div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase">Share this to your Sparkle AfterGlow</div>
+                    <div className="text-[14px] font-bold text-gray-900">Add to story</div>
+                    <div className="text-[12px] text-gray-500">Share this to your story</div>
                 </div>
             </button>
-            <button className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors w-full text-left group">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform"><Bookmark size={20}/></div>
+            <button 
+              onClick={handleSavePost}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group"
+            >
+                <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center group-hover:bg-gray-200"><Bookmark size={20}/></div>
                 <div>
-                    <div className="text-sm font-black text-[#111]">Save Post</div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase">Keep this in your private collection</div>
+                    <div className="text-[14px] font-bold text-gray-900">{isSaved ? 'Saved' : 'Save post'}</div>
+                    <div className="text-[12px] text-gray-500">Add this to your saved items</div>
                 </div>
             </button>
-            <button className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors w-full text-left group">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform"><Repeat size={20}/></div>
+            <button 
+              onClick={handleRepublish}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group"
+            >
+                <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center group-hover:bg-gray-200"><Repeat size={20}/></div>
                 <div>
-                    <div className="text-sm font-black text-[#111]">Republish</div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase">Share this to your follower's feeds</div>
+                    <div className="text-[14px] font-bold text-gray-900">Republish</div>
+                    <div className="text-[12px] text-gray-500">Share to your followers' feed</div>
                 </div>
             </button>
         </div>

@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Camera, Type, Send, ArrowLeft, Smile, AtSign } from 'lucide-react';
+import { X, ImageIcon, Type, Settings, ChevronLeft, Send, Sparkles } from 'lucide-react';
 import api from '../api/api';
+import { useUserStore } from '../store/userStore';
 
 export default function CreateStory() {
   const navigate = useNavigate();
+  const { user } = useUserStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [phase, setPhase] = useState<'picker' | 'preview'>('picker');
@@ -12,6 +14,7 @@ export default function CreateStory() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
+  const [bgColor, setBgColor] = useState('linear-gradient(135deg, #6366f1, #a855f7, #ec4899)');
   const [uploading, setUploading] = useState(false);
   
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,24 +24,6 @@ export default function CreateStory() {
       setPreviewUrl(URL.createObjectURL(selectedFile));
       setMode('media');
       setPhase('preview');
-    }
-  };
-
-  const handleTextStory = () => {
-    setMode('text');
-    setPhase('preview');
-    setPreviewUrl(null);
-    setFile(null);
-  };
-
-  const handleBack = () => {
-    if (phase === 'preview') {
-      setPhase('picker');
-      setPreviewUrl(null);
-      setFile(null);
-      setCaption('');
-    } else {
-      navigate(-1);
     }
   };
 
@@ -52,386 +37,133 @@ export default function CreateStory() {
       if (caption) formData.append('caption', caption);
       if (file) formData.append('media', file);
       formData.append('type', mode);
+      formData.append('background', bgColor);
 
       await api.post('/stories', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-
-      // Show success (perhaps a toast would be better, but navigating for now)
       navigate('/dashboard');
     } catch (err) {
-      console.error('Failed to share AfterGlow:', err);
-      alert('Failed to share AfterGlow. Please try again.');
+      console.error('Failed to share story:', err);
     } finally {
       setUploading(false);
     }
   };
 
-  const isVideo = file?.type.startsWith('video/');
-
   return (
-    <div className="afterglow-root">
-      {/* PHASE 1: PICKER */}
-      {phase === 'picker' && (
-        <div className="picker-phase animate-fade-in">
-          <header className="ag-header">
-            <button className="close-btn" onClick={() => navigate('/dashboard')}>
-              <X size={24} />
-            </button>
-            <div className="header-text">
-              <h1>Create AfterGlow</h1>
-              <p>Vanishes in 24 hours ✨</p>
-            </div>
-          </header>
-
-          <main className="picker-options">
-            <div className="option-card media-option" onClick={() => fileInputRef.current?.click()}>
-              <div className="icon-circle">
-                <Camera size={42} />
-              </div>
-              <h2>Photo / Video</h2>
-              <p>Tap to pick from your gallery</p>
-            </div>
-
-            <div className="option-card text-option" onClick={handleTextStory}>
-              <div className="icon-circle small">
-                <Type size={28} />
-              </div>
-              <h2>Text Story</h2>
-              <p>Share words, no photo needed</p>
-            </div>
-
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              hidden 
-              accept="image/*,video/*" 
-              onChange={handleFileSelect} 
-            />
-          </main>
+    <div className="fb-story-root">
+      {/* Sidebar - always visible like FB */}
+      <div className="fb-story-sidebar">
+        <div className="p-4 flex items-center justify-between border-bottom">
+          <button onClick={() => navigate('/dashboard')} className="p-2 bg-gray-200 rounded-full">
+            <X size={24} className="text-gray-700" />
+          </button>
+          <div className="flex gap-2">
+            <button className="p-2 bg-gray-200 rounded-full"><Settings size={24} className="text-gray-700" /></button>
+          </div>
         </div>
-      )}
-
-      {/* PHASE 2: PREVIEW */}
-      {phase === 'preview' && (
-        <div className="preview-phase animate-fade-in">
-          <div className="preview-background">
-            {mode === 'media' ? (
-              isVideo ? (
-                <video src={previewUrl!} autoPlay muted loop playsInline className="full-media" />
-              ) : (
-                <img src={previewUrl!} alt="" className="full-media" />
-              )
-            ) : (
-              <div className="text-bg-gradient"></div>
-            )}
+        
+        <div className="p-4">
+          <h1 className="text-[24px] font-bold text-gray-900 mb-6">Your story</h1>
+          <div className="flex items-center gap-3 mb-8">
+            <img src={user?.avatar_url || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-full border border-gray-200" alt="" />
+            <span className="font-bold text-[17px]">{user?.name}</span>
           </div>
 
-          <div className="preview-overlay">
-            <header className="preview-top-bar">
-              <button className="back-btn" onClick={handleBack}>
-                <ArrowLeft size={20} />
-              </button>
-              <span>Preview</span>
-            </header>
-
-            {mode === 'text' && (
-              <div className="text-story-center">
-                <div className="text-display">
-                  {caption || 'Type your story...'}
-                </div>
-              </div>
-            )}
-
-            <footer className="preview-bottom-bar">
-              <div className="caption-input-wrapper">
-                <Smile className="input-icon" />
-                <textarea 
-                  placeholder={mode === 'text' ? 'Type your story...' : 'Add a caption...'}
-                  rows={1}
+          {phase === 'preview' && (
+            <div className="animate-fade-in">
+               <textarea 
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 100) + 'px';
-                  }}
-                />
-                <AtSign className="input-icon" />
-              </div>
+                  placeholder="Start typing..."
+                  className="w-full bg-gray-100 rounded-lg p-4 text-[16px] outline-none border border-gray-200 min-h-[150px] resize-none"
+               />
+               
+               {mode === 'text' && (
+                  <div className="mt-6">
+                    <p className="text-[14px] font-semibold text-gray-500 mb-3 uppercase tracking-wider">Backgrounds</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['linear-gradient(135deg, #6366f1, #a855f7, #ec4899)', 'linear-gradient(135deg, #1877F2, #00B2FF)', 'linear-gradient(135deg, #f093fb, #f5576c)', '#1c1e21'].map(c => (
+                        <div 
+                          key={c}
+                          onClick={() => setBgColor(c)}
+                          className={`w-10 h-10 rounded-full cursor-pointer border-2 ${bgColor === c ? 'border-blue-600' : 'border-transparent'}`}
+                          style={{ background: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+               )}
 
-              <div className="action-row">
-                <div className="my-status-pill" onClick={handleSubmit}>
-                  <img src="/uploads/avatars/default.png" alt="" className="mini-avatar" />
-                  <span>My AfterGlow</span>
-                </div>
-                <button 
-                  className="send-btn" 
-                  onClick={handleSubmit}
-                  disabled={uploading}
-                >
-                  {uploading ? <div className="spinner-small"></div> : <Send size={22} />}
-                </button>
-              </div>
-            </footer>
-          </div>
+               <div className="mt-8 flex gap-3">
+                  <button onClick={() => setPhase('picker')} className="flex-1 py-2 bg-gray-200 font-bold rounded-lg hover:bg-gray-300">Discard</button>
+                  <button 
+                    onClick={handleSubmit} 
+                    disabled={uploading}
+                    className="flex-1 py-2 bg-[#1877F2] text-white font-bold rounded-lg hover:bg-[#166fe5] flex items-center justify-center gap-2"
+                  >
+                    {uploading ? 'Sharing...' : <>Share to story <Send size={16} /></>}
+                  </button>
+               </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Main Content Area */}
+      <div className="fb-story-main">
+        {phase === 'picker' ? (
+          <div className="flex items-center justify-center h-full gap-4">
+             <div 
+               onClick={() => fileInputRef.current?.click()}
+               className="w-[200px] h-[330px] bg-gradient-to-br from-[#45bd62] to-[#2ecc71] rounded-xl flex flex-col items-center justify-center cursor-pointer hover:brightness-105 transition-all shadow-lg group"
+             >
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform">
+                  <ImageIcon size={32} className="text-[#2ecc71]" />
+                </div>
+                <span className="text-white font-bold text-[17px]">Create a photo story</span>
+                <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileSelect} />
+             </div>
+
+             <div 
+               onClick={() => { setMode('text'); setPhase('preview'); }}
+               className="w-[200px] h-[330px] bg-gradient-to-br from-[#e91e63] to-[#9c27b0] rounded-xl flex flex-col items-center justify-center cursor-pointer hover:brightness-105 transition-all shadow-lg group"
+             >
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform">
+                  <Type size={32} className="text-[#e91e63]" />
+                </div>
+                <span className="text-white font-bold text-[17px]">Create a text story</span>
+             </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full p-10">
+            <div className="relative w-[340px] h-[600px] rounded-xl shadow-[0_0_80px_rgba(0,0,0,0.3)] overflow-hidden bg-black flex flex-col items-center justify-center">
+              {mode === 'media' ? (
+                <img src={previewUrl!} className="w-full h-full object-cover" alt="" />
+              ) : (
+                <div className="absolute inset-0" style={{ background: bgColor }} />
+              )}
+              
+              <div className="relative z-10 p-6 text-center">
+                <p className={`text-[24px] font-bold text-white break-words ${mode === 'text' ? 'text-shadow' : ''}`}>
+                  {caption || (mode === 'text' ? 'Start typing' : '')}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       <style>{`
-        .afterglow-root {
-          position: fixed;
-          inset: 0;
-          z-index: 9999;
-          background: #000;
-          color: white;
-          font-family: inherit;
-        }
-
-        .picker-phase {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          background: #111;
-        }
-
-        .ag-header {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: max(20px, env(safe-area-inset-top)) 16px 16px;
-        }
-
-        .close-btn, .back-btn {
-          background: none;
-          border: none;
-          color: white;
-          cursor: pointer;
-          width: 44px;
-          height: 44px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          transition: background 0.2s;
-        }
-
-        .close-btn:hover, .back-btn:hover {
-          background: rgba(255,255,255,0.1);
-        }
-
-        .header-text h1 { font-size: 1.25rem; font-weight: 800; margin: 0; }
-        .header-text p { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin: 2px 0 0; }
-
-        .picker-options {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 24px;
-          padding: 20px;
-        }
-
-        .option-card {
-          width: 100%;
-          max-width: 340px;
-          border-radius: 24px;
-          padding: 32px 20px;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .media-option {
-          background: linear-gradient(135deg, #9c27b0, #e91e63);
-          box-shadow: 0 8px 30px rgba(156,39,176,0.35);
-        }
-
-        .media-option:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 14px 40px rgba(156,39,176,0.5);
-        }
-
-        .text-option {
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.12);
-        }
-
-        .text-option:hover {
-          background: rgba(255,255,255,0.12);
-        }
-
-        .icon-circle {
-          background: rgba(255,255,255,0.15);
-          width: 70px;
-          height: 70px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 16px;
-        }
-
-        .icon-circle.small { width: 56px; height: 56px; }
-
-        .option-card h2 { font-size: 1.1rem; font-weight: 800; margin: 0; }
-        .option-card p { font-size: 0.8rem; opacity: 0.7; margin: 6px 0 0; }
-
-        /* PREVIEW PHASE */
-        .preview-phase {
-          position: relative;
-          height: 100%;
-          width: 100%;
-          overflow: hidden;
-        }
-
-        .preview-background {
-          position: absolute;
-          inset: 0;
-          z-index: 1;
-        }
-
-        .full-media {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          background: #000;
-        }
-
-        .text-bg-gradient {
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-        }
-
-        .preview-overlay {
-          position: absolute;
-          inset: 0;
-          z-index: 10;
-          display: flex;
-          flex-direction: column;
-          background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.6) 100%);
-        }
-
-        .preview-top-bar {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: max(20px, env(safe-area-inset-top)) 16px 16px;
-          font-weight: 700;
-        }
-
-        .text-story-center {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 40px;
-        }
-
-        .text-display {
-          font-size: 2rem;
-          font-weight: 800;
-          text-align: center;
-          text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-          word-break: break-word;
-          line-height: 1.3;
-        }
-
-        .preview-bottom-bar {
-          padding: 16px 16px max(24px, env(safe-area-inset-bottom));
-        }
-
-        .caption-input-wrapper {
-          background: rgba(0,0,0,0.4);
-          backdrop-filter: blur(16px);
-          border-radius: 28px;
-          display: flex;
-          align-items: flex-end;
-          gap: 12px;
-          padding: 10px 14px;
-          margin-bottom: 12px;
-          border: 1px solid rgba(255,255,255,0.15);
-        }
-
-        .caption-input-wrapper textarea {
-          flex: 1;
-          background: none;
-          border: none;
-          outline: none;
-          color: white;
-          font-size: 1rem;
-          font-family: inherit;
-          resize: none;
-          max-height: 100px;
-          padding: 4px 0;
-        }
-
-        .input-icon {
-          color: rgba(255,255,255,0.6);
-          padding-bottom: 4px;
-          cursor: pointer;
-        }
-
-        .action-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .my-status-pill {
-          flex: 1;
-          background: rgba(255,255,255,0.1);
-          backdrop-filter: blur(10px);
-          border-radius: 28px;
-          padding: 12px 18px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-weight: 600;
-          font-size: 0.9rem;
-          border: 1px solid rgba(255,255,255,0.15);
-          cursor: pointer;
-        }
-
-        .mini-avatar { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4); }
-
-        .send-btn {
-          width: 54px;
-          height: 54px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #9c27b0, #e91e63);
-          border: none;
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 4px 15px rgba(156,39,176,0.4);
-          transition: transform 0.2s;
-        }
-
-        .send-btn:hover { transform: scale(1.05); }
-        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .spinner-small {
-          width: 20px;
-          height: 20px;
-          border: 2px solid rgba(255,255,255,0.3);
-          border-top-color: white;
-          border-radius: 50%;
-          animation: ag-spin 0.6s linear infinite;
-        }
-
-        @keyframes ag-spin { to { transform: rotate(360deg); } }
-
-        @keyframes fade-in { 
-          from { opacity: 0; transform: scale(0.98); }
-          to { opacity: 1; transform: scale(1); }
-        }
+        .fb-story-root { display: flex; position: fixed; inset: 0; background: #f0f2f5; z-index: 9999; }
+        .fb-story-sidebar { width: 360px; background: white; height: 100%; border-right: 1px solid #ddd; box-shadow: 2px 0 5px rgba(0,0,0,0.05); z-index: 10; }
+        .fb-story-main { flex: 1; height: 100%; overflow: hidden; background: #18191a; }
+        .border-bottom { border-bottom: 1px solid #ddd; }
+        .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in 0.3s ease-out; }
       `}</style>
     </div>
   );
 }
+

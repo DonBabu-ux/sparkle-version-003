@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
-import { X, Image as ImageIcon, MapPin, Globe, Users, Ghost, Loader2, Sparkles } from 'lucide-react';
+import { X, Image as ImageIcon, MapPin, Globe, Users, Ghost, Loader2, User, Smile, Tag, MoreHorizontal } from 'lucide-react';
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
+import { useUserStore } from '../../store/userStore';
 
 interface PostModalProps {
   onClose: () => void;
@@ -9,6 +10,7 @@ interface PostModalProps {
 }
 
 export default function PostModal({ onClose, onSuccess }: PostModalProps) {
+  const { user } = useUserStore();
   const [content, setContent] = useState('');
   const [postType, setPostType] = useState('public');
   const [location, setLocation] = useState('');
@@ -50,117 +52,117 @@ export default function PostModal({ onClose, onSuccess }: PostModalProps) {
       onClose();
     } catch (err) {
       console.error('Post creation failed:', err);
-      alert('Failed to spark post. Please try again.');
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="modal-inner">
-      <div className="modal-header">
-        <div className="modal-title italic uppercase">
-          <Sparkles size={20} strokeWidth={3} className="text-black" /> Create New Post
-        </div>
-        <button className="close-btn" onClick={onClose}><X size={20} /></button>
+    <div className="fb-modal">
+      <div className="fb-modal-header">
+        <h2 className="text-[20px] font-bold text-gray-900">Create post</h2>
+        <button onClick={onClose} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
+          <X size={20} className="text-gray-600" />
+        </button>
       </div>
 
-      <div className="modal-body">
+      <div className="p-4 max-h-[500px] overflow-y-auto no-scrollbar">
+        {/* User Info */}
+        <div className="flex gap-3 items-center mb-4">
+          <img 
+            src={user?.avatar_url || '/uploads/avatars/default.png'} 
+            className="w-10 h-10 rounded-full object-cover" 
+            alt="" 
+          />
+          <div>
+            <p className="text-[15px] font-semibold text-gray-900">{user?.name}</p>
+            <div className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded-md w-fit mt-0.5 cursor-pointer hover:bg-gray-200">
+              {postType === 'public' ? <Globe size={12} /> : postType === 'campus_only' ? <Users size={12} /> : <Ghost size={12} />}
+              <span className="text-[12px] font-semibold text-gray-700 capitalize">{postType.replace('_', ' ')}</span>
+              <span className="text-[10px]">▼</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
         <MentionInput
           value={content}
           onChange={setContent}
-          className="post-input"
-          placeholder="What's happening on campus?"
+          className="fb-post-input w-full min-h-[120px] text-[24px] outline-none placeholder:text-gray-400 resize-none border-none"
+          placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || ''}?`}
           autoFocus={true}
         />
 
+        {/* Media Preview */}
         {previews.length > 0 && (
-          <div className="media-preview-grid">
+          <div className="grid grid-cols-2 gap-2 mt-4 relative border border-gray-200 rounded-lg p-2">
+            <button 
+              onClick={() => { setFiles([]); setPreviews([]); }}
+              className="absolute top-4 right-4 z-10 bg-white p-1.5 rounded-full shadow-md border border-gray-200 hover:bg-gray-50"
+            >
+              <X size={16} />
+            </button>
             {previews.map((p, i) => (
-              <div key={i} className="preview-item">
-                <img src={p} alt="" />
-                <button className="remove-media" onClick={() => removeFile(i)}><X size={14} /></button>
+              <div key={i} className="relative aspect-square rounded-md overflow-hidden bg-gray-100">
+                <img src={p} alt="" className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
         )}
 
-        <div className="upload-btn-zone" onClick={() => fileRef.current?.click()}>
-          <ImageIcon size={20} />
-          <span className="text-[10px] uppercase font-black tracking-widest">Add Photos / Video</span>
+        {/* Location display if set */}
+        {location && (
+          <div className="mt-3 flex items-center gap-2 text-blue-600 font-semibold text-[14px]">
+            <MapPin size={16} /> {location}
+            <button onClick={() => setLocation('')} className="text-gray-400 ml-auto">✕</button>
+          </div>
+        )}
+      </div>
+
+      {/* Add to your post bar */}
+      <div className="p-4 pt-0">
+        <div className="border border-gray-300 rounded-lg p-3 flex items-center justify-between shadow-sm">
+          <span className="text-[15px] font-semibold text-gray-700">Add to your post</span>
+          <div className="flex gap-1">
+            <button onClick={() => fileRef.current?.click()} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Photo/video">
+              <ImageIcon size={24} className="text-[#45bd62]" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Tag people">
+              <Tag size={24} className="text-[#1877F2]" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Feeling/activity">
+              <Smile size={24} className="text-[#f7b928]" />
+            </button>
+            <button onClick={() => setLocation(prompt('Enter location') || '')} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Check in">
+              <MapPin size={24} className="text-[#f02849]" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <MoreHorizontal size={24} className="text-gray-500" />
+            </button>
+          </div>
           <input type="file" ref={fileRef} hidden multiple accept="image/*,video/*" onChange={handleFileChange} />
         </div>
 
-        <div className="post-options-grid">
-          <div className="option-group">
-            <label className="text-[10px] uppercase font-black tracking-widest"><Globe size={14} /> Visibility</label>
-            <div className="type-chips">
-              <div className={`type-chip ${postType === 'public' ? 'active' : ''}`} onClick={() => setPostType('public')}>
-                <Globe size={14} /> <span className="text-[10px] uppercase font-black tracking-widest">Public</span>
-              </div>
-              <div className={`type-chip ${postType === 'campus_only' ? 'active' : ''}`} onClick={() => setPostType('campus_only')}>
-                <Users size={14} /> <span className="text-[10px] uppercase font-black tracking-widest">Campus</span>
-              </div>
-              <div className={`type-chip ${postType === 'anonymous' ? 'active' : ''}`} onClick={() => setPostType('anonymous')}>
-                <Ghost size={14} /> <span className="text-[10px] uppercase font-black tracking-widest">Ghost</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="option-group">
-            <label className="text-[10px] uppercase font-black tracking-widest"><MapPin size={14} /> Where are you?</label>
-            <input 
-              type="text" 
-              placeholder="Library, Student Center..." 
-              className="tag-input"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <button className="submit-premium-btn" onClick={handleSubmit} disabled={uploading}>
-          {uploading ? <Loader2 className="animate-spin" /> : <>Spark It! <Sparkles size={16} strokeWidth={3} /></>}
+        {/* Post Button */}
+        <button 
+          onClick={handleSubmit}
+          disabled={uploading || (!content.trim() && files.length === 0)}
+          className="w-full mt-4 py-2 bg-[#1877F2] hover:bg-[#166fe5] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-md transition-colors text-[16px]"
+        >
+          {uploading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Post'}
         </button>
       </div>
 
       <style>{`
-        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 32px; background: white; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); }
-        .modal-header { padding: 24px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.01); }
-        .modal-title { font-weight: 900; font-size: 1.2rem; display: flex; align-items: center; gap: 12px; color: black; letter-spacing: -0.02em; }
-        .close-btn { background: none; border: none; color: rgba(0,0,0,0.2); cursor: pointer; padding: 4px; transition: 0.2s; }
-        .close-btn:hover { color: black; transform: rotate(90deg); }
-        .modal-body { padding: 32px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
-        
-        .post-input { width: 100%; min-height: 120px; border: none; font-size: 1.2rem; font-family: inherit; outline: none; background: transparent; padding: 0; resize: none; color: black; font-weight: 600; }
-        .post-input::placeholder { color: rgba(0,0,0,0.1); font-weight: 600; }
-
-        .media-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
-        .preview-item { position: relative; aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: rgba(0,0,0,0.05); }
-        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-        .remove-media { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.8); color: white; border: none; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .remove-media:hover { transform: scale(1.1); }
-
-        .upload-btn-zone { display: flex; align-items: center; gap: 12px; padding: 20px; border: 1px dashed rgba(0,0,0,0.1); border-radius: 20px; color: rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s; font-weight: 800; }
-        .upload-btn-zone:hover { border-color: black; background: black; color: white; }
-
-        .post-options-grid { display: flex; flex-direction: column; gap: 24px; }
-        .option-group label { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 900; color: rgba(0,0,0,0.2); margin-bottom: 12px; }
-        
-        .type-chips { display: flex; gap: 10px; flex-wrap: wrap; }
-        .type-chip { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 16px; background: rgba(0,0,0,0.03); color: rgba(0,0,0,0.3); font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-        .type-chip:hover { background: rgba(0,0,0,0.05); }
-        .type-chip.active { background: black; color: white; border-color: black; }
-
-        .tag-input { width: 100%; padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.02); font-family: inherit; outline: none; transition: 0.2s; box-sizing: border-box; font-weight: 600; color: black; }
-        .tag-input:focus { border-color: black; background: white; }
-        .tag-input::placeholder { color: rgba(0,0,0,0.1); }
-
-        .submit-premium-btn { width: 100%; padding: 20px; border-radius: 20px; background: #e11d48; color: white; border: none; font-weight: 900; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: 0.2s; margin-top: 10px; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 0 15px 35px rgba(225, 29, 72, 0.2); }
-        .submit-premium-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(225, 29, 72, 0.3); }
-        .submit-premium-btn:active { transform: translateY(0); }
-        .submit-premium-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .fb-modal { background: white; width: 500px; border-radius: 8px; box-shadow: 0 12px 28px 0 rgba(0,0,0,0.2), 0 2px 4px 0 rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; }
+        .fb-modal-header { padding: 16px; border-bottom: 1px solid #ddd; display: flex; justify-content: center; align-items: center; position: relative; }
+        .fb-modal-header h2 { margin: 0; }
+        .fb-modal-header button { position: absolute; right: 16px; }
+        .fb-post-input { min-height: 100px; border: none; padding: 0; font-family: inherit; }
+        .fb-post-input:focus { box-shadow: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
 }
+

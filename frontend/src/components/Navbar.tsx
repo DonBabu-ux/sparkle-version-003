@@ -24,6 +24,7 @@ import ShareModal from './modals/ShareModal';
 import ReshareModal from './modals/ReshareModal';
 import PostCommentsModal from './modals/PostCommentsModal';
 import CreationHubModal from './modals/CreationHubModal';
+import MediaPreviewModal from './modals/MediaPreviewModal';
 import FloatingAction from './FloatingAction';
 import Sidebar from './Sidebar';
 
@@ -169,20 +170,26 @@ export default function Navbar() {
 
       {/* Global Modals */}
       {activeModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
-          <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            {activeModal === 'post' && <PostModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-            {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-            {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-            {activeModal === 'listing' && <ListingModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-            {activeModal === 'confession' && <ConfessionModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-            {activeModal === 'settings' && <SettingsModal onClose={() => setActiveModal(null)} />}
-            {activeModal === 'share' && <ShareModal onClose={() => setActiveModal(null)} />}
-            {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-            {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}
-            {activeModal === 'creation_hub' && <CreationHubModal onClose={() => setActiveModal(null)} />}
-          </div>
-        </div>
+        <>
+          {activeModal === 'media_preview' ? (
+            <MediaPreviewModal />
+          ) : (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
+              <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
+                {activeModal === 'post' && <PostModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+                {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+                {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+                {activeModal === 'listing' && <ListingModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+                {activeModal === 'confession' && <ConfessionModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+                {activeModal === 'settings' && <SettingsModal onClose={() => setActiveModal(null)} />}
+                {activeModal === 'share' && <ShareModal onClose={() => setActiveModal(null)} />}
+                {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+                {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}
+                {activeModal === 'creation_hub' && <CreationHubModal onClose={() => setActiveModal(null)} />}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Grid Mega Menu */}

@@ -138,25 +138,23 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   };
 
   return (
-    <div className="flex flex-col h-full bg-white overflow-hidden relative border border-black/5 rounded-[32px]">
-      <div className="flex items-center justify-between p-6 border-b border-black/5 bg-black/[0.02]">
-        <h3 className="font-heading font-black text-xl text-black tracking-tighter uppercase italic">Signals</h3>
-        <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-all active:scale-90">
-          <X size={20} className="text-black/20 hover:text-black transition-colors" />
+    <div className="flex flex-col h-[90vh] md:h-[600px] bg-white overflow-hidden relative border border-gray-200 rounded-t-xl md:rounded-xl shadow-2xl">
+      <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white">
+        <h3 className="font-bold text-[17px] text-gray-900">Comments</h3>
+        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-all">
+          <X size={20} className="text-gray-500" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-white custom-scrollbar">
         {/* Original Post Context */}
-        <div className="flex gap-4 pb-6 border-b border-black/5">
-          <div className="p-0.5 rounded-full bg-black shadow-sm shrink-0 h-fit">
-            <img src={post.avatar_url || '/uploads/avatars/default.png'} className="w-10 h-10 rounded-full object-cover border-2 border-white" alt="" />
-          </div>
+        <div className="flex gap-3 pb-4 border-b border-gray-100">
+          <img src={post.avatar_url || '/uploads/avatars/default.png'} className="w-9 h-9 rounded-full object-cover border border-gray-100 shrink-0" alt="" />
           <div className="min-w-0">
-            <div className="font-heading font-black text-black text-[15px] tracking-tight uppercase italic">
+            <div className="font-bold text-gray-900 text-[15px]">
               {post.name || post.username}
             </div>
-            <div className="text-black text-[15px] mt-1 whitespace-pre-wrap font-bold leading-relaxed">{post.content}</div>
+            <div className="text-gray-800 text-[15px] mt-0.5 whitespace-pre-wrap leading-relaxed">{post.content}</div>
           </div>
         </div>
 
@@ -165,9 +163,9 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
             <Loader2 className="animate-spin text-black/10" size={32} />
           </div>
         ) : comments.length === 0 ? (
-          <div className="text-center py-16 text-black/20 font-black text-[10px] uppercase tracking-[0.3em]">the signal is silent.</div>
+          <div className="text-center py-12 text-gray-400 font-semibold text-[13px]">No comments yet.</div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {comments.map((comment) => (
               <CommentItem 
                 key={comment.comment_id} 
@@ -182,16 +180,16 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
         )}
       </div>
 
-      <div className="bg-white border-t border-black/5 z-50 p-4">
+      <div className="bg-white border-t border-gray-100 p-3 pb-safe">
         {replyingTo && (
-          <div className="flex items-center justify-between bg-black/5 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-black/40 rounded-2xl mb-3">
-            <span>Replying to <span className="text-black">@{replyingTo.username}</span></span>
-            <button onClick={() => setReplyingTo(null)} className="hover:text-black transition-colors"><X size={14} /></button>
+          <div className="flex items-center justify-between bg-gray-50 px-4 py-2 text-[12px] font-semibold text-gray-500 rounded-lg mb-2">
+            <span>Replying to <span className="text-blue-600">@{replyingTo.username}</span></span>
+            <button onClick={() => setReplyingTo(null)} className="hover:text-gray-700 transition-colors"><X size={14} /></button>
           </div>
         )}
-        <div className="px-4 py-3 bg-black/[0.02] rounded-3xl border border-black/5 focus-within:bg-black/[0.05] transition-all">
-          <form onSubmit={handleSubmit} className="flex items-center gap-4 w-full">
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-black/5 shrink-0 shadow-sm">
+        <div className="px-3 py-2 bg-gray-100 rounded-2xl">
+          <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 shrink-0">
                 <img src={user?.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
             </div>
             <div className="flex-1 relative min-w-0">
@@ -199,16 +197,16 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
                   value={commentText}
                   onChange={setCommentText}
                   onSubmit={handleSubmit}
-                  placeholder={replyingTo ? `Replying to ${replyingTo.username}...` : "Signal your thoughts..."}
-                  className="bg-transparent text-[13px] font-bold text-black placeholder:text-black/20 outline-none w-full"
+                  placeholder={replyingTo ? `Replying to ${replyingTo.username}...` : "Write a comment..."}
+                  className="bg-transparent text-[14px] text-gray-900 placeholder:text-gray-400 outline-none w-full py-1"
                />
             </div>
             <button 
               type="submit" 
               disabled={!commentText.trim() || submitting}
-              className="px-6 py-2 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-full hover:scale-105 active:scale-95 disabled:opacity-30 disabled:hover:scale-100 transition-all whitespace-nowrap shrink-0 shadow-lg shadow-primary/20"
+              className="text-blue-600 font-bold text-[14px] disabled:opacity-30 px-2"
             >
-              {submitting ? '...' : 'SEND'}
+              {submitting ? '...' : 'Post'}
             </button>
           </form>
         </div>
@@ -221,6 +219,7 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
   const [showReplies, setShowReplies] = useState(false);
   const [translated, setTranslated] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const hasReplies = comment.replies && comment.replies.length > 0;
 
   const timeAgo = (dateStr: string) => {
@@ -240,60 +239,85 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
   };
 
   return (
-    <div className="flex gap-4 w-full pb-1">
-      <div className="p-0.5 rounded-full bg-black shadow-sm shrink-0 h-fit mt-0.5 cursor-pointer hover:scale-110 transition-transform" onClick={handleProfileClick}>
-         <img 
-            src={comment.avatar_url || '/uploads/avatars/default.png'} 
-            className="w-8 h-8 rounded-full object-cover border-2 border-white" 
-            alt="" 
-         />
-      </div>
+    <div className="flex gap-2 w-full pb-1">
+      <img 
+        src={comment.avatar_url || '/uploads/avatars/default.png'} 
+        className="w-8 h-8 rounded-full object-cover border border-gray-100 shrink-0 mt-1 cursor-pointer" 
+        onClick={handleProfileClick}
+        alt="" 
+      />
       
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        <div className="flex items-center gap-3">
-          <span onClick={handleProfileClick} className="font-heading font-black text-[13px] text-black cursor-pointer hover:opacity-70 transition-opacity uppercase italic tracking-tight">
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="bg-gray-100 rounded-2xl px-3 py-2 w-fit max-w-[95%]">
+          <p onClick={handleProfileClick} className="font-bold text-[13px] text-gray-900 cursor-pointer hover:underline">
             {comment.username}
-          </span>
-          <span className="font-black text-[10px] text-black/20 uppercase tracking-widest">
+          </p>
+          <div className="text-[14px] text-gray-800 break-words whitespace-pre-wrap leading-tight mt-0.5">
+            {translated ? (
+               "Translation lost."
+            ) : (
+              <>
+                {comment.content.length > 200 && !isExpanded ? (
+                  <>
+                    {comment.content.substring(0, 200)}... 
+                    <button 
+                      onClick={() => setIsExpanded(true)}
+                      className="text-gray-500 font-bold hover:underline ml-1"
+                    >
+                      See more
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {comment.content}
+                    {comment.content.length > 200 && isExpanded && (
+                      <button 
+                        onClick={() => setIsExpanded(false)}
+                        className="text-gray-500 font-bold hover:underline ml-1"
+                      >
+                        See less
+                      </button>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 mt-1 px-2 text-[12px] font-bold text-gray-500">
+          <span className="text-[11px] font-normal text-gray-400">
             {timeAgo(comment.created_at)}
           </span>
-        </div>
-
-        <div className="text-[14px] text-black break-words whitespace-pre-wrap leading-relaxed mt-1 font-bold">
-          {translated ? "Translation signal lost." : comment.content}
-        </div>
-
-        <div className="flex items-center gap-5 mt-2.5 text-[10px] font-black text-black/30 uppercase tracking-[0.2em] relative">
           <button 
             onClick={() => onLike(comment.comment_id)} 
-            className={`flex items-center gap-2 hover:text-black transition-all active:scale-95 ${comment.is_liked ? 'text-black' : 'text-black/30'}`}
+            className={`hover:underline transition-all ${comment.is_liked ? 'text-blue-600' : ''}`}
           >
-            <Heart size={14} fill={comment.is_liked ? "currentColor" : "none"} strokeWidth={3} className={comment.is_liked ? 'animate-pulse' : ''} />
-            {comment.like_count > 0 && <span>{formatCount(comment.like_count)}</span>}
+            Like{comment.like_count > 0 && ` (${formatCount(comment.like_count)})`}
           </button>
-          <button onClick={() => onReply(comment)} className="hover:text-black transition-colors">Reply</button>
-          <button onClick={() => setTranslated(!translated)} className="hover:text-black transition-colors">
-            {translated ? 'original' : 'translate'}
+          <button onClick={() => onReply(comment)} className="hover:underline">Reply</button>
+          <button onClick={() => setTranslated(!translated)} className="hover:underline text-[11px] font-normal">
+            {translated ? 'Original' : 'Translate'}
           </button>
           <div className="relative">
-            <button onClick={() => setShowMenu(!showMenu)} className="hover:text-black transition-all active:scale-125 font-bold tracking-widest">•••</button>
+            <button onClick={() => setShowMenu(!showMenu)} className="hover:text-gray-900 font-bold tracking-widest px-1">•••</button>
             {showMenu && (
-              <div className="absolute bottom-full left-0 mb-2 w-36 bg-white rounded-2xl shadow-xl border border-black/5 py-2 z-50 animate-scale-in">
-                <button onClick={() => setShowMenu(false)} className="w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-black/40 hover:bg-black/5 hover:text-black transition-all">Report</button>
-                <button onClick={() => setShowMenu(false)} className="w-full text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-black/40 hover:bg-black/5 hover:text-black transition-all">Copy</button>
+              <div className="absolute top-full left-0 mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-scale-in">
+                <button onClick={() => setShowMenu(false)} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50">Report</button>
+                <button onClick={() => setShowMenu(false)} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50">Copy</button>
               </div>
             )}
           </div>
         </div>
 
         {hasReplies && (
-          <div className="mt-2">
+          <div className="mt-1">
             {!showReplies ? (
-              <button onClick={() => setShowReplies(true)} className="flex items-center gap-4 text-[10px] font-black text-black/20 hover:text-black transition-all mt-3 group uppercase tracking-widest">
-                <div className="w-8 h-[2px] bg-black/5 group-hover:bg-black transition-colors"></div> signals ({comment.replies.length})
+              <button onClick={() => setShowReplies(true)} className="flex items-center gap-2 text-[12px] font-bold text-gray-500 hover:underline mt-1">
+                View {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
               </button>
             ) : (
-              <div className="space-y-6 mt-6 mb-2 ml-4 border-l-2 border-black/5 pl-6 animate-fade-in">
+              <div className="space-y-4 mt-3 ml-2 border-l-2 border-gray-100 pl-4 animate-fade-in">
                 {comment.replies.map((reply) => (
                   <CommentItem 
                     key={reply.comment_id} 

@@ -119,6 +119,15 @@ const resendVerification = async (req, res) => {
             return res.status(400).json({ error: 'Email already verified' });
         }
 
+        // Rate Limit OTP requests (Redis-based)
+        const isLimited = await EmailVerification.isRateLimited(email);
+        if (isLimited) {
+            return res.status(429).json({ 
+                error: 'Too many requests', 
+                message: 'Please wait a minute before requesting another code.' 
+            });
+        }
+
         const { code } = await EmailVerification.create(user.user_id, email);
 
         await sendEmail({

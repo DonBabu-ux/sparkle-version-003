@@ -2,36 +2,43 @@ const { Queue, Worker, QueueEvents } = require('bullmq');
 const IORedis = require('ioredis');
 const logger = require('./logger');
 
-// Redis configuration
-const redisConfig = {
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || null,
-    maxRetriesPerRequest: null,
-    tls: process.env.REDIS_TLS === 'true' ? {} : undefined
-};
+// Redis configuration (Production-Ready)
+const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_TCP_URL;
+let connection;
 
-const connection = new IORedis(redisConfig);
+if (redisUrl) {
+    connection = new IORedis(redisUrl, {
+        maxRetriesPerRequest: null,
+        tls: redisUrl.startsWith('rediss://') ? {} : undefined
+    });
+    
+    connection.on('error', (err) => {
+        logger.error('Redis Queue Connection Error:', err.message);
+    });
+} else {
+    logger.warn('REDIS_URL or UPSTASH_REDIS_TCP_URL missing. Queues are DISABLED.');
+}
 
-connection.on('error', (err) => {
-    logger.error('Redis connection error:', err);
-});
 
-// Create Notification Queue
-const notificationQueue = new Queue('notifications', { 
-    connection,
-    defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-            type: 'exponential',
-            delay: 1000,
-        },
-        removeOnComplete: true,
-        removeOnFail: 1000 // Keep failed jobs for a while
-    }
-});
+let notificationQueue = null;
+
+if (connection) {
+    notificationQueue = new Queue('notifications', { 
+        connection,
+        defaultJobOptions: {
+            attempts: 3,
+            backoff: {
+                type: 'exponential',
+                delay: 1000,
+            },
+            removeOnComplete: true,
+            removeOnFail: 1000
+        }
+    });
+}
 
 module.exports = {
     notificationQueue,
     connection
 };
+

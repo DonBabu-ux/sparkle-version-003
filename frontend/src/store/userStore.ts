@@ -7,16 +7,19 @@ import type { User } from '../types/user';
 export interface AccountSession {
   user: User;
   token: string;
+  refreshToken: string;
 }
 
 interface UserState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   accounts: AccountSession[];
   activeAccountId: string | null;
   
-  login: (token: string, user: User) => void;
+  login: (token: string, refreshToken: string, user: User) => void;
+  setToken: (token: string, refreshToken?: string) => void;
   setUser: (user: User | null) => void;
   logout: () => void;
   switchAccount: (userId: string) => void;
@@ -28,28 +31,44 @@ export const useUserStore = create<UserState>()(
     (set, get) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       accounts: [],
       activeAccountId: null,
 
-      login: (token, user) => {
+      login: (token, refreshToken, user) => {
         const accounts = get().accounts;
         const existingAccountIndex = accounts.findIndex(acc => acc.user.user_id === user.user_id);
         
         const newAccounts = [...accounts];
         if (existingAccountIndex > -1) {
-          newAccounts[existingAccountIndex] = { token, user };
+          newAccounts[existingAccountIndex] = { token, refreshToken, user };
         } else {
-          newAccounts.push({ token, user });
+          newAccounts.push({ token, refreshToken, user });
         }
 
         set({ 
           token, 
+          refreshToken,
           user, 
           isAuthenticated: true, 
           accounts: newAccounts,
           activeAccountId: user.user_id 
         });
+      },
+
+      setToken: (token, refreshToken) => {
+        const currentRefreshToken = refreshToken || get().refreshToken;
+        set({ token, refreshToken: currentRefreshToken });
+        
+        // Update current account session
+        const activeId = get().activeAccountId;
+        if (activeId) {
+          const accounts = get().accounts.map(acc => 
+            acc.user.user_id === activeId ? { ...acc, token, refreshToken: currentRefreshToken as string } : acc
+          );
+          set({ accounts });
+        }
       },
 
       setUser: (user) => {
@@ -76,6 +95,7 @@ export const useUserStore = create<UserState>()(
           set({ 
             user: nextAccount.user, 
             token: nextAccount.token, 
+            refreshToken: nextAccount.refreshToken,
             isAuthenticated: true, 
             accounts,
             activeAccountId: nextAccount.user.user_id
@@ -84,6 +104,7 @@ export const useUserStore = create<UserState>()(
           set({ 
             user: null, 
             token: null, 
+            refreshToken: null,
             isAuthenticated: false, 
             accounts: [],
             activeAccountId: null 
@@ -97,6 +118,7 @@ export const useUserStore = create<UserState>()(
           set({ 
             user: account.user, 
             token: account.token, 
+            refreshToken: account.refreshToken,
             isAuthenticated: true, 
             activeAccountId: userId 
           });
@@ -113,6 +135,7 @@ export const useUserStore = create<UserState>()(
             set({ 
               user: nextAccount.user, 
               token: nextAccount.token, 
+              refreshToken: nextAccount.refreshToken,
               isAuthenticated: true, 
               accounts,
               activeAccountId: nextAccount.user.user_id
@@ -121,6 +144,7 @@ export const useUserStore = create<UserState>()(
             set({ 
               user: null, 
               token: null, 
+              refreshToken: null,
               isAuthenticated: false, 
               accounts: [],
               activeAccountId: null 
@@ -137,6 +161,7 @@ export const useUserStore = create<UserState>()(
       partialize: (state) => ({ 
         user: state.user, 
         token: state.token, 
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         accounts: state.accounts,
         activeAccountId: state.activeAccountId

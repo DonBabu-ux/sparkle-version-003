@@ -8,8 +8,9 @@ const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
 const { downloadExternalImage } = require('../utils/media.utils');
 const logger = require('../utils/logger');
-const { sendEmail } = require('../config/email');
+const { sendEmail, templates } = require('../config/email');
 const { sendSMS } = require('../utils/sms');
+const authService = require('../services/auth.service');
 
 // Helper to sanitize avatars - MOVED TO USER MODEL
 const getSafeAvatarUrl = (url) => User.getSafeAvatarUrl(url);
@@ -191,27 +192,32 @@ const login = async (req, res) => {
             });
         }
 
-        const sessionDuration = rememberMe ? '30d' : '24h';
-        const token = jwt.sign({ 
-            userId: user.user_id, 
-            email: user.email, 
-            username: user.username,
-            tokenVersion: user.token_version || 0
-        }, JWT_SECRET, { expiresIn: sessionDuration });
-
-
-        // CREATE SESSION RECORD
-        const sessionId = crypto.randomBytes(16).toString('hex');
+        // --- NEW: Enhanced Session & Device Tracking ---
+        const deviceId = req.headers['x-device-id'] || 'unknown';
         const userAgent = req.headers['user-agent'] || 'Unknown Device';
-        // const ip = req.ip || req.connection.remoteAddress; // Removed duplicate declaration
+        const { isNewDevice } = await authService.trackLoginActivity(user.user_id, {
+            deviceId,
+            ipAddress: ip,
+            userAgent
+        });
 
-        await query(
-            'INSERT INTO user_sessions (session_id, user_id, device_name, ip_address) VALUES (?, ?, ?, ?)',
-            [sessionId, user.user_id, userAgent, ip]
-        );
+        // Generate production-grade tokens
+        const { accessToken, refreshToken } = await authService.generateTokens(user, deviceId);
+
+        if (isNewDevice) {
+            // Trigger security alert email (non-blocking)
+            sendEmail({
+                to: user.email,
+                ...templates.securityAlert(user.name, {
+                    ipAddress: ip,
+                    userAgent,
+                    time: new Date().toLocaleString()
+                })
+            }).catch(err => logger.error('Failed to send security alert:', err));
+        }
 
         const cookieMaxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
-        res.cookie('sparkleToken', token, {
+        res.cookie('sparkleToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
@@ -219,11 +225,10 @@ const login = async (req, res) => {
             path: '/'
         });
 
-
         res.json({
             status: 'success',
-            token,
-            sessionId,
+            token: accessToken,
+            refreshToken: refreshToken,
             user: {
                 id: user.user_id,
                 name: user.name,
@@ -232,9 +237,11 @@ const login = async (req, res) => {
                 email_verified: user.email_verified === 1,
                 phone_verified: user.phone_verified === 1,
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
-                loggedIn: true
+                loggedIn: true,
+                isNewDevice // Frontend can use this to show a "New device detected" message
             }
         });
+
     } catch (error) {
         console.error('Login Error [Full]:', error);
         res.status(500).json({ status: 'error', message: 'Login failed', details: error.message });
@@ -642,4 +649,24 @@ const switchAccount = async (req, res) => {
     }
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA, request2FARecovery };
+const refreshToken = async (req, res) => {
+    try {
+        const { refreshToken: oldToken } = req.body;
+        if (!oldToken) {
+            return res.status(400).json({ error: 'Refresh token is required' });
+        }
+
+        const { accessToken, refreshToken } = await authService.refreshAccessToken(oldToken);
+
+        res.json({
+            status: 'success',
+            token: accessToken,
+            refreshToken: refreshToken
+        });
+    } catch (error) {
+        logger.error('Token refresh failed:', error.message);
+        res.status(401).json({ status: 'error', message: error.message });
+    }
+};
+
+module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA, request2FARecovery, refreshToken };

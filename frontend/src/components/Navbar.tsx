@@ -88,10 +88,19 @@ export default function Navbar() {
         style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center' }}
       >
         {/* Col 1 — Home */}
-        <Link to="/dashboard" className="relative flex items-center justify-center h-full">
+        <div 
+          onClick={() => {
+            if (isActive('/dashboard')) {
+              window.dispatchEvent(new CustomEvent('scrollDashboardToTop'));
+            } else {
+              navigate('/dashboard');
+            }
+          }} 
+          className="relative flex items-center justify-center h-full cursor-pointer"
+        >
           {isActive('/dashboard') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Home size={22} strokeWidth={isActive('/dashboard') ? 2.5 : 1.8} className={isActive('/dashboard') ? 'text-primary' : 'text-slate-400'} />
-        </Link>
+        </div>
 
         {/* Col 2 — Connect */}
         <Link to="/connect" className="relative flex items-center justify-center h-full">

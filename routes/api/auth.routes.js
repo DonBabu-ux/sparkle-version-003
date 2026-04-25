@@ -29,6 +29,7 @@ try {
 // Standard Auth Routes
 router.post('/signup', validate(signupSchema), authController.signup);
 router.post('/login', validate(loginSchema), authController.login);
+router.post('/refresh', authController.refreshToken);
 router.post('/verify-2fa', authController.verify2FA);
 router.post('/request-2fa-recovery', authController.request2FARecovery);
 router.post('/logout', authMiddleware, authController.logout);

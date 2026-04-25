@@ -95,18 +95,6 @@ export default function Dashboard() {
   const [hasMore, setHasMore] = useState(true);
   const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    const hidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
-    setHiddenPostIds(hidden);
-
-    const handlePostHidden = () => {
-      const updatedHidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
-      setHiddenPostIds(updatedHidden);
-    };
-
-    window.addEventListener('postHidden', handlePostHidden);
-    return () => window.removeEventListener('postHidden', handlePostHidden);
-  }, []);
 
   const fetchDashboardData = useCallback(async (pageNum = 1) => {
     // Section 3: Performance - Avoid re-fetching if data is fresh (< 2 mins) and it's page 1
@@ -150,6 +138,37 @@ export default function Dashboard() {
       setLoadingMore(false);
     }
   }, [lastFetched, posts.length, setPosts, appendPosts, setStories, setSuggestions]);
+
+  useEffect(() => {
+    const hidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
+    setHiddenPostIds(hidden);
+
+    const handlePostHidden = () => {
+      const updatedHidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
+      setHiddenPostIds(updatedHidden);
+    };
+
+    window.addEventListener('postHidden', handlePostHidden);
+
+    // Section 7: Feed Reset & Navigation Behavior
+    const handleScrollToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Refresh feed if already at top or after a small delay
+      fetchDashboardData(1);
+    };
+
+    window.addEventListener('scrollDashboardToTop', handleScrollToTop);
+
+    // Initialize Device ID if missing
+    if (!localStorage.getItem('sparkle_device_id')) {
+      localStorage.setItem('sparkle_device_id', crypto.randomUUID());
+    }
+
+    return () => {
+      window.removeEventListener('postHidden', handlePostHidden);
+      window.removeEventListener('scrollDashboardToTop', handleScrollToTop);
+    };
+  }, [fetchDashboardData]);
 
   const { refreshCounter } = useModalStore();
   const observerTarget = useRef<HTMLDivElement>(null);

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Security Alert - Sparkle</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; mx-auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .alert { background-color: #fff5f5; border-left: 5px solid #fc8181; padding: 15px; margin-bottom: 20px; }
+        .details { background-color: #f7fafc; padding: 15px; border-radius: 5px; font-family: monospace; }
+        .footer { margin-top: 30px; font-size: 12px; color: #718096; text-align: center; }
+        .button { display: inline-block; padding: 10px 20px; background-color: #e53e3e; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="color: #e53e3e;">Security Alert</h1>
+        </div>
+        <p>Hi <%= name %>,</p>
+        <div class="alert">
+            <p><strong>A new login was detected on your Sparkle account.</strong></p>
+        </div>
+        <p>If this was you, you can safely ignore this email. If you don't recognize this activity, please secure your account immediately.</p>
+        
+        <div class="details">
+            <p><strong>Time:</strong> <%= time %></p>
+            <p><strong>IP Address:</strong> <%= ipAddress %></p>
+            <p><strong>Device:</strong> <%= userAgent %></p>
+        </div>
+
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="<%= process.env.APP_URL %>/settings/security" class="button">Secure My Account</a>
+        </p>
+
+        <div class="footer">
+            <p>&copy; 2026 Sparkle. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

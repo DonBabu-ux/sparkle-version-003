@@ -90,9 +90,20 @@ const getFeedPosts = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 20, 50);
         const offset = (page - 1) * limit;
-
-        // Part 1 & 5: Seeded Randomness and Anti-Repetition
         const seed = req.query.seed || getSeedFromDevice(req);
+        
+        // --- NEW: Feed Caching (Upstash Redis) ---
+        const redisService = require('../services/redis.service');
+        const cacheKey = `feed:${currentUserId}:${affiliation}:${page}:${limit}:${seed}`;
+        
+        if (page === 1) { // Only cache first page for better reactivity
+            const cachedData = await redisService.get(cacheKey);
+            if (cachedData) {
+                logger.info(`Feed Cache Hit: ${cacheKey}`);
+                return res.json(cachedData);
+            }
+        }
+
         const recentlySeen = req.query.recentlySeen || '';
         const excludeIds = typeof recentlySeen === 'string' && recentlySeen ? recentlySeen.split(',') : [];
 
@@ -107,6 +118,11 @@ const getFeedPosts = async (req, res) => {
             timestamp: post.created_at, // for consistency
             is_discovery: !post.is_followed && post.user_id !== currentUserId
         }));
+
+        // Store in cache for 2 minutes
+        if (page === 1 && sanitizedPosts.length > 0) {
+            await redisService.set(cacheKey, sanitizedPosts, 120);
+        }
 
         if (req.query.render === 'true') {
             const renderedPosts = await Promise.all(sanitizedPosts.map(post => {

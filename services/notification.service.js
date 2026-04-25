@@ -14,19 +14,19 @@ class NotificationService {
     static async send(event) {
         const { type, priority, recipients, data, eventId } = event;
 
-        // Recipients can be a single ID or an array
+        if (!notificationQueue) {
+            logger.warn('NotificationService: Queue is disabled. Skipping async delivery.');
+            return;
+        }
+
         const userIds = Array.isArray(recipients) ? recipients : [recipients];
-        
-        // Fan-out control: Limit recipients per event (e.g., max 50,000)
         const MAX_FANOUT = 50000;
         const targetUsers = userIds.slice(0, MAX_FANOUT);
 
-        // Batch processing: Split into chunks of 500
         const BATCH_SIZE = 500;
         for (let i = 0; i < targetUsers.length; i += BATCH_SIZE) {
             const batch = targetUsers.slice(i, i + BATCH_SIZE);
             
-            // Add batch to queue
             await notificationQueue.add('send-notification', {
                 userIds: batch,
                 type,
@@ -35,15 +35,11 @@ class NotificationService {
                 eventId: eventId || crypto.randomUUID()
             }, {
                 priority: this.getPriorityValue(priority),
-                delay: i > 0 ? (i / BATCH_SIZE) * 100 : 0 // Section 1: Add delay between batches (100ms)
+                delay: i > 0 ? (i / BATCH_SIZE) * 100 : 0
             });
         }
     }
 
-    /**
-     * Helper to map priority strings to BullMQ numeric priorities
-     * BullMQ: lower value = higher priority
-     */
     static getPriorityValue(priority) {
         switch (priority) {
             case 'HIGH': return 1;
@@ -53,27 +49,24 @@ class NotificationService {
         }
     }
 
-    /**
-     * Deduplication & Cooldown logic (to be used by the Worker)
-     */
     static async canSendToUser(userId, eventId) {
+        if (!connection) return true; // Fail-open if no connection
+
         const dedupeKey = `notif:dedupe:${userId}:${eventId}`;
         const cooldownKey = `notif:cooldown:${userId}`;
 
-        // Section 1: Deduplication using (userId + eventId) stored in Redis with TTL (60s)
         const isDuplicate = await connection.get(dedupeKey);
         if (isDuplicate) return false;
 
-        // Section 1: Cooldown max 1 notification per 5 seconds per user
         const inCooldown = await connection.get(cooldownKey);
         if (inCooldown) return false;
 
-        // Set markers
         await connection.setex(dedupeKey, 60, '1');
         await connection.setex(cooldownKey, 5, '1');
 
         return true;
     }
+
 }
 
 module.exports = NotificationService;

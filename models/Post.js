@@ -1,13 +1,32 @@
 const pool = require('../config/database');
 const crypto = require('crypto');
 
-class Post {
+    /**
+     * Detects post category based on keywords and hashtags
+     */
+    static detectCategory(content) {
+        const text = (content || '').toLowerCase();
+        const categories = {
+            'Sports': ['football', 'soccer', 'basketball', 'match', 'goal', 'team', 'athlete', 'sports', 'gym'],
+            'Technology': ['coding', 'software', 'tech', 'ai', 'programming', 'developer', 'app', 'system'],
+            'Entertainment': ['music', 'movie', 'film', 'song', 'artist', 'dance', 'party', 'fun'],
+            'Academic': ['study', 'exam', 'lecture', 'university', 'college', 'major', 'research', 'book'],
+            'Social': ['friend', 'hangout', 'life', 'vibe', 'happy', 'weekend']
+        };
+
+        for (const [cat, keywords] of Object.entries(categories)) {
+            if (keywords.some(k => text.includes(k))) return cat;
+        }
+        return 'General';
+    }
+
     /**
      * Create a new post
      */
     static async create(userId, postData) {
         const postId = crypto.randomUUID();
         const affiliation = postData.affiliation || postData.campus || null;
+        const category = this.detectCategory(postData.content);
         
         // --- NEW: Spam Filter (Algorithm 11.10) ---
         const badWords = ['spam', 'offensive', 'badword']; // Simplified for demo
@@ -20,8 +39,8 @@ class Post {
         const commentsEnabled = postData.comments_enabled !== undefined ? postData.comments_enabled : 1;
 
         await pool.query(
-            `INSERT INTO posts (post_id, user_id, content, media_url, media_type, post_type, campus, group_id, location, scheduled_at, comments_enabled) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO posts (post_id, user_id, content, media_url, media_type, post_type, campus, group_id, location, scheduled_at, comments_enabled, category) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 postId,
                 userId,
@@ -33,7 +52,8 @@ class Post {
                 postData.group_id || null,
                 postData.location || null,
                 scheduledAt,
-                commentsEnabled
+                commentsEnabled,
+                category
             ]
         );
 
@@ -298,53 +318,73 @@ class Post {
             }
         }
 
-        // --- ADVANCED SCORING ENGINE (Algorithm 44) ---
-        // Fetch top 20 recent hashtags from user's posts to use in discovery scoring
+        // --- ADVANCED RANKING ALGORITHM 7.0 (The Genius Update) ---
+        // Score = (Affinity*0.35) + (Engagement*0.25) + (Recency*0.20) + (Discovery/Interest*0.10) + (Randomness*0.10)
+
+        // 1. Interest Learning (Dynamic): Fetch user's recent interacted tags (Moving Window)
         const [recentTags] = await pool.query(`
             SELECT DISTINCT tag FROM post_hashtags ph2 
             JOIN posts p2 ON ph2.post_id = p2.post_id 
             WHERE p2.user_id = ? 
-            ORDER BY p2.created_at DESC LIMIT 20
+            ORDER BY p2.created_at DESC LIMIT 15
         `, [currentUserId]);
         
+        // 2. Profile Interests (Static): Fetch user's declared interests for cold-start
+        const [userProfile] = await pool.query('SELECT major, interests FROM users WHERE user_id = ?', [currentUserId]);
+        const profileInterests = (userProfile[0]?.interests || userProfile[0]?.major || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
+
         const tags = recentTags.map(t => t.tag);
-        const tagFilter = tags.length > 0 ? `AND ph.tag IN (${tags.map(() => '?').join(',')})` : 'AND 1=0';
+        const hasTags = tags.length > 0;
+        const tagMarkers = hasTags ? tags.map(() => '?').join(',') : 'NULL';
 
         const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
         const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
 
-        // Velocity Scoring: (Score / (Time + 2)^1.5)
-        // Score = (Likes*1 + Comments*2 + Shares*4)
         const query = `
             SELECT p.*, u.username, u.name as user_name, u.avatar_url,
-                    u.campus as user_affiliation, u.major as user_interests,
+                    u.campus as user_affiliation,
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
-                    (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM sparks s2 JOIN users u2 ON s2.user_id = u2.user_id WHERE s2.post_id = p.post_id LIMIT 3) as liker_avatars,
+                    (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM (SELECT s2.user_id FROM sparks s2 WHERE s2.post_id = p.post_id ORDER BY (SELECT COUNT(*) FROM follows f WHERE f.follower_id = ? AND f.following_id = s2.user_id) DESC, s2.created_at DESC LIMIT 3) as sub JOIN users u2 ON sub.user_id = u2.user_id) as liker_avatars,
+                    (SELECT u3.name FROM sparks s3 JOIN users u3 ON s3.user_id = u3.user_id WHERE s3.post_id = p.post_id ORDER BY (SELECT COUNT(*) FROM follows f2 WHERE f2.follower_id = ? AND f2.following_id = s3.user_id) DESC, s3.created_at DESC LIMIT 1) as top_liker_name,
                     EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
                     EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
+                    
+                    -- RANKING FORMULA 7.0
                     (
-                        (
-                            CASE 
-                                WHEN p.user_id = ? THEN 10.0 
-                                WHEN p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) THEN 7.0
-                                WHEN p.campus = ? THEN 4.0
-                                ELSE 1.0 
-                            END +
-                            (p.spark_count * 1.0) + 
-                            (p.comment_count * 2.0) + 
-                            (p.share_count * 4.0) +
-                            COALESCE((SELECT COUNT(*) * 0.5 FROM post_hashtags ph 
-                             WHERE ph.post_id = p.post_id ${tagFilter}), 0)
-                        ) / POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.5)
+                        -- A. Affinity (35%): Social Graph & Community
+                        ((CASE 
+                            WHEN p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) THEN 1.0
+                            WHEN p.campus = ? THEN 0.6
+                            ELSE 0.2
+                        END) * 0.35) +
+
+                        -- B. Engagement (25%): Quality/Velocity
+                        (LEAST((p.spark_count * 1.0 + p.comment_count * 2.0 + p.share_count * 4.0) / 100.0, 1.0) * 0.25) +
+
+                        -- C. Recency (20%): Freshness
+                        ((1.0 / POW(TIMESTAMPDIFF(MINUTE, p.created_at, NOW()) / 60.0 + 1, 1.5)) * 0.20) +
+
+                        -- D. Interest/Discovery (10%): The "Genius" Part
+                        ((CASE 
+                            -- Match with dynamic hashtags (recent behavior)
+                            WHEN ${hasTags ? `EXISTS(SELECT 1 FROM post_hashtags ph WHERE ph.post_id = p.post_id AND ph.tag IN (${tagMarkers}))` : '0=1'} THEN 1.0
+                            -- Match with static interests (profile major/tags)
+                            WHEN p.category IN (${profileInterests.length > 0 ? profileInterests.map(() => '?').join(',') : 'NULL'}) THEN 0.8
+                            ELSE 0.2
+                        END) * 0.10) +
+
+                        -- E. Randomness (10%): Entropy for changing minds
+                        (RAND(?) * 0.10)
                     ) as discovery_score
+
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
              WHERE (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
                AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
-                ${excludeFilter}
+               ${excludeFilter}
                AND NOT EXISTS (
                    SELECT 1 FROM user_blocks 
                    WHERE (blocker_id = ? AND blocked_id = p.user_id)
@@ -359,22 +399,40 @@ class Post {
              LIMIT ? OFFSET ?`;
 
         const params = [
-            currentUserId, currentUserId, currentUserId, currentUserId, affiliation,
-            ...tags,
-            affiliation, affiliation,
-            ...excluded,
-            currentUserId, currentUserId,
-            currentUserId, currentUserId,
+            currentUserId, currentUserId, currentUserId, currentUserId, // Mutual likers + Spark check
+            currentUserId, affiliation, // Affinity
+            ...(hasTags ? tags : []), // Dynamic Tag Matching
+            ...profileInterests, // Static Profile Interest Matching
+            randomSeed, // Randomness
+            affiliation, affiliation, 
+            ...excluded, 
+            currentUserId, currentUserId, 
+            currentUserId, currentUserId, 
             limit, offset
         ];
 
-        const [posts] = await pool.query(query, params);
-        return (posts || []).map(post => {
-            if (typeof post.media_files === 'string') {
-                try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
-            }
-            return post;
-        });
+        try {
+            const [posts] = await pool.query(query, params);
+            return (posts || []).map(post => {
+                if (typeof post.media_files === 'string') {
+                    try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
+                }
+                if (typeof post.liker_avatars === 'string') {
+                    try { post.liker_avatars = JSON.parse(post.liker_avatars); } catch(e) { post.liker_avatars = []; }
+                }
+                return post;
+            });
+        } catch (err) {
+            console.error('Advanced Ranking Failed, falling back to basic:', err);
+            // FAIL-SAFE: Return recent public posts
+            const [fallback] = await pool.query(
+                `SELECT p.*, u.username, u.avatar_url, 0 as is_followed, 0 as is_sparked
+                 FROM posts p JOIN users u ON p.user_id = u.user_id 
+                 WHERE p.post_type = 'public' ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
+                [limit, offset]
+            );
+            return fallback;
+        }
     }
 
     /**

@@ -419,43 +419,31 @@ const crypto = require('crypto');
                 if (typeof post.media_files === 'string') {
                     try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
                 }
+                if (!Array.isArray(post.media_files)) post.media_files = [];
+
                 if (typeof post.liker_avatars === 'string') {
                     try { post.liker_avatars = JSON.parse(post.liker_avatars); } catch(e) { post.liker_avatars = []; }
                 }
+                if (!Array.isArray(post.liker_avatars)) post.liker_avatars = [];
+                
                 filteredPosts.push(post);
             }
 
             return filteredPosts;
         } catch (err) {
             console.error('Algorithm 7.5 Critical Failure:', err);
-            const [fallback] = await pool.query(
-                `SELECT p.*, u.username, u.avatar_url FROM posts p JOIN users u ON p.user_id = u.user_id WHERE p.post_type = 'public' ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
-                [limit, offset]
-            );
-            return fallback;
-        }
-
-        try {
-            const [posts] = await pool.query(query, params);
-            return (posts || []).map(post => {
-                if (typeof post.media_files === 'string') {
-                    try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
-                }
-                if (typeof post.liker_avatars === 'string') {
-                    try { post.liker_avatars = JSON.parse(post.liker_avatars); } catch(e) { post.liker_avatars = []; }
-                }
-                return post;
-            });
-        } catch (err) {
-            console.error('Advanced Ranking Failed, falling back to basic:', err);
             // FAIL-SAFE: Return recent public posts
             const [fallback] = await pool.query(
-                `SELECT p.*, u.username, u.avatar_url, 0 as is_followed, 0 as is_sparked
+                `SELECT p.*, u.username, u.name as user_name, u.avatar_url, 0 as is_followed, 0 as is_sparked, '[]' as media_files, '[]' as liker_avatars
                  FROM posts p JOIN users u ON p.user_id = u.user_id 
                  WHERE p.post_type = 'public' ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
                 [limit, offset]
             );
-            return fallback;
+            return (fallback || []).map(p => {
+                p.media_files = [];
+                p.liker_avatars = [];
+                return p;
+            });
         }
     }
 

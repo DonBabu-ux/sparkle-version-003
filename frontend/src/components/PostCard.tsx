@@ -365,9 +365,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       {/* Stats */}
       <div className="px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center cursor-pointer hover:underline">
+          {/* Primary Like Icon - Restored and spaced to avoid collision */}
+          <div className="w-[18px] h-[18px] rounded-full bg-[#1877F2] flex items-center justify-center ring-2 ring-white z-30 shadow-sm mr-3">
+            <ThumbsUp size={10} fill="white" className="text-white" />
+          </div>
+
           <div className="flex items-center gap-4 h-12">
              {/* Dynamic Swaying Avatars - Max 3, staggered heights, same-direction sway */}
-             {!isOwner && post.liker_avatars && post.liker_avatars.length > 0 && post.liker_avatars.map((avatar, i) => (
+             {!isOwner && Array.isArray(post.liker_avatars) && post.liker_avatars.length > 0 && post.liker_avatars.map((avatar, i) => (
                <motion.div
                  key={i}
                  animate={{ 
@@ -399,10 +404,19 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
              ))}
           </div>
 
-          <div className="ml-5 flex items-center">
+          <div className="ml-5 flex items-center leading-tight">
             {sparkCount > 0 && (
-              <span className="text-[14px] text-gray-500 font-semibold">
-                {sparkCount > 3 ? `+ ${formatCount(sparkCount - 3)} others` : `${formatCount(sparkCount)} ${sparkCount === 1 ? 'like' : 'likes'}`}
+              <span className="text-[14px] text-gray-700 font-medium">
+                {post.top_liker_name ? (
+                  <>
+                    Liked by <span className="font-bold text-gray-900">{post.top_liker_name}</span>
+                    {sparkCount > 1 && (
+                      <> and <span className="font-bold text-gray-900">{formatCount(sparkCount - 1)} others</span></>
+                    )}
+                  </>
+                ) : (
+                  <span className="font-bold text-gray-900">{formatCount(sparkCount)} {sparkCount === 1 ? 'like' : 'likes'}</span>
+                )}
               </span>
             )}
           </div>

@@ -409,10 +409,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
               fill="none" 
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* Wrist Part */}
+              {/* Wrist Part - Aligned better with thumb/palm */}
               <path 
                 d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" 
                 fill="#0866FF" 
+                transform="translate(0, -1)"
               />
               {/* Hand/Thumb Part with a thicker white stroke to force a clean gap */}
               <path 

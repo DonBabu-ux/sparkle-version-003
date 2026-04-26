@@ -92,6 +92,7 @@ export default function StoryViewer() {
   const [showViewerOptions, setShowViewerOptions] = useState<any>(null);
   const [showStorySettings, setShowStorySettings] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [showHideFromModal, setShowHideFromModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Real Data States
@@ -103,6 +104,8 @@ export default function StoryViewer() {
   const [activeCommentIndex, setActiveCommentIndex] = useState(0);
 
   const longPressTimer = useRef<any>(null);
+  const timerRef = useRef<any>(null);
+  const pausedRef = useRef(false);
 
   useEffect(() => {
     const fetchStories = async () => {
@@ -183,17 +186,43 @@ export default function StoryViewer() {
     }
   }, [progress, currentIndex, userStories, navigate]);
 
+  // ── Keep pausedRef always in sync — checked every timer tick ────────────
+  // This ref is ALWAYS current, no stale closure possible
   useEffect(() => {
-    const anyModalOpen = showOptionsSheet || showViewersSheet || showShareModal || showMentionModal || showViewerOptions || showStorySettings || showCommentModal;
-    if (isPaused || isInputFocused || isLongPressing || !userStories || anyModalOpen) {
-      audio.pause();
-      return;
-    }
-    const interval = setInterval(() => {
-      setProgress(prev => Math.min(100, prev + 1));
+    pausedRef.current =
+      isPaused || isInputFocused || isLongPressing ||
+      showOptionsSheet || showViewersSheet || showShareModal ||
+      showMentionModal || !!showViewerOptions || showStorySettings || showCommentModal;
+  });
+
+  // ── Single always-running timer — checks pausedRef on every tick ──────────
+  // Restarts only when the actual story changes, not when modals open/close
+  useEffect(() => {
+    setProgress(0);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      if (pausedRef.current) return; // paused — skip this tick, stay running
+      setProgress(prev => {
+        if (prev >= 100) return 100;
+        return prev + 1;
+      });
     }, 40);
-    return () => clearInterval(interval);
-  }, [userStories, currentIndex, isPaused, isInputFocused, isLongPressing, showViewersSheet, showShareModal, showOptionsSheet, showMentionModal, showViewerOptions, showStorySettings, showCommentModal]);
+    return () => {
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    };
+  }, [currentIndex, userStories]);
+
+  // ── Advance to next story when progress completes ─────────────────────────
+  useEffect(() => {
+    if (progress >= 100) {
+      if (userStories && currentIndex < userStories.stories.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+        setProgress(0);
+      } else if (userStories) {
+        navigate('/dashboard');
+      }
+    }
+  }, [progress, currentIndex, userStories, navigate]);
 
   if (loading || !userStories) return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
@@ -265,8 +294,8 @@ export default function StoryViewer() {
           {/* Header */}
           <div className="absolute top-10 left-6 right-6 z-50 flex items-center justify-between">
             <div className="flex items-center gap-3">
-               <div className={`w-10 h-10 rounded-full p-0.5 ${unviewedCount > 1 ? 'bg-gradient-to-tr from-primary to-blue-500' : 'bg-gray-700'}`}>
-                 <img src={getAvatarUrl(userStories.avatar_url, userStories.user_name)} className="w-full h-full rounded-full border-2 border-black" alt="" />
+               <div className={`w-12 h-12 rounded-full p-0.5 flex-shrink-0 ${unviewedCount > 1 ? 'bg-gradient-to-tr from-primary to-blue-500' : 'bg-gray-700'}`}>
+                 <img src={getAvatarUrl(userStories.avatar_url, userStories.user_name)} className="w-full h-full rounded-full border-2 border-black object-cover" alt="" />
                </div>
                <div className="flex flex-col">
                   <h4 className="text-white font-bold text-[13px]">{userStories.user_name} <span className="text-white/40 text-[11px]">• {new Date(currentStory.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span></h4>
@@ -294,7 +323,7 @@ export default function StoryViewer() {
                    initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
                    className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex items-start gap-2 shadow-2xl"
                  >
-                   <img src={getAvatarUrl(storyComments[activeCommentIndex].avatar_url, storyComments[activeCommentIndex].username)} className="w-6 h-6 rounded-full border border-white/20" alt="" />
+                   <img src={getAvatarUrl(storyComments[activeCommentIndex].avatar_url, storyComments[activeCommentIndex].username)} className="w-6 h-6 flex-shrink-0 rounded-full border border-white/20 object-cover" alt="" />
                    <p className="text-white text-[11px] leading-tight font-medium">
                      <span className="font-bold mr-1">{storyComments[activeCommentIndex].username}</span>
                      {storyComments[activeCommentIndex].text}
@@ -323,7 +352,7 @@ export default function StoryViewer() {
                     <div onClick={() => setShowViewersSheet(true)} className="flex items-center gap-3 cursor-pointer">
                        <div className="flex -space-x-3">
                           {viewers.length > 0 ? viewers.slice(0, 3).map((v, i) => (
-                            <img key={i} src={getAvatarUrl(v.avatar_url, v.username)} className="w-8 h-8 rounded-full border-2 border-black bg-gray-800" alt="" />
+                            <img key={i} src={getAvatarUrl(v.avatar_url, v.username)} className="w-8 h-8 flex-shrink-0 rounded-full border-2 border-black bg-gray-800 object-cover" alt="" />
                           )) : (
                             <div className="w-8 h-8 rounded-full border-2 border-black bg-white/5 flex items-center justify-center"><User size={14} className="text-white/20" /></div>
                           )}
@@ -341,7 +370,10 @@ export default function StoryViewer() {
                     >
                       {WA_LOGO}
                     </button>
-                    <button onClick={() => setShowOptionsSheet(true)} className="text-white p-2 active:scale-75 transition-all"><MoreHorizontal size={24} /></button>
+                    <button onClick={() => setShowOptionsSheet(true)} className="flex flex-col items-center gap-0.5 text-white p-2 active:scale-75 transition-all">
+                      <MoreHorizontal size={22} />
+                      <span className="text-[8px] font-black uppercase tracking-widest">More</span>
+                    </button>
                   </div>
                </div>
              ) : (
@@ -393,7 +425,7 @@ export default function StoryViewer() {
                     <div key={i} className="flex items-center justify-between group">
                        <div className="flex items-center gap-4">
                           <div className="relative">
-                             <img src={getAvatarUrl(v.avatar_url, v.username)} className="w-12 h-12 rounded-full object-cover border-2 border-black" alt="" />
+                             <img src={getAvatarUrl(v.avatar_url, v.username)} className="w-12 h-12 flex-shrink-0 rounded-full object-cover border-2 border-white/10" alt="" />
                              {v.type === 'like' && <div className="absolute -bottom-1 -right-1 bg-rose-500 rounded-full p-1 border-2 border-black"><Heart size={8} className="text-white fill-white" /></div>}
                           </div>
                           <div>
@@ -430,42 +462,40 @@ export default function StoryViewer() {
       <AnimatePresence>
         {showStorySettings && (
           <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-0 z-[600] bg-[#0A0A0A] flex flex-col">
-             <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                   <button onClick={() => setShowStorySettings(false)} className="text-white"><ChevronLeft size={28} /></button>
-                   <h2 className="text-white font-black text-xl italic tracking-tight">Story</h2>
-                </div>
+             <div className="p-5 border-b border-white/5 flex items-center gap-3">
+                <button onClick={() => setShowStorySettings(false)} className="text-white"><ChevronLeft size={24} /></button>
+                <h2 className="text-white font-bold text-[16px]">Story Settings</h2>
              </div>
-             <div className="flex-1 overflow-y-auto p-6 space-y-10">
+             <div className="flex-1 overflow-y-auto p-5 space-y-8">
                 <section>
-                   <h3 className="text-white/40 font-black text-[10px] uppercase tracking-widest mb-4 italic">Viewing</h3>
-                   <button className="w-full flex items-center justify-between py-4 group">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white"><EyeOff size={22} /></div>
+                   <h3 className="text-white/40 font-semibold text-[11px] mb-3">Viewing</h3>
+                   <button onClick={() => setShowHideFromModal(true)} className="w-full flex items-center justify-between py-3">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white"><EyeOff size={18} /></div>
                          <div className="text-left">
-                            <h4 className="text-white font-bold text-[15px]">Hide story from</h4>
-                            <p className="text-white/40 text-[12px] font-medium">0 people</p>
+                            <h4 className="text-white font-medium text-[14px]">Hide story from</h4>
+                            <p className="text-white/40 text-[11px]">0 people</p>
                          </div>
                       </div>
-                      <ChevronRight size={20} className="text-white/20" />
+                      <ChevronRight size={18} className="text-white/30" />
                    </button>
                 </section>
 
                 <section>
-                   <h3 className="text-white/40 font-black text-[10px] uppercase tracking-widest mb-4 italic">Replying</h3>
-                   <div className="space-y-4">
+                   <h3 className="text-white/40 font-semibold text-[11px] mb-3">Replying</h3>
+                   <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white"><MessageSquare size={22} /></div>
-                            <div><h4 className="text-white font-bold text-[15px]">Allow message replies</h4></div>
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white"><MessageSquare size={18} /></div>
+                            <h4 className="text-white font-medium text-[14px]">Allow message replies</h4>
                          </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 p-1 bg-white/5 rounded-2xl">
-                         {['Everyone', 'People you follow', 'Off'].map(opt => (
-                           <button 
+                      <div className="grid grid-cols-3 gap-2 p-1 bg-white/5 rounded-xl">
+                         {['Everyone', 'Following', 'Off'].map(opt => (
+                           <button
                              key={opt}
-                             onClick={() => updateSetting('reply_privacy', opt.toLowerCase().replace(' ', '_'))}
-                             className={`py-3 text-[11px] font-black uppercase italic rounded-xl transition-all ${currentStory.reply_privacy === opt.toLowerCase().replace(' ', '_') ? 'bg-white text-black shadow-xl' : 'text-white/40'}`}
+                             onClick={() => updateSetting('reply_privacy', opt.toLowerCase())}
+                             className={`py-2 text-[12px] font-semibold rounded-lg transition-all ${currentStory.reply_privacy === opt.toLowerCase() ? 'bg-white text-black shadow' : 'text-white/50'}`}
                            >
                              {opt}
                            </button>
@@ -475,20 +505,20 @@ export default function StoryViewer() {
                 </section>
 
                 <section>
-                   <h3 className="text-white/40 font-black text-[10px] uppercase tracking-widest mb-4 italic">Commenting</h3>
-                   <div className="space-y-4">
+                   <h3 className="text-white/40 font-semibold text-[11px] mb-3">Commenting</h3>
+                   <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white"><MessageCircle size={22} /></div>
-                            <div><h4 className="text-white font-bold text-[15px]">Allow comments</h4></div>
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white"><MessageCircle size={18} /></div>
+                            <h4 className="text-white font-medium text-[14px]">Allow comments</h4>
                          </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 p-1 bg-white/5 rounded-2xl">
-                         {['Everyone', 'People you follow', 'Off'].map(opt => (
+                      <div className="grid grid-cols-3 gap-2 p-1 bg-white/5 rounded-xl">
+                         {['Everyone', 'Following', 'Off'].map(opt => (
                            <button 
                              key={opt}
-                             onClick={() => updateSetting('comment_privacy', opt.toLowerCase().replace(' ', '_'))}
-                             className={`py-3 text-[11px] font-black uppercase italic rounded-xl transition-all ${currentStory.comment_privacy === opt.toLowerCase().replace(' ', '_') ? 'bg-white text-black shadow-xl' : 'text-white/40'}`}
+                             onClick={() => updateSetting('comment_privacy', opt.toLowerCase())}
+                             className={`py-2 text-[12px] font-semibold rounded-lg transition-all ${currentStory.comment_privacy === opt.toLowerCase() ? 'bg-white text-black shadow' : 'text-white/50'}`}
                            >
                              {opt}
                            </button>
@@ -498,55 +528,55 @@ export default function StoryViewer() {
                 </section>
 
                 <section>
-                   <h3 className="text-white/40 font-black text-[10px] uppercase tracking-widest mb-4 italic">Saving</h3>
-                   <div className="space-y-6">
+                   <h3 className="text-white/40 font-semibold text-[11px] mb-3">Saving</h3>
+                   <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white"><Download size={22} /></div>
-                            <div><h4 className="text-white font-bold text-[15px]">Save to Gallery</h4></div>
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white"><Download size={18} /></div>
+                            <h4 className="text-white font-medium text-[14px]">Save to Gallery</h4>
                          </div>
-                         <div onClick={() => updateSetting('save_to_gallery', !currentStory.save_to_gallery)} className={`w-14 h-8 rounded-full p-1 transition-all ${currentStory.save_to_gallery ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-6 h-6 bg-white rounded-full transition-all ${currentStory.save_to_gallery ? 'translate-x-6' : ''}`} /></div>
+                         <div onClick={() => updateSetting('save_to_gallery', !currentStory.save_to_gallery)} className={`w-12 h-7 rounded-full p-1 transition-all cursor-pointer ${currentStory.save_to_gallery ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-5 h-5 bg-white rounded-full transition-all ${currentStory.save_to_gallery ? 'translate-x-5' : ''}`} /></div>
                       </div>
                       <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white"><Archive size={22} /></div>
-                            <div><h4 className="text-white font-bold text-[15px]">Save to Archive</h4></div>
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white"><Archive size={18} /></div>
+                            <h4 className="text-white font-medium text-[14px]">Save to Archive</h4>
                          </div>
-                         <div onClick={() => updateSetting('save_to_archive', !currentStory.save_to_archive)} className={`w-14 h-8 rounded-full p-1 transition-all ${currentStory.save_to_archive ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-6 h-6 bg-white rounded-full transition-all ${currentStory.save_to_archive ? 'translate-x-6' : ''}`} /></div>
+                         <div onClick={() => updateSetting('save_to_archive', !currentStory.save_to_archive)} className={`w-12 h-7 rounded-full p-1 transition-all cursor-pointer ${currentStory.save_to_archive ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-5 h-5 bg-white rounded-full transition-all ${currentStory.save_to_archive ? 'translate-x-5' : ''}`} /></div>
                       </div>
                    </div>
                 </section>
 
                 <section>
-                   <h3 className="text-white/40 font-black text-[10px] uppercase tracking-widest mb-4 italic">Sharing</h3>
-                   <div className="space-y-6">
+                   <h3 className="text-white/40 font-semibold text-[11px] mb-3">Sharing</h3>
+                   <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white"><Repeat size={22} /></div>
-                            <div className="pr-10"><h4 className="text-white font-bold text-[15px]">Allow sharing to story</h4><p className="text-white/20 text-[11px]">Other people can add your posts to their stories.</p></div>
+                         <div className="flex items-center gap-3 flex-1 pr-4">
+                            <div className="w-10 h-10 flex-shrink-0 bg-white/5 rounded-xl flex items-center justify-center text-white"><Repeat size={18} /></div>
+                            <div><h4 className="text-white font-medium text-[14px]">Allow sharing to story</h4><p className="text-white/30 text-[11px]">Others can add your story to theirs.</p></div>
                          </div>
-                         <div onClick={() => updateSetting('allow_sharing', !currentStory.allow_sharing)} className={`w-14 h-8 rounded-full p-1 transition-all ${currentStory.allow_sharing ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-6 h-6 bg-white rounded-full transition-all ${currentStory.allow_sharing ? 'translate-x-6' : ''}`} /></div>
+                         <div onClick={() => updateSetting('allow_sharing', !currentStory.allow_sharing)} className={`w-12 h-7 flex-shrink-0 rounded-full p-1 transition-all cursor-pointer ${currentStory.allow_sharing ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-5 h-5 bg-white rounded-full transition-all ${currentStory.allow_sharing ? 'translate-x-5' : ''}`} /></div>
                       </div>
                       <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white"><Send size={22} /></div>
-                            <div className="pr-10"><h4 className="text-white font-bold text-[15px]">Allow sharing to messages</h4><p className="text-white/20 text-[11px]">Let others share photos/videos from your story in a message.</p></div>
+                         <div className="flex items-center gap-3 flex-1 pr-4">
+                            <div className="w-10 h-10 flex-shrink-0 bg-white/5 rounded-xl flex items-center justify-center text-white"><Send size={18} /></div>
+                            <div><h4 className="text-white font-medium text-[14px]">Allow sharing to messages</h4><p className="text-white/30 text-[11px]">Let others forward your story.</p></div>
                          </div>
-                         <div onClick={() => updateSetting('allow_message_sharing', !currentStory.allow_message_sharing)} className={`w-14 h-8 rounded-full p-1 transition-all ${currentStory.allow_message_sharing ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-6 h-6 bg-white rounded-full transition-all ${currentStory.allow_message_sharing ? 'translate-x-6' : ''}`} /></div>
+                         <div onClick={() => updateSetting('allow_message_sharing', !currentStory.allow_message_sharing)} className={`w-12 h-7 flex-shrink-0 rounded-full p-1 transition-all cursor-pointer ${currentStory.allow_message_sharing ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-5 h-5 bg-white rounded-full transition-all ${currentStory.allow_message_sharing ? 'translate-x-5' : ''}`} /></div>
                       </div>
                       <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white">{FB_LOGO}</div>
-                            <div className="pr-10"><h4 className="text-white font-bold text-[15px]">Share story to Facebook</h4><p className="text-white/20 text-[11px]">Automatically share your story as Facebook story.</p></div>
+                         <div className="flex items-center gap-3 flex-1 pr-4">
+                            <div className="w-10 h-10 flex-shrink-0 bg-white/5 rounded-xl flex items-center justify-center">{FB_LOGO}</div>
+                            <div><h4 className="text-white font-medium text-[14px]">Share to Facebook</h4><p className="text-white/30 text-[11px]">Auto-share your story as Facebook story.</p></div>
                          </div>
-                         <div onClick={() => updateSetting('auto_share_fb', !currentStory.auto_share_fb)} className={`w-14 h-8 rounded-full p-1 transition-all ${currentStory.auto_share_fb ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-6 h-6 bg-white rounded-full transition-all ${currentStory.auto_share_fb ? 'translate-x-6' : ''}`} /></div>
+                         <div onClick={() => updateSetting('auto_share_fb', !currentStory.auto_share_fb)} className={`w-12 h-7 flex-shrink-0 rounded-full p-1 transition-all cursor-pointer ${currentStory.auto_share_fb ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-5 h-5 bg-white rounded-full transition-all ${currentStory.auto_share_fb ? 'translate-x-5' : ''}`} /></div>
                       </div>
                       <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white">{WA_LOGO}</div>
-                            <div className="pr-10"><h4 className="text-white font-bold text-[15px]">Share story to WhatsApp</h4><p className="text-white/20 text-[11px]">Automatically share your story to WhatsApp.</p></div>
+                         <div className="flex items-center gap-3 flex-1 pr-4">
+                            <div className="w-10 h-10 flex-shrink-0 bg-white/5 rounded-xl flex items-center justify-center">{WA_LOGO}</div>
+                            <div><h4 className="text-white font-medium text-[14px]">Share to WhatsApp</h4><p className="text-white/30 text-[11px]">Auto-share your story to WhatsApp status.</p></div>
                          </div>
-                         <div onClick={() => updateSetting('auto_share_wa', !currentStory.auto_share_wa)} className={`w-14 h-8 rounded-full p-1 transition-all ${currentStory.auto_share_wa ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-6 h-6 bg-white rounded-full transition-all ${currentStory.auto_share_wa ? 'translate-x-6' : ''}`} /></div>
+                         <div onClick={() => updateSetting('auto_share_wa', !currentStory.auto_share_wa)} className={`w-12 h-7 flex-shrink-0 rounded-full p-1 transition-all cursor-pointer ${currentStory.auto_share_wa ? 'bg-primary' : 'bg-white/10'}`}><div className={`w-5 h-5 bg-white rounded-full transition-all ${currentStory.auto_share_wa ? 'translate-x-5' : ''}`} /></div>
                       </div>
                    </div>
                 </section>
@@ -560,54 +590,226 @@ export default function StoryViewer() {
         {showShareModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[600] bg-black/90 backdrop-blur-2xl flex items-end justify-center" onClick={() => setShowShareModal(false)}>
              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} onClick={(e) => e.stopPropagation()} className="w-full max-w-[500px] bg-[#0A0A0A] rounded-t-[48px] p-8 h-[85vh] flex flex-col border-t border-white/10">
-                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-8" />
-                <div className="flex items-center justify-between mb-8">
-                   <h3 className="text-white font-black uppercase italic tracking-widest text-[14px]">Send to</h3>
-                   <button onClick={() => setShowShareModal(false)} className="text-white bg-white/10 p-2 rounded-full"><X size={24} /></button>
+                <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+                <div className="flex items-center justify-between mb-4">
+                   <h3 className="text-white font-bold text-[15px]">Send to</h3>
+                   <button onClick={() => setShowShareModal(false)} className="text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
                 </div>
-                <div className="relative mb-8">
-                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
-                   <input placeholder="Search followers..." className="w-full bg-white/5 py-4 pl-12 pr-4 rounded-2xl text-white outline-none" />
+                <div className="relative mb-4">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
+                   <input placeholder="Search followers..." className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
                 </div>
-                <div className="flex-1 overflow-y-auto space-y-6 no-scrollbar">
+                <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar">
                    {shareContacts.map((contact, i) => (
-                     <div key={i} className="flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                           <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-14 h-14 rounded-[22px] object-cover border border-white/10 shadow-xl" alt="" />
+                     <div key={i} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                           <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 flex-shrink-0 rounded-full object-cover border border-white/10" alt="" />
                            <div>
-                              <h4 className="text-white font-bold text-[14px]">{contact.username}</h4>
-                              <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Active Now</p>
+                              <h4 className="text-white font-medium text-[13px]">{contact.username}</h4>
+                              <p className="text-white/40 text-[11px]">Follower</p>
                            </div>
                         </div>
-                        <button className="px-6 h-10 bg-primary text-white rounded-xl text-[12px] font-black italic uppercase shadow-lg shadow-primary/20">Send</button>
+                        <button className="px-4 h-8 bg-primary text-white rounded-lg text-[12px] font-semibold">Send</button>
                      </div>
                    ))}
                 </div>
                 
-                {/* DEDICATED FOOTER CARD */}
-                <div className="mt-8 pt-8 border-t border-white/10 bg-white/[0.02] -mx-8 px-8 pb-10">
-                   <div className="flex gap-6 overflow-x-auto no-scrollbar pb-2">
+                {/* FOOTER BRAND ICONS */}
+                <div className="mt-5 pt-5 border-t border-white/10 -mx-8 px-8 pb-6">
+                   <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
                       {[
                         { name: 'WhatsApp', icon: WA_LOGO },
-                        { name: 'Messenger', icon: <div className="w-6 h-6 bg-gradient-to-tr from-[#006AFF] to-[#00E2FF] rounded-lg" /> },
+                        { name: 'Messenger', icon: <div className="w-5 h-5 bg-gradient-to-tr from-[#006AFF] to-[#00E2FF] rounded-md" /> },
                         { name: 'Facebook', icon: FB_LOGO },
-                        { name: 'Instagram', icon: <div className="w-6 h-6 bg-gradient-to-tr from-[#FFD600] via-[#FF0069] to-[#7638FF] rounded-lg" /> },
-                        { name: 'X', icon: <div className="bg-white p-1 rounded-md"><X size={16} className="text-black" /></div> },
-                        { name: 'Snapchat', icon: <div className="w-6 h-6 bg-[#FFFC00] rounded-lg" /> },
-                        { name: 'Threads', icon: <AtSign size={20} /> },
-                        { name: 'SMS', icon: <MessageSquare size={20} /> },
-                        { name: 'Copy Link', icon: <LinkIcon size={20} /> }
+                        { name: 'Instagram', icon: <div className="w-5 h-5 bg-gradient-to-tr from-[#FFD600] via-[#FF0069] to-[#7638FF] rounded-md" /> },
+                        { name: 'X', icon: <X size={14} className="text-white" /> },
+                        { name: 'Snapchat', icon: <div className="w-5 h-5 bg-[#FFFC00] rounded-md" /> },
+                        { name: 'Threads', icon: <AtSign size={16} className="text-white" /> },
+                        { name: 'SMS', icon: <MessageSquare size={16} className="text-white" /> },
+                        { name: 'Copy Link', icon: <LinkIcon size={16} className="text-white" /> }
                       ].map((app, i) => (
-                        <div key={i} className="flex flex-col items-center gap-3 flex-shrink-0">
-                           <div className="w-14 h-14 rounded-[22px] bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl active:scale-90 transition-all cursor-pointer">
+                        <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
+                           <div className="w-11 h-11 rounded-[16px] bg-white/[0.07] border border-white/10 flex items-center justify-center active:scale-90 transition-all cursor-pointer">
                               {app.icon}
                            </div>
-                           <span className="text-[10px] font-black text-white/40 uppercase tracking-widest italic">{app.name}</span>
+                           <span className="text-[9px] font-medium text-white/40">{app.name}</span>
                         </div>
                       ))}
                    </div>
                 </div>
              </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hide Story From Modal */}
+      <AnimatePresence>
+        {showHideFromModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[700] bg-black/70 flex items-end justify-center" onClick={() => setShowHideFromModal(false)}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#1a1a1a] rounded-t-[36px] p-6 h-[70vh] flex flex-col border-t border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-white font-bold text-[15px]">Hide story from</h3>
+                  <p className="text-white/40 text-[12px] mt-0.5">Choose who can't see your story</p>
+                </div>
+                <button onClick={() => setShowHideFromModal(false)} className="text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
+              </div>
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
+                <input placeholder="Search followers..." className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar">
+                {shareContacts.map((contact, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-11 h-11 flex-shrink-0 rounded-full object-cover border border-white/10" alt="" />
+                      <div>
+                        <h4 className="text-white font-medium text-[14px]">{contact.username}</h4>
+                        <p className="text-white/40 text-[11px]">{contact.name || 'Follower'}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedMentions(prev => prev.includes(contact.user_id) ? prev.filter(id => id !== contact.user_id) : [...prev, contact.user_id])}
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selectedMentions.includes(contact.user_id) ? 'bg-rose-500 border-rose-500' : 'border-white/20'
+                      }`}
+                    >
+                      {selectedMentions.includes(contact.user_id) && <Check size={13} className="text-white" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {selectedMentions.length > 0 && (
+                <button 
+                  onClick={async () => {
+                    setIsProcessing(true);
+                    // Add actual logic to ping backend here
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    setIsProcessing(false);
+                    setShowHideFromModal(false);
+                    setSelectedMentions([]);
+                  }}
+                  disabled={isProcessing}
+                  className="mt-4 w-full h-12 bg-white text-black rounded-xl font-bold text-[14px] disabled:opacity-50"
+                >
+                  {isProcessing ? 'Saving...' : `Hide from ${selectedMentions.length} ${selectedMentions.length === 1 ? 'person' : 'people'}`}
+                </button>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Viewer 3-dot Options Sheet */}
+      <AnimatePresence>
+        {showViewerOptions && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[800] bg-black/70 flex items-end justify-center" onClick={() => setShowViewerOptions(null)}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#111] rounded-t-[40px] p-8 border-t border-white/10">
+              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/5">
+                <img src={getAvatarUrl(showViewerOptions.avatar_url, showViewerOptions.username)} className="w-16 h-16 flex-shrink-0 rounded-full border-2 border-white/10 object-cover" alt="" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-white font-black text-[16px] truncate">{showViewerOptions.username}</h4>
+                  <p className="text-white/50 text-[13px]">{showViewerOptions.user_name || 'Sparkle Member'}</p>
+                </div>
+                <button onClick={() => setShowViewerOptions(null)} className="ml-auto flex-shrink-0 text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { label: 'View Profile', icon: <User size={20} />, color: 'text-white', action: () => { navigate(`/profile/${showViewerOptions.user_id}`); setShowViewerOptions(null); } },
+                  { label: 'Send Message', icon: <Send size={20} />, color: 'text-white', action: () => { navigate(`/messages/${showViewerOptions.user_id}`); setShowViewerOptions(null); } },
+                  { label: 'Hide story from them', icon: <EyeOff size={20} />, color: 'text-white', action: async () => { await api.post('/stories/privacy/hide', { blockedUserId: showViewerOptions.user_id }); setShowViewerOptions(null); } },
+                  { label: 'Remove Follower', icon: <UserMinus size={20} />, color: 'text-orange-400', action: () => setShowViewerOptions(null) },
+                  { label: 'Block', icon: <Ban size={20} />, color: 'text-rose-500', action: () => setShowViewerOptions(null) },
+                ].map((item, i) => (
+                  <button key={i} onClick={item.action} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-[#1e1e1e] active:bg-white/10 transition-all`}>
+                    <span className={`flex-shrink-0 ${item.color}`}>{item.icon}</span>
+                    <span className={`font-semibold text-[15px] ${item.color}`}>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* @ Mention Modal */}
+      <AnimatePresence>
+        {showMentionModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[700] bg-black/80 backdrop-blur-md flex items-end justify-center" onClick={() => setShowMentionModal(false)}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#1a1a1a] rounded-t-[40px] p-8 h-[55vh] flex flex-col border-t border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-bold text-[15px]">Mention someone</h3>
+                <button onClick={() => setShowMentionModal(false)} className="text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
+              </div>
+              <div className="relative mb-4">
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
+                <input placeholder="Search people..." className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar">
+                {shareContacts.map((contact, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 flex-shrink-0 rounded-full border border-white/10 object-cover" alt="" />
+                      <div>
+                        <h4 className="text-white font-medium text-[13px]">{contact.username}</h4>
+                        <p className="text-white/40 text-[11px]">{contact.name || 'Sparkle Member'}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedMentions(prev => prev.includes(contact.user_id) ? prev.filter(id => id !== contact.user_id) : [...prev, contact.user_id])}
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selectedMentions.includes(contact.user_id) ? 'bg-primary border-primary' : 'border-white/20'
+                      }`}
+                    >
+                      {selectedMentions.includes(contact.user_id) && <Check size={12} className="text-white" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {selectedMentions.length > 0 && (
+                <button 
+                  onClick={async () => {
+                    setIsProcessing(true);
+                    // Add actual logic to ping backend here
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    setIsProcessing(false);
+                    setShowMentionModal(false);
+                    setSelectedMentions([]);
+                  }}
+                  disabled={isProcessing}
+                  className="mt-4 w-full h-12 bg-primary text-white rounded-xl font-bold text-[14px] shadow-lg shadow-primary/20 disabled:opacity-50"
+                >
+                  {isProcessing ? 'Mentioning...' : `Mention ${selectedMentions.length} ${selectedMentions.length === 1 ? 'person' : 'people'}`}
+                </button>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Owner Options Sheet (3 dots / More) */}
+      <AnimatePresence>
+        {showOptionsSheet && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[700] bg-black/70 flex items-end justify-center" onClick={() => setShowOptionsSheet(false)}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#111] rounded-t-[40px] p-8 border-t border-white/10">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-white font-bold text-[15px]">More options</h3>
+                <button onClick={() => setShowOptionsSheet(false)} className="text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { label: 'Story Settings', icon: <Settings size={18} />, color: 'text-white', action: () => { setShowOptionsSheet(false); setShowStorySettings(true); } },
+                  { label: currentStory.comments_enabled ? 'Turn off comments' : 'Turn on comments', icon: <MessageCircleOff size={18} />, color: 'text-white', action: async () => { await api.post(`/stories/${currentStory.story_id}/comments/toggle`); setShowOptionsSheet(false); } },
+                  { label: 'Archive story', icon: <Archive size={18} />, color: 'text-white', action: async () => { await api.post(`/stories/${currentStory.story_id}/archive`); setShowOptionsSheet(false); } },
+                  { label: 'Delete story', icon: <Trash2 size={18} />, color: 'text-rose-500', action: async () => { await api.delete(`/stories/${currentStory.story_id}`); navigate('/dashboard'); } },
+                ].map((item, i) => (
+                  <button key={i} onClick={item.action} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-[#2a2a2a] active:bg-white/10 transition-all`}>
+                    <span className={`flex-shrink-0 ${item.color}`}>{item.icon}</span>
+                    <span className={`font-medium text-[14px] ${item.color}`}>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

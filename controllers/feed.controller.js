@@ -707,7 +707,7 @@ const viewStory = async (req, res) => {
         );
 
         await pool.query(
-            'UPDATE stories SET views_count = (SELECT COUNT(*) FROM story_views WHERE story_id = ?) WHERE story_id = ?',
+            'UPDATE stories SET view_count = (SELECT COUNT(*) FROM story_views WHERE story_id = ?) WHERE story_id = ?',
             [storyId, storyId]
         );
 

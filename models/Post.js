@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const crypto = require('crypto');
 
+class Post {
     /**
      * Detects post category based on keywords and hashtags
      */

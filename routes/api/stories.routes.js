@@ -9,6 +9,8 @@ router.get('/archive', authMiddleware, feedController.getStoryArchive);
 router.post('/', authMiddleware, upload.fields([{ name: 'media', maxCount: 1 }, { name: 'audio', maxCount: 1 }]), feedController.createStory);
 // interactions
 router.get('/:id/likes', authMiddleware, feedController.getStoryLikes);
+router.get('/:id/viewers', authMiddleware, feedController.getStoryViewers);
+router.post('/:id/view', authMiddleware, feedController.viewStory);
 router.post('/:id/like', authMiddleware, feedController.likeStory);
 router.post('/:id/share', authMiddleware, feedController.shareStory);
 router.delete('/:id', authMiddleware, feedController.deleteStory);

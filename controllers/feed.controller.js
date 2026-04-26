@@ -161,11 +161,8 @@ const getStories = async (req, res) => {
                 TIMESTAMPDIFF(SECOND, NOW(), s.created_at + INTERVAL 24 HOUR) as seconds_left,
                 (SELECT COUNT(*) FROM stories WHERE user_id = s.user_id AND created_at > NOW() - INTERVAL 24 HOUR) as user_story_count,
                 COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id), 0) as like_count,
-                -- Only show is_liked to the story owner
-                CASE 
-                    WHEN s.user_id = ? THEN COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0)
-                    ELSE 0 
-                END as is_liked
+                -- Show is_liked to all users
+                COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0) as is_liked
             FROM stories s
             JOIN users u ON s.user_id = u.user_id
             WHERE s.created_at > NOW() - INTERVAL 24 HOUR
@@ -694,6 +691,72 @@ const shareStory = async (req, res) => {
     }
 };
 
+const viewStory = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+
+        // Ensure views table exists
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS story_views (
+                view_id CHAR(36) PRIMARY KEY,
+                story_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_view (story_id, user_id),
+                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        const viewId = crypto.randomUUID();
+        await pool.query(
+            'INSERT IGNORE INTO story_views (view_id, story_id, user_id) VALUES (?, ?, ?)',
+            [viewId, storyId, userId]
+        );
+
+        // Update view count in stories table
+        await pool.query(
+            'UPDATE stories SET views_count = (SELECT COUNT(*) FROM story_views WHERE story_id = ?) WHERE story_id = ?',
+            [storyId, storyId]
+        );
+
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('View Story Error:', error);
+        res.status(500).json({ error: 'Failed to record view' });
+    }
+};
+
+const getStoryViewers = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const [viewers] = await pool.query(`
+            SELECT u.user_id, u.username, u.name, u.avatar_url, 'view' as type, sv.created_at
+            FROM story_views sv
+            JOIN users u ON sv.user_id = u.user_id
+            WHERE sv.story_id = ?
+            UNION
+            SELECT u.user_id, u.username, u.name, u.avatar_url, 'like' as type, sl.created_at
+            FROM story_likes sl
+            JOIN users u ON sl.user_id = u.user_id
+            WHERE sl.story_id = ?
+            UNION
+            SELECT u.user_id, u.username, u.name, u.avatar_url, 'share' as type, ss.created_at
+            FROM story_shares ss
+            JOIN users u ON ss.user_id = u.user_id
+            WHERE ss.story_id = ?
+            ORDER BY created_at DESC
+        `, [storyId, storyId, storyId]);
+
+        res.json(viewers);
+    } catch (error) {
+        logger.error('Get Viewers Error:', error);
+        res.status(500).json({ error: 'Failed to fetch viewers' });
+    }
+};
+
 module.exports = {
     renderDashboard,
     getFeedPosts,
@@ -704,5 +767,7 @@ module.exports = {
     getStoryLikes,
     getStoryArchive,
     shareStory,
-    deleteStory
+    deleteStory,
+    viewStory,
+    getStoryViewers
 };

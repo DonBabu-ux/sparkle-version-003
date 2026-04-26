@@ -118,45 +118,59 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       }`}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 p-4">
-        <Link to={`/profile/${post.username}`} className="shrink-0">
+      <div className="flex items-start gap-2 p-3 pb-2">
+        <Link to={`/profile/${post.username}`} className="shrink-0 mt-0.5">
           <img
             src={getAvatarUrl(post.avatar_url, post.username)}
-            className="w-10 h-10 rounded-full object-cover border border-gray-100"
+            className="w-10 h-10 rounded-full object-cover"
             alt={post.username}
           />
         </Link>
 
-        <div className="flex-1 min-w-0">
-          <Link
-            to={`/profile/${post.username}`}
-            className="font-bold text-[15px] text-gray-900 hover:underline"
-          >
-            {post.name || post.username}
-          </Link>
-          <div className="flex items-center gap-1 text-[13px] text-gray-500">
-            <span>{timeAgo}</span>
-            <span>•</span>
+        <div className="flex-1 min-w-0 flex flex-col justify-center">
+          <div className="flex items-center gap-1 flex-wrap leading-tight">
+            <Link
+              to={`/profile/${post.username}`}
+              className="font-bold text-[15px] text-gray-900 hover:underline"
+            >
+              {post.name || post.username}
+            </Link>
+            {!isOwner && (
+              <>
+                 <span className="text-gray-500 font-bold mx-0.5">·</span>
+                 <button className="text-[#0866FF] font-bold text-[14px] hover:underline">Follow</button>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-1 text-[13px] text-gray-500 leading-tight mt-0.5">
+            <span className="hover:underline cursor-pointer">{timeAgo.replace('about ', '').replace('less than a minute ago', 'Just now')}</span>
+            <span>·</span>
             {post.post_type === 'public' ? (
-              <Globe size={12} />
+              <Globe size={12} className="fill-current text-gray-500" />
             ) : post.post_type === 'private' || post.post_type === 'campus_only' ? (
-              <Lock size={12} />
+              <Lock size={12} className="fill-current text-gray-500" />
             ) : (
-              <Ghost size={12} />
+              <Ghost size={12} className="fill-current text-gray-500" />
             )}
           </div>
         </div>
 
-        {/* 3-dot menu Trigger */}
-        <div>
+        {/* 3-dot and X menu Trigger */}
+        <div className="flex items-center gap-2">
           <button
             onClick={e => {
               e.stopPropagation();
               setMenuOpen(true);
             }}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
           >
-            <MoreHorizontal size={20} className="text-gray-500" />
+            <MoreHorizontal size={20} />
+          </button>
+          <button
+            onClick={handleNotInterested}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+          >
+            <X size={24} />
           </button>
         </div>
 
@@ -304,28 +318,28 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       </div>
 
       {/* Content */}
-      <div className="px-4 pb-3">
+      <div className="px-3 pb-2 pt-1">
         {post.content && (
           <div className="text-[15px] text-gray-900 leading-normal whitespace-pre-wrap">
-            {post.content.length > 250 && !isExpanded ? (
+            {post.content.length > 150 && !isExpanded ? (
               <>
-                {post.content.substring(0, 250)}...{' '}
+                {post.content.substring(0, 150)}...{' '}
                 <button
                   onClick={() => setIsExpanded(true)}
-                  className="text-gray-500 font-bold hover:underline ml-1"
+                  className="text-gray-600 font-semibold hover:underline ml-1"
                 >
-                  See more
+                  more
                 </button>
               </>
             ) : (
               <>
                 {post.content}
-                {post.content.length > 250 && isExpanded && (
+                {post.content.length > 150 && isExpanded && (
                   <button
                     onClick={() => setIsExpanded(false)}
-                    className="text-gray-500 font-bold hover:underline ml-1"
+                    className="text-gray-600 font-semibold hover:underline ml-2"
                   >
-                    See less
+                    less
                   </button>
                 )}
               </>
@@ -337,61 +351,68 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       {/* Media */}
       {!isTextOnly && post.media_url && (
         <div
-          className="relative bg-gray-100 cursor-pointer overflow-hidden flex items-center justify-center max-h-[600px]"
+          className="relative bg-black cursor-pointer overflow-hidden flex items-center justify-center w-full"
           onClick={() => setActiveModal('media_preview', null, { post })}
         >
           {isVideo ? (
-            <video src={getMediaUrl(post.media_url)} className="w-full h-auto block" />
+            <video src={getMediaUrl(post.media_url)} className="w-full h-auto block max-h-[700px] object-contain" />
           ) : (
             <img
               src={getMediaUrl(post.media_url)}
               loading="lazy"
               alt=""
-              className="w-full h-auto block object-contain"
+              className="w-full h-auto block max-h-[700px] object-contain"
             />
           )}
         </div>
       )}
 
       {/* Stats */}
-      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 mx-1">
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-            <ThumbsUp size={10} className="text-white fill-white" />
+      <div className="px-4 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 cursor-pointer hover:underline">
+          <div className="flex -space-x-1">
+             <div className="w-[18px] h-[18px] rounded-full bg-[#0866FF] flex items-center justify-center ring-2 ring-white z-20">
+               <ThumbsUp size={10} className="text-white fill-white" />
+             </div>
+             {sparkCount > 10 && (
+               <div className="w-[18px] h-[18px] rounded-full bg-rose-500 flex items-center justify-center ring-2 ring-white z-10 text-[10px] leading-none pb-[1px] text-white">
+                 ❤️
+               </div>
+             )}
           </div>
-          <span className="text-[14px] text-gray-500">{formatCount(sparkCount)}</span>
+          {sparkCount > 0 && <span className="text-[14px] text-gray-500">{formatCount(sparkCount)}</span>}
         </div>
         <div className="text-[14px] text-gray-500 flex gap-3">
-          <span>{formatCount(post.comment_count || 0)} comments</span>
-          <span>{formatCount(post.reshare_count || 0)} shares</span>
+          {post.comment_count ? <span className="hover:underline cursor-pointer">{formatCount(post.comment_count)} comments</span> : null}
+          {post.reshare_count ? <span className="hover:underline cursor-pointer">{formatCount(post.reshare_count)} shares</span> : null}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="px-1 py-1 flex items-center">
+      <div className="px-3 py-1 flex items-center border-t border-gray-200 mx-3 mb-1">
         <button
           onClick={handleSpark}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-md transition-colors ${
-            isSparked ? 'text-blue-600' : 'text-gray-600'
+          className={`flex-1 flex items-center justify-center gap-2 py-1.5 mt-1 hover:bg-gray-100 rounded-md transition-colors ${
+            isSparked ? 'text-[#0866FF]' : 'text-gray-600'
           }`}
         >
-          <ThumbsUp size={20} className={isSparked ? 'fill-blue-600' : ''} />
+          <ThumbsUp size={20} strokeWidth={isSparked ? 2.5 : 2} className={isSparked ? 'fill-[#0866FF]' : ''} />
           <span className="text-[14px] font-semibold">Like</span>
         </button>
 
         <button
           onClick={() => setActiveModal('post_comments', null, { post })}
-          className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
+          className="flex-1 flex items-center justify-center gap-2 py-1.5 mt-1 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
         >
-          <MessageCircle size={20} />
+          <MessageCircle size={20} strokeWidth={2} />
           <span className="text-[14px] font-semibold">Comment</span>
         </button>
 
         <button
           onClick={() => setActiveModal('share', null, { post })}
-          className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
+          className="flex-1 flex items-center justify-center gap-2 py-1.5 mt-1 hover:bg-gray-100 rounded-md transition-colors text-gray-600"
         >
-          <Share2 size={20} />
+          <Share2 size={20} strokeWidth={2} />
           <span className="text-[14px] font-semibold">Share</span>
         </button>
       </div>

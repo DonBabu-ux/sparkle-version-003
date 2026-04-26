@@ -147,12 +147,8 @@ export default function StoryViewer() {
           };
         });
       } else if (data.action === 'respond') {
-        const sticker = currentStory.stickers?.find(s => s.id === stickerId);
-        if (sticker && sticker.config.prompt_id) {
-           activePromptRef.current = { id: sticker.config.prompt_id, text: sticker.config.prompt };
-           // Trigger file picker synchronously to satisfy browser security
-           fileInputRef.current?.click();
-        }
+        // Navigate to create story with parent_id
+        navigate(`/stories/create?parent=${currentStory.story_id}`);
       }
     } catch (err) {
       console.error('Sticker interaction failed:', err);
@@ -235,6 +231,23 @@ export default function StoryViewer() {
           stickers={currentStory.stickers || []} 
           onInteract={handleStickerInteract}
         />
+
+        {/* MUSIC BAR (Requirement 7) */}
+        {currentStory.music_info && (
+            <motion.div 
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="absolute top-32 left-1/2 -translate-x-1/2 z-[60] w-[80%] max-w-[300px]"
+            >
+                <div className="bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[20px] p-3 flex items-center gap-4 shadow-2xl">
+                    <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center text-[18px] animate-spin-slow">💿</div>
+                    <div className="flex-1 overflow-hidden">
+                        <p className="text-white font-black italic uppercase tracking-tighter text-[11px] truncate">{currentStory.music_info.title}</p>
+                        <p className="text-white/50 text-[9px] font-bold truncate">{currentStory.music_info.artist}</p>
+                    </div>
+                </div>
+            </motion.div>
+        )}
       </div>
 
       {/* Caption Overlay (Only for non-text stories) */}

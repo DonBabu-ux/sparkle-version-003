@@ -207,7 +207,7 @@ const getStories = async (req, res) => {
             });
         }
 
-        rows.forEach(s => {
+        for (const s of rows) {
             if (!map[s.user_id]) {
                 map[s.user_id] = {
                     user_id: s.user_id,
@@ -219,22 +219,65 @@ const getStories = async (req, res) => {
                 };
                 groups.push(map[s.user_id]);
             }
+
+            // Fetch participants for this chain if it's an Add Yours sticker
+            let participant_avatars = [];
+            let total_participants = 0;
+            const stickerList = typeof s.stickers === 'string' ? s.stickers : JSON.stringify(s.stickers || []);
+            
+            if (s.parent_story_id || stickerList.includes('add_yours')) {
+                try {
+                    const [responses] = await pool.query(
+                        `SELECT u.avatar_url FROM stories s2 
+                         JOIN users u ON s2.user_id = u.user_id 
+                         WHERE s2.parent_story_id = ? OR s2.story_id = ?
+                         ORDER BY s2.created_at DESC LIMIT 3`,
+                        [s.story_id, s.story_id]
+                    );
+                    participant_avatars = responses.map(r => getSafeMediaUrl(r.avatar_url));
+                    
+                    const [[countRow]] = await pool.query(
+                        'SELECT COUNT(*) as count FROM stories WHERE parent_story_id = ?',
+                        [s.story_id]
+                    );
+                    total_participants = countRow.count;
+                } catch (e) {
+                    console.error('Chain fetch error:', e);
+                }
+            }
+
             map[s.user_id].stories.push({
                 story_id: s.story_id,
+                parent_story_id: s.parent_story_id,
                 media_url: getSafeMediaUrl(s.media_url),
                 media_type: s.media_type,
+                type: s.type || 'media',
+                collage_data: typeof s.collage_data === 'string' ? JSON.parse(s.collage_data) : s.collage_data,
                 caption: s.caption,
                 background: s.background,
-                audio_url: s.audio_url,
+                audio_url: getSafeMediaUrl(s.audio_url),
+                music_info: typeof s.music_info === 'string' ? JSON.parse(s.music_info) : s.music_info,
                 audio_source: s.audio_source,
                 audio_start: s.audio_start,
                 audio_duration: s.audio_duration,
                 created_at: s.created_at,
                 like_count: parseInt(s.like_count) || 0,
-                is_liked: parseInt(s.is_liked) === 1, // Only true for story owner
-                stickers: stickersMap[s.story_id] || []
+                is_liked: parseInt(s.is_liked) === 1,
+                stickers: (typeof s.stickers === 'string' ? JSON.parse(s.stickers) : (s.stickers || [])).map(st => {
+                    if (st.type === 'add_yours') {
+                        return { 
+                            ...st, 
+                            config: { 
+                                ...st.config, 
+                                avatars: participant_avatars.length > 0 ? participant_avatars : (st.config?.avatars || []),
+                                responses_count: total_participants || (st.config?.responses_count || 0)
+                            } 
+                        };
+                    }
+                    return st;
+                })
             });
-        });
+        }
 
         res.json(groups);
     } catch (error) {
@@ -348,13 +391,18 @@ const createStory = async (req, res) => {
 
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
         const background = req.body.background || null;
+        const parent_story_id = req.body.parent_story_id || null;
+        const stickers = req.body.stickers || null;
+        const type = req.body.type || 'media';
+        const collage_data = req.body.collage_data || null;
         
         let audio_url = req.body.audio_url || null;
+        const music_info = req.body.music_info || null;
         const audio_source = req.body.audio_source || null;
         const audio_start = parseFloat(req.body.audio_start) || 0.0;
         const audio_duration = parseFloat(req.body.audio_duration) || 15.0;
 
-        // If a file was uploaded for audio (you'd need to update multer config to handle multiple files or use a specific field)
+        // If a file was uploaded for audio
         if (req.files && req.files.audio) {
             audio_url = req.files.audio[0].path;
         }
@@ -363,12 +411,14 @@ const createStory = async (req, res) => {
             `INSERT INTO stories (
                 story_id, user_id, media_url, media_type, caption, 
                 background, audio_url, audio_source, audio_start, audio_duration,
-                like_count, share_count, expires_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
+                like_count, share_count, expires_at, parent_story_id, stickers,
+                music_info, type, collage_data
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)`,
             [
                 storyId, userId, media_url, media_type, caption || null, 
                 background, audio_url, audio_source, audio_start, audio_duration, 
-                expiresAt
+                expiresAt, parent_story_id, stickers,
+                music_info, type, collage_data
             ]
         );
 

@@ -7,8 +7,8 @@ const notificationController = require('./notification.controller');
 
 // Helper to sanitize avatars - prioritizes internal uploads
 const getSafeAvatarUrl = (url) => {
-    if (url && url.startsWith('/uploads/')) return url;
-    return '/uploads/avatars/default.png';
+    if (!url) return null;
+    return url;
 };
 
 // Helper for post media - prioritizes internal uploads, fallbacks for broken external

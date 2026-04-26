@@ -135,12 +135,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             >
               {post.name || post.username}
             </Link>
-            {!isOwner && (
-              <>
-                 <span className="text-gray-500 font-bold mx-0.5">·</span>
-                 <button className="text-[#0866FF] font-bold text-[14px] hover:underline">Follow</button>
-              </>
-            )}
           </div>
           <div className="flex items-center gap-1 text-[13px] text-gray-500 leading-tight mt-0.5">
             <span className="hover:underline cursor-pointer">{timeAgo.replace('about ', '').replace('less than a minute ago', 'Just now')}</span>
@@ -389,7 +383,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       </div>
 
       {/* Actions */}
-      <div className="px-3 py-1 flex items-center border-t border-gray-200 mx-3 mb-1">
+      <div className="relative px-3 py-1 flex items-center border-t border-gray-200 mx-3 mb-1">
+        
+        {/* GENIUS: Floating Mutual Avatar (Simulated) */}
+        {sparkCount > 0 && !isOwner && (
+          <div className="absolute -top-[28px] left-1 z-30 pointer-events-none animate-fade-in transition-all">
+             <div className="flex items-center bg-white/90 backdrop-blur-md rounded-full pr-2 p-0.5 shadow-sm border border-gray-100">
+                <img src={`https://ui-avatars.com/api/?name=Friend&background=random`} className="w-[18px] h-[18px] rounded-full border border-white object-cover" alt="mutual" />
+                <span className="text-[10px] font-bold text-gray-600 ml-1.5 leading-none">Liked by friends</span>
+             </div>
+          </div>
+        )}
+
         <button
           onClick={handleSpark}
           className={`flex-1 flex items-center justify-center gap-2 py-1.5 mt-1 hover:bg-gray-100 rounded-md transition-colors ${

@@ -263,6 +263,21 @@ export default function StoryViewer() {
     } catch (err) { console.error(err); }
   };
 
+  const handleSendStoryToContact = async (contactId: string) => {
+    setIsProcessing(true);
+    try {
+      await api.post('/messages/send', {
+        partnerId: contactId,
+        content: `Check out this story: ${window.location.origin}/stories/${currentStory.story_id}`
+      });
+      setShowShareModal(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="h-screen bg-black flex flex-col relative overflow-hidden safe-area-inset">
       
@@ -379,7 +394,7 @@ export default function StoryViewer() {
              ) : (
                <div className="flex items-center w-full gap-4 pointer-events-auto">
                   <div className="flex-1 relative">
-                    <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] text-white" />
+                    <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Say something..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] text-white" />
                     <button onClick={() => handlePostComment(replyText)} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
                   </div>
                   <div className="flex items-center gap-5">
@@ -609,7 +624,7 @@ export default function StoryViewer() {
                               <p className="text-white/40 text-[11px]">Follower</p>
                            </div>
                         </div>
-                        <button className="px-4 h-8 bg-primary text-white rounded-lg text-[12px] font-semibold">Send</button>
+                        <button onClick={() => handleSendStoryToContact(contact.user_id || contact.id)} disabled={isProcessing} className="px-4 h-8 bg-primary text-white rounded-lg text-[12px] font-semibold disabled:opacity-50">{isProcessing ? '...' : 'Send'}</button>
                      </div>
                    ))}
                 </div>

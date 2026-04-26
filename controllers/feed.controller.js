@@ -3,6 +3,7 @@ const User = require('../models/User');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
+const notificationController = require('./notification.controller');
 
 // Helper to sanitize avatars - prioritizes internal uploads
 const getSafeAvatarUrl = (url) => {
@@ -500,18 +501,15 @@ const likeStory = async (req, res) => {
             if (storyData.user_id !== userId) {
                 try {
                     const [actor] = await connection.query('SELECT name FROM users WHERE user_id = ?', [userId]);
-                    const notificationId = crypto.randomUUID();
-                    await connection.query(
-                        `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url)
-                         VALUES (?, ?, 'story_like', 'Story Liked', ?, ?, ?)`,
-                        [
-                            notificationId,
-                            storyData.user_id,
-                            `${actor[0]?.name || 'Someone'} liked your story`,
-                            userId,
-                            `/stories/${storyId}`
-                        ]
-                    );
+                    await notificationController.createNotification({
+                        user_id: storyData.user_id,
+                        type: 'story_like',
+                        title: 'Story Liked',
+                        content: `${actor[0]?.name || 'Someone'} liked your story`,
+                        actor_id: userId,
+                        actor_name: actor[0]?.name,
+                        action_url: `/stories/${storyId}`
+                    }, connection);
                 } catch (notifErr) {
                     logger.error('Notification error (ignoring):', notifErr);
                 }

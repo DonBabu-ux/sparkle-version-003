@@ -318,28 +318,26 @@ const crypto = require('crypto');
             }
         }
 
-        // --- ADVANCED RANKING ALGORITHM 7.0 (The Genius Update) ---
-        // Score = (Affinity*0.35) + (Engagement*0.25) + (Recency*0.20) + (Discovery/Interest*0.10) + (Randomness*0.10)
-
-        // 1. Interest Learning (Dynamic): Fetch user's recent interacted tags (Moving Window)
-        const [recentTags] = await pool.query(`
-            SELECT DISTINCT tag FROM post_hashtags ph2 
-            JOIN posts p2 ON ph2.post_id = p2.post_id 
-            WHERE p2.user_id = ? 
-            ORDER BY p2.created_at DESC LIMIT 15
+        // --- ALGORITHM 7.5 (THE PRODUCTION-GRADE UPDATE) ---
+        // Scoring Pipeline: Retrieval -> Scoring -> Diversity Filter
+        
+        // 1. DUAL-MEMORY INTEREST MODEL
+        // Fetch recent behavior signals (Last 50 actions)
+        const [recentActions] = await pool.query(`
+            SELECT DISTINCT category FROM posts p
+            JOIN user_actions ua ON p.post_id = ua.post_id
+            WHERE ua.user_id = ?
+            ORDER BY ua.created_at DESC LIMIT 50
         `, [currentUserId]);
         
-        // 2. Profile Interests (Static): Fetch user's declared interests for cold-start
+        const recentCategories = recentActions.map(a => a.category);
         const [userProfile] = await pool.query('SELECT major, interests FROM users WHERE user_id = ?', [currentUserId]);
-        const profileInterests = (userProfile[0]?.interests || userProfile[0]?.major || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
-
-        const tags = recentTags.map(t => t.tag);
-        const hasTags = tags.length > 0;
-        const tagMarkers = hasTags ? tags.map(() => '?').join(',') : 'NULL';
+        const staticInterests = (userProfile[0]?.interests || userProfile[0]?.major || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
 
         const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
         const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
 
+        // 2. CANDIDATE RETRIEVAL & SCORING
         const query = `
             SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                     u.campus as user_affiliation,
@@ -352,32 +350,30 @@ const crypto = require('crypto');
                     EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
                     EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
                     
-                    -- RANKING FORMULA 7.0
+                    -- RANKING FORMULA 7.5
                     (
-                        -- A. Affinity (35%): Social Graph & Community
+                        -- A. Interest Match (30%): Dual-Memory (Recent vs Static)
                         ((CASE 
-                            WHEN p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) THEN 1.0
-                            WHEN p.campus = ? THEN 0.6
-                            ELSE 0.2
-                        END) * 0.35) +
+                            WHEN p.category IN (${recentCategories.length > 0 ? recentCategories.map(() => '?').join(',') : 'NULL'}) THEN 1.0
+                            WHEN p.category IN (${staticInterests.length > 0 ? staticInterests.map(() => '?').join(',') : 'NULL'}) THEN 0.5
+                            ELSE 0.1
+                        END) * 0.30) +
 
-                        -- B. Engagement (25%): Quality/Velocity
-                        (LEAST((p.spark_count * 1.0 + p.comment_count * 2.0 + p.share_count * 4.0) / 100.0, 1.0) * 0.25) +
+                        -- B. Creator Affinity (20%): History with this author
+                        (COALESCE((
+                            SELECT LEAST(COUNT(*) / 10.0, 1.0) 
+                            FROM user_actions ua 
+                            WHERE ua.user_id = ? AND ua.creator_id = p.user_id
+                        ), 0) * 0.20) +
 
-                        -- C. Recency (20%): Freshness
-                        ((1.0 / POW(TIMESTAMPDIFF(MINUTE, p.created_at, NOW()) / 60.0 + 1, 1.5)) * 0.20) +
+                        -- C. Engagement Quality (20%): Social Proof & Quality
+                        (LEAST((p.spark_count * 1.0 + p.comment_count * 2.0 + p.share_count * 4.0) / 100.0, 1.0) * 0.20) +
 
-                        -- D. Interest/Discovery (10%): The "Genius" Part
-                        ((CASE 
-                            -- Match with dynamic hashtags (recent behavior)
-                            WHEN ${hasTags ? `EXISTS(SELECT 1 FROM post_hashtags ph WHERE ph.post_id = p.post_id AND ph.tag IN (${tagMarkers}))` : '0=1'} THEN 1.0
-                            -- Match with static interests (profile major/tags)
-                            WHEN p.category IN (${profileInterests.length > 0 ? profileInterests.map(() => '?').join(',') : 'NULL'}) THEN 0.8
-                            ELSE 0.2
-                        END) * 0.10) +
+                        -- D. Recency (15%): Power-law decay
+                        ((1.0 / POW(TIMESTAMPDIFF(MINUTE, p.created_at, NOW()) / 60.0 + 1, 1.5)) * 0.15) +
 
-                        -- E. Randomness (10%): Entropy for changing minds
-                        (RAND(?) * 0.10)
+                        -- E. Smart Exploration & Session Randomness (15%)
+                        ((RAND(?) * 0.10 + (IF(p.post_type = 'public', 0.05, 0))) * 0.15)
                     ) as discovery_score
 
              FROM posts p 
@@ -385,31 +381,59 @@ const crypto = require('crypto');
              WHERE (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
                AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
                ${excludeFilter}
-               AND NOT EXISTS (
-                   SELECT 1 FROM user_blocks 
-                   WHERE (blocker_id = ? AND blocked_id = p.user_id)
-                       OR (blocker_id = p.user_id AND blocked_id = ?)
-               )
-               AND (
-                   p.user_id = ? 
-                   OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
-                   OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
-               )
+               AND NOT EXISTS (SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = p.user_id) OR (blocker_id = p.user_id AND blocked_id = ?))
+               AND (p.user_id = ? OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private')))
              ORDER BY discovery_score DESC, p.created_at DESC
              LIMIT ? OFFSET ?`;
 
         const params = [
-            currentUserId, currentUserId, currentUserId, currentUserId, // Mutual likers + Spark check
-            currentUserId, affiliation, // Affinity
-            ...(hasTags ? tags : []), // Dynamic Tag Matching
-            ...profileInterests, // Static Profile Interest Matching
-            randomSeed, // Randomness
+            currentUserId, currentUserId, currentUserId, currentUserId, // Basic checks
+            ...(recentCategories.length > 0 ? recentCategories : []), // Short-term Interests
+            ...(staticInterests.length > 0 ? staticInterests : []), // Long-term Interests
+            currentUserId, // Creator Affinity
+            randomSeed, // Session Entropy
             affiliation, affiliation, 
             ...excluded, 
             currentUserId, currentUserId, 
             currentUserId, currentUserId, 
             limit, offset
         ];
+
+        try {
+            const [posts] = await pool.query(query, params);
+            
+            // 3. DIVERSITY LAYER (Post-Processing)
+            // Rule: Avoid consecutive posts from the same creator
+            let filteredPosts = [];
+            let lastCreatorId = null;
+            let pool_posts = [...(posts || [])];
+            
+            while (pool_posts.length > 0) {
+                let index = pool_posts.findIndex(p => p.user_id !== lastCreatorId);
+                if (index === -1) index = 0; // Fallback if only one creator left
+                
+                let post = pool_posts.splice(index, 1)[0];
+                lastCreatorId = post.user_id;
+                
+                // Sanitize and Add
+                if (typeof post.media_files === 'string') {
+                    try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
+                }
+                if (typeof post.liker_avatars === 'string') {
+                    try { post.liker_avatars = JSON.parse(post.liker_avatars); } catch(e) { post.liker_avatars = []; }
+                }
+                filteredPosts.push(post);
+            }
+
+            return filteredPosts;
+        } catch (err) {
+            console.error('Algorithm 7.5 Critical Failure:', err);
+            const [fallback] = await pool.query(
+                `SELECT p.*, u.username, u.avatar_url FROM posts p JOIN users u ON p.user_id = u.user_id WHERE p.post_type = 'public' ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
+                [limit, offset]
+            );
+            return fallback;
+        }
 
         try {
             const [posts] = await pool.query(query, params);

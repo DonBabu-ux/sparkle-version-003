@@ -364,18 +364,46 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
       {/* Stats */}
       <div className="px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 cursor-pointer hover:underline">
-          <div className="flex -space-x-1">
-             <div className="w-[18px] h-[18px] rounded-full bg-[#0866FF] flex items-center justify-center ring-2 ring-white z-20">
-               <ThumbsUp size={10} className="text-white fill-white" />
-             </div>
-             {sparkCount > 10 && (
-               <div className="w-[18px] h-[18px] rounded-full bg-rose-500 flex items-center justify-center ring-2 ring-white z-10 text-[10px] leading-none pb-[1px] text-white">
-                 ❤️
-               </div>
-             )}
+        <div className="flex items-center cursor-pointer hover:underline">
+          <div className="flex items-center gap-4 h-12">
+             {/* Mock Swaying Avatars - Max 3, staggered heights, same-direction sway */}
+             {Array.from({ length: 3 }).map((_, i) => (
+               <motion.div
+                 key={i}
+                 animate={{ 
+                   y: [0, -5, 0],
+                   rotate: [0, -1, 0, 1, 0]
+                 }}
+                 transition={{ 
+                   duration: 4, 
+                   repeat: Infinity, 
+                   ease: "easeInOut"
+                 }}
+                 className="relative"
+                 style={{ 
+                   zIndex: 10 - i,
+                   // Staggered height: second one is higher
+                   marginTop: i === 1 ? '-12px' : '4px'
+                 }}
+               >
+                 <img 
+                   src={`https://i.pravatar.cc/150?u=mock_${i}`} 
+                   className="w-[32px] h-[32px] rounded-full border-2 border-white object-cover shadow-md" 
+                   alt="mock mutual" 
+                 />
+                 {/* Tiny Blue Like Badge at bottom right - Tucked inward */}
+                 <div className="absolute bottom-0 right-0 w-[14px] h-[14px] bg-[#1877F2] rounded-full flex items-center justify-center ring-[1.5px] ring-white shadow-sm">
+                    <ThumbsUp size={8} fill="white" className="text-white" />
+                 </div>
+               </motion.div>
+             ))}
           </div>
-          {sparkCount > 0 && <span className="text-[14px] text-gray-500">{formatCount(sparkCount)}</span>}
+
+          <div className="ml-5 flex items-center">
+            <span className="text-[14px] text-gray-500 font-semibold">
+              + 42 others
+            </span>
+          </div>
         </div>
         <div className="text-[14px] text-gray-500 flex gap-3">
           {post.comment_count ? <span className="hover:underline cursor-pointer">{formatCount(post.comment_count)} comments</span> : null}
@@ -385,16 +413,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
       {/* Actions */}
       <div className="relative px-3 py-1 flex items-center border-t border-gray-200 mx-3 mb-1">
-        
-        {/* GENIUS: Floating Mutual Avatar (Simulated) */}
-        {sparkCount > 0 && !isOwner && (
-          <div className="absolute -top-[28px] left-1 z-30 pointer-events-none animate-fade-in transition-all">
-             <div className="flex items-center bg-white/90 backdrop-blur-md rounded-full pr-2 p-0.5 shadow-sm border border-gray-100">
-                <img src={`https://ui-avatars.com/api/?name=Friend&background=random`} className="w-[18px] h-[18px] rounded-full border border-white object-cover" alt="mutual" />
-                <span className="text-[10px] font-bold text-gray-600 ml-1.5 leading-none">Liked by friends</span>
-             </div>
-          </div>
-        )}
 
         <button
           onClick={handleSpark}
@@ -402,24 +420,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             isSparked ? 'text-[#1877F2]' : 'text-[#65676B]'
           }`}
         >
-          <motion.div
-            animate={isSparked ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="flex items-center justify-center"
-          >
-            <svg 
-              width="20" 
-              height="20" 
-              viewBox="0 0 24 24" 
-              fill={isSparked ? "#1877F2" : "currentColor"} 
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* Wrist/Base */}
-              <path d="M4,21h3c0.55,0,1-0.45,1-1v-8c0-0.55-0.45-1-1-1H4c-1.1,0-2,0.9-2,2v6C2,20.1,2.9,21,4,21z" />
-              {/* Hand/Thumb with organic curves and the negative space gap */}
-              <path d="M10,21V10l1.54-5.06c0.18-0.58,0.73-0.94,1.33-0.94h0c1.1,0,2,0.9,2,2v5h5c1.38,0,2.5,1.12,2.5,2.5c0,0.18-0.02,0.36-0.06,0.54 c1.24,0.61,1.56,2.1,0.73,3.13c0.16,0.3,0.28,0.63,0.33,0.98c0.23,1.34-0.81,2.57-2.16,2.78c0,0.01-0.01,0.01-0.01,0.02 c0.07,0.36,0.08,0.73,0.01,1.09c-0.24,1.25-1.42,2.07-2.67,1.86c-0.03-0.01-0.06-0.01-0.1-0.02c-1.38-0.27-1.38-0.27-2.5-0.38L10,21z" />
-            </svg>
-          </motion.div>
+          <ThumbsUp 
+            size={20} 
+            strokeWidth={isSparked ? 2.5 : 2} 
+            className={isSparked ? 'fill-[#1877F2]' : ''} 
+          />
           <span className="text-[14px] font-semibold">Like</span>
         </button>
 

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { MoreHorizontal, ThumbsUp, MessageCircle, Share2, Globe, Users, Ghost, Pencil, Trash2, Flag, Bookmark, X, Link as LinkIcon, BellOff, PlusCircle, MinusCircle, Lock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../api/api';

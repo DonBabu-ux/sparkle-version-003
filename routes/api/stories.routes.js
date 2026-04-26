@@ -15,6 +15,9 @@ router.post('/:id/like', authMiddleware, feedController.likeStory);
 router.post('/:id/share', authMiddleware, feedController.shareStory);
 router.post('/:id/archive', authMiddleware, feedController.archiveStory);
 router.post('/:id/comments/toggle', authMiddleware, feedController.toggleStoryComments);
+router.post('/:id/comments', authMiddleware, feedController.addStoryComment);
+router.get('/:id/comments', authMiddleware, feedController.getStoryComments);
+router.patch('/:id/settings', authMiddleware, feedController.updateStorySettings);
 router.post('/privacy/hide', authMiddleware, feedController.hideStoryFromUser);
 router.delete('/:id', authMiddleware, feedController.deleteStory);
 

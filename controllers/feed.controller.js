@@ -700,25 +700,12 @@ const viewStory = async (req, res) => {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
 
-        // Ensure views table exists
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS story_views (
-                view_id CHAR(36) PRIMARY KEY,
-                story_id CHAR(36) NOT NULL,
-                user_id CHAR(36) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_view (story_id, user_id),
-                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
-
         const viewId = crypto.randomUUID();
         await pool.query(
             'INSERT IGNORE INTO story_views (view_id, story_id, user_id) VALUES (?, ?, ?)',
             [viewId, storyId, userId]
         );
 
-        // Update view count in stories table
         await pool.query(
             'UPDATE stories SET views_count = (SELECT COUNT(*) FROM story_views WHERE story_id = ?) WHERE story_id = ?',
             [storyId, storyId]
@@ -728,6 +715,78 @@ const viewStory = async (req, res) => {
     } catch (error) {
         logger.error('View Story Error:', error);
         res.status(500).json({ error: 'Failed to record view' });
+    }
+};
+
+const addStoryComment = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+        const { text } = req.body;
+
+        if (!text) return res.status(400).json({ error: 'Comment text is required' });
+
+        const commentId = crypto.randomUUID();
+        await pool.query(
+            'INSERT INTO story_comments (comment_id, story_id, user_id, text) VALUES (?, ?, ?, ?)',
+            [commentId, storyId, userId, text]
+        );
+
+        res.json({ success: true, comment_id: commentId });
+    } catch (error) {
+        logger.error('Add Story Comment Error:', error);
+        res.status(500).json({ error: 'Failed to post comment' });
+    }
+};
+
+const getStoryComments = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const [comments] = await pool.query(`
+            SELECT sc.*, u.username, u.avatar_url 
+            FROM story_comments sc
+            JOIN users u ON sc.user_id = u.user_id
+            WHERE sc.story_id = ?
+            ORDER BY sc.created_at DESC
+        `, [storyId]);
+        res.json(comments);
+    } catch (error) {
+        logger.error('Get Story Comments Error:', error);
+        res.status(500).json({ error: 'Failed to fetch comments' });
+    }
+};
+
+const updateStorySettings = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+        const settings = req.body;
+
+        const allowedSettings = [
+            'reply_privacy', 'comment_privacy', 'allow_sharing', 
+            'allow_message_sharing', 'auto_share_fb', 'auto_share_wa', 
+            'save_to_gallery', 'save_to_archive'
+        ];
+
+        const updates = [];
+        const values = [];
+
+        Object.keys(settings).forEach(key => {
+            if (allowedSettings.includes(key)) {
+                updates.push(`${key} = ?`);
+                values.push(settings[key]);
+            }
+        });
+
+        if (updates.length === 0) return res.status(400).json({ error: 'No valid settings provided' });
+
+        values.push(storyId, userId);
+        await pool.query(`UPDATE stories SET ${updates.join(', ')} WHERE story_id = ? AND user_id = ?`, values);
+
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Update Story Settings Error:', error);
+        res.status(500).json({ error: 'Failed to update settings' });
     }
 };
 
@@ -835,5 +894,8 @@ module.exports = {
     getStoryViewers,
     archiveStory,
     toggleStoryComments,
-    hideStoryFromUser
+    hideStoryFromUser,
+    addStoryComment,
+    getStoryComments,
+    updateStorySettings
 };

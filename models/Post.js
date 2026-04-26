@@ -397,7 +397,7 @@ class Post {
             ...excluded, 
             currentUserId, currentUserId, 
             currentUserId, currentUserId, 
-            limit, offset
+            Number(limit) || 20, Number(offset) || 0
         ];
 
         try {
@@ -432,17 +432,24 @@ class Post {
 
             return filteredPosts;
         } catch (err) {
-            console.error('Algorithm 7.5 Critical Failure:', err);
+            console.error('Algorithm 7.5 Critical Failure:', err.message);
+            if (err.sql) console.error('Failing SQL:', err.sql);
+            
             // FAIL-SAFE: Return recent public posts
             const [fallback] = await pool.query(
-                `SELECT p.*, u.username, u.name as user_name, u.avatar_url, 0 as is_followed, 0 as is_sparked, '[]' as media_files, '[]' as liker_avatars
+                `SELECT p.*, u.username, u.name as user_name, u.avatar_url, 
+                        0 as is_followed, 0 as is_sparked, 
+                        '[]' as media_files, '[]' as liker_avatars,
+                        p.spark_count as sparks, p.comment_count as comments
                  FROM posts p JOIN users u ON p.user_id = u.user_id 
                  WHERE p.post_type = 'public' ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
-                [limit, offset]
+                [Number(limit) || 20, Number(offset) || 0]
             );
             return (fallback || []).map(p => {
                 p.media_files = [];
                 p.liker_avatars = [];
+                p.sparks = p.sparks || 0;
+                p.comments = p.comments || 0;
                 return p;
             });
         }

@@ -226,7 +226,7 @@ export default function Dashboard() {
             </div>
 
             {/* FEED */}
-            <div className="space-y-1 sm:space-y-3 pb-48 animate-fade-in">
+            <div className="space-y-[3px] sm:space-y-3 pb-48 animate-fade-in">
               <div className="flex items-center justify-between px-4 mb-2 mt-2"><h2 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Feed</h2><div className="flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-full text-[11px] font-bold text-red-500 shadow-sm"><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>LIVE</div></div>
               {loading ? Array(3).fill(0).map((_, i) => <div key={i} className="bg-white/40 border-4 border-dashed border-white h-96 rounded-[56px] animate-pulse"></div>) : posts.length > 0 ? (
                 <>

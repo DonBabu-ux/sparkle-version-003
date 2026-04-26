@@ -375,7 +375,7 @@ class Post {
 
                         -- E. Smart Exploration & Session Randomness (15%)
                         ((RAND(?) * 0.10 + (IF(p.post_type = 'public', 0.05, 0))) * 0.15)
-                    ) as discovery_score
+                    ) * (IF(p.is_seed, 0.8, 1.0)) as discovery_score
 
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 

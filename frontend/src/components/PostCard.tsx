@@ -113,7 +113,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
   return (
     <div
-      className={`bg-white sm:rounded-xl shadow-sm overflow-hidden mb-3 border-y sm:border border-gray-200 transition-opacity duration-300 ${
+      className={`bg-white rounded-[6px] sm:rounded-xl shadow-sm overflow-hidden border border-gray-200 transition-opacity duration-300 ${
         deleting ? 'opacity-30 pointer-events-none' : ''
       }`}
     >

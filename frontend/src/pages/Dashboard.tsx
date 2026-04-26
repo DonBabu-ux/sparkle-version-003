@@ -162,7 +162,7 @@ export default function Dashboard() {
 
       <main className="flex-1 lg:ml-72 p-0 sm:p-4 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-20 lg:pt-8">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-4 sm:mt-6 lg:mt-0">
-          <section className="flex flex-col gap-2 sm:gap-4">
+          <section className="flex flex-col gap-1.5 sm:gap-4">
             {/* COMPOSER */}
             <div className="bg-white sm:rounded-xl shadow-sm p-4 animate-fade-in border-y sm:border border-gray-200">
               <div className="flex gap-3 items-center mb-4">
@@ -226,7 +226,7 @@ export default function Dashboard() {
             </div>
 
             {/* FEED */}
-            <div className="space-y-2 sm:space-y-4 pb-48 animate-fade-in">
+            <div className="space-y-1.5 sm:space-y-4 pb-48 animate-fade-in">
               <div className="flex items-center justify-between px-4 mb-2 mt-2"><h2 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Feed</h2><div className="flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-full text-[11px] font-bold text-red-500 shadow-sm"><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>LIVE</div></div>
               {loading ? Array(3).fill(0).map((_, i) => <div key={i} className="bg-white/40 border-4 border-dashed border-white h-96 rounded-[56px] animate-pulse"></div>) : posts.length > 0 ? (
                 <>

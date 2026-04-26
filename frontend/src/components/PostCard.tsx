@@ -398,36 +398,27 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
         <button
           onClick={handleSpark}
           className={`flex-1 flex items-center justify-center gap-2 py-1.5 mt-1 hover:bg-gray-100 rounded-md transition-colors ${
-            isSparked ? 'text-[#0866FF]' : 'text-gray-600'
+            isSparked ? 'text-[#1877F2]' : 'text-[#65676B]'
           }`}
         >
-          {isSparked ? (
+          <motion.div
+            animate={isSparked ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center justify-center"
+          >
             <svg 
               width="20" 
               height="20" 
               viewBox="0 0 24 24" 
-              fill="none" 
+              fill={isSparked ? "#1877F2" : "currentColor"} 
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* Wrist Part - Aligned better with thumb/palm */}
-              <path 
-                d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" 
-                fill="#0866FF" 
-                transform="translate(0, -1)"
-              />
-              {/* Hand/Thumb Part with a thicker white stroke to force a clean gap */}
-              <path 
-                d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z" 
-                fill="#0866FF" 
-                stroke="white" 
-                strokeWidth="2.5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
+              {/* Wrist/Base */}
+              <path d="M4,21h3c0.55,0,1-0.45,1-1v-8c0-0.55-0.45-1-1-1H4c-1.1,0-2,0.9-2,2v6C2,20.1,2.9,21,4,21z" />
+              {/* Hand/Thumb with organic curves and the negative space gap */}
+              <path d="M10,21V10l1.54-5.06c0.18-0.58,0.73-0.94,1.33-0.94h0c1.1,0,2,0.9,2,2v5h5c1.38,0,2.5,1.12,2.5,2.5c0,0.18-0.02,0.36-0.06,0.54 c1.24,0.61,1.56,2.1,0.73,3.13c0.16,0.3,0.28,0.63,0.33,0.98c0.23,1.34-0.81,2.57-2.16,2.78c0,0.01-0.01,0.01-0.01,0.02 c0.07,0.36,0.08,0.73,0.01,1.09c-0.24,1.25-1.42,2.07-2.67,1.86c-0.03-0.01-0.06-0.01-0.1-0.02c-1.38-0.27-1.38-0.27-2.5-0.38L10,21z" />
             </svg>
-          ) : (
-            <ThumbsUp size={20} strokeWidth={2} />
-          )}
+          </motion.div>
           <span className="text-[14px] font-semibold">Like</span>
         </button>
 

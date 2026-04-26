@@ -366,8 +366,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       <div className="px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center cursor-pointer hover:underline">
           <div className="flex items-center gap-4 h-12">
-             {/* Mock Swaying Avatars - Max 3, staggered heights, same-direction sway */}
-             {Array.from({ length: 3 }).map((_, i) => (
+             {/* Dynamic Swaying Avatars - Max 3, staggered heights, same-direction sway */}
+             {!isOwner && post.liker_avatars && post.liker_avatars.length > 0 && post.liker_avatars.map((avatar, i) => (
                <motion.div
                  key={i}
                  animate={{ 
@@ -387,9 +387,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
                  }}
                >
                  <img 
-                   src={`https://i.pravatar.cc/150?u=mock_${i}`} 
+                   src={getAvatarUrl(avatar)} 
                    className="w-[32px] h-[32px] rounded-full border-2 border-white object-cover shadow-md" 
-                   alt="mock mutual" 
+                   alt="mutual" 
                  />
                  {/* Tiny Blue Like Badge at bottom right - Tucked inward */}
                  <div className="absolute bottom-0 right-0 w-[14px] h-[14px] bg-[#1877F2] rounded-full flex items-center justify-center ring-[1.5px] ring-white shadow-sm">
@@ -400,9 +400,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
           </div>
 
           <div className="ml-5 flex items-center">
-            <span className="text-[14px] text-gray-500 font-semibold">
-              + 42 others
-            </span>
+            {sparkCount > 0 && (
+              <span className="text-[14px] text-gray-500 font-semibold">
+                {sparkCount > 3 ? `+ ${formatCount(sparkCount - 3)} others` : `${formatCount(sparkCount)} ${sparkCount === 1 ? 'like' : 'likes'}`}
+              </span>
+            )}
           </div>
         </div>
         <div className="text-[14px] text-gray-500 flex gap-3">

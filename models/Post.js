@@ -322,6 +322,7 @@ class Post {
                     (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                    (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM sparks s2 JOIN users u2 ON s2.user_id = u2.user_id WHERE s2.post_id = p.post_id LIMIT 3) as liker_avatars,
                     EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
                     EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
                     (

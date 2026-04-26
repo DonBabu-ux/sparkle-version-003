@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BadgeCheck, ShieldCheck, Star, FileText, Upload, Send, CheckCircle2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useUserStore } from '../store/userStore';
+import { getAvatarUrl } from '../utils/imageUtils';
 
 export default function Verified() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export default function Verified() {
               <div className="verified-intro responsive-card animate-fade-in">
                 <div className="badge-preview">
                   <div className="preview-avatar">
-                    <img src={user?.avatar_url || '/uploads/avatars/default.png'} alt="" />
+                    <img src={getAvatarUrl(user?.avatar_url, user?.username)} alt="" />
                     <div className="floating-badge">
                       <BadgeCheck size={32} fill="#1d9bf0" color="white" />
                     </div>

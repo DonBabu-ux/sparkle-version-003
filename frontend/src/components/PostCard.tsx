@@ -7,7 +7,7 @@ import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
 import { formatCount } from '../utils/format';
 import type { Post } from '../types/post';
-import { getAvatarUrl } from '../utils/imageUtils';
+import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 
 interface PostCardProps {
   post: Post;
@@ -341,10 +341,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
           onClick={() => setActiveModal('media_preview', null, { post })}
         >
           {isVideo ? (
-            <video src={post.media_url} className="w-full h-auto block" />
+            <video src={getMediaUrl(post.media_url)} className="w-full h-auto block" />
           ) : (
             <img
-              src={post.media_url}
+              src={getMediaUrl(post.media_url)}
               loading="lazy"
               alt=""
               className="w-full h-auto block object-contain"

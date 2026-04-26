@@ -278,6 +278,21 @@ export default function StoryViewer() {
     }
   };
 
+  const handleSendStoryMessage = async (text: string) => {
+    if (!text.trim()) return;
+    try {
+      await api.post('/messages/send', {
+        partnerId: userStories.user_id,
+        content: text,
+        media_url: currentStory.media_url,
+        type: 'story_reply'
+      });
+      setReplyText('');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="h-screen bg-black flex flex-col relative overflow-hidden safe-area-inset">
       
@@ -361,7 +376,7 @@ export default function StoryViewer() {
                       onClick={() => setShowCommentModal(true)} 
                       className="mb-2 active:opacity-50 transition-opacity"
                     >
-                       <span className="text-[12px] font-medium text-white/80 italic tracking-wide shadow-lg">Say something...</span>
+                       <span className="text-[12px] font-medium text-white/80 italic tracking-wide shadow-lg">say something...</span>
                     </button>
                     
                     <div onClick={() => setShowViewersSheet(true)} className="flex items-center gap-3 cursor-pointer">
@@ -392,14 +407,23 @@ export default function StoryViewer() {
                   </div>
                </div>
              ) : (
-               <div className="flex items-center w-full gap-4 pointer-events-auto">
-                  <div className="flex-1 relative">
-                    <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Say something..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] text-white" />
-                    <button onClick={() => handlePostComment(replyText)} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
-                  </div>
-                  <div className="flex items-center gap-5">
-                    <button onClick={handleLike} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}><Heart size={26} /></button>
-                    <button onClick={() => setShowShareModal(true)} className="text-white"><Share2 size={24} /></button>
+               <div className="flex flex-col w-full gap-2 pointer-events-auto">
+                  <button 
+                    onClick={() => setShowCommentModal(true)} 
+                    className="self-start mb-1 active:opacity-50 transition-opacity"
+                  >
+                     <span className="text-[12px] font-medium text-white/80 italic tracking-wide shadow-lg">say something...</span>
+                  </button>
+
+                  <div className="flex items-center w-full gap-4">
+                    <div className="flex-1 relative">
+                      <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] text-white" />
+                      <button onClick={() => handleSendStoryMessage(replyText)} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
+                    </div>
+                    <div className="flex items-center gap-5">
+                      <button onClick={handleLike} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}><Heart size={26} /></button>
+                      <button onClick={() => setShowShareModal(true)} className="text-white"><Share2 size={24} /></button>
+                    </div>
                   </div>
                </div>
              )}

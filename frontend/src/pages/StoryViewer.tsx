@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
-import { X, Send, Orbit, Camera, Plus } from 'lucide-react';
+import { 
+  X, Send, Orbit, Camera, Plus, Heart, 
+  MessageCircle, MoreHorizontal, ChevronRight, Share2 
+} from 'lucide-react';
 import StickerRenderer from '../components/stories/StickerRenderer';
 import { useStoryStore } from '../store/storyStore';
 import { getAvatarUrl } from '../utils/imageUtils';
@@ -13,6 +16,7 @@ interface Story {
   media_type: string;
   caption?: string;
   background?: string;
+  music_info?: any;
   audio_url?: string;
   audio_source?: string;
   audio_start?: number;
@@ -36,12 +40,12 @@ export default function StoryViewer() {
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [audio] = useState(new Audio());
+  const [isLiked, setIsLiked] = useState(false);
   
   // Add Yours Response Modal State
   const [showAddYoursResponses, setShowAddYoursResponses] = useState(false);
   const [addYoursData, setAddYoursData] = useState<any>(null);
 
-  // These hooks MUST be here (before any early returns) to satisfy Rules of Hooks
   const { setPendingFile } = useStoryStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activePromptRef = useRef<{ id: string, text: string } | null>(null);
@@ -76,7 +80,6 @@ export default function StoryViewer() {
         audio.currentTime = current.audio_start || 0;
         audio.play().catch(e => console.log('Audio autoplay blocked or failed', e));
         
-        // Auto-stop after duration
         const duration = (current.audio_duration || 15) * 1000;
         const timer = setTimeout(() => audio.pause(), duration);
         return () => {
@@ -96,6 +99,7 @@ export default function StoryViewer() {
         if (prev >= 100) {
           if (currentIndex < userStories.stories.length - 1) {
             setCurrentIndex(currentIndex + 1);
+            setIsLiked(false);
             return 0;
           } else {
             navigate('/dashboard');
@@ -104,7 +108,7 @@ export default function StoryViewer() {
         }
         return prev + 1;
       });
-    }, 40); // 4 seconds total
+    }, 40);
 
     return () => clearInterval(interval);
   }, [userStories, currentIndex, navigate, showAddYoursResponses]);
@@ -147,7 +151,6 @@ export default function StoryViewer() {
           };
         });
       } else if (data.action === 'respond') {
-        // Navigate to create story with parent_id
         navigate(`/stories/create?parent=${currentStory.story_id}`);
       }
     } catch (err) {
@@ -156,201 +159,155 @@ export default function StoryViewer() {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col relative overflow-hidden">
-      {/* Hidden File Input for Direct Responses */}
+    <div className="h-screen bg-black flex flex-col relative overflow-hidden safe-area-inset">
       <input type="file" ref={fileInputRef} hidden accept="image/*,video/*" onChange={handleFileSelect} />
 
-      {/* Dynamic Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-primary/10 blur-[150px] pointer-events-none z-0"></div>
-
-      {/* Progress Bars */}
-      <div className="absolute top-6 left-6 right-6 z-40 flex gap-2">
-        {userStories.stories.map((_: Story, idx: number) => (
-          <div key={idx} className="h-1.5 flex-1 bg-white/20 rounded-full overflow-hidden shadow-2xl">
-            <div 
-              className="h-full bg-white transition-all duration-75"
-              style={{ 
-                width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' 
-              }}
-            ></div>
+      {/* Modern Phone-Frame Media View (Requirement: Instagram Modern) */}
+      <div className="absolute inset-0 flex items-center justify-center bg-black sm:p-4">
+        <div className="w-full h-full sm:h-[95vh] sm:aspect-[9/19.5] sm:rounded-[48px] overflow-hidden relative shadow-2xl bg-gray-900 border border-white/5">
+          
+          {/* Progress Bars (Thinner, Premium) */}
+          <div className="absolute top-4 left-4 right-4 z-50 flex gap-1.5 px-2">
+            {userStories.stories.map((_: Story, idx: number) => (
+              <div key={idx} className="h-[2px] flex-1 bg-white/20 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-white shadow-[0_0_8px_white]"
+                  initial={false}
+                  animate={{ width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' }}
+                  transition={{ duration: 0.1, ease: 'linear' }}
+                />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Header */}
-      <div className="absolute top-14 left-8 right-8 z-40 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-           <div className="p-0.5 rounded-2xl bg-white shadow-2xl border border-white/20 overflow-hidden">
-              <img src={getAvatarUrl(userStories.avatar_url, userStories.user_name)} className="w-12 h-12 rounded-xl object-cover" alt="" />
-           </div>
-           <div>
-              <h4 className="text-white font-black text-base uppercase tracking-tighter italic leading-none">{userStories.user_name}</h4>
-              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] mt-1 italic">
-                {new Date(currentStory.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
-           </div>
-        </div>
-        <button 
-          onClick={() => navigate('/dashboard')} 
-          className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-3xl border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all active:scale-90"
-        >
-          <X size={24} strokeWidth={4} />
-        </button>
-      </div>
-
-      {/* Media Content */}
-      <div className="flex-1 flex items-center justify-center w-full relative z-10">
-        {currentStory.media_type === 'video' ? (
-          <video 
-            src={currentStory.media_url} 
-            autoPlay 
-            muted 
-            playsInline 
-            className="max-h-full w-full object-contain"
-            onEnded={() => {
-              if (currentIndex < userStories.stories.length - 1) {
-                setCurrentIndex(currentIndex + 1);
-                setProgress(0);
-              } else {
-                navigate('/dashboard');
-              }
-            }}
-          />
-        ) : currentStory.media_type === 'text' ? (
-          <div className="w-full h-full flex items-center justify-center p-12" style={{ background: currentStory.background || 'linear-gradient(to bottom right, var(--tw-gradient-from), var(--tw-gradient-to))' }}>
-             <h2 className="text-white text-4xl md:text-7xl font-black text-center leading-none tracking-tighter uppercase italic drop-shadow-[0_0_30px_rgba(225,29,72,0.5)] animate-in zoom-in duration-700">
-               {currentStory.caption}
-             </h2>
+          {/* Header (Premium, Compact) */}
+          <div className="absolute top-10 left-6 right-6 z-50 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-amber-400 to-rose-500">
+                  <img src={getAvatarUrl(userStories.avatar_url, userStories.user_name)} className="w-full h-full rounded-full object-cover border-2 border-black" alt="" />
+               </div>
+               <div className="flex flex-col">
+                  <h4 className="text-white font-bold text-[13px] tracking-tight flex items-center gap-1.5">
+                    {userStories.user_name}
+                    <span className="text-white/40 text-[11px] font-medium">• {new Date(currentStory.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                  </h4>
+               </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="text-white/60 active:scale-90 transition-all"><MoreHorizontal size={20} /></button>
+              <button onClick={() => navigate('/dashboard')} className="text-white/80 active:scale-90 transition-all"><X size={24} strokeWidth={2.5} /></button>
+            </div>
           </div>
-        ) : (
-          <img src={currentStory.media_url} className="max-h-full w-full object-contain" alt="" />
-        )}
 
-        {/* Sticker Renderer */}
-        <StickerRenderer 
-          stickers={currentStory.stickers || []} 
-          onInteract={handleStickerInteract}
-        />
+          {/* Media Content */}
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-black">
+            {currentStory.media_type === 'video' ? (
+              <video 
+                src={currentStory.media_url} 
+                autoPlay 
+                muted 
+                playsInline 
+                className="h-full w-full object-cover"
+                onEnded={() => {
+                  if (currentIndex < userStories.stories.length - 1) {
+                    setCurrentIndex(currentIndex + 1);
+                    setProgress(0);
+                  } else {
+                    navigate('/dashboard');
+                  }
+                }}
+              />
+            ) : currentStory.media_type === 'text' ? (
+              <div className="w-full h-full flex items-center justify-center p-10" style={{ background: currentStory.background || '#111' }}>
+                 <h2 className="text-white text-3xl md:text-5xl font-black text-center leading-tight tracking-tighter uppercase italic">
+                   {currentStory.caption}
+                 </h2>
+              </div>
+            ) : (
+              <img src={currentStory.media_url} className="h-full w-full object-cover" alt="" />
+            )}
 
-        {/* MUSIC BAR (Requirement 7) */}
-        {currentStory.music_info && (
-            <motion.div 
-                initial={{ y: -50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="absolute top-32 left-1/2 -translate-x-1/2 z-[60] w-[80%] max-w-[300px]"
-            >
-                <div className="bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[20px] p-3 flex items-center gap-4 shadow-2xl">
-                    <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center text-[18px] animate-spin-slow">💿</div>
-                    <div className="flex-1 overflow-hidden">
-                        <p className="text-white font-black italic uppercase tracking-tighter text-[11px] truncate">{currentStory.music_info.title}</p>
-                        <p className="text-white/50 text-[9px] font-bold truncate">{currentStory.music_info.artist}</p>
+            {/* Sticker Renderer */}
+            <StickerRenderer 
+              stickers={currentStory.stickers || []} 
+              onInteract={handleStickerInteract}
+            />
+
+            {/* Premium Music Indicator */}
+            {currentStory.music_info && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="absolute bottom-28 left-6 z-[60]">
+                    <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-full py-2 px-4 flex items-center gap-3 shadow-xl">
+                        <div className="w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center text-[12px] animate-spin-slow">💿</div>
+                        <div className="flex items-center gap-2 overflow-hidden max-w-[150px]">
+                            <p className="text-white font-bold text-[10px] uppercase tracking-wide truncate">{currentStory.music_info.title}</p>
+                            <span className="text-white/30 text-[10px]">—</span>
+                            <p className="text-white/50 text-[9px] font-medium truncate">{currentStory.music_info.artist}</p>
+                        </div>
                     </div>
-                </div>
-            </motion.div>
-        )}
-      </div>
+                </motion.div>
+            )}
+          </div>
 
-      {/* Caption Overlay (Only for non-text stories) */}
-      {currentStory.caption && currentStory.media_type !== 'text' && (
-        <div className="absolute bottom-32 left-0 right-0 p-12 text-center bg-gradient-to-t from-black/90 via-black/40 to-transparent z-20">
-           <p className="text-white text-xl font-black italic tracking-tighter leading-snug drop-shadow-2xl animate-fade-in uppercase">{currentStory.caption}</p>
+          {/* Bottom Interaction Bar (Requirement: Modern & Glassy) */}
+          <div className="absolute bottom-6 left-0 right-0 px-6 z-50 flex items-center gap-4">
+             <div className="flex-1 relative">
+                <input 
+                  type="text" 
+                  placeholder="Send message" 
+                  className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] font-medium text-white placeholder:text-white/40 outline-none focus:bg-white/20 transition-all" 
+                />
+                <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40"><ChevronRight size={18} /></button>
+             </div>
+             
+             <div className="flex items-center gap-5">
+               <button 
+                onClick={() => setIsLiked(!isLiked)} 
+                className={`transition-all active:scale-150 ${isLiked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}
+               >
+                 <Heart size={26} strokeWidth={isLiked ? 0 : 2} />
+               </button>
+               <button className="text-white active:scale-90 transition-all">
+                 <Share2 size={24} />
+               </button>
+             </div>
+          </div>
+
+          {/* Navigation Touch Zones */}
+          <div className="absolute inset-0 z-20 flex">
+            <div className="w-1/3 h-full" onClick={() => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setProgress(0); } }} />
+            <div className="w-2/3 h-full" onClick={() => { if (currentIndex < userStories.stories.length - 1) { setCurrentIndex(currentIndex + 1); setProgress(0); } else { navigate('/dashboard'); } }} />
+          </div>
+
         </div>
-      )}
-
-
-      {/* Quick Interactions */}
-      <div className="absolute bottom-8 left-0 right-0 px-8 flex items-center gap-6 z-30">
-         <div className="flex-1 relative group">
-           <input 
-            type="text" 
-            placeholder="Broadcast energy..." 
-            className="w-full bg-white/10 border-2 border-white/10 rounded-[28px] h-16 px-8 text-sm font-black text-white placeholder:text-white/20 outline-none backdrop-blur-3xl focus:border-primary/50 focus:bg-white/20 transition-all uppercase tracking-widest italic" 
-          />
-           <button className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-primary text-white rounded-2xl shadow-xl shadow-primary/20 hover:scale-110 active:scale-90 transition-all">
-              <Send size={18} strokeWidth={4} />
-           </button>
-         </div>
-         <button className="w-16 h-16 rounded-[24px] bg-white/10 backdrop-blur-3xl border border-white/10 flex items-center justify-center text-2xl hover:scale-110 transition-all hover:bg-primary/20 shadow-xl">✨</button>
-         <button className="w-16 h-16 rounded-[24px] bg-white/10 backdrop-blur-3xl border border-white/10 flex items-center justify-center text-2xl hover:scale-110 transition-all hover:bg-primary/20 shadow-xl">🚀</button>
-      </div>
-
-      {/* Navigation Touch Zones */}
-      <div className="absolute inset-0 z-20 flex">
-        <div 
-          className="w-1/3 h-full cursor-pointer" 
-          onClick={() => {
-            if (currentIndex > 0) {
-              setCurrentIndex(currentIndex - 1);
-              setProgress(0);
-            }
-          }}
-        ></div>
-        <div 
-          className="w-2/3 h-full cursor-pointer"
-          onClick={() => {
-            if (currentIndex < userStories.stories.length - 1) {
-              setCurrentIndex(currentIndex + 1);
-              setProgress(0);
-            } else {
-              navigate('/dashboard');
-            }
-          }}
-        ></div>
       </div>
 
       {/* Add Yours Responses Modal */}
       <AnimatePresence>
         {showAddYoursResponses && addYoursData && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/80 backdrop-blur-xl"
-          >
-            <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              className="bg-white w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-[40px] p-8 pb-12 flex flex-col shadow-2xl overflow-hidden max-h-[85vh]"
-            >
-               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8" />
-               
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/90 backdrop-blur-xl">
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} className="bg-black/40 backdrop-blur-3xl border border-white/10 w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-[40px] p-8 pb-12 flex flex-col shadow-2xl overflow-hidden max-h-[85vh]">
+               <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8" />
                <div className="text-center mb-8">
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-2 italic">Add Yours Prompt</p>
-                  <h3 className="text-[24px] font-black italic uppercase tracking-tighter leading-none">{addYoursData.prompt.text}</h3>
+                  <h3 className="text-[24px] font-black italic uppercase text-white tracking-tighter leading-none">{addYoursData.prompt.text}</h3>
                </div>
-
                <div className="flex-1 overflow-y-auto pr-2">
                   <div className="grid grid-cols-4 gap-4 mb-8">
                      {addYoursData.responses.map((res: any, i: number) => (
                         <div key={i} className="flex flex-col items-center gap-2 group cursor-pointer">
-                           <div className="w-16 h-16 rounded-2xl bg-gray-100 overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+                           <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 overflow-hidden group-hover:border-primary transition-all">
                               <img src={getAvatarUrl(res.avatar_url, res.username)} className="w-full h-full object-cover" alt="" />
                            </div>
-                           <span className="text-[9px] font-black uppercase tracking-tighter italic truncate w-full text-center">{res.username}</span>
+                           <span className="text-[9px] font-bold text-white/40 uppercase tracking-tighter truncate w-full text-center">{res.username}</span>
                         </div>
                      ))}
-                     {addYoursData.responses.length === 0 && (
-                        <div className="col-span-4 py-12 text-center opacity-30">
-                           <Camera size={32} className="mx-auto mb-2" />
-                           <p className="text-[10px] font-black uppercase italic">Be the first to respond</p>
-                        </div>
-                     )}
                   </div>
                </div>
-
                <div className="pt-6 flex flex-col gap-3">
-                  <button 
-                    onClick={() => {
-                        setShowAddYoursResponses(false);
-                        navigate(`/stories/create?prompt_id=${addYoursData.prompt.prompt_id}&prompt_text=${encodeURIComponent(addYoursData.prompt.text)}`);
-                    }}
-                    className="w-full py-6 bg-primary text-white font-black italic uppercase tracking-tight rounded-[28px] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all text-[16px]"
-                  >
-                    <Camera size={24} strokeWidth={4} /> Add Yours
+                  <button onClick={() => { setShowAddYoursResponses(false); navigate(`/stories/create?parent=${currentStory.story_id}`); }} className="w-full py-6 bg-white text-black font-black uppercase rounded-[28px] flex items-center justify-center gap-3 active:scale-95 transition-all text-[14px]">
+                    <Camera size={24} /> Add Yours
                   </button>
-                  <button onClick={() => setShowAddYoursResponses(false)} className="w-full py-4 bg-gray-100 text-gray-500 font-black italic uppercase tracking-tight rounded-[20px] hover:bg-gray-200 transition-all text-[12px]">
-                    Maybe Later
-                  </button>
+                  <button onClick={() => setShowAddYoursResponses(false)} className="w-full py-4 text-white/40 font-bold uppercase tracking-widest text-[10px]">Maybe Later</button>
                </div>
             </motion.div>
           </motion.div>
@@ -358,10 +315,9 @@ export default function StoryViewer() {
       </AnimatePresence>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        .animate-spin-slow { animation: spin 15s linear infinite; }
+        .animate-spin-slow { animation: spin 12s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .safe-area-inset { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
       `}</style>
     </div>
   );

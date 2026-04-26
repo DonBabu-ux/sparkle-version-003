@@ -113,7 +113,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
   return (
     <div
-      className={`bg-white rounded-xl shadow-md overflow-hidden mb-4 animate-fade-in border border-gray-200 transition-opacity duration-300 ${
+      className={`bg-white sm:rounded-xl shadow-sm overflow-hidden mb-3 border-y sm:border border-gray-200 transition-opacity duration-300 ${
         deleting ? 'opacity-30 pointer-events-none' : ''
       }`}
     >
@@ -351,17 +351,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       {/* Media */}
       {!isTextOnly && post.media_url && (
         <div
-          className="relative bg-black cursor-pointer overflow-hidden flex items-center justify-center w-full"
+          className="relative bg-[#f0f2f5] cursor-pointer overflow-hidden flex items-center justify-center w-full"
           onClick={() => setActiveModal('media_preview', null, { post })}
         >
           {isVideo ? (
-            <video src={getMediaUrl(post.media_url)} className="w-full h-auto block max-h-[700px] object-contain" />
+            <video src={getMediaUrl(post.media_url)} className="w-full h-auto block max-h-[85vh] sm:max-h-[700px] object-contain" />
           ) : (
             <img
               src={getMediaUrl(post.media_url)}
               loading="lazy"
               alt=""
-              className="w-full h-auto block max-h-[700px] object-contain"
+              className="w-full h-auto block max-h-[85vh] sm:max-h-[700px] object-contain"
             />
           )}
         </div>

@@ -56,7 +56,7 @@ export default function Login() {
 
       if (data?.status === 'success' && data?.token) {
         showSuccess('Welcome back!');
-        login(data.token, data.user);
+        login(data.token, data.refreshToken || '', data.user);
         setTimeout(() => navigate('/dashboard'), 1500);
         return;
       }
@@ -139,7 +139,7 @@ export default function Login() {
       const data = res.data;
       if (data?.status === 'success' && data?.token) {
         showSuccess('Verification successful!');
-        login(data.token, data.user);
+        login(data.token, data.refreshToken || '', data.user);
         setTimeout(() => navigate('/dashboard'), 1500);
       }
     } catch (err: any) {

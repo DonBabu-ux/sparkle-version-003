@@ -106,6 +106,7 @@ const signup = async (req, res) => {
             token,
             user: {
                 id: userId,
+                user_id: userId,
                 name,
                 username,
                 email,
@@ -115,7 +116,11 @@ const signup = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Signup Error [Full]:', error);
+        logger.error('Signup Critical Error:', {
+            error: error.message,
+            stack: error.stack,
+            body: { ...req.body, password: '***' }
+        });
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({
                 status: 'error',
@@ -124,8 +129,8 @@ const signup = async (req, res) => {
         }
         res.status(500).json({
             status: 'error',
-            message: 'Failed to create account',
-            details: error.message
+            message: 'Failed to create account. Please try again later.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
@@ -231,6 +236,7 @@ const login = async (req, res) => {
             refreshToken: refreshToken,
             user: {
                 id: user.user_id,
+                user_id: user.user_id,
                 name: user.name,
                 username: user.username,
                 email: user.email,
@@ -243,8 +249,17 @@ const login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Login Error [Full]:', error);
-        res.status(500).json({ status: 'error', message: 'Login failed', details: error.message });
+        logger.error('Login Critical Error:', {
+            error: error.message,
+            stack: error.stack,
+            body: { ...req.body, password: '***' },
+            ip: req.ip
+        });
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Internal server error during login', 
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 };
 
@@ -340,6 +355,7 @@ const verify2FA = async (req, res) => {
             sessionId,
             user: {
                 id: user.user_id,
+                user_id: user.user_id,
                 name: user.name,
                 username: user.username,
                 email: user.email,

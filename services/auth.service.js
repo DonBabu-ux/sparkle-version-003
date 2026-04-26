@@ -77,9 +77,13 @@ class AuthService {
         const redisService = require('./redis.service');
         const cacheKey = `session:verified:${userId}:${deviceId}`;
         
-        // 1. Check Redis Cache first
-        const isCached = await redisService.get(cacheKey);
-        if (isCached) return { isNewDevice: false };
+        // 1. Check Redis Cache first (Soft failure if Redis is down)
+        try {
+            const isCached = await redisService.get(cacheKey);
+            if (isCached) return { isNewDevice: false };
+        } catch (e) {
+            logger.warn('Redis read failed in trackLoginActivity:', e.message);
+        }
 
         // 2. Check Database
         const [existing] = await pool.query(
@@ -105,9 +109,13 @@ class AuthService {
             ]
         );
 
-        // 3. Cache the verification status in Redis (30 days)
+        // 3. Cache the verification status in Redis (30 days) - Soft failure
         if (!isNewDevice) {
-            await redisService.set(cacheKey, 'true', 30 * 24 * 60 * 60);
+            try {
+                await redisService.set(cacheKey, 'true', 30 * 24 * 60 * 60);
+            } catch (e) {
+                logger.warn('Redis write failed in trackLoginActivity:', e.message);
+            }
         }
 
         return { isNewDevice };

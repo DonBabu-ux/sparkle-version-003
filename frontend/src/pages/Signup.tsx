@@ -97,7 +97,7 @@ export default function Signup() {
         const validateRes = await api.get('/auth/validate', {
           headers: { Authorization: `Bearer ${signupToken}` },
         });
-        login(signupToken, validateRes.data.user);
+        login(signupToken, validateRes.data.refreshToken || '', validateRes.data.user);
         localStorage.removeItem('sparkle_signup_token');
         showSuccess('Verified! Redirecting...');
         setTimeout(() => navigate('/dashboard'), 1500);

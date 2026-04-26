@@ -13,6 +13,9 @@ router.get('/:id/viewers', authMiddleware, feedController.getStoryViewers);
 router.post('/:id/view', authMiddleware, feedController.viewStory);
 router.post('/:id/like', authMiddleware, feedController.likeStory);
 router.post('/:id/share', authMiddleware, feedController.shareStory);
+router.post('/:id/archive', authMiddleware, feedController.archiveStory);
+router.post('/:id/comments/toggle', authMiddleware, feedController.toggleStoryComments);
+router.post('/privacy/hide', authMiddleware, feedController.hideStoryFromUser);
 router.delete('/:id', authMiddleware, feedController.deleteStory);
 
 module.exports = router;

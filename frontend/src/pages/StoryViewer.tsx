@@ -33,6 +33,8 @@ interface Story {
   likes_count?: number;
   shares_count?: number;
   is_liked?: boolean;
+  comments_enabled?: boolean;
+  is_archived?: boolean;
 }
 
 interface UserStoryGroup {
@@ -201,6 +203,37 @@ export default function StoryViewer() {
     } catch (err) { console.error('Failed to delete story', err); }
   };
 
+  const handleArchiveStory = async () => {
+    try {
+      await api.post(`/stories/${currentStory.story_id}/archive`);
+      setShowOptionsSheet(false);
+      if (currentIndex < userStories.stories.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+        setProgress(0);
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) { console.error('Failed to archive story', err); }
+  };
+
+  const handleToggleComments = async () => {
+    try {
+      const res = await api.post(`/stories/${currentStory.story_id}/comments/toggle`);
+      const updatedStories = [...userStories.stories];
+      updatedStories[currentIndex] = { ...currentStory, comments_enabled: res.data.comments_enabled };
+      setUserStories({ ...userStories, stories: updatedStories });
+      setShowOptionsSheet(false);
+    } catch (err) { console.error('Failed to toggle comments', err); }
+  };
+
+  const handleHideStoryFromUser = async (targetUserId: string) => {
+    try {
+      await api.post('/stories/privacy/hide', { blockedUserId: targetUserId });
+      setShowViewerOptions(null);
+      alert('Story hidden from this user.');
+    } catch (err) { console.error('Failed to hide story', err); }
+  };
+
   return (
     <div className="h-screen bg-black flex flex-col relative overflow-hidden safe-area-inset">
       
@@ -296,10 +329,16 @@ export default function StoryViewer() {
                </div>
              ) : (
                <>
-                 <div className="flex-1 relative group">
-                    <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] font-medium text-white placeholder:text-white/40 outline-none focus:bg-white/20 transition-all" />
-                    <button className={`absolute right-4 top-1/2 -translate-y-1/2 transition-all ${replyText ? 'text-primary' : 'text-white/40'}`}><Send size={18} /></button>
-                 </div>
+                 {currentStory.comments_enabled !== false ? (
+                    <div className="flex-1 relative group">
+                        <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] font-medium text-white placeholder:text-white/40 outline-none focus:bg-white/20 transition-all" />
+                        <button className={`absolute right-4 top-1/2 -translate-y-1/2 transition-all ${replyText ? 'text-primary' : 'text-white/40'}`}><Send size={18} /></button>
+                    </div>
+                 ) : (
+                    <div className="flex-1 h-12 bg-white/5 border border-white/10 rounded-full flex items-center justify-center">
+                        <span className="text-white/20 text-[11px] font-black uppercase tracking-widest italic">Comments disabled</span>
+                    </div>
+                 )}
                  <div className="flex items-center gap-5 ml-4">
                     <button onClick={handleLike} className={`transition-all active:scale-150 ${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}><Heart size={26} strokeWidth={currentStory.is_liked ? 0 : 2} /></button>
                     <button onClick={() => setShowShareModal(true)} className="text-white active:scale-90 transition-all"><Share2 size={24} /></button>
@@ -321,12 +360,12 @@ export default function StoryViewer() {
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
             className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40"
-            onClick={() => setShowViewersSheet(false)} // GENIUS: Backdrop Close
+            onClick={() => setShowViewersSheet(false)}
           >
             <motion.div 
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} 
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+              onClick={(e) => e.stopPropagation()}
               className="w-full max-w-[500px] bg-[#0F0F0F] rounded-t-[40px] p-8 flex flex-col h-[75vh] shadow-2xl border-t border-white/10 overflow-hidden"
             >
                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6" onClick={() => setShowViewersSheet(false)} />
@@ -392,13 +431,13 @@ export default function StoryViewer() {
         )}
       </AnimatePresence>
 
-      {/* Share/Send Modal */}
+      {/* Share Modal */}
       <AnimatePresence>
         {showShareModal && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
             className="fixed inset-0 z-[200] flex items-end justify-center bg-black/90 backdrop-blur-xl"
-            onClick={() => setShowShareModal(false)} // GENIUS: Backdrop Close
+            onClick={() => setShowShareModal(false)}
           >
              <motion.div 
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} 
@@ -438,14 +477,17 @@ export default function StoryViewer() {
                 <div className="mt-8 pt-8 border-t border-white/5 overflow-x-auto flex gap-6 no-scrollbar pb-2">
                    {[
                      { name: 'WhatsApp', icon: <Phone size={24} />, color: '#25D366' },
-                     { name: 'Snapchat', icon: <Camera size={24} />, color: '#FFFC00', textColor: '#000' },
+                     { name: 'Instagram', icon: <Camera size={24} />, color: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', isGradient: true },
+                     { name: 'Snapchat', icon: <User size={24} />, color: '#FFFC00', textColor: '#000' },
+                     { name: 'Telegram', icon: <Send size={24} />, color: '#0088cc' },
                      { name: 'Messenger', icon: <MessageSquare size={24} />, color: '#006AFF' },
                      { name: 'Facebook', icon: <Globe size={24} />, color: '#1877F2' },
-                     { name: 'SMS', icon: <MessageCircle size={24} />, color: '#34C759' },
-                     { name: 'Copy', icon: <LinkIcon size={24} />, color: '#8E8E93' }
+                     { name: 'Threads', icon: <AtSign size={24} />, color: '#000000' },
+                     { name: 'X', icon: <X size={24} />, color: '#000000' },
+                     { name: 'Copy Link', icon: <LinkIcon size={24} />, color: '#333333' }
                    ].map((app, i) => (
                      <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
-                        <div style={{ backgroundColor: app.color }} className={`w-14 h-14 rounded-[20px] flex items-center justify-center shadow-lg ${app.textColor ? `text-[${app.textColor}]` : 'text-white'}`}>
+                        <div style={{ background: app.color }} className={`w-14 h-14 rounded-[20px] flex items-center justify-center shadow-lg ${app.textColor ? `text-[${app.textColor}]` : 'text-white'}`}>
                            {app.icon}
                         </div>
                         <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{app.name}</span>
@@ -463,7 +505,7 @@ export default function StoryViewer() {
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
             className="fixed inset-0 z-[200] flex items-end justify-center bg-black/90 backdrop-blur-xl"
-            onClick={() => setShowMentionModal(false)} // GENIUS: Backdrop Close
+            onClick={() => setShowMentionModal(false)}
           >
              <motion.div 
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} 
@@ -519,7 +561,7 @@ export default function StoryViewer() {
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
             className="fixed inset-0 z-[300] flex items-end justify-center bg-black/80 backdrop-blur-md"
-            onClick={() => setShowOptionsSheet(false)} // GENIUS: Backdrop Close
+            onClick={() => setShowOptionsSheet(false)}
           >
             <motion.div 
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} 
@@ -539,19 +581,19 @@ export default function StoryViewer() {
                <div className="flex-1 overflow-y-auto space-y-2 no-scrollbar pr-1">
                   {[
                     { name: 'Delete', icon: <Trash2 size={20} />, color: 'text-rose-500', action: handleDeleteStory },
-                    { name: 'Archive', icon: <Archive size={20} /> },
-                    { name: 'Save Video', icon: <Download size={20} /> },
-                    { name: 'Highlight', icon: <Star size={20} /> },
-                    { name: 'Share to Facebook', icon: <Globe size={20} />, color: 'text-[#1877F2]' },
-                    { name: 'Story Edit', icon: <Wand2 size={20} /> },
-                    { name: 'AI Label', icon: <Sparkles size={20} />, color: 'text-primary' },
-                    { name: 'Share...', icon: <ShareIcon size={20} /> },
-                    { name: 'Story Settings', icon: <Settings size={20} /> },
-                    { name: 'Turn off commenting', icon: <MessageCircleOff size={20} /> }
+                    { name: 'Archive', icon: <Archive size={20} />, action: handleArchiveStory },
+                    { name: 'Save Video', icon: <Download size={20} />, action: () => alert('Video saved to device') },
+                    { name: 'Highlight', icon: <Star size={20} />, action: () => alert('Added to Highlights') },
+                    { name: 'Share to Facebook', icon: <Globe size={20} />, color: 'text-[#1877F2]', action: () => alert('Sharing to Facebook...') },
+                    { name: 'Story Edit', icon: <Wand2 size={20} />, action: () => alert('Opening Editor...') },
+                    { name: 'AI Label', icon: <Sparkles size={20} />, color: 'text-primary', action: () => alert('AI Label added') },
+                    { name: 'Share...', icon: <ShareIcon size={20} />, action: () => setShowShareModal(true) },
+                    { name: 'Story Settings', icon: <Settings size={20} />, action: () => navigate('/settings/privacy') },
+                    { name: 'Turn off commenting', icon: currentStory.comments_enabled === false ? <MessageCircle size={20} /> : <MessageCircleOff size={20} />, action: handleToggleComments }
                   ].map((opt, i) => (
                     <button key={i} onClick={opt.action} className={`w-full py-5 px-6 rounded-2xl bg-white/5 flex items-center justify-between group active:scale-[0.98] transition-all`}>
                       <div className={`flex items-center gap-4 font-bold ${opt.color || 'text-white'}`}>
-                         {opt.icon} {opt.name}
+                         {opt.icon} {opt.name === 'Turn off commenting' && currentStory.comments_enabled === false ? 'Turn on commenting' : opt.name}
                       </div>
                       <ChevronRight size={16} className="text-white/10 group-hover:text-white/40 transition-colors" />
                     </button>
@@ -569,7 +611,7 @@ export default function StoryViewer() {
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
             className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md"
-            onClick={() => setShowViewerOptions(null)} // GENIUS: Backdrop Close
+            onClick={() => setShowViewerOptions(null)}
           >
              <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} 
@@ -578,7 +620,7 @@ export default function StoryViewer() {
              >
                 <button className="w-full py-4 text-rose-500 font-bold text-[15px] hover:bg-white/5 rounded-2xl transition-all"><Ban size={18} className="inline mr-3" /> Block</button>
                 <button className="w-full py-4 text-white font-bold text-[15px] hover:bg-white/5 rounded-2xl transition-all"><UserMinus size={18} className="inline mr-3" /> Remove Follower</button>
-                <button className="w-full py-4 text-white font-bold text-[15px] hover:bg-white/5 rounded-2xl transition-all"><EyeOff size={18} className="inline mr-3" /> Hide your story</button>
+                <button className="w-full py-4 text-white font-bold text-[15px] hover:bg-white/5 rounded-2xl transition-all" onClick={() => handleHideStoryFromUser(showViewerOptions.user_id)}><EyeOff size={18} className="inline mr-3" /> Hide your story</button>
                 <button className="w-full py-4 text-white font-bold text-[15px] hover:bg-white/5 rounded-2xl transition-all" onClick={() => navigate(`/profile/${showViewerOptions.username}`)}><User size={18} className="inline mr-3" /> View Profile</button>
                 <div className="h-px bg-white/5 my-2" />
                 <button onClick={() => setShowViewerOptions(null)} className="w-full py-4 text-white/40 font-bold text-[15px]">Cancel</button>

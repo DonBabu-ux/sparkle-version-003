@@ -172,6 +172,10 @@ const getStories = async (req, res) => {
                 OR s.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
                 OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
             )
+            AND s.is_archived = 0
+            AND s.user_id NOT IN (
+                SELECT user_id FROM story_privacy_blocks WHERE blocked_user_id = ?
+            )
             ORDER BY s.created_at DESC
             LIMIT 200
         `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);
@@ -757,6 +761,65 @@ const getStoryViewers = async (req, res) => {
     }
 };
 
+const archiveStory = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+
+        const [result] = await pool.query(
+            'UPDATE stories SET is_archived = 1 WHERE story_id = ? AND user_id = ?',
+            [storyId, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(403).json({ error: 'Unauthorized or story not found' });
+        }
+
+        res.json({ success: true, message: 'Story archived' });
+    } catch (error) {
+        logger.error('Archive Story Error:', error);
+        res.status(500).json({ error: 'Failed to archive story' });
+    }
+};
+
+const toggleStoryComments = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+
+        const [stories] = await pool.query('SELECT comments_enabled FROM stories WHERE story_id = ? AND user_id = ?', [storyId, userId]);
+        if (stories.length === 0) return res.status(404).json({ error: 'Story not found' });
+
+        const newStatus = stories[0].comments_enabled ? 0 : 1;
+        await pool.query('UPDATE stories SET comments_enabled = ? WHERE story_id = ?', [newStatus, storyId]);
+
+        res.json({ success: true, comments_enabled: newStatus });
+    } catch (error) {
+        logger.error('Toggle Comments Error:', error);
+        res.status(500).json({ error: 'Failed to toggle comments' });
+    }
+};
+
+const hideStoryFromUser = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const blockedUserId = req.body.blockedUserId;
+
+        if (!blockedUserId) return res.status(400).json({ error: 'Blocked User ID is required' });
+
+        const blockId = crypto.randomUUID();
+        await pool.query(
+            'INSERT IGNORE INTO story_privacy_blocks (block_id, user_id, blocked_user_id) VALUES (?, ?, ?)',
+            [blockId, userId, blockedUserId]
+        );
+
+        res.json({ success: true, message: 'Story hidden from user' });
+    } catch (error) {
+        logger.error('Hide Story Error:', error);
+        res.status(500).json({ error: 'Failed to hide story' });
+    }
+};
+
 module.exports = {
     renderDashboard,
     getFeedPosts,
@@ -769,5 +832,8 @@ module.exports = {
     shareStory,
     deleteStory,
     viewStory,
-    getStoryViewers
+    getStoryViewers,
+    archiveStory,
+    toggleStoryComments,
+    hideStoryFromUser
 };

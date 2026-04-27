@@ -19,25 +19,25 @@ const createRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
 /**
  * Strict rate limiter for auth endpoints
  */
-const authRateLimiter = createRateLimiter(15 * 60 * 1000, 50000); // DISABLED for testing
+const authRateLimiter = createRateLimiter(15 * 60 * 1000, 1000000); // DISABLED for testing
 
 /**
  * General API rate limiter
  * Increased to 300 per minute to handle search autocomplete + feed hammering
  */
-const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 300); 
+const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 1000000); 
 
 /**
  * Listings/feed rate limiter — prevents page hammering the DB
  * 30 requests per minute per IP (e.g., fetching marketplace, posts)
  */
-const feedRateLimiter = createRateLimiter(1 * 60 * 1000, 30);
+const feedRateLimiter = createRateLimiter(1 * 60 * 1000, 1000000);
 
 /**
  * Mutation rate limiter — POST/PUT/DELETE that write to DB
  * 10 requests per minute per IP
  */
-const mutationRateLimiter = createRateLimiter(1 * 60 * 1000, 30);
+const mutationRateLimiter = createRateLimiter(1 * 60 * 1000, 1000000);
 
 /**
  * Static image rate limiter — stops 400+ identical image requests

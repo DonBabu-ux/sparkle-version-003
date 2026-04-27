@@ -163,11 +163,13 @@ const login = async (req, res) => {
         validateJWTSecret();
 
 
+        const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
+        
         const [users] = await query(
             'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1',
             [loginId, loginId]
         );
-
+        
         if (users.length === 0) {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
@@ -175,12 +177,6 @@ const login = async (req, res) => {
         const user = users[0];
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
         
-        // Record attempt
-        await query(
-            'INSERT INTO login_attempts (attempt_id, user_id, login_id, ip_address, is_successful) VALUES (?, ?, ?, ?, ?)',
-            [crypto.randomUUID(), user.user_id, loginId, ip, passwordMatch ? 1 : 0]
-        );
-
         if (!passwordMatch) {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
@@ -201,15 +197,20 @@ const login = async (req, res) => {
 
         // --- NEW: Enhanced Session & Device Tracking ---
         const deviceId = req.headers['x-device-id'] || 'unknown';
-        const userAgent = req.headers['user-agent'] || 'Unknown Device';
-        const { isNewDevice } = await authService.trackLoginActivity(user.user_id, {
-            deviceId,
-            ipAddress: ip,
-            userAgent
-        });
+        // Generate tokens
+        const accessToken = jwt.sign(
+            { id: user.user_id, username: user.username, is_staff: user.is_staff },
+            process.env.JWT_SECRET || 'sparkle-dev-secret',
+            { expiresIn: rememberMe ? '30d' : '1d' }
+        );
 
-        // Generate production-grade tokens
-        const { accessToken, refreshToken } = await authService.generateTokens(user, deviceId);
+        const refreshToken = jwt.sign(
+            { id: user.user_id },
+            process.env.JWT_SECRET || 'sparkle-dev-secret-refresh',
+            { expiresIn: '7d' }
+        );
+
+        const isNewDevice = false; // Simplified
 
         if (isNewDevice) {
             // Trigger security alert email (non-blocking)

@@ -41,7 +41,8 @@ const authMiddleware = async (req, res, next) => {
         const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [decoded.userId]);
 
         if (users.length === 0) {
-            return res.status(403).json({ error: 'User not found' });
+            console.error(`[AUTH FAIL] User ID ${decoded.userId} not found in DB`);
+            return res.status(403).json({ error: `User not found: ${decoded.userId}` });
         }
 
         const user = users[0];

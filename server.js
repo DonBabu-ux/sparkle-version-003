@@ -202,8 +202,8 @@ if (process.env.NODE_ENV !== 'production') {
 // Diagnostic Test Route (Bypasses all middleware)
 app.get('/api/ping', (req, res) => res.json({ status: 'API IS ALIVE', time: new Date() }));
 
-// Routes
-app.use('/api', apiRateLimiter, apiRoutes);
+// Routes (Rate Limiter DISABLED for testing)
+app.use('/api', apiRoutes);
 app.use('/', webRoutes);
 
 // 404 Handler

@@ -44,7 +44,9 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.post('/auth/login', { username: email, password });
+      const cleanEmail = email.trim();
+      const cleanPassword = password.trim();
+      const res = await api.post('/auth/login', { username: cleanEmail, password: cleanPassword });
       const data = res.data;
 
       if (data?.status === 'requires_2fa' || data?.status === 'twofa_required') {

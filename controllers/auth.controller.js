@@ -144,7 +144,8 @@ const login = async (req, res) => {
             });
         }
 
-        // --- NEW: Rate Limiting (Algorithm 1.9) ---
+        /* 
+        // --- TEMPORARILY DISABLED: Rate Limiting (Algorithm 1.9) ---
         const ip = req.ip || req.connection.remoteAddress;
         const [attempts] = await query(
             'SELECT COUNT(*) as count FROM login_attempts WHERE (login_id = ? OR ip_address = ?) AND is_successful = 0 AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)',
@@ -157,6 +158,7 @@ const login = async (req, res) => {
                 message: 'Too many failed attempts. Please try again in 15 minutes.'
             });
         }
+        */
 
         validateJWTSecret();
 

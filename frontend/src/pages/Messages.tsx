@@ -4,6 +4,8 @@ import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import debounce from 'lodash.debounce';
+import { useMemo } from 'react';
 import { 
   Search, 
   Plus, 
@@ -74,6 +76,15 @@ export default function Messages() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const emitTyping = useMemo(
+    () => debounce((chatId: string, isTyping: boolean) => {
+        if (socket) {
+            socket.emit('typing', { chatId, isTyping });
+        }
+    }, 500),
+    [socket]
+  );
 
   const formatMessageText = (content?: string) => {
     if (!content) return '';
@@ -251,11 +262,8 @@ export default function Messages() {
 
   const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
-    if (socket && selectedChat) {
-      socket.emit('typing', { 
-        chatId: selectedChat.chat_id, 
-        isTyping: e.target.value.length > 0 
-      });
+    if (selectedChat) {
+      emitTyping(selectedChat.chat_id, e.target.value.length > 0);
     }
   };
 

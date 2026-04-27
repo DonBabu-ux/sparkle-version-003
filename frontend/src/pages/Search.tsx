@@ -12,6 +12,7 @@ import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
 import PostCard from '../components/PostCard';
 import { useUserStore } from '../store/userStore';
+import debounce from 'lodash.debounce';
 
 type TabType = 'all' | 'users' | 'posts' | 'groups' | 'marketplace' | 'clubs';
 
@@ -126,39 +127,47 @@ export default function Search() {
     }
   }, [currentUser?.campus]);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
-
-  useEffect(() => {
-    if (query.trim().length < 2) {
-        setSuggestions([]);
+  const debouncedSearch = useMemo(
+    () => debounce((q: string, type: TabType) => {
+        handleSearch(q, type);
         setShowSuggestions(false);
-        return;
-    }
-    const delay = setTimeout(async () => {
+    }, 450),
+    [handleSearch]
+  );
+
+  const debouncedSuggestions = useMemo(
+    () => debounce(async (q: string) => {
+        if (q.trim().length < 2) {
+            setSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
         try {
-            const res = await api.get('/search/suggestions', { params: { q: query } });
+            const res = await api.get('/search/suggestions', { params: { q } });
             if (res.data.status === 'success') {
                 setSuggestions(res.data.data || []);
                 setShowSuggestions(true);
             }
         } catch (err) { console.error('Suggestions error:', err); }
-    }, 200);
-    return () => clearTimeout(delay);
-  }, [query]);
+    }, 200),
+    []
+  );
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  useEffect(() => {
+    debouncedSuggestions(query);
+  }, [query, debouncedSuggestions]);
 
   useEffect(() => {
     if (!query.trim()) {
         setResults({});
         return;
     }
-    const delayDebounce = setTimeout(() => {
-      handleSearch(query, activeTab);
-      setShowSuggestions(false);
-    }, 450); 
-    return () => clearTimeout(delayDebounce);
-  }, [query, activeTab, handleSearch]);
+    debouncedSearch(query, activeTab);
+  }, [query, activeTab, debouncedSearch]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && query.trim()) {

@@ -11,6 +11,7 @@ import {
   Plus, Sparkles, Flame, TrendingUp, Orbit, Send, 
   ChevronRight, BarChart3, Calendar 
 } from 'lucide-react';
+import VirtualizedFeed from '../components/VirtualizedFeed';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
@@ -195,26 +196,8 @@ export default function Dashboard() {
     }
   }, [refreshCounter, fetchDashboardData]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-          fetchDashboardData(false);
-        }
-      },
-      { 
-        threshold: 0,
-        rootMargin: '400px' // Start loading 400px before reaching the bottom
-      }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMore, loadingMore, loading, fetchDashboardData]);
-
+  // Feed managed by VirtualizedFeed component
+  
   return (
     <div className="flex bg-[#f0f2f5] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
@@ -287,18 +270,14 @@ export default function Dashboard() {
 
             {/* FEED */}
             <div className="space-y-[3px] sm:space-y-3 pb-48 animate-fade-in">
-              <div className="flex items-center justify-between px-4 mb-2 mt-2"><h2 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Feed</h2><div className="flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-full text-[11px] font-bold text-red-500 shadow-sm"><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>LIVE</div></div>
-              {loading ? Array(3).fill(0).map((_, i) => <div key={i} className="bg-white/40 border-4 border-dashed border-white h-96 rounded-[56px] animate-pulse"></div>) : posts.length > 0 ? (
-                <>
-                  {posts.filter(post => !hiddenPostIds.includes(post.post_id)).map((post) => <PostCard key={post.post_id} post={post} />)}
-                  <div ref={observerTarget} className="h-10 w-full flex items-center justify-center">{loadingMore && <RefreshCw size={24} className="animate-spin text-primary" />}</div>
-                </>
-              ) : (
-                <div className="py-48 bg-white/20 border-4 border-dashed border-white rounded-[64px] flex flex-col items-center justify-center gap-10 text-center shadow-inner mx-4">
-                   <Ghost size={120} strokeWidth={1} className="text-black/5 animate-bounce-slow" />
-                   <div className="space-y-6"><h3 className="text-4xl font-black text-black/10 uppercase tracking-tighter italic leading-none">No Posts Yet.</h3><p className="text-[10px] font-black text-black/30 uppercase tracking-[0.3em] max-w-xs mx-auto leading-loose italic">Follow some people to see their posts here.</p><button onClick={() => navigate('/connect')} className="mt-8 px-12 py-5 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 italic">Find Friends</button></div>
+              <div className="flex items-center justify-between px-4 mb-2 mt-2">
+                <h2 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Feed</h2>
+                <div className="flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-full text-[11px] font-bold text-red-500 shadow-sm">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>
+                  LIVE
                 </div>
-              )}
+              </div>
+              <VirtualizedFeed initialPosts={posts} />
             </div>
           </section>
 

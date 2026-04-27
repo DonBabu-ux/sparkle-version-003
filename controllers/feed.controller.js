@@ -88,37 +88,41 @@ const getFeedPosts = async (req, res) => {
     try {
         const currentUserId = req.user.userId || req.user.user_id;
         const affiliation = req.user.affiliation || req.user.campus || 'all';
-        const { offset = 0, limit = 10, force = false, mode = 'for_you', seed = 0 } = req.query;
+        const { offset = 0, limit = 10, force = false, mode = 'for_you', seed = 0, cursor = null } = req.query;
 
         // --- BATCH 3: Feed Caching & Deduplication ---
         const redisService = require('../services/redis.service');
-        const lockKey = `lock:feed:${currentUserId}:${offset}:${seed}`;
-        const cacheKey = `feed:${currentUserId}:${offset}:${mode}:${seed}`;
+        const lockKey = `lock:feed:${currentUserId}:${cursor || offset}:${seed}`;
+        const cacheKey = `feed:${currentUserId}:${cursor || offset}:${mode}:${seed}`;
 
         if (!force) {
             const cached = await redisService.get(cacheKey);
             if (cached) return res.json(cached);
         }
 
-        // 5-second lock to prevent "request storms" for the same offset/seed
+        // 5-second lock to prevent "request storms"
         const lock = await redisService.set(lockKey, 'locked', 5, 'NX');
         if (!lock && !force) {
             return res.status(429).json({ error: 'Request in progress' });
         }
 
-        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, seed, [], mode);
+        // Support cursor-based fetching in the model
+        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, seed, [], mode, cursor);
 
         // Sanitize
         const sanitizedPosts = (posts || []).map(post => ({
             ...post,
             media_url: getSafeMediaUrl(post.media_url),
             avatar_url: getSafeAvatarUrl(post.avatar_url),
-            timestamp: post.created_at
+            timestamp: post.created_at,
+            _id: post.post_id // For frontend compatibility with user's snippet
         }));
 
         const result = {
             feed: sanitizedPosts,
-            nextOffset: sanitizedPosts.length > 0 ? Number(offset) + sanitizedPosts.length : null
+            posts: sanitizedPosts, // Add for compatibility with user's snippet
+            nextOffset: sanitizedPosts.length > 0 ? Number(offset) + sanitizedPosts.length : null,
+            nextCursor: sanitizedPosts.length > 0 ? sanitizedPosts[sanitizedPosts.length - 1].post_id : null
         };
 
         await redisService.set(cacheKey, result, 60); // 1-minute TTL
@@ -133,11 +137,24 @@ const getFeedPosts = async (req, res) => {
 
 const getNewPosts = async (req, res) => {
     try {
-        const since = req.query.since;
-        if (!since) return res.status(400).json({ error: 'since timestamp required' });
+        let since = req.query.since;
+        if (!since) return res.status(400).json({ error: 'since parameter required' });
 
         const affiliation = req.user.affiliation || req.user.campus || 'all';
         const currentUserId = req.user.userId || req.user.user_id;
+
+        // Check if 'since' is a UUID (POST_ID) or a timestamp
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(since);
+        
+        if (isUuid) {
+            const [post] = await pool.query('SELECT created_at FROM posts WHERE post_id = ?', [since]);
+            if (post.length > 0) {
+                since = post[0].created_at;
+            } else {
+                // If post not found, assume it's old and just return empty
+                return res.json({ posts: [] });
+            }
+        }
 
         const posts = await Post.getDeltaPosts(affiliation, currentUserId, since);
 
@@ -146,10 +163,11 @@ const getNewPosts = async (req, res) => {
             media_url: getSafeMediaUrl(post.media_url),
             avatar_url: getSafeAvatarUrl(post.avatar_url),
             timestamp: post.created_at,
+            _id: post.post_id, // For frontend compatibility
             is_new_delta: true
         }));
 
-        res.json(sanitizedPosts);
+        res.json({ posts: sanitizedPosts });
     } catch (error) {
         logger.error('Get Delta Feed Error:', error);
         res.status(500).json({ error: 'Failed to fetch delta feed' });

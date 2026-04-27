@@ -190,15 +190,28 @@ class Post {
      * @param {number} seed
      * @param {string|string[]} excludeIds
      */
-    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, seed = 0, excludeIds = [], mode = 'for_you') {
+    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, seed = 0, excludeIds = [], mode = 'for_you', cursor = null) {
         const algorithmEnabled = true; 
+
+        let cursorCondition = '';
+        let cursorParams = [];
+
+        if (cursor) {
+            // Find the created_at of the cursor post
+            const [cursorPost] = await pool.query('SELECT created_at FROM posts WHERE post_id = ?', [cursor]);
+            if (cursorPost.length > 0) {
+                cursorCondition = 'AND p.created_at < ?';
+                cursorParams.push(cursorPost[0].created_at);
+            }
+        }
 
         if (!algorithmEnabled) {
             // --- BASIC STABLE FEED LOGIC ---
             try {
                 let whereClause = `(p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
-                                  AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')`;
-                const params = [currentUserId, currentUserId, currentUserId, affiliation, affiliation];
+                                  AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+                                  ${cursorCondition}`;
+                const params = [currentUserId, currentUserId, currentUserId, affiliation, affiliation, ...cursorParams];
 
                 const feedQuery = `
                     SELECT p.*, u.username, u.name as user_name, u.avatar_url,
@@ -260,7 +273,7 @@ class Post {
                                 WHEN p.category IN (${staticInterests.length > 0 ? staticInterests.map(() => '?').join(',') : 'NULL'}) THEN 0.6
                                 ELSE 0.1
                             END) * 0.40) +
-
++
                             -- B. Creator Affinity (25%)
                             (COALESCE((
                                 SELECT LEAST(SUM(CASE WHEN ua.action_type = 'like' THEN 1 WHEN ua.action_type = 'dwell' THEN 0.5 ELSE 0.1 END) / 10.0, 1.0) 
@@ -281,6 +294,7 @@ class Post {
                    AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
                    AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
                    ${excludeFilter}
+                   ${cursorCondition}
                    AND NOT EXISTS (SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = p.user_id) OR (blocker_id = p.user_id AND blocked_id = ?))
                    AND (p.user_id = ? OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private')))
                  ORDER BY discovery_score DESC, p.created_at DESC
@@ -294,6 +308,7 @@ class Post {
                 currentUserId, 
                 affiliation, affiliation, 
                 ...excluded, 
+                ...cursorParams,
                 currentUserId, currentUserId, 
                 currentUserId, currentUserId, 
                 Number(limit) || 10,

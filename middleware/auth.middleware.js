@@ -37,14 +37,21 @@ const authMiddleware = async (req, res, next) => {
             }
         }
 
-        // DB FALLBACK
+        // Fix: Support both 'id' (from login) and 'userId' (from other parts)
+        const userId = decoded.id || decoded.userId;
+
+        if (!userId) {
+            console.error('[AUTH FAIL] No User ID found in token payload:', decoded);
+            return res.status(401).json({ error: 'Invalid token payload: No User ID' });
+        }
+
         console.log(`[AUTH DEBUG] Decoded Token:`, decoded);
-        const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [decoded.userId]);
-        console.log(`[AUTH DEBUG] DB Result for ${decoded.userId}:`, users.length > 0 ? 'FOUND' : 'NOT FOUND');
+        const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [userId]);
+        console.log(`[AUTH DEBUG] DB Result for ${userId}:`, users.length > 0 ? 'FOUND' : 'NOT FOUND');
 
         if (users.length === 0) {
-            console.error(`[AUTH FAIL] User ID ${decoded.userId} not found in DB`);
-            return res.status(403).json({ error: `User not found: ${decoded.userId}` });
+            console.error(`[AUTH FAIL] User ID ${userId} not found in DB`);
+            return res.status(403).json({ error: `User not found: ${userId}` });
         }
 
         const user = users[0];

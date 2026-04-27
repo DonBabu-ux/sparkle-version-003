@@ -38,7 +38,9 @@ const authMiddleware = async (req, res, next) => {
         }
 
         // DB FALLBACK
+        console.log(`[AUTH DEBUG] Decoded Token:`, decoded);
         const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [decoded.userId]);
+        console.log(`[AUTH DEBUG] DB Result for ${decoded.userId}:`, users.length > 0 ? 'FOUND' : 'NOT FOUND');
 
         if (users.length === 0) {
             console.error(`[AUTH FAIL] User ID ${decoded.userId} not found in DB`);

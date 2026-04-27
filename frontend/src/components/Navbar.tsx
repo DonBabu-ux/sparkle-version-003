@@ -29,7 +29,9 @@ import MediaPreviewModal from './modals/MediaPreviewModal';
 import CreateHighlightModal from './modals/CreateHighlightModal';
 import HighlightPlayerModal from './modals/HighlightPlayerModal';
 import ArchiveModal from './modals/ArchiveModal';
+import PostOptionsModal from './modals/PostOptionsModal';
 import FloatingAction from './FloatingAction';
+
 import Sidebar from './Sidebar';
 
 export default function Navbar() {
@@ -193,6 +195,8 @@ export default function Navbar() {
         <>
           {activeModal === 'media_preview' ? (
             <MediaPreviewModal />
+          ) : activeModal === 'post_options' ? (
+            <PostOptionsModal post={(modalData as any)?.post} onClose={() => setActiveModal(null)} />
           ) : (
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
               <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>

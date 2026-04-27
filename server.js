@@ -20,7 +20,7 @@ const { initializeEmail } = require('./config/email');
 require('./workers/notification.worker'); // Start the background notification worker
 
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', 1); // Trust first proxy (Vite locally, Render in prod)
 
 
 // Database Initialization

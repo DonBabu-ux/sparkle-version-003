@@ -46,9 +46,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             // Started looking prominently
             startTimeRef.current = Date.now();
             dwellTimerRef.current = setTimeout(() => {
-              // Log dwell action after 2 seconds of continuous viewing
+              // Log dwell action only if viewed prominently for 1.5 seconds
               api.post(`/posts/${post.post_id}/action`, { action_type: 'dwell' }).catch(() => {});
-            }, 2000);
+            }, 1500);
           } else {
             // Stopped looking
             if (dwellTimerRef.current) {
@@ -57,8 +57,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             }
             if (startTimeRef.current) {
               const duration = Date.now() - startTimeRef.current;
-              // If they looked for > 500ms, it's a valid impression/interest signal
-              if (duration > 500) {
+              // If they looked for > 1s, it's a valid impression signal
+              if (duration > 1000) {
                 api.post(`/posts/${post.post_id}/action`, { action_type: 'click', duration }).catch(() => {});
               }
               startTimeRef.current = null;
@@ -227,7 +227,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
           <button
             onClick={e => {
               e.stopPropagation();
-              setMenuOpen(true);
+              setActiveModal('post_options', null, { post });
             }}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
           >
@@ -240,148 +240,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             <X size={24} />
           </button>
         </div>
-
-        {/* Half Page Bottom Sheet Modal */}
-        {menuOpen && (
-          <div 
-            className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center bg-black/50 backdrop-blur-sm sm:p-4 transition-opacity"
-            onClick={() => setMenuOpen(false)}
-          >
-            <div 
-              className="bg-white w-full sm:max-w-md rounded-t-[24px] sm:rounded-[24px] shadow-2xl flex flex-col overflow-hidden animate-slide-up"
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Modal Header */}
-              <div className="flex justify-center p-4 border-b border-gray-100 relative">
-                <div className="w-12 h-1.5 bg-gray-300 rounded-full sm:hidden" />
-                <button 
-                  onClick={() => setMenuOpen(false)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-                >
-                  <X size={18} className="text-gray-600" />
-                </button>
-              </div>
-
-              {/* Menu Options */}
-              <div className="p-2 overflow-y-auto max-h-[70vh]">
-                <button
-                  onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }}
-                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
-                >
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                    <Bookmark size={20} className="text-gray-700" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[15px] font-semibold text-gray-900">Save Post</p>
-                    <p className="text-[13px] text-gray-500">Add this to your saved items.</p>
-                  </div>
-                </button>
-
-                <div className="h-px bg-gray-100 mx-4 my-1" />
-
-                <button
-                  onClick={handleCopyLink}
-                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
-                >
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                    <LinkIcon size={20} className="text-gray-700" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[15px] font-semibold text-gray-900">Copy link</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => { setMenuOpen(false); alert('Notifications turned off.'); }}
-                  className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
-                >
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                    <BellOff size={20} className="text-gray-700" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[15px] font-semibold text-gray-900">Turn off notifications for this post</p>
-                  </div>
-                </button>
-
-                {!isOwner && (
-                  <>
-                    <div className="h-px bg-gray-100 mx-4 my-1" />
-                    
-                    <button
-                      onClick={() => { setMenuOpen(false); alert('Noted! We will show you more posts like this.'); }}
-                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                        <PlusCircle size={20} className="text-gray-700" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-[15px] font-semibold text-gray-900">Interested</p>
-                        <p className="text-[13px] text-gray-500">Show more posts like this.</p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={handleNotInterested}
-                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                        <MinusCircle size={20} className="text-gray-700" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-[15px] font-semibold text-gray-900">Not interested</p>
-                        <p className="text-[13px] text-gray-500">I don't want to see this.</p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={handleReport}
-                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-red-50 transition-colors rounded-xl"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                        <Flag size={20} className="text-red-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-[15px] font-semibold text-red-600">Report Post</p>
-                        <p className="text-[13px] text-red-400">I'm concerned about this post.</p>
-                      </div>
-                    </button>
-                  </>
-                )}
-
-                {isOwner && (
-                  <>
-                    <div className="h-px bg-gray-100 mx-4 my-1" />
-
-                    <button
-                      onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }}
-                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                        <Pencil size={20} className="text-gray-700" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-[15px] font-semibold text-gray-900">Edit Post</p>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={handleDelete}
-                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-red-50 transition-colors rounded-xl"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                        <Trash2 size={20} className="text-red-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-[15px] font-semibold text-red-600">Delete Post</p>
-                      </div>
-                    </button>
-                  </>
-                )}
-                
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Content */}

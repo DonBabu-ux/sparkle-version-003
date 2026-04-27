@@ -10,9 +10,10 @@ const isLocalhost =
 
 const isNative = window.location.protocol === 'capacitor:';
 
+// Use a relative path for local dev (proxy), or the specific server for the APK
 const defaultBaseURL = isNative
-  ? 'https://sparkle-version-003-1-f4v3.onrender.com/api'
-  : (isLocalhost ? '/api' : 'https://sparkle-version-003-1-f4v3.onrender.com/api');
+  ? 'https://sparkle-version-003-1-f4v3.onrender.com/api' // Default to Render for APK
+  : '/api'; // Use Vite proxy for Localhost
 
 
 

@@ -161,12 +161,22 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleDeleted = useCallback((id: string) => {
+    setPosts((prev) => prev.filter((p) => p.post_id !== id));
+    seenPosts.current.delete(id);
+  }, []);
+
   // ── Focus-based refresh (like Instagram) ────────────────────────────────────
   useEffect(() => {
     const onFocus = () => fetchNewPosts();
+    const onHidePost = (e: any) => handleDeleted(e.detail);
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [fetchNewPosts]);
+    window.addEventListener("hidePost", onHidePost);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("hidePost", onHidePost);
+    };
+  }, [fetchNewPosts, handleDeleted]);
 
   // ── IntersectionObserver for infinite scroll ────────────────────────────────
   useEffect(() => {
@@ -185,11 +195,6 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasMore, fetchFeed]);
-
-  const handleDeleted = useCallback((id: string) => {
-    setPosts((prev) => prev.filter((p) => p.post_id !== id));
-    seenPosts.current.delete(id);
-  }, []);
 
   // ── Empty state ─────────────────────────────────────────────────────────────
   if (posts.length === 0 && !loading) {

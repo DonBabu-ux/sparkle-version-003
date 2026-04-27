@@ -184,16 +184,18 @@ const login = async (req, res) => {
         }
 
 
-        // --- NEW: Check for 2FA (Algorithm 42) ---
+        /* 
+        // --- TEMPORARILY DISABLED: Check for 2FA (Algorithm 42) ---
         if (user.two_factor_enabled) {
             return res.json({
                 status: 'requires_2fa',
                 userId: user.user_id,
-                email: user.email, // Include email for the frontend to show
+                email: user.email, 
                 message: `Please enter your 2FA code sent to ${user.email}`,
                 rememberMe: !!rememberMe
             });
         }
+        */
 
         // --- NEW: Enhanced Session & Device Tracking ---
         const deviceId = req.headers['x-device-id'] || 'unknown';

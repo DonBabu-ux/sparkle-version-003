@@ -238,3 +238,4 @@ input, textarea, select {
 .animate-fade-in    { animation: fade-in-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-scale-in   { animation: scale-in-up 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-float      { animation: float-y 6s ease-in-out infinite; }
+.animate-slide-up   { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }

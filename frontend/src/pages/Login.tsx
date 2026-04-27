@@ -61,9 +61,12 @@ export default function Login() {
         return;
       }
 
-      showError(data?.message || 'Login mismatch');
+      showError(data?.message || 'Invalid username or password');
     } catch (err) {
-      if (axios.isAxiosError(err)) showError(err.response?.data?.message || 'Connection failure');
+      if (axios.isAxiosError(err)) {
+        const msg = err.response?.data?.message || err.response?.data?.error;
+        showError(msg || 'Invalid credentials');
+      }
       else showError((err as Error).message || 'Connection lost');
     } finally {
       setLoading(false);

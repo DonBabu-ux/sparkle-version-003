@@ -273,14 +273,15 @@ class Post {
                             *
                             -- 2. Affinity (Following = 1.5x, Campus = 1.2x)
                             (CASE 
+                                WHEN p.user_id = ? THEN 0.05 -- Self-Post Penalty (v2.1)
                                 WHEN EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) THEN 1.5
                                 WHEN p.campus = ? THEN 1.2
                                 ELSE 1.0
                             END)
                             *
-                            -- 3. Soft Time Decay (Gravity)
-                            (1.0 / POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2))
-                        ) + (RAND(?) * 0.05) as discovery_score
+                            -- 3. Balanced Time Decay (Gravity adjusted for better stability)
+                            (1.0 / POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 0.8))
+                        ) + (RAND(?) * 0.02) as discovery_score
 
                  FROM posts p 
                  JOIN users u ON p.user_id = u.user_id 
@@ -296,7 +297,7 @@ class Post {
 
             const params = [
                 currentUserId, currentUserId, // is_followed, is_sparked
-                currentUserId, affiliation,   // Affinity (Following, Campus)
+                currentUserId, currentUserId, affiliation, // Penalty, Following, Campus
                 seed,                         // RAND(?)
                 affiliation, affiliation,     // p.campus OR ? = 'all'
                 ...excluded, 

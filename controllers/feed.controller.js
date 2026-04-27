@@ -188,17 +188,27 @@ const getFeedPosts = async (req, res) => {
             }
         }
 
-        // --- Exhaustion Cycle: Soft Reset ---
+        // --- Exhaustion Cycle: Soft Reset (Smart Memory Management) ---
         if (fresh.length === 0 && postsFetched < fetchLimit) {
-            seenSet.clear();
-            await redisService.del(seenKey);
+            console.log(`♻️ Feed Exhaustion for user ${currentUserId}. Performing selective reset.`);
+            
+            // Instead of clearing everything, just clear the batch offset to try a new discovery slice
             await redisService.del(batchKey);
             batchOffset = 0;
-            console.log(`♻️ Feed Exhaustion for user ${currentUserId}. Resetting consumption layer.`);
 
-            const posts = await Post.getFeed(affiliation, currentUserId, fetchLimit, 0, numericSeed, [], mode, null);
+            // Fetch a larger candidate pool to find things the user might have missed
+            const posts = await Post.getFeed(affiliation, currentUserId, 150, 0, numericSeed, Array.from(seenSet), mode, null);
             const shuffled = bandedSeededShuffle(posts || [], numericSeed);
-            fresh = [...fresh, ...shuffled];
+            
+            // Filter by what is NOT in the current session batch
+            fresh = shuffled.filter(p => !seenSet.has(p.post_id));
+            
+            // If still empty, then and only then, perform a full clear
+            if (fresh.length === 0) {
+                await redisService.del(seenKey);
+                seenSet.clear();
+                fresh = shuffled.slice(0, pageLimit);
+            }
         }
 
         // 3. Fulfill the page, and stash the REST in Redis for the next scroll

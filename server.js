@@ -210,6 +210,13 @@ app.use('/api', (req, res, next) => {
 
 // Routes (Rate Limiter DISABLED for testing)
 app.use('/api', apiRoutes);
+
+// Static files moved below API for priority
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: '1d',
+    etag: true
+}));
+
 app.use('/', webRoutes);
 
 // 404 Handler

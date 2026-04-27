@@ -10,10 +10,8 @@ const isLocalhost =
 
 const isNative = window.location.protocol === 'capacitor:';
 
-// Use the exact Render URL for production/APK
-const PRODUCTION_URL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
-
-const defaultBaseURL = isNative ? PRODUCTION_URL : '/api';
+// HARDIWIRED: Always use the Render Live Server for both Localhost and APK
+const defaultBaseURL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
 
 
 

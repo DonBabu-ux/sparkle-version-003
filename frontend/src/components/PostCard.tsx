@@ -21,7 +21,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
+  const [isFollowed, setIsFollowed] = useState(post.is_followed);
   const [isExpanded, setIsExpanded] = useState(false);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -71,7 +73,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     return () => observer.disconnect();
   }, [post.post_id]);
 
+  useEffect(() => {
+    const handleGlobalFollow = (e: any) => {
+      if (e.detail === post.user_id) {
+        setIsFollowed(true);
+      }
+    };
+    window.addEventListener('userFollowed', handleGlobalFollow);
+    return () => window.removeEventListener('userFollowed', handleGlobalFollow);
+  }, [post.user_id]);
+
   // Prevent background scrolling when modal is open
+
   useEffect(() => {
     if (menuOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
@@ -177,6 +190,24 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             >
               {post.name || post.username}
             </Link>
+            {!isOwner && !isFollowed && (
+              <button 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  setIsFollowed(true);
+                  try {
+                    await api.post(`/users/${post.user_id}/follow`);
+                    window.dispatchEvent(new CustomEvent('userFollowed', { detail: post.user_id }));
+                  } catch (err) {
+                    console.error('Follow failed', err);
+                    setIsFollowed(false);
+                  }
+                }}
+                className="ml-1 text-[13px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                · Follow
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1 text-[13px] text-gray-500 leading-tight mt-0.5">
             <span className="hover:underline cursor-pointer">{timeAgo.replace('about ', '').replace('less than a minute ago', 'Just now')}</span>

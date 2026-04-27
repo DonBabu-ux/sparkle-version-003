@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
@@ -72,22 +72,45 @@ import About from './pages/About';
 import NotFound from './pages/NotFound';
 
 function App() {
-  const { isAuthenticated, token, refreshToken, logout } = useUserStore();
+  const { isAuthenticated, token, refreshToken } = useUserStore();
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // Wait for Zustand persist to finish loading from async Capacitor storage.
+    // Without this, token is null on first render → 401 on every protected request.
+    if (useUserStore.persist.hasHydrated()) {
+      setHydrated(true);
+    } else {
+      const unsub = useUserStore.persist.onFinishHydration(() => {
+        setHydrated(true);
+      });
+      return () => unsub();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     const initAuth = async () => {
       if (token || refreshToken) {
         try {
-          // This call will trigger the auto-refresh interceptor if the token is expired
           await authApi.validateToken();
         } catch (err) {
           console.error('Initial auth validation failed:', err);
-          // logout(); // Only logout if the refresh also failed (interceptor handled it)
         }
       }
     };
     initAuth();
-  }, []);
+  }, [hydrated]);
+
+  // Show a minimal spinner while the store rehydrates from storage
+  if (!hydrated) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f0f2f5' }}>
+        <div style={{ width: 40, height: 40, border: '3px solid #e0e0e0', borderTop: '3px solid #1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <Router>

@@ -20,6 +20,8 @@ const { initializeEmail } = require('./config/email');
 require('./workers/notification.worker'); // Start the background notification worker
 
 const app = express();
+app.set('trust proxy', true);
+
 
 // Database Initialization
 // initDB deferred to server.listen callback

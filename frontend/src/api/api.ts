@@ -8,9 +8,13 @@ const isLocalhost =
   window.location.hostname.startsWith('10.') ||
   window.location.hostname.startsWith('172.');
 
-const defaultBaseURL = isLocalhost 
-  ? `http://${window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname}:3000/api` 
-  : 'https://sparkle-version-003-1-f4v3.onrender.com/api';
+const isNative = window.location.protocol === 'capacitor:';
+
+const defaultBaseURL = isNative
+  ? 'https://sparkle-version-003-1-f4v3.onrender.com/api'
+  : (isLocalhost ? '/api' : 'https://sparkle-version-003-1-f4v3.onrender.com/api');
+
+
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || defaultBaseURL,

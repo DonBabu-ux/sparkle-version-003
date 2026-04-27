@@ -12,6 +12,7 @@ import {
   ChevronRight, BarChart3, Calendar 
 } from 'lucide-react';
 import VirtualizedFeed from '../components/VirtualizedFeed';
+import { useDeviceSeed } from '../hooks/useDeviceSeed';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
@@ -77,10 +78,10 @@ export default function Dashboard() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
-  const [feedSeed, setFeedSeed] = useState<number>(Math.floor(Math.random() * 1000000));
   const offsetRef = useRef<number>(0);
   const lastSyncTime = useRef<number>(Date.now());
   const isInitialMount = useRef(true);
+  const { seed: deviceSeed, deviceId } = useDeviceSeed();
 
   const fetchDeltaData = useCallback(async () => {
     try {
@@ -110,8 +111,6 @@ export default function Dashboard() {
       setLoading(true);
       if (force) {
         offsetRef.current = 0;
-        // Rotate seed on manual refresh to get new variety
-        setFeedSeed(Math.floor(Math.random() * 1000000));
       }
     } else {
       setLoadingMore(true);
@@ -119,10 +118,9 @@ export default function Dashboard() {
 
     try {
       const currentOffset = isInitial ? 0 : offsetRef.current;
-      const currentSeed = isInitial && force ? Math.floor(Math.random() * 1000000) : feedSeed;
       
       const [dashRes, storiesRes, suggestionsRes] = await Promise.all([
-        api.get(`/posts/feed?offset=${currentOffset}&limit=10&seed=${currentSeed}${force ? '&force=true' : ''}`),
+        api.get(`/posts/feed?offset=${currentOffset}&limit=10&seed=${deviceSeed}&device_id=${deviceId}${force ? '&force=true' : ''}`),
         isInitial ? api.get('/stories/active').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
         isInitial ? api.get('/users/suggestions').catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
       ]);
@@ -155,7 +153,7 @@ export default function Dashboard() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [lastFetched, posts.length, setPosts, appendPosts, setStories, setSuggestions, feedSeed]);
+  }, [lastFetched, posts.length, setPosts, appendPosts, setStories, setSuggestions]);
 
   useEffect(() => {
     const hidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
@@ -277,7 +275,7 @@ export default function Dashboard() {
                   LIVE
                 </div>
               </div>
-              <VirtualizedFeed initialPosts={posts} />
+              <VirtualizedFeed initialPosts={posts} suggestions={suggestions} />
             </div>
           </section>
 

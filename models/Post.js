@@ -254,7 +254,7 @@ class Post {
             const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
             const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
 
-            // 2. CANDIDATE RETRIEVAL & SCORING (OPTIMIZED)
+            // 2. CANDIDATE RETRIEVAL & SCORING (v2.1)
             const query = `
                 SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                         u.campus as user_affiliation,
@@ -265,28 +265,22 @@ class Post {
                         EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
                         EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
                         
-                        -- STABLE RANKING FORMULA
+                        -- v2.1 PRODUCTION RANKING ALGORITHM
                         (
-                            -- A. Interest Match (40%)
-                            ((CASE 
-                                WHEN p.category IN (${recentCategories.length > 0 ? recentCategories.map(() => '?').join(',') : 'NULL'}) THEN 1.0
-                                WHEN p.category IN (${staticInterests.length > 0 ? staticInterests.map(() => '?').join(',') : 'NULL'}) THEN 0.6
-                                ELSE 0.1
-                            END) * 0.40) +
-+
-                            -- B. Creator Affinity (25%)
-                            (COALESCE((
-                                SELECT LEAST(SUM(CASE WHEN ua.action_type = 'like' THEN 1 WHEN ua.action_type = 'dwell' THEN 0.5 ELSE 0.1 END) / 10.0, 1.0) 
-                                FROM user_actions ua 
-                                WHERE ua.user_id = ? AND ua.creator_id = p.user_id
-                            ), 0) * 0.25) +
-
-                            -- C. Engagement & Quality (20%)
-                            (LEAST((p.spark_count + p.comment_count * 2.0) / 100.0, 1.0) * 0.20) +
-
-                            -- D. Recency (15%)
-                            ((1.0 / POW(TIMESTAMPDIFF(MINUTE, p.created_at, NOW()) / 60.0 + 1, 1.5)) * 0.15)
-                        ) * (IF(p.is_seed, 0.8, 1.0)) + (RAND(?) * 0.1) as discovery_score
+                            -- 1. Normalized Engagement (Prevent rich-get-richer)
+                            ((COALESCE(p.spark_count, 0) * 5.0 + COALESCE(p.comment_count, 0) * 10.0 + COALESCE(p.share_count, 0) * 15.0) 
+                            / (COALESCE(p.view_count, 0) + 10.0))
+                            *
+                            -- 2. Affinity (Following = 1.5x, Campus = 1.2x)
+                            (CASE 
+                                WHEN EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) THEN 1.5
+                                WHEN p.campus = ? THEN 1.2
+                                ELSE 1.0
+                            END)
+                            *
+                            -- 3. Soft Time Decay (Gravity)
+                            (1.0 / POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2))
+                        ) + (RAND(?) * 0.05) as discovery_score
 
                  FROM posts p 
                  JOIN users u ON p.user_id = u.user_id 
@@ -301,16 +295,14 @@ class Post {
                  LIMIT ? OFFSET ?`;
 
             const params = [
-                currentUserId, currentUserId, 
-                ...(recentCategories.length > 0 ? recentCategories : []), 
-                ...(staticInterests.length > 0 ? staticInterests : []), 
-                seed, // For RAND(?) variety
-                currentUserId, 
-                affiliation, affiliation, 
+                currentUserId, currentUserId, // is_followed, is_sparked
+                currentUserId, affiliation,   // Affinity (Following, Campus)
+                seed,                         // RAND(?)
+                affiliation, affiliation,     // p.campus OR ? = 'all'
                 ...excluded, 
                 ...cursorParams,
-                currentUserId, currentUserId, 
-                currentUserId, currentUserId, 
+                currentUserId, currentUserId, // user_blocks
+                currentUserId, currentUserId, // user_id = ? OR following
                 Number(limit) || 10,
                 Number(offset) || 0
             ];

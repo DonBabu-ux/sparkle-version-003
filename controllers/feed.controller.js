@@ -88,47 +88,150 @@ const getFeedPosts = async (req, res) => {
     try {
         const currentUserId = req.user.userId || req.user.user_id;
         const affiliation = req.user.affiliation || req.user.campus || 'all';
-        const { offset = 0, limit = 10, force = false, mode = 'for_you', seed = 0, cursor = null } = req.query;
+        const {
+            limit = 10,
+            force = false,
+            mode = 'for_you',
+            seed = 0,
+            device_id = 'web',
+        } = req.query;
 
-        // --- BATCH 3: Feed Caching & Deduplication ---
+        const { bandedSeededShuffle, deviceSeedFromIds } = require('../utils/feedShuffle');
         const redisService = require('../services/redis.service');
-        const lockKey = `lock:feed:${currentUserId}:${cursor || offset}:${seed}`;
-        const cacheKey = `feed:${currentUserId}:${cursor || offset}:${mode}:${seed}`;
 
-        if (!force) {
-            const cached = await redisService.get(cacheKey);
-            if (cached) return res.json(cached);
-        }
+        const numericSeed = Number(seed) || deviceSeedFromIds(currentUserId, device_id);
+        const isForceRefresh = force === 'true' || force === true;
 
-        // 5-second lock to prevent "request storms"
+        const batchKey = `batch_offset:${currentUserId}:${device_id}:${mode}`;
+        const seenKey = `seen:${currentUserId}:${device_id}`;
+        const cacheListKey = `feed_cache:${currentUserId}:${device_id}:${mode}`;
+        const lockKey = `lock:feed:${currentUserId}:${device_id}`;
+        const refreshKey = `refresh_count:${currentUserId}:${device_id}`;
+
+        // 5-second lock
         const lock = await redisService.set(lockKey, 'locked', 5, 'NX');
-        if (!lock && !force) {
+        if (!lock && !isForceRefresh) {
             return res.status(429).json({ error: 'Request in progress' });
         }
 
-        // Support cursor-based fetching in the model
-        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, seed, [], mode, cursor);
+        if (isForceRefresh) {
+            await redisService.del(batchKey);
+            await redisService.del(cacheListKey);
+            await redisService.incr(refreshKey); // Increment refresh counter for seed entropy
+        }
+
+        // Add refresh_count to the seed to ensure completely new permutations on every pull-to-refresh
+        const refreshCount = Number(await redisService.get(refreshKey)) || 0;
+        const sessionSeed = numericSeed + refreshCount;
+
+        let seenRaw = await redisService.get(seenKey);
+        let seenSet = new Set(Array.isArray(seenRaw) ? seenRaw : []);
+
+        const pageLimit = Number(limit) || 10;
+        let page = [];
+
+        // 1. Try to pop posts directly from the precomputed Redis Cache List
+        if (!isForceRefresh) {
+            const cachedPostsRaw = await redisService.get(cacheListKey);
+            let cachedPosts = Array.isArray(cachedPostsRaw) ? cachedPostsRaw : [];
+            
+            if (cachedPosts.length >= pageLimit) {
+                // We have enough in the cache! Slice them, update the cache, and return immediately.
+                page = cachedPosts.slice(0, pageLimit);
+                const remainingCache = cachedPosts.slice(pageLimit);
+                await redisService.set(cacheListKey, remainingCache, 3600); // 1 hour TTL
+                
+                // Update seen set
+                const updatedSeen = [...seenSet, ...page.map(p => p.post_id)];
+                await redisService.set(seenKey, updatedSeen, 86400);
+
+                await redisService.del(lockKey);
+                return res.json({
+                    posts: page,
+                    feed: page,
+                    seed: sessionSeed,
+                    hasMore: true
+                });
+            } else if (cachedPosts.length > 0) {
+                // Take whatever is left, we will fetch more to fill the gap if needed
+                page = [...cachedPosts];
+                await redisService.del(cacheListKey);
+            }
+        }
+
+        // 2. If Cache is empty (or we need more), Hit the Database
+        const cachedOffset = await redisService.get(batchKey);
+        let batchOffset = Number(cachedOffset) || 0;
+        
+        const fetchLimit = 150; // Massive pool fetch since we only do this rarely now
+        let fresh = [];
+        let postsFetched = 0;
+
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const posts = await Post.getFeed(affiliation, currentUserId, fetchLimit, batchOffset, sessionSeed, [], mode, null);
+            postsFetched = posts ? posts.length : 0;
+
+            const chunkSeed = sessionSeed + batchOffset;
+            const shuffled = bandedSeededShuffle(posts || [], chunkSeed);
+
+            const batchFresh = shuffled.filter(p => !seenSet.has(p.post_id));
+            fresh = [...fresh, ...batchFresh];
+
+            batchOffset += fetchLimit;
+            await redisService.set(batchKey, batchOffset, 86400);
+
+            if (fresh.length >= pageLimit * 3) {
+                break; // Stop fetching if we found plenty to cache
+            }
+            if (postsFetched < fetchLimit) {
+                break; // Hit end of database
+            }
+        }
+
+        // --- Exhaustion Cycle: Soft Reset ---
+        if (fresh.length === 0 && postsFetched < fetchLimit) {
+            seenSet.clear();
+            await redisService.del(seenKey);
+            await redisService.del(batchKey);
+            batchOffset = 0;
+            console.log(`♻️ Feed Exhaustion for user ${currentUserId}. Resetting consumption layer.`);
+
+            const posts = await Post.getFeed(affiliation, currentUserId, fetchLimit, 0, numericSeed, [], mode, null);
+            const shuffled = bandedSeededShuffle(posts || [], numericSeed);
+            fresh = [...fresh, ...shuffled];
+        }
+
+        // 3. Fulfill the page, and stash the REST in Redis for the next scroll
+        const allAvailable = [...page, ...fresh];
+        const finalPage = allAvailable.slice(0, pageLimit);
+        const cacheForLater = allAvailable.slice(pageLimit);
+
+        if (cacheForLater.length > 0) {
+            await redisService.set(cacheListKey, cacheForLater, 3600); // Store for 1 hour
+        }
+
+        if (finalPage.length > 0) {
+            const updatedSeen = [...seenSet, ...finalPage.map(p => p.post_id)];
+            await redisService.set(seenKey, updatedSeen, 86400);
+        }
 
         // Sanitize
-        const sanitizedPosts = (posts || []).map(post => ({
+        const sanitizedPosts = finalPage.map(post => ({
             ...post,
-            media_url: getSafeMediaUrl(post.media_url),
+            media_url:  getSafeMediaUrl(post.media_url),
             avatar_url: getSafeAvatarUrl(post.avatar_url),
-            timestamp: post.created_at,
-            _id: post.post_id // For frontend compatibility with user's snippet
+            timestamp:  post.created_at,
+            _id:        post.post_id,
         }));
 
-        const result = {
-            feed: sanitizedPosts,
-            posts: sanitizedPosts, // Add for compatibility with user's snippet
-            nextOffset: sanitizedPosts.length > 0 ? Number(offset) + sanitizedPosts.length : null,
-            nextCursor: sanitizedPosts.length > 0 ? sanitizedPosts[sanitizedPosts.length - 1].post_id : null
-        };
-
-        await redisService.set(cacheKey, result, 60); // 1-minute TTL
         await redisService.del(lockKey);
 
-        res.json(result);
+        res.json({
+            posts: sanitizedPosts,
+            feed: sanitizedPosts,
+            seed: numericSeed,
+            hasMore: sanitizedPosts.length > 0
+        });
     } catch (error) {
         logger.error('Feed Retrieval Error:', error);
         res.status(500).json({ error: 'Failed to fetch feed' });

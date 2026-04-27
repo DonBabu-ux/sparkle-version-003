@@ -1,72 +1,135 @@
-import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { VariableSizeList } from "react-window";
-import { AutoSizer } from "react-virtualized-auto-sizer";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import api from "../api/api";
 import PostCard from "./PostCard";
 import type { Post } from "../types/post";
 import { RefreshCw, Ghost } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useDeviceSeed } from "../hooks/useDeviceSeed";
 
 const LIMIT = 10;
 
 interface VirtualizedFeedProps {
   initialPosts?: Post[];
+  suggestions?: any[];
 }
 
-export default function VirtualizedFeed({ initialPosts = [] }: VirtualizedFeedProps) {
+// Memoized row to prevent re-renders of already-rendered posts
+const FeedRow = React.memo(({ post, onDeleted }: { post: Post; onDeleted: (id: string) => void }) => (
+  <div className="mb-[3px] sm:mb-3">
+    <PostCard post={post} onDeleted={onDeleted} />
+  </div>
+));
+
+const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
+  const navigate = useNavigate();
+  const [following, setFollowing] = useState<Record<string, boolean>>({});
+
+  const handleFollow = async (userId: string) => {
+    try {
+      await api.post(`/users/${userId}/follow`);
+      setFollowing(prev => ({ ...prev, [userId]: true }));
+    } catch (err) {
+      console.error('Follow failed', err);
+    }
+  };
+
+  if (!suggestions || suggestions.length === 0) return null;
+
+  return (
+    <div className="mb-[3px] sm:mb-3 bg-white sm:rounded-xl shadow-sm p-4 border border-gray-200">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[14px] font-bold text-gray-500 uppercase tracking-wider">People you might know</h3>
+        <button onClick={() => navigate('/connect')} className="text-[12px] font-bold text-blue-600 hover:underline">See all</button>
+      </div>
+      <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+        {suggestions.slice(0, 5).map((s) => (
+          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2 p-2 rounded-xl bg-gray-50 border border-gray-100">
+            <img 
+              src={s.avatar_url || '/uploads/avatars/default.png'} 
+              className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm cursor-pointer" 
+              alt=""
+              onClick={() => navigate(`/profile/${s.username}`)}
+            />
+            <div className="min-w-0 w-full px-1">
+              <p className="text-[13px] font-bold text-gray-900 truncate">{s.username}</p>
+              <p className="text-[11px] text-gray-500 truncate">{s.campus || 'Sparkle'}</p>
+            </div>
+            <button 
+              onClick={() => handleFollow(s.user_id)}
+              disabled={following[s.user_id]}
+              className={`w-full py-1.5 rounded-lg text-[12px] font-bold transition-all ${
+                following[s.user_id] 
+                ? 'bg-gray-200 text-gray-500' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {following[s.user_id] ? 'Following' : 'Follow'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }: VirtualizedFeedProps) {
+
   const [posts, setPosts] = useState<Post[]>(initialPosts);
-  const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const navigate = useNavigate();
+  const { seed, deviceId } = useDeviceSeed();
 
+  // Refs to prevent request spam
   const loadingRef = useRef(false);
-  const seenPosts = useRef(new Set<string>(initialPosts.map(p => p.post_id)));
-  const listRef = useRef<VariableSizeList>(null);
-  const sizeMap = useRef<Record<number, number>>({});
+  const seenPosts = useRef(new Set<string>(initialPosts.map((p) => p.post_id)));
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // 🔹 Fetch feed (cursor-based)
-  const fetchFeed = useCallback(async (isInitial = false) => {
-    if (loadingRef.current || (!isInitial && !hasMore)) return;
-    loadingRef.current = true;
-    setLoading(true);
+  // ── Fetch next page (cursor-based) ─────────────────────────────────────────
+  const fetchFeed = useCallback(
+    async (isInitial = false) => {
+      if (loadingRef.current || (!isInitial && !hasMore)) return;
+      loadingRef.current = true;
+      setLoading(true);
 
-    try {
-      const currentCursor = isInitial ? null : cursor;
-      const res = await api.get("/posts/feed", {
-        params: { cursor: currentCursor, limit: LIMIT },
-      });
+      try {
+        const res = await api.get("/posts/feed", {
+          params: {
+            limit: LIMIT,
+            seed,      // stable per device — same cache key every time
+            device_id: deviceId,
+            force: isInitial, // Tells backend to reset the offset chunk if this is a hard refresh
+          },
+        });
 
-      const newPosts: Post[] = res.data.posts || [];
+        const newPosts: Post[] = res.data.posts || res.data.feed || [];
 
-      // ✅ Deduplicate posts
-      const filtered = newPosts.filter(p => {
-        if (seenPosts.current.has(p.post_id)) return false;
-        seenPosts.current.add(p.post_id);
-        return true;
-      });
+        // Deduplicate
+        const filtered = newPosts.filter((p) => {
+          if (seenPosts.current.has(p.post_id)) return false;
+          seenPosts.current.add(p.post_id);
+          return true;
+        });
 
-      if (isInitial) {
-        setPosts(filtered);
-        seenPosts.current = new Set(filtered.map(p => p.post_id));
-      } else {
-        setPosts(prev => [...prev, ...filtered]);
+        if (isInitial) {
+          setPosts(filtered);
+          seenPosts.current = new Set(filtered.map((p) => p.post_id));
+        } else {
+          setPosts((prev) => [...prev, ...filtered]);
+        }
+
+        setHasMore(res.data.hasMore !== false && newPosts.length > 0);
+      } catch (err) {
+        console.error("Feed fetch error:", err);
+      } finally {
+        loadingRef.current = false;
+        setLoading(false);
       }
+    },
+    [hasMore, seed, deviceId]
+  );
 
-      setHasMore(newPosts.length === LIMIT);
-      
-      if (newPosts.length > 0) {
-        setCursor(newPosts[newPosts.length - 1].post_id);
-      }
-    } catch (err) {
-      console.error("Feed error:", err);
-    } finally {
-      loadingRef.current = false;
-      setLoading(false);
-    }
-  }, [cursor, hasMore]);
-
-  // 🔹 Fetch new posts (delta update)
+  // ── Fetch new posts (delta update on focus) ─────────────────────────────────
   const fetchNewPosts = useCallback(async () => {
     if (posts.length === 0 || loadingRef.current) return;
 
@@ -77,121 +140,102 @@ export default function VirtualizedFeed({ initialPosts = [] }: VirtualizedFeedPr
 
       const newPosts: Post[] = res.data.posts || [];
 
-      const filtered = newPosts.filter(p => {
+      const filtered = newPosts.filter((p) => {
         if (seenPosts.current.has(p.post_id)) return false;
         seenPosts.current.add(p.post_id);
         return true;
       });
 
       if (filtered.length > 0) {
-        setPosts(prev => [...filtered, ...prev]);
-        // Reset list size map for new items at the top
-        sizeMap.current = {};
-        listRef.current?.resetAfterIndex(0);
+        setPosts((prev) => [...filtered, ...prev]);
       }
     } catch (err) {
-      console.error("New posts error:", err);
+      console.error("Delta fetch error:", err);
     }
   }, [posts]);
 
-  // 🔹 Initial load
+  // ── Initial load ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (posts.length === 0) {
       fetchFeed(true);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 🔹 Auto refresh on focus
+  // ── Focus-based refresh (like Instagram) ────────────────────────────────────
   useEffect(() => {
-    const onFocus = () => {
-      fetchNewPosts();
-    };
-
+    const onFocus = () => fetchNewPosts();
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [fetchNewPosts]);
 
-  // 🔹 Row height measurement
-  const setSize = useCallback((index: number, size: number) => {
-    if (sizeMap.current[index] !== size) {
-        sizeMap.current[index] = size;
-        listRef.current?.resetAfterIndex(index);
-    }
+  // ── IntersectionObserver for infinite scroll ────────────────────────────────
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingRef.current) {
+          fetchFeed(false);
+        }
+      },
+      { rootMargin: "400px", threshold: 0 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, fetchFeed]);
+
+  const handleDeleted = useCallback((id: string) => {
+    setPosts((prev) => prev.filter((p) => p.post_id !== id));
+    seenPosts.current.delete(id);
   }, []);
 
-  const getSize = (index: number) => {
-    return sizeMap.current[index] || 500; // Default estimate
-  };
-
-  // 🔹 Row renderer
-  const Row = ({ index, style }: any) => {
-    const post = posts[index];
-    const rowRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      if (rowRef.current) {
-        setSize(index, rowRef.current.getBoundingClientRect().height + 16); // +16 for margin/gap
-      }
-    }, [index]);
-
-    if (!post) return null;
-
-    return (
-      <div style={{ ...style, paddingBottom: '16px' }}>
-        <div ref={rowRef}>
-          <PostCard 
-            post={post} 
-            onDeleted={(id) => {
-                setPosts(prev => prev.filter(p => p.post_id !== id));
-                sizeMap.current = {};
-                listRef.current?.resetAfterIndex(0);
-            }}
-          />
-        </div>
-      </div>
-    );
-  };
-
-  const handleItemsRendered = ({ visibleStopIndex }: any) => {
-    if (visibleStopIndex >= posts.length - 2) {
-      fetchFeed();
-    }
-  };
-
+  // ── Empty state ─────────────────────────────────────────────────────────────
   if (posts.length === 0 && !loading) {
     return (
-        <div className="py-48 bg-white/20 border-4 border-dashed border-white rounded-[64px] flex flex-col items-center justify-center gap-10 text-center shadow-inner mx-4">
-            <Ghost size={120} strokeWidth={1} className="text-black/5 animate-bounce-slow" />
-            <div className="space-y-6">
-                <h3 className="text-4xl font-black text-black/10 uppercase tracking-tighter italic leading-none">No Posts Yet.</h3>
-                <p className="text-[10px] font-black text-black/30 uppercase tracking-[0.3em] max-w-xs mx-auto leading-loose italic">Follow some people to see their posts here.</p>
-                <button onClick={() => navigate('/connect')} className="mt-8 px-12 py-5 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 italic">Find Friends</button>
-            </div>
+      <div className="py-48 bg-white/20 border-4 border-dashed border-white rounded-[64px] flex flex-col items-center justify-center gap-10 text-center shadow-inner mx-4">
+        <Ghost size={120} strokeWidth={1} className="text-black/5 animate-bounce-slow" />
+        <div className="space-y-6">
+          <h3 className="text-4xl font-black text-black/10 uppercase tracking-tighter italic leading-none">
+            No Posts Yet.
+          </h3>
+          <p className="text-[10px] font-black text-black/30 uppercase tracking-[0.3em] max-w-xs mx-auto leading-loose italic">
+            Follow some people to see their posts here.
+          </p>
+          <button
+            onClick={() => navigate("/connect")}
+            className="mt-8 px-12 py-5 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 italic"
+          >
+            Find Friends
+          </button>
         </div>
+      </div>
     );
   }
 
   return (
-    <div style={{ height: "calc(100vh - 200px)", width: "100%" }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <VariableSizeList
-            ref={listRef}
-            height={height}
-            itemCount={posts.length}
-            itemSize={getSize}
-            width={width}
-            onItemsRendered={handleItemsRendered}
-            className="no-scrollbar"
-          >
-            {Row}
-          </VariableSizeList>
-        )}
-      </AutoSizer>
-      {loading && (
-        <div className="flex justify-center py-4">
-          <RefreshCw size={24} className="animate-spin text-primary" />
-        </div>
+    <div className="space-y-[3px] sm:space-y-3">
+      {/* Render posts – FeedRow is memoized so only new items re-render */}
+      {posts.map((post, index) => (
+        <React.Fragment key={post.post_id}>
+          <FeedRow post={post} onDeleted={handleDeleted} />
+          {/* Inject suggestions after the 3rd post (index 2) */}
+          {index === 2 && suggestions.length > 0 && (
+            <SuggestionRow suggestions={suggestions} />
+          )}
+        </React.Fragment>
+      ))}
+
+      {/* Sentinel – triggers next page load when visible */}
+      <div ref={sentinelRef} className="h-10 w-full flex items-center justify-center">
+        {loading && <RefreshCw size={24} className="animate-spin text-primary" />}
+      </div>
+
+      {!hasMore && posts.length > 0 && (
+        <p className="text-center text-[11px] font-bold text-black/20 uppercase tracking-widest italic py-6">
+          You're all caught up ✨
+        </p>
       )}
     </div>
   );

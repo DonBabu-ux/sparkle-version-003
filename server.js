@@ -202,6 +202,12 @@ if (process.env.NODE_ENV !== 'production') {
 // Diagnostic Test Route (Bypasses all middleware)
 app.get('/api/ping', (req, res) => res.json({ status: 'API IS ALIVE', time: new Date() }));
 
+// MASTER API TRACE
+app.use('/api', (req, res, next) => {
+    console.log(`[MASTER TRACE] ${req.method} ${req.originalUrl}`);
+    next();
+});
+
 // Routes (Rate Limiter DISABLED for testing)
 app.use('/api', apiRoutes);
 app.use('/', webRoutes);

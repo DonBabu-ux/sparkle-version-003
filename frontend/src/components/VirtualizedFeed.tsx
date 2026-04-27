@@ -82,27 +82,35 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
 
   // Refs to prevent request spam
   const loadingRef = useRef(false);
+  const lastFetchTime = useRef(0);
   const seenPosts = useRef(new Set<string>(initialPosts.map((p) => p.post_id)));
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [error429, setError429] = useState(false);
 
   // ── Fetch next page (cursor-based) ─────────────────────────────────────────
   const fetchFeed = useCallback(
     async (isInitial = false) => {
+      // Throttle: avoid fetching more than once every 2 seconds unless it's initial
+      const now = Date.now();
+      if (!isInitial && now - lastFetchTime.current < 2000) return;
+      
       if (loadingRef.current || (!isInitial && !hasMore)) return;
       loadingRef.current = true;
       setLoading(true);
+      setError429(false);
 
       try {
         const res = await api.get("/posts/feed", {
           params: {
             limit: LIMIT,
-            seed,      // stable per device — same cache key every time
+            seed,
             device_id: deviceId,
-            force: isInitial, // Tells backend to reset the offset chunk if this is a hard refresh
+            force: isInitial,
           },
         });
 
         const newPosts: Post[] = res.data.posts || res.data.feed || [];
+        lastFetchTime.current = Date.now();
 
         // Deduplicate
         const filtered = newPosts.filter((p) => {
@@ -119,8 +127,13 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
         }
 
         setHasMore(res.data.hasMore !== false && newPosts.length > 0);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Feed fetch error:", err);
+        if (err.response?.status === 429) {
+          setError429(true);
+          // Auto-retry once after 3 seconds if it was a 429
+          setTimeout(() => fetchFeed(isInitial), 3000);
+        }
       } finally {
         loadingRef.current = false;
         setLoading(false);
@@ -170,13 +183,23 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   useEffect(() => {
     const onFocus = () => fetchNewPosts();
     const onHidePost = (e: any) => handleDeleted(e.detail);
+    
+    // ── Home Button Refresh & Scroll ──
+    const onRefreshRequest = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      fetchFeed(true); // Force refresh
+    };
+
     window.addEventListener("focus", onFocus);
     window.addEventListener("hidePost", onHidePost);
+    window.addEventListener("scrollDashboardToTop", onRefreshRequest);
+    
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("hidePost", onHidePost);
+      window.removeEventListener("scrollDashboardToTop", onRefreshRequest);
     };
-  }, [fetchNewPosts, handleDeleted]);
+  }, [fetchNewPosts, handleDeleted, fetchFeed]);
 
   // ── IntersectionObserver for infinite scroll ────────────────────────────────
   useEffect(() => {
@@ -185,7 +208,8 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingRef.current) {
+        // Only fetch if sentinel is visible, we have more, not currently loading, AND not in error state
+        if (entries[0].isIntersecting && hasMore && !loadingRef.current && !error429) {
           fetchFeed(false);
         }
       },
@@ -194,7 +218,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, fetchFeed]);
+  }, [hasMore, fetchFeed, error429]);
 
   // ── Empty state ─────────────────────────────────────────────────────────────
   if (posts.length === 0 && !loading) {
@@ -241,6 +265,14 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
         <p className="text-center text-[11px] font-bold text-black/20 uppercase tracking-widest italic py-6">
           You're all caught up ✨
         </p>
+      )}
+
+      {error429 && (
+        <div className="p-4 mx-4 bg-orange-50 border border-orange-100 rounded-2xl text-center">
+          <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wider">
+            Slowing down... fetching more posts in a moment
+          </p>
+        </div>
       )}
     </div>
   );

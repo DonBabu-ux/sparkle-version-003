@@ -108,8 +108,8 @@ const getFeedPosts = async (req, res) => {
         const lockKey = `lock:feed:${currentUserId}:${device_id}`;
         const refreshKey = `refresh_count:${currentUserId}:${device_id}`;
 
-        // 5-second lock
-        const lock = await redisService.set(lockKey, 'locked', 5, 'NX');
+        // 30-second lock to prevent concurrent heavy generation (Resilience for remote DB)
+        const lock = await redisService.set(lockKey, 'locked', 30, 'NX');
         if (!lock && !isForceRefresh) {
             return res.status(429).json({ error: 'Request in progress' });
         }
@@ -167,8 +167,9 @@ const getFeedPosts = async (req, res) => {
         let fresh = [];
         let postsFetched = 0;
 
+        const excludeIds = Array.from(seenSet).slice(-500); // Only exclude recent seen to keep query fast
         for (let attempt = 0; attempt < 3; attempt++) {
-            const posts = await Post.getFeed(affiliation, currentUserId, fetchLimit, batchOffset, sessionSeed, [], mode, null);
+            const posts = await Post.getFeed(affiliation, currentUserId, fetchLimit, batchOffset, sessionSeed, excludeIds, mode, null);
             postsFetched = posts ? posts.length : 0;
 
             const chunkSeed = sessionSeed + batchOffset;

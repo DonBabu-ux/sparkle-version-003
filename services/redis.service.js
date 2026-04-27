@@ -49,15 +49,23 @@ class RedisService {
     }
 
     /**
-     * Set a value in Redis with optional TTL (seconds)
+     * Set a value in Redis with optional TTL (seconds) and options (like NX)
      */
-    async set(key, value, ttl = null) {
-        if (!this.isEnabled) return null;
+    async set(key, value, ttlOrOptions = null, maybeNx = null) {
+        if (!this.isEnabled) return "DISABLED"; // Return truthy so locks don't fail when disabled
         try {
-            if (ttl) {
-                return await this.client.set(key, value, { ex: ttl });
+            let options = {};
+            if (typeof ttlOrOptions === 'number') {
+                options.ex = ttlOrOptions;
+            } else if (ttlOrOptions && typeof ttlOrOptions === 'object') {
+                options = ttlOrOptions;
             }
-            return await this.client.set(key, value);
+
+            if (maybeNx === 'NX' || (ttlOrOptions === 'NX')) {
+                options.nx = true;
+            }
+
+            return await this.client.set(key, value, options);
         } catch (error) {
             logger.error(`Redis Set Error [${key}]:`, error.message);
             return null;

@@ -10,8 +10,18 @@ const isLocalhost =
 
 const isNative = window.location.protocol === 'capacitor:';
 
-// HARDIWIRED: Always use the Render Live Server for both Localhost and APK
-const defaultBaseURL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
+// URLs
+const LIVE_URL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
+const LOCAL_URL = 'http://localhost:3000/api';
+
+// Logic: Strictly live for APK, local for local dev, live for deployed web
+let defaultBaseURL = LIVE_URL;
+
+if (isNative) {
+  defaultBaseURL = LIVE_URL;
+} else if (isLocalhost) {
+  defaultBaseURL = LOCAL_URL;
+}
 
 
 
@@ -93,9 +103,13 @@ api.interceptors.response.use(
         processQueue(null, newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         processQueue(refreshError, null);
-        useUserStore.getState().logout();
+        // ONLY log out if the refresh token is explicitly rejected (401/403)
+        // DO NOT log out if it's just a network error (internet down)
+        if (refreshError.response && (refreshError.response.status === 401 || refreshError.response.status === 403)) {
+            useUserStore.getState().logout();
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

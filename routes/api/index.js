@@ -3,11 +3,6 @@ const router = express.Router();
 
 const authRoutes = require('./auth.routes');
 
-// TRACING MIDDLEWARE: See why routes are 404ing
-router.use((req, res, next) => {
-    console.log(`[API TRACE] ${req.method} ${req.originalUrl}`);
-    next();
-});
 const userRoutes = require('./user.routes');
 const messagesRoutes = require('./messages.routes');
 const postsRoutes = require('./posts.routes');

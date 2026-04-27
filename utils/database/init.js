@@ -127,6 +127,21 @@ const repairPostsTable = async () => {
                 logger.info(`Added ${col.name} column to posts table`);
             }
         }
+        // Ensure indices for feed performance
+        try {
+            await pool.query('CREATE INDEX idx_posts_created_at ON posts(created_at)');
+            logger.info('Created index idx_posts_created_at');
+        } catch (e) { /* ignore if exists */ }
+        
+        try {
+            await pool.query('CREATE INDEX idx_posts_campus ON posts(campus)');
+            logger.info('Created index idx_posts_campus');
+        } catch (e) { /* ignore if exists */ }
+
+        try {
+            await pool.query('CREATE INDEX idx_posts_user_id ON posts(user_id)');
+            logger.info('Created index idx_posts_user_id');
+        } catch (e) { /* ignore if exists */ }
     } catch (err) {
         logger.error('❌ Failed to repair posts table:', err.message);
     }

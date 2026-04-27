@@ -238,6 +238,15 @@ class Post {
 
         // --- ALGORITHM 7.7 (STABLE OFFSET-BASED ENGINE) ---
         try {
+            const redisService = require('../services/redis.service');
+            const cacheKey = `feed_cache_raw:${currentUserId}:${affiliation}:${mode}:${seed}:${offset}:${limit}`;
+            
+            // Try to serve from raw cache first
+            const cached = await redisService.get(cacheKey);
+            if (cached && !excludeIds.length) {
+                return Array.isArray(cached) ? cached : [];
+            }
+
             // 1. DUAL-MEMORY INTEREST MODEL
             const [recentActions] = await pool.query(`
                 SELECT DISTINCT p.category FROM posts p
@@ -254,6 +263,10 @@ class Post {
             const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
             const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
 
+            // 1.5 PRE-FETCH SPARKED IDS (Optimization)
+            const [sparkedRows] = await pool.query('SELECT post_id FROM sparks WHERE user_id = ?', [currentUserId]).catch(() => [[]]);
+            const sparkedIds = new Set((sparkedRows || []).map(r => r.post_id));
+
             // 2. CANDIDATE RETRIEVAL & SCORING (v2.1)
             const query = `
                 SELECT p.*, u.username, u.name as user_name, u.avatar_url,
@@ -262,19 +275,18 @@ class Post {
                         p.comment_count as comments,
                         (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                          FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
-                        EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
-                        EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
+                        f.follower_id IS NOT NULL as is_followed,
                         
                         -- v2.1 PRODUCTION RANKING ALGORITHM
                         (
                             -- 1. Normalized Engagement (Prevent rich-get-richer)
-                            ((COALESCE(p.spark_count, 0) * 5.0 + COALESCE(p.comment_count, 0) * 10.0 + COALESCE(p.share_count, 0) * 15.0) 
+                            ((COALESCE(p.spark_count, 0) * 5.0 + COALESCE(p.comment_count, 0) * 10.0 + COALESCE(p.share_count, 0) * 15.0 + 1.0) 
                             / (COALESCE(p.view_count, 0) + 10.0))
                             *
                             -- 2. Affinity (Following = 1.5x, Campus = 1.2x)
                             (CASE 
                                 WHEN p.user_id = ? THEN 0.05 -- Self-Post Penalty (v2.1)
-                                WHEN EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) THEN 1.5
+                                WHEN f.follower_id IS NOT NULL THEN 1.5
                                 WHEN p.campus = ? THEN 1.2
                                 ELSE 1.0
                             END)
@@ -285,6 +297,7 @@ class Post {
 
                  FROM posts p 
                  JOIN users u ON p.user_id = u.user_id 
+                 LEFT JOIN follows f ON f.follower_id = ? AND f.following_id = p.user_id
                  WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY) -- Candidate Pool Limit (Crucial for Speed)
                    AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
                    AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
@@ -296,14 +309,15 @@ class Post {
                  LIMIT ? OFFSET ?`;
 
             const params = [
-                currentUserId, currentUserId, // is_followed, is_sparked
-                currentUserId, currentUserId, affiliation, // Penalty, Following, Campus
-                seed,                         // RAND(?)
-                affiliation, affiliation,     // p.campus OR ? = 'all'
-                ...excluded, 
-                ...cursorParams,
-                currentUserId, currentUserId, // user_blocks
-                currentUserId, currentUserId, // user_id = ? OR following
+                currentUserId, // Penalty (288)
+                affiliation,   // Campus Score (290)
+                seed,          // RAND (296)
+                currentUserId, // LEFT JOIN follows (300)
+                affiliation, affiliation, // Campus Filter (303)
+                ...excluded,   // (304)
+                ...cursorParams, // (305)
+                currentUserId, currentUserId, // Blocks (306)
+                currentUserId, currentUserId, // Following/Visibility (307)
                 Number(limit) || 10,
                 Number(offset) || 0
             ];
@@ -311,9 +325,14 @@ class Post {
             const [posts] = await pool.query(query, params);
             
             // 3. DIVERSITY LAYER (Post-Processing)
-            let filteredPosts = [];
+            let filteredPosts = (posts || []).map(p => ({
+                ...p,
+                is_sparked: sparkedIds.has(p.post_id) ? 1 : 0
+            }));
+            
+            let finalResults = [];
             let lastCreatorId = null;
-            let pool_posts = [...(posts || [])];
+            let pool_posts = [...filteredPosts];
             
             while (pool_posts.length > 0) {
                 let index = pool_posts.findIndex(p => p.user_id !== lastCreatorId);
@@ -332,10 +351,15 @@ class Post {
                 }
                 if (!Array.isArray(post.liker_avatars)) post.liker_avatars = [];
                 
-                filteredPosts.push(post);
+                finalResults.push(post);
             }
 
-            return filteredPosts;
+            // Cache result for 2 minutes to prevent hammering during active scroll sessions
+            if (finalResults.length > 0) {
+                await redisService.set(cacheKey, finalResults, 120);
+            }
+
+            return finalResults;
         } catch (err) {
             console.error('Algorithm 7.7 Critical Failure:', err.message);
             

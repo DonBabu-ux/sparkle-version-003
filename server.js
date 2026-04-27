@@ -204,12 +204,11 @@ app.get('/api/ping', (req, res) => res.json({ status: 'API IS ALIVE', time: new 
 
 // MASTER API TRACE
 app.use('/api', (req, res, next) => {
-    console.log(`[MASTER TRACE] ${req.method} ${req.originalUrl}`);
     next();
 });
 
-// Routes (Rate Limiter DISABLED for testing)
-app.use('/api', apiRoutes);
+// Routes (Rate Limiter ENABLED for performance)
+app.use('/api', apiRateLimiter, apiRoutes);
 
 // Static files moved below API for priority
 app.use(express.static(path.join(__dirname, 'public'), {

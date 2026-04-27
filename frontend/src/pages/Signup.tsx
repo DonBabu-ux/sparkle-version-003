@@ -75,7 +75,11 @@ export default function Signup() {
         major: form.major || undefined, year: form.year || undefined,
         user_type: 'student',
       });
-      if (res.data?.token) localStorage.setItem('sparkle_signup_token', res.data.token);
+      if (res.data?.token) {
+        localStorage.setItem('sparkle_signup_token', res.data.token);
+        localStorage.setItem('sparkle_signup_refresh', res.data.refreshToken);
+        localStorage.setItem('sparkle_signup_user', JSON.stringify(res.data.user));
+      }
       showSuccess('Signed up! Verify your email.');
       setStep(5);
     } catch (err) {
@@ -93,12 +97,17 @@ export default function Signup() {
     try {
       await api.post('/auth/verify-email', { email: form.email, code: otpCode });
       const signupToken = localStorage.getItem('sparkle_signup_token');
-      if (signupToken) {
-        const validateRes = await api.get('/auth/validate', {
-          headers: { Authorization: `Bearer ${signupToken}` },
-        });
-        login(signupToken, validateRes.data.refreshToken || '', validateRes.data.user);
+      const signupRefreshToken = localStorage.getItem('sparkle_signup_refresh');
+      const signupUserStr = localStorage.getItem('sparkle_signup_user');
+      
+      if (signupToken && signupRefreshToken && signupUserStr) {
+        const user = JSON.parse(signupUserStr);
+        login(signupToken, signupRefreshToken, user);
+        
         localStorage.removeItem('sparkle_signup_token');
+        localStorage.removeItem('sparkle_signup_refresh');
+        localStorage.removeItem('sparkle_signup_user');
+        
         showSuccess('Verified! Redirecting...');
         setTimeout(() => navigate('/dashboard'), 1500);
       } else {

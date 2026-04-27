@@ -1087,6 +1087,49 @@ const initHighlightsTables = async () => {
     }
 };
 
+const initUserActionsTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_actions (
+                action_id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                post_id CHAR(36) NOT NULL,
+                creator_id CHAR(36) DEFAULT NULL,
+                action_type ENUM('click', 'like', 'dwell', 'share', 'view', 'comment') NOT NULL,
+                action_value FLOAT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_action (user_id, post_id, action_type),
+                INDEX idx_user_post (user_id, post_id),
+                INDEX idx_action_type (action_type),
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        
+        // Migration: ensure action_value exists
+        const [cols] = await pool.query("SHOW COLUMNS FROM user_actions LIKE 'action_value'");
+        if (cols.length === 0) {
+            await pool.query("ALTER TABLE user_actions ADD COLUMN action_value FLOAT DEFAULT 0 AFTER action_type");
+            logger.info('Added action_value column to user_actions table');
+        }
+
+        // Migration: ensure unique key exists for UPSERT
+        try {
+            const [keys] = await pool.query("SHOW INDEX FROM user_actions WHERE Key_name = 'unique_user_action'");
+            if (keys.length === 0) {
+                await pool.query("ALTER TABLE user_actions ADD UNIQUE KEY unique_user_action (user_id, post_id, action_type)");
+                logger.info('Added unique_user_action key to user_actions table');
+            }
+        } catch (e) {
+            logger.warn('Failed to add unique key to user_actions:', e.message);
+        }
+
+        logger.debug('✅ User actions table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init user actions table:', err.message);
+    }
+};
+
 const initModerationTables = async () => {
     try {
         // Ensure posts has status and visibility_score
@@ -1209,6 +1252,7 @@ const initDB = async () => {
         try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }
         try { await initSearchTables(); } catch (e) { logger.error('Search Tables Init Error:', e.message); }
         try { await initHighlightsTables(); } catch (e) { logger.error('Highlights Tables Init Error:', e.message); }
+        try { await initUserActionsTable(); } catch (e) { logger.error('User Actions Init Error:', e.message); }
         try { await initModerationTables(); } catch (e) { logger.error('Moderation Tables Init Error:', e.message); }
     });
     

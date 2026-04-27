@@ -10,6 +10,7 @@ const { upload } = require('../../middleware/upload.middleware');
 const { createPostSchema, addCommentSchema, postIdSchema } = require('../../validators/post.validator');
 
 router.get('/feed', authMiddleware, feedRateLimiter, feedController.getFeedPosts);
+router.get('/new', authMiddleware, feedRateLimiter, feedController.getNewPosts);
 router.get('/liked', authMiddleware, feedRateLimiter, postController.getLikedPosts);
 router.get('/saved', authMiddleware, feedRateLimiter, postController.getSavedPosts);
 router.get('/:id', authMiddleware, validate(postIdSchema, 'params'), postController.getPost);
@@ -23,6 +24,7 @@ router.post('/:id/reshare', authMiddleware, mutationRateLimiter, validate(postId
 router.patch('/:id/reshare/comment', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.updateReshareComment);
 router.get('/:id/translate', authMiddleware, postController.translatePost);
 router.post('/:id/report', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.reportPost);
+router.post('/:id/action', authMiddleware, postController.logAction);
 router.delete('/:id', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.deletePost);
 
 module.exports = router;

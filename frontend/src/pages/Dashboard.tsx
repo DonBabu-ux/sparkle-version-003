@@ -66,7 +66,7 @@ export default function Dashboard() {
   const { user } = useUserStore();
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
-  const { posts, stories, suggestions, setPosts, appendPosts, setStories, setSuggestions, lastFetched } = useFeedStore();
+  const { posts, stories, suggestions, setPosts, appendPosts, prependPosts, setStories, setSuggestions, lastFetched } = useFeedStore();
   
   const [newPostContent, setNewPostContent] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
@@ -74,30 +74,63 @@ export default function Dashboard() {
   const [trendingTags, setTrendingTags] = useState<TrendingTag[]>([]);
   const [loading, setLoading] = useState(!lastFetched);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
+  const [feedSeed, setFeedSeed] = useState<number>(Math.floor(Math.random() * 1000000));
+  const offsetRef = useRef<number>(0);
+  const lastSyncTime = useRef<number>(Date.now());
+  const isInitialMount = useRef(true);
 
-  const fetchDashboardData = useCallback(async (pageNum = 1) => {
-    const isFresh = lastFetched && (Date.now() - lastFetched < 120000);
-    if (pageNum === 1 && isFresh && posts.length > 0) {
+  const fetchDeltaData = useCallback(async () => {
+    try {
+      const since = new Date(lastSyncTime.current).toISOString();
+      const res = await api.get(`/posts/new?since=${since}`);
+      const newPosts = res.data;
+      
+      if (Array.isArray(newPosts) && newPosts.length > 0) {
+        prependPosts(newPosts);
+        lastSyncTime.current = Date.now();
+      }
+    } catch (err) {
+      console.error('Delta sync failed:', err);
+    }
+  }, [prependPosts]);
+
+  const fetchDashboardData = useCallback(async (isInitial = true, force = false) => {
+    // Reduce 'fresh' window to 10s for production variety
+    const isFresh = lastFetched && (Date.now() - lastFetched < 10000);
+    
+    if (isInitial && isFresh && posts.length > 0 && !force) {
       setLoading(false);
       return; 
     }
-    if (pageNum === 1 && !posts.length) setLoading(true);
-    else if (pageNum > 1) setLoadingMore(true);
+
+    if (isInitial) {
+      setLoading(true);
+      if (force) {
+        offsetRef.current = 0;
+        // Rotate seed on manual refresh to get new variety
+        setFeedSeed(Math.floor(Math.random() * 1000000));
+      }
+    } else {
+      setLoadingMore(true);
+    }
 
     try {
+      const currentOffset = isInitial ? 0 : offsetRef.current;
+      const currentSeed = isInitial && force ? Math.floor(Math.random() * 1000000) : feedSeed;
+      
       const [dashRes, storiesRes, suggestionsRes] = await Promise.all([
-        api.get(`/posts/feed?page=${pageNum}&limit=10`),
-        pageNum === 1 ? api.get('/stories/active').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
-        pageNum === 1 ? api.get('/users/suggestions').catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
+        api.get(`/posts/feed?offset=${currentOffset}&limit=10&seed=${currentSeed}${force ? '&force=true' : ''}`),
+        isInitial ? api.get('/stories/active').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+        isInitial ? api.get('/users/suggestions').catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
       ]);
       
       const newPosts = Array.isArray(dashRes.data) ? dashRes.data : (dashRes.data.feed || dashRes.data.posts || []);
       
-      if (pageNum === 1) {
+      if (isInitial) {
         setPosts(newPosts);
+        lastSyncTime.current = Date.now();
         if (Array.isArray(storiesRes.data)) setStories(storiesRes.data);
         if (suggestionsRes.data.suggestions) setSuggestions(suggestionsRes.data.suggestions);
         setTrendingTags([
@@ -109,6 +142,11 @@ export default function Dashboard() {
       } else {
         appendPosts(newPosts);
       }
+
+      if (newPosts.length > 0) {
+        offsetRef.current = isInitial ? newPosts.length : offsetRef.current + newPosts.length;
+      }
+      
       setHasMore(newPosts.length === 10);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -116,42 +154,64 @@ export default function Dashboard() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [lastFetched, posts.length, setPosts, appendPosts, setStories, setSuggestions]);
+  }, [lastFetched, posts.length, setPosts, appendPosts, setStories, setSuggestions, feedSeed]);
 
   useEffect(() => {
     const hidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
     setHiddenPostIds(hidden);
-    const handlePostHidden = () => {
-      const updatedHidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
-      setHiddenPostIds(updatedHidden);
+
+    const handlePostHidden = (e: any) => {
+      const postId = e.detail;
+      setHiddenPostIds(prev => [...prev, postId]);
     };
+
+    const handleFocus = () => {
+      fetchDeltaData();
+    };
+
     window.addEventListener('postHidden', handlePostHidden);
+    window.addEventListener('focus', handleFocus);
+
     const handleScrollToTop = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      fetchDashboardData(1);
+      fetchDashboardData(true, true);
     };
     window.addEventListener('scrollDashboardToTop', handleScrollToTop);
+    
     return () => {
       window.removeEventListener('postHidden', handlePostHidden);
+      window.removeEventListener('focus', handleFocus);
       window.removeEventListener('scrollDashboardToTop', handleScrollToTop);
     };
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, fetchDeltaData]);
 
   const { refreshCounter } = useModalStore();
   const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchDashboardData(1);
-    setPage(1);
-  }, [fetchDashboardData, refreshCounter]);
+    if (isInitialMount.current || refreshCounter > 0) {
+      fetchDashboardData(true, true);
+      isInitialMount.current = false;
+    }
+  }, [refreshCounter, fetchDashboardData]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-        setPage(p => { const next = p + 1; fetchDashboardData(next); return next; });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          fetchDashboardData(false);
+        }
+      },
+      { 
+        threshold: 0,
+        rootMargin: '400px' // Start loading 400px before reaching the bottom
       }
-    }, { threshold: 0.1 });
-    if (observerTarget.current) observer.observe(observerTarget.current);
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loading, fetchDashboardData]);
 

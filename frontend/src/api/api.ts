@@ -1,9 +1,15 @@
 import axios from 'axios';
 import { useUserStore } from '../store/userStore';
 
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isLocalhost = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.startsWith('192.168.') ||
+  window.location.hostname.startsWith('10.') ||
+  window.location.hostname.startsWith('172.');
+
 const defaultBaseURL = isLocalhost 
-  ? 'http://localhost:3000/api' 
+  ? `http://${window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname}:3000/api` 
   : 'https://sparkle-version-003-1-f4v3.onrender.com/api';
 
 const api = axios.create({
@@ -13,6 +19,8 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+console.log('🚀 Sparkle API initialized at:', api.defaults.baseURL);
 
 // Interceptor to add auth token and device info
 api.interceptors.request.use(
@@ -100,7 +108,12 @@ export const authApi = {
   login: (credentials: LoginCredentials) => api.post('/auth/login', credentials),
   signup: (userData: SignupData) => api.post('/auth/signup', userData),
   validateToken: () => api.get('/auth/validate'),
-  logout: () => api.post('/auth/logout'),
+  logout: (refreshToken?: string) => api.post('/auth/logout', { refreshToken }),
+};
+
+export const postsApi = {
+  logAction: (postId: string, action_type: string, duration?: number) =>
+    api.post(`/posts/${postId}/action`, { action_type, duration }),
 };
 
 export default api;

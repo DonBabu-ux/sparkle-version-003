@@ -31,6 +31,46 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
     : 'recently';
 
+  // --- DWELL TIME TRACKING (Algorithm 7.6) ---
+  const cardRef = useRef<HTMLDivElement>(null);
+  const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
+            // Started looking prominently
+            startTimeRef.current = Date.now();
+            dwellTimerRef.current = setTimeout(() => {
+              // Log dwell action after 2 seconds of continuous viewing
+              api.post(`/posts/${post.post_id}/action`, { action_type: 'dwell' }).catch(() => {});
+            }, 2000);
+          } else {
+            // Stopped looking
+            if (dwellTimerRef.current) {
+              clearTimeout(dwellTimerRef.current);
+              dwellTimerRef.current = null;
+            }
+            if (startTimeRef.current) {
+              const duration = Date.now() - startTimeRef.current;
+              // If they looked for > 500ms, it's a valid impression/interest signal
+              if (duration > 500) {
+                api.post(`/posts/${post.post_id}/action`, { action_type: 'click', duration }).catch(() => {});
+              }
+              startTimeRef.current = null;
+            }
+          }
+        });
+      },
+      { threshold: [0, 0.7, 1.0] }
+    );
+
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, [post.post_id]);
+
   // Prevent background scrolling when modal is open
   useEffect(() => {
     if (menuOpen) document.body.style.overflow = 'hidden';
@@ -114,6 +154,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
   return (
     <div
+      ref={cardRef}
       className={`bg-white rounded-[6px] sm:rounded-xl shadow-sm overflow-hidden border border-gray-200 transition-opacity duration-300 ${
         deleting ? 'opacity-30 pointer-events-none' : ''
       }`}

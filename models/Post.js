@@ -187,243 +187,140 @@ class Post {
      * @param {string} currentUserId
      * @param {number} limit
      * @param {number} offset
-     * @param {number} randomSeed
+     * @param {number} seed
      * @param {string|string[]} excludeIds
      */
-    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, randomSeed = 0, excludeIds = [], mode = 'for_you') {
+    static async getFeed(affiliation, currentUserId, limit = 20, offset = 0, seed = 0, excludeIds = [], mode = 'for_you') {
         const algorithmEnabled = true; 
 
         if (!algorithmEnabled) {
-            // --- BASIC STABLE FEED LOGIC (UNIFIED CHRONOLOGICAL) ---
+            // --- BASIC STABLE FEED LOGIC ---
             try {
-                // Fetch unified feed: Followed posts + Public posts, sorted by newest
+                let whereClause = `(p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
+                                  AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')`;
+                const params = [currentUserId, currentUserId, currentUserId, affiliation, affiliation];
+
                 const feedQuery = `
-                    SELECT * FROM (
-                        -- 1. Original Posts
-                        SELECT p.*, 
-                               CASE 
-                                   WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'DeletedUser'
-                                   WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' 
-                                   ELSE u.username 
-                               END as username,
-                               CASE 
-                                   WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'Deleted User'
-                                   WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' 
-                                   ELSE u.name 
-                               END as user_name,
-                               CASE 
-                                   WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN '/uploads/avatars/deleted.png'
-                                   WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' 
-                                   ELSE u.avatar_url 
-                               END as avatar_url,
-
-                               u.campus as user_affiliation, u.major as user_interests,
-                               (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
-                               EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
-                               EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
-                               (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
-                                FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
-                               (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM reposts r2 JOIN users u2 ON r2.user_id = u2.user_id WHERE r2.post_id = p.post_id LIMIT 3) as resharer_avatars,
-                               EXISTS(SELECT 1 FROM reposts WHERE user_id = ? AND post_id = p.post_id) as is_reshared,
-                               NULL as resharers,
-                               p.created_at as feed_at,
-                               CONCAT(p.post_id, '-orig') as feed_id
-                        FROM posts p 
-                        JOIN users u ON p.user_id = u.user_id 
-                        WHERE (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
-                          AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
-
-                          AND NOT EXISTS (
-                              SELECT 1 FROM user_blocks 
-                              WHERE (blocker_id = ? AND blocked_id = p.user_id)
-                                  OR (blocker_id = p.user_id AND blocked_id = ?)
-                          )
-                          AND (
-                              p.user_id = ? 
-                              OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
-                              OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
-                          )
-
-                        UNION ALL
-    
-                        -- 2. Ghost Reposts (Grouped by post to avoid spam)
-                        SELECT p.*, 
-                               CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
-                               CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
-                               CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
-                               u.campus as user_affiliation, u.major as user_interests,
-                               (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
-                               EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
-                               EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
-                               (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
-                                FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
-                               (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM reposts r2 JOIN users u2 ON r2.user_id = u2.user_id WHERE r2.post_id = p.post_id LIMIT 3) as resharer_avatars,
-                               EXISTS(SELECT 1 FROM reposts WHERE user_id = ? AND post_id = p.post_id) as is_reshared,
-                               (SELECT JSON_ARRAYAGG(JSON_OBJECT('username', r_u.username, 'avatar', r_u.avatar_url, 'comment', r2.comment))
-                                FROM reposts r2
-                                JOIN users r_u ON r2.user_id = r_u.user_id
-                                WHERE r2.post_id = p.post_id 
-                                  AND (r2.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR r2.user_id = ?)
-                               ) as resharers,
-                               MAX(r.created_at) as feed_at,
-                               CONCAT(p.post_id, '-repost') as feed_id
-                        FROM reposts r
-                        JOIN posts p ON r.post_id = p.post_id
-                        JOIN users u ON p.user_id = u.user_id
-                        WHERE (r.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR r.user_id = ?)
-                          AND NOT EXISTS (
-                              SELECT 1 FROM user_blocks 
-                              WHERE (blocker_id = ? AND blocked_id = p.user_id)
-                                  OR (blocker_id = p.user_id AND blocked_id = ?)
-                          )
-                        GROUP BY p.post_id
-                    ) combined
-                    ORDER BY feed_at DESC
+                    SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                           u.campus as user_affiliation,
+                           (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                           (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                           EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
+                           EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked
+                    FROM posts p 
+                    JOIN users u ON p.user_id = u.user_id 
+                    WHERE ${whereClause}
+                    ORDER BY p.created_at DESC
                     LIMIT ? OFFSET ?`;
-
-                const feedParams = [
-                    currentUserId, currentUserId, // Original: is_followed, is_sparked
-                    currentUserId,                  // Original: is_reshared
-                    affiliation, affiliation,       // Original: campus, 'all'
-                    currentUserId, currentUserId, // Original: block checks
-                    currentUserId, currentUserId, // Original: owner, following checks
-                    
-                    currentUserId, currentUserId, // Repost: is_followed, is_sparked
-                    currentUserId,                  // Repost: is_reshared
-                    currentUserId, currentUserId, // Repost: resharers subquery (following, self)
-                    currentUserId, currentUserId, // Repost: following filter OR self
-                    currentUserId, currentUserId, // Repost: block checks
-                    
-                    limit, offset                  // Pagination
-                ];
-
-                const [posts] = await pool.query(feedQuery, feedParams);
-                return (posts || []).map(post => {
-                    if (typeof post.media_files === 'string') {
-                        try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
-                    }
-                    if (typeof post.resharer_avatars === 'string') {
-                        try { post.resharer_avatars = JSON.parse(post.resharer_avatars); } catch(e) { post.resharer_avatars = []; }
-                    }
-                    if (typeof post.resharers === 'string') {
-                        try { post.resharers = JSON.parse(post.resharers); } catch(e) { post.resharers = []; }
-                    }
-                    return post;
-                });
-
+                
+                params.push(Number(limit) || 20);
+                params.push(Number(offset) || 0);
+                const [posts] = await pool.query(feedQuery, params);
+                return posts || [];
             } catch (err) {
                 console.error('Basic Feed Error:', err);
                 return [];
             }
         }
 
-        // --- ALGORITHM 7.5 (THE PRODUCTION-GRADE UPDATE) ---
-        // Scoring Pipeline: Retrieval -> Scoring -> Diversity Filter
-        
-        // 1. DUAL-MEMORY INTEREST MODEL
-        // Fetch recent behavior signals (Last 50 actions)
-        const [recentActions] = await pool.query(`
-            SELECT DISTINCT category FROM posts p
-            JOIN user_actions ua ON p.post_id = ua.post_id
-            WHERE ua.user_id = ?
-            ORDER BY ua.created_at DESC LIMIT 50
-        `, [currentUserId]);
-        
-        const recentCategories = recentActions.map(a => a.category);
-        const [userProfile] = await pool.query('SELECT major, interests FROM users WHERE user_id = ?', [currentUserId]);
-        const staticInterests = (userProfile[0]?.interests || userProfile[0]?.major || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
-
-        const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
-        const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
-
-        // 2. CANDIDATE RETRIEVAL & SCORING
-        const query = `
-            SELECT p.*, u.username, u.name as user_name, u.avatar_url,
-                    u.campus as user_affiliation,
-                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
-                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
-                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
-                    (SELECT JSON_ARRAYAGG(u2.avatar_url) FROM (SELECT s2.user_id FROM sparks s2 WHERE s2.post_id = p.post_id ORDER BY (SELECT COUNT(*) FROM follows f WHERE f.follower_id = ? AND f.following_id = s2.user_id) DESC, s2.created_at DESC LIMIT 3) as sub JOIN users u2 ON sub.user_id = u2.user_id) as liker_avatars,
-                    (SELECT u3.name FROM sparks s3 JOIN users u3 ON s3.user_id = u3.user_id WHERE s3.post_id = p.post_id ORDER BY (SELECT COUNT(*) FROM follows f2 WHERE f2.follower_id = ? AND f2.following_id = s3.user_id) DESC, s3.created_at DESC LIMIT 1) as top_liker_name,
-                    EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
-                    EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
-                    
-                    -- RANKING FORMULA 7.5
-                    (
-                        -- A. Interest Match (30%): Dual-Memory (Recent vs Static)
-                        ((CASE 
-                            WHEN p.category IN (${recentCategories.length > 0 ? recentCategories.map(() => '?').join(',') : 'NULL'}) THEN 1.0
-                            WHEN p.category IN (${staticInterests.length > 0 ? staticInterests.map(() => '?').join(',') : 'NULL'}) THEN 0.5
-                            ELSE 0.1
-                        END) * 0.30) +
-
-                        -- B. Creator Affinity (20%): History with this author
-                        (COALESCE((
-                            SELECT LEAST(COUNT(*) / 10.0, 1.0) 
-                            FROM user_actions ua 
-                            WHERE ua.user_id = ? AND ua.creator_id = p.user_id
-                        ), 0) * 0.20) +
-
-                        -- C. Engagement Quality (20%): Social Proof & Quality
-                        (LEAST((p.spark_count * 1.0 + p.comment_count * 2.0 + p.share_count * 4.0) / 100.0, 1.0) * 0.20) +
-
-                        -- D. Recency (15%): Power-law decay
-                        ((1.0 / POW(TIMESTAMPDIFF(MINUTE, p.created_at, NOW()) / 60.0 + 1, 1.5)) * 0.15) +
-
-                        -- E. Smart Exploration & Session Randomness (15%)
-                        ((RAND(?) * 0.10 + (IF(p.post_type = 'public', 0.05, 0))) * 0.15)
-                    ) * (IF(p.is_seed, 0.8, 1.0)) as discovery_score
-
-             FROM posts p 
-             JOIN users u ON p.user_id = u.user_id 
-             WHERE (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
-               AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
-               ${excludeFilter}
-               AND NOT EXISTS (SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = p.user_id) OR (blocker_id = p.user_id AND blocked_id = ?))
-               AND (p.user_id = ? OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private')))
-             ORDER BY discovery_score DESC, p.created_at DESC
-             LIMIT ? OFFSET ?`;
-
-        const params = [
-            currentUserId, currentUserId, currentUserId, currentUserId, // Basic checks
-            ...(recentCategories.length > 0 ? recentCategories : []), // Short-term Interests
-            ...(staticInterests.length > 0 ? staticInterests : []), // Long-term Interests
-            currentUserId, // Creator Affinity
-            randomSeed, // Session Entropy
-            affiliation, affiliation, 
-            ...excluded, 
-            currentUserId, currentUserId, 
-            currentUserId, currentUserId, 
-            Number(limit) || 20, Number(offset) || 0
-        ];
-
+        // --- ALGORITHM 7.7 (STABLE OFFSET-BASED ENGINE) ---
         try {
+            // 1. DUAL-MEMORY INTEREST MODEL
+            const [recentActions] = await pool.query(`
+                SELECT DISTINCT p.category FROM posts p
+                JOIN user_actions ua ON p.post_id = ua.post_id
+                WHERE ua.user_id = ? AND ua.action_type IN ('click', 'like', 'dwell', 'share')
+                ORDER BY ua.created_at DESC LIMIT 10
+            `, [currentUserId]).catch(() => [[]]);
+            
+            const recentCategories = (recentActions || []).map(a => a.category).filter(Boolean);
+            
+            const [userProfile] = await pool.query('SELECT major, interests FROM users WHERE user_id = ?', [currentUserId]).catch(() => [[]]);
+            const staticInterests = (userProfile[0]?.interests || userProfile[0]?.major || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
+
+            const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
+            const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
+
+            // 2. CANDIDATE RETRIEVAL & SCORING (OPTIMIZED)
+            const query = `
+                SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                        u.campus as user_affiliation,
+                        p.spark_count as sparks,
+                        p.comment_count as comments,
+                        (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                         FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                        EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
+                        EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked,
+                        
+                        -- STABLE RANKING FORMULA
+                        (
+                            -- A. Interest Match (40%)
+                            ((CASE 
+                                WHEN p.category IN (${recentCategories.length > 0 ? recentCategories.map(() => '?').join(',') : 'NULL'}) THEN 1.0
+                                WHEN p.category IN (${staticInterests.length > 0 ? staticInterests.map(() => '?').join(',') : 'NULL'}) THEN 0.6
+                                ELSE 0.1
+                            END) * 0.40) +
+
+                            -- B. Creator Affinity (25%)
+                            (COALESCE((
+                                SELECT LEAST(SUM(CASE WHEN ua.action_type = 'like' THEN 1 WHEN ua.action_type = 'dwell' THEN 0.5 ELSE 0.1 END) / 10.0, 1.0) 
+                                FROM user_actions ua 
+                                WHERE ua.user_id = ? AND ua.creator_id = p.user_id
+                            ), 0) * 0.25) +
+
+                            -- C. Engagement & Quality (20%)
+                            (LEAST((p.spark_count + p.comment_count * 2.0) / 100.0, 1.0) * 0.20) +
+
+                            -- D. Recency (15%)
+                            ((1.0 / POW(TIMESTAMPDIFF(MINUTE, p.created_at, NOW()) / 60.0 + 1, 1.5)) * 0.15)
+                        ) * (IF(p.is_seed, 0.8, 1.0)) + (RAND(?) * 0.1) as discovery_score
+
+                 FROM posts p 
+                 JOIN users u ON p.user_id = u.user_id 
+                 WHERE p.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY) -- Candidate Pool Limit (Crucial for Speed)
+                   AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
+                   AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+                   ${excludeFilter}
+                   AND NOT EXISTS (SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = p.user_id) OR (blocker_id = p.user_id AND blocked_id = ?))
+                   AND (p.user_id = ? OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private')))
+                 ORDER BY discovery_score DESC, p.created_at DESC
+                 LIMIT ? OFFSET ?`;
+
+            const params = [
+                currentUserId, currentUserId, 
+                ...(recentCategories.length > 0 ? recentCategories : []), 
+                ...(staticInterests.length > 0 ? staticInterests : []), 
+                seed, // For RAND(?) variety
+                currentUserId, 
+                affiliation, affiliation, 
+                ...excluded, 
+                currentUserId, currentUserId, 
+                currentUserId, currentUserId, 
+                Number(limit) || 10,
+                Number(offset) || 0
+            ];
+
             const [posts] = await pool.query(query, params);
             
             // 3. DIVERSITY LAYER (Post-Processing)
-            // Rule: Avoid consecutive posts from the same creator
             let filteredPosts = [];
             let lastCreatorId = null;
             let pool_posts = [...(posts || [])];
             
             while (pool_posts.length > 0) {
                 let index = pool_posts.findIndex(p => p.user_id !== lastCreatorId);
-                if (index === -1) index = 0; // Fallback if only one creator left
+                if (index === -1) index = 0; 
                 
                 let post = pool_posts.splice(index, 1)[0];
                 lastCreatorId = post.user_id;
                 
-                // Sanitize and Add
                 if (typeof post.media_files === 'string') {
                     try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
                 }
                 if (!Array.isArray(post.media_files)) post.media_files = [];
 
                 if (typeof post.liker_avatars === 'string') {
-                    try { post.liker_avatars = JSON.parse(post.liker_avatars); } catch(e) { post.liker_avatars = []; }
+                    post.liker_avatars = post.liker_avatars.split(',').slice(0, 3);
                 }
                 if (!Array.isArray(post.liker_avatars)) post.liker_avatars = [];
                 
@@ -432,26 +329,68 @@ class Post {
 
             return filteredPosts;
         } catch (err) {
-            console.error('Algorithm 7.5 Critical Failure:', err.message);
-            if (err.sql) console.error('Failing SQL:', err.sql);
+            console.error('Algorithm 7.7 Critical Failure:', err.message);
             
             // FAIL-SAFE: Return recent public posts
-            const [fallback] = await pool.query(
-                `SELECT p.*, u.username, u.name as user_name, u.avatar_url, 
-                        0 as is_followed, 0 as is_sparked, 
-                        '[]' as media_files, '[]' as liker_avatars,
-                        p.spark_count as sparks, p.comment_count as comments
-                 FROM posts p JOIN users u ON p.user_id = u.user_id 
-                 WHERE p.post_type = 'public' ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
-                [Number(limit) || 20, Number(offset) || 0]
-            );
-            return (fallback || []).map(p => {
-                p.media_files = [];
-                p.liker_avatars = [];
-                p.sparks = p.sparks || 0;
-                p.comments = p.comments || 0;
-                return p;
+            try {
+                const [fallback] = await pool.query(
+                    `SELECT p.*, u.username, u.name as user_name, u.avatar_url, 
+                            p.spark_count as sparks, p.comment_count as comments
+                     FROM posts p JOIN users u ON p.user_id = u.user_id 
+                     WHERE p.post_type = 'public' ORDER BY p.created_at DESC LIMIT ?`,
+                    [Number(limit) || 20]
+                );
+                
+                return (fallback || []).map(p => ({
+                    ...p,
+                    media_files: [],
+                    liker_avatars: []
+                }));
+            } catch (fallbackErr) {
+                return [];
+            }
+        }
+    }
+
+    /**
+     * Delta Update: Fetch only posts created since a specific timestamp
+     */
+    static async getDeltaPosts(affiliation, currentUserId, since) {
+        try {
+            const query = `
+                SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                        u.campus as user_affiliation,
+                        (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
+                        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                        (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                         FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
+                        EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
+                        EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked
+                 FROM posts p 
+                 JOIN users u ON p.user_id = u.user_id 
+                 WHERE p.created_at > ?
+                   AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
+                   AND (p.campus = ? OR p.post_type = 'public' OR p.campus IS NULL OR ? = 'all')
+                   AND NOT EXISTS (SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = p.user_id) OR (blocker_id = p.user_id AND blocked_id = ?))
+                 ORDER BY p.created_at DESC
+                 LIMIT 50`;
+
+            const [posts] = await pool.query(query, [
+                currentUserId, currentUserId, 
+                since, 
+                affiliation, affiliation, 
+                currentUserId, currentUserId
+            ]);
+
+            return (posts || []).map(post => {
+                if (typeof post.media_files === 'string') {
+                    try { post.media_files = JSON.parse(post.media_files); } catch(e) { post.media_files = []; }
+                }
+                return post;
             });
+        } catch (err) {
+            console.error('Delta Sync Error:', err);
+            return [];
         }
     }
 
@@ -936,6 +875,29 @@ class Post {
             [comment, userId, postId]
         );
         return { success: true };
+    }
+
+    static async recordAction(userId, postId, actionType, value = 1.0) {
+        try {
+            // First get the creator_id
+            const [post] = await pool.query('SELECT user_id FROM posts WHERE post_id = ?', [postId]);
+            if (!post.length) return;
+            
+            const creatorId = post[0].user_id;
+            const actionId = crypto.randomUUID();
+
+            const query = `
+                INSERT INTO user_actions (action_id, user_id, post_id, creator_id, action_type, action_value)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE 
+                action_value = action_value + VALUES(action_value),
+                created_at = CURRENT_TIMESTAMP
+            `;
+            await pool.query(query, [actionId, userId, postId, creatorId, actionType, value]);
+
+        } catch (err) {
+            console.error('Error recording action:', err);
+        }
     }
 }
 

@@ -86,71 +86,86 @@ const renderDashboard = async (req, res) => {
 
 const getFeedPosts = async (req, res) => {
     try {
-        const affiliation = req.query.affiliation || (req.user ? req.user.campus : 'all');
         const currentUserId = req.user.userId || req.user.user_id;
-        const page = parseInt(req.query.page) || 1;
-        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
-        const offset = (page - 1) * limit;
-        const seed = req.query.seed || getSeedFromDevice(req);
-        
-        // --- NEW: Feed Caching (Upstash Redis) ---
+        const affiliation = req.user.affiliation || req.user.campus || 'all';
+        const { offset = 0, limit = 10, force = false, mode = 'for_you', seed = 0 } = req.query;
+
+        // --- BATCH 3: Feed Caching & Deduplication ---
         const redisService = require('../services/redis.service');
-        const cacheKey = `feed:${currentUserId}:${affiliation}:${page}:${limit}:${seed}`;
-        
-        if (page === 1) { // Only cache first page for better reactivity
-            const cachedData = await redisService.get(cacheKey);
-            if (cachedData) {
-                logger.info(`Feed Cache Hit: ${cacheKey}`);
-                return res.json(cachedData);
-            }
+        const lockKey = `lock:feed:${currentUserId}:${offset}:${seed}`;
+        const cacheKey = `feed:${currentUserId}:${offset}:${mode}:${seed}`;
+
+        if (!force) {
+            const cached = await redisService.get(cacheKey);
+            if (cached) return res.json(cached);
         }
 
-        const recentlySeen = req.query.recentlySeen || '';
-        const excludeIds = typeof recentlySeen === 'string' && recentlySeen ? recentlySeen.split(',') : [];
+        // 5-second lock to prevent "request storms" for the same offset/seed
+        const lock = await redisService.set(lockKey, 'locked', 5, 'NX');
+        if (!lock && !force) {
+            return res.status(429).json({ error: 'Request in progress' });
+        }
 
-        // Fetch using the enhanced weighted algorithm
-        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, seed, excludeIds);
+        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, seed, [], mode);
 
-        // Sanitize and format for response
+        // Sanitize
         const sanitizedPosts = (posts || []).map(post => ({
             ...post,
             media_url: getSafeMediaUrl(post.media_url),
             avatar_url: getSafeAvatarUrl(post.avatar_url),
-            timestamp: post.created_at, // for consistency
-            is_discovery: !post.is_followed && post.user_id !== currentUserId
+            timestamp: post.created_at
         }));
 
-        // Store in cache for 2 minutes
-        if (page === 1 && sanitizedPosts.length > 0) {
-            await redisService.set(cacheKey, sanitizedPosts, 120);
-        }
+        const result = {
+            feed: sanitizedPosts,
+            nextOffset: sanitizedPosts.length > 0 ? Number(offset) + sanitizedPosts.length : null
+        };
 
-        if (req.query.render === 'true') {
-            const renderedPosts = await Promise.all(sanitizedPosts.map(post => {
-                return new Promise((resolve) => {
-                    res.render('partials/post-card', { post, user: req.user }, (err, html) => {
-                        if (err) {
-                            logger.error('Error rendering post-card:', err);
-                            resolve(`<div class="error">Error rendering post</div>`);
-                        } else {
-                            resolve(html);
-                        }
-                    });
-                });
-            }));
-            return res.json({ posts: sanitizedPosts, htmls: renderedPosts });
-        }
+        await redisService.set(cacheKey, result, 60); // 1-minute TTL
+        await redisService.del(lockKey);
+
+        res.json(result);
+    } catch (error) {
+        logger.error('Feed Retrieval Error:', error);
+        res.status(500).json({ error: 'Failed to fetch feed' });
+    }
+};
+
+const getNewPosts = async (req, res) => {
+    try {
+        const since = req.query.since;
+        if (!since) return res.status(400).json({ error: 'since timestamp required' });
+
+        const affiliation = req.user.affiliation || req.user.campus || 'all';
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const posts = await Post.getDeltaPosts(affiliation, currentUserId, since);
+
+        const sanitizedPosts = (posts || []).map(post => ({
+            ...post,
+            media_url: getSafeMediaUrl(post.media_url),
+            avatar_url: getSafeAvatarUrl(post.avatar_url),
+            timestamp: post.created_at,
+            is_new_delta: true
+        }));
 
         res.json(sanitizedPosts);
     } catch (error) {
-        logger.error('Get Enhanced Feed Error:', error);
-        res.status(500).json({ error: 'Failed to fetch feed' });
+        logger.error('Get Delta Feed Error:', error);
+        res.status(500).json({ error: 'Failed to fetch delta feed' });
     }
 };
 
 const getStories = async (req, res) => {
     try {
         const currentUserId = req.user.userId || req.user.user_id;
+
+        // --- BATCH 3: Stories Caching (60 sec TTL) ---
+        const redisService = require('../services/redis.service');
+        const cacheKey = `stories:active:${currentUserId}`;
+        
+        const cached = await redisService.get(cacheKey);
+        if (cached) return res.json(cached);
 
         const [rows] = await pool.query(`
             SELECT 
@@ -880,6 +895,7 @@ const hideStoryFromUser = async (req, res) => {
 module.exports = {
     renderDashboard,
     getFeedPosts,
+    getNewPosts,
     getStories,
     renderPost,
     createStory,

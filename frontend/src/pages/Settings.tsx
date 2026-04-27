@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import api from '../api/api';
+import api, { authApi } from '../api/api';
 import Navbar from '../components/Navbar';
 import { useUserStore } from '../store/userStore';
 import type { User } from '../types/user';
@@ -109,9 +109,18 @@ export default function Settings() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('sparkleToken');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      const refreshToken = useUserStore.getState().refreshToken;
+      if (refreshToken) {
+        await authApi.logout(refreshToken);
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      useUserStore.getState().logout();
+      navigate('/login');
+    }
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {

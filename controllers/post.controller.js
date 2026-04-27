@@ -409,5 +409,19 @@ module.exports = {
         } catch (error) {
             res.status(500).json({ error: 'Failed to report post' });
         }
+    },
+    logAction: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const postId = req.params.id;
+            const { action_type, duration } = req.body;
+            
+            // Async non-blocking record
+            Post.recordAction(userId, postId, action_type, duration).catch(e => logger.error('Action record err:', e));
+            
+            res.json({ success: true });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed' });
+        }
     }
 };

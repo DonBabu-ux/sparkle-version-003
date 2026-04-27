@@ -636,6 +636,13 @@ const getSuggestions = async (req, res) => {
         const currentUserId = req.user.userId || req.user.user_id;
         const { tab = 'suggested', filter = null, q = null } = req.query;
         
+        // --- BATCH 3: Suggestions Caching (10 min TTL) ---
+        const redisService = require('../services/redis.service');
+        const cacheKey = `suggestions:${currentUserId}:${tab}:${filter || 'none'}:${q || 'none'}`;
+        
+        const cached = await redisService.get(cacheKey);
+        if (cached) return res.json(cached);
+
         // Device/User specific seed for variety on refresh (Part 1 & 4)
         const hourlySeed = Math.floor(Date.now() / (1000 * 60 * 60));
         const seed = String(currentUserId).split('-')[0]; // Use first part of ID as deterministic seed
@@ -658,7 +665,10 @@ const getSuggestions = async (req, res) => {
             experience_level: u.experience_level || u.year_of_study
         }));
 
-        res.json({ suggestions: sanitizedSuggestions });
+        const result = { suggestions: sanitizedSuggestions };
+        await redisService.set(cacheKey, result, 600); // 10 minutes
+
+        res.json(result);
     } catch (error) {
         console.error('[User Controller] getSuggestions error:', error.message, error.stack);
         res.status(500).json({ 

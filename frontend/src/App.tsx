@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
+import { authApi } from './api/api';
 
 // Phase 1 — Core
 import Dashboard from './pages/Dashboard';
@@ -70,7 +72,22 @@ import About from './pages/About';
 import NotFound from './pages/NotFound';
 
 function App() {
-  const { isAuthenticated } = useUserStore();
+  const { isAuthenticated, token, refreshToken, logout } = useUserStore();
+
+  useEffect(() => {
+    const initAuth = async () => {
+      if (token || refreshToken) {
+        try {
+          // This call will trigger the auto-refresh interceptor if the token is expired
+          await authApi.validateToken();
+        } catch (err) {
+          console.error('Initial auth validation failed:', err);
+          // logout(); // Only logout if the refresh also failed (interceptor handled it)
+        }
+      }
+    };
+    initAuth();
+  }, []);
 
   return (
     <Router>

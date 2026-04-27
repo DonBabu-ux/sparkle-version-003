@@ -1,0 +1,104 @@
+const pool = require('../config/database');
+const Post = require('../models/Post');
+const logger = require('../utils/logger');
+const crypto = require('crypto');
+
+const getSafeMediaUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('/uploads/')) return url;
+    if (url.includes('fbcdn.net') || url.includes('fbsbx.com')) {
+        return '/uploads/defaults/no-image.png';
+    }
+    return url;
+};
+
+const getSafeAvatarUrl = (url) => {
+    if (!url) return '/uploads/avatars/default.png';
+    return url;
+};
+
+const renderDashboard = async (req, res) => {
+    try {
+        res.render('dashboard', {
+            posts: [],
+            suggestions: [],
+            stories: [],
+            user: req.user
+        });
+    } catch (error) {
+        logger.error('Dashboard Render Error:', error);
+        res.status(500).render('error', { message: 'Failed to load dashboard' });
+    }
+};
+
+const getFeedPosts = async (req, res) => {
+    try {
+        const currentUserId = req.user.userId || req.user.user_id;
+        const affiliation = req.user.affiliation || req.user.campus || 'all';
+        const { offset = 0, limit = 10, force = false, mode = 'for_you' } = req.query;
+
+        // --- BATCH 3: Feed Caching & Deduplication ---
+        const redisService = require('../services/redis.service');
+        const lockKey = `lock:feed:${currentUserId}:${offset}`;
+        const cacheKey = `feed:${currentUserId}:${offset}:${mode}`;
+
+        if (!force) {
+            const cached = await redisService.get(cacheKey);
+            if (cached) return res.json(cached);
+        }
+
+        // 5-second lock to prevent "request storms" for the same offset
+        const lock = await redisService.set(lockKey, 'locked', 5, 'NX');
+        if (!lock && !force) {
+            return res.status(429).json({ error: 'Request in progress' });
+        }
+
+        const posts = await Post.getFeed(affiliation, currentUserId, limit, offset, [], mode);
+
+        // Sanitize
+        const sanitizedPosts = (posts || []).map(post => ({
+            ...post,
+            media_url: getSafeMediaUrl(post.media_url),
+            avatar_url: getSafeAvatarUrl(post.avatar_url),
+            timestamp: post.created_at
+        }));
+
+        const result = {
+            feed: sanitizedPosts,
+            nextOffset: sanitizedPosts.length > 0 ? Number(offset) + sanitizedPosts.length : null
+        };
+
+        await redisService.set(cacheKey, result, 60); // 1-minute TTL
+        await redisService.del(lockKey);
+
+        res.json(result);
+    } catch (error) {
+        logger.error('Feed Retrieval Error:', error);
+        res.status(500).json({ error: 'Failed to fetch feed' });
+    }
+};
+
+const getNewPosts = async (req, res) => {
+    try {
+        const since = req.query.since;
+        if (!since) return res.status(400).json({ error: 'since timestamp required' });
+
+        const affiliation = req.user.affiliation || req.user.campus || 'all';
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const posts = await Post.getDeltaPosts(affiliation, currentUserId, since);
+
+        const sanitizedPosts = (posts || []).map(post => ({
+            ...post,
+            media_url: getSafeMediaUrl(post.media_url),
+            avatar_url: getSafeAvatarUrl(post.avatar_url),
+            timestamp: post.created_at,
+            is_new_delta: true
+        }));
+
+        res.json(sanitizedPosts);
+    } catch (error) {
+        logger.error('Get Delta Feed Error:', error);
+        res.status(500).json({ error: 'Failed to fetch delta feed' });
+    }
+};

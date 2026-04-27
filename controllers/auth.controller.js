@@ -90,20 +90,18 @@ const signup = async (req, res) => {
             }
         }).catch(err => logger.error('Failed to send signup verification email:', err));
 
-        // Generate token for immediate login
-        const token = jwt.sign({ 
-            userId, 
-            email, 
-            username, 
-            tokenVersion: 0 
-        }, JWT_SECRET, { expiresIn: '7d' });
+        // Generate production-grade tokens
+        const deviceId = req.headers['x-device-id'] || 'signup-device';
+        const user = { user_id: userId, name, username, email, user_type };
+        const { accessToken, refreshToken } = await authService.generateTokens(user, deviceId);
 
         logger.info(`New user signed up: ${username} (${email}) - ID: ${userId}`);
 
         res.status(201).json({
             status: 'success',
             message: 'Account created! Please verify your email.',
-            token,
+            token: accessToken,
+            refreshToken: refreshToken,
             user: {
                 id: userId,
                 user_id: userId,
@@ -621,15 +619,30 @@ const resendVerification = async (req, res) => {
     }
 };
 
-const logout = (req, res) => {
-    res.clearCookie('sparkleToken', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/'
-    });
-    // Also clear token from localStorage via redirect
-    res.redirect('/login');
+const logout = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        const userId = req.user?.userId || req.user?.user_id;
+
+        if (refreshToken) {
+            await pool.query('DELETE FROM refresh_tokens WHERE token = ?', [refreshToken]);
+        } else if (userId) {
+            // Fallback: clear all tokens for this user on this device (optional)
+            await pool.query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
+        }
+
+        res.clearCookie('sparkleToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/'
+        });
+
+        res.json({ status: 'success', message: 'Logged out successfully' });
+    } catch (error) {
+        logger.error('Logout error:', error);
+        res.status(500).json({ error: 'Failed to logout' });
+    }
 };
 
 const validateToken = (req, res) => {

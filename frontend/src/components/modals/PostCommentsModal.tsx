@@ -25,6 +25,7 @@ interface PostCommentsModalProps {
     username: string;
     name?: string;
     avatar_url?: string;
+    comment_count?: number;
   };
   onClose: () => void;
 }
@@ -140,7 +141,14 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   return (
     <div className="flex flex-col h-[90vh] md:h-[600px] bg-white overflow-hidden relative border border-gray-200 rounded-t-xl md:rounded-xl shadow-2xl">
       <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white">
-        <h3 className="font-bold text-[17px] text-gray-900">Comments</h3>
+        <div>
+          <h3 className="font-bold text-[17px] text-gray-900">Comments</h3>
+          {!loading && post.comment_count && post.comment_count > comments.length && (
+            <p className="text-[12px] text-gray-400 font-normal mt-0.5">
+              Showing {comments.length} of {formatCount(post.comment_count)}
+            </p>
+          )}
+        </div>
         <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-all">
           <X size={20} className="text-gray-500" />
         </button>
@@ -175,6 +183,12 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
                 onCloseModal={onClose}
               />
             ))}
+            {/* Show "top comments" note when display count > physical rows */}
+            {post.comment_count && post.comment_count > comments.length && (
+              <div className="text-center py-3 text-[12px] text-gray-400 border-t border-gray-100">
+                Showing top comments · {formatCount(post.comment_count)} total
+              </div>
+            )}
             <div ref={commentsEndRef} />
           </div>
         )}

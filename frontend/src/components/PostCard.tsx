@@ -37,6 +37,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const hasLoggedDwell = useRef<boolean>(false);
+  const hasLoggedImpression = useRef<boolean>(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -44,11 +46,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
             // Started looking prominently
-            startTimeRef.current = Date.now();
-            dwellTimerRef.current = setTimeout(() => {
-              // Log dwell action only if viewed prominently for 1.5 seconds
-              api.post(`/posts/${post.post_id}/action`, { action_type: 'dwell' }).catch(() => {});
-            }, 1500);
+            if (!startTimeRef.current) {
+              startTimeRef.current = Date.now();
+            }
+            
+            if (!hasLoggedDwell.current) {
+              dwellTimerRef.current = setTimeout(() => {
+                // Log dwell action only if viewed prominently for 1.5 seconds
+                hasLoggedDwell.current = true;
+                api.post(`/posts/${post.post_id}/action`, { action_type: 'dwell' }).catch(() => {});
+              }, 1500);
+            }
           } else {
             // Stopped looking
             if (dwellTimerRef.current) {
@@ -57,8 +65,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             }
             if (startTimeRef.current) {
               const duration = Date.now() - startTimeRef.current;
-              // If they looked for > 1s, it's a valid impression signal
-              if (duration > 1000) {
+              // If they looked for > 1s, it's a valid impression signal (only log once)
+              if (duration > 1000 && !hasLoggedImpression.current) {
+                hasLoggedImpression.current = true;
                 api.post(`/posts/${post.post_id}/action`, { action_type: 'click', duration }).catch(() => {});
               }
               startTimeRef.current = null;

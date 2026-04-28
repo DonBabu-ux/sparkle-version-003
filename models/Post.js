@@ -304,7 +304,12 @@ class Post {
                    ${excludeFilter}
                    ${cursorCondition}
                    AND NOT EXISTS (SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = p.user_id) OR (blocker_id = p.user_id AND blocked_id = ?))
-                   AND (p.user_id = ? OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?) OR (u.is_private = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private')))
+                   AND (
+                       p.post_type = 'public'
+                       OR p.user_id = ?
+                       OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
+                       OR (COALESCE(u.is_private, 0) = 0 AND (u.profile_visibility IS NULL OR u.profile_visibility != 'private'))
+                   )
                  ORDER BY discovery_score DESC, p.created_at DESC
                  LIMIT ? OFFSET ?`;
 
@@ -564,10 +569,21 @@ class Post {
 
                    (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) as like_count
                    ${currentUserId ? `, (SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.comment_id AND cl2.user_id = ?) as is_liked ` : ''}
+
             FROM comments c
             JOIN users u ON c.user_id = u.user_id
             WHERE c.post_id = ?
-            ORDER BY c.created_at ASC
+            ORDER BY
+                -- Root comments: most liked + recency decay (hot comments surface first)
+                CASE
+                    WHEN c.parent_comment_id IS NULL THEN
+                        (COALESCE(c.spark_count, 0) * 3.0)
+                        + (1.0 / (POW(TIMESTAMPDIFF(HOUR, c.created_at, NOW()) + 2, 0.6)))
+                    ELSE NULL
+                END DESC,
+                -- Replies: always chronological under their parent thread
+                c.created_at ASC
+            LIMIT 200
         `;
 
         const finalParams = currentUserId ? [currentUserId, postId] : [postId];

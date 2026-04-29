@@ -1,5 +1,7 @@
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const sessionInterestService = require('../services/session-interest.service');
+const momentsRankingService = require('../services/moments-ranking.service');
 
 let tablesEnsured = false;
 
@@ -313,105 +315,30 @@ const getMomentsStream = async (req, res) => {
         await ensureMomentTables();
         await ensureMomentColumns();
         
-        const { page = 1, limit = 20, recentlySeen } = req.query;
-        let { query } = req.query;
+        const { page = 1, limit = 20, recentlySeen, query, type } = req.query;
+        const limitNum = parseInt(limit, 10) || 20;
         const currentUserId = req.user.user_id;
-        
-        // 1. Fetch Session Interest Vector (SIV) & Normalized Query
-        const sivProfile = await sessionInterestService.getSessionProfile(currentUserId);
-        query = normalizeSearchQuery(query);
 
-        // Recently seen IDs to exclude
-        const excludeIds = Array.isArray(recentlySeen) ? recentlySeen : (recentlySeen ? recentlySeen.split(',') : []);
-
-        // 2. Probabilistic Ranking Model: Score = (E * V * Q * I * F * T) + eps
-        const buildMomentsQuery = (poolType = 'Hybrid') => {
-            const rankingScore = `
-                (
-                    /* E: Engagement rate (normalized) */
-                    ((COALESCE(m.like_count, 0) * 5.0 + COALESCE(m.comment_count, 0) * 10.0 + COALESCE(m.share_count, 0) * 15.0 + 1.0) 
-                    / (COALESCE(m.view_count, 0) + 10.0))
-                    *
-                    /* V: View quality factor (completion rate) */
-                    IFNULL(m.completion_rate, 1.0)
-                    *
-                    /* Q: Content quality score */
-                    IFNULL(m.quality_score, 1.0)
-                    *
-                    /* I: Interest similarity (SIV match) */
-                    (CASE 
-                        ${Object.entries(sivProfile).map(([cat, weight]) => `WHEN m.category = '${cat}' THEN ${Math.min(1.5, 1.0 + (weight / 50))}`).join('\n                        ')}
-                        ELSE 1.0
-                    END)
-                    *
-                    /* F: Follow affinity boost (moderate for Moments) */
-                    (CASE 
-                        WHEN m.user_id = ? THEN 0.05
-                        WHEN f.follower_id IS NOT NULL THEN 1.2
-                        ELSE 1.0
-                    END)
-                    *
-                    /* T: Time decay */
-                    (1.0 / POW(TIMESTAMPDIFF(HOUR, m.created_at, NOW()) + 2, 0.8))
-                ) + (RAND() * 0.05) /* eps: Exploration noise */
-            `;
-
-            let q = `
-                SELECT 
-                    m.*, u.username, u.name as user_name, u.avatar_url,
-                    ${rankingScore} as exploration_score
-                FROM moments m
-                JOIN users u ON m.user_id = u.user_id
-                LEFT JOIN follows f ON f.follower_id = ? AND f.following_id = m.user_id
-            `;
-            const p = [currentUserId, currentUserId];
-            const where = [];
-
-            if (poolType === 'Following') {
-                where.push(`f.follower_id IS NOT NULL`);
-            } else if (poolType === 'Trending') {
-                where.push(`m.created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)`);
-                where.push(`m.like_count > 5`);
-            } else if (poolType === 'Strangers') {
-                where.push(`f.follower_id IS NULL AND m.user_id != ?`);
-                p.push(currentUserId);
-            }
-
-            if (excludeIds.length > 0) {
-                where.push(`m.moment_id NOT IN (${excludeIds.map(() => '?').join(',')})`);
-                p.push(...excludeIds);
-            }
-
-            if (where.length > 0) q += ` WHERE ` + where.join(' AND ');
-            q += ` ORDER BY exploration_score DESC LIMIT ?`;
-            
-            return { q, p };
-        };
-
-        // 3. Execution (Dual Candidate Pool Distribution)
-        // Pool distribution: 40% Following, 40% Interest (Hybrid), 10% Trending, 10% Strangers
-        const pools = [
-            { type: 'Following', count: Math.ceil(limit * 0.4) },
-            { type: 'Hybrid', count: Math.ceil(limit * 0.4) },
-            { type: 'Trending', count: Math.ceil(limit * 0.1) },
-            { type: 'Strangers', count: Math.ceil(limit * 0.1) }
-        ];
-
-        let finalMoments = [];
-        for (const poolItem of pools) {
-            const { q, p } = buildMomentsQuery(poolItem.type);
-            p.push(poolItem.count);
-            const [rows] = await pool.query(q, p).catch(() => [[]]);
-            finalMoments = [...finalMoments, ...rows];
+        // 1. Capture Search Intent as Interest (SIV Signal)
+        if (query) {
+            sessionInterestService.recordEvent(currentUserId, null, { 
+                type: 'search', 
+                value: 1, 
+                category: query // We can later map query to a category
+            }).catch(err => logger.error('Search Intent Error:', err));
         }
 
-        // Final shuffle of the combined pool to ensure probabilistic flow
-        finalMoments.sort((a, b) => b.exploration_score - a.exploration_score);
+        // 2. BACKGROUND POOL GENERATION (Throttled & Non-blocking)
+        // We don't await this; it runs in the background to ensure next requests are fast.
+        momentsRankingService.generateCandidatePools().catch(err => logger.error('Pool Gen Error:', err));
+
+        // 3. Use the new Production-ready Ranking Service (Redis Shard fetching + SIV Personalization)
+        const finalMoments = await momentsRankingService.getRankedFeed(currentUserId, limitNum, { query, type });
 
         res.json({
             moments: finalMoments,
-            sivActive: Object.keys(sivProfile).length > 0,
-            pagination: { page: parseInt(page), limit: parseInt(limit), total: finalMoments.length }
+            sivActive: true, // We always apply SIV now
+            pagination: { page: parseInt(page), limit: limitNum, total: finalMoments.length }
         });
 
     } catch (error) {

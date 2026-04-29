@@ -96,7 +96,7 @@ const getFeedPosts = async (req, res) => {
             device_id = 'web',
         } = req.query;
 
-        const { bandedSeededShuffle, deviceSeedFromIds } = require('../utils/feedShuffle');
+        const { bandedSeededShuffle, deviceSeedFromIds, applyCreatorSpacing } = require('../utils/feedShuffle');
         const redisService = require('../services/redis.service');
 
         const numericSeed = Number(seed) || deviceSeedFromIds(currentUserId, device_id);
@@ -176,7 +176,10 @@ const getFeedPosts = async (req, res) => {
             const shuffled = bandedSeededShuffle(posts || [], chunkSeed);
 
             const batchFresh = shuffled.filter(p => !seenSet.has(p.post_id));
-            fresh = [...fresh, ...batchFresh];
+            
+            // Apply Creator Spacing to the batch to prevent same-user clusters
+            const spacedFresh = applyCreatorSpacing(batchFresh, 2); // Gap of 2 for Home Feed stability
+            fresh = [...fresh, ...spacedFresh];
 
             batchOffset += fetchLimit;
             await redisService.set(batchKey, batchOffset, 86400);

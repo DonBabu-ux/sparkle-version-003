@@ -78,4 +78,49 @@ function deviceSeedFromIds(userId = '', deviceId = '') {
     return hash;
 }
 
-module.exports = { bandedSeededShuffle, deviceSeedFromIds, shuffleWithSeed };
+/**
+ * Apply Creator Spacing to prevent back-to-back posts from the same user.
+ * 
+ * @param {Array} posts - The list of posts to process
+ * @param {number} gap - Minimum posts between same creator (default 1)
+ */
+function applyCreatorSpacing(posts, gap = 1) {
+    if (!posts || posts.length < 2) return posts;
+
+    const result = [];
+    const backlog = [];
+    const creatorLastPos = new Map(); // creatorId -> last position in result
+
+    for (const post of posts) {
+        const creatorId = post.user_id;
+        const lastPos = creatorLastPos.get(creatorId);
+        
+        const canPlace = lastPos === undefined || (result.length - lastPos) > gap;
+
+        if (canPlace) {
+            result.push(post);
+            creatorLastPos.set(creatorId, result.length - 1);
+            
+            // Try to empty backlog after successful placement
+            if (backlog.length > 0) {
+                for (let i = 0; i < backlog.length; i++) {
+                    const bPost = backlog[i];
+                    const bLastPos = creatorLastPos.get(bPost.user_id);
+                    if (bLastPos === undefined || (result.length - bLastPos) > gap) {
+                        result.push(bPost);
+                        creatorLastPos.set(bPost.user_id, result.length - 1);
+                        backlog.splice(i, 1);
+                        i--; // Re-check index after splice
+                    }
+                }
+            }
+        } else {
+            backlog.push(post);
+        }
+    }
+
+    // Fill remaining from backlog (if we have no other choice)
+    return [...result, ...backlog];
+}
+
+module.exports = { bandedSeededShuffle, deviceSeedFromIds, shuffleWithSeed, applyCreatorSpacing };

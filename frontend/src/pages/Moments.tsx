@@ -87,6 +87,7 @@ const ReelItem = ({
   onOpenComments: (id: string) => void;
   onShare: (moment: Moment) => void;
   onOpenSearch: () => void;
+  onFollow: (userId: string, momentId: string) => void;
   active: boolean;
   downloadProgress?: number | null;
 }) => {
@@ -290,7 +291,12 @@ const ReelItem = ({
             onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}
           />
           {!moment.is_following && (
-            <button className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-110 transition-transform">+</button>
+            <button 
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-110 transition-transform"
+              onClick={(e) => { e.stopPropagation(); onFollow(moment.user_id || '', moment.moment_id); }}
+            >
+              +
+            </button>
           )}
         </div>
  
@@ -504,6 +510,23 @@ export default function Moments() {
       handleSearch(searchQuery, activeSearchTab);
     }
   }, [activeSearchTab]);
+
+  const handleFollow = async (userId: string, momentId: string) => {
+    if (!userId) return;
+    
+    // Optimistic Update
+    setMoments(prev => prev.map(m => m.user_id === userId ? { ...m, is_following: true } : m));
+    setSearchResults(prev => prev.map(m => m.user_id === userId ? { ...m, is_following: true } : m));
+
+    try {
+      await api.post(`/moments/user/${userId}/follow`);
+    } catch (err) {
+      console.error('Follow error', err);
+      // Rollback on error
+      setMoments(prev => prev.map(m => m.user_id === userId ? { ...m, is_following: false } : m));
+      setSearchResults(prev => prev.map(m => m.user_id === userId ? { ...m, is_following: false } : m));
+    }
+  };
 
   const trackEngagement = async (momentId: string, type: string, value?: number, category?: string) => {
     try {
@@ -912,7 +935,7 @@ export default function Moments() {
             </div>
         ) : (
             moments.map((m, idx) => (
-              <div key={m.moment_id} className="h-[100dvh] w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 lg:ml-72 transition-all overflow-hidden relative">
+              <div key={m.moment_id} className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 lg:ml-72 transition-all overflow-hidden relative">
                 <ReelItem 
                    active={idx === activeIndex}
                    moment={m} 
@@ -921,6 +944,7 @@ export default function Moments() {
                    onOpenComments={openComments}
                    onShare={setMomentToShare}
                    onOpenSearch={() => setIsSearchOpen(true)}
+                   onFollow={handleFollow}
                    downloadProgress={downloadProgress?.id === m.moment_id ? downloadProgress.progress : null}
                 />
               </div>

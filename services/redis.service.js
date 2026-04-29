@@ -110,6 +110,31 @@ class RedisService {
             return null;
         }
     }
+    /**
+     * Add to a Set (for seen videos)
+     */
+    async sadd(key, ...members) {
+        if (!this.isEnabled) return 0;
+        try {
+            return await this.client.sadd(key, ...members);
+        } catch (error) {
+            logger.error(`Redis SAdd Error [${key}]:`, error.message);
+            return 0;
+        }
+    }
+
+    /**
+     * Get all members of a Set
+     */
+    async smembers(key) {
+        if (!this.isEnabled) return [];
+        try {
+            return await this.client.smembers(key);
+        } catch (error) {
+            logger.error(`Redis SMembers Error [${key}]:`, error.message);
+            return [];
+        }
+    }
 }
 
 // Export a singleton instance

@@ -37,6 +37,7 @@ class SessionInterestService {
                 case 'share': weight = 20; break; // S
                 case 'save': weight = 15; break; // R
                 case 'rewatch': weight = 8; break; // R (rewatch frequency)
+                case 'search': weight = 25; break; // Explicit Search intent
             }
 
             if (weight === 0) return;

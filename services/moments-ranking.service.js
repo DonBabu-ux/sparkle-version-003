@@ -55,7 +55,7 @@ class MomentsRankingService {
             await redis.set('pool:trending:shard_01', JSON.stringify(trending), 300);
 
             // 2. Category Pools
-            const categories = ['Sports', 'Technology', 'Entertainment', 'Academic', 'Social', 'Music', 'Lifestyle', 'Gaming'];
+            const categories = ['Sports', 'Technology', 'Entertainment', 'Academic', 'Social', 'Music', 'Lifestyle', 'Gaming', 'Comedy', 'Education', 'Politics', 'Viral', 'Dance', 'Nature', 'Fashion', 'Health', 'Travel'];
             for (const cat of categories) {
                 const [catMoments] = await pool.query(`
                     SELECT m.*, u.username, u.name as user_name, u.avatar_url,
@@ -255,7 +255,15 @@ class MomentsRankingService {
         const seenSet = new Set(seenVideos || []);
 
         // Filter seen
-        const unique = candidates.filter(c => !seenSet.has(c.moment_id));
+        let unique = candidates.filter(c => !seenSet.has(c.moment_id));
+
+        if (unique.length === 0 && candidates.length > 0) {
+            // User has seen all candidates in the current pool/page.
+            // Recycle the candidates so the feed doesn't appear empty.
+            unique = candidates;
+            // Optionally, clear the seen set to restart discovery
+            await redis.del(`seen_video_set:user:${userId}`);
+        }
 
         // Enforce 70/20/10 Rule
         const aligned = unique.filter(c => c.is_aligned);

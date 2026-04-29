@@ -624,10 +624,10 @@ const logout = async (req, res) => {
         const userId = req.user?.userId || req.user?.user_id;
 
         if (refreshToken) {
-            await pool.query('DELETE FROM refresh_tokens WHERE token = ?', [refreshToken]);
+            await query('DELETE FROM refresh_tokens WHERE token = ?', [refreshToken]);
         } else if (userId) {
             // Fallback: clear all tokens for this user on this device (optional)
-            await pool.query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
+            await query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
         }
 
         res.clearCookie('sparkleToken', {

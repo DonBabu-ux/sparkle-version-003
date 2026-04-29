@@ -82,7 +82,7 @@ class SessionInterestService {
         const sessionKey = `siv:${userId}`;
         // Since we can't easily fetch all keys in Upstash Redis without 'KEYS' (which is slow),
         // we'll rely on a known set of platform categories
-        const categories = ['Sports', 'Technology', 'Entertainment', 'Academic', 'Social', 'Music', 'Lifestyle', 'Gaming'];
+        const categories = ['Sports', 'Technology', 'Entertainment', 'Academic', 'Social', 'Music', 'Lifestyle', 'Gaming', 'Comedy', 'Education', 'Politics', 'Viral', 'Dance', 'Nature', 'Fashion', 'Health', 'Travel'];
         const profile = {};
         
         for (const cat of categories) {

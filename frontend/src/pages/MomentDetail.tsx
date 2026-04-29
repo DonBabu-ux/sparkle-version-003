@@ -99,7 +99,14 @@ export default function MomentDetail() {
               <div className="relative w-full aspect-[9/16] max-h-[85vh] bg-black">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none z-10" />
                 
-                {moment.is_video ? (
+                {moment.media_url?.includes('tiktok.com') ? (
+                  <iframe 
+                    src={`https://www.tiktok.com/embed/v2/${moment.media_url.split('/video/')[1]?.split('?')[0]}`} 
+                    className="w-full h-full border-none"
+                    allow="autoplay; encrypted-media"
+                    title="TikTok Video"
+                  />
+                ) : moment.is_video ? (
                   <video 
                     src={moment.media_url} 
                     className="w-full h-full object-cover" 

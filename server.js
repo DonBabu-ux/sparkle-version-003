@@ -319,6 +319,18 @@ if (require.main === module) {
         // Initialize database tables
         initDB().catch(err => logger.error('Failed to initialize database:', err));
     });
+    
+    server.on('error', (e) => {
+        if (e.code === 'EADDRINUSE') {
+            logger.error(`Port ${PORT} is in use, retrying in 1s...`);
+            setTimeout(() => {
+                server.close();
+                server.listen(PORT);
+            }, 1000);
+        } else {
+            logger.error('Server error:', e);
+        }
+    });
 }
 
 // GRACEFUL SHUTDOWN HANDLER

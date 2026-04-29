@@ -186,6 +186,8 @@ const ReelItem = ({
 
   const mediaSrc = isNearActive ? (moment.video_url || moment.media_url) : undefined;
   const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!(moment.video_url || moment.media_url)?.match(/\.(mp4|webm|ogg|quicktime|mov)$/i);
+  const isTikTok = mediaSrc?.includes('tiktok.com');
+  const tiktokId = isTikTok ? mediaSrc?.split('/video/')[1]?.split('?')[0] : null;
 
   return (
     <div 
@@ -229,7 +231,23 @@ const ReelItem = ({
 
         {/* Primary Content Layer */}
         <div className="relative w-full h-full flex items-center justify-center z-10">
-          {isVideo ? (
+          {isTikTok && tiktokId ? (
+            <div className="w-full h-full flex items-center justify-center bg-black">
+              {active ? (
+                <iframe
+                  src={`https://www.tiktok.com/embed/v2/${tiktokId}`}
+                  className="w-full h-full border-none pointer-events-auto"
+                  style={{ height: '100%', width: '100%' }}
+                  allow="autoplay; encrypted-media"
+                  title="TikTok Video"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                  <Play size={64} fill="white" className="opacity-40" />
+                </div>
+              )}
+            </div>
+          ) : isVideo ? (
             <video 
               ref={videoRef}
               src={mediaSrc} 

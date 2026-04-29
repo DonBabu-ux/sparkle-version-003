@@ -333,12 +333,13 @@ const getMomentsStream = async (req, res) => {
         momentsRankingService.generateCandidatePools().catch(err => logger.error('Pool Gen Error:', err));
 
         // 3. Use the new Production-ready Ranking Service (Redis Shard fetching + SIV Personalization)
-        const finalMoments = await momentsRankingService.getRankedFeed(currentUserId, limitNum, { query, type });
+        const offset = parseInt(page) * limitNum;
+        const finalMoments = await momentsRankingService.getRankedFeed(currentUserId, limitNum, { query, type, offset });
 
         res.json({
             moments: finalMoments,
-            sivActive: true, // We always apply SIV now
-            pagination: { page: parseInt(page), limit: limitNum, total: finalMoments.length }
+            sivActive: true, 
+            pagination: { page: parseInt(page), limit: limitNum, total: finalMoments.length, hasMore: finalMoments.length === limitNum }
         });
 
     } catch (error) {

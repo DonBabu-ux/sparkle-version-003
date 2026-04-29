@@ -76,9 +76,9 @@ const ReelItem = ({
   onLike, 
   onSave,
   onOpenComments,
-  onShare,
   onOpenSearch,
   active,
+  isNearActive,
   downloadProgress
 }: { 
   moment: Moment; 
@@ -89,6 +89,7 @@ const ReelItem = ({
   onOpenSearch: () => void;
   onFollow: (userId: string, momentId: string) => void;
   active: boolean;
+  isNearActive: boolean;
   downloadProgress?: number | null;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -183,8 +184,8 @@ const ReelItem = ({
     }
   };
 
-  const mediaSrc = moment.video_url || moment.media_url;
-  const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!mediaSrc?.match(/\.(mp4|webm|ogg|quicktime|mov)$/i);
+  const mediaSrc = isNearActive ? (moment.video_url || moment.media_url) : undefined;
+  const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!(moment.video_url || moment.media_url)?.match(/\.(mp4|webm|ogg|quicktime|mov)$/i);
 
   return (
     <div 
@@ -215,6 +216,7 @@ const ReelItem = ({
               muted
               playsInline
               className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
+              poster={moment.thumbnail_url || moment.media_url}
             />
           ) : (
             <img 
@@ -405,31 +407,48 @@ export default function Moments() {
   const [downloadProgress, setDownloadProgress] = useState<{ id: string, progress: number } | null>(null);
   const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
   
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [fetchingMore, setFetchingMore] = useState(false);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const fetchMoments = useCallback(async () => {
-    setLoading(true);
+  const fetchMoments = useCallback(async (pageNum = 0) => {
+    if (pageNum === 0) setLoading(true);
+    else setFetchingMore(true);
+
     try {
-      const res = await api.get('/moments/stream');
-      let data = res.data.moments || res.data || [];
+      const res = await api.get(`/moments/stream?page=${pageNum}&limit=8`);
+      const { moments: newMoments, pagination } = res.data;
+      const data = newMoments || [];
       
-      if (id && !data.find((m: Moment) => m.moment_id === id)) {
+      if (pageNum === 0 && id && !data.find((m: Moment) => m.moment_id === id)) {
         try {
           const detailRes = await api.get(`/moments/${id}`);
           const single = detailRes.data.moment || detailRes.data;
-          if (single) data = [single, ...data];
+          if (single) data.unshift(single);
         } catch (e) { console.error('Error fetching moment', e); }
       }
 
-      setMoments(data);
+      setMoments(prev => pageNum === 0 ? data : [...prev, ...data]);
+      setHasMore(pagination?.hasMore ?? data.length >= 8);
+      setPage(pageNum);
     } catch (err) {
       console.error('Moments fetch error:', err);
     } finally {
       setLoading(false);
+      setFetchingMore(false);
     }
   }, [id]);
 
-  useEffect(() => { fetchMoments(); }, [fetchMoments]);
+  useEffect(() => { fetchMoments(0); }, [id]);
+
+  const loadMore = () => {
+    if (!fetchingMore && hasMore) {
+      fetchMoments(page + 1);
+    }
+  };
 
   const handleSearch = async (query: string, type: string = activeSearchTab, force: boolean = false) => {
     if (!query || !query.trim()) return;
@@ -540,10 +559,16 @@ export default function Moments() {
     const scrollTop = e.currentTarget.scrollTop;
     const height = e.currentTarget.clientHeight;
     const index = Math.round(scrollTop / height);
+    
     if (index !== activeIndex && index >= 0 && index < moments.length) {
       setActiveIndex(index);
       const currentId = moments[index].moment_id;
       window.history.replaceState(null, '', `/moments/${currentId}`);
+
+      // Prefetch next batch when 3 videos from end
+      if (index >= moments.length - 3 && hasMore && !fetchingMore) {
+        loadMore();
+      }
     }
   };
 
@@ -938,6 +963,7 @@ export default function Moments() {
               <div key={m.moment_id} className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 lg:ml-72 transition-all overflow-hidden relative">
                 <ReelItem 
                    active={idx === activeIndex}
+                   isNearActive={Math.abs(idx - activeIndex) <= 1}
                    moment={m} 
                    onLike={handleLike} 
                    onSave={handleSave}

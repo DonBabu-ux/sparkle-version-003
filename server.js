@@ -1,3 +1,10 @@
+// SINGLE INSTANCE GUARD (Prevents zombie processes from occupying Port 3000)
+if (global.__SERVER_RUNNING__) {
+  console.log("⚠️ Server already running in this process, skipping duplicate start.");
+  process.exit(0);
+}
+global.__SERVER_RUNNING__ = true;
+
 const express = require('express');
 const { createServer } = require('http');
 const cors = require('cors');
@@ -314,6 +321,23 @@ if (require.main === module) {
     });
 }
 
-// Export app and server for Vercel / testing
+// GRACEFUL SHUTDOWN HANDLER
+const shutdown = (signal) => {
+    logger.info(`🔴 ${signal} received: Closing server gracefully...`);
+    server.close(() => {
+        logger.info('✅ Server closed. Releasing resources.');
+        process.exit(0);
+    });
+    
+    // Force exit after 5s if server.close is hanging
+    setTimeout(() => {
+        logger.error('⚠️ Could not close connections in time, forcing shut down.');
+        process.exit(1);
+    }, 5000);
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 module.exports = { app, server };
 

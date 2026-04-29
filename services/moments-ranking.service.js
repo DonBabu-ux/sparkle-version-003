@@ -112,25 +112,30 @@ class MomentsRankingService {
     /**
      * FULL PRODUCTION PIPELINE: Retrieval -> Scoring -> Reranking -> Exploration
      */
-    async getRankedFeed(userId, limit = 20, options = {}) {
-        const { query } = options;
+    async getRankedFeed(userId, limit = 8, options = {}) {
+        const { query, offset = 0 } = options;
         
         // --- STAGE 1: RETRIEVAL ---
-        const candidates = await this._retrieveCandidates(userId, query);
+        // For paging, we only rebuild the pool on page 0
+        if (offset === 0) {
+            this.generateCandidatePools().catch(() => {});
+        }
+
+        const candidates = await this._retrieveCandidates(userId, query, offset);
         
         // --- STAGE 2: SCORING ---
         const scoredCandidates = await this._scoreCandidates(userId, candidates, query);
         
-        // --- STAGE 3: RERANKING (Business Rules & Diversity) ---
+        // --- STAGE 3: RERANKING ---
         const reranked = this._rerank(scoredCandidates, limit);
         
-        // --- STAGE 4: EXPLORATION INJECTION & DEDUPLICATION ---
+        // --- STAGE 4: EXPLORATION INJECTION ---
         const finalBatch = await this._applyExplorationAndDeduplicate(userId, reranked, limit, !!query);
 
         return finalBatch;
     }
 
-    async _retrieveCandidates(userId, query) {
+    async _retrieveCandidates(userId, query, offset = 0) {
         let candidates = [];
         const pools = ['pool:trending:shard_01', 'pool:strangers:shard_01'];
         
@@ -153,19 +158,20 @@ class MomentsRankingService {
         const following = await this.getFollowingPool(userId);
         candidates.push(...following);
 
-        // --- DATABASE FALLBACK (The Reliability Guard) ---
-        // If we have zero or very few candidates (e.g. cold Redis), hit the DB for a safety batch
-        if (candidates.length < 10 && !query) {
-            const [fallback] = await pool.query(`
+        // --- DATABASE FALLBACK & PAGING ---
+        // If we are paging deep or Redis is cold, fetch from DB
+        if (candidates.length < 20 || offset > 0) {
+            const [dbItems] = await pool.query(`
                 SELECT m.*, u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
                 FROM moments m
                 JOIN users u ON m.user_id = u.user_id
-                ORDER BY m.created_at DESC LIMIT 50
-            `);
-            candidates.push(...fallback);
+                ORDER BY m.created_at DESC 
+                LIMIT ? OFFSET ?
+            `, [50, offset]);
+            candidates.push(...dbItems);
         }
 
-        // Filter by Query if present (Soft match fallback)
+        // Filter by Query if present
         if (query) {
             const normalizedQ = query.toLowerCase();
             const filtered = candidates.filter(c => 
@@ -173,11 +179,13 @@ class MomentsRankingService {
                 (c.category && c.category.toLowerCase() === normalizedQ) ||
                 (c.username && c.username.toLowerCase().includes(normalizedQ))
             );
-            // If we have enough filtered results, use them, otherwise keep original for diversity
             if (filtered.length >= 5) return filtered;
         }
 
-        return candidates;
+        // Deduplicate candidates before returning (important for mixed sources)
+        const uniqueMap = new Map();
+        candidates.forEach(c => uniqueMap.set(c.moment_id, c));
+        return Array.from(uniqueMap.values());
     }
 
     async _scoreCandidates(userId, candidates, query) {

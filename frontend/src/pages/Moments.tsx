@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Heart, MessageCircle, Share2, BookmarkCheck, 
-  Play, Send, X,
+  Play, Send, X, Search, History,
   Volume2, VolumeX, Loader2, Sparkles, Orbit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -77,6 +77,7 @@ const ReelItem = ({
   onSave,
   onOpenComments,
   onShare,
+  onOpenSearch,
   active,
   downloadProgress
 }: { 
@@ -85,22 +86,43 @@ const ReelItem = ({
   onSave: (id: string) => void; 
   onOpenComments: (id: string) => void;
   onShare: (moment: Moment) => void;
+  onOpenSearch: () => void;
   active: boolean;
   downloadProgress?: number | null;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [showHeart, setShowHeart] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+  const [hearts, setHearts] = useState<{ id: number; x: number; y: number; rotate: number }[]>([]);
+  const [progress, setProgress] = useState(0);
   const navigate = useNavigate();
+  const heartIdCounter = useRef(0);
+
+  const viewTracked = useRef(false);
 
   useEffect(() => {
-    if (active && videoRef.current) {
-      videoRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    if (active && videoRef.current && !userPaused) {
+      videoRef.current.play().then(() => {
+        setPlaying(true);
+        if (!viewTracked.current) {
+          api.post(`/moments/${moment.moment_id}/view`).catch(() => {});
+          viewTracked.current = true;
+        }
+      }).catch(() => setPlaying(false));
     } else if (videoRef.current) {
       videoRef.current.pause();
       setPlaying(false);
     }
+
+    if (!active) {
+      viewTracked.current = false;
+    }
+  }, [active, userPaused, moment.moment_id]);
+
+  // Reset userPaused when the video becomes active (to allow autoplay for the next video)
+  useEffect(() => {
+    if (active) setUserPaused(false);
   }, [active]);
 
   const togglePlay = () => {
@@ -108,23 +130,66 @@ const ReelItem = ({
       if (playing) {
         videoRef.current.pause();
         setPlaying(false);
+        setUserPaused(true);
       } else {
         videoRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+        setUserPaused(false);
       }
     }
   };
 
-  const handleDoubleTap = () => {
+  const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
+    // Toggle play/pause on tap
+    togglePlay();
+
+    // Detect tap location
+    let clientX, clientY;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    // Trigger like on first interaction of a potential "burst"
     if (!moment.is_liked) onLike(moment.moment_id);
-    setShowHeart(true);
-    setTimeout(() => setShowHeart(false), 800);
+
+    // Add heart to burst
+    const newHeart = {
+      id: ++heartIdCounter.current,
+      x,
+      y,
+      rotate: (Math.random() - 0.5) * 60 // -30 to 30 deg
+    };
+
+    setHearts(prev => [...prev, newHeart]);
+
+    // Cleanup heart after animation
+    setTimeout(() => {
+      setHearts(prev => prev.filter(h => h.id !== newHeart.id));
+    }, 1000);
+  };
+
+  const onVideoTimeUpdate = () => {
+    if (videoRef.current) {
+      const p = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+      setProgress(p);
+    }
   };
 
   const mediaSrc = moment.video_url || moment.media_url;
   const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!mediaSrc?.match(/\.(mp4|webm|ogg|quicktime|mov)$/i);
 
   return (
-    <div className="relative w-full h-full max-w-[480px] mx-auto bg-black rounded-none md:rounded-[48px] overflow-hidden shadow-2xl transition-all duration-700 active:scale-95 group" onDoubleClick={handleDoubleTap}>
+    <div 
+      className="relative w-full h-full max-w-[480px] mx-auto bg-black rounded-none md:rounded-[48px] overflow-hidden shadow-2xl transition-all duration-700 active:scale-[0.98] group select-none" 
+      onClick={handleInteraction}
+    >
       
       {/* Download Progress Overlay */}
       {downloadProgress !== null && downloadProgress !== undefined && (
@@ -139,7 +204,7 @@ const ReelItem = ({
         </div>
       )}
 
-      <div className="absolute inset-0 cursor-pointer" onClick={togglePlay}>
+      <div className="absolute inset-0">
         {/* Background Blur Layer */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {isVideo ? (
@@ -169,13 +234,14 @@ const ReelItem = ({
               loop
               muted={muted}
               playsInline
-              className="w-full h-full object-contain"
+              onTimeUpdate={onVideoTimeUpdate}
+              className="w-full h-full object-contain pointer-events-none"
             />
           ) : (
             <img 
               src={mediaSrc || moment.thumbnail_url} 
               alt="Moment" 
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain pointer-events-none"
             />
           )}
         </div>
@@ -184,21 +250,31 @@ const ReelItem = ({
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
 
-        <AnimatePresence>
-          {showHeart && (
-            <motion.div 
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1.5, opacity: 1 }}
-              exit={{ scale: 2, opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 text-white"
-            >
-              <Heart size={100} fill="currentColor" strokeWidth={0} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Vigorous Hearts Burst Layer */}
+        <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+          <AnimatePresence>
+            {hearts.map(heart => (
+              <motion.div
+                key={heart.id}
+                initial={{ scale: 0, opacity: 0, x: heart.x - 40, y: heart.y - 40, rotate: heart.rotate }}
+                animate={{ 
+                  scale: [1, 1.5, 2], 
+                  opacity: [1, 1, 0], 
+                  y: heart.y - 200, // Fly up
+                  x: heart.x - 40 + (Math.random() - 0.5) * 50 // Slight horizontal drift
+                }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="absolute text-primary pointer-events-none"
+              >
+                <Heart size={80} fill="currentColor" strokeWidth={0} className="drop-shadow-2xl" />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
 
         {!playing && isVideo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] pointer-events-none">
             <Play size={64} fill="white" className="opacity-60 drop-shadow-2xl" />
           </div>
         )}
@@ -211,28 +287,28 @@ const ReelItem = ({
             src={moment.avatar_url || '/uploads/avatars/default.png'} 
             className="w-11 h-11 rounded-full border-2 border-white object-cover cursor-pointer shadow-xl transition-all group-hover/avatar:scale-110" 
             alt=""
-            onClick={() => navigate(`/profile/${moment.username}`)}
+            onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}
           />
           {!moment.is_following && (
             <button className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-110 transition-transform">+</button>
           )}
         </div>
  
-        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={() => onLike(moment.moment_id)}>
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { e.stopPropagation(); onLike(moment.moment_id); }}>
           <div className={clsx("w-12 h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_liked ? "bg-primary border-primary text-white" : "bg-black/20 border-white/20 text-white")}>
             <Heart size={24} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
           <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.like_count || 0}</span>
         </button>
  
-        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={() => onOpenComments(moment.moment_id)}>
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { e.stopPropagation(); onOpenComments(moment.moment_id); }}>
           <div className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all group-hover/btn:scale-110 shadow-lg">
             <MessageCircle size={24} strokeWidth={2.5} />
           </div>
           <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.comment_count || 0}</span>
         </button>
  
-        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={() => onSave(moment.moment_id)}>
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { e.stopPropagation(); onSave(moment.moment_id); }}>
           <div className={clsx("w-12 h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_saved ? "bg-amber-400 border-amber-400 text-white" : "bg-black/20 border-white/20 text-white")}>
             <BookmarkCheck size={24} fill={moment.is_saved ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
@@ -240,13 +316,13 @@ const ReelItem = ({
         </button>
  
         <button 
-          onClick={() => onShare(moment)}
+          onClick={(e) => { e.stopPropagation(); onShare(moment); }}
           className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all hover:bg-white/40 shadow-lg"
         >
           <Share2 size={22} strokeWidth={2.5} />
         </button>
  
-        <button className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white transition-all mt-2" onClick={() => setMuted(!muted)}>
+        <button className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white transition-all mt-2" onClick={(e) => { e.stopPropagation(); setMuted(!muted); }}>
           {muted ? <VolumeX size={16} strokeWidth={2.5} /> : <Volume2 size={16} strokeWidth={2.5} />}
         </button>
       </div>
@@ -254,7 +330,7 @@ const ReelItem = ({
       {/* Info Overlay (Rationalized) */}
       <div className="absolute inset-x-0 bottom-0 p-5 pb-6 z-10 flex flex-col gap-2 pointer-events-none">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-bold text-white tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1.5" onClick={() => navigate(`/profile/${moment.username}`)}>
+          <h3 className="text-lg font-bold text-white tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1.5" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}>
             @{moment.username}
             <Sparkles size={14} className="text-primary fill-primary" />
           </h3>
@@ -265,10 +341,29 @@ const ReelItem = ({
             {moment.caption}
           </p>
         )}
-        <div className="flex items-center gap-1.5 mt-1 opacity-60">
-           <Orbit size={12} className="animate-spin-slow text-white" />
-           <span className="text-[9px] font-bold text-white uppercase tracking-wider">{moment.view_count || 0} signals</span>
+        <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-1.5 opacity-60">
+             <Orbit size={12} className="animate-spin-slow text-white" />
+             <span className="text-[9px] font-bold text-white uppercase tracking-wider">{moment.view_count || 0} signals</span>
+          </div>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onOpenSearch(); }}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 hover:text-white transition-all active:scale-95 pointer-events-auto"
+          >
+            <Search size={10} />
+            <span className="text-[8px] font-bold uppercase tracking-wider">Search</span>
+          </button>
         </div>
+      </div>
+
+      {/* Cinematic Progress Bar (TikTok style) */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 z-[30] pointer-events-none">
+        <motion.div 
+          className="h-full bg-white/60 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.1, ease: "linear" }}
+        />
       </div>
     </div>
   );
@@ -281,12 +376,28 @@ export default function Moments() {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
+  const [activeMomentId, setActiveMomentId] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [activeMomentId, setActiveMomentId] = useState<string | null>(null);
-  const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null);
+  
+  // Moments Search States
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchHistory, setSearchHistory] = useState(['Nairobi Nightlife', 'Sheng Rap', 'Kenyan Food']);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [searchResults, setSearchResults] = useState<Moment[]>([]);
+  const [activeSearchTab, setActiveSearchTab] = useState('Top');
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [isFallback, setIsFallback] = useState(false);
+  const searchCache = useRef<Record<string, any>>({});
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<{ id: string, progress: number } | null>(null);
+  const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -313,6 +424,94 @@ export default function Moments() {
   }, [id]);
 
   useEffect(() => { fetchMoments(); }, [fetchMoments]);
+
+  const handleSearch = async (query: string, type: string = activeSearchTab, force: boolean = false) => {
+    if (!query || !query.trim()) return;
+    
+    const cacheKey = `${type}:${query.toLowerCase().trim()}`;
+    const now = Date.now();
+    const TTL = 5 * 60 * 1000; // 5 minutes
+
+    // 1. Check Memory Cache
+    if (!force && searchCache.current[cacheKey] && (now - searchCache.current[cacheKey].timestamp < TTL)) {
+      setSearchResults(searchCache.current[cacheKey].moments);
+      setIsFallback(searchCache.current[cacheKey].isFallback);
+      setHasSearched(true);
+      setSearchQuery(query);
+      return;
+    }
+
+    // 2. Check Persistent Cache (LocalStorage)
+    const persisted = localStorage.getItem(`search_${cacheKey}`);
+    if (!force && persisted) {
+        const { moments, isFallback, timestamp } = JSON.parse(persisted);
+        if (now - timestamp < TTL) {
+            setSearchResults(moments);
+            setIsFallback(isFallback);
+            setHasSearched(true);
+            setSearchQuery(query);
+            searchCache.current[cacheKey] = { moments, isFallback, timestamp }; // Sync to memory
+            return;
+        }
+    }
+
+    setSearchQuery(query);
+    setSearchInput(query);
+    setIsSearching(true);
+    setHasSearched(true);
+    
+    // Add to history if not exists
+    if (!searchHistory.includes(query)) {
+      setSearchHistory(prev => [query, ...prev.slice(0, 9)]);
+    }
+
+    try {
+      const res = await api.get(`/moments/stream?query=${encodeURIComponent(query)}&type=${type}`);
+      const data = res.data;
+      const resultData = {
+        moments: data.moments || data || [],
+        isFallback: data.isFallback || false,
+        timestamp: now
+      };
+
+      setSearchResults(resultData.moments);
+      setIsFallback(resultData.isFallback);
+      
+      // Update Caches
+      searchCache.current[cacheKey] = resultData;
+      localStorage.setItem(`search_${cacheKey}`, JSON.stringify(resultData));
+    } catch (err) {
+      console.error('Search error', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Debounced search for typing
+  useEffect(() => {
+    if (searchInput.trim().length > 2 && searchInput !== searchQuery) {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+      searchTimeout.current = setTimeout(() => {
+        handleSearch(searchInput, activeSearchTab);
+      }, 500);
+    }
+    return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
+  }, [searchInput]);
+
+  // Re-trigger search when tab changes
+  useEffect(() => {
+    if (hasSearched && searchQuery) {
+      handleSearch(searchQuery, activeSearchTab);
+    }
+  }, [activeSearchTab]);
+
+  const trackEngagement = async (momentId: string, type: string, value?: number, category?: string) => {
+    try {
+      await api.post(`/moments/${momentId}/engagement`, { type, value, category });
+    } catch (err) {
+      // Silently fail telemetry
+    }
+  };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
@@ -454,6 +653,238 @@ export default function Moments() {
   return (
     <div className="fixed inset-0 bg-[#fdf2f4] flex flex-col font-sans overflow-hidden">
       <Navbar />
+
+      {/* Top Navigation Bar Overlay (Minimalist) */}
+      {!isSearchOpen && (
+        <div className="fixed top-0 left-0 right-0 p-5 flex justify-between items-center z-[1100] pointer-events-none lg:ml-72">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] drop-shadow-lg">Sparkle</span>
+              <span className="text-[14px] font-bold text-white flex items-center gap-1.5 drop-shadow-md">
+                Live Stream
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_#ef4444]" />
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsSearchOpen(true)}
+            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform"
+          >
+            <Search size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Moments Specific Search Overlay */}
+      <AnimatePresence>
+        {isSearchOpen && (
+          <motion.div 
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            className="fixed inset-0 bg-black z-[2000] flex flex-col lg:ml-72"
+          >
+            {/* Search Header */}
+            <div className="p-4 flex items-center gap-3 border-b border-white/5">
+              <button onClick={() => { setIsSearchOpen(false); setHasSearched(false); }} className="text-white active:scale-90 transition-transform">
+                <X size={24} />
+              </button>
+              <div className="flex-1 relative">
+                <input 
+                  autoFocus
+                  type="text" 
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchInput)}
+                  placeholder="Search moments..."
+                  className="w-full bg-white/10 border-none rounded-full py-2.5 px-10 text-sm font-medium focus:ring-1 focus:ring-primary/50 outline-none transition-all"
+                />
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                {searchInput && (
+                  <button onClick={() => { setSearchInput(''); setSearchQuery(''); setHasSearched(false); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <button 
+                onClick={() => handleSearch(searchInput)}
+                className="text-primary font-bold text-sm px-2 active:opacity-50"
+              >
+                Search
+              </button>
+            </div>
+
+            {/* Fixed Category Tabs (TikTok Style) */}
+            {(hasSearched || searchQuery) && (
+              <div className="flex items-center px-4 overflow-x-auto scrollbar-hide border-b border-white/5 bg-black/80 backdrop-blur-2xl z-[10]">
+                {['Top', 'Videos', 'Users', 'Sounds', 'Photos', 'Live', 'Hashtags'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveSearchTab(tab)}
+                    className={clsx(
+                      "px-5 py-3 text-xs font-bold uppercase tracking-widest whitespace-nowrap border-b-2 transition-all",
+                      activeSearchTab === tab ? "border-primary text-white" : "border-transparent text-white/40"
+                    )}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+              {!hasSearched && !searchQuery ? (
+                <div className="p-5 flex flex-col gap-8">
+                  {/* Search History */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest">Recent Searches</h4>
+                      <button onClick={() => setSearchHistory([])} className="text-[10px] font-bold text-white/20 uppercase tracking-wider">Clear all</button>
+                    </div>
+                    <div className="flex flex-col">
+                      {(showAllHistory ? searchHistory : searchHistory.slice(0, 3)).map((item, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={() => handleSearch(item)}
+                          className="flex items-center justify-between py-3.5 border-b border-white/5 active:bg-white/5 transition-colors"
+                        >
+                          <span className="text-sm font-medium text-white/80">{item}</span>
+                          <History size={14} className="text-white/20" />
+                        </div>
+                      ))}
+                      {searchHistory.length > 3 && !showAllHistory && (
+                        <button 
+                          onClick={() => setShowAllHistory(true)}
+                          className="py-3 text-xs font-bold text-white/30 hover:text-white transition-colors"
+                        >
+                          Show more history...
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* You May Like - Red Highlighted Suggestions */}
+                  <div>
+                    <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">You May Like</h4>
+                    <div className="flex flex-col gap-1">
+                      {[
+                        { text: 'Kenya vs World Challenge', trending: true },
+                        { text: 'Mombasa Vibez 2026', trending: true },
+                        { text: 'Sheng Comedy Central', trending: true },
+                        { text: 'Sparkle Dance Off', trending: false },
+                        { text: 'Afterglow Moments', trending: false }
+                      ].map((item, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={() => handleSearch(item.text)}
+                          className="flex items-center justify-between py-3 group cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={clsx(
+                              "text-sm font-bold transition-colors",
+                              idx < 3 ? "text-primary" : "text-white/60 group-hover:text-white"
+                            )}>
+                              {item.text}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             {item.trending && <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse" />}
+                             <button className="p-1.5 rounded-lg bg-white/5 text-white/40 group-hover:text-white group-hover:bg-white/10 transition-all">
+                                <Search size={14} />
+                             </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col h-full">
+                  {/* Results Header / Fallback Info */}
+                  {isFallback && !isSearching && (
+                    <div className="px-5 py-4 bg-primary/10 border-b border-primary/20">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-primary leading-tight">No direct matches found</p>
+                        <p className="text-[10px] font-bold text-white/40 mt-1 uppercase tracking-wider">Surfacing related trending content for you:</p>
+                    </div>
+                  )}
+
+                  {/* Results Grid */}
+                  {isSearching ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <Loader2 size={32} className="animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0.5 p-0.5">
+                      {searchResults.map((moment, idx) => (
+                        <div 
+                          key={moment.moment_id}
+                          onClick={() => {
+                            if (moment.media_type === 'user') {
+                               navigate(`/profile/${moment.username}`);
+                               return;
+                            }
+                            setIsSearchOpen(false);
+                            setHasSearched(false);
+                            setMoments([moment]);
+                            setActiveIndex(0);
+                          }}
+                          className={clsx(
+                            "relative overflow-hidden group cursor-pointer transition-all active:scale-95",
+                            moment.media_type === 'user' 
+                                ? "aspect-square bg-white/5 rounded-2xl flex flex-col items-center justify-center gap-3 p-4 border border-white/5 hover:bg-white/10" 
+                                : "aspect-[9/16] bg-white/5"
+                          )}
+                        >
+                          {moment.media_type === 'user' ? (
+                            <>
+                                <img src={moment.avatar_url || '/uploads/avatars/default.png'} className="w-20 h-20 rounded-full border-2 border-primary/20 object-cover shadow-xl" />
+                                <div className="text-center">
+                                    <p className="text-sm font-black text-white leading-none">@{moment.username}</p>
+                                    <p className="text-[10px] text-white/40 mt-1 font-bold uppercase tracking-widest">{moment.follower_count || 0} Followers</p>
+                                </div>
+                                <button className="mt-2 px-4 py-1.5 rounded-full bg-primary text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20">Follow</button>
+                            </>
+                          ) : (
+                            <>
+                                {moment.media_type === 'video' ? (
+                                    <video 
+                                    src={moment.video_url || moment.media_url} 
+                                    muted 
+                                    autoPlay={false} 
+                                    loop
+                                    playsInline
+                                    className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <img src={moment.media_url} className="w-full h-full object-cover" />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+                                    <img src={moment.avatar_url || '/uploads/avatars/default.png'} className="w-4 h-4 rounded-full border border-white/20" />
+                                    <span className="text-[10px] font-bold text-white/90">@{moment.username}</span>
+                                </div>
+                                <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-white">
+                                    <Heart size={10} fill="currentColor" className="text-primary" />
+                                    {moment.like_count || 0}
+                                </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <div 
         ref={scrollRef}
@@ -481,7 +912,7 @@ export default function Moments() {
             </div>
         ) : (
             moments.map((m, idx) => (
-              <div key={m.moment_id} className="h-screen w-full snap-start flex items-center justify-center px-0 md:px-10 py-0 md:py-20 lg:ml-72 transition-all">
+              <div key={m.moment_id} className="h-[100dvh] w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 lg:ml-72 transition-all overflow-hidden relative">
                 <ReelItem 
                    active={idx === activeIndex}
                    moment={m} 
@@ -489,6 +920,7 @@ export default function Moments() {
                    onSave={handleSave}
                    onOpenComments={openComments}
                    onShare={setMomentToShare}
+                   onOpenSearch={() => setIsSearchOpen(true)}
                    downloadProgress={downloadProgress?.id === m.moment_id ? downloadProgress.progress : null}
                 />
               </div>

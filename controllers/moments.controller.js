@@ -92,7 +92,13 @@ const ensureMomentColumns = async () => {
         { name: 'like_count', def: 'INT DEFAULT 0' },
         { name: 'comment_count', def: 'INT DEFAULT 0' },
         { name: 'share_count', def: 'INT DEFAULT 0' },
-        { name: 'category', def: 'VARCHAR(50) DEFAULT NULL' }
+        { name: 'view_count', def: 'INT DEFAULT 0' },
+        { name: 'category', def: 'VARCHAR(50) DEFAULT NULL' },
+        { name: 'media_url', def: 'VARCHAR(500) DEFAULT NULL' },
+        { name: 'media_type', def: 'VARCHAR(50) DEFAULT "video"' },
+        { name: 'is_live', def: 'TINYINT(1) DEFAULT 0' },
+        { name: 'completion_rate', def: 'DECIMAL(5,4) DEFAULT 1.0000' },
+        { name: 'quality_score', def: 'DECIMAL(5,4) DEFAULT 1.0000' }
     ];
     for (const col of momentsCols) {
         try {
@@ -153,7 +159,7 @@ const renderMoments = async (req, res) => {
             JOIN users u ON m.user_id = u.user_id
             LEFT JOIN (SELECT moment_id, 1 as liked FROM moment_likes WHERE user_id = ?) ml ON ml.moment_id = m.moment_id
             LEFT JOIN (SELECT moment_id, 1 as saved FROM saved_moments WHERE user_id = ?) sm ON sm.moment_id = m.moment_id
-            WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
             ORDER BY m.created_at DESC
 
             LIMIT 50
@@ -297,98 +303,119 @@ const getMomentById = async (req, res) => {
     }
 }
 
+const normalizeSearchQuery = (q) => {
+    if (!q) return "";
+    return q.toLowerCase().trim().replace(/[^\w\s#]/g, "");
+};
+
 const getMomentsStream = async (req, res) => {
     try {
         await ensureMomentTables();
         await ensureMomentColumns();
         
-        const { page = 1, limit = 10, category, hashtag, recentlySeen } = req.query;
+        const { page = 1, limit = 20, recentlySeen } = req.query;
+        let { query } = req.query;
         const currentUserId = req.user.user_id;
-        const offset = (page - 1) * limit;
+        
+        // 1. Fetch Session Interest Vector (SIV) & Normalized Query
+        const sivProfile = await sessionInterestService.getSessionProfile(currentUserId);
+        query = normalizeSearchQuery(query);
 
-        // Recently seen IDs to exclude (last 50 items from local cache)
+        // Recently seen IDs to exclude
         const excludeIds = Array.isArray(recentlySeen) ? recentlySeen : (recentlySeen ? recentlySeen.split(',') : []);
 
-        // 1. Fetch Base Pool (Up to 100 items for scoring)
-        let poolQuery = `
-            SELECT 
-                m.*,
-                u.username, u.name as user_name, u.avatar_url,
-                IFNULL(m.like_count, 0) as likes, IFNULL(m.comment_count, 0) as comments, IFNULL(m.share_count, 0) as shares,
-                (SELECT COUNT(*) FROM moment_likes WHERE moment_id = m.moment_id AND user_id = ?) as is_liked,
-                (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved,
-                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following,
-                (SELECT COUNT(*) FROM moment_likes ml 
-                 JOIN follows f ON ml.user_id = f.following_id 
-                 WHERE ml.moment_id = m.moment_id AND f.follower_id = ?) as friend_interaction_count
-            FROM moments m
-            JOIN users u ON m.user_id = u.user_id
-        `;
+        // 2. Probabilistic Ranking Model: Score = (E * V * Q * I * F * T) + eps
+        const buildMomentsQuery = (poolType = 'Hybrid') => {
+            const rankingScore = `
+                (
+                    /* E: Engagement rate (normalized) */
+                    ((COALESCE(m.like_count, 0) * 5.0 + COALESCE(m.comment_count, 0) * 10.0 + COALESCE(m.share_count, 0) * 15.0 + 1.0) 
+                    / (COALESCE(m.view_count, 0) + 10.0))
+                    *
+                    /* V: View quality factor (completion rate) */
+                    IFNULL(m.completion_rate, 1.0)
+                    *
+                    /* Q: Content quality score */
+                    IFNULL(m.quality_score, 1.0)
+                    *
+                    /* I: Interest similarity (SIV match) */
+                    (CASE 
+                        ${Object.entries(sivProfile).map(([cat, weight]) => `WHEN m.category = '${cat}' THEN ${Math.min(1.5, 1.0 + (weight / 50))}`).join('\n                        ')}
+                        ELSE 1.0
+                    END)
+                    *
+                    /* F: Follow affinity boost (moderate for Moments) */
+                    (CASE 
+                        WHEN m.user_id = ? THEN 0.05
+                        WHEN f.follower_id IS NOT NULL THEN 1.2
+                        ELSE 1.0
+                    END)
+                    *
+                    /* T: Time decay */
+                    (1.0 / POW(TIMESTAMPDIFF(HOUR, m.created_at, NOW()) + 2, 0.8))
+                ) + (RAND() * 0.05) /* eps: Exploration noise */
+            `;
 
-        const params = [currentUserId, currentUserId, currentUserId, currentUserId];
+            let q = `
+                SELECT 
+                    m.*, u.username, u.name as user_name, u.avatar_url,
+                    ${rankingScore} as exploration_score
+                FROM moments m
+                JOIN users u ON m.user_id = u.user_id
+                LEFT JOIN follows f ON f.follower_id = ? AND f.following_id = m.user_id
+            `;
+            const p = [currentUserId, currentUserId];
+            const where = [];
 
-        const whereClauses = [];
-        if (hashtag) {
-            whereClauses.push(`m.moment_id IN (SELECT moment_id FROM moment_hashtags WHERE hashtag = ?)`);
-            params.push(hashtag);
-        } else if (category && category !== 'all') {
-            whereClauses.push(`m.category = ?`);
-            params.push(category);
-        }
+            if (poolType === 'Following') {
+                where.push(`f.follower_id IS NOT NULL`);
+            } else if (poolType === 'Trending') {
+                where.push(`m.created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)`);
+                where.push(`m.like_count > 5`);
+            } else if (poolType === 'Strangers') {
+                where.push(`f.follower_id IS NULL AND m.user_id != ?`);
+                p.push(currentUserId);
+            }
 
-        whereClauses.push(`m.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`);
+            if (excludeIds.length > 0) {
+                where.push(`m.moment_id NOT IN (${excludeIds.map(() => '?').join(',')})`);
+                p.push(...excludeIds);
+            }
 
-        if (excludeIds.length > 0) {
-            whereClauses.push(`m.moment_id NOT IN (${excludeIds.map(() => '?').join(',')})`);
-            params.push(...excludeIds);
-        }
-
-
-        if (whereClauses.length > 0) {
-            poolQuery += ` WHERE ` + whereClauses.join(' AND ');
-        }
-
-        // Limit the pool for performance (constrained by Part 7)
-        poolQuery += ` ORDER BY m.created_at DESC LIMIT 100`;
-
-        const [momentsPool] = await pool.query(poolQuery, params);
-
-        // 2. Probabilistic Ranking (Part 2 & 3)
-        // Deterministic-per-session random factor using userId + hourly window
-        const hourlySeed = Math.floor(Date.now() / (1000 * 60 * 60));
-        
-        const scoredMoments = momentsPool.map(m => {
-            // Simple pseudo-random using seed
-            const seedStr = `${m.moment_id}${currentUserId}${hourlySeed}`;
-            let hash = 0;
-            for (let i = 0; i < seedStr.length; i++) hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
-            const randomFactor = Math.abs(hash % 1000) / 1000;
-
-            const engagementBoost = (m.likes * 0.2) + (m.comments * 0.3) + (m.shares * 0.4);
-            const relationshipBoost = (m.is_following ? 0.5 : 0) + (m.friend_interaction_count * 0.6);
+            if (where.length > 0) q += ` WHERE ` + where.join(' AND ');
+            q += ` ORDER BY exploration_score DESC LIMIT ?`;
             
-            return {
-                ...m,
-                discovery_score: randomFactor + engagementBoost + relationshipBoost
-            };
-        });
+            return { q, p };
+        };
 
-        // 3. Sort and Paginate
-        const sortedMoments = scoredMoments.sort((a, b) => b.discovery_score - a.discovery_score);
-        const paginatedMoments = sortedMoments.slice(offset, offset + parseInt(limit));
+        // 3. Execution (Dual Candidate Pool Distribution)
+        // Pool distribution: 40% Following, 40% Interest (Hybrid), 10% Trending, 10% Strangers
+        const pools = [
+            { type: 'Following', count: Math.ceil(limit * 0.4) },
+            { type: 'Hybrid', count: Math.ceil(limit * 0.4) },
+            { type: 'Trending', count: Math.ceil(limit * 0.1) },
+            { type: 'Strangers', count: Math.ceil(limit * 0.1) }
+        ];
+
+        let finalMoments = [];
+        for (const poolItem of pools) {
+            const { q, p } = buildMomentsQuery(poolItem.type);
+            p.push(poolItem.count);
+            const [rows] = await pool.query(q, p).catch(() => [[]]);
+            finalMoments = [...finalMoments, ...rows];
+        }
+
+        // Final shuffle of the combined pool to ensure probabilistic flow
+        finalMoments.sort((a, b) => b.exploration_score - a.exploration_score);
 
         res.json({
-            moments: paginatedMoments,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total: sortedMoments.length,
-                pages: Math.ceil(sortedMoments.length / limit)
-            }
+            moments: finalMoments,
+            sivActive: Object.keys(sivProfile).length > 0,
+            pagination: { page: parseInt(page), limit: parseInt(limit), total: finalMoments.length }
         });
 
     } catch (error) {
-        logger.error('Probabilistic Stream Error:', error);
+        logger.error('Production Search Error:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -785,6 +812,41 @@ const getShareData = async (req, res) => {
     }
 };
 
+const trackView = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query(
+            'UPDATE moments SET view_count = view_count + 1 WHERE moment_id = ?',
+            [id]
+        );
+        res.json({ status: 'success' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
+ * Telemetry endpoint for behavioral tracking
+ */
+const trackEngagement = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { type, value, category } = req.body;
+        const userId = req.user.user_id;
+
+        await sessionInterestService.recordEvent(userId, id, { type, value, category });
+        
+        // Also perform the standard count increment if applicable
+        if (type === 'share') {
+            await pool.query('UPDATE moments SET share_count = share_count + 1 WHERE moment_id = ?', [id]);
+        }
+
+        res.json({ status: 'success' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     renderMoments,
     renderMomentDetail,
@@ -796,6 +858,8 @@ module.exports = {
     getComments,
     followUser,
     trackShare,
+    trackView,
+    trackEngagement,
     getShareData,
     likeComment,
     getMomentById

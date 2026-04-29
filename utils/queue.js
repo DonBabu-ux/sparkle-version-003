@@ -9,13 +9,20 @@ let connection;
 if (redisUrl) {
     connection = new IORedis(redisUrl, {
         maxRetriesPerRequest: null,
-        tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+        tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
         retryStrategy(times) {
-            if (times >= 3) {
-                logger.error('Redis connection failed permanently after 3 retries. Queues will be disabled.');
-                return null;
+            const delay = Math.min(times * 500, 15000);
+            if (times % 10 === 0) {
+                logger.warn(`Redis connection retry attempt ${times}. Delay: ${delay}ms`);
             }
-            return Math.min(times * 1000, 3000);
+            return delay;
+        },
+        reconnectOnError(err) {
+            const targetError = 'READONLY';
+            if (err.message.includes(targetError)) {
+                return true;
+            }
+            return false;
         }
     });
     

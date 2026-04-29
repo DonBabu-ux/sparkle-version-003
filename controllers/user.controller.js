@@ -633,12 +633,13 @@ const getUserPosts = async (req, res) => {
 const getSuggestions = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 20;
+        const offset = parseInt(req.query.offset) || 0;
         const currentUserId = req.user.userId || req.user.user_id;
         const { tab = 'suggested', filter = null, q = null } = req.query;
         
         // --- BATCH 3: Suggestions Caching (10 min TTL) ---
         const redisService = require('../services/redis.service');
-        const cacheKey = `suggestions:${currentUserId}:${tab}:${filter || 'none'}:${q || 'none'}`;
+        const cacheKey = `suggestions:${currentUserId}:${tab}:${filter || 'none'}:${q || 'none'}:${offset}:${limit}`;
         
         const cached = await redisService.get(cacheKey);
         if (cached) return res.json(cached);
@@ -649,6 +650,7 @@ const getSuggestions = async (req, res) => {
 
         const suggestions = await User.getSuggestions(currentUserId, {
             limit,
+            offset,
             seed: seed + hourlySeed,
             tab: tab.toLowerCase(),
             filter: filter ? filter.toLowerCase() : null,

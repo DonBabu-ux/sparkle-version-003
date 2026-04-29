@@ -57,6 +57,7 @@ interface Story {
   auto_share_wa?: boolean;
   save_to_gallery?: boolean;
   save_to_archive?: boolean;
+  collage_data?: any;
 }
 
 interface UserStoryGroup {
@@ -336,7 +337,28 @@ export default function StoryViewer() {
 
           {/* Media */}
           <div className="absolute inset-0 flex items-center justify-center z-10 bg-black">
-             {currentStory.media_type === 'video' ? (
+             {currentStory.media_type === 'text' ? (
+               <div 
+                 className="w-full h-full flex flex-col items-center justify-center p-12"
+                 style={{ background: currentStory.collage_data?.palette?.bg || currentStory.background || '#1a1a1a' }}
+               >
+                 <motion.p 
+                   initial={{ scale: 0.9, opacity: 0 }}
+                   animate={{ scale: 1, opacity: 1 }}
+                   className={`text-center leading-tight transition-all duration-500 ${currentStory.collage_data?.font?.class || 'font-sans font-bold'}`}
+                   style={{ 
+                     color: currentStory.collage_data?.color || '#FFFFFF',
+                     textAlign: (currentStory.collage_data?.align as any) || 'center',
+                     fontSize: (currentStory.caption?.length || 0) > 50 ? '24px' : '36px',
+                     backgroundColor: currentStory.collage_data?.highlight ? 'rgba(0,0,0,0.2)' : 'transparent',
+                     padding: currentStory.collage_data?.highlight ? '16px 24px' : '0',
+                     borderRadius: '24px'
+                   }}
+                 >
+                   {currentStory.caption}
+                 </motion.p>
+               </div>
+             ) : currentStory.media_type === 'video' ? (
                <video src={currentStory.media_url} autoPlay={!isPaused} muted playsInline className="h-full w-full object-cover" />
              ) : (
                <img src={currentStory.media_url} className="h-full w-full object-cover" alt="" />
@@ -347,7 +369,7 @@ export default function StoryViewer() {
           {/* Rotating Comments on Left */}
           <div className="absolute left-6 bottom-32 z-50 flex flex-col gap-2 max-w-[180px]">
              <AnimatePresence mode="wait">
-               {storyComments.length > 0 && (
+               {storyComments.length > 0 && storyComments[activeCommentIndex] && (
                  <motion.div 
                    key={activeCommentIndex}
                    initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
@@ -460,7 +482,7 @@ export default function StoryViewer() {
                </div>
 
                <div className="flex-1 overflow-y-auto space-y-6 no-scrollbar">
-                  {viewers.map((v, i) => (
+                  {viewers.map((v, i) => v && (
                     <div key={i} className="flex items-center justify-between group">
                        <div className="flex items-center gap-4">
                           <div className="relative">

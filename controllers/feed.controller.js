@@ -495,17 +495,19 @@ const createStory = async (req, res) => {
             console.log('🔗 Story media from URL (media):', media_url);
         }
 
-        if (!media_url && req.body.type !== 'text') {
+        if (!media_url && req.body.type !== 'text' && !req.body.text_content) {
             console.error('❌ No media provided in request:', {
                 hasFiles: !!req.files,
-                bodyFields: Object.keys(req.body)
+                bodyFields: Object.keys(req.body),
+                typeValue: req.body.type
             });
             return res.status(400).json({ error: 'Media is required for story' });
         }
 
         // For text-only stories, we use a placeholder or special value if the DB requires NOT NULL
-        if (req.body.type === 'text' && !media_url) {
+        if ((req.body.type === 'text' || req.body.text_content) && !media_url) {
             media_url = 'text';
+            req.body.type = 'text'; // Force type to text for consistency
         }
 
         const userId = req.user.userId || req.user.user_id;
@@ -538,12 +540,16 @@ const createStory = async (req, res) => {
             caption: caption || 'no caption'
         });
 
+        // Map text content and config to DB columns
+        const finalCaption = caption || req.body.text_content || null;
+        const finalCollageData = req.body.collage_data || req.body.text_config || null;
+
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
         const background = req.body.background || null;
         const parent_story_id = req.body.parent_story_id || null;
         const stickers = req.body.stickers || null;
         const type = req.body.type || 'media';
-        const collage_data = req.body.collage_data || null;
+        const collage_data_val = finalCollageData;
         
         let audio_url = req.body.audio_url || null;
         const music_info = req.body.music_info || null;
@@ -564,10 +570,10 @@ const createStory = async (req, res) => {
                 music_info, type, collage_data
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)`,
             [
-                storyId, userId, media_url, media_type, caption || null, 
+                storyId, userId, media_url, media_type, finalCaption, 
                 background, audio_url, audio_source, audio_start, audio_duration, 
                 expiresAt, parent_story_id, stickers,
-                music_info, type, collage_data
+                music_info, type, collage_data_val
             ]
         );
 

@@ -210,7 +210,7 @@ export default function CreateStory() {
               formData.append('text_content', textStoryContent);
               formData.append('text_config', JSON.stringify({ palette: PALETTES[activePalette], font: FONTS[activeFont], align: textAlign, color: selectedTextColor || PALETTES[activePalette].text, highlight: textHighlight }));
           }
-          formData.append('type', mode);
+          formData.append('type', phase === 'text_story' ? 'text' : mode);
           formData.append('stickers', JSON.stringify(stickers));
           formData.append('parent_story_id', parentId || '');
           if (selectedMusic) formData.append('music_info', JSON.stringify(selectedMusic));

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const { JWT_SECRET } = require('../config/constants');
 
 class AuthService {
     /**
@@ -15,7 +16,7 @@ class AuthService {
                 username: user.username,
                 role: user.role
             },
-            process.env.JWT_SECRET,
+            JWT_SECRET,
             { expiresIn: '15m' } // Short lived
         );
 

@@ -195,22 +195,16 @@ const login = async (req, res) => {
         }
         */
 
-        // --- NEW: Enhanced Session & Device Tracking ---
         const deviceId = req.headers['x-device-id'] || 'unknown';
-        // Generate tokens
-        const accessToken = jwt.sign(
-            { id: user.user_id, username: user.username, is_staff: user.is_staff },
-            process.env.JWT_SECRET || 'sparkle-dev-secret',
-            { expiresIn: rememberMe ? '30d' : '1d' }
-        );
+        // Generate production-grade tokens via service
+        const { accessToken, refreshToken } = await authService.generateTokens(user, deviceId);
 
-        const refreshToken = jwt.sign(
-            { id: user.user_id },
-            process.env.JWT_SECRET || 'sparkle-dev-secret-refresh',
-            { expiresIn: '7d' }
-        );
-
-        const isNewDevice = false; // Simplified
+        // Track activity (optional, but good for security)
+        const { isNewDevice } = await authService.trackLoginActivity(user.user_id, {
+            deviceId,
+            ipAddress: ip,
+            userAgent: req.headers['user-agent']
+        });
 
         if (isNewDevice) {
             // Trigger security alert email (non-blocking)
@@ -218,7 +212,7 @@ const login = async (req, res) => {
                 to: user.email,
                 ...templates.securityAlert(user.name, {
                     ipAddress: ip,
-                    userAgent,
+                    userAgent: req.headers['user-agent'] || 'Unknown',
                     time: new Date().toLocaleString()
                 })
             }).catch(err => logger.error('Failed to send security alert:', err));

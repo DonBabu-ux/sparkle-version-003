@@ -281,7 +281,7 @@ class User {
      */
     static async getSuggestions(currentUserId, options = {}) {
         try {
-            const { limit = 20, seed = null, tab = 'suggested', filter = null, query = null } = options;
+            const { limit = 20, offset = 0, seed = null, tab = 'suggested', filter = null, query = null } = options;
 
             // Fetch current user details for ranking
             const [me] = await pool.query('SELECT major, year_of_study, campus FROM users WHERE user_id = ?', [currentUserId]);
@@ -371,8 +371,8 @@ class User {
         // Apply Sorting
         sql += ` ORDER BY discovery_score DESC`;
 
-        sql += ` LIMIT ?`;
-        params.push(limit);
+        sql += ` LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
 
         const [users] = await pool.query(sql, params);
         

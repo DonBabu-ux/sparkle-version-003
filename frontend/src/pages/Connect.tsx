@@ -31,30 +31,71 @@ export default function Connect() {
   const [loading, setLoading]           = useState(true);
   const [activeTab, setActiveTab]       = useState<string>('For You');
   const [searchQuery, setSearchQuery]   = useState('');
+  const [offset, setOffset]             = useState(0);
+  const [hasMore, setHasMore]           = useState(true);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  const lastUserRef = useCallback((node: HTMLDivElement) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setOffset(prev => prev + 20);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
 
   /* ── Data fetching ── */
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
+  const fetchUsers = useCallback(async (isLoadMore = false) => {
+    if (!isLoadMore) setLoading(true);
     try {
-      const params: Record<string, string> = { tab: activeTab.toLowerCase() };
-      if (searchQuery)             params.q      = searchQuery;
+      const params: Record<string, string | number> = { 
+        tab: activeTab.toLowerCase(),
+        offset: isLoadMore ? offset : 0,
+        limit: 20
+      };
+      if (searchQuery) params.q = searchQuery;
       const res = await api.get('/users/suggestions', { params });
-      setUsers(res.data.suggestions || res.data.users || res.data || []);
+      const newUsers = res.data.suggestions || res.data.users || res.data || [];
+      
+      if (isLoadMore) {
+        setUsers(prev => [...prev, ...newUsers]);
+      } else {
+        setUsers(newUsers);
+      }
+      setHasMore(newUsers.length === 20);
     } catch {
-      setUsers([]);
+      if (!isLoadMore) setUsers([]);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, searchQuery]);
+  }, [activeTab, searchQuery, offset]);
 
-  useEffect(() => { fetchUsers(); }, [activeTab, fetchUsers]);
+  // Reset and fetch on tab/search change
+  useEffect(() => {
+    setOffset(0);
+    setHasMore(true);
+    fetchUsers(false);
+  }, [activeTab]);
+
+  // Load more when offset changes (if > 0)
+  useEffect(() => {
+    if (offset > 0) {
+      fetchUsers(true);
+    }
+  }, [offset]);
 
   useEffect(() => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => { fetchUsers(); }, 400);
+    searchTimeout.current = setTimeout(() => {
+      setOffset(0);
+      setHasMore(true);
+      fetchUsers(false);
+    }, 400);
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
-  }, [searchQuery, fetchUsers]);
+  }, [searchQuery]);
 
   const SKELETON_COUNT = 6;
 
@@ -133,13 +174,29 @@ export default function Connect() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {users.map((u, idx) => (
-                <div key={(u.user_id || u.id) as string} className="animate-scale-in" style={{ animationDelay: `${idx * 100}ms` }}>
+                <div 
+                  key={(u.user_id || u.id) as string} 
+                  ref={idx === users.length - 1 ? lastUserRef : null}
+                  className="animate-scale-in" 
+                  style={{ animationDelay: `${(idx % 20) * 50}ms` }}
+                >
                   <UserCard
                     u={u}
                     onRemove={id => setUsers(prev => prev.filter(user => (user.user_id || user.id) !== id))}
                   />
                 </div>
               ))}
+              
+              {/* Load More Skeleton */}
+              {offset > 0 && loading && (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={`load-more-${i}`} className="bg-white border border-gray-200 rounded-xl p-6 aspect-square animate-pulse flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full mb-4" />
+                    <div className="w-2/3 h-4 bg-gray-100 rounded-full mb-2" />
+                    <div className="w-1/2 h-3 bg-gray-100 rounded-full" />
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>

@@ -25,13 +25,13 @@ const authRateLimiter = createRateLimiter(15 * 60 * 1000, 20); // 20 attempts pe
  * General API rate limiter
  * Increased to 300 per minute to handle search autocomplete + feed hammering
  */
-const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 100); // 100 requests per minute 
+const apiRateLimiter = createRateLimiter(1 * 60 * 1000, 150); // 150 requests per minute 
 
 /**
  * Listings/feed rate limiter — prevents page hammering the DB
- * 30 requests per minute per IP (e.g., fetching marketplace, posts)
+ * 100 requests per minute per IP (e.g., fetching marketplace, posts)
  */
-const feedRateLimiter = createRateLimiter(1 * 60 * 1000, 60); // 60 requests per minute
+const feedRateLimiter = createRateLimiter(1 * 60 * 1000, 100); // 100 requests per minute
 
 /**
  * Mutation rate limiter — POST/PUT/DELETE that write to DB

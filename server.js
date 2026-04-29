@@ -15,6 +15,7 @@ require('dotenv').config();
 
 const { PORT } = require('./config/constants');
 const { initDB } = require('./utils/database/init');
+const momentsController = require('./controllers/moments.controller');
 const apiRoutes = require('./routes/api');
 const webRoutes = require('./routes/web');
 
@@ -316,8 +317,10 @@ if (require.main === module) {
         // Start keep-alive service to prevent Render from sleeping
         startKeepAlive();
 
-        // Initialize database tables
-        initDB().catch(err => logger.error('Failed to initialize database:', err));
+        // Initialize database tables and prewarm moments feed
+        initDB().then(() => {
+            momentsController.prewarm();
+        }).catch(err => logger.error('Failed to initialize database:', err));
     });
     
     server.on('error', (e) => {

@@ -532,24 +532,58 @@ class Post {
     }
 
     /**
-     * Get post comments
+     * Get post comments with advanced sorting modes
      */
-    static async getComments(postId, currentUserId = null) {
-        let query = `
-            SELECT c.*, u.username, u.name, u.avatar_url,
-                   (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) as like_count
-        `;
-
-        const params = [postId];
+    static async getComments(postId, currentUserId = null, sortMode = 'relevant') {
+        const selectParams = [];
+        const whereParams = [postId];
+        const sortParams = [];
 
         if (currentUserId) {
-            query += `, (SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.comment_id AND cl2.user_id = ?) as is_liked `;
-            params.unshift(currentUserId); // Add currentUserId for the subquery
-            // Wait, unshift puts it at the beginning. PostId is at the end.
-            // Let's reorder:
+            selectParams.push(currentUserId);
         }
 
-        query = `
+        let sortExpression = '';
+        switch (sortMode) {
+            case 'newest':
+                sortExpression = 'c.created_at';
+                break;
+            case 'engaging':
+                sortExpression = '(COALESCE(c.like_count, 0) + (SELECT COUNT(*) FROM comments rc WHERE rc.parent_comment_id = c.comment_id) * 2.0)';
+                break;
+            case 'followers':
+                if (currentUserId) {
+                    sortExpression = `(EXISTS(SELECT 1 FROM follows f WHERE f.follower_id = ? AND f.following_id = c.user_id) * 100.0) + (COALESCE(c.like_count, 0) * 1.5) + (1.0 / (POW(TIMESTAMPDIFF(HOUR, c.created_at, NOW()) + 2, 0.6)))`;
+                    sortParams.push(currentUserId);
+                } else {
+                    sortExpression = 'c.created_at';
+                }
+                break;
+            case 'smart':
+                sortExpression = `(
+                    ((COALESCE(c.like_count, 0) * 1.2) + (SELECT COUNT(*) FROM comments rc WHERE rc.parent_comment_id = c.comment_id) * 1.5) * 0.4 +
+                    (1.0 / (POW(TIMESTAMPDIFF(HOUR, c.created_at, NOW()) + 2, 0.6))) * 0.3 +
+                    ${currentUserId ? `(EXISTS(SELECT 1 FROM follows f WHERE f.follower_id = ? AND f.following_id = c.user_id) * 10.0) * 0.2` : '0'} +
+                    (RAND() * 5.0) * 0.1
+                )`;
+                if (currentUserId) sortParams.push(currentUserId);
+                break;
+            case 'all':
+                sortExpression = 'UNIX_TIMESTAMP(c.created_at) * -1'; 
+                break;
+            case 'relevant':
+            default:
+                sortExpression = `(
+                    (COALESCE(c.like_count, 0) * 1.5) + 
+                    ((SELECT COUNT(*) FROM comments rc WHERE rc.parent_comment_id = c.comment_id) * 2.0) +
+                    ${currentUserId ? `(EXISTS(SELECT 1 FROM follows f WHERE f.follower_id = ? AND f.following_id = c.user_id) * 20.0)` : '0'} +
+                    (10.0 / (POW(TIMESTAMPDIFF(HOUR, c.created_at, NOW()) + 2, 0.5)))
+                )`;
+                if (currentUserId) sortParams.push(currentUserId);
+                break;
+        }
+
+        const query = `
             SELECT c.*, 
                    CASE 
                        WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'DeletedUser'
@@ -574,33 +608,24 @@ class Post {
             JOIN users u ON c.user_id = u.user_id
             WHERE c.post_id = ?
             ORDER BY
-                -- Root comments: most liked + recency decay (hot comments surface first)
-                CASE
-                    WHEN c.parent_comment_id IS NULL THEN
-                        (COALESCE(c.spark_count, 0) * 3.0)
-                        + (1.0 / (POW(TIMESTAMPDIFF(HOUR, c.created_at, NOW()) + 2, 0.6)))
-                    ELSE NULL
-                END DESC,
-                -- Replies: always chronological under their parent thread
+                CASE WHEN c.parent_comment_id IS NULL THEN 1 ELSE 2 END ASC,
+                CASE WHEN c.parent_comment_id IS NULL THEN ${sortExpression} END DESC,
                 c.created_at ASC
             LIMIT 200
         `;
 
-        const finalParams = currentUserId ? [currentUserId, postId] : [postId];
-
+        const finalParams = [...selectParams, ...whereParams, ...sortParams];
         const [comments] = await pool.query(query, finalParams);
         
         // Build comment tree
         const commentMap = new Map();
         const rootComments = [];
 
-        // First pass: map all comments and add a replies array
         comments.forEach(c => {
             c.replies = [];
             commentMap.set(c.comment_id, c);
         });
 
-        // Second pass: attach replies to their parents
         comments.forEach(c => {
             if (c.parent_comment_id && commentMap.has(c.parent_comment_id)) {
                 commentMap.get(c.parent_comment_id).replies.push(c);

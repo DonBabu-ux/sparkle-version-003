@@ -121,11 +121,6 @@ const ensureMomentColumns = async () => {
         } catch (e) { /* ignore if already exists */ }
     }
 
-    try {
-        await pool.query('ALTER TABLE clubs ADD COLUMN is_public TINYINT(1) DEFAULT 1');
-        logger.info('Added column clubs.is_public');
-    } catch (e) { /* ignore if already exists */ }
-
     columnsEnsured = true;
 };
 
@@ -312,41 +307,39 @@ const normalizeSearchQuery = (q) => {
 
 const getMomentsStream = async (req, res) => {
     try {
-        await ensureMomentTables();
-        await ensureMomentColumns();
-        
-        const { page = 1, limit = 20, recentlySeen, query, type } = req.query;
-        const limitNum = parseInt(limit, 10) || 20;
+        // Tables/columns are guaranteed by prewarm() at server start — no need to re-check here.
+        const { page = 0, limit = 8, query, type } = req.query;
+        const limitNum = Math.min(parseInt(limit, 10) || 8, 20);
         const currentUserId = req.user.user_id;
+        const pageNum = parseInt(page, 10) || 0;
+        const offset = pageNum * limitNum;
 
-        // 1. Capture Search Intent as Interest (SIV Signal)
+        // Capture Search Intent as Interest (SIV Signal)
         if (query) {
-            sessionInterestService.recordEvent(currentUserId, null, { 
-                type: 'search', 
-                value: 1, 
-                category: query // We can later map query to a category
+            sessionInterestService.recordEvent(currentUserId, null, {
+                type: 'search',
+                value: 1,
+                category: query
             }).catch(err => logger.error('Search Intent Error:', err));
         }
 
-        // 2. BACKGROUND POOL GENERATION (Throttled & Non-blocking)
-        // We don't await this; it runs in the background to ensure next requests are fast.
+        // Pool generation is always non-blocking background work
         momentsRankingService.generateCandidatePools().catch(err => logger.error('Pool Gen Error:', err));
 
-        // 3. Use the new Production-ready Ranking Service (Redis Shard fetching + SIV Personalization)
-        const offset = parseInt(page) * limitNum;
         const finalMoments = await momentsRankingService.getRankedFeed(currentUserId, limitNum, { query, type, offset });
 
         res.json({
             moments: finalMoments,
-            sivActive: true, 
-            pagination: { page: parseInt(page), limit: limitNum, total: finalMoments.length, hasMore: finalMoments.length === limitNum }
+            sivActive: true,
+            pagination: { page: pageNum, limit: limitNum, total: finalMoments.length, hasMore: finalMoments.length === limitNum }
         });
 
     } catch (error) {
-        logger.error('Production Search Error:', error);
+        logger.error('Moments Stream Error:', error);
         res.status(500).json({ error: error.message });
     }
 };
+
 
 const sparkMoment = async (req, res) => {
     try {
@@ -521,8 +514,6 @@ const addComment = async (req, res) => {
         const userId = req.user.user_id;
 
         const commentId = require('crypto').randomUUID();
-
-        // Safe the parentId (use NULL if empty string)
         const pid = parentId || null;
 
         await pool.query(
@@ -547,10 +538,7 @@ const addComment = async (req, res) => {
         );
 
         // Create notification for moment owner
-        const [moment] = await pool.query(
-            'SELECT user_id FROM moments WHERE moment_id = ?',
-            [id]
-        );
+        const [moment] = await pool.query('SELECT user_id FROM moments WHERE moment_id = ?', [id]);
         if (moment[0] && moment[0].user_id !== userId) {
             await pool.query(
                 `INSERT INTO notifications 
@@ -558,19 +546,6 @@ const addComment = async (req, res) => {
                 VALUES (UUID(), ?, 'comment', 'New Comment', 'Someone commented on your moment.', ?, 'moment', ?, CONCAT('/moments/', ?))`,
                 [moment[0].user_id, id, userId, id]
             );
-        }
-
-        // Create notification for parent comment owner if it's a reply
-        if (pid) {
-            const [parent] = await pool.query('SELECT user_id FROM moment_comments WHERE comment_id = ?', [pid]);
-            if (parent[0] && parent[0].user_id !== userId && parent[0].user_id !== moment[0]?.user_id) {
-                await pool.query(
-                    `INSERT INTO notifications 
-                    (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url) 
-                    VALUES (UUID(), ?, 'reply', 'New Reply', 'Someone replied to your comment.', ?, 'moment_comment', ?, CONCAT('/moments/', ?))`,
-                    [parent[0].user_id, pid, userId, id]
-                );
-            }
         }
 
         res.status(201).json({
@@ -588,7 +563,6 @@ const getComments = async (req, res) => {
         const { id } = req.params;
         const currentUserId = req.user.user_id;
 
-        // Fetch all comments for this moment and tree-ify them
         const [allComments] = await pool.query(
             `SELECT c.*, u.username, u.avatar_url,
                     (SELECT COUNT(*) FROM moment_comment_likes mcl WHERE mcl.comment_id = c.comment_id AND mcl.user_id = ?) as is_liked
@@ -599,7 +573,6 @@ const getComments = async (req, res) => {
             [currentUserId, id]
         );
 
-        // Simple tree-ification
         const commentMap = {};
         const roots = [];
 
@@ -775,6 +748,22 @@ const trackEngagement = async (req, res) => {
     }
 };
 
+/**
+ * Called once at server startup to run migrations and pre-warm the feed cache.
+ * Keeps the hot API path clean of setup overhead.
+ */
+const prewarm = async () => {
+    try {
+        await ensureMomentTables();
+        await ensureMomentColumns();
+        // Kick off pool generation in background (non-blocking)
+        momentsRankingService.generateCandidatePools(true).catch(() => {});
+        logger.info('Moments prewarm complete.');
+    } catch (e) {
+        logger.warn('Moments prewarm error: ' + e.message);
+    }
+};
+
 module.exports = {
     renderMoments,
     renderMomentDetail,
@@ -790,5 +779,6 @@ module.exports = {
     trackEngagement,
     getShareData,
     likeComment,
-    getMomentById
+    getMomentById,
+    prewarm
 };

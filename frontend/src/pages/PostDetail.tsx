@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
-import { Heart, MessageSquare, Send, ArrowLeft, Orbit } from 'lucide-react';
+import { Heart, MessageSquare, Send, ArrowLeft, Orbit, ChevronDown, Check, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import type { Post } from '../types/post';
 
@@ -26,19 +27,30 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [sortMode, setSortMode] = useState('relevant');
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+
+  const fetchComments = async () => {
+    setLoadingComments(true);
+    try {
+      const res = await api.get(`/posts/${id}/comments?sort=${sortMode}`);
+      if (res.data.status === 'success') {
+        setComments(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch comments:', err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const [postRes, commentsRes] = await Promise.all([
-          api.get(`/posts/${id}`),
-          api.get(`/posts/${id}/comments`)
-        ]);
+        const postRes = await api.get(`/posts/${id}`);
         if (postRes.data.status === 'success') {
           setPost(postRes.data.data);
-        }
-        if (commentsRes.data.status === 'success') {
-          setComments(commentsRes.data.data);
         }
       } catch (err) {
         console.error('Failed to fetch post details:', err);
@@ -47,7 +59,8 @@ export default function PostDetail() {
       }
     };
     fetchPost();
-  }, [id]);
+    fetchComments();
+  }, [id, sortMode]);
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,9 +163,35 @@ export default function PostDetail() {
 
         {/* Comments Section */}
         <section className="space-y-10">
-           <div className="flex items-center gap-3 px-1 mb-8">
-              <div className="w-1 h-8 bg-primary rounded-full" />
-              <h3 className="text-2xl font-black text-black italic">Channel Signals</h3>
+           <div className="flex items-center justify-between gap-3 px-1 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-8 bg-primary rounded-full" />
+                <h3 className="text-2xl font-black text-black italic">Channel Signals</h3>
+              </div>
+              
+              <button 
+                onClick={() => setShowSortModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-black/5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 group"
+              >
+                <span className="text-[10px] font-black uppercase tracking-widest text-black/60 group-hover:text-primary">
+                  {sortMode === 'relevant' ? 'Most relevant' : 
+                   sortMode === 'smart' ? 'Smart Mix' :
+                   sortMode === 'followers' ? 'Followers first' :
+                   sortMode === 'engaging' ? 'Most engaging' :
+                   sortMode === 'newest' ? 'Newest' : 'All comments'}
+                </span>
+                <ChevronDown size={14} className="text-black/20 group-hover:text-primary transition-colors" />
+              </button>
+           </div>
+
+           <div className="px-1 mb-8">
+              <p className="text-[10px] font-bold text-black/20 uppercase tracking-[0.2em]">
+                Showing {sortMode === 'relevant' ? 'most relevant' : 
+                          sortMode === 'smart' ? 'smart mix' :
+                          sortMode === 'followers' ? 'followers first' :
+                          sortMode === 'engaging' ? 'most engaging' :
+                          sortMode === 'newest' ? 'newest' : 'all'} comments
+              </p>
            </div>
            
            <form onSubmit={handleAddComment} className="relative group mb-16 px-1">
@@ -171,7 +210,12 @@ export default function PostDetail() {
               </button>
            </form>
 
-           <div className="grid gap-6 px-1">
+           <div className="grid gap-6 px-1 relative">
+              {loadingComments && (
+                <div className="absolute inset-0 z-10 bg-white/20 backdrop-blur-[2px] flex items-center justify-center rounded-[40px]">
+                  <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
               {comments.length === 0 ? (
                 <div className="py-20 text-center bg-white/40 border border-white rounded-[40px] shadow-inner">
                    <p className="text-black font-medium text-black/20 uppercase tracking-widest">No signals transmitted yet.</p>
@@ -194,9 +238,72 @@ export default function PostDetail() {
         </section>
       </main>
 
+      {/* Comment Sort Bottom Sheet */}
+      <AnimatePresence>
+        {showSortModal && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSortModal(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-md z-[1000]"
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 lg:left-72 right-0 bg-white rounded-t-[48px] z-[1001] shadow-2xl p-8 pb-12 md:p-12"
+            >
+              <div className="w-12 h-1.5 bg-black/5 rounded-full mx-auto mb-8" />
+              
+              <div className="flex items-center justify-between mb-10">
+                <h3 className="text-2xl font-black text-black italic uppercase tracking-tighter">Sort Signals</h3>
+                <button onClick={() => setShowSortModal(false)} className="text-[11px] font-black uppercase tracking-widest text-primary">Done</button>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  { id: 'relevant', label: 'Most Relevant', desc: 'Top comments based on engagement and interests' },
+                  { id: 'smart', label: 'Smart Mix', desc: 'A balanced mix of trending and recent conversations' },
+                  { id: 'followers', label: 'Followers First', desc: 'See comments from people you follow first' },
+                  { id: 'engaging', label: 'Most Engaging', desc: 'Comments getting the most interaction' },
+                  { id: 'newest', label: 'Newest', desc: 'Latest comments in real-time' },
+                  { id: 'all', label: 'All Comments', desc: 'Includes everything, even unfiltered mode' }
+                ].map(mode => (
+                  <button 
+                    key={mode.id}
+                    onClick={() => { setSortMode(mode.id); setShowSortModal(false); }}
+                    className={clsx(
+                      "w-full flex items-start gap-4 p-5 rounded-[28px] transition-all group active:scale-[0.98]",
+                      sortMode === mode.id ? "bg-primary/5 border border-primary/10" : "bg-gray-50/50 border border-transparent hover:bg-gray-100"
+                    )}
+                  >
+                    <div className={clsx(
+                      "mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                      sortMode === mode.id ? "border-primary bg-primary" : "border-black/10"
+                    )}>
+                      {sortMode === mode.id && <Check size={12} className="text-white" />}
+                    </div>
+                    <div className="text-left">
+                      <p className={clsx("text-sm font-bold transition-all", sortMode === mode.id ? "text-primary" : "text-black")}>
+                        {mode.label}
+                      </p>
+                      <p className="text-[11px] font-medium text-black/30 mt-0.5">{mode.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

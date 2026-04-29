@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import MomentShareModal from '../components/modals/MomentShareModal';
 import api from '../api/api';
+import { useUserStore } from '../store/userStore';
 import clsx from 'clsx';
 
 interface Comment {
@@ -71,12 +72,21 @@ const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: strin
   );
 };
 
+const TikTokLoader = () => (
+  <div className="relative w-10 h-10">
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#fe2c55] rounded-full animate-tiktok-dot-1" />
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#25f4ee] rounded-full animate-tiktok-dot-2" />
+  </div>
+);
+
 const ReelItem = ({ 
   moment, 
   onLike, 
   onSave,
   onOpenComments,
   onOpenSearch,
+  onShare,
+  onFollow,
   active,
   isNearActive,
   downloadProgress
@@ -91,6 +101,7 @@ const ReelItem = ({
   active: boolean;
   isNearActive: boolean;
   downloadProgress?: number | null;
+  currentUser?: any;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -100,25 +111,34 @@ const ReelItem = ({
   const [progress, setProgress] = useState(0);
   const navigate = useNavigate();
   const heartIdCounter = useRef(0);
-
   const viewTracked = useRef(false);
 
+  // Single source of truth: only the active video plays. Everything else is hard-paused.
   useEffect(() => {
-    if (active && videoRef.current && !userPaused) {
-      videoRef.current.play().then(() => {
-        setPlaying(true);
-        if (!viewTracked.current) {
-          api.post(`/moments/${moment.moment_id}/view`).catch(() => {});
-          viewTracked.current = true;
-        }
-      }).catch(() => setPlaying(false));
-    } else if (videoRef.current) {
-      videoRef.current.pause();
-      setPlaying(false);
-    }
+    const video = videoRef.current;
+    if (!video) return;
 
-    if (!active) {
-      viewTracked.current = false;
+    if (active && !userPaused) {
+      // Small delay avoids race where browser fires multiple play() on scroll
+      const timer = setTimeout(() => {
+        video.play().then(() => {
+          setPlaying(true);
+          if (currentUser && !viewTracked.current) {
+            api.post(`/moments/${moment.moment_id}/view`).catch(() => {});
+            viewTracked.current = true;
+          }
+        }).catch(() => setPlaying(false));
+      }, 80);
+      return () => clearTimeout(timer);
+    } else {
+      video.pause();
+      // Also reset to start so the next time it becomes active it begins fresh
+      if (!active) {
+        video.currentTime = 0;
+        setProgress(0);
+        viewTracked.current = false;
+      }
+      setPlaying(false);
     }
   }, [active, userPaused, moment.moment_id]);
 
@@ -143,38 +163,6 @@ const ReelItem = ({
   const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
     // Toggle play/pause on tap
     togglePlay();
-
-    // Detect tap location
-    let clientX, clientY;
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-
-    // Trigger like on first interaction of a potential "burst"
-    if (!moment.is_liked) onLike(moment.moment_id);
-
-    // Add heart to burst
-    const newHeart = {
-      id: ++heartIdCounter.current,
-      x,
-      y,
-      rotate: (Math.random() - 0.5) * 60 // -30 to 30 deg
-    };
-
-    setHearts(prev => [...prev, newHeart]);
-
-    // Cleanup heart after animation
-    setTimeout(() => {
-      setHearts(prev => prev.filter(h => h.id !== newHeart.id));
-    }, 1000);
   };
 
   const onVideoTimeUpdate = () => {
@@ -184,10 +172,12 @@ const ReelItem = ({
     }
   };
 
+  // Only load src when this card is active or immediately adjacent (preload 1 ahead)
   const mediaSrc = isNearActive ? (moment.video_url || moment.media_url) : undefined;
   const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!(moment.video_url || moment.media_url)?.match(/\.(mp4|webm|ogg|quicktime|mov)$/i);
-  const isTikTok = mediaSrc?.includes('tiktok.com');
-  const tiktokId = isTikTok ? mediaSrc?.split('/video/')[1]?.split('?')[0] : null;
+  // NOTE: TikTok iframes cannot be programmatically paused — we never embed them.
+  // Treat TikTok URLs as opaque videos (or show a thumbnail). This prevents
+  // multiple iframes playing simultaneously with no way to stop them.
 
   return (
     <div 
@@ -209,45 +199,18 @@ const ReelItem = ({
       )}
 
       <div className="absolute inset-0">
-        {/* Background Blur Layer */}
+        {/* Background Blur Layer — static image only, NEVER a playing video */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {isVideo ? (
-            <video 
-              src={mediaSrc} 
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
-              poster={moment.thumbnail_url || moment.media_url}
-            />
-          ) : (
-            <img 
-              src={mediaSrc || moment.thumbnail_url} 
-              className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
-              alt=""
-            />
-          )}
+          <img 
+            src={moment.thumbnail_url || (isVideo ? undefined : mediaSrc) || '/uploads/avatars/default.png'} 
+            className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
+            alt=""
+          />
         </div>
 
         {/* Primary Content Layer */}
         <div className="relative w-full h-full flex items-center justify-center z-10">
-          {isTikTok && tiktokId ? (
-            <div className="w-full h-full flex items-center justify-center bg-black">
-              {active ? (
-                <iframe
-                  src={`https://www.tiktok.com/embed/v2/${tiktokId}`}
-                  className="w-full h-full border-none pointer-events-auto"
-                  style={{ height: '100%', width: '100%' }}
-                  allow="autoplay; encrypted-media"
-                  title="TikTok Video"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-                  <Play size={64} fill="white" className="opacity-40" />
-                </div>
-              )}
-            </div>
-          ) : isVideo ? (
+          {isVideo ? (
             <video 
               ref={videoRef}
               src={mediaSrc} 
@@ -398,6 +361,7 @@ const ReelItem = ({
 export default function Moments() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useUserStore();
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -433,24 +397,60 @@ export default function Moments() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const fetchMoments = useCallback(async (pageNum = 0) => {
+    if (fetchingMore || (pageNum === page && pageNum !== 0)) return;
+    
     if (pageNum === 0) setLoading(true);
     else setFetchingMore(true);
 
     try {
-      const res = await api.get(`/moments/stream?page=${pageNum}&limit=8`);
+      const res = await api.get(`/moments/stream?page=${pageNum}&limit=12`);
       const { moments: newMoments, pagination } = res.data;
-      const data = newMoments || [];
+      const allData = newMoments || [];
       
-      if (pageNum === 0 && id && !data.find((m: Moment) => m.moment_id === id)) {
+      if (pageNum === 0 && id && !allData.find((m: Moment) => m.moment_id === id)) {
         try {
           const detailRes = await api.get(`/moments/${id}`);
           const single = detailRes.data.moment || detailRes.data;
-          if (single) data.unshift(single);
+          if (single) allData.unshift(single);
         } catch (e) { console.error('Error fetching moment', e); }
       }
 
-      setMoments(prev => pageNum === 0 ? data : [...prev, ...data]);
-      setHasMore(pagination?.hasMore ?? data.length >= 8);
+      // STAGGERED LOADING: First 3 instant, rest follow shortly
+      if (pageNum === 0) {
+        const firstBatch = allData.slice(0, 3);
+        setMoments(firstBatch);
+        
+        // Load the rest after a short delay for perceived speed
+        setTimeout(() => {
+          setMoments(prev => {
+            const combined = [...prev, ...allData.slice(3)];
+            const unique = [];
+            const seen = new Set();
+            for (const m of combined) {
+              if (m && m.moment_id && !seen.has(m.moment_id)) {
+                seen.add(m.moment_id);
+                unique.push(m);
+              }
+            }
+            return unique;
+          });
+        }, 300);
+      } else {
+        setMoments(prev => {
+          const combined = [...prev, ...allData];
+          const unique = [];
+          const seen = new Set();
+          for (const m of combined) {
+            if (m && m.moment_id && !seen.has(m.moment_id)) {
+              seen.add(m.moment_id);
+              unique.push(m);
+            }
+          }
+          return unique;
+        });
+      }
+
+      setHasMore(pagination?.hasMore ?? allData.length >= 8);
       setPage(pageNum);
     } catch (err) {
       console.error('Moments fetch error:', err);
@@ -517,12 +517,28 @@ export default function Moments() {
         timestamp: now
       };
 
-      setSearchResults(resultData.moments);
+      // Ensure unique search results
+      const uniqueResults = [];
+      const seenIds = new Set();
+      const resultsArray = Array.isArray(resultData.moments) ? resultData.moments : [];
+      
+      for (const m of resultsArray) {
+        if (m && (m.moment_id || m.user_id)) {
+          const id = m.moment_id || m.user_id;
+          if (!seenIds.has(id)) {
+            seenIds.add(id);
+            uniqueResults.push(m);
+          }
+        }
+      }
+
+      setSearchResults(uniqueResults);
       setIsFallback(resultData.isFallback);
       
-      // Update Caches
-      searchCache.current[cacheKey] = resultData;
-      localStorage.setItem(`search_${cacheKey}`, JSON.stringify(resultData));
+      // Update Caches with unique results
+      const cacheData = { ...resultData, moments: uniqueResults };
+      searchCache.current[cacheKey] = cacheData;
+      localStorage.setItem(`search_${cacheKey}`, JSON.stringify(cacheData));
     } catch (err) {
       console.error('Search error', err);
     } finally {
@@ -549,6 +565,10 @@ export default function Moments() {
   }, [activeSearchTab]);
 
   const handleFollow = async (userId: string, momentId: string) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     if (!userId) return;
     
     // Optimistic Update
@@ -566,6 +586,7 @@ export default function Moments() {
   };
 
   const trackEngagement = async (momentId: string, type: string, value?: number, category?: string) => {
+    if (!user) return;
     try {
       await api.post(`/moments/${momentId}/engagement`, { type, value, category });
     } catch (err) {
@@ -573,24 +594,37 @@ export default function Moments() {
     }
   };
 
+  const lastScrollTime = useRef<number>(0);
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollTop = e.currentTarget.scrollTop;
-    const height = e.currentTarget.clientHeight;
-    const index = Math.round(scrollTop / height);
-    
-    if (index !== activeIndex && index >= 0 && index < moments.length) {
-      setActiveIndex(index);
-      const currentId = moments[index].moment_id;
-      window.history.replaceState(null, '', `/moments/${currentId}`);
+    const now = Date.now();
+    if (now - lastScrollTime.current < 50) return; // Throttle to 50ms
+    lastScrollTime.current = now;
 
-      // Prefetch next batch when 3 videos from end
-      if (index >= moments.length - 3 && hasMore && !fetchingMore) {
+    const container = e.currentTarget;
+    const scrollTop = container.scrollTop;
+    const height = container.clientHeight;
+    // Use floor + threshold: switch active when more than 55% of next slide is visible
+    const raw = scrollTop / height;
+    const index = Math.abs(raw - Math.round(raw)) < 0.45 ? Math.round(raw) : Math.floor(raw);
+    const clampedIndex = Math.max(0, Math.min(index, moments.length - 1));
+    
+    if (clampedIndex !== activeIndex) {
+      setActiveIndex(clampedIndex);
+      const currentId = moments[clampedIndex]?.moment_id;
+      if (currentId) window.history.replaceState(null, '', `/moments/${currentId}`);
+
+      // Prefetch next batch when 5 videos from end
+      if (clampedIndex >= moments.length - 5 && hasMore && !fetchingMore) {
         loadMore();
       }
     }
   };
 
   const handleLike = async (momentId: string) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     const idx = moments.findIndex(m => m.moment_id === momentId);
     if (idx === -1) return;
     const m = moments[idx];
@@ -610,6 +644,10 @@ export default function Moments() {
   };
 
   const handleSave = async (momentId: string) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     const idx = moments.findIndex(m => m.moment_id === momentId);
     if (idx === -1) return;
     const m = moments[idx];
@@ -640,6 +678,10 @@ export default function Moments() {
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     if (!newComment.trim() || !activeMomentId || submittingComment) return;
     
     setSubmittingComment(true);
@@ -990,9 +1032,18 @@ export default function Moments() {
                    onOpenSearch={() => setIsSearchOpen(true)}
                    onFollow={handleFollow}
                    downloadProgress={downloadProgress?.id === m.moment_id ? downloadProgress.progress : null}
+                   currentUser={user}
                 />
               </div>
             ))
+        )}
+        {fetchingMore && (
+          <div className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 lg:ml-72 transition-all overflow-hidden relative">
+            <div className="flex flex-col items-center gap-6">
+              <TikTokLoader />
+              <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] animate-pulse">Syncing Stream</p>
+            </div>
+          </div>
         )}
       </div>
 
@@ -1070,6 +1121,17 @@ export default function Moments() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        @keyframes tiktok-dot-1 {
+          0%, 100% { transform: translate(-12px, -50%) scale(1); z-index: 20; }
+          50% { transform: translate(12px, -50%) scale(0.8); z-index: 10; }
+        }
+        @keyframes tiktok-dot-2 {
+          0%, 100% { transform: translate(12px, -50%) scale(0.8); z-index: 10; }
+          50% { transform: translate(-12px, -50%) scale(1); z-index: 20; }
+        }
+        .animate-tiktok-dot-1 { animation: tiktok-dot-1 0.6s infinite ease-in-out; }
+        .animate-tiktok-dot-2 { animation: tiktok-dot-2 0.6s infinite ease-in-out; }
       `}</style>
     </div>
   );

@@ -99,7 +99,9 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
               <button
                 onClick={async () => { 
                   onClose(); 
-                  try { await api.post(`/posts/${post.post_id}/action`, { action_type: 'click' }); } catch(e){}
+                  if (currentUser) {
+                    try { await api.post(`/posts/${post.post_id}/action`, { action_type: 'click' }); } catch(e){}
+                  }
                   alert('Noted! We will show you more posts like this.'); 
                 }}
                 className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
@@ -116,7 +118,9 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
               <button
                 onClick={async () => { 
                   onClose(); 
-                  try { await api.post(`/posts/${post.post_id}/action`, { action_type: 'dislike' }); } catch(e){}
+                  if (currentUser) {
+                    try { await api.post(`/posts/${post.post_id}/action`, { action_type: 'dislike' }); } catch(e){}
+                  }
                   // Dispatch a custom event so the feed hides this post immediately
                   window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
                   alert('Hidden. We will show you less of this.'); 

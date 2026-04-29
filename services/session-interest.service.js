@@ -2,6 +2,8 @@ const redis = require('./redis.service');
 const logger = require('../utils/logger');
 const pool = require('../config/database');
 
+const CATEGORIES = ['Sports', 'Technology', 'Entertainment', 'Academic', 'Social', 'Music', 'Lifestyle', 'Gaming', 'Comedy', 'Education', 'Politics', 'Viral', 'Dance', 'Nature', 'Fashion', 'Health', 'Travel'];
+
 /**
  * Session Interest Service (SIV Engine)
  * Formalizes Moments as a "Controlled Exploration Layer".
@@ -17,7 +19,6 @@ class SessionInterestService {
     async recordEvent(userId, momentId, event) {
         try {
             const sessionKey = `siv:${userId}`;
-            const signalKey = `signals:${userId}:${momentId}`;
             
             // 1. Calculate weighted increment (SIV = w_t T + w_l L + w_c C + w_s S + w_r R - w_k K)
             let weight = 0;
@@ -43,13 +44,12 @@ class SessionInterestService {
             if (weight === 0) return;
 
             // 2. Update Session Interest Vector (SIV) in Redis
-            // We store category weights in a hash
             if (event.category) {
                 const currentWeight = await redis.get(`${sessionKey}:${event.category}`) || 0;
                 await redis.set(`${sessionKey}:${event.category}`, Number(currentWeight) + weight, 3600); // 1 hour TTL
             }
 
-            // 3. Aggregate Signal for Home Feed Bridge (Async)
+            // 3. Aggregate Signal for Home Feed Bridge (Async, fire-and-forget)
             this.bridgeSignal(userId, event.category, weight).catch(err => logger.error('Signal Bridge Error:', err));
 
             return true;
@@ -61,13 +61,9 @@ class SessionInterestService {
 
     /**
      * Bridges Moments signals to the Home Feed v7.7 system
-     * Updates long-term interest weights without directly affecting Moments ranking list
      */
     async bridgeSignal(userId, category, weight) {
         if (!category) return;
-        
-        // This updates the 'user_signals_bridge' table which Home Feed v7.7 consumes
-        // We use a debounced approach: only update DB every 10 weight points
         await pool.query(`
             INSERT INTO user_signals_bridge (user_id, category, signal_strength)
             VALUES (?, ?, ?)
@@ -76,20 +72,23 @@ class SessionInterestService {
     }
 
     /**
-     * Returns the current session's interest profile
+     * Returns the current session's interest profile.
+     * OPTIMIZED: All 17 Redis GETs run in parallel via Promise.all
+     * — eliminates the sequential waterfall that caused 17× round-trip latency.
      */
     async getSessionProfile(userId) {
         const sessionKey = `siv:${userId}`;
-        // Since we can't easily fetch all keys in Upstash Redis without 'KEYS' (which is slow),
-        // we'll rely on a known set of platform categories
-        const categories = ['Sports', 'Technology', 'Entertainment', 'Academic', 'Social', 'Music', 'Lifestyle', 'Gaming', 'Comedy', 'Education', 'Politics', 'Viral', 'Dance', 'Nature', 'Fashion', 'Health', 'Travel'];
+
+        // Fire all Redis GETs simultaneously instead of one-by-one
+        const values = await Promise.all(
+            CATEGORIES.map(cat => redis.get(`${sessionKey}:${cat}`))
+        );
+
         const profile = {};
-        
-        for (const cat of categories) {
-            const val = await redis.get(`${sessionKey}:${cat}`);
-            if (val) profile[cat] = Number(val);
-        }
-        
+        CATEGORIES.forEach((cat, i) => {
+            if (values[i]) profile[cat] = Number(values[i]);
+        });
+
         return profile;
     }
 }

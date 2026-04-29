@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Heart, Loader2 } from 'lucide-react';
+import { X, Heart, Loader2, ChevronDown, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import clsx from 'clsx';
 import { useUserStore } from '../../store/userStore';
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
@@ -37,19 +39,25 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [sortMode, setSortMode] = useState('relevant');
+  const [showSortModal, setShowSortModal] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   const fetchComments = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/posts/${post.post_id}/comments`);
-      setComments(res.data);
+      const res = await api.get(`/posts/${post.post_id}/comments?sort=${sortMode}`);
+      if (res.data.status === 'success') {
+        setComments(res.data.data);
+      } else {
+        setComments(res.data); // Fallback for old API style if any
+      }
     } catch (err) {
       console.error('Failed to fetch comments', err);
     } finally {
       setLoading(false);
     }
-  }, [post.post_id]);
+  }, [post.post_id, sortMode]);
 
   useEffect(() => {
     fetchComments();
@@ -141,11 +149,30 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   return (
     <div className="flex flex-col h-[90vh] md:h-[600px] bg-white overflow-hidden relative border border-gray-200 rounded-t-xl md:rounded-xl shadow-2xl">
       <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white">
-        <div>
-          <h3 className="font-bold text-[17px] text-gray-900">Comments</h3>
-          {!loading && post.comment_count && post.comment_count > comments.length && (
-            <p className="text-[12px] text-gray-400 font-normal mt-0.5">
-              Showing {comments.length} of {formatCount(post.comment_count)}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-[17px] text-gray-900">Comments</h3>
+            <button 
+              onClick={() => setShowSortModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1 bg-gray-50 border border-gray-100 rounded-full hover:bg-gray-100 transition-all active:scale-95 group"
+            >
+              <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 group-hover:text-blue-600 transition-colors">
+                {sortMode === 'relevant' ? 'Relevant' : 
+                 sortMode === 'smart' ? 'Smart' :
+                 sortMode === 'followers' ? 'Followers' :
+                 sortMode === 'engaging' ? 'Engaging' :
+                 sortMode === 'newest' ? 'Newest' : 'All'}
+              </span>
+              <ChevronDown size={12} className="text-gray-300 group-hover:text-blue-600 transition-colors" />
+            </button>
+          </div>
+          {!loading && post.comment_count && (
+            <p className="text-[11px] text-gray-400 font-bold mt-0.5 uppercase tracking-[0.05em]">
+              {sortMode === 'relevant' ? 'Most relevant' : 
+               sortMode === 'smart' ? 'Smart Mix' :
+               sortMode === 'followers' ? 'Followers first' :
+               sortMode === 'engaging' ? 'Most engaging' :
+               sortMode === 'newest' ? 'Newest' : 'All signals'} • {formatCount(post.comment_count)}
             </p>
           )}
         </div>
@@ -225,6 +252,68 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
           </form>
         </div>
       </div>
+
+      {/* Sort Bottom Sheet */}
+      <AnimatePresence>
+        {showSortModal && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSortModal(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2000]"
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[32px] z-[2001] shadow-2xl p-6 pb-12"
+            >
+              <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
+              
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-bold text-gray-900">Sort Comments</h3>
+                <button onClick={() => setShowSortModal(false)} className="text-[12px] font-bold text-blue-600 uppercase">Done</button>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { id: 'relevant', label: 'Most Relevant', desc: 'Top comments based on engagement' },
+                  { id: 'smart', label: 'Smart Mix', desc: 'Balanced mix of trending and recent' },
+                  { id: 'followers', label: 'Followers First', desc: 'Comments from people you follow first' },
+                  { id: 'engaging', label: 'Most Engaging', desc: 'Highest interaction volume' },
+                  { id: 'newest', label: 'Newest', desc: 'Real-time chronological feed' },
+                  { id: 'all', label: 'All Comments', desc: 'Includes everything, unfiltered' }
+                ].map(mode => (
+                  <button 
+                    key={mode.id}
+                    onClick={() => { setSortMode(mode.id); setShowSortModal(false); }}
+                    className={clsx(
+                      "w-full flex items-start gap-4 p-4 rounded-2xl transition-all active:scale-[0.98]",
+                      sortMode === mode.id ? "bg-blue-50 border border-blue-100" : "bg-gray-50 border border-transparent"
+                    )}
+                  >
+                    <div className={clsx(
+                      "mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                      sortMode === mode.id ? "border-blue-600 bg-blue-600" : "border-gray-300"
+                    )}>
+                      {sortMode === mode.id && <Check size={12} className="text-white" />}
+                    </div>
+                    <div className="text-left">
+                      <p className={clsx("text-[14px] font-bold", sortMode === mode.id ? "text-blue-600" : "text-gray-900")}>
+                        {mode.label}
+                      </p>
+                      <p className="text-[11px] font-medium text-gray-400 mt-0.5">{mode.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

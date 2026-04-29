@@ -1,160 +1,299 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Eye, Heart, Compass, TrendingUp, Orbit } from 'lucide-react';
+import { Play, MessageCircle, Heart, Search, Filter } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 
-interface ExploreMedia {
-  post_id: string;
+interface ExploreItem {
+  id: string;
+  type: 'post' | 'moment';
   content?: string;
   username: string;
   avatar_url?: string;
   media_url?: string;
   media_type?: string;
-  sparks?: number;
-  comments?: number;
-  created_at: string;
+  likes: number;
+  comments: number;
 }
 
 export default function Explore() {
   const navigate = useNavigate();
-  const [mediaItems, setMediaItems] = useState<ExploreMedia[]>([]);
+  const [mediaItems, setMediaItems] = useState<ExploreItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Trending');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('For You');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => { fetchExploreMedia(); }, []);
+  const categories = ['For You', 'Trending', 'Campus', 'Style', 'Events', 'Music', 'Sports'];
 
-  const fetchExploreMedia = async () => {
-    setLoading(true);
+  useEffect(() => { 
+    setPage(1);
+    setHasMore(true);
+    fetchExploreMedia(1); 
+  }, [activeCategory]);
+
+  const fetchExploreMedia = async (pageNum: number) => {
+    if (pageNum === 1) setLoading(true);
+    else setLoadingMore(true);
+
     try {
-      const res = await api.get('/posts/feed?limit=50&tab=trending');
-      const data = Array.isArray(res.data) ? res.data : (res.data.posts || []);
-      const itemsWithMedia = data.filter((item: ExploreMedia) => item.media_url && item.media_url !== '/uploads/defaults/no-image.png');
-      setMediaItems(itemsWithMedia);
+      // Read from local cache instantly on first load
+      if (pageNum === 1) {
+        const cached = localStorage.getItem('explore_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.length > 0) {
+              setMediaItems(parsed);
+              setLoading(false); // UI shows cached data immediately
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Fetch from both endpoints
+      const [postsRes, momentsRes] = await Promise.all([
+        api.get(`/posts/feed?limit=15&page=${pageNum}&tab=trending`).catch(() => ({ data: [] })),
+        api.get(`/moments/stream?limit=15&page=${pageNum}`).catch(() => ({ data: { moments: [] } }))
+      ]);
+
+      const postsData = Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data.posts || []);
+      const momentsData = momentsRes.data.moments || momentsRes.data || [];
+
+      // Normalize items
+      const normalizedPosts = postsData.map((p: any) => ({
+        id: p.post_id,
+        type: 'post',
+        username: p.username,
+        avatar_url: p.avatar_url,
+        media_url: p.media_url,
+        media_type: p.media_type,
+        likes: p.sparks || 0,
+        comments: p.comments || 0,
+        content: p.content
+      }));
+
+      const normalizedMoments = momentsData.map((m: any) => {
+        const isVid = m.is_video || !!m.video_url || (m.media_url && String(m.media_url).match(/\.(mp4|webm|mov)$/i));
+        return {
+          id: m.moment_id,
+          type: 'moment',
+          username: m.username,
+          avatar_url: m.avatar_url,
+          media_url: m.video_url || m.media_url || m.thumbnail_url,
+          media_type: isVid ? 'video' : 'image',
+          likes: m.like_count || 0,
+          comments: m.comment_count || 0,
+          content: m.caption
+        };
+      });
+
+      let combined = [...normalizedPosts, ...normalizedMoments];
+      combined = combined.filter(item => item.media_url && item.media_url !== '/uploads/defaults/no-image.png');
+      
+      // Shuffle the items
+      combined = combined.sort(() => Math.random() - 0.5);
+
+      setMediaItems(prev => {
+        // If page 1, replace (we might have shown cache). Avoid duplicates if appending.
+        if (pageNum === 1) {
+          localStorage.setItem('explore_cache', JSON.stringify(combined.slice(0, 30)));
+          return combined;
+        } else {
+          // Filter duplicates just in case
+          const existingIds = new Set(prev.map(i => i.id));
+          const newUnique = combined.filter(i => !existingIds.has(i.id));
+          return [...prev, ...newUnique];
+        }
+      });
+      
+      if (combined.length === 0 && pageNum > 1) {
+        setHasMore(false);
+      }
     } catch (err) {
       console.error('Explore fetch error:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading || loadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchExploreMedia(nextPage);
+      }
+    });
+    
+    if (node) observerRef.current.observe(node);
+  }, [loading, loadingMore, hasMore, page]);
+
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
+    <div className="flex bg-[#fafafa] min-h-screen text-gray-900 font-sans overflow-x-hidden">
       <Navbar />
 
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
-
-      <div className="flex-1 px-6 py-20 lg:ml-72 lg:px-12 lg:py-24 max-w-7xl mx-auto w-full relative z-10 pt-20 md:pt-12">
-        <header className="flex flex-col items-center text-center mb-32 animate-fade-in px-4">
-          <div className="inline-flex items-center gap-4 px-8 py-3 bg-white/80 backdrop-blur-3xl border border-white rounded-full mb-12 shadow-xl shadow-primary/5">
-            <Compass size={20} strokeWidth={3} className="text-primary" />
-            <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">The Discovery Hub</span>
-          </div>
-          
-          <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none mb-10 italic uppercase">
-            Campus <span className="text-primary">Pulse</span>
-          </h1>
-          
-          <p className="text-xl font-bold text-black opacity-60 max-w-2xl leading-relaxed italic">
-            Discover high-frequency signals and visual chronicles from across the village.
-          </p>
-
-          <div className="flex items-center gap-4 mt-20 p-3 bg-white/60 backdrop-blur-3xl rounded-[40px] border border-white/65 shadow-2xl shadow-primary/5 overflow-x-auto no-scrollbar max-w-full">
-            {['Trending', 'Stories', 'Moments', 'Live'].map((tab) => (
-              <button 
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-12 py-5 rounded-[30px] font-black text-[11px] uppercase tracking-widest transition-all duration-500 italic ${activeTab === tab ? 'bg-primary text-white shadow-2xl shadow-primary/30 scale-105' : 'text-black/20 hover:bg-white hover:text-black'}`}
-              >
-                {tab}
+      {/* Main Content Area */}
+      <div className="flex-1 lg:ml-72 w-full">
+        {/* Sticky Header with Search & Filters */}
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-4 py-4 md:px-8 shadow-sm">
+          <div className="max-w-5xl mx-auto flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors duration-300" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Search moments, posts, tags..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-100 border border-transparent focus:bg-white focus:border-primary/20 focus:ring-4 focus:ring-primary/5 rounded-full py-3 pl-12 pr-4 text-sm font-medium outline-none transition-all duration-300 shadow-inner"
+                />
+              </div>
+              <button className="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors text-gray-600">
+                <Filter size={18} />
               </button>
-            ))}
+            </div>
+            
+            {/* Categories */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-5 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-300 ${
+                    activeCategory === cat 
+                      ? 'bg-gray-900 text-white shadow-md transform scale-[1.02]' 
+                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
-        </header>
+        </div>
 
-        {loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 px-2">
-            {[...Array(12)].map((_, i) => (
-              <div key={i} className="aspect-[3/5] bg-white/40 border-4 border-dashed border-white rounded-[56px] animate-pulse" />
-            ))}
-          </div>
-        ) : mediaItems.length === 0 ? (
-          <div className="py-48 flex flex-col items-center justify-center text-center gap-12 bg-white/20 border-4 border-dashed border-white rounded-[64px] shadow-inner animate-fade-in mx-4">
-            <div className="relative">
-                <Orbit size={140} strokeWidth={1} className="text-black/5 animate-spin-slow" />
-                <Compass size={60} strokeWidth={1} className="absolute inset-0 m-auto text-black/10" />
+        {/* Content Grid */}
+        <div className="max-w-5xl mx-auto px-1 md:px-8 py-4">
+          {loading && page === 1 && mediaItems.length === 0 ? (
+            <div className="grid grid-cols-3 gap-1 md:gap-6">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="aspect-square bg-gray-200 rounded-md md:rounded-2xl animate-pulse" />
+              ))}
             </div>
-            <div className="space-y-6">
-              <h3 className="text-5xl font-black text-black/10 italic uppercase tracking-tighter">Quiet Frequency.</h3>
-              <p className="text-[11px] font-black text-black/30 uppercase tracking-[0.4em] max-w-xs mx-auto leading-loose italic">No commercial signals detected in this spectrum. Check back soon.</p>
-              <button onClick={fetchExploreMedia} className="mt-8 px-12 py-6 bg-primary text-white rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.05] active:scale-95 transition-all italic">Recalibrate Hub</button>
-            </div>
-          </div>
-        ) : (
-          <div className="columns-2 lg:columns-3 xl:columns-4 gap-10 space-y-10 pb-48 animate-fade-in px-2">
-            {mediaItems.map((m) => (
-              <div 
-                key={m.post_id} 
-                className="break-inside-avoid relative group cursor-pointer rounded-[48px] overflow-hidden border border-white bg-white/80 backdrop-blur-3xl shadow-xl hover:shadow-2xl hover:shadow-primary/5 transition-all duration-700 hover:scale-[1.03] active:scale-95" 
-                onClick={() => navigate(`/post/${m.post_id}`)}
+          ) : mediaItems.length === 0 ? (
+            <div className="py-40 flex flex-col items-center justify-center text-center">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <Search size={40} className="text-gray-300" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">No Content Found</h3>
+              <p className="text-gray-500 max-w-sm">We couldn't find any posts for this category right now. Try refreshing.</p>
+              <button 
+                onClick={() => fetchExploreMedia(1)}
+                className="mt-8 px-8 py-3 bg-primary text-white rounded-full font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
               >
-                <div className="relative overflow-hidden m-2 rounded-[40px] border border-black/5">
-                  <img
-                    src={m.media_url || 'https://placehold.co/400x600?text=Scan+Error'}
-                    alt={m.content || m.username}
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                  
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 p-10 flex flex-col justify-end gap-8 backdrop-blur-[4px]">
-                    <div className="flex items-center gap-4 translate-y-8 group-hover:translate-y-0 transition-transform duration-500">
-                      <div className="w-12 h-12 rounded-2xl overflow-hidden border-4 border-white shadow-2xl">
-                        <img src={m.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
+                Refresh Explore
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1 md:gap-6 pb-24">
+              {mediaItems.map((m, i) => {
+                let spanClass = "col-span-1 row-span-1 aspect-square";
+                if (i % 10 === 0) {
+                  spanClass = "col-span-2 row-span-2";
+                } else if (i % 10 === 6) {
+                  spanClass = "col-span-2 row-span-2";
+                }
+
+                const isLastElement = i === mediaItems.length - 1;
+
+                return (
+                  <div 
+                    ref={isLastElement ? lastElementRef : null}
+                    key={`${m.id}-${i}`} 
+                    className={`group relative cursor-pointer overflow-hidden rounded-sm md:rounded-2xl bg-gray-100 ${spanClass}`}
+                    onClick={() => {
+                      if (m.type === 'moment') {
+                        navigate(`/moments/${m.id}`);
+                      } else {
+                        navigate(`/post/${m.id}`);
+                      }
+                    }}
+                  >
+                    {m.media_type === 'video' ? (
+                      <video
+                        src={m.media_url}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={m.media_url || 'https://placehold.co/400x400?text=Scan+Error'}
+                        alt={m.content || m.username}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                    )}
+                    
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-4 backdrop-blur-[2px]">
+                      <div className="flex gap-6 items-center">
+                        <div className="flex items-center gap-2 text-white font-bold text-lg md:text-xl">
+                          <Heart size={24} fill="white" />
+                          <span>{formatCount(m.likes || 0)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-white font-bold text-lg md:text-xl">
+                          <MessageCircle size={24} fill="white" />
+                          <span>{formatCount(m.comments || 0)}</span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="font-black text-sm text-white italic uppercase tracking-tighter">@{m.username}</span>
-                        <span className="text-[9px] font-black text-white/50 uppercase tracking-widest italic leading-none">Signal Creator</span>
+                      
+                      <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
+                        <img src={m.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-md" alt="" />
+                        <span className="text-white font-semibold text-sm truncate drop-shadow-md">@{m.username}</span>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between border-t border-white/20 pt-6 translate-y-8 group-hover:translate-y-0 transition-transform duration-700 delay-100">
-                        <div className="flex items-center gap-8">
-                          <div className="flex items-center gap-3 text-white font-black text-[11px] uppercase tracking-widest italic">
-                            <Heart size={20} fill={m.sparks !== undefined && m.sparks > 0 ? "#e11d48" : "none"} strokeWidth={3} className={m.sparks !== undefined && m.sparks > 0 ? "text-primary" : ""} />
-                            {formatCount(m.sparks || 0)}
-                          </div>
-                          <div className="flex items-center gap-3 text-white font-black text-[11px] uppercase tracking-widest italic">
-                            <Eye size={20} strokeWidth={3} />
-                            {formatCount(m.comments || 0)}
-                          </div>
+
+                    {/* Top Right Icon for Video/Moments */}
+                    <div className="absolute top-2 right-2 md:top-4 md:right-4 flex gap-2">
+                      {m.type === 'moment' && (
+                        <div className="text-white drop-shadow-lg p-1.5 md:p-2 bg-primary/80 rounded-full backdrop-blur-md">
+                           <Play size={14} fill="currentColor" />
                         </div>
-                        <TrendingUp size={20} strokeWidth={4} className="text-primary animate-pulse" />
+                      )}
+                      {m.type === 'post' && m.media_type === 'video' && (
+                        <div className="text-white drop-shadow-lg p-1.5 md:p-2 bg-black/30 rounded-full backdrop-blur-md">
+                           <Play size={14} fill="currentColor" />
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {m.media_type === 'video' && (
-                    <div className="absolute top-6 right-6 p-4 bg-black/40 backdrop-blur-3xl border border-white/20 rounded-2xl text-white shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 rotate-12 group-hover:rotate-0">
-                      <Play size={20} fill="currentColor" strokeWidth={0} />
-                    </div>
-                  )}
+                );
+              })}
+              
+              {loadingMore && (
+                <div className="col-span-3 py-8 flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`
-        .columns-2 { column-count: 2; }
-        @media (min-width: 1024px) { .columns-3 { column-count: 3; } }
-        @media (min-width: 1280px) { .columns-4 { column-count: 4; } }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .animate-spin-slow { animation: spin 15s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

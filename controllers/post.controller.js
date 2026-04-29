@@ -112,13 +112,17 @@ const getComments = async (req, res) => {
     try {
         const userId = req.user ? (req.user.userId || req.user.user_id) : null;
         const postId = req.params.id;
+        const { sort } = req.query;
         
         if (!postId) {
             return res.status(400).json({ error: 'Post ID is required' });
         }
 
-        const comments = await Post.getComments(postId, userId);
-        res.json(comments || []);
+        const comments = await Post.getComments(postId, userId, sort);
+        res.json({
+            status: 'success',
+            data: comments || []
+        });
     } catch (error) {
         logger.error('Get comments error:', error);
         res.status(500).json({ error: 'Failed to get comments', comments: [] });

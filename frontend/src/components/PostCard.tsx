@@ -54,7 +54,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
               dwellTimerRef.current = setTimeout(() => {
                 // Log dwell action only if viewed prominently for 1.5 seconds
                 hasLoggedDwell.current = true;
-                api.post(`/posts/${post.post_id}/action`, { action_type: 'dwell' }).catch(() => {});
+                if (currentUser) {
+                  api.post(`/posts/${post.post_id}/action`, { action_type: 'dwell' }).catch(() => {});
+                }
               }, 1500);
             }
           } else {
@@ -68,7 +70,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
               // If they looked for > 1s, it's a valid impression signal (only log once)
               if (duration > 1000 && !hasLoggedImpression.current) {
                 hasLoggedImpression.current = true;
-                api.post(`/posts/${post.post_id}/action`, { action_type: 'click', duration }).catch(() => {});
+                if (currentUser) {
+                  api.post(`/posts/${post.post_id}/action`, { action_type: 'click', duration }).catch(() => {});
+                }
               }
               startTimeRef.current = null;
             }

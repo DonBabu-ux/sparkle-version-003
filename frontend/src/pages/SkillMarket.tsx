@@ -40,7 +40,7 @@ export default function SkillMarket() {
               <Zap size={14} fill="currentColor" />
               <span>SKILL RESONANCE</span>
            </div>
-           <h1>Campus Skill Exchange</h1>
+           <h1>Sparkle Skill Exchange</h1>
            <p>Monetize your expertise or find specialized talent right within your student community.</p>
         </header>
 

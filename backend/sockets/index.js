@@ -487,4 +487,14 @@ const notifyOrderUpdate = (orderData) => {
     }
 };
 
-module.exports = { initializeSocket, getIO, emitNotification, notifyOrderUpdate };
+const emitJobUpdate = (userId, jobData) => {
+    try {
+        if (io) {
+            io.to(`user:${userId}`).emit('marketplace:job_status', jobData);
+        }
+    } catch (error) {
+        logger.error('emitJobUpdate error:', error);
+    }
+};
+
+module.exports = { initializeSocket, getIO, emitNotification, notifyOrderUpdate, emitJobUpdate };

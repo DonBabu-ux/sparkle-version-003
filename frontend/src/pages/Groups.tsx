@@ -49,7 +49,7 @@ export default function Groups() {
                     <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">The Village Circles</span>
                  </div>
                  <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
-                    Campus <span className="text-primary">Circles</span>
+                    Sparkle <span className="text-primary">Circles</span>
                  </h1>
                   <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic max-w-2xl">
                     Exclusive spaces for interests, shared frequencies, and private orbits. Connect across <span className="text-primary">{user?.campus || 'the village'}</span>.
@@ -154,7 +154,7 @@ export default function Groups() {
 
                    <h3 className="text-3xl font-black text-black mb-4 group-hover/item:text-primary transition-colors leading-none uppercase tracking-tighter italic">{group.name}</h3>
                    <p className="text-base font-bold text-black opacity-60 line-clamp-2 leading-loose mb-12 flex-1 italic">
-                      {group.description || 'Resonating within the campus network...'}
+                      {group.description || 'Resonating within the Sparkle network...'}
                    </p>
 
                    <div className="pt-10 border-t border-black/[0.03] flex items-center justify-between">

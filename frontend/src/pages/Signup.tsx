@@ -146,11 +146,11 @@ export default function Signup() {
           <div className="su-info">
             <h1 className="su-logo">Sparkle</h1>
             <p className="su-tagline">
-              It's quick and easy. Join the sweetest campus network and bloom with your people.
+              It's quick and easy. Join the sweetest Sparkle network and bloom with your people.
             </p>
             <div className="su-features">
               {[
-                { icon: Compass, label: 'Explore campus spots' },
+                { icon: Compass, label: 'Explore Sparkle spots' },
                 { icon: Users, label: 'Find your people' },
                 { icon: Heart, label: 'Share real moments' },
                 { icon: Orbit, label: 'Stay connected' },
@@ -258,9 +258,9 @@ export default function Signup() {
                   </div>
 
                   <div className="su-field">
-                    <label className="su-label">Campus</label>
+                    <label className="su-label">Sparkle Region</label>
                     <select value={form.campus} onChange={(e) => update('campus', e.target.value)} className="su-input su-select">
-                      <option value="">Select your campus...</option>
+                      <option value="">Select your Sparkle region...</option>
                       {UNIVERSITIES.map((u) => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
@@ -293,8 +293,8 @@ export default function Signup() {
                       </div>
                     </div>
                     <div className="su-review__detail">
-                      <span className="su-review__label">Campus</span>
-                      <span className="su-review__value">{form.campus || 'Global'}</span>
+                      <span className="su-review__label">Sparkle Region</span>
+                      <span className="su-review__value">{form.campus || 'Sparkle Global'}</span>
                     </div>
                   </div>
 

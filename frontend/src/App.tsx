@@ -32,6 +32,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Orders from './pages/Orders';
 import MyListings from './pages/MyListings';
+import ReportListing from './pages/ReportListing';
+import MarketplaceModals from './components/modals/MarketplaceModals';
 
 // Phase 2 — Social & Community
 import Clubs from './pages/Clubs';
@@ -117,6 +119,7 @@ function App() {
       <div className="app">
         <LoadingBar />
         <GlobalEffects />
+        <MarketplaceModals />
         <Routes>
           {/* ── Phase 1: Auth & Core ── */}
           <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
@@ -146,6 +149,7 @@ function App() {
         <Route path="/marketplace/category/:categoryId" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
         <Route path="/marketplace/inbox" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
         <Route path="/marketplace/sell" element={isAuthenticated ? <SellItem /> : <Navigate to="/login" />} />
+        <Route path="/marketplace/report/:id" element={isAuthenticated ? <ReportListing /> : <Navigate to="/login" />} />
         <Route path="/marketplace/profile" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
         <Route path="/marketplace/orders" element={isAuthenticated ? <Orders /> : <Navigate to="/login" />} />
         <Route path="/marketplace/my-listings" element={isAuthenticated ? <MyListings /> : <Navigate to="/login" />} />

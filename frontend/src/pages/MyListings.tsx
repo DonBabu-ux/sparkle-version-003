@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Trash2, Edit3, ExternalLink, ChevronLeft } from 'lucide-react';
-import Navbar from '../components/Navbar';
+import { Package, Trash2, Edit3, ExternalLink, ChevronLeft, MoreVertical, CheckCircle2, Clock } from 'lucide-react';
 import api from '../api/api';
 import type { Listing } from '../types/listing';
+import clsx from 'clsx';
+import { motion } from 'framer-motion';
 
 export default function MyListings() {
   const navigate = useNavigate();
@@ -46,94 +47,111 @@ export default function MyListings() {
   };
 
   return (
-    <div className="page-wrapper">
-      <Navbar />
-      <main className="mylist-container">
-        <header className="mylist-header">
-          <button className="back-btn" onClick={() => navigate('/marketplace')}>
-            <ChevronLeft size={20} />
+    <div className="min-h-screen bg-white text-marketplace-text font-sans pb-20">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/marketplace')} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
+            <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
-          <h1>My Marketplace items</h1>
-        </header>
+          <h1 className="text-[19px] font-black tracking-tight">Your Listings</h1>
+        </div>
+      </header>
 
+      <main className="max-w-6xl mx-auto px-4 pt-6">
         {loading ? (
-          <div className="loader">Summoning your inventory...</div>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-12 h-12 border-4 border-marketplace-bg border-t-marketplace-text rounded-full animate-spin" />
+            <p className="text-marketplace-muted font-bold animate-pulse">Loading your shop...</p>
+          </div>
         ) : listings.length === 0 ? (
-          <div className="empty-state">
-            <Package size={48} className="icon" />
-            <h3>Your inventory is hollow</h3>
-            <p>You haven't listed anything for sale yet.</p>
-            <button className="create-btn" onClick={() => navigate('/marketplace')}>Browse Marketplace</button>
+          <div className="flex flex-col items-center justify-center py-20 px-6 bg-marketplace-bg rounded-[40px] border-2 border-dashed border-marketplace-border text-center">
+            <Package size={64} className="text-marketplace-muted/30 mb-6" />
+            <h3 className="text-2xl font-black mb-2">No active listings</h3>
+            <p className="text-marketplace-muted font-medium mb-8">You haven't posted any items for sale yet.</p>
+            <button 
+              onClick={() => navigate('/marketplace/sell')} 
+              className="px-10 py-4 bg-marketplace-text text-white rounded-2xl font-black hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-slate-200"
+            >
+              Create First Listing
+            </button>
           </div>
         ) : (
-          <div className="listings-list">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {listings.map(item => (
-              <div key={item.listing_id} className="list-card premium-card">
-                <div className="card-thumb">
-                  <img src={item.image_url || '/uploads/defaults/no-image.png'} alt="" />
-                </div>
-                <div className="card-details">
-                  <h3 className="title">{item.title}</h3>
-                  <div className="price">KSh {item.price}</div>
-                  <div className={`status-badge ${item.status === 'sold' ? 'sold' : ''}`}>{item.status || 'Active'}</div>
-                </div>
-                <div className="card-actions">
-                  <button onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)} className="action-btn" title="View">
-                    <ExternalLink size={18} />
-                  </button>
-                  {item.status !== 'sold' && (
-                    <button onClick={() => handleMarkSold(item.listing_id)} className="action-btn sold-btn" title="Mark as Sold">
-                      <Package size={18} />
-                    </button>
+              <motion.div 
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={item.listing_id} 
+                className="bg-white rounded-[32px] overflow-hidden border border-marketplace-border shadow-sm group hover:shadow-xl transition-all duration-300"
+              >
+                <div className="aspect-[16/10] relative overflow-hidden bg-marketplace-bg">
+                  <img 
+                    src={item.image_url || '/uploads/marketplace/default.png'} 
+                    alt={item.title} 
+                    className={clsx(
+                      "w-full h-full object-cover transition-transform duration-700 group-hover:scale-110",
+                      item.status === 'sold' && "grayscale opacity-60"
+                    )}
+                  />
+                  {item.status === 'sold' && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="bg-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em]">Sold</div>
+                    </div>
                   )}
-                  <button className="action-btn" title="Edit">
-                    <Edit3 size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(item.listing_id)} className="action-btn delete" title="Delete">
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <button className="w-10 h-10 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg text-marketplace-text hover:bg-white transition-colors">
+                      <MoreVertical size={18} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+
+                <div className="p-6">
+                  <div className="flex justify-between items-start gap-4 mb-3">
+                    <h3 className="font-black text-lg line-clamp-1 flex-1 leading-tight">{item.title}</h3>
+                    <div className="text-lg font-black text-[#1877F2]">KES {parseFloat(item.price as string).toLocaleString()}</div>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs font-bold text-marketplace-muted uppercase tracking-widest mb-6">
+                    <span className="flex items-center gap-1.5"><Clock size={12} /> {new Date(item.created_at || Date.now()).toLocaleDateString()}</span>
+                    <span className={clsx(
+                      "flex items-center gap-1.5",
+                      item.status === 'sold' ? "text-emerald-500" : "text-blue-500"
+                    )}>
+                      <CheckCircle2 size={12} /> {item.status || 'Active'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}
+                      className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-marketplace-bg text-marketplace-text font-black text-sm hover:bg-slate-200 transition-all"
+                    >
+                      <ExternalLink size={16} /> View
+                    </button>
+                    {item.status !== 'sold' ? (
+                      <button 
+                        onClick={() => handleMarkSold(item.listing_id)}
+                        className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-emerald-50 text-emerald-600 font-black text-sm hover:bg-emerald-100 transition-all border border-emerald-100"
+                      >
+                        <CheckCircle2 size={16} /> Mark Sold
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleDelete(item.listing_id)}
+                        className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-red-50 text-red-500 font-black text-sm hover:bg-red-100 transition-all border border-red-100"
+                      >
+                        <Trash2 size={16} /> Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
             ))}
           </div>
         )}
       </main>
-
-      <style>{`
-        .page-wrapper { display: flex; background: #f8fafc; min-height: 100vh; }
-        .mylist-container { flex: 1; max-width: 900px; margin: 0 auto; padding: 40px 20px 100px; }
-        
-        .mylist-header { display: flex; align-items: center; gap: 20px; margin-bottom: 40px; }
-        .back-btn { background: white; border: 1px solid #e2e8f0; width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .back-btn:hover { background: #f1f5f9; }
-        .mylist-header h1 { font-size: 1.8rem; font-weight: 900; color: #0f172a; margin: 0; }
-
-        .listings-list { display: flex; flex-direction: column; gap: 16px; }
-        .list-card { display: flex; align-items: center; gap: 24px; padding: 16px; border-radius: 20px; }
-        
-        .card-thumb { width: 100px; height: 100px; border-radius: 14px; overflow: hidden; background: #f1f5f9; flex-shrink: 0; }
-        .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .card-details { flex: 1; }
-        .card-details .title { font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0 0 4px; }
-        .card-details .price { font-weight: 800; color: #059669; font-size: 1rem; margin-bottom: 8px; }
-        .status-badge { display: inline-block; background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; }
-        .status-badge.sold { background: #fef2f2; color: #ef4444; }
-
-        .card-actions { display: flex; gap: 8px; }
-        .action-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .action-btn:hover { background: #f8fafc; color: var(--primary); border-color: var(--primary); }
-        .action-btn.sold-btn:hover { background: #ecfdf5; color: #10b981; border-color: #10b981; }
-        .action-btn.delete:hover { background: #fef2f2; color: #ef4444; border-color: #ef4444; }
-
-        .loader { text-align: center; padding: 100px; color: #64748b; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
-
-        .empty-state { text-align: center; padding: 100px 40px; background: white; border-radius: 28px; border: 2px dashed #e2e8f0; display: flex; flex-direction: column; align-items: center; }
-        .empty-state .icon { color: #cbd5e1; margin-bottom: 24px; }
-        .empty-state h3 { font-size: 1.5rem; font-weight: 900; color: #1e293b; margin: 0 0 8px; }
-        .empty-state p { color: #94a3b8; margin-bottom: 30px; }
-        .empty-state .create-btn { background: var(--primary-gradient); color: white; border: none; padding: 14px 28px; border-radius: 16px; font-weight: 800; cursor: pointer; }
-      `}</style>
     </div>
   );
 }

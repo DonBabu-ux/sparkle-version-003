@@ -18,7 +18,7 @@ export default function Streams() {
     },
     {
       id: 2,
-      title: 'Campus DJ Set LIVE 🎧',
+      title: 'Sparkle DJ Set LIVE 🎧',
       streamer_name: 'DJ_Sparkle',
       viewer_count: 1205,
       category: 'Music',

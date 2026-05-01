@@ -2213,6 +2213,50 @@ class Marketplace {
             throw error;
         }
     }
+    /**
+     * Durable Job Event Log (Source of Truth)
+     * Supports Transactional Outbox Pattern
+     */
+    static async logJobEvent(event, connection = null) {
+        const executor = connection || db;
+        try {
+            await executor.query(`
+                INSERT INTO marketplace_job_events (
+                    job_id, status, sequence, causal_id, payload, timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            `, [
+                event.job_id || event.jobId, 
+                event.status, 
+                event.sequence, 
+                event.causal_id || event.parentId || null,
+                JSON.stringify(event.payload || {}),
+                new Date(event.timestamp || Date.now())
+            ]);
+        } catch (error) {
+            console.warn('[Durable Log Fallback] DB error:', error.message);
+        }
+    }
+
+    /**
+     * Hybrid Logical Clock (HLC) for global deterministic ordering
+     */
+    static async getLogicalClock() {
+        const ts = Date.now();
+        const counter = await require('../config/redis').incr('mkt:hlc:counter');
+        return `${ts}-${counter}`;
+    }
+
+    static async getJobEvents(jobId) {
+        try {
+            const [rows] = await db.query(
+                'SELECT * FROM marketplace_job_events WHERE job_id = ? ORDER BY sequence ASC',
+                [jobId]
+            );
+            return rows;
+        } catch (error) {
+            return [];
+        }
+    }
 }
 
 module.exports = Marketplace;

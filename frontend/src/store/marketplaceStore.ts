@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { Listing } from '../types/listing';
 
 interface MarketplaceState {
   searchQuery: string;
@@ -14,10 +15,14 @@ interface MarketplaceState {
   minPrice: number | null;
   maxPrice: number | null;
   sortBy: 'recommended' | 'price_asc' | 'price_desc' | 'distance_asc' | 'newest';
-  activeModal: 'categories' | 'location' | 'distance' | 'filters' | 'sort' | 'inbox' | null;
+  activeModal: 'categories' | 'location' | 'distance' | 'filters' | 'sort' | 'inbox' | 'offer' | 'share' | 'more' | null;
+  selectedListing: Listing | null;
+  reportedListings: string[];
 
   setFilters: (filters: Partial<MarketplaceState>) => void;
   setActiveModal: (modal: MarketplaceState['activeModal']) => void;
+  setSelectedListing: (listing: Listing | null) => void;
+  reportListing: (id: string) => void;
   resetFilters: () => void;
 }
 
@@ -29,17 +34,21 @@ const initialState = {
     lng: 36.8219, 
     name: 'Nairobi, Kenya',
     source: 'default'
-  }, // Default to Nairobi or user's location
+  }, 
   radiusKm: 15,
   minPrice: null,
   maxPrice: null,
   sortBy: 'recommended' as const,
   activeModal: null as MarketplaceState['activeModal'],
+  selectedListing: null as Listing | null,
+  reportedListings: [] as string[],
 };
 
 export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   ...initialState,
   setFilters: (filters) => set((state) => ({ ...state, ...filters })),
   setActiveModal: (modal) => set({ activeModal: modal }),
+  setSelectedListing: (listing) => set({ selectedListing: listing }),
+  reportListing: (id) => set((state) => ({ reportedListings: [...state.reportedListings, id] })),
   resetFilters: () => set(initialState),
 }));

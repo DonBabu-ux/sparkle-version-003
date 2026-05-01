@@ -291,7 +291,7 @@ export default function Settings() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="space-y-4">
-                      <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Base Satellite (Campus)</label>
+                      <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Base Satellite (Sparkle)</label>
                       <input type="text" name="campus" className="pink-settings-input" value={formData.campus} onChange={handleChange} />
                     </div>
                     <div className="space-y-4">

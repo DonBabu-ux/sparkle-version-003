@@ -1,4 +1,6 @@
 const Marketplace = require('../models/Marketplace');
+const GeoIntelligence = require('../models/GeoIntelligence');
+const rbac = require('../middleware/rbac.middleware');
 const LostFound = require('../models/LostFound');
 const SkillMarket = require('../models/SkillMarket');
 const marketplaceSchemas = require('../schemas/marketplace.schemas');
@@ -8,6 +10,13 @@ const { upload } = require('../utils/fileUpload');
 const crypto = require('crypto');
 const notificationController = require('./notification.controller');
 const pool = require('../config/database');
+const redisConnection = require('../config/redis');
+const marketplaceQueue = require('../queues/marketplace.queue');
+const HealthControl = require('../utils/health-control');
+
+// Cache TTL: 30 seconds
+const CACHE_TTL = 30; 
+
 
 // Helper for media URLs
 const getSafeMediaUrl = (url) => {
@@ -79,11 +88,34 @@ const renderMarketplace = async (req, res) => {
         let recommendedListings = [];
         let counts = { favoritesCount: 0, wishlistCount: 0, notificationCount: 0 };
 
+        // 1. Check Redis Search Cache (Surgical Key: Versioned + Category-specific)
+        const currentCategory = (req.query.category || 'all').toLowerCase();
+        const searchHash = crypto.createHash('md5').update(JSON.stringify({
+            q: (req.query.search || '').toLowerCase(),
+            sort: req.query.sort || 'newest',
+            min: req.query.minPrice,
+            max: req.query.maxPrice,
+            aff: affiliation
+        })).digest('hex');
+
+        const cacheKey = `mkt:v1:cat:${currentCategory}:${searchHash}`;
+
+        if (req.query.search || req.query.category) {
+            const cached = await redisConnection.get(cacheKey);
+            if (cached) return res.json(JSON.parse(cached));
+        }
+
         try {
             const result = await Marketplace.getListings(filters);
             listings = result.listings || [];
             total = result.total || result.pagination?.total || listings.length;
             hasMore = result.pagination?.hasMore || false;
+
+            // Cache result if it's a search or category view
+            const responseData = { success: true, listings, total, hasMore };
+            if (req.query.search || req.query.category) {
+                await redisConnection.setex(cacheKey, CACHE_TTL, JSON.stringify(responseData));
+            }
         } catch (dbError) {
             logger.error('Database error in marketplace:', dbError.message);
         }
@@ -143,6 +175,18 @@ const renderListingDetail = async (req, res) => {
 
         // Fetch reviews for this listing
         const reviews = await Marketplace.getListingReviews(req.params.id);
+
+        // Log View Geo-Event
+        if (listing.location_name) {
+            GeoIntelligence.logEvent({
+                user_id: user?.user_id || 'anonymous',
+                event_type: 'view',
+                category: listing.category_id || 'all',
+                region: listing.location_name.split(',')[0].trim(),
+                lat: listing.latitude,
+                lng: listing.longitude
+            });
+        }
 
         res.json({
             success: true,
@@ -269,7 +313,6 @@ const renderWishlist = async (req, res) => {
 // ========== API ROUTES ==========
 
 
-
 const getListings = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
@@ -281,12 +324,47 @@ const getListings = async (req, res) => {
             campus: affiliation
         };
 
+        // 1. Predictive Load Shedding: Latency-based control
+        const loadState = await HealthControl.getSheddingStatus();
+        if (loadState === 'CRITICAL') {
+            return res.status(530).json({ success: false, loadState, message: 'System in protective mode.' });
+        }
+
+        // 2. Log Geo-Search Event
+        if (req.query.location) {
+            const loc = typeof req.query.location === 'string' ? JSON.parse(req.query.location) : req.query.location;
+            GeoIntelligence.logEvent({
+                user_id: user?.user_id || 'anonymous',
+                event_type: 'search',
+                category: req.query.category || 'all',
+                region: loc.name?.split(',')[0].trim() || 'Unknown',
+                lat: loc.lat,
+                lng: loc.lng
+            });
+        }
+
         const result = await Marketplace.getListings(filters);
+        
+        // 3. Smart Ranking: Enrich with Regional Demand Scoring
+        const enrichedListings = await Promise.all((result.listings || []).map(async (item) => {
+            const region = item.location_name?.split(',')[0].trim() || 'Unknown';
+            const demandScore = await GeoIntelligence.getDemandScore(region, item.category_id);
+            // Rank Score = Demand / (Age + 1)
+            const daysOld = (Date.now() - new Date(item.created_at).getTime()) / (1000 * 60 * 60 * 24);
+            const rankScore = demandScore / (daysOld + 1);
+            return { ...item, rankScore };
+        }));
+
+        // Sort by Rank if 'recommended'
+        if (!filters.sort || filters.sort === 'recommended') {
+            enrichedListings.sort((a, b) => b.rankScore - a.rankScore);
+        }
 
         res.json({
             success: true,
-            listings: result.listings,
-            pagination: result.pagination
+            listings: enrichedListings,
+            pagination: result.pagination,
+            loadState
         });
     } catch (error) {
         logger.error('Get listings API error:', error);
@@ -417,6 +495,20 @@ const createListing = [
             logger.info(`Attempting to create listing for user ${user.user_id || user.id}`);
             const listingId = await Marketplace.createListing(listingData);
             
+            // Surgical Cache Invalidation: Only clear the specific category and "all"
+            try {
+                const category = (req.body.category || 'other').toLowerCase();
+                const patterns = [`mkt:v1:cat:${category}:*`, `mkt:v1:cat:all:*`];
+                
+                for (const pattern of patterns) {
+                    const keys = await redisConnection.keys(pattern);
+                    if (keys.length > 0) await redisConnection.del(keys);
+                }
+                logger.info(`Surgical Cache Invalidation: Purged category '${category}' and 'all'`);
+            } catch (cacheErr) {
+                logger.error('Surgical Invalidation Error:', cacheErr);
+            }
+
             res.status(201).json({
                 success: true,
                 message: 'Listing created successfully',
@@ -561,6 +653,85 @@ const contactSeller = [
         } catch (error) {
             logger.error('Contact seller error:', error);
             res.status(500).json({ success: false, message: 'Failed to contact seller' });
+        }
+    }
+];
+
+const makeOffer = [
+    async (req, res) => {
+        try {
+            const user = normalizeUser(req.user);
+            const listingId = req.params.id;
+            const { amount } = req.body;
+
+            const listing = await Marketplace.getListingById(listingId, user.user_id);
+            if (!listing) {
+                return res.status(404).json({ success: false, message: 'Listing not found' });
+            }
+
+            const sellerId = listing.seller_id;
+            if (user.user_id === sellerId) {
+                return res.status(400).json({ success: false, message: 'Cannot make an offer on your own listing' });
+            }
+
+const HealthControl = require('../utils/health-control');
+
+// ... existing imports
+
+            // 1. Multi-Signal Adaptive Control Plane (Banking-Grade)
+            const loadState = await HealthControl.getSheddingStatus();
+            
+            if (loadState === 'CRITICAL') {
+                logger.warn(`Adaptive Shedding: Critical System Health. Rejecting mutations.`);
+                return res.status(530).json({ 
+                    success: false, 
+                    loadState: 'CRITICAL',
+                    message: 'Sparkle is currently in protective mode. High-intensity actions are temporarily disabled.' 
+                });
+            }
+
+            // 2. Return 3-state lifecycle (PENDING)
+            const job = await marketplaceQueue.add('offer', {
+                type: 'offer',
+                data: {
+                    listingId,
+                    amount,
+                    userId: user.user_id,
+                    sellerId,
+                    listingTitle: listing.title,
+                    userName: user.name || user.username
+                }
+            }, {
+                jobId: `offer-${user.user_id}-${listingId}-${Date.now()}` 
+            });
+
+            // Global Hybrid Logical Clock Base
+            await redisConnection.setnx(`mkt:job:seq:${job.id}`, 0);
+
+            // Transactional Outbox Pattern: Initial state in DB + Redis
+            const initialEvent = { 
+                job_id: job.id,
+                status: 'PENDING', 
+                timestamp: Date.now(), 
+                sequence: '0-0', // HLC Format
+                causal_id: null 
+            };
+            
+            await redisConnection.rpush(`mkt:job:events:${job.id}`, JSON.stringify(initialEvent));
+            await Marketplace.logJobEvent(initialEvent); 
+
+            res.json({ 
+                success: true, 
+                status: 'PENDING', 
+                jobId: job.id,
+                loadState,
+                message: loadState === 'DEGRADED' 
+                    ? 'System is under heavy load. Your action has been prioritized.'
+                    : 'Offer submitted for processing.' 
+            });
+        } catch (error) {
+            logger.error('Make offer error:', error);
+            res.status(500).json({ success: false, message: 'Failed to send offer' });
         }
     }
 ];
@@ -1236,8 +1407,53 @@ const recordShare = async (req, res) => {
     }
 };
 
+const getJobStatus = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const afterSeq = parseInt(req.query.after) || -1;
+        
+        // 1. Try Redis for hot recovery (Low Latency)
+        let events = await redisConnection.lrange(`mkt:job:events:${jobId}`, 0, -1);
+        
+        // 2. Fallback to DB (Durable Recovery)
+        if (!events || events.length === 0) {
+            const dbEvents = await Marketplace.getJobEvents(jobId);
+            events = dbEvents.map(e => JSON.stringify(e));
+        }
+
+        if (!events || events.length === 0) {
+            return res.status(404).json({ success: false, message: 'Job not found' });
+        }
+
+        const history = events
+            .map(e => JSON.parse(e))
+            .filter(e => e.sequence > afterSeq);
+
+        res.json({ 
+            success: true, 
+            jobId, 
+            status: history.length > 0 ? history[history.length - 1].status : 'STABLE',
+            history 
+        });
+    } catch (error) {
+        logger.error('Get job status error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch job status' });
+    }
+};
+
+const getHeatmapData = async (req, res) => {
+    try {
+        const { metric, category } = req.query;
+        const data = await GeoIntelligence.getHeatmap(metric || 'search', category || 'all');
+        res.json({ success: true, data });
+    } catch (error) {
+        logger.error('Heatmap error:', error);
+        res.status(500).json({ success: false, message: 'Intelligence retrieval failed' });
+    }
+};
+
 module.exports = {
-    // Web Routes
+    // Page Render Data (JSON for SPA)
     renderMarketplace,
     renderListingDetail,
     renderUserListings,
@@ -1260,6 +1476,7 @@ module.exports = {
     sendMessage,
     toggleFavorite,
     toggleWishlist,
+    makeOffer,
     getFavorites,
     getLostFoundItems,
     createLostFoundItem,
@@ -1286,5 +1503,7 @@ module.exports = {
     toggleSellerFavorite,
     recordView,
     recordShare,
-    getCounts
+    getJobStatus,
+    getCounts,
+    getHeatmapData
 };

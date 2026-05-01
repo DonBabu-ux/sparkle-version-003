@@ -10,7 +10,7 @@ export default function Help() {
   const faqs = [
     { q: 'How do I switch accounts?', a: 'Tap your profile picture in the top right to open the menu, then click the dropdown arrow next to your name to see and switch accounts.' },
     { q: 'How do I verify my profile?', a: 'Go to Menu > See More > Sparkle Verified and follow the instructions to submit your identity documents.' },
-    { q: 'What are Confessions?', a: 'Confessions are anonymous posts shared with the campus. You can share your secrets or thoughts without revealing your identity.' },
+    { q: 'What are Confessions?', a: 'Confessions are anonymous posts shared with Sparkle. You can share your secrets or thoughts without revealing your identity.' },
     { q: 'How do I report a problem?', a: 'You can report a post or user by clicking the three dots on the item, or use the "Report a problem" button in the Help Center.' }
   ];
 

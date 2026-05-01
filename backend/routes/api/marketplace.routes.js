@@ -4,6 +4,7 @@ const marketplaceController = require('../../controllers/marketplace.controller'
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { upload, marketplaceUpload } = require('../../utils/fileUpload');
 const { feedRateLimiter, mutationRateLimiter } = require('../../middleware/security.middleware');
+const rbac = require('../../middleware/rbac.middleware');
 
 // ── Listings ──────────────────────────────────────────────────────────────────
 router.get('/marketplace/listings',              authMiddleware, feedRateLimiter, marketplaceController.getListings);
@@ -24,6 +25,7 @@ router.post('/marketplace/listings/:id/contact', authMiddleware, mutationRateLim
 router.put('/marketplace/listings/:id/sold',     authMiddleware, mutationRateLimiter, marketplaceController.markAsSold);
 router.post('/marketplace/listings/:id/favorite',authMiddleware, mutationRateLimiter, ...marketplaceController.toggleFavorite);
 router.post('/marketplace/listings/:id/wishlist',authMiddleware, mutationRateLimiter, marketplaceController.toggleWishlist);
+router.post('/marketplace/listings/:id/offer',   authMiddleware, mutationRateLimiter, marketplaceController.makeOffer);
 router.post('/marketplace/listings/:id/view',    authMiddleware, marketplaceController.recordView);
 router.post('/marketplace/listings/:id/share',   authMiddleware, marketplaceController.recordShare);
 router.post('/marketplace/listings/:id/report',  authMiddleware, mutationRateLimiter, marketplaceController.reportListing);
@@ -60,6 +62,10 @@ router.post('/marketplace/skills',                 authMiddleware, ...marketplac
 // ── Misc ──────────────────────────────────────────────────────────────────────
 router.get('/marketplace/favorites',               authMiddleware, marketplaceController.getFavorites);
 router.get('/marketplace/counts',                  authMiddleware, marketplaceController.getCounts);
+router.get('/marketplace/jobs/:jobId/status',      authMiddleware, marketplaceController.getJobStatus);
 router.get('/marketplace/safe-locations',          authMiddleware, marketplaceController.getSafeMeetupLocations);
+
+// ── Intelligence & Analytics ──────────────────────────────────────────────────
+router.get('/marketplace/geo/heatmap',             authMiddleware, rbac(['data_analyst', 'system_admin']), marketplaceController.getHeatmapData);
 
 module.exports = router;

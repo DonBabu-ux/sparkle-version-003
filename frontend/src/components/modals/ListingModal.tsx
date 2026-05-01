@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Camera, Tag, DollarSign, Package, Loader2, Store, Plus } from 'lucide-react';
+import { X, Camera, Tag, DollarSign, Package, Loader2, Store, Plus, ChevronLeft } from 'lucide-react';
 import api from '../../api/api';
 
 interface ListingModalProps {
@@ -60,11 +60,19 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
   return (
     <div className="modal-inner">
       <div className="modal-header">
-        <div className="modal-title">
-          <Store size={22} strokeWidth={3} className="text-black" /> 
-          <span className="font-heading font-black text-2xl text-black tracking-tighter uppercase italic">Marketplace</span>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={onClose}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-black hover:bg-black/5 transition-all"
+          >
+            <ChevronLeft size={24} strokeWidth={3} />
+          </button>
+          <div className="modal-title">
+            <Store size={20} strokeWidth={3} className="text-black" /> 
+            <span className="font-heading font-black text-xl text-black tracking-tighter uppercase italic">Create Listing</span>
+          </div>
         </div>
-        <button className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-black/30 hover:bg-black hover:text-white transition-all" onClick={onClose}><X size={18} strokeWidth={3}/></button>
+        <button className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-black/30 hover:bg-black hover:text-white transition-all lg:flex hidden" onClick={onClose}><X size={18} strokeWidth={3}/></button>
       </div>
 
       <div className="modal-body p-8 space-y-8">

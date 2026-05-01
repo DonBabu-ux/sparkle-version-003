@@ -28,7 +28,7 @@
   --color-slate-950: #fff1f2;
   --color-slate-900: #ffe4e6;
   --color-slate-800: #fecdd3;
-
+  
   /* Restoring Pink Spectrum to actual Pink */
   --color-pink-50: #fff1f2;
   --color-pink-100: #ffe4e6;
@@ -60,7 +60,12 @@
   --radius-xl: 32px;
   --radius-2xl: 48px;
 
-  /* Elevations */
+  /* Marketplace Specific (Always Black/Slate) */
+  --color-marketplace-primary: #121212;
+  --color-marketplace-text: #121212;
+  --color-marketplace-muted: #64748b;
+  --color-marketplace-border: #e2e8f0;
+  --color-marketplace-bg: #f8fafc;
   --shadow-premium: 0 12px 24px -6px rgba(0, 0, 0, 0.08);
   --shadow-glow: 0 0 30px rgba(0, 0, 0, 0.05);
 

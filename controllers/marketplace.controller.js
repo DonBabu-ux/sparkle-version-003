@@ -278,7 +278,8 @@ const renderWishlist = async (req, res) => {
 const getListings = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
-        const affiliation = req.query.affiliation || req.query.campus || user?.affiliation || user?.campus || 'all';
+        // Only filter by campus if explicitly requested, otherwise default to 'all' for a global feed
+        const affiliation = req.query.affiliation || req.query.campus || 'all';
         const filters = {
             ...req.query,
             currentUserId: user?.user_id,

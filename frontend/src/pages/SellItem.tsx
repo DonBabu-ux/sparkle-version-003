@@ -1,31 +1,51 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Camera, X, ChevronRight, MapPin, Tag, List, Info, DollarSign } from 'lucide-react';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
+import clsx from 'clsx';
+
+const CATEGORIES = [
+  'Vehicles', 'Housing', 'Home Sales', 'Rentals', 'Home & Garden', 
+  'Furniture', 'Household Appliances', 'Tools', 'Garden', 
+  'Electronics', 'Clothing', 'Jewelry', 'Baby & Kids', 
+  'Health', 'Toys & Games', 'Pet Supplies', 'Books'
+];
 
 export default function SellItem() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [media, setMedia] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
-    category: 'other',
-    condition: 'good',
-    location: '',
-    campus: 'main_campus'
+    category: '',
+    condition: 'used_good',
+    location: 'Nairobi, Kenya',
+    campus: 'Main Campus'
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setMedia(Array.from(e.target.files));
+      const files = Array.from(e.target.files);
+      setMedia(prev => [...prev, ...files]);
+      
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      setPreviews(prev => [...prev, ...newPreviews]);
     }
+  };
+
+  const removeMedia = (index: number) => {
+    setMedia(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.price || loading) return;
+    if (!formData.title || !formData.price || !formData.category || loading) return;
 
     setLoading(true);
     const data = new FormData();
@@ -37,129 +57,172 @@ export default function SellItem() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data.success) {
-        navigate(`/marketplace/listings/${res.data.listing_id}`);
+        navigate(`/marketplace/listings/${res.data.listing_id || res.data.id}`);
       }
     } catch (err) {
       console.error('Failed to create listing:', err);
+      alert('Failed to create listing. Please check all fields.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      
-      <main className="max-w-4xl mx-auto px-4 py-20">
-         <div className="flex items-center gap-6 mb-12">
-            <div className="w-16 h-16 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-white text-3xl shadow-2xl">🏷️</div>
+    <div className="min-h-screen bg-white text-slate-900 font-sans pb-10">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate(-1)} className="p-1">
+            <ArrowLeft size={24} strokeWidth={2.5} />
+          </button>
+          <h1 className="text-[19px] font-bold">Create listing</h1>
+        </div>
+        <button 
+          onClick={handleSubmit}
+          disabled={loading || !formData.title || !formData.price || !formData.category}
+          className={clsx(
+            "text-[16px] font-bold transition-opacity",
+            (loading || !formData.title || !formData.price || !formData.category) ? "text-slate-300" : "text-[#1877F2]"
+          )}
+        >
+          {loading ? 'Posting...' : 'Post'}
+        </button>
+      </header>
+
+      <form onSubmit={handleSubmit} className="flex flex-col">
+        {/* Media Section */}
+        <div className="p-4 bg-slate-50 border-b border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-[17px]">Photos</h3>
+            <span className="text-slate-500 text-sm">{media.length}/10</span>
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+            <button 
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-24 h-24 flex-shrink-0 bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-[#1877F2] hover:border-[#1877F2] transition-all"
+            >
+              <Camera size={24} />
+              <span className="text-[11px] font-bold uppercase tracking-wider">Add</span>
+            </button>
+            
+            {previews.map((url, i) => (
+              <div key={i} className="w-24 h-24 flex-shrink-0 relative rounded-xl overflow-hidden border border-slate-200">
+                <img src={url} className="w-full h-full object-cover" alt="" />
+                <button 
+                  type="button"
+                  onClick={() => removeMedia(i)}
+                  className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            multiple 
+            accept="image/*" 
+            className="hidden" 
+          />
+        </div>
+
+        {/* Input Fields */}
+        <div className="divide-y divide-slate-100">
+          <div className="p-4 space-y-4">
             <div>
-               <h1 className="text-4xl font-black text-slate-800 tracking-tight">Relinquish Artifact</h1>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">List an item in the Sparkle Mall Resonance</p>
+              <label className="block text-[13px] font-bold text-slate-500 uppercase mb-1">Title</label>
+              <input 
+                type="text" 
+                placeholder="What are you selling?"
+                value={formData.title}
+                onChange={e => setFormData({...formData, title: e.target.value})}
+                className="w-full text-[16px] font-medium placeholder-slate-300 outline-none"
+              />
             </div>
-         </div>
 
-         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            {/* Media Upload */}
-            <div className="lg:col-span-12">
-               <div className="premium-card bg-white p-8 border-dashed border-2 border-slate-200 text-center">
-                  <input type="file" multiple id="media-upload" onChange={handleFileChange} className="hidden" />
-                  <label htmlFor="media-upload" className="cursor-pointer">
-                     <div className="text-4xl mb-4">📸</div>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enshrine Item Media</p>
-                     <p className="text-xs text-slate-300 mt-2 font-medium">Select images or clips (Up to 20 fragments)</p>
-                  </label>
-                  {media.length > 0 && (
-                    <div className="flex flex-wrap gap-4 mt-8 justify-center">
-                       {media.map((file, idx) => (
-                         <div key={idx} className="w-20 h-20 rounded-2xl bg-slate-100 overflow-hidden relative">
-                            <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" alt="" />
-                         </div>
-                       ))}
-                    </div>
+            <div>
+              <label className="block text-[13px] font-bold text-slate-500 uppercase mb-1">Price</label>
+              <div className="flex items-center gap-1">
+                <span className="text-[16px] font-bold">KES</span>
+                <input 
+                  type="number" 
+                  placeholder="Price"
+                  value={formData.price}
+                  onChange={e => setFormData({...formData, price: e.target.value})}
+                  className="w-full text-[16px] font-medium placeholder-slate-300 outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <label className="block text-[13px] font-bold text-slate-500 uppercase mb-2">Category</label>
+            <select 
+              value={formData.category}
+              onChange={e => setFormData({...formData, category: e.target.value})}
+              className="w-full text-[16px] font-medium bg-transparent outline-none appearance-none"
+            >
+              <option value="" disabled>Select a category</option>
+              {CATEGORIES.map(cat => (
+                <option key={cat} value={cat.toLowerCase().replace(/ /g, '-')}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="p-4">
+            <label className="block text-[13px] font-bold text-slate-500 uppercase mb-2">Condition</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'new', label: 'New' },
+                { id: 'used_like_new', label: 'Used - Like New' },
+                { id: 'used_good', label: 'Used - Good' },
+                { id: 'used_fair', label: 'Used - Fair' }
+              ].map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setFormData({...formData, condition: c.id})}
+                  className={clsx(
+                    "px-4 py-2 rounded-full text-sm font-bold border transition-all",
+                    formData.condition === c.id 
+                      ? "bg-[#1877F2] text-white border-[#1877F2]" 
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                   )}
-               </div>
+                >
+                  {c.label}
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Core Data */}
-            <div className="lg:col-span-8">
-               <div className="premium-card bg-white p-10 space-y-8">
-                  <div>
-                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Item Title</label>
-                     <input 
-                       type="text" 
-                       required
-                       value={formData.title}
-                       onChange={e => setFormData({...formData, title: e.target.value})}
-                       placeholder="What is this object called?" 
-                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-medium outline-none transition-all focus:bg-white focus:ring-4 focus:ring-indigo-50"
-                     />
-                  </div>
-                  <div>
-                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Specifications</label>
-                     <textarea 
-                       value={formData.description}
-                       onChange={e => setFormData({...formData, description: e.target.value})}
-                       placeholder="Detail the resonance of this item..." 
-                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-medium outline-none transition-all focus:bg-white focus:ring-4 focus:ring-indigo-50 min-h-[160px]"
-                     />
-                  </div>
-               </div>
+          <div className="p-4">
+            <label className="block text-[13px] font-bold text-slate-500 uppercase mb-1">Location</label>
+            <div className="flex items-center justify-between">
+              <input 
+                type="text" 
+                value={formData.location}
+                onChange={e => setFormData({...formData, location: e.target.value})}
+                className="w-full text-[16px] font-medium outline-none"
+              />
+              <MapPin size={20} className="text-[#1877F2]" />
             </div>
+          </div>
 
-            {/* Secondary Controls */}
-            <div className="lg:col-span-4 space-y-8">
-               <div className="premium-card bg-white p-8">
-                  <div className="space-y-6">
-                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Value (USD)</label>
-                        <input 
-                          type="number" 
-                          required
-                          value={formData.price}
-                          onChange={e => setFormData({...formData, price: e.target.value})}
-                          placeholder="Price..." 
-                          className="w-full bg-indigo-50/50 border border-indigo-100 text-indigo-600 rounded-2xl py-4 px-6 text-xl font-black outline-none transition-all focus:bg-indigo-50 focus:ring-4 focus:ring-indigo-100"
-                        />
-                     </div>
-                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Category</label>
-                        <select 
-                          value={formData.category}
-                          onChange={e => setFormData({...formData, category: e.target.value})}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest text-slate-600 outline-none"
-                        >
-                           <option value="electronics">Electronics</option>
-                           <option value="fashion">Fashion</option>
-                           <option value="books">Books</option>
-                           <option value="other">Other Art</option>
-                        </select>
-                     </div>
-                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Echo State</label>
-                        <select 
-                          value={formData.condition}
-                          onChange={e => setFormData({...formData, condition: e.target.value})}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest text-slate-600 outline-none"
-                        >
-                           <option value="new">New / Pristine</option>
-                           <option value="good">Good / Balanced</option>
-                           <option value="fair">Fair / Used</option>
-                        </select>
-                     </div>
-                  </div>
-               </div>
-
-               <button 
-                type="submit"
-                disabled={loading}
-                className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-2xl shadow-slate-200 active:scale-95"
-               >
-                 {loading ? 'Transmitting...' : 'Register Artifact'}
-               </button>
-            </div>
-         </form>
-      </main>
+          <div className="p-4">
+            <label className="block text-[13px] font-bold text-slate-500 uppercase mb-1">Description</label>
+            <textarea 
+              placeholder="Describe what you're selling (optional)"
+              value={formData.description}
+              onChange={e => setFormData({...formData, description: e.target.value})}
+              className="w-full text-[16px] font-medium placeholder-slate-300 outline-none min-h-[120px] resize-none"
+            />
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

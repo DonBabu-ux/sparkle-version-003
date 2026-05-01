@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const marketplaceController = require('../../controllers/marketplace.controller');
+const locationController = require('../../controllers/location.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { upload, marketplaceUpload } = require('../../utils/fileUpload');
 const { feedRateLimiter, mutationRateLimiter } = require('../../middleware/security.middleware');
@@ -61,5 +62,6 @@ router.post('/marketplace/skills',                 authMiddleware, ...marketplac
 router.get('/marketplace/favorites',               authMiddleware, marketplaceController.getFavorites);
 router.get('/marketplace/counts',                  authMiddleware, marketplaceController.getCounts);
 router.get('/marketplace/safe-locations',          authMiddleware, marketplaceController.getSafeMeetupLocations);
+router.post('/location/resolve',                   authMiddleware, locationController.resolveLocation);
 
 module.exports = router;

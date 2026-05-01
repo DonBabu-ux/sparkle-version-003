@@ -261,18 +261,30 @@ class Marketplace {
             category = '',
             campus = '',
             condition = '',
-            minPrice = 0,
-            maxPrice = 1000000,
+            minPrice = null,
+            maxPrice = null,
             minRating = 0,
             sort = 'newest',
             limit = 20,
             offset = 0,
+            lat = null,
+            lng = null,
+            radius = 15,
             currentUserId = null
         } = filters;
 
         const sessionUserId = currentUserId || userId;
 
         try {
+            // Include Haversine formula if coordinates are provided
+            const hasLocation = lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng);
+            const userLat = hasLocation ? parseFloat(lat) : 0;
+            const userLng = hasLocation ? parseFloat(lng) : 0;
+
+            let selectDistance = hasLocation
+                ? `, (6371 * acos(cos(radians(?)) * cos(radians(l.latitude)) * cos(radians(l.longitude) - radians(?)) + sin(radians(?)) * sin(radians(l.latitude)))) AS distance_km`
+                : `, NULL AS distance_km`;
+
             let query = `
                 SELECT 
                     l.*,
@@ -284,19 +296,19 @@ class Marketplace {
                     CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
                     CASE WHEN w.wishlist_id IS NOT NULL THEN 1 ELSE 0 END as is_wishlisted,
                     (SELECT COUNT(*) FROM marketplace_orders WHERE listing_id = l.listing_id) as order_count
+                    ${selectDistance}
                 FROM marketplace_listings l
                 JOIN users u ON l.seller_id = u.user_id
                 LEFT JOIN marketplace_favorites f ON l.listing_id = f.listing_id AND f.user_id = ?
                 LEFT JOIN marketplace_wishlist w ON l.listing_id = w.listing_id AND w.user_id = ?
                 WHERE l.status = 'active' AND l.is_sold = 0
             `;
-            const params = [sessionUserId, sessionUserId];
-
-            // Record view if userId is provided
-            if (userId && listings.length > 0) {
-                 // Actually this should be done in individual listing view, but we can track impressions here?
-                 // No, only record view in getListingById or recordView endpoint.
+            
+            const params = [];
+            if (hasLocation) {
+                params.push(userLat, userLng, userLat); // For the selectDistance
             }
+            params.push(sessionUserId, sessionUserId); // For the LEFT JOINs
 
             // Apply filters
             if (search) {
@@ -311,7 +323,7 @@ class Marketplace {
             }
 
             if (campus && campus !== 'all') {
-                query += ` AND l.campus = ?`;
+                query += ` AND (l.campus = ? OR l.campus = 'all')`;
                 params.push(campus);
             }
 
@@ -320,39 +332,53 @@ class Marketplace {
                 params.push(condition);
             }
 
-            if (minPrice > 0) {
+            if (minPrice !== null && !isNaN(minPrice)) {
                 query += ` AND l.price >= ?`;
                 params.push(parseFloat(minPrice));
             }
 
-            if (maxPrice < 1000000) {
+            if (maxPrice !== null && !isNaN(maxPrice)) {
                 query += ` AND l.price <= ?`;
                 params.push(parseFloat(maxPrice));
             }
 
+            // Apply radius filter ONLY if specifically requested (not default)
+            // If radius is 0 or very large, we skip strict filtering to show global results
+            if (hasLocation && radius && radius < 1000) {
+                query += ` HAVING distance_km <= ?`;
+                params.push(parseFloat(radius));
+            }
+
             // Apply sorting
             switch (sort) {
-                case 'name_asc':
-                    query += ` ORDER BY l.title ASC`;
+                case 'distance_asc':
+                    if (hasLocation) {
+                        query += ` ORDER BY distance_km ASC, l.created_at DESC`;
+                    } else {
+                        query += ` ORDER BY l.created_at DESC`;
+                    }
                     break;
-                case 'name_desc':
-                    query += ` ORDER BY l.title DESC`;
+                case 'recommended':
+                    if (hasLocation) {
+                        // Prioritize proximity, but also boost high-engagement and new items
+                        query += ` ORDER BY (CASE WHEN distance_km < 50 THEN 0 ELSE 1 END) ASC, l.view_count DESC, l.created_at DESC`;
+                    } else {
+                        query += ` ORDER BY l.view_count DESC, l.created_at DESC`;
+                    }
                     break;
-                case 'rating':
-                    query += ` ORDER BY (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) DESC, l.created_at DESC`;
+                case 'price_asc':
+                    query += ` ORDER BY l.price ASC, l.created_at DESC`;
                     break;
-                case 'popular':
-                    query += ` ORDER BY l.view_count DESC, l.created_at DESC`;
-                    break;
-                case 'price_low':
-                    query += ` ORDER BY l.price ASC`;
-                    break;
-                case 'price_high':
-                    query += ` ORDER BY l.price DESC`;
+                case 'price_desc':
+                    query += ` ORDER BY l.price DESC, l.created_at DESC`;
                     break;
                 case 'newest':
                 default:
-                    query += ` ORDER BY l.created_at DESC`;
+                    if (hasLocation) {
+                        query += ` ORDER BY l.created_at DESC, distance_km ASC`;
+                    } else {
+                        query += ` ORDER BY l.created_at DESC`;
+                    }
                     break;
             }
 
@@ -366,6 +392,9 @@ class Marketplace {
 
             // Get media for each listing
             for (let listing of listings) {
+                if (listing.distance_km !== null) {
+                    listing.distance_km = Math.round(listing.distance_km * 10) / 10; // Round to 1 decimal place
+                }
                 const [media] = await pool.query(
                     'SELECT media_url, media_type FROM listing_media WHERE listing_id = ? ORDER BY upload_order ASC LIMIT 5',
                     [listing.listing_id]
@@ -397,18 +426,18 @@ class Marketplace {
                 countParams.push(category);
             }
             if (campus && campus !== 'all') {
-                countQuery += ` AND l.campus = ?`;
+                countQuery += ` AND (l.campus = ? OR l.campus = 'all')`;
                 countParams.push(campus);
             }
             if (condition && condition !== 'all') {
                 countQuery += ` AND l.condition = ?`;
                 countParams.push(condition);
             }
-            if (minPrice > 0) {
+            if (minPrice !== null && !isNaN(minPrice) && parseFloat(minPrice) > 0) {
                 countQuery += ` AND l.price >= ?`;
                 countParams.push(parseFloat(minPrice));
             }
-            if (maxPrice < 1000000) {
+            if (maxPrice !== null && !isNaN(maxPrice) && parseFloat(maxPrice) < 100000000) {
                 countQuery += ` AND l.price <= ?`;
                 countParams.push(parseFloat(maxPrice));
             }

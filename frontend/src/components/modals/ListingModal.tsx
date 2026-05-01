@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Camera, Tag, DollarSign, Package, Loader2 } from 'lucide-react';
+import { X, Camera, Tag, DollarSign, Package, Loader2, Store, Plus } from 'lucide-react';
 import api from '../../api/api';
 
 interface ListingModalProps {

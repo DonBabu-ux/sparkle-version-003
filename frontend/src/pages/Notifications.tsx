@@ -265,7 +265,7 @@ export default function Notifications() {
   );
 
   return (
-    <div className="flex bg-[#f0f2f5] min-h-screen text-black font-sans">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans">
       <Navbar />
       
       <main className="flex-1 lg:ml-72 pt-20 pb-20 max-w-2xl mx-auto w-full">

@@ -197,9 +197,9 @@ export default function Dashboard() {
   // Feed managed by VirtualizedFeed component
   
   return (
-    <div className="flex bg-[#f0f2f5] min-h-screen text-black font-sans overflow-x-hidden">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
       <Navbar />
-      <div className="fixed top-0 left-0 w-full h-full bg-[#f0f2f5] z-[-1]" />
+      <div className="fixed top-0 left-0 w-full h-full bg-[#fdf2f4] z-[-1]" />
 
       <main className="flex-1 lg:ml-72 p-0 sm:p-4 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-20 lg:pt-8">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-4 sm:mt-6 lg:mt-0">

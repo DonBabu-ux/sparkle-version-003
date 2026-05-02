@@ -141,7 +141,7 @@ export default function EventsAdmin() {
   };
 
   return (
-    <div className="admin-page bg-slate-50 min-h-screen">
+    <div className="admin-page min-h-screen">
       <Navbar />
       
       <div className="max-w-[1200px] mx-auto px-4 py-8 pb-32">

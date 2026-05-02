@@ -137,7 +137,7 @@ export default function Explore() {
   }, [loading, loadingMore, hasMore, page]);
 
   return (
-    <div className="flex bg-[#fafafa] min-h-screen text-gray-900 font-sans overflow-x-hidden">
+    <div className="flex min-h-screen text-gray-900 font-sans overflow-hidden">
       <Navbar />
 
       {/* Main Content Area */}

@@ -186,7 +186,7 @@ export default function Search() {
   ];
 
   return (
-    <div className="flex bg-white min-h-screen text-black font-sans overflow-x-hidden selection:bg-primary/10">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden selection:bg-primary/10">
       <Navbar />
       
       {/* Cinematic Background Elements */}

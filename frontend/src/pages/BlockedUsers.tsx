@@ -50,7 +50,7 @@ export default function BlockedUsers() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 lg:pb-0">
+    <div className="min-h-screen pb-20 lg:pb-0">
       <Navbar />
       
       <div className="max-w-3xl mx-auto pt-20 px-4 sm:px-6 lg:px-8">

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import { Users, Globe, Layers, MessageSquare, Lock, ArrowLeft, Shield, Sparkles, Orbit, ChevronRight } from 'lucide-react';
+import { Users, Globe, Layers, MessageSquare, Lock, ArrowLeft, Shield, Sparkles, Compass, ChevronRight, Share2, Info } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 
@@ -63,11 +63,11 @@ export default function GroupDetail() {
   };
 
   if (loading) return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+    <div className="flex min-h-screen font-sans" style={{ background: 'linear-gradient(135deg, #fff0f4 0%, #fff9fa 60%, #fef0f5 100%)' }}>
       <Navbar />
-      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-8">
-        <Orbit size={64} className="text-primary animate-spin-slow" strokeWidth={4} />
-        <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic animate-pulse">Synchronizing Collective Hub...</p>
+      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-6">
+        <div className="w-16 h-16 border-4 rounded-full animate-spin" style={{ borderColor: 'rgba(255,61,109,0.2)', borderTopColor: '#FF3D6D' }} />
+        <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Loading Circle...</p>
       </div>
     </div>
   );
@@ -75,131 +75,154 @@ export default function GroupDetail() {
   if (!group) return null;
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+    <div className="flex min-h-screen font-sans" style={{ background: 'linear-gradient(135deg, #fff0f4 0%, #fff9fa 60%, #fef0f5 100%)' }}>
       <Navbar />
-      
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
+      <div className="fixed bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,100,150,0.14) 0%, transparent 70%)' }} />
 
-      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-16 md:pt-12">
-        <button 
-          onClick={() => navigate('/groups')}
-          className="mb-12 w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all group"
-        >
-          <ArrowLeft size={28} strokeWidth={4} className="group-hover:-translate-x-1.5 transition-transform" />
-        </button>
-
-        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-16 mb-24 animate-fade-in px-4">
-          <div className="max-w-4xl space-y-8">
-            <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
-              <Users size={18} strokeWidth={3} className="text-primary" />
-              <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Collective Satellite</span>
+      <main className="flex-1 lg:ml-72 p-6 lg:p-10 relative z-10 max-w-7xl mx-auto w-full pt-20">
+        <div className="flex items-center justify-between mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <button 
+            onClick={() => navigate('/groups')}
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition-colors group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:bg-slate-50 transition-all">
+              <ArrowLeft size={18} />
             </div>
-            <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase underline decoration-primary decoration-8 underline-offset-[16px]">
-              {group.name} <span className="text-primary italic">Consensus.</span>
-            </h1>
-            <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic max-w-2xl border-l-8 border-primary/20 pl-8">
-               {group.description || 'A synchronized space for deep collaboration and shared village harmonics.'}
-            </p>
-          </div>
+            <span className="text-sm">Back to Circles</span>
+          </button>
 
-          <div className="flex flex-col sm:flex-row gap-6 w-full lg:w-auto">
-            <button 
-              onClick={handleJoinLeave}
-              className={`flex-1 sm:flex-none h-20 px-12 rounded-[32px] font-black text-sm uppercase tracking-[0.3em] italic transition-all duration-500 shadow-2xl ${isMember ? 'bg-black text-white hover:bg-black/80' : pendingJoin ? 'bg-black/10 text-black/20 cursor-default shadow-none border border-black/5' : 'bg-primary text-white shadow-primary/30 hover:scale-[1.03] active:scale-95'}`}
-            >
-              {isMember ? 'Linked Hub' : pendingJoin ? 'Syncing...' : 'Link Node'}
-            </button>
-            {isOwner && (
-               <button onClick={() => navigate(`/groups/${id}/settings`)} className="flex-1 sm:flex-none h-20 px-10 bg-white border-2 border-dashed border-black/10 text-black/40 rounded-[32px] font-black text-sm uppercase tracking-[0.3em] italic hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center gap-4">
-                  <Shield size={20} strokeWidth={4} /> Vector Control
-               </button>
-            )}
+          <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm text-slate-500 hover:text-slate-900 transition-all">
+            <Share2 size={18} />
+          </button>
+        </div>
+
+        <header className="mb-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+            <div className="flex-1 space-y-6">
+              <div className="flex items-center gap-4">
+                <img 
+                  src={group.icon_url || '/uploads/avatars/default.png'}
+                  className="w-24 h-24 rounded-3xl object-cover shadow-2xl border-4 border-white"
+                  alt=""
+                />
+                <div>
+                   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-2" style={{ background: 'rgba(255,61,109,0.12)', border: '1px solid rgba(255,61,109,0.25)' }}>
+                    <Compass size={14} className="fill-current" style={{ color: '#FF3D6D' }} />
+                     <span style={{ fontSize: '10px', fontWeight: 800, color: '#FF3D6D', letterSpacing: '0.12em', textTransform: 'uppercase', fontStyle: 'normal' }}>Social Circle</span>
+                  </div>
+                   <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 3.2rem)', fontWeight: 900, letterSpacing: '-0.03em', color: '#1a1a2e', fontStyle: 'normal', textTransform: 'none', lineHeight: 1.05 }}>
+                     {group.name}
+                   </h1>
+                </div>
+              </div>
+              <p className="text-lg text-slate-500 max-w-2xl font-medium leading-relaxed">
+                 {group.description || 'A space for members to connect and share updates...'}
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+              <button
+                onClick={handleJoinLeave}
+                style={{ height: '52px', padding: '0 32px', borderRadius: '16px', fontWeight: 800, fontSize: '13px', border: 'none', cursor: 'pointer', fontStyle: 'normal', textTransform: 'none', transition: 'all 0.2s', background: isMember ? 'rgba(255,61,109,0.08)' : pendingJoin ? 'rgba(148,163,184,0.1)' : 'linear-gradient(135deg, #FF3D6D, #e01f55)', color: isMember ? '#FF3D6D' : pendingJoin ? '#94a3b8' : '#fff', boxShadow: (!isMember && !pendingJoin) ? '0 8px 24px rgba(255,61,109,0.3)' : 'none' }}
+              >
+                {isMember ? 'Member' : pendingJoin ? 'Request Pending' : 'Join Circle'}
+              </button>
+              {isOwner && (
+                 <button onClick={() => navigate(`/groups/${id}/settings`)} className="h-14 px-8 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-sm hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center gap-3 shadow-sm">
+                    <Shield size={18} /> Manage
+                 </button>
+              )}
+            </div>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 animate-fade-in relative z-10 pb-64 px-4">
-           {/* Stats Sidebar */}
-           <aside className="lg:col-span-4 space-y-12">
-              <div className="grid grid-cols-2 gap-8">
-                 <div className="p-10 bg-white/80 backdrop-blur-3xl border border-white/65 rounded-[56px] flex flex-col items-center justify-center text-center shadow-2xl shadow-primary/5 group hover:scale-[1.05] transition-transform">
-                    <span className="text-5xl font-black text-black tracking-tighter leading-none mb-3 group-hover:text-primary transition-colors">{group.member_count || 0}</span>
-                    <span className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] italic mb-2">Syncs</span>
-                    <Users size={16} strokeWidth={3} className="text-primary/20" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 pb-32">
+           {/* Sidebar Info */}
+           <aside className="lg:col-span-4 space-y-8">
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="p-8 rounded-[28px] flex flex-col items-center justify-center text-center" style={{ background: 'rgba(255,255,255,0.92)', border: '1.5px solid rgba(255,61,109,0.12)', boxShadow: '0 2px 16px rgba(255,61,109,0.05)' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#1a1a2e', lineHeight: 1, fontStyle: 'normal', textTransform: 'none' }}>{group.member_count || 0}</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '6px 0', fontStyle: 'normal' }}>Members</span>
+                    <Users size={16} style={{ color: 'rgba(255,61,109,0.5)' }} />
                  </div>
-                 <div className="p-10 bg-white/80 backdrop-blur-3xl border border-white/65 rounded-[56px] flex flex-col items-center justify-center text-center shadow-2xl shadow-primary/5 group hover:scale-[1.05] transition-transform">
-                    <span className="text-5xl font-black text-black tracking-tighter leading-none mb-3 group-hover:text-primary transition-colors">{posts.length}</span>
-                    <span className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] italic mb-2">Sparks</span>
-                    <Sparkles size={16} strokeWidth={3} className="text-primary/20" />
+                 <div className="p-8 rounded-[28px] flex flex-col items-center justify-center text-center" style={{ background: 'rgba(255,255,255,0.92)', border: '1.5px solid rgba(255,61,109,0.12)', boxShadow: '0 2px 16px rgba(255,61,109,0.05)' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#1a1a2e', lineHeight: 1, fontStyle: 'normal', textTransform: 'none' }}>{posts.length}</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '6px 0', fontStyle: 'normal' }}>Posts</span>
+                    <Sparkles size={16} style={{ color: 'rgba(255,61,109,0.5)' }} />
                  </div>
               </div>
 
-              <div className="p-12 bg-white/80 backdrop-blur-3xl border border-white/65 rounded-[56px] shadow-2xl shadow-primary/5 space-y-10 relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] pointer-events-none"></div>
-                 <h3 className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] italic">Telemetry</h3>
-                 <div className="space-y-6">
-                    <div className="flex items-center gap-5 group/item">
-                        <div className="w-12 h-12 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-black/5">
-                           <Globe size={20} strokeWidth={3} />
+              <div className="p-8 bg-white border border-slate-200/60 rounded-[32px] shadow-sm space-y-6">
+                 <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">About Circle</h3>
+                    <Info size={14} className="text-slate-300" />
+                 </div>
+                 <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                           <Globe size={18} />
                         </div>
-                        <span className="text-sm font-black text-black italic uppercase tracking-widest">{group.campus} SECTOR</span>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Campus</p>
+                          <span className="text-sm font-bold text-slate-900">{group.campus?.toUpperCase()}</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-5 group/item">
-                        <div className="w-12 h-12 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-black/5">
-                           <Layers size={20} strokeWidth={3} />
+                    <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                           <Layers size={18} />
                         </div>
-                        <span className="text-sm font-black text-black italic uppercase tracking-widest">{group.category || 'GENERAL SPECTRUM'}</span>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Category</p>
+                          <span className="text-sm font-bold text-slate-900">{group.category?.toUpperCase() || 'GENERAL'}</span>
+                        </div>
                     </div>
                  </div>
               </div>
            </aside>
 
-           {/* Main Feed area */}
-           <div className="lg:col-span-8 flex flex-col gap-12 pt-8">
+           {/* Content Area */}
+           <div className="lg:col-span-8 space-y-8">
               {isMember ? (
                 <>
-                  <div className="p-12 bg-white/40 border-4 border-dashed border-white rounded-[56px] flex flex-col sm:flex-row items-center justify-between gap-8 shadow-inner animate-fade-in group hover:bg-white/60 transition-all">
-                      <div className="flex items-center gap-6">
-                         <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center text-black opacity-10 group-hover:rotate-12 transition-transform">
-                            <MessageSquare size={24} strokeWidth={3} />
+                  <div className="p-8 bg-white border border-slate-200 rounded-[32px] flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm group hover:border-primary/20 transition-all">
+                      <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-primary transition-colors">
+                            <MessageSquare size={22} />
                          </div>
-                         <p className="text-lg font-black text-black opacity-20 italic uppercase tracking-widest leading-none">Initiate Signal...</p>
+                         <p className="text-lg font-bold text-slate-300 italic">Share something with the circle...</p>
                       </div>
-                      <button className="w-full sm:w-auto h-16 px-10 bg-primary text-white rounded-[24px] text-[10px] font-black uppercase tracking-[0.3em] italic hover:scale-105 transition-all shadow-2xl shadow-primary/20 flex items-center justify-center gap-4">
-                        Send Spark <ChevronRight size={18} strokeWidth={4} />
+                      <button className="w-full sm:w-auto h-12 px-8 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-primary transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2">
+                        Post <ChevronRight size={16} />
                       </button>
                   </div>
                   
-                  <div className="flex flex-col gap-12">
+                  <div className="space-y-8">
                     {posts.length > 0 ? posts.map(post => (
                       <PostCard key={post.post_id} post={post} />
                     )) : (
-                      <div className="py-64 text-center bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] flex flex-col items-center gap-10 shadow-2xl shadow-primary/5 animate-fade-in group">
-                         <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center text-black opacity-10 group-hover:scale-125 transition-transform duration-1000">
-                            <MessageSquare size={48} strokeWidth={2} />
+                      <div className="py-32 text-center bg-white border border-slate-100 rounded-[40px] flex flex-col items-center gap-6 shadow-sm">
+                         <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200">
+                            <MessageSquare size={32} />
                          </div>
-                         <div className="space-y-6">
-                            <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Silent Frequency.</h3>
-                            <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No active sparks in this collective. Be the first to harmonize the stream.</p>
+                         <div className="space-y-2">
+                            <h3 className="text-xl font-bold text-slate-900">No Posts Yet</h3>
+                            <p className="text-sm text-slate-400 max-w-xs mx-auto font-medium">Be the first one to start a conversation in this circle.</p>
                          </div>
                       </div>
                     )}
                   </div>
                 </>
               ) : (
-                <div className="py-48 flex flex-col items-center justify-center text-center gap-12 bg-black rounded-[80px] shadow-2xl relative overflow-hidden group">
-                    {/* Background Noise */}
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                    <div className="absolute inset-0 bg-primary/20 blur-[150px] animate-pulse"></div>
-                    
-                    <div className="w-40 h-40 bg-white/5 rounded-[48px] flex items-center justify-center text-white opacity-20 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-1000 relative z-10">
-                       <Lock size={100} strokeWidth={1} />
+                <div className="py-24 flex flex-col items-center justify-center text-center gap-8 rounded-[40px] relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d18 100%)', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at center, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
+                    <div className="w-24 h-24 rounded-3xl flex items-center justify-center relative z-10" style={{ background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,61,109,0.2)' }}>
+                       <Lock size={44} style={{ color: 'rgba(255,61,109,0.5)' }} />
                     </div>
-                    
-                    <div className="space-y-6 relative z-10 px-8">
-                      <h2 className="text-5xl md:text-7xl font-black text-white tracking-tight italic uppercase leading-none mb-6">Restricted <span className="text-primary italic">Sector.</span></h2>
-                      <p className="text-white opacity-40 text-xl font-bold italic max-w-md mx-auto leading-relaxed">Join the collective consensus to decrypt and participate in this private broadcast.</p>
-                      <button onClick={handleJoinLeave} className="mt-8 h-24 px-16 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-all">Command Link</button>
+                    <div className="relative z-10 px-8 space-y-4">
+                      <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.1, fontStyle: 'normal', textTransform: 'none' }}>Private Circle</h2>
+                      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', maxWidth: '280px', margin: '0 auto', lineHeight: 1.7, fontStyle: 'normal', textTransform: 'none' }}>Join this community to see its content and participate in the discussion.</p>
+                      <button onClick={handleJoinLeave} style={{ marginTop: '16px', height: '56px', padding: '0 40px', background: 'linear-gradient(135deg, #FF3D6D, #e01f55)', color: '#fff', borderRadius: '18px', fontWeight: 800, fontSize: '14px', border: 'none', cursor: 'pointer', boxShadow: '0 12px 32px rgba(255,61,109,0.4)', fontStyle: 'normal', textTransform: 'none' }}>{pendingJoin ? 'Request Pending' : 'Request Access'}</button>
                     </div>
                 </div>
               )}
@@ -208,11 +231,14 @@ export default function GroupDetail() {
       </main>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-spin-slow { animation: spin 20s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slide-in-from-bottom { from { transform: translateY(20px); } to { transform: translateY(0); } }
+        .animate-in { animation-duration: 500ms; animation-fill-mode: both; }
+        .fade-in { animation-name: fade-in; }
+        .slide-in-from-bottom-4 { animation-name: slide-in-from-bottom; }
+        .slide-in-from-bottom-6 { animation-name: slide-in-from-bottom; }
+        .slide-in-from-bottom-8 { animation-name: slide-in-from-bottom; }
+        .delay-200 { animation-delay: 200ms; }
       `}</style>
     </div>
   );

@@ -100,7 +100,7 @@ export default function Connect() {
   const SKELETON_COUNT = 6;
 
   return (
-    <div className="flex bg-[#f0f2f5] min-h-screen text-black overflow-x-hidden font-sans">
+    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
 
       {/* Background orbs */}

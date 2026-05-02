@@ -18,6 +18,7 @@ router.get('/following', authMiddleware, userController.searchFollowingUsers);
 
 // Social & Blocking Routes
 router.get('/blocks', authMiddleware, socialController.getBlockedUsers);
+router.get('/block/status/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.getBlockStatus);
 router.post('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.blockUser);
 router.delete('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.unblockUser);
 

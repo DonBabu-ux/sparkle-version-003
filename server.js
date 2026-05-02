@@ -26,6 +26,7 @@ const firebaseConfig = require('./config/firebase.config');
 const { initializeSocket } = require('./socket');
 const { initializeEmail } = require('./config/email');
 require('./workers/notification.worker'); // Start the background notification worker
+require('./workers/inactivityNotifier'); // Start marketplace inactivity worker
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Vite locally, Render in prod)

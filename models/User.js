@@ -643,8 +643,8 @@ class User {
 
         try {
             await pool.query(
-                'INSERT INTO user_blocks (block_id, blocker_id, blocked_id) VALUES (UUID(), ?, ?)',
-                [blockerId, blockedId]
+                'INSERT INTO user_blocks (block_id, blocker_id, blocked_id) VALUES (?, ?, ?)',
+                [crypto.randomUUID(), blockerId, blockedId]
             );
             return true;
         } catch (error) {

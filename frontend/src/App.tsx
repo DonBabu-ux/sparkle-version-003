@@ -36,6 +36,8 @@ import ReportListing from './pages/ReportListing';
 import MarketplaceOrder from './pages/MarketplaceOrder';
 import MarketplaceSafety from './pages/MarketplaceSafety';
 import MarketplaceModals from './components/modals/MarketplaceModals';
+import MarketplaceChat from './pages/MarketplaceChat';
+import MarketplaceSettings from './pages/MarketplaceSettings';
 
 // Phase 2 — Social & Community
 import Clubs from './pages/Clubs';
@@ -161,6 +163,8 @@ function App() {
         <Route path="/marketplace/order" element={isAuthenticated ? <MarketplaceOrder /> : <Navigate to="/login" />} />
         <Route path="/marketplace/safety" element={isAuthenticated ? <MarketplaceSafety /> : <Navigate to="/login" />} />
         <Route path="/marketplace/seller/:id" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
+        <Route path="/marketplace/messages/:conversationId" element={isAuthenticated ? <MarketplaceChat /> : <Navigate to="/login" />} />
+        <Route path="/marketplace/settings" element={isAuthenticated ? <MarketplaceSettings /> : <Navigate to="/login" />} />
         <Route path="/profile/:id" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
         <Route path="/wishlist" element={isAuthenticated ? <Wishlist /> : <Navigate to="/login" />} />
         <Route path="/skill-market" element={isAuthenticated ? <SkillMarket /> : <Navigate to="/login" />} />

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, ShieldCheck, Lock, BarChart3, 
   CreditCard, ShieldAlert, ChevronRight, UserCheck,
-  Settings, Eye, Bell, Heart, HelpCircle, ArrowLeft, CheckCircle2, TrendingUp, Package, Users
+  Settings, Eye, Bell, Heart, HelpCircle, ArrowLeft, CheckCircle2, TrendingUp, Package, Users, Flag
 } from 'lucide-react';
 import api from '../../api/api';
 
@@ -14,16 +14,16 @@ interface MarketplaceSettingsModalProps {
 }
 
 export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerification }: MarketplaceSettingsModalProps) {
-  const [activeView, setActiveView] = useState<'main' | 'analytics' | 'payouts' | 'privacy' | 'support'>('main');
+  const [activeView, setActiveView] = useState<'main' | 'analytics' | 'payouts' | 'privacy' | 'support' | 'blocked'>('main');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
   const [features, setFeatures] = useState<any>(null);
 
   const fetchSettings = async () => {
     try {
-      const res = await api.get('/marketplace/settings/preferences');
+      const res = await api.get('/marketplace/settings');
       if (res.data.success) {
-        setFeatures(res.data.settings.features);
+        setFeatures(res.data.settings);
       }
     } catch (err) {
       console.error(err);
@@ -80,7 +80,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
       items: [
         { id: 'verification', icon: <UserCheck className="text-blue-600" />, label: 'Marketplace Verification', desc: 'Get your blue checkmark', action: onOpenVerification },
         { id: 'security', icon: <Lock className="text-emerald-600" />, label: 'Account Security', desc: 'Manage your login & keys', action: () => alert('Security settings enabled') },
-        { id: 'safety', icon: <ShieldAlert className="text-rose-600" />, label: 'Safety Center', desc: 'Reporting & blocked users', action: () => alert('Safety Center active') }
+        { id: 'safety', icon: <ShieldAlert className="text-rose-600" />, label: 'Safety Center', desc: 'Reporting & blocked users', action: () => setActiveView('blocked') }
       ]
     },
     {
@@ -128,7 +128,8 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
                 {activeView === 'main' ? 'Settings' : 
                  activeView === 'analytics' ? 'Performance' : 
                  activeView === 'payouts' ? 'Payouts' : 
-                 activeView === 'support' ? 'Support' : 'Privacy'}
+                 activeView === 'support' ? 'Support' : 
+                 activeView === 'blocked' ? 'Blocked Users' : 'Privacy'}
               </h2>
             </div>
             <button onClick={() => { onClose(); setActiveView('main'); }} className="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
@@ -149,10 +150,10 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
                           <button
                             key={item.id}
                             onClick={() => handleAction(item)}
-                            className={`w-full flex items-center justify-between p-4 rounded-[24px] transition-all group active:scale-[0.98] ${feature.status === 'locked' ? 'bg-slate-50 opacity-60 grayscale' : 'bg-slate-50 hover:bg-slate-100'}`}
+                            className={`w-full flex items-center justify-between p-4 rounded-lg transition-all group active:scale-[0.98] ${feature.status === 'locked' ? 'bg-slate-50 opacity-60 grayscale' : 'bg-slate-50 hover:bg-slate-100'}`}
                           >
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
                                 {item.icon}
                               </div>
                               <div className="text-left">
@@ -178,29 +179,29 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
 
             {activeView === 'analytics' && (
               <div className="space-y-6">
-                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 mb-6">
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 mb-6">
                   <p className="text-xs font-bold text-amber-700">Stats are being generated. Check back after more activity on your listings.</p>
                 </div>
                 {loading ? (
                   <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
                 ) : data ? (
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-6 bg-slate-50 rounded-[24px]">
+                    <div className="p-6 bg-slate-50 rounded-lg">
                       <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4"><Eye size={20} /></div>
                       <div className="text-3xl font-black">{data.views}</div>
                       <div className="text-sm font-bold text-slate-500">Total Views</div>
                     </div>
-                    <div className="p-6 bg-slate-50 rounded-[24px]">
+                    <div className="p-6 bg-slate-50 rounded-lg">
                       <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><CheckCircle2 size={20} /></div>
                       <div className="text-3xl font-black">{data.sales}</div>
                       <div className="text-sm font-bold text-slate-500">Total Sales</div>
                     </div>
-                    <div className="p-6 bg-slate-50 rounded-[24px]">
+                    <div className="p-6 bg-slate-50 rounded-lg">
                       <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-4"><Package size={20} /></div>
                       <div className="text-3xl font-black">{data.listings}</div>
                       <div className="text-sm font-bold text-slate-500">Active Listings</div>
                     </div>
-                    <div className="p-6 bg-slate-50 rounded-[24px]">
+                    <div className="p-6 bg-slate-50 rounded-lg">
                       <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center mb-4"><TrendingUp size={20} /></div>
                       <div className="text-3xl font-black">{(data.engagement_rate * 100).toFixed(1)}%</div>
                       <div className="text-sm font-bold text-slate-500">Engagement</div>
@@ -222,7 +223,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
                   <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div></div>
                 ) : data && data.length > 0 ? (
                   data.map((payout: any) => (
-                    <div key={payout.payout_id} className="p-6 bg-slate-50 border border-slate-200 rounded-[24px] flex items-center justify-between">
+                    <div key={payout.payout_id} className="p-6 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center font-black text-amber-600 uppercase">
                           {payout.provider.substring(0,2)}
@@ -240,7 +241,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-20 bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
+                  <div className="text-center py-20 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                     <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mx-auto mb-4">
                       <CreditCard size={24} className="text-slate-400" />
                     </div>
@@ -254,7 +255,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
 
             {activeView === 'privacy' && (
               <div className="space-y-6">
-                 <div className="p-6 bg-slate-50 rounded-[24px] space-y-6">
+                 <div className="p-6 bg-slate-50 rounded-lg space-y-6">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-black">Private Shop Mode</div>
@@ -278,6 +279,10 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
                     </div>
                  </div>
               </div>
+            )}
+
+            {activeView === 'blocked' && (
+              <BlockedUsersView />
             )}
 
           </div>
@@ -344,11 +349,11 @@ function MarketplaceSupportView() {
   if (mode === 'options') {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="p-8 bg-indigo-600 rounded-[32px] text-white overflow-hidden relative">
+        <div className="p-8 bg-indigo-600 rounded-xl text-white overflow-hidden relative">
           <div className="relative z-10">
             <h4 className="text-2xl font-black tracking-tighter mb-2">How can we help?</h4>
             <p className="text-indigo-100 font-bold text-sm mb-6 opacity-80">Search for help or chat with our automated assistant.</p>
-            <div className="flex bg-white/20 backdrop-blur-md rounded-2xl p-1">
+            <div className="flex bg-white/20 backdrop-blur-md rounded-xl p-1">
               <input 
                 placeholder="Search help articles..." 
                 className="bg-transparent border-none outline-none flex-1 px-4 py-3 text-sm font-bold placeholder:text-indigo-200"
@@ -362,15 +367,15 @@ function MarketplaceSupportView() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <button onClick={() => setMode('bot')} className="p-6 bg-slate-50 border border-slate-100 rounded-[24px] text-left hover:border-indigo-200 transition-all group">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
+          <button onClick={() => setMode('bot')} className="p-6 bg-slate-50 border border-slate-100 rounded-lg text-left hover:border-indigo-200 transition-all group">
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
               <Users size={24} className="text-indigo-600" />
             </div>
             <div className="font-black text-slate-800">Ask Sparky Bot</div>
             <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Instant Answers</div>
           </button>
-          <button onClick={() => setMode('form')} className="p-6 bg-slate-50 border border-slate-100 rounded-[24px] text-left hover:border-indigo-200 transition-all group">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
+          <button onClick={() => setMode('form')} className="p-6 bg-slate-50 border border-slate-100 rounded-lg text-left hover:border-indigo-200 transition-all group">
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
               <ShieldAlert size={24} className="text-indigo-600" />
             </div>
             <div className="font-black text-slate-800">Open Ticket</div>
@@ -378,7 +383,7 @@ function MarketplaceSupportView() {
           </button>
         </div>
 
-        <button onClick={fetchTickets} className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[24px] flex items-center justify-between group">
+        <button onClick={fetchTickets} className="w-full p-6 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-between group">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm"><Package size={20} className="text-slate-400" /></div>
             <div className="font-black text-slate-800">Your Support History</div>
@@ -395,14 +400,14 @@ function MarketplaceSupportView() {
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar pb-6">
           {botMessages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] p-4 rounded-2xl font-bold text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'}`}>
+              <div className={`max-w-[80%] p-4 rounded-xl font-bold text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'}`}>
                 {msg.text}
               </div>
             </div>
           ))}
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-slate-100 p-4 rounded-2xl rounded-tl-none flex gap-1">
+              <div className="bg-slate-100 p-4 rounded-xl rounded-tl-none flex gap-1">
                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]" />
@@ -417,9 +422,9 @@ function MarketplaceSupportView() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && askBot()}
               placeholder="Ask anything..." 
-              className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-bold text-sm outline-none focus:border-indigo-300 transition-colors"
+              className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-5 py-4 font-bold text-sm outline-none focus:border-indigo-300 transition-colors"
             />
-            <button onClick={askBot} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-xl shadow-indigo-100 active:scale-90 transition-transform">
+            <button onClick={askBot} className="bg-indigo-600 text-white p-4 rounded-xl shadow-xl shadow-indigo-100 active:scale-90 transition-transform">
               <TrendingUp size={20} />
             </button>
           </div>
@@ -434,7 +439,7 @@ function MarketplaceSupportView() {
       <form onSubmit={submitTicket} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Category</label>
-          <select name="category" required className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors appearance-none">
+          <select name="category" required className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors appearance-none">
             <option value="verification">Verification Issue</option>
             <option value="payment">Payment & Payouts</option>
             <option value="abuse">Safety & Abuse</option>
@@ -445,18 +450,18 @@ function MarketplaceSupportView() {
         </div>
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Subject</label>
-          <input name="subject" required placeholder="Brief title of your issue" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors" />
+          <input name="subject" required placeholder="Brief title of your issue" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors" />
         </div>
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Description</label>
-          <textarea name="description" required rows={4} placeholder="Describe the problem in detail..." className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors resize-none" />
+          <textarea name="description" required rows={4} placeholder="Describe the problem in detail..." className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors resize-none" />
         </div>
-        <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3">
+        <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-3">
           <Package size={20} className="text-indigo-600" />
           <p className="text-[10px] font-bold text-indigo-700">Attach photos on the next screen if needed.</p>
         </div>
         <div className="space-y-3 pt-4">
-          <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 text-white rounded-[24px] font-black text-sm shadow-xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all">
+          <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 text-white rounded-lg font-black text-sm shadow-xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all">
             {loading ? 'Submitting...' : 'Submit Support Ticket'}
           </button>
           <button type="button" onClick={() => setMode('options')} className="w-full py-4 text-slate-400 font-black text-sm hover:text-slate-600 transition-colors">Cancel</button>
@@ -476,7 +481,7 @@ function MarketplaceSupportView() {
           <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
         ) : tickets.length > 0 ? (
           tickets.map((t) => (
-            <div key={t.ticket_id} className="p-5 bg-slate-50 border border-slate-100 rounded-[24px] hover:border-slate-200 transition-colors cursor-pointer group">
+            <div key={t.ticket_id} className="p-5 bg-slate-50 border border-slate-100 rounded-lg hover:border-slate-200 transition-colors cursor-pointer group">
               <div className="flex justify-between items-start mb-2">
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${t.status === 'open' ? 'bg-blue-100 text-blue-700' : t.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
                   {t.status}
@@ -496,4 +501,86 @@ function MarketplaceSupportView() {
   }
 
   return null;
+}
+
+function BlockedUsersView() {
+  const [blockedUsers, setBlockedUsers] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  const fetchBlocked = async () => {
+      try {
+          const res = await api.get('/users/blocks');
+          // Assuming res.data is an array of users
+          setBlockedUsers(res.data);
+      } catch (err) {
+          console.error(err);
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const handleUnblock = async (userId: string) => {
+      try {
+          await api.delete(`/users/block/${userId}`);
+          setBlockedUsers(prev => prev.filter(u => u.user_id !== userId));
+      } catch (err) {
+          console.error(err);
+      }
+  };
+
+  React.useEffect(() => {
+      fetchBlocked();
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-rose-200 border-t-rose-600 rounded-full animate-spin"></div></div>;
+
+  const handleReport = async (userId: string) => {
+    const reason = prompt("Enter reason for reporting this user:");
+    if (!reason) return;
+    try {
+      await api.post(`/users/report/${userId}`, { reason, targetType: 'user' });
+      alert("Report submitted successfully.");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+          {blockedUsers.length > 0 ? (
+              blockedUsers.map(u => (
+                  <div key={u.user_id} className="p-4 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                      <div className="flex items-center gap-3">
+                          <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}`} className="w-10 h-10 rounded-full object-cover border border-white shadow-sm" alt="" />
+                          <div>
+                              <div className="font-black text-slate-800">{u.name || u.username}</div>
+                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">@{u.username}</div>
+                          </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleReport(u.user_id)} 
+                          className="p-2 bg-white border border-slate-200 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
+                          title="Report User"
+                        >
+                          <Flag size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleUnblock(u.user_id)} 
+                          className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-100 transition-colors"
+                        >
+                          Unblock
+                        </button>
+                      </div>
+                  </div>
+              ))
+          ) : (
+              <div className="text-center py-20 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                 <ShieldAlert size={32} className="text-slate-300 mx-auto mb-4" />
+                 <div className="font-black text-slate-800">No Blocked Users</div>
+                 <div className="text-xs font-bold text-slate-500">People you block will appear here.</div>
+              </div>
+          )}
+      </div>
+  );
 }

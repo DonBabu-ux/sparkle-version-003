@@ -52,6 +52,7 @@ router.post('/comments/:id/like', authMiddleware, postController.likeComment);
 // Mount feature routes directly at the root of /api to match dashboardAPI.js hardcoded paths
 router.use('/', campusRoutes);
 router.use('/', marketplaceRoutes);
+router.use('/marketplace', require('./marketplaceChatRoutes'));
 router.use('/groups', groupsRoutes);
 router.use('/confessions', confessionRoutes);
 router.use('/skill-market', skillMarketRoutes);

@@ -10,10 +10,13 @@ if (connection) {
     worker = new Worker('notifications', async (job) => {
         const { userIds, type, priority, data, eventId } = job.data;
         
-        const queueLength = await job.queue.getWaitingCount();
-        if (queueLength > 5000 && priority === 'LOW') {
-            logger.warn(`Dropping LOW priority notification due to load: ${type}`);
-            return;
+        const { notificationQueue } = require('../utils/queue');
+        if (notificationQueue) {
+            const queueLength = await notificationQueue.getWaitingCount();
+            if (queueLength > 5000 && priority === 'LOW') {
+                logger.warn(`Dropping LOW priority notification due to load: ${type}`);
+                return;
+            }
         }
 
         for (const userId of userIds) {

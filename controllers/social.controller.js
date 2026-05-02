@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const pool = require('../config/database');
+const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 
 // Profile logic helper
 const getSafeAvatarUrl = (url) => {
@@ -136,20 +138,59 @@ const renderConnect = async (req, res) => {
 module.exports = {
     renderConnect,
     renderSearch: async (req, res) => res.render('search', { title: 'Search Results', user: req.user, query: req.query.q || '' }),
-    renderFollowRequests: async (req, res) => res.render('follow-requests', { title: 'Follow Requests', user: req.user, requests: await User.getPendingFollowRequests(req.user.userId || req.user.user_id) }),
+    renderFollowRequests: async (req, res) => res.render('follow-requests', { title: 'Follow Requests', user: req.user, requests: await User.getPendingFollowRequests(req.user?.user_id || req.user?.userId) }),
     blockUser: async (req, res) => {
         try {
-            const currentUserId = req.user.userId || req.user.user_id;
+            const currentUserId = req.user?.user_id || req.user?.userId;
             const targetId = req.params.id;
+            
+            if (!currentUserId || !targetId) {
+                return res.status(400).json({ error: 'Missing user ID' });
+            }
+
+            console.log(`[Social] Block request: ${currentUserId} -> ${targetId}`);
             await User.blockUser(currentUserId, targetId);
+
+            // 🔥 MARKETPLACE AUTO-ARCHIVE
+            try {
+                await pool.query(
+                    `UPDATE marketplace_conversations SET is_archived = 1 WHERE (buyer_id = ? AND seller_id = ?) OR (buyer_id = ? AND seller_id = ?)`,
+                    [currentUserId, targetId, targetId, currentUserId]
+                );
+            } catch (archiveErr) {
+                console.error('[Social] Marketplace archive failed during block:', archiveErr.message);
+                // We don't fail the whole block if only marketplace archiving fails
+            }
+
             res.json({ success: true, message: 'User blocked' });
         } catch (error) {
+            console.error('[Social] Block failed:', error);
+            const status = error.message.includes('cannot block yourself') ? 400 : 500;
+            res.status(status).json({ error: error.message || 'Block operation failed' });
+        }
+    },
+    getBlockStatus: async (req, res) => {
+        try {
+            const currentUserId = req.user?.user_id || req.user?.userId;
+            const targetId = req.params.id;
+            
+            const [blocks] = await pool.query(
+                'SELECT blocker_id, blocked_id FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocker_id = ?)',
+                [currentUserId, targetId, targetId, currentUserId]
+            );
+
+            const isBlockedByMe = blocks.some(b => b.blocker_id === currentUserId && b.blocked_id === targetId);
+            const amIBlocked = blocks.some(b => b.blocker_id === targetId && b.blocked_id === currentUserId);
+
+            res.json({ isBlockedByMe, amIBlocked });
+        } catch (error) {
+            console.error('[Social] Get block status failed:', error);
             res.status(500).json({ error: error.message });
         }
     },
     unblockUser: async (req, res) => {
         try {
-            const currentUserId = req.user.userId || req.user.user_id;
+            const currentUserId = req.user?.user_id || req.user?.userId;
             const targetId = req.params.id;
             await User.unblockUser(currentUserId, targetId);
             res.json({ success: true, message: 'User unblocked' });
@@ -159,7 +200,7 @@ module.exports = {
     },
     getBlockedUsers: async (req, res) => {
         try {
-            const currentUserId = req.user.userId || req.user.user_id;
+            const currentUserId = req.user?.user_id || req.user?.userId;
             const blocks = await User.getBlockedUsers(currentUserId);
             res.json(blocks);
         } catch (error) {
@@ -168,7 +209,7 @@ module.exports = {
     },
     getFollowRequests: async (req, res) => {
         try {
-            const currentUserId = req.user.userId || req.user.user_id;
+            const currentUserId = req.user?.user_id || req.user?.userId;
             const requests = await User.getPendingFollowRequests(currentUserId);
             res.json(requests);
         } catch (error) {
@@ -177,7 +218,7 @@ module.exports = {
     },
     respondToFollowRequest: async (req, res) => {
         try {
-            const currentUserId = req.user.userId || req.user.user_id;
+            const currentUserId = req.user?.user_id || req.user?.userId;
             const { requestId, status } = req.body;
             if (status === 'accepted') {
                 await User.acceptFollowRequest(requestId, currentUserId);
@@ -191,7 +232,7 @@ module.exports = {
     },
     acceptRequest: async (req, res) => {
         try {
-            const currentUserId = req.user.userId || req.user.user_id;
+            const currentUserId = req.user?.user_id || req.user?.userId;
             const { requestId } = req.params;
             await User.acceptFollowRequest(requestId, currentUserId);
             res.json({ success: true, message: 'Request accepted' });
@@ -201,7 +242,7 @@ module.exports = {
     },
     rejectRequest: async (req, res) => {
         try {
-            const currentUserId = req.user.userId || req.user.user_id;
+            const currentUserId = req.user?.user_id || req.user?.userId;
             const { requestId } = req.params;
             await User.rejectFollowRequest(requestId, currentUserId);
             res.json({ success: true, message: 'Request rejected' });
@@ -211,11 +252,35 @@ module.exports = {
     },
     muteUser: async (req, res) => res.json({ success: true, message: 'User muted (Placeholder)' }),
     unmuteUser: async (req, res) => res.json({ success: true, message: 'User unmuted (Placeholder)' }),
-    reportUser: async (req, res) => res.json({ success: true, message: 'Report submitted' }),
+    reportUser: async (req, res) => {
+        try {
+            const reporterId = req.user?.user_id || req.user?.userId;
+            const targetId = req.params.id;
+            const { reason, description } = req.body;
+
+            if (!reporterId || !targetId) {
+                return res.status(400).json({ error: 'Missing user ID' });
+            }
+
+            // The system uses 'user_reports' table as defined in init.js
+            const fullReason = description ? `${reason}: ${description}` : reason;
+            
+            await pool.query(
+                `INSERT INTO user_reports (report_id, reporter_id, reported_id, reason, status) VALUES (?, ?, ?, ?, ?)`,
+                [crypto.randomUUID(), reporterId, targetId, fullReason, 'pending']
+            );
+
+            console.log(`[Social] Report submitted: ${reporterId} -> ${targetId}`);
+            res.json({ success: true, message: 'Report submitted successfully' });
+        } catch (error) {
+            console.error('[Social] Report failed:', error);
+            res.status(500).json({ error: error.message || 'Report operation failed' });
+        }
+    },
     
     pokeUser: async (req, res) => {
         try {
-            const currentUserId = req.user.userId || req.user.user_id;
+            const currentUserId = req.user?.user_id || req.user?.userId;
             const targetId = req.params.id;
             
             if (currentUserId === targetId) {

@@ -333,6 +333,7 @@ const getListings = async (req, res) => {
         // 2. Log Geo-Search Event
         if (req.query.location) {
             const loc = typeof req.query.location === 'string' ? JSON.parse(req.query.location) : req.query.location;
+            filters.location = loc; // Update filters for Marketplace.getListings
             GeoIntelligence.logEvent({
                 user_id: user?.user_id || 'anonymous',
                 event_type: 'search',
@@ -487,6 +488,8 @@ const createListing = [
                 condition: req.body.condition || 'good',
                 campus: req.body.campus || user.campus || 'main_campus',
                 location: req.body.location || '',
+                latitude: req.body.latitude ? parseFloat(req.body.latitude) : null,
+                longitude: req.body.longitude ? parseFloat(req.body.longitude) : null,
                 tags: tags,
                 image_url: primaryImage,
                 media: media
@@ -578,6 +581,8 @@ const updateListing = [
                 condition: req.body.condition,
                 campus: req.body.campus,
                 location: req.body.location,
+                latitude: req.body.latitude ? parseFloat(req.body.latitude) : undefined,
+                longitude: req.body.longitude ? parseFloat(req.body.longitude) : undefined,
                 status: req.body.status,
                 media: media
             };
@@ -1452,6 +1457,117 @@ const getHeatmapData = async (req, res) => {
     }
 };
 
+const replyToReview = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        const { reviewId } = req.params;
+        const { reply } = req.body;
+        
+        if (!reply) {
+            return res.status(400).json({ success: false, message: 'Reply content is required' });
+        }
+};
+
+// ── Chat Methods ─────────────────────────────────────────────────────────────
+
+const getUserChats = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const chats = await Marketplace.getUserChats(user.user_id);
+        res.json({
+            success: true,
+            chats: chats.map(chat => ({
+                id: chat.chat_id,
+                type: chat.seller_id === user.user_id ? 'selling' : 'buying',
+                status: chat.listing_status || 'active',
+                lastMessage: chat.last_message || 'New conversation',
+                lastMessageTime: chat.last_message_time,
+                unread: 0, 
+                partner: {
+                    id: chat.participant1_id === user.user_id ? chat.participant2_id : chat.participant1_id,
+                    name: chat.other_user_name,
+                    username: chat.other_user_name,
+                    avatar: chat.other_user_avatar,
+                    isVerified: true
+                },
+                listing: {
+                    id: chat.listing_id,
+                    title: chat.listing_title,
+                    price: chat.listing_price || 0,
+                    image: chat.listing_image,
+                    status: chat.listing_status || 'available'
+                }
+            }))
+        });
+    } catch (error) {
+        logger.error('Get user chats error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch chats' });
+    }
+};
+
+const getChatMessages = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const messages = await Marketplace.getChatMessages(id);
+        res.json({
+            success: true,
+            messages: messages.map(msg => ({
+                id: msg.message_id,
+                senderId: msg.sender_id,
+                text: msg.content,
+                time: msg.sent_at
+            }))
+        });
+    } catch (error) {
+        logger.error('Get chat messages error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch messages' });
+    }
+};
+
+const { emitMarketplaceMessage } = require('../socket');
+
+const sendMessage = async (req, res) => {
+    try {
+        const { chatId } = req.params;
+        const { content } = req.body;
+        const user = normalizeUser(req.user);
+
+        const messageId = await Marketplace.sendMessage(chatId, user.user_id, content);
+        
+        const message = {
+            id: messageId,
+            senderId: user.user_id,
+            text: content,
+            time: new Date().toISOString()
+        };
+
+        // Emit via socket for real-time
+        emitMarketplaceMessage(chatId, message);
+
+        res.json({
+            success: true,
+            message
+        });
+    } catch (error) {
+        logger.error('Send message error:', error);
+        res.status(500).json({ success: false, message: 'Failed to send message' });
+    }
+};
+
+const deleteChat = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = normalizeUser(req.user);
+        await Marketplace.deleteChat(id, user.user_id);
+        res.json({ success: true, message: 'Chat deleted' });
+    } catch (error) {
+        logger.error('Delete chat error:', error);
+        res.status(500).json({ success: false, message: 'Failed to delete chat' });
+    }
+};
+
 module.exports = {
     // Page Render Data (JSON for SPA)
     renderMarketplace,
@@ -1474,6 +1590,7 @@ module.exports = {
     getUserChats,
     getChatMessages,
     sendMessage,
+    deleteChat,
     toggleFavorite,
     toggleWishlist,
     makeOffer,
@@ -1495,6 +1612,7 @@ module.exports = {
     reportListing,
     blockUser,
     createReview,
+    replyToReview,
     getUserReviews,
     boostListing,
     markAsSold,

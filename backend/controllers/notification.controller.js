@@ -82,6 +82,13 @@ const notificationController = {
                 } : null,
                 related_post_id: n.related_post_id || n.related_id,
                 
+                // Deep Linking Metadata
+                target: {
+                    entity_type: n.entity_type || n.related_type,
+                    entity_id: n.entity_id || n.related_id,
+                    sub_entity_id: n.sub_entity_id
+                },
+
                 // Backwards compatibility keys
                 notification_id: n.notification_id,
                 content: n.content,
@@ -128,6 +135,11 @@ const notificationController = {
                     name: n.actor_name,
                     avatar: n.actor_avatar
                 } : null,
+                target: {
+                    entity_type: n.entity_type || n.related_type,
+                    entity_id: n.entity_id || n.related_id,
+                    sub_entity_id: n.sub_entity_id
+                },
                 action_url: n.action_url
             }));
 
@@ -260,8 +272,10 @@ const notificationController = {
             await connection.query(`
                 INSERT INTO notifications (
                     notification_id, user_id, type, title, content, 
-                    related_id, related_type, actor_id, action_url
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    related_id, related_type, 
+                    entity_type, entity_id, sub_entity_id,
+                    actor_id, action_url
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 notificationId,
                 data.user_id,
@@ -270,6 +284,9 @@ const notificationController = {
                 data.content,
                 data.related_id || null,
                 data.related_type || null,
+                data.entity_type || data.related_type || null,
+                data.entity_id || data.related_id || null,
+                data.sub_entity_id || null,
                 data.actor_id || null,
                 data.action_url || null
             ]);
@@ -295,6 +312,11 @@ const notificationController = {
                     type: data.type,
                     title: data.title,
                     content: data.content,
+                    target: {
+                        entity_type: data.entity_type || data.related_type || null,
+                        entity_id: data.entity_id || data.related_id || null,
+                        sub_entity_id: data.sub_entity_id || null
+                    },
                     action_url: data.action_url || null,
                     actor_id: data.actor_id || null,
                     ...actorInfo,

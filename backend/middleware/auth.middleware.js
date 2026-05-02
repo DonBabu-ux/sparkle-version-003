@@ -145,7 +145,36 @@ const ejsAuthMiddleware = async (req, res, next) => {
     }
 };
 
+const optionalAuthMiddleware = async (req, res, next) => {
+    try {
+        let token = null;
+        const authHeader = req.headers['authorization'];
+        if (authHeader && authHeader.split(' ')[1] !== 'null' && authHeader.split(' ')[1] !== 'undefined') {
+            token = authHeader.split(' ')[1];
+        } else if (req.cookies && req.cookies.sparkleToken) {
+            token = req.cookies.sparkleToken;
+        }
+
+        if (!token) {
+            return next();
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [decoded.userId]);
+
+        if (users.length > 0) {
+            const user = users[0];
+            req.user = { ...decoded, ...user, userType: user.user_role };
+        }
+        next();
+    } catch (err) {
+        // Just proceed without user
+        next();
+    }
+};
+
 module.exports = {
     authMiddleware,
-    ejsAuthMiddleware
+    ejsAuthMiddleware,
+    optionalAuthMiddleware
 };

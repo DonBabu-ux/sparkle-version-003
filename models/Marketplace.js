@@ -261,29 +261,29 @@ class Marketplace {
             category = '',
             campus = '',
             condition = '',
-            minPrice = null,
-            maxPrice = null,
+            minPrice = 0,
+            maxPrice = 1000000,
             minRating = 0,
             sort = 'newest',
             limit = 20,
             offset = 0,
+            currentUserId = null,
+            location = null,
             lat = null,
             lng = null,
-            radius = 15,
-            currentUserId = null
+            radius = 25
         } = filters;
 
         const sessionUserId = currentUserId || userId;
+        const userLat = location?.lat || lat;
+        const userLng = location?.lng || lng;
+        const searchRadius = location?.radius || radius;
 
         try {
-            // Include Haversine formula if coordinates are provided
-            const hasLocation = lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng);
-            const userLat = hasLocation ? parseFloat(lat) : 0;
-            const userLng = hasLocation ? parseFloat(lng) : 0;
-
-            let selectDistance = hasLocation
-                ? `, (6371 * acos(cos(radians(?)) * cos(radians(l.latitude)) * cos(radians(l.longitude) - radians(?)) + sin(radians(?)) * sin(radians(l.latitude)))) AS distance_km`
-                : `, NULL AS distance_km`;
+            let distanceSelect = '';
+            if (userLat && userLng) {
+                distanceSelect = `, (6371 * acos(cos(radians(${parseFloat(userLat)})) * cos(radians(l.latitude)) * cos(radians(l.longitude) - radians(${parseFloat(userLng)})) + sin(radians(${parseFloat(userLat)})) * sin(radians(l.latitude)))) AS distance`;
+            }
 
             let query = `
                 SELECT 
@@ -296,7 +296,7 @@ class Marketplace {
                     CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
                     CASE WHEN w.wishlist_id IS NOT NULL THEN 1 ELSE 0 END as is_wishlisted,
                     (SELECT COUNT(*) FROM marketplace_orders WHERE listing_id = l.listing_id) as order_count
-                    ${selectDistance}
+                    ${distanceSelect}
                 FROM marketplace_listings l
                 JOIN users u ON l.seller_id = u.user_id
                 LEFT JOIN marketplace_favorites f ON l.listing_id = f.listing_id AND f.user_id = ?
@@ -304,17 +304,11 @@ class Marketplace {
                 WHERE l.status = 'active' AND l.is_sold = 0
             `;
             
-            const params = [];
-            if (hasLocation) {
-                params.push(userLat, userLng, userLat); // For the selectDistance
-            }
-            params.push(sessionUserId, sessionUserId); // For the LEFT JOINs
+            const params = [sessionUserId, sessionUserId];
 
-            // Apply filters
             if (search) {
-                const searchTerm = `%${search.trim().replace(/[%_]/g, '\\$&')}%`;
                 query += ` AND (l.title LIKE ? OR l.description LIKE ?)`;
-                params.push(searchTerm, searchTerm);
+                params.push(`%${search}%`, `%${search}%`);
             }
 
             if (category && category !== 'all') {
@@ -332,132 +326,51 @@ class Marketplace {
                 params.push(condition);
             }
 
-            if (minPrice !== null && !isNaN(minPrice)) {
+            // High-Precision Location Filtering
+            if (userLat && userLng && searchRadius) {
+                query += ` HAVING distance <= ?`;
+                params.push(parseFloat(searchRadius));
+            }
+
+            if (!isNaN(parseFloat(minPrice)) && parseFloat(minPrice) > 0) {
                 query += ` AND l.price >= ?`;
                 params.push(parseFloat(minPrice));
             }
 
-            if (maxPrice !== null && !isNaN(maxPrice)) {
+            if (!isNaN(parseFloat(maxPrice)) && parseFloat(maxPrice) < 1000000) {
                 query += ` AND l.price <= ?`;
                 params.push(parseFloat(maxPrice));
             }
 
-            // Apply radius filter ONLY if specifically requested (not default)
-            // If radius is 0 or very large, we skip strict filtering to show global results
-            if (hasLocation && radius && radius < 1000) {
-                query += ` HAVING distance_km <= ?`;
-                params.push(parseFloat(radius));
-            }
+            // Sorting
+            if (sort === 'price_asc') query += ` ORDER BY l.price ASC`;
+            else if (sort === 'price_desc') query += ` ORDER BY l.price DESC`;
+            else if (sort === 'popular') query += ` ORDER BY order_count DESC`;
+            else query += ` ORDER BY l.created_at DESC`;
 
-            // Apply sorting
-            switch (sort) {
-                case 'distance_asc':
-                    if (hasLocation) {
-                        query += ` ORDER BY distance_km ASC, l.created_at DESC`;
-                    } else {
-                        query += ` ORDER BY l.created_at DESC`;
-                    }
-                    break;
-                case 'recommended':
-                    if (hasLocation) {
-                        // Prioritize proximity, but also boost high-engagement and new items
-                        query += ` ORDER BY (CASE WHEN distance_km < 50 THEN 0 ELSE 1 END) ASC, l.view_count DESC, l.created_at DESC`;
-                    } else {
-                        query += ` ORDER BY l.view_count DESC, l.created_at DESC`;
-                    }
-                    break;
-                case 'price_asc':
-                    query += ` ORDER BY l.price ASC, l.created_at DESC`;
-                    break;
-                case 'price_desc':
-                    query += ` ORDER BY l.price DESC, l.created_at DESC`;
-                    break;
-                case 'newest':
-                default:
-                    if (hasLocation) {
-                        query += ` ORDER BY l.created_at DESC, distance_km ASC`;
-                    } else {
-                        query += ` ORDER BY l.created_at DESC`;
-                    }
-                    break;
-            }
-
-            // Add pagination
-            const finalLimit = Math.min(parseInt(limit) || 20, 100);
-            const finalOffset = Math.max(parseInt(offset) || 0, 0);
             query += ` LIMIT ? OFFSET ?`;
-            params.push(finalLimit, finalOffset);
+            params.push(parseInt(limit), parseInt(offset));
 
             const [listings] = await pool.query(query, params);
 
-            // Get media for each listing
-            for (let listing of listings) {
-                if (listing.distance_km !== null) {
-                    listing.distance_km = Math.round(listing.distance_km * 10) / 10; // Round to 1 decimal place
-                }
-                const [media] = await pool.query(
-                    'SELECT media_url, media_type FROM listing_media WHERE listing_id = ? ORDER BY upload_order ASC LIMIT 5',
-                    [listing.listing_id]
-                );
-                listing.media = media;
-                listing.image_urls = media
-                    .filter(m => m.media_type === 'image')
-                    .map(m => m.media_url);
-
-                if (listing.image_urls.length === 0 && listing.image_url) {
-                    listing.image_urls = [listing.image_url];
-                }
-            }
-
-            // Get total count for pagination
-            let countQuery = `
-                SELECT COUNT(*) as total 
-                FROM marketplace_listings l
-                WHERE l.status = 'active' AND l.is_sold = 0
-            `;
-            const countParams = [];
-            if (search) {
-                const searchTerm = `%${search.trim().replace(/[%_]/g, '\\$&')}%`;
-                countQuery += ` AND (l.title LIKE ? OR l.description LIKE ?)`;
-                countParams.push(searchTerm, searchTerm);
-            }
-            if (category && category !== 'all') {
-                countQuery += ` AND l.category = ?`;
-                countParams.push(category);
-            }
-            if (campus && campus !== 'all') {
-                countQuery += ` AND (l.campus = ? OR l.campus = 'all')`;
-                countParams.push(campus);
-            }
-            if (condition && condition !== 'all') {
-                countQuery += ` AND l.condition = ?`;
-                countParams.push(condition);
-            }
-            if (minPrice !== null && !isNaN(minPrice) && parseFloat(minPrice) > 0) {
-                countQuery += ` AND l.price >= ?`;
-                countParams.push(parseFloat(minPrice));
-            }
-            if (maxPrice !== null && !isNaN(maxPrice) && parseFloat(maxPrice) < 100000000) {
-                countQuery += ` AND l.price <= ?`;
-                countParams.push(parseFloat(maxPrice));
-            }
-
-            const [countResult] = await pool.query(countQuery, countParams);
+            // Get total count
+            const [totalResult] = await pool.query(
+                `SELECT COUNT(*) as total FROM marketplace_listings WHERE status = 'active' AND is_sold = 0`,
+                []
+            );
 
             return {
                 listings,
                 pagination: {
-                    total: countResult[0].total,
-                    limit: finalLimit,
-                    offset: finalOffset,
-                    hasMore: finalOffset + listings.length < countResult[0].total
+                    total: totalResult[0].total,
+                    limit: parseInt(limit),
+                    offset: parseInt(offset),
+                    hasMore: parseInt(offset) + listings.length < totalResult[0].total
                 }
             };
-
         } catch (error) {
             logger.error('Database error in getListings:', error);
-            // On error return empty array
-            return { listings: [], pagination: { total: 0, limit: 20, offset: 0, hasMore: false } };
+            return { listings: [], total: 0, pagination: { hasMore: false } };
         }
     }
 
@@ -742,7 +655,7 @@ class Marketplace {
      */
     static async createListing(listingData) {
         const connection = await pool.getConnection();
-        const { seller_id, title, description, price, category, condition, campus, location, tags, media, image_url } = listingData;
+        const { seller_id, title, description, price, category, condition, campus, location, latitude, longitude, tags, media, image_url } = listingData;
         
         try {
             await connection.beginTransaction();
@@ -752,9 +665,9 @@ class Marketplace {
             // 1. Insert into marketplace_listings
             await connection.query(
                 `INSERT INTO marketplace_listings 
-                (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, status, image_url, tags) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-                [listing_id, seller_id, title, description, price, category, condition, campus, location, image_url, JSON.stringify(tags || [])]
+                (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, latitude, longitude, status, image_url, tags) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+                [listing_id, seller_id, title, description, price, category, condition, campus, location, latitude || null, longitude || null, image_url, JSON.stringify(tags || [])]
             );
 
             // 2. Insert media
@@ -800,16 +713,17 @@ class Marketplace {
                 'SELECT listing_id FROM marketplace_listings WHERE listing_id = ? AND seller_id = ?',
                 [id, sellerId]
             );
-            if (listing.length === 0) throw new Error('UNAUTHORIZED');
+
+            if (listing.length === 0) throw new Error('Listing not found or unauthorized');
 
             // Build dynamic update query
             const fields = [];
             const values = [];
-            const allowedFields = ['title', 'description', 'price', 'category', 'condition', 'campus', 'location', 'status'];
+            const allowedFields = ['title', 'description', 'price', 'category', 'condition', 'campus', 'location', 'latitude', 'longitude', 'status'];
 
             for (const key of allowedFields) {
                 if (updates[key] !== undefined) {
-                    fields.push(`${key} = ?`);
+                    fields.push(`\`${key}\` = ?`);
                     values.push(updates[key]);
                 }
             }
@@ -1342,7 +1256,7 @@ class Marketplace {
             const [existingChats] = await pool.query(
                 `SELECT * FROM personal_chats 
                  WHERE participant1_id = ? AND participant2_id = ? 
-                 AND (listing_id = ? OR (listing_id IS NULL AND ? IS NULL))`,
+                 AND (marketplace_listing_id = ? OR (marketplace_listing_id IS NULL AND ? IS NULL))`,
                 [participant1, participant2, listingId, listingId]
             );
 
@@ -1355,7 +1269,7 @@ class Marketplace {
             const chatId = uuidResult[0].uuid;
             
             await pool.query(
-                `INSERT INTO personal_chats (chat_id, participant1_id, participant2_id, listing_id) 
+                `INSERT INTO personal_chats (chat_id, participant1_id, participant2_id, marketplace_listing_id) 
                  VALUES (?, ?, ?, ?)`,
                 [chatId, participant1, participant2, listingId]
             );
@@ -1364,7 +1278,7 @@ class Marketplace {
                 chat_id: chatId,
                 participant1_id: participant1,
                 participant2_id: participant2,
-                listing_id: listingId
+                marketplace_listing_id: listingId
             };
         } catch (error) {
             logger.error('Database error in getOrCreateChat:', error);
@@ -1373,7 +1287,7 @@ class Marketplace {
                 chat_id: 'temp-chat-' + Date.now(),
                 participant1_id: participant1,
                 participant2_id: participant2,
-                listing_id: listingId
+                marketplace_listing_id: listingId
             };
         }
     }
@@ -1483,6 +1397,11 @@ class Marketplace {
                         u2.username as participant2_name,
                         ml.title as listing_title,
                         ml.listing_id,
+                        ml.seller_id,
+                        ml.price as listing_price,
+                        ml.thumbnail as listing_image,
+                        ml.status as listing_status,
+                        (SELECT content FROM messages WHERE conversation_id = pc.chat_id ORDER BY sent_at DESC LIMIT 1) as last_message,
                         CASE 
                             WHEN pc.participant1_id = ? THEN u2.avatar_url
                             ELSE u1.avatar_url
@@ -1494,7 +1413,7 @@ class Marketplace {
                  FROM personal_chats pc
                  JOIN users u1 ON pc.participant1_id = u1.user_id
                  JOIN users u2 ON pc.participant2_id = u2.user_id
-                 LEFT JOIN marketplace_listings ml ON pc.listing_id = ml.listing_id
+                 LEFT JOIN marketplace_listings ml ON pc.marketplace_listing_id = ml.listing_id
                  WHERE (pc.participant1_id = ? OR pc.participant2_id = ?)
                  ORDER BY pc.last_message_time DESC`,
                 [userId, userId, userId, userId]
@@ -2179,18 +2098,26 @@ class Marketplace {
      * VALIDATION HELPERS
      */
     static isValidCategory(category) {
-        const validCategories = ['electronics', 'books', 'clothing', 'furniture', 'services', 
-                                'student_market', 'secondhand', 'sports', 'other'];
+        const validCategories = [
+            'electronics', 'books', 'fashion', 'home', 'services', 'other', 'clothing', 'furniture', 'academic',
+            'student_market', 'blackmarket', 'fashion_lab', 'dorm_life', 'electronics_books', 'fashion lab', 'dorm life', 'electronics & books',
+            'electronics & appliances', 'fashion & beauty', 'home & garden', 'property', 'jobs', 'vehicles',
+            'housing', 'rentals', 'home-garden', 'household-appliances', 'jewelry', 'baby-kids', 'health',
+            'toys-games', 'pet-supplies', 'tools'
+        ];
         return validCategories.includes(category);
     }
 
     static isValidCampus(campus) {
-        const validCampuses = ['main_campus', 'north_campus', 'south_campus', 'downtown'];
+        const validCampuses = [
+            'main_campus', 'north_campus', 'south_campus', 'downtown', 'all', 'main campus', 'north campus', 'south campus',
+            'west_campus', 'east_campus'
+        ];
         return validCampuses.includes(campus);
     }
 
     static isValidCondition(condition) {
-        const validConditions = ['new', 'like_new', 'good', 'fair', 'poor'];
+        const validConditions = ['new', 'like_new', 'good', 'fair', 'poor', 'used', 'used_like_new', 'used_good', 'used_fair'];
         return validConditions.includes(condition);
     }
 
@@ -2198,8 +2125,12 @@ class Marketplace {
         return ['image', 'video'].includes(type);
     }
 
-    static async getSellerProfile(userId) {
+    static async getSellerProfile(identifier) {
         try {
+            // Check if identifier is a UUID or a username
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+            const whereClause = isUuid ? 'u.user_id = ?' : 'u.username = ?';
+
             // Get user basic info and aggregate ratings
             const [users] = await pool.query(
                 `SELECT u.user_id, u.username, u.name, u.avatar_url, u.campus, u.is_verified, u.joined_at as created_at,
@@ -2207,12 +2138,13 @@ class Marketplace {
                         (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = u.user_id) as total_reviews,
                         (SELECT COUNT(*) FROM marketplace_listings WHERE seller_id = u.user_id AND status = 'active') as active_listings
                  FROM users u
-                 WHERE u.user_id = ?`,
-                [userId]
+                 WHERE ${whereClause}`,
+                [identifier]
             );
 
             if (users.length === 0) return null;
             const user = users[0];
+            const userId = user.user_id;
 
             // Get recent listings
             const [listings] = await pool.query(
@@ -2239,6 +2171,257 @@ class Marketplace {
             };
         } catch (error) {
             logger.error('Error in getSellerProfile:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all reviews received by a user (as a seller)
+     */
+    static async getUserReviews(userId) {
+        try {
+            const [reviews] = await pool.query(
+                `SELECT r.*, u.username as reviewer_name, u.avatar_url as reviewer_avatar
+                 FROM marketplace_reviews r
+                 JOIN users u ON r.reviewer_id = u.user_id
+                 WHERE r.reviewee_id = ?
+                 ORDER BY r.created_at DESC`,
+                [userId]
+            );
+            return reviews;
+        } catch (error) {
+            logger.error('Error in getUserReviews:', error);
+            // If table doesn't exist yet, return empty array gracefully
+            return [];
+        }
+    }
+
+    /**
+     * Create or update a review for a seller
+     */
+    static async createReview(reviewData) {
+        const { listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type } = reviewData;
+        try {
+            // Ensure table exists
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS marketplace_reviews (
+                    review_id CHAR(36) PRIMARY KEY,
+                    listing_id CHAR(36) DEFAULT NULL,
+                    reviewer_id CHAR(36) NOT NULL,
+                    reviewee_id CHAR(36) NOT NULL,
+                    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+                    comment TEXT DEFAULT NULL,
+                    transaction_type VARCHAR(50) DEFAULT 'purchase',
+                    reply TEXT DEFAULT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_review (reviewer_id, reviewee_id, listing_id),
+                    INDEX idx_reviews_reviewee (reviewee_id, created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            `);
+
+            // Upsert review
+            const review_id = uuidv4();
+            const [existing] = await pool.query(
+                'SELECT review_id FROM marketplace_reviews WHERE reviewer_id = ? AND reviewee_id = ? AND listing_id <=> ?',
+                [reviewer_id, reviewee_id, listing_id || null]
+            );
+
+            if (existing.length > 0) {
+                await pool.query(
+                    'UPDATE marketplace_reviews SET rating = ?, comment = ?, updated_at = NOW() WHERE review_id = ?',
+                    [rating, comment || null, existing[0].review_id]
+                );
+                return { updated: true, review_id: existing[0].review_id };
+            }
+
+            await pool.query(
+                `INSERT INTO marketplace_reviews (review_id, listing_id, reviewer_id, reviewee_id, rating, comment, transaction_type)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [review_id, listing_id || null, reviewer_id, reviewee_id, rating, comment || null, transaction_type || 'purchase']
+            );
+            return { updated: false, review_id };
+        } catch (error) {
+            logger.error('Error in createReview:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Block a user from the marketplace
+     */
+    static async blockUser(blockerId, blockedId, reason) {
+        try {
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS marketplace_blocks (
+                    block_id CHAR(36) PRIMARY KEY,
+                    blocker_id CHAR(36) NOT NULL,
+                    blocked_id CHAR(36) NOT NULL,
+                    reason TEXT DEFAULT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_block (blocker_id, blocked_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            `);
+
+            const [existing] = await pool.query(
+                'SELECT block_id FROM marketplace_blocks WHERE blocker_id = ? AND blocked_id = ?',
+                [blockerId, blockedId]
+            );
+
+            if (existing.length > 0) {
+                await pool.query('DELETE FROM marketplace_blocks WHERE block_id = ?', [existing[0].block_id]);
+                return { blocked: false };
+            }
+
+            await pool.query(
+                'INSERT INTO marketplace_blocks (block_id, blocker_id, blocked_id, reason) VALUES (?, ?, ?, ?)',
+                [uuidv4(), blockerId, blockedId, reason || null]
+            );
+            return { blocked: true };
+        } catch (error) {
+            logger.error('Error in blockUser:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Toggle favorite seller (follow/unfollow a seller)
+     */
+    static async toggleFavoriteSeller(userId, sellerId) {
+        try {
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS marketplace_seller_favorites (
+                    id CHAR(36) PRIMARY KEY,
+                    user_id CHAR(36) NOT NULL,
+                    seller_id CHAR(36) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_seller_fav (user_id, seller_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            `);
+
+            const [existing] = await pool.query(
+                'SELECT id FROM marketplace_seller_favorites WHERE user_id = ? AND seller_id = ?',
+                [userId, sellerId]
+            );
+
+            if (existing.length > 0) {
+                await pool.query('DELETE FROM marketplace_seller_favorites WHERE id = ?', [existing[0].id]);
+                return { favorited: false };
+            }
+
+            await pool.query(
+                'INSERT INTO marketplace_seller_favorites (id, user_id, seller_id) VALUES (?, ?, ?)',
+                [uuidv4(), userId, sellerId]
+            );
+            return { favorited: true };
+        } catch (error) {
+            logger.error('Error in toggleFavoriteSeller:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Relist a sold/expired item as a fresh active listing
+     */
+    static async relistItem(listingId, sellerId) {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [rows] = await connection.query(
+                'SELECT * FROM marketplace_listings WHERE listing_id = ? AND seller_id = ?',
+                [listingId, sellerId]
+            );
+            if (rows.length === 0) throw new Error('LISTING_NOT_FOUND');
+
+            const newId = uuidv4();
+            const original = rows[0];
+
+            await connection.query(
+                `INSERT INTO marketplace_listings
+                 (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, latitude, longitude, image_url, tags, status, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())`,
+                [
+                    newId, sellerId, original.title, original.description,
+                    original.price, original.category, original.condition,
+                    original.campus, original.location,
+                    original.latitude || null, original.longitude || null,
+                    original.image_url, original.tags
+                ]
+            );
+
+            // Copy media
+            const [media] = await connection.query(
+                'SELECT * FROM listing_media WHERE listing_id = ?', [listingId]
+            );
+            for (const m of media) {
+                await connection.query(
+                    'INSERT INTO listing_media (media_id, listing_id, media_url, media_type, upload_order) VALUES (?, ?, ?, ?, ?)',
+                    [uuidv4(), newId, m.media_url, m.media_type, m.upload_order]
+                );
+            }
+
+            await connection.commit();
+            return newId;
+        } catch (error) {
+            await connection.rollback();
+            logger.error('Error in relistItem:', error);
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+
+    /**
+     * Add a reply to a review (seller response)
+     */
+    static async replyToReview(reviewId, sellerId, reply) {
+        try {
+            await pool.query(
+                `UPDATE marketplace_reviews r
+                 JOIN marketplace_listings ml ON r.listing_id = ml.listing_id
+                 SET r.reply = ?
+                 WHERE r.review_id = ? AND ml.seller_id = ?`,
+                [reply, reviewId, sellerId]
+            );
+            return { success: true };
+        } catch (error) {
+            logger.error('Error in replyToReview:', error);
+            throw error;
+        }
+    }
+    /**
+     * Delete a chat conversation
+     */
+    static async deleteChat(chatId, userId) {
+        try {
+            // First verify user is a participant
+            const [chat] = await pool.query(
+                'SELECT * FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+
+            if (chat.length === 0) throw new Error('CHAT_NOT_FOUND_OR_UNAUTHORIZED');
+
+            const connection = await pool.getConnection();
+            try {
+                await connection.beginTransaction();
+
+                // Delete messages first
+                await connection.query('DELETE FROM messages WHERE conversation_id = ?', [chatId]);
+                // Delete the chat record
+                await connection.query('DELETE FROM personal_chats WHERE chat_id = ?', [chatId]);
+
+                await connection.commit();
+                return true;
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        } catch (error) {
+            logger.error('Database error in deleteChat:', error);
             throw error;
         }
     }

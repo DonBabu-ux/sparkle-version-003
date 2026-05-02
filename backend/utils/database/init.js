@@ -88,11 +88,14 @@ const initNotificationsTable = async () => {
             CREATE TABLE IF NOT EXISTS notifications (
                 notification_id CHAR(36) PRIMARY KEY,
                 user_id CHAR(36) NOT NULL,
-                type ENUM('spark', 'comment', 'follow', 'message', 'group_invite', 'achievement', 'mention', 'share') NOT NULL,
+                type ENUM('spark', 'comment', 'follow', 'message', 'group_invite', 'achievement', 'mention', 'share', 'marketplace_contact', 'story_like', 'story_share', 'support_update') NOT NULL,
                 title VARCHAR(255) NOT NULL,
                 content TEXT NOT NULL,
                 related_id VARCHAR(50) DEFAULT NULL,
                 related_type VARCHAR(50) DEFAULT NULL,
+                entity_type VARCHAR(50) DEFAULT NULL,
+                entity_id VARCHAR(50) DEFAULT NULL,
+                sub_entity_id VARCHAR(50) DEFAULT NULL,
                 is_read TINYINT(1) DEFAULT 0,
                 is_actionable TINYINT(1) DEFAULT 1,
                 action_url VARCHAR(500) DEFAULT NULL,
@@ -103,6 +106,24 @@ const initNotificationsTable = async () => {
                 FOREIGN KEY (actor_id) REFERENCES users(user_id) ON DELETE SET NULL
             )
         `);
+
+        // Migration: Add deep-linking columns if they don't exist
+        const [cols] = await pool.query("SHOW COLUMNS FROM notifications");
+        const colNames = cols.map(c => c.Field);
+        
+        const deepLinkCols = [
+            { name: 'entity_type', def: 'VARCHAR(50) DEFAULT NULL' },
+            { name: 'entity_id', def: 'VARCHAR(50) DEFAULT NULL' },
+            { name: 'sub_entity_id', def: 'VARCHAR(50) DEFAULT NULL' }
+        ];
+
+        for (const col of deepLinkCols) {
+            if (!colNames.includes(col.name)) {
+                await pool.query(`ALTER TABLE notifications ADD COLUMN ${col.name} ${col.def} AFTER related_type`);
+                logger.info(`Added ${col.name} column to notifications table`);
+            }
+        }
+
         logger.debug('✅ Notifications table verified');
     } catch (err) {
         logger.error('❌ Failed to init notifications table:', err.message);
@@ -553,6 +574,8 @@ const initMarketplaceTables = async () => {
             '`condition` ENUM("new", "like_new", "good", "fair", "poor") DEFAULT "good", ' +
             'campus VARCHAR(100) NOT NULL, ' +
             'location VARCHAR(255) DEFAULT NULL, ' +
+            'latitude DECIMAL(10, 8) DEFAULT NULL, ' +
+            'longitude DECIMAL(11, 8) DEFAULT NULL, ' +
             'is_sold TINYINT(1) DEFAULT 0, ' +
             'status ENUM("active", "sold", "pending", "deleted") DEFAULT "active", ' +
             'sold_at TIMESTAMP NULL DEFAULT NULL, ' +
@@ -567,7 +590,8 @@ const initMarketplaceTables = async () => {
             'FOREIGN KEY (seller_id) REFERENCES users(user_id) ON DELETE CASCADE, ' +
             'INDEX idx_marketplace_campus (campus, status, created_at), ' +
             'INDEX idx_marketplace_category (category, status), ' +
-            'INDEX idx_marketplace_seller (seller_id, created_at) ' +
+            'INDEX idx_marketplace_seller (seller_id, created_at), ' +
+            'INDEX idx_marketplace_geo (latitude, longitude) ' +
             ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;';
         
         await pool.query(createListingsTable);
@@ -694,6 +718,21 @@ const initMarketplaceTables = async () => {
             logger.warn('Failed to migrate marketplace_listings tags: ' + e.message);
         }
 
+        // Migration: Add latitude/longitude to listings
+        try {
+            const [listingCols] = await pool.query("SHOW COLUMNS FROM marketplace_listings");
+            if (!listingCols.find(c => c.Field === 'latitude')) {
+                await pool.query('ALTER TABLE marketplace_listings ADD COLUMN latitude DECIMAL(10, 8) DEFAULT NULL AFTER location');
+                logger.debug('Added latitude column to marketplace_listings');
+            }
+            if (!listingCols.find(c => c.Field === 'longitude')) {
+                await pool.query('ALTER TABLE marketplace_listings ADD COLUMN longitude DECIMAL(11, 8) DEFAULT NULL AFTER latitude');
+                logger.debug('Added longitude column to marketplace_listings');
+            }
+        } catch (e) {
+            logger.warn('Failed to migrate marketplace_listings geo columns: ' + e.message);
+        }
+
         // 6. Reviews
         await pool.query(`
             CREATE TABLE IF NOT EXISTS marketplace_reviews (
@@ -738,6 +777,43 @@ const initMarketplaceTables = async () => {
         logger.debug('✅ Marketplace tables verified');
     } catch (err) {
         logger.error('❌ Failed to init Marketplace tables:', err.message);
+        throw err;
+    }
+};
+
+const initSupportTables = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS support_tickets (
+                ticket_id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                category ENUM('marketplace', 'account', 'moment', 'group', 'billing', 'other') DEFAULT 'other',
+                priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
+                status ENUM('open', 'in_progress', 'resolved', 'closed') DEFAULT 'open',
+                description TEXT NOT NULL,
+                related_entity_type VARCHAR(50) DEFAULT NULL,
+                related_entity_id VARCHAR(50) DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS support_messages (
+                message_id CHAR(36) PRIMARY KEY,
+                ticket_id CHAR(36) NOT NULL,
+                sender_id CHAR(36) DEFAULT NULL,
+                sender_type ENUM('user', 'staff', 'bot') DEFAULT 'user',
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (ticket_id) REFERENCES support_tickets(ticket_id) ON DELETE CASCADE
+            )
+        `);
+        logger.debug('✅ Support tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init support tables:', err.message);
         throw err;
     }
 };
@@ -893,6 +969,7 @@ const initDB = async () => {
         try { await initSkillMarketTable(); } catch (e) { logger.warn('SkillMarket init failed:', e.message); }
         try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }
         try { await initHighlightsTables(); } catch (e) { logger.warn('Highlights init failed:', e.message); }
+        try { await initSupportTables(); } catch (e) { logger.warn('Support init failed:', e.message); }
     });
     
     logger.debug('✅ Database initialization process complete');

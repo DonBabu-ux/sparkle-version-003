@@ -9,6 +9,9 @@ import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import ProfileShareModal from '../components/modals/ProfileShareModal';
+import MarketplaceSettingsModal from '../components/modals/MarketplaceSettingsModal';
+import IdentityVerificationModal from '../components/modals/IdentityVerificationModal';
 
 interface Seller {
   user_id: string;
@@ -32,35 +35,60 @@ export default function SellerProfile() {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('shop');
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+
+  // If no :id in URL (my-shop route), use the logged-in user's id
+  const sellerId = id || user?.user_id || user?.id;
+
+  const handleFollow = async () => {
+    if (!seller) return;
+    try {
+      await api.post(`/marketplace/seller/favorite`, { sellerId: seller.user_id });
+      // Update local state or refetch
+    } catch (err) {
+      console.error('Follow error:', err);
+    }
+  };
+
+  const handleReply = async (reviewId: string, reply: string) => {
+    try {
+      await api.post(`/marketplace/reviews/${reviewId}/reply`, { reply });
+      // Update local reviews list
+      setSeller(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          reviews: prev.reviews?.map((r: any) => 
+            (r.review_id === reviewId || r.id === reviewId) ? { ...r, reply } : r
+          )
+        };
+      });
+    } catch (err) {
+      console.error('Reply error:', err);
+      alert('Failed to post reply');
+    }
+  };
 
   const fetchSeller = useCallback(async () => {
+    if (!sellerId) {
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await api.get(`/marketplace/sellers/${id}`);
+      const res = await api.get(`/marketplace/sellers/${sellerId}`);
       setSeller(res.data.seller || res.data);
     } catch (err) {
       console.error('Failed to fetch seller:', err);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [sellerId]);
 
   useEffect(() => {
     fetchSeller();
   }, [fetchSeller]);
-
-  const handleReply = async (reviewId: string, replyText: string) => {
-    try {
-      const res = await api.post(`/marketplace/reviews/${reviewId}/reply`, { reply: replyText });
-      if (res.data.success) {
-        setSeller(prev => prev ? {
-          ...prev,
-          reviews: prev.reviews?.map((r: { id: string }) => r.id === reviewId ? { ...r, reply: replyText } : r)
-        } : null);
-      }
-    } catch (err) {
-      console.error('Reply failed:', err);
-    }
-  };
 
   if (loading) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
@@ -93,10 +121,16 @@ export default function SellerProfile() {
           <h1 className="text-[18px] font-black tracking-tight">Seller Profile</h1>
         </div>
         <div className="flex items-center gap-2">
-          <button className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
+          <button 
+            onClick={() => setIsShareModalOpen(true)}
+            className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
+          >
             <Share2 size={20} />
           </button>
-          <button className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
+          <button 
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
+          >
             <MoreHorizontal size={20} />
           </button>
         </div>
@@ -362,6 +396,33 @@ export default function SellerProfile() {
           )}
         </motion.div>
       </div>
+      {/* Profile Share Modal */}
+      <ProfileShareModal 
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        username={seller.username}
+        name={seller.name || seller.username}
+      />
+
+      {/* Settings Modal */}
+      <MarketplaceSettingsModal 
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        onOpenVerification={() => {
+          setIsSettingsModalOpen(false);
+          setIsVerificationModalOpen(true);
+        }}
+      />
+
+      {/* Verification Modal */}
+      <IdentityVerificationModal 
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        onComplete={(data) => {
+          console.log('Verification completed:', data);
+          setIsVerificationModalOpen(false);
+        }}
+      />
     </div>
   );
 }

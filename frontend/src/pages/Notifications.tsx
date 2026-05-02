@@ -15,8 +15,17 @@ interface Notification {
   actor_avatar?: string;
   actor_id?: string;
   actor_name?: string;
+  actor_username?: string;
   message?: string;
   id?: string;
+  action_url?: string;
+  related_id?: string;
+  related_type?: string;
+  target?: {
+    entity_type: string;
+    entity_id: string;
+    sub_entity_id?: string;
+  };
 }
 
 export default function Notifications() {
@@ -107,6 +116,64 @@ export default function Notifications() {
     }
   };
 
+  const handleNotificationClick = async (notif: Notification) => {
+    // 1. Mark as read immediately in UI
+    markAsRead(notif.notification_id || notif.id || '');
+
+    // 2. Determine target URL
+    let targetUrl = notif.action_url;
+
+    if (notif.target) {
+      const { entity_type, entity_id, sub_entity_id } = notif.target;
+      
+      switch (entity_type) {
+        case 'post':
+        case 'like':
+        case 'comment':
+        case 'spark':
+          targetUrl = `/post/${entity_id}${sub_entity_id ? `?commentId=${sub_entity_id}` : ''}`;
+          break;
+        case 'moment':
+          targetUrl = `/moment/${entity_id}`;
+          break;
+        case 'profile':
+        case 'user':
+        case 'follow':
+          targetUrl = `/profile/${entity_id || notif.actor_id || notif.actor_username}`;
+          break;
+        case 'group':
+        case 'group_invite':
+          targetUrl = `/groups/${entity_id}`;
+          break;
+        case 'marketplace':
+        case 'marketplace_contact':
+        case 'order':
+          targetUrl = entity_type === 'order' ? `/orders/${entity_id}` : `/marketplace/listing/${entity_id}`;
+          break;
+        case 'story':
+        case 'story_like':
+        case 'story_share':
+          targetUrl = `/story/${entity_id}`;
+          break;
+        case 'message':
+          targetUrl = `/messages/${entity_id || ''}`;
+          break;
+        case 'confession':
+          targetUrl = `/confessions?id=${entity_id}`;
+          break;
+        case 'support':
+        case 'support_update':
+          targetUrl = `/support/ticket/${entity_id}`;
+          break;
+      }
+    }
+
+    // 3. Navigate
+    if (targetUrl) {
+      navigate(targetUrl);
+    }
+  };
+
   // Categorize notifications
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -135,7 +202,7 @@ export default function Notifications() {
   const renderNotification = (notif: Notification) => (
     <div 
       key={notif.notification_id || notif.id}
-      onClick={() => markAsRead(notif.notification_id || notif.id)}
+      onClick={() => handleNotificationClick(notif)}
       className={`flex items-start gap-3 p-3 transition-colors cursor-pointer border-b border-gray-100 last:border-0 hover:bg-gray-50
         ${!notif.is_read ? 'bg-[#ebf5ff]' : 'bg-white'}`}
     >

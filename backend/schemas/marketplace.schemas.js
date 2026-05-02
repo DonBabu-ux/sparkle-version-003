@@ -12,17 +12,21 @@ exports.createListingSchema = Joi.object({
   price: Joi.number().min(0).max(10000000).required(),
   category: Joi.string().trim().lowercase().valid(
     'electronics', 'books', 'fashion', 'home', 'services', 'other', 'clothing', 'furniture', 'academic',
-    'fashion_lab', 'dorm_life', 'electronics_books', 'fashion_lab', 'fashion lab', 'dorm life', 'electronics & books',
-    'electronics & appliances', 'fashion & beauty', 'home & garden', 'property', 'jobs', 'vehicles'
+    'fashion_lab', 'dorm_life', 'electronics_books', 'fashion lab', 'dorm life', 'electronics & books',
+    'electronics & appliances', 'fashion & beauty', 'home & garden', 'property', 'jobs', 'vehicles',
+    'housing', 'rentals', 'home-garden', 'household-appliances', 'jewelry', 'baby-kids', 'health',
+    'toys-games', 'pet-supplies', 'tools'
   ).default('other'),
   condition: Joi.string().trim().lowercase().valid(
-    'new', 'like_new', 'good', 'fair', 'poor', 'used'
+    'new', 'like_new', 'good', 'fair', 'poor', 'used', 'used_like_new', 'used_good', 'used_fair'
   ).default('good'),
   campus: Joi.string().trim().lowercase().valid(
     'main_campus', 'north_campus', 'south_campus', 'downtown', 'all', 'main campus', 'north campus', 'south campus',
     'west_campus', 'east_campus'
   ).optional().allow('', null).default('main_campus'),
   location: Joi.string().trim().max(500).optional().allow('', null),
+  latitude: Joi.number().min(-90).max(90).optional().allow(null),
+  longitude: Joi.number().min(-180).max(180).optional().allow(null),
   tags: Joi.any().optional().allow('', null),
   media: Joi.any().optional(),
   id: Joi.any().optional(),
@@ -42,6 +46,8 @@ exports.createOrderSchema = Joi.object({
   message: Joi.string().max(1000).optional().allow(''),
   campus: Joi.string().max(100).optional().allow(''),
   location: Joi.string().max(255).optional().allow(''),
+  latitude: Joi.number().min(-90).max(90).optional().allow(null),
+  longitude: Joi.number().min(-180).max(180).optional().allow(null),
   scheduledTime: Joi.date().iso().optional().allow(null, '')
 });
 
@@ -149,13 +155,16 @@ exports.createSkillOfferSchema = Joi.object({
 exports.listingsQuerySchema = Joi.object({
   search: Joi.string().max(100).optional().allow(''),
   category: Joi.string().valid(
-    'electronics', 'books', 'clothing', 'furniture', 'services', 'other', 'all'
+    'electronics', 'books', 'clothing', 'furniture', 'services', 'other', 'all',
+    'vehicles', 'housing', 'rentals', 'home-garden', 'household-appliances', 
+    'jewelry', 'baby-kids', 'health', 'toys-games', 'pet-supplies', 'tools'
   ).optional(),
   campus: Joi.string().valid(
     'main_campus', 'north_campus', 'south_campus', 'downtown', 'all'
   ).optional(),
   condition: Joi.string().valid(
-    'new', 'like_new', 'good', 'fair', 'poor', 'all'
+    'new', 'like_new', 'good', 'fair', 'poor', 'all', 'used',
+    'used_like_new', 'used_good', 'used_fair'
   ).optional(),
   minPrice: Joi.number().min(0).default(0),
   maxPrice: Joi.number().min(0).max(1000000).default(1000000),
@@ -165,7 +174,10 @@ exports.listingsQuerySchema = Joi.object({
   ).default('newest'),
   limit: Joi.number().integer().min(1).max(100).default(20),
   offset: Joi.number().integer().min(0).default(0),
-  currentUserId: uuidSchema.optional()
+  currentUserId: uuidSchema.optional(),
+  lat: Joi.number().min(-90).max(90).optional(),
+  lng: Joi.number().min(-180).max(180).optional(),
+  radius: Joi.number().min(0).max(1000).optional()
 });
 
 exports.ordersQuerySchema = Joi.object({

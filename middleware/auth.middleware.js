@@ -183,7 +183,54 @@ const ejsAuthMiddleware = async (req, res, next) => {
     }
 };
 
+const optionalAuthMiddleware = async (req, res, next) => {
+    try {
+        let token = null;
+        const authHeader = req.headers['authorization'];
+        if (authHeader && authHeader.split(' ')[1] !== 'null' && authHeader.split(' ')[1] !== 'undefined') {
+            token = authHeader.split(' ')[1];
+        } else if (req.cookies && req.cookies.sparkleToken) {
+            token = req.cookies.sparkleToken;
+        }
+
+        if (!token) {
+            req.user = null;
+            return next();
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const userId = decoded.id || decoded.userId;
+
+        if (!userId) {
+            req.user = null;
+            return next();
+        }
+
+        // Try cache first
+        const cached = userCache.get(userId);
+        if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+            req.user = cached.user;
+            return next();
+        }
+
+        const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [userId]);
+        if (users.length === 0) {
+            req.user = null;
+            return next();
+        }
+
+        const user = users[0];
+        req.user = { ...decoded, ...user, userType: user.user_role };
+        userCache.set(userId, { user: req.user, timestamp: Date.now() });
+        next();
+    } catch (err) {
+        req.user = null;
+        next();
+    }
+};
+
 module.exports = {
     authMiddleware,
-    ejsAuthMiddleware
+    ejsAuthMiddleware,
+    optionalAuthMiddleware
 };

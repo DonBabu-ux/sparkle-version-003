@@ -195,6 +195,58 @@ const getStories = async (req, res) => {
     }
 };
 
+const getSingleStory = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const [rows] = await pool.query(`
+            SELECT 
+                s.*,
+                u.username,
+                u.name as user_name,
+                u.avatar_url,
+                u.campus,
+                TIMESTAMPDIFF(SECOND, NOW(), s.created_at + INTERVAL 24 HOUR) as seconds_left,
+                COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id), 0) as like_count,
+                CASE 
+                    WHEN s.user_id = ? THEN COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0)
+                    ELSE COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0)
+                END as is_liked
+            FROM stories s
+            JOIN users u ON s.user_id = u.user_id
+            WHERE s.story_id = ?
+        `, [currentUserId, currentUserId, currentUserId, storyId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Story not found' });
+        }
+
+        const story = rows[0];
+        const isExpired = story.seconds_left <= 0;
+
+        res.json({
+            story: {
+                story_id: story.story_id,
+                user_id: story.user_id,
+                username: story.username,
+                user_name: story.user_name,
+                avatar_url: story.avatar_url,
+                media_url: story.media_url,
+                media_type: story.media_type,
+                caption: story.caption,
+                created_at: story.created_at,
+                like_count: parseInt(story.like_count) || 0,
+                is_liked: parseInt(story.is_liked) === 1,
+                is_expired: isExpired
+            }
+        });
+    } catch (error) {
+        logger.error('Get Single Story Error:', error);
+        res.status(500).json({ error: 'Failed to fetch story' });
+    }
+};
+
 const renderPost = async (req, res) => {
     try {
         const { id } = req.params;
@@ -380,7 +432,7 @@ const likeStory = async (req, res) => {
                             storyData.user_id,
                             `${actor[0]?.name || 'Someone'} liked your story`,
                             userId,
-                            `/stories/${storyId}`
+                            `/story/${storyId}`
                         ]
                     );
                 } catch (notifErr) {
@@ -510,7 +562,7 @@ const shareStory = async (req, res) => {
                         story[0].user_id,
                         `${actor[0]?.name || 'Someone'} shared your story`,
                         userId,
-                        `/stories/${storyId}`
+                        `/story/${storyId}`
                     ]
                 );
                 console.log('📨 Notification created for story share');
@@ -543,6 +595,7 @@ module.exports = {
     renderDashboard,
     getFeedPosts,
     getStories,
+    getSingleStory,
     renderPost,
     createStory,
     likeStory,

@@ -3,6 +3,8 @@ import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, MapPin, Grid, MessageCircle, SlidersHorizontal, ChevronDown, ListFilter, Sparkles, ChevronLeft, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import MarketplaceModals from '../components/modals/MarketplaceModals';
+import MarketplaceInbox from '../components/marketplace/MarketplaceInbox';
 import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
 import { useMarketplaceStore } from '../store/marketplaceStore';
@@ -137,7 +139,10 @@ export default function Marketplace() {
   const isInboxView = location.pathname === '/marketplace/inbox';
 
   return (
-    <div className="flex bg-white min-h-screen text-marketplace-text font-sans pb-24">
+    <div className={clsx(
+        "flex bg-white min-h-screen text-marketplace-text font-sans",
+        !isInboxView && "pb-24"
+    )}>
       <Navbar />
 
       <div className="flex-1 lg:ml-72 w-full max-w-screen-md mx-auto shadow-sm min-h-screen bg-white">
@@ -211,7 +216,7 @@ export default function Marketplace() {
           {/* Action Pills Row (only on main home) */}
           {!isCategoryView && !isInboxView && (
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-3 pb-3">
-              <Link to="/marketplace/profile" className="flex items-center justify-center bg-marketplace-bg hover:bg-slate-200 transition-colors h-9 px-4 rounded-full font-bold text-sm text-marketplace-text flex-shrink-0">
+              <Link to="/marketplace/my-shop" className="flex items-center justify-center bg-marketplace-bg hover:bg-slate-200 transition-colors h-9 px-4 rounded-full font-bold text-sm text-marketplace-text flex-shrink-0">
                 <img src={getAvatarUrl(user?.avatar_url, user?.username)} alt="Profile" className="w-5 h-5 rounded-full mr-2" />
                 Profile
               </Link>
@@ -395,47 +400,7 @@ export default function Marketplace() {
           )}
         </main>
       </div>
-    </div>
-  );
-}
-
-function MarketplaceInbox() {
-  const navigate = useNavigate();
-  return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Top Level Tabs */}
-      <div className="flex border-b border-marketplace-border sticky top-0 z-10 bg-white px-2 pt-2">
-        <button className="flex-1 py-3 font-bold text-[#1877F2] border-b-2 border-[#1877F2]">Selling</button>
-        <button className="flex-1 py-3 font-bold text-marketplace-muted hover:bg-marketplace-bg transition-colors">Buying</button>
-      </div>
-
-      {/* Horizontal Sub-filters */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3 px-3 bg-marketplace-bg/50 border-b border-marketplace-border">
-        {['All', 'Pending', 'Payment', 'Paid', 'Completed'].map((filter, i) => (
-          <button 
-            key={filter}
-            className={clsx(
-              "px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap shadow-sm border transition-colors",
-              i === 0 
-                ? "bg-marketplace-text text-white border-marketplace-text" 
-                : "bg-white text-marketplace-muted border-marketplace-border hover:bg-marketplace-bg"
-            )}
-          >
-            {filter}
-          </button>
-        ))}
-      </div>
-
-      {/* Chat List Placeholder */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center py-20 px-6">
-        <div className="w-20 h-20 bg-marketplace-bg rounded-full flex items-center justify-center mb-6">
-          <MessageCircle size={32} className="text-marketplace-muted" />
-        </div>
-        <h3 className="text-xl font-bold text-marketplace-text mb-2">No Messages Yet</h3>
-        <p className="text-sm text-marketplace-muted max-w-xs mx-auto">
-          Your marketplace conversations will appear here.
-        </p>
-      </div>
+      <MarketplaceModals />
     </div>
   );
 }

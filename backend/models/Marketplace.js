@@ -267,12 +267,22 @@ class Marketplace {
             sort = 'newest',
             limit = 20,
             offset = 0,
-            currentUserId = null
+            currentUserId = null,
+            location = null, // { lat: number, lng: number, radius: number }
+            radius = 25 // Default 25km
         } = filters;
 
         const sessionUserId = currentUserId || userId;
+        const userLat = location?.lat || filters.lat;
+        const userLng = location?.lng || filters.lng;
+        const searchRadius = location?.radius || radius;
 
         try {
+            let distanceSelect = '';
+            if (userLat && userLng) {
+                distanceSelect = `, (6371 * acos(cos(radians(${parseFloat(userLat)})) * cos(radians(l.latitude)) * cos(radians(l.longitude) - radians(${parseFloat(userLng)})) + sin(radians(${parseFloat(userLat)})) * sin(radians(l.latitude)))) AS distance`;
+            }
+
             let query = `
                 SELECT 
                     l.*,
@@ -284,6 +294,7 @@ class Marketplace {
                     CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
                     CASE WHEN w.wishlist_id IS NOT NULL THEN 1 ELSE 0 END as is_wishlisted,
                     (SELECT COUNT(*) FROM marketplace_orders WHERE listing_id = l.listing_id) as order_count
+                    ${distanceSelect}
                 FROM marketplace_listings l
                 JOIN users u ON l.seller_id = u.user_id
                 LEFT JOIN marketplace_favorites f ON l.listing_id = f.listing_id AND f.user_id = ?
@@ -320,12 +331,18 @@ class Marketplace {
                 params.push(condition);
             }
 
-            if (minPrice > 0) {
+            // High-Precision Location Filtering
+            if (userLat && userLng && searchRadius) {
+                query += ` HAVING distance <= ?`;
+                params.push(parseFloat(searchRadius));
+            }
+
+            if (!isNaN(parseFloat(minPrice)) && parseFloat(minPrice) > 0) {
                 query += ` AND l.price >= ?`;
                 params.push(parseFloat(minPrice));
             }
 
-            if (maxPrice < 1000000) {
+            if (!isNaN(parseFloat(maxPrice)) && parseFloat(maxPrice) < 1000000) {
                 query += ` AND l.price <= ?`;
                 params.push(parseFloat(maxPrice));
             }
@@ -713,7 +730,7 @@ class Marketplace {
      */
     static async createListing(listingData) {
         const connection = await pool.getConnection();
-        const { seller_id, title, description, price, category, condition, campus, location, tags, media, image_url } = listingData;
+        const { seller_id, title, description, price, category, condition, campus, location, latitude, longitude, tags, media, image_url } = listingData;
         
         try {
             await connection.beginTransaction();
@@ -723,9 +740,9 @@ class Marketplace {
             // 1. Insert into marketplace_listings
             await connection.query(
                 `INSERT INTO marketplace_listings 
-                (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, status, image_url, tags) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-                [listing_id, seller_id, title, description, price, category, condition, campus, location, image_url, JSON.stringify(tags || [])]
+                (listing_id, seller_id, title, description, price, category, \`condition\`, campus, location, latitude, longitude, status, image_url, tags) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+                [listing_id, seller_id, title, description, price, category, condition, campus, location, latitude || null, longitude || null, image_url, JSON.stringify(tags || [])]
             );
 
             // 2. Insert media
@@ -776,7 +793,7 @@ class Marketplace {
             // Build dynamic update query
             const fields = [];
             const values = [];
-            const allowedFields = ['title', 'description', 'price', 'category', 'condition', 'campus', 'location', 'status'];
+            const allowedFields = ['title', 'description', 'price', 'category', 'condition', 'campus', 'location', 'latitude', 'longitude', 'status'];
 
             for (const key of allowedFields) {
                 if (updates[key] !== undefined) {
@@ -2255,6 +2272,40 @@ class Marketplace {
             return rows;
         } catch (error) {
             return [];
+        }
+    /**
+     * Delete a chat conversation
+     */
+    static async deleteChat(chatId, userId) {
+        try {
+            // First verify user is a participant
+            const [chat] = await pool.query(
+                'SELECT * FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+
+            if (chat.length === 0) throw new Error('CHAT_NOT_FOUND_OR_UNAUTHORIZED');
+
+            const connection = await pool.getConnection();
+            try {
+                await connection.beginTransaction();
+
+                // Delete messages first
+                await connection.query('DELETE FROM messages WHERE conversation_id = ?', [chatId]);
+                // Delete the chat record
+                await connection.query('DELETE FROM personal_chats WHERE chat_id = ?', [chatId]);
+
+                await connection.commit();
+                return true;
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                connection.release();
+            }
+        } catch (error) {
+            logger.error('Database error in deleteChat:', error);
+            throw error;
         }
     }
 }

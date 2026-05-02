@@ -745,6 +745,8 @@ const initMarketplaceTables = async () => {
             '`condition` ENUM("new", "like_new", "good", "fair", "poor") DEFAULT "good", ' +
             'campus VARCHAR(100) NOT NULL, ' +
             'location VARCHAR(255) DEFAULT NULL, ' +
+            'latitude DECIMAL(10, 8) DEFAULT NULL, ' +
+            'longitude DECIMAL(11, 8) DEFAULT NULL, ' +
             'is_sold TINYINT(1) DEFAULT 0, ' +
             'status ENUM("active", "sold", "pending", "deleted") DEFAULT "active", ' +
             'sold_at TIMESTAMP NULL DEFAULT NULL, ' +
@@ -759,10 +761,24 @@ const initMarketplaceTables = async () => {
             'FOREIGN KEY (seller_id) REFERENCES users(user_id) ON DELETE CASCADE, ' +
             'INDEX idx_marketplace_campus (campus, status, created_at), ' +
             'INDEX idx_marketplace_category (category, status), ' +
-            'INDEX idx_marketplace_seller (seller_id, created_at) ' +
+            'INDEX idx_marketplace_seller (seller_id, created_at), ' +
+            'INDEX idx_marketplace_geo (latitude, longitude) ' +
             ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;';
         
         await pool.query(createListingsTable);
+
+        // Migration: Add latitude/longitude if missing
+        try {
+            const [cols] = await pool.query("SHOW COLUMNS FROM marketplace_listings LIKE 'latitude'");
+            if (cols.length === 0) {
+                await pool.query("ALTER TABLE marketplace_listings ADD COLUMN latitude DECIMAL(10, 8) DEFAULT NULL AFTER location");
+                await pool.query("ALTER TABLE marketplace_listings ADD COLUMN longitude DECIMAL(11, 8) DEFAULT NULL AFTER latitude");
+                await pool.query("CREATE INDEX idx_marketplace_geo ON marketplace_listings(latitude, longitude)");
+                logger.info('Added geo-spatial columns to marketplace_listings table');
+            }
+        } catch (err) {
+            logger.warn('Failed to add geo-spatial columns to marketplace_listings:', err.message);
+        }
 
         // 2. Listing Media
         await pool.query(`

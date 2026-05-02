@@ -10,6 +10,7 @@ const momentsRoutes = require('./moments.routes');
 const campusRoutes = require('./campus.routes');
 const groupsRoutes = require('./groups.routes');
 const marketplaceRoutes = require('./marketplace.routes');
+const marketplaceSettingsRoutes = require('./marketplace-settings.routes');
 const confessionRoutes = require('./confession.routes');
 const skillMarketRoutes = require('./skill-market.routes');
 const adminRoutes = require('./admin.routes');
@@ -53,6 +54,7 @@ router.post('/comments/:id/like', authMiddleware, postController.likeComment);
 // Mount feature routes directly at the root of /api to match dashboardAPI.js hardcoded paths
 router.use('/', campusRoutes);
 router.use('/', marketplaceRoutes);
+router.use('/', marketplaceSettingsRoutes);
 router.use('/groups', groupsRoutes);
 router.use('/confessions', confessionRoutes);
 router.use('/skill-market', skillMarketRoutes);
@@ -62,6 +64,7 @@ router.use('/support', require('./support.routes'));
 router.use('/link-preview', linkPreviewRoutes);
 router.use('/admin', adminRoutes);
 router.use('/highlights', highlightsRoutes);
+router.use('/location', require('./location.routes'));
 
 
 module.exports = router;

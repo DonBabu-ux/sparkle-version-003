@@ -33,6 +33,8 @@ import ResetPassword from './pages/ResetPassword';
 import Orders from './pages/Orders';
 import MyListings from './pages/MyListings';
 import ReportListing from './pages/ReportListing';
+import MarketplaceOrder from './pages/MarketplaceOrder';
+import MarketplaceSafety from './pages/MarketplaceSafety';
 import MarketplaceModals from './components/modals/MarketplaceModals';
 
 // Phase 2 — Social & Community
@@ -51,6 +53,7 @@ import Explore from './pages/Explore';
 import Moments from './pages/Moments';
 import CreateMoment from './pages/CreateMoment';
 import CreateStory from './pages/CreateStory';
+import StorySnapshot from './pages/StorySnapshot';
 import Streams from './pages/Streams';
 import ProfessionalDashboard from './pages/ProfessionalDashboard';
 import GlobalEffects from './components/GlobalEffects';
@@ -59,6 +62,7 @@ import LoadingBar from './components/LoadingBar';
 // Phase 4 — Utility
 import LostFound from './pages/LostFound';
 import Support from './pages/Support';
+import TicketDetail from './pages/Support/TicketDetail';
 import AccountsCenter from './pages/AccountsCenter';
 import Memories from './pages/Memories';
 import Gallery from './pages/Gallery';
@@ -150,11 +154,14 @@ function App() {
         <Route path="/marketplace/inbox" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
         <Route path="/marketplace/sell" element={isAuthenticated ? <SellItem /> : <Navigate to="/login" />} />
         <Route path="/marketplace/report/:id" element={isAuthenticated ? <ReportListing /> : <Navigate to="/login" />} />
-        <Route path="/marketplace/profile" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
+        <Route path="/marketplace/my-shop" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
         <Route path="/marketplace/orders" element={isAuthenticated ? <Orders /> : <Navigate to="/login" />} />
         <Route path="/marketplace/my-listings" element={isAuthenticated ? <MyListings /> : <Navigate to="/login" />} />
         <Route path="/marketplace/listings/:id" element={isAuthenticated ? <ListingDetail /> : <Navigate to="/login" />} />
+        <Route path="/marketplace/order" element={isAuthenticated ? <MarketplaceOrder /> : <Navigate to="/login" />} />
+        <Route path="/marketplace/safety" element={isAuthenticated ? <MarketplaceSafety /> : <Navigate to="/login" />} />
         <Route path="/marketplace/seller/:id" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
+        <Route path="/profile/:id" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
         <Route path="/wishlist" element={isAuthenticated ? <Wishlist /> : <Navigate to="/login" />} />
         <Route path="/skill-market" element={isAuthenticated ? <SkillMarket /> : <Navigate to="/login" />} />
 
@@ -173,6 +180,7 @@ function App() {
         <Route path="/explore" element={isAuthenticated ? <Explore /> : <Navigate to="/login" />} />
         <Route path="/moments" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
         <Route path="/moments/:id" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
+        <Route path="/story/:storyId" element={isAuthenticated ? <StorySnapshot /> : <Navigate to="/login" />} />
         <Route path="/afterglow/create" element={isAuthenticated ? <CreateStory /> : <Navigate to="/login" />} />
         <Route path="/moments/create" element={isAuthenticated ? <CreateMoment /> : <Navigate to="/login" />} />
         <Route path="/streams" element={isAuthenticated ? <Streams /> : <Navigate to="/login" />} />
@@ -181,6 +189,7 @@ function App() {
         {/* ── Phase 4: Utility & Features ── */}
         <Route path="/lost-found" element={isAuthenticated ? <LostFound /> : <Navigate to="/login" />} />
         <Route path="/support" element={isAuthenticated ? <Support /> : <Navigate to="/login" />} />
+        <Route path="/support/ticket/:ticketId" element={isAuthenticated ? <TicketDetail /> : <Navigate to="/login" />} />
         <Route path="/settings/accounts" element={isAuthenticated ? <AccountsCenter /> : <Navigate to="/login" />} />
         <Route path="/memories" element={isAuthenticated ? <Memories /> : <Navigate to="/login" />} />
         <Route path="/gallery" element={isAuthenticated ? <Gallery /> : <Navigate to="/login" />} />

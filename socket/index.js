@@ -487,4 +487,14 @@ const notifyOrderUpdate = (orderData) => {
     }
 };
 
-module.exports = { initializeSocket, getIO, emitNotification, notifyOrderUpdate };
+const emitMarketplaceMessage = (chatId, message) => {
+    try {
+        if (!io) return;
+        io.to(`chat:${chatId}`).emit('marketplace:new_message', { chatId, message });
+        logger.info(`📡 Marketplace message broadcasted to chat:${chatId}`);
+    } catch (error) {
+        logger.error('emitMarketplaceMessage error:', error);
+    }
+};
+
+module.exports = { initializeSocket, getIO, emitNotification, notifyOrderUpdate, emitMarketplaceMessage };

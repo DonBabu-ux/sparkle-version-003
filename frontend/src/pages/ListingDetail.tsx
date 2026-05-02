@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { useMarketplaceStore } from '../store/marketplaceStore';
 import api from '../api/api';
-import { ChevronLeft, Share2, Heart, MessageCircle, MapPin, Search, MoreHorizontal, Bell, Send, UserPlus, FileWarning, ArrowLeft, Bookmark, CornerUpRight } from 'lucide-react';
+import { ChevronLeft, Share2, Heart, MessageCircle, MapPin, Search, MoreHorizontal, Bell, Send, UserPlus, FileWarning, ArrowLeft, Bookmark, CornerUpRight, ShieldCheck } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { timeAgo } from '../utils/format';
 import type { Listing } from '../types/listing';
@@ -148,8 +148,28 @@ export default function ListingDetail() {
       {/* 3. Basic Info */}
       <div className="px-4 py-4 space-y-1">
         <h2 className="text-[22px] font-bold text-marketplace-text leading-tight capitalize">{listing.title}</h2>
-        <p className="text-[17px] font-semibold text-marketplace-text">KES{parseFloat(listing.price).toLocaleString()}</p>
-        <p className="text-[13px] text-marketplace-muted pt-1">Listed {timeString} in {listing.location_name || listing.campus || 'Sparkle Global'}</p>
+        <p className="text-[17px] font-semibold text-marketplace-text">KES{parseFloat(listing.price as string).toLocaleString()}</p>
+        <p className="text-[13px] text-marketplace-muted pt-1">Listed {timeAgo(listing.created_at)} in {listing.location_name || listing.campus || 'Sparkle Global'}</p>
+      </div>
+
+      <div className="px-4 pb-4">
+        <h3 className="text-[17px] font-bold mb-2">Description</h3>
+        <p className="text-[15px] text-slate-700 whitespace-pre-wrap leading-relaxed">
+          {listing.description || "No description provided."}
+        </p>
+      </div>
+
+      <div className="mx-4 mb-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+        <div className="flex items-center gap-3 mb-2">
+            <ShieldCheck size={20} className="text-[#1877F2]" />
+            <h3 className="text-[15px] font-bold text-[#1877F2]">Sparkle Safety Checklist</h3>
+        </div>
+        <ul className="text-[13px] text-slate-600 space-y-1.5 list-disc list-inside">
+            <li>Always meet in a safe, public campus location.</li>
+            <li>Inspect the item thoroughly before paying.</li>
+            <li>Don't send money via phone before seeing the item.</li>
+            <li>Report suspicious behavior via <Link to="/support" className="text-[#1877F2] font-semibold hover:underline">Support Portal</Link>.</li>
+        </ul>
       </div>
 
       <hr className="border-marketplace-border mx-4" />
@@ -224,10 +244,13 @@ export default function ListingDetail() {
       <div className="px-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[17px] font-bold">Seller information</h3>
-          <span className="text-[#1877F2] text-[15px] cursor-pointer hover:underline">Seller details</span>
+          <span
+            className="text-[#1877F2] text-[15px] cursor-pointer hover:underline"
+            onClick={() => navigate(`/marketplace/seller/${listing.seller_id}`)}
+          >Seller details</span>
         </div>
 
-        <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => navigate(`/profile/${listing.seller_username}`)}>
+        <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => navigate(`/marketplace/seller/${listing.seller_id}`)}>
           <div className="flex items-center gap-3">
             <img src={listing.seller_avatar || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-full object-cover border border-marketplace-border" alt={listing.seller_name} />
             <div>

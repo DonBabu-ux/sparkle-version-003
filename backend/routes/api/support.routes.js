@@ -1,25 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../../config/database');
+const supportController = require('../../controllers/support.controller');
+const { authenticateToken } = require('../../middleware/auth.middleware');
 
-router.post('/', async (req, res) => {
-    try {
-        const { name, email, type, message } = req.body;
+router.use(authenticateToken);
 
-        if (!message || !name || !email || !type) {
-            return res.status(400).json({ error: 'All fields are required.' });
-        }
-
-        await pool.query(
-            'INSERT INTO support_requests (name, email, type, message) VALUES (?, ?, ?, ?)',
-            [name, email, type, message]
-        );
-
-        res.json({ success: true, message: 'Support request received successfully.' });
-    } catch (error) {
-        console.error('Support API Error:', error);
-        res.status(500).json({ error: 'An error occurred while submitting your request.' });
-    }
-});
+router.post('/tickets', supportController.createTicket);
+router.get('/tickets', supportController.getTickets);
+router.get('/tickets/:ticketId', supportController.getTicketDetail);
+router.post('/tickets/:ticketId/messages', supportController.addMessage);
 
 module.exports = router;

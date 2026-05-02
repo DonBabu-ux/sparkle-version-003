@@ -280,8 +280,19 @@ const getListings = async (req, res) => {
         const user = normalizeUser(req.user);
         // Only filter by campus if explicitly requested, otherwise default to 'all' for a global feed
         const affiliation = req.query.affiliation || req.query.campus || 'all';
+        
+        let location = null;
+        if (req.query.location) {
+            try {
+                location = typeof req.query.location === 'string' ? JSON.parse(req.query.location) : req.query.location;
+            } catch (e) {
+                logger.warn('Failed to parse location query:', req.query.location);
+            }
+        }
+
         const filters = {
             ...req.query,
+            location,
             currentUserId: user?.user_id,
             affiliation: affiliation,
             campus: affiliation
@@ -415,6 +426,8 @@ const createListing = [
                 condition: req.body.condition || 'good',
                 campus: req.body.campus || user.campus || 'main_campus',
                 location: req.body.location || '',
+                latitude: req.body.latitude ? parseFloat(req.body.latitude) : null,
+                longitude: req.body.longitude ? parseFloat(req.body.longitude) : null,
                 tags: tags,
                 image_url: primaryImage,
                 media: media
@@ -492,6 +505,8 @@ const updateListing = [
                 condition: req.body.condition,
                 campus: req.body.campus,
                 location: req.body.location,
+                latitude: req.body.latitude ? parseFloat(req.body.latitude) : undefined,
+                longitude: req.body.longitude ? parseFloat(req.body.longitude) : undefined,
                 status: req.body.status,
                 media: media
             };
@@ -1242,6 +1257,20 @@ const recordShare = async (req, res) => {
     }
 };
 
+const getSellerProfile = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const profile = await Marketplace.getSellerProfile(id);
+        if (!profile) {
+            return res.status(404).json({ success: false, message: 'Seller not found' });
+        }
+        res.json({ success: true, seller: profile });
+    } catch (error) {
+        logger.error('Get seller profile error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch seller profile' });
+    }
+};
+
 module.exports = {
     // Web Routes
     renderMarketplace,
@@ -1271,6 +1300,7 @@ module.exports = {
     createLostFoundItem,
     getSkillOffers,
     createSkillOffer,
+    getSellerProfile,
 
     // Order management
     placeOrder,

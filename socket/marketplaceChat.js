@@ -256,19 +256,26 @@ module.exports = (io) => {
         });
 
         // 6. Presence: Disconnect
-        socket.on('disconnect', async () => {
+        socket.on('disconnect', () => {
             // Buffer timeout to prevent flickering on quick reloads
             setTimeout(async () => {
-                const currentSocketId = onlineUsers.get(userId);
-                if (currentSocketId === socket.id) {
-                    onlineUsers.delete(userId);
+                try {
+                    const currentSocketId = onlineUsers.get(userId);
+                    if (currentSocketId === socket.id) {
+                        onlineUsers.delete(userId);
 
-                    // Check if user has online status enabled
-                    const [settings] = await pool.query(`SELECT show_online_status FROM marketplace_message_settings WHERE user_id = ?`, [userId]);
-                    const enabled = settings.length === 0 || settings[0].show_online_status;
-                    
-                    if (enabled) {
-                        marketplaceNs.emit('user_status_change', { userId, status: 'offline', last_seen: new Date() });
+                        // Check if user has online status enabled
+                        const [settings] = await pool.query(`SELECT show_online_status FROM marketplace_message_settings WHERE user_id = ?`, [userId]);
+                        const enabled = settings.length === 0 || settings[0].show_online_status;
+                        
+                        if (enabled) {
+                            marketplaceNs.emit('user_status_change', { userId, status: 'offline', last_seen: new Date() });
+                        }
+                    }
+                } catch (err) {
+                    // Silently handle DB errors on disconnect (connection may have reset)
+                    if (err.code !== 'ECONNRESET') {
+                        console.error('[Marketplace] Disconnect cleanup error:', err.message);
                     }
                 }
             }, 15000); 

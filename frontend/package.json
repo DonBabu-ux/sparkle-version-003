@@ -18,6 +18,8 @@
     "@capacitor/device": "^6.0.3",
     "@capacitor/filesystem": "^6.0.4",
     "@capacitor/preferences": "^6.0.4",
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
     "@ionic/pwa-elements": "^3.4.0",
     "@supabase/supabase-js": "^2.104.0",
     "@use-gesture/react": "^10.3.1",

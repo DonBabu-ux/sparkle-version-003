@@ -67,6 +67,12 @@ const updateGroupAPI = async (req, res) => {
         }
 
         const updateData = { ...req.body };
+        
+        // Sanitize boolean values from body
+        if (updateData.is_public !== undefined) updateData.is_public = updateData.is_public === 'true' || updateData.is_public === 1 || updateData.is_public === true ? 1 : 0;
+        if (updateData.requires_approval !== undefined) updateData.requires_approval = updateData.requires_approval === 'true' || updateData.requires_approval === 1 || updateData.requires_approval === true ? 1 : 0;
+        if (updateData.allow_posts !== undefined) updateData.allow_posts = updateData.allow_posts === 'true' || updateData.allow_posts === 1 || updateData.allow_posts === true ? 1 : 0;
+
         if (req.files) {
             if (req.files.icon) updateData.icon_url = req.files.icon[0].path;
             if (req.files.cover) updateData.cover_image = req.files.cover[0].path;
@@ -102,12 +108,16 @@ const createGroupPost = async (req, res) => {
         const groupId = req.params.id;
         const userId = req.user.user_id;
         let content = req.body.content;
-        let image = req.body.image;
-        let video = req.body.video;
+        let images = [];
 
-        if (req.file) {
-            image = req.file.path; // Cloudinary secure_url
+        if (req.files && req.files.length > 0) {
+            images = req.files.map(f => f.path);
+        } else if (req.body.image) {
+            images = Array.isArray(req.body.image) ? req.body.image : [req.body.image];
         }
+
+        const image = images.length > 0 ? images.join(',') : null;
+        let video = req.body.video;
 
         if (!content) {
             return res.status(400).json({ error: 'Content is required' });
@@ -124,7 +134,16 @@ const createGroupPost = async (req, res) => {
             return res.status(403).json({ error: 'Posting has been disabled by community admin' });
         }
 
-        const postId = await Group.createPost(groupId, userId, content, image || null, video || null);
+        const postId = await Group.createPost(
+            groupId, 
+            userId, 
+            content, 
+            image || null, 
+            video || null,
+            req.body.feeling || null,
+            req.body.activity || null,
+            req.body.tagged_users || null
+        );
         
         res.status(201).json({ 
             success: true, 
@@ -290,6 +309,7 @@ const createGroup = async (req, res) => {
 const getGroupsAPI = async (req, res) => {
     try {
         const campus = req.query.campus;
+        const filter = req.query.filter || 'all';
         const userId = req.user ? req.user.user_id : null;
         let groups = await Group.getAll(userId);
 
@@ -297,7 +317,17 @@ const getGroupsAPI = async (req, res) => {
             groups = groups.filter(g => g.campus === campus);
         }
 
-        res.json(groups);
+        // Apply filter on the result set
+        if (filter === 'my' && userId) {
+            groups = groups.filter(g => g.user_membership_status === 'active');
+        } else if (filter === 'managed' && userId) {
+            groups = groups.filter(g =>
+                g.user_membership_status === 'active' &&
+                (g.user_role === 'admin' || g.user_role === 'owner' || g.user_role === 'moderator')
+            );
+        }
+
+        res.json({ success: true, initialGroups: groups });
     } catch (error) {
         logger.error('API Load Groups Error:', error);
         res.status(500).json({ error: 'Failed to fetch groups' });
@@ -403,6 +433,9 @@ const getGroupAPI = async (req, res) => {
         const memberCount = await Group.getMembersCount(groupId);
         const memberPreview = await Group.getMemberPreview(groupId, userId);
         const admins = await Group.getAdmins(groupId);
+        const posts = await Group.getPosts(groupId, 20, 0);
+        const media = await Group.getMedia(groupId, 50, 0);
+        const members = await Group.getMembersDetailed(groupId, userId);
         
         let userRole = null;
         let memberStatus = null;
@@ -423,11 +456,49 @@ const getGroupAPI = async (req, res) => {
                 admins,
                 userRole,
                 memberStatus
-            }
+            },
+            initialPosts: posts || [],
+            media: media || [],
+            members: members || []
         });
     } catch (error) {
         logger.error('API Get Group Error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+const inviteFriends = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const { userIds } = req.body;
+        const senderId = req.user.user_id;
+
+        if (!userIds || !Array.isArray(userIds)) {
+            return res.status(400).json({ error: 'User IDs are required' });
+        }
+
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ error: 'Group not found' });
+
+        const notificationController = require('./notification.controller');
+
+        // Send notifications for each user
+        for (const targetUserId of userIds) {
+            await notificationController.createNotification({
+                user_id: targetUserId,
+                type: 'group_invite',
+                title: 'Circle Invitation',
+                content: `invited you to join ${group.name}`,
+                actor_id: senderId,
+                action_url: `/groups/${groupId}`
+            });
+        }
+
+        logger.info(`User ${senderId} invited ${userIds.length} users to group ${groupId}`);
+        res.json({ success: true, message: 'Invitations sent' });
+    } catch (error) {
+        logger.error('Invite Friends Error:', error);
+        res.status(500).json({ error: 'Failed to send invites' });
     }
 };
 
@@ -449,5 +520,6 @@ module.exports = {
     deletePostAPI,
     updateGroupAPI,
     getMembersDetailedAPI,
-    getGroupAPI
+    getGroupAPI,
+    inviteFriends
 };

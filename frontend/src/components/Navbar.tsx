@@ -54,7 +54,7 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Top Navigation Bar — Glass Header */}
-      {!['/search', '/moments', '/marketplace'].some(path => location.pathname.startsWith(path)) && (
+      {!['/search', '/moments', '/marketplace', '/groups'].some(path => location.pathname.startsWith(path)) && (
         <header className="lg:hidden fixed top-0 left-0 w-full h-18 bg-white/60 backdrop-blur-3xl border-b border-white/40 flex justify-between items-center z-[1100] px-5 pt-4 pb-4 shadow-sm">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-[#fb7185] rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
@@ -107,19 +107,19 @@ export default function Navbar() {
           }} 
           className="relative flex items-center justify-center h-full cursor-pointer"
         >
-          {isActive('/dashboard') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          {isActive('/dashboard') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Home size={22} strokeWidth={isActive('/dashboard') ? 2.5 : 1.8} className={isActive('/dashboard') ? 'text-primary' : (isMoments ? 'text-white/60' : 'text-slate-400')} />
         </div>
 
         {/* Col 2 — Connect */}
         <Link to="/connect" className="relative flex items-center justify-center h-full">
-          {isActive('/connect') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          {isActive('/connect') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Users size={22} strokeWidth={isActive('/connect') ? 2.5 : 1.8} className={isActive('/connect') ? 'text-primary' : (isMoments ? 'text-white/60' : 'text-slate-400')} />
         </Link>
 
         {/* Col 3 — Moments */}
         <Link to="/moments" className="relative flex items-center justify-center h-full">
-          {isActive('/moments') && <motion.div layoutId="nav-notch" className={clsx("absolute inset-x-1 inset-y-1 rounded-2xl -z-10", isMoments ? "bg-white/20" : "bg-primary/10")} transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          {isActive('/moments') && <motion.div layoutId="nav-notch" className={clsx("absolute inset-x-1 inset-y-1 rounded-2xl -z-10", isMoments ? "bg-white/30" : "bg-primary/20")} transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <PlayCircle size={22} strokeWidth={isActive('/moments') ? 2.5 : 1.8} className={isActive('/moments') ? (isMoments ? 'text-white' : 'text-primary') : (isMoments ? 'text-white/60' : 'text-slate-400')} />
         </Link>
 
@@ -132,13 +132,13 @@ export default function Navbar() {
 
         {/* Col 5 — Explore */}
         <Link to="/explore" className="relative flex items-center justify-center h-full">
-          {isActive('/explore') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          {isActive('/explore') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Compass size={22} strokeWidth={isActive('/explore') ? 2.5 : 1.8} className={isActive('/explore') ? 'text-primary' : (isMoments ? 'text-white/60' : 'text-slate-400')} />
         </Link>
 
         {/* Col 6 — Messages */}
         <Link to="/messages" className="relative flex items-center justify-center h-full">
-          {isActive('/messages') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          {isActive('/messages') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={isActive('/messages') ? 'text-primary' : (isMoments ? 'text-white/60' : 'text-slate-400')}>
             <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.404 5.5 3.6 7.22V22l3.193-1.755A10.86 10.86 0 0 0 12 20.486c5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2Z"
               fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth={isActive('/messages') ? 2 : 1.8} strokeLinejoin="round" />
@@ -148,7 +148,7 @@ export default function Navbar() {
 
         {/* Col 7 — Profile */}
         <Link to={`/profile/${user?.username}`} className="relative flex items-center justify-center h-full">
-          {isActive(`/profile/${user?.username}`) && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          {isActive(`/profile/${user?.username}`) && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <img
             src={getAvatarUrl(user?.avatar_url, user?.username)}
             className={clsx("w-7 h-7 rounded-full object-cover border-2 transition-all duration-300", isActive(`/profile/${user?.username}`) ? 'border-primary' : (isMoments ? 'border-white/40' : 'border-slate-200'))}

@@ -120,10 +120,18 @@ const momentsUpload = multer({
     }
 });
 
+const postUpload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 15 * 1024 * 1024 // 15MB limit for posts (photos/small videos)
+    }
+});
+
 module.exports = {
     upload,
     marketplaceUpload,
     messageUpload,
     momentsUpload,
+    postUpload,
     cloudinary
 };

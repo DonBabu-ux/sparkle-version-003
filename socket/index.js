@@ -14,9 +14,10 @@ const initializeSocket = (server) => {
         cors: {
             origin: process.env.NODE_ENV === 'production'
                 ? process.env.API_URL
-                : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'],
+                : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'],
             credentials: true
         },
+        transports: ['websocket', 'polling'], // Explicitly allow both, but client will prefer websocket now
         pingTimeout: 60000,
         pingInterval: 25000
     });

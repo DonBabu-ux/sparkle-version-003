@@ -114,7 +114,10 @@ const repairPostsTable = async () => {
             { name: 'original_post_id', type: 'CHAR(36) DEFAULT NULL' },
             { name: 'post_type', type: "ENUM('public', 'group', 'reshare') DEFAULT 'public'" },
             { name: 'language', type: 'VARCHAR(10) DEFAULT "en"' },
-            { name: 'reshare_count', type: 'INT DEFAULT 0' }
+            { name: 'reshare_count', type: 'INT DEFAULT 0' },
+            { name: 'feeling', type: 'VARCHAR(255) DEFAULT NULL' },
+            { name: 'activity', type: 'VARCHAR(255) DEFAULT NULL' },
+            { name: 'tagged_users', type: 'JSON DEFAULT NULL' }
         ];
 
         for (const col of columnsToAdd) {

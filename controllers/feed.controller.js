@@ -108,12 +108,6 @@ const getFeedPosts = async (req, res) => {
         const lockKey = `lock:feed:${currentUserId}:${device_id}`;
         const refreshKey = `refresh_count:${currentUserId}:${device_id}`;
 
-        // 30-second lock to prevent concurrent heavy generation (Resilience for remote DB)
-        const lock = await redisService.set(lockKey, 'locked', 30, 'NX');
-        if (!lock && !isForceRefresh) {
-            return res.status(429).json({ error: 'Request in progress' });
-        }
-
         if (isForceRefresh) {
             await redisService.del(batchKey);
             await redisService.del(cacheListKey);
@@ -130,7 +124,6 @@ const getFeedPosts = async (req, res) => {
         const pageLimit = Number(limit) || 10;
         let page = [];
 
-        // 1. Try to pop posts directly from the precomputed Redis Cache List
         if (!isForceRefresh) {
             const cachedPostsRaw = await redisService.get(cacheListKey);
             let cachedPosts = Array.isArray(cachedPostsRaw) ? cachedPostsRaw : [];
@@ -145,7 +138,6 @@ const getFeedPosts = async (req, res) => {
                 const updatedSeen = [...seenSet, ...page.map(p => p.post_id)];
                 await redisService.set(seenKey, updatedSeen, 86400);
 
-                await redisService.del(lockKey);
                 return res.json({
                     posts: page,
                     feed: page,
@@ -157,6 +149,22 @@ const getFeedPosts = async (req, res) => {
                 page = [...cachedPosts];
                 await redisService.del(cacheListKey);
             }
+        }
+
+        // --- LOCK ONLY FOR DATABASE REGENERATION ---
+        // 5-second lock to prevent concurrent heavy generation
+        const lock = await redisService.set(lockKey, 'locked', 5, 'NX');
+        if (!lock && !isForceRefresh) {
+            // If we already have some partial page from cache, return it instead of 429
+            if (page.length > 0) {
+                return res.json({
+                    posts: page,
+                    feed: page,
+                    seed: sessionSeed,
+                    hasMore: true
+                });
+            }
+            return res.status(429).json({ error: 'Feed is generating, please wait.' });
         }
 
         // 2. If Cache is empty (or we need more), Hit the Database
@@ -530,6 +538,17 @@ const createStory = async (req, res) => {
         } else if (req.file) {
             media_type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
         } else if (media_url) {
+            // Normalize media_url to a string to prevent .toLowerCase() crash
+            if (Array.isArray(media_url)) {
+                media_url = media_url[0];
+            }
+            if (typeof media_url === 'object' && media_url !== null) {
+                media_url = media_url.url || media_url.path || media_url.secure_url || String(media_url);
+            }
+            if (typeof media_url !== 'string') {
+                media_url = String(media_url);
+            }
+
             // Try to determine from URL extension
             const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.mpg', '.mpeg'];
             media_type = videoExtensions.some(ext => media_url.toLowerCase().includes(ext)) ? 'video' : 'image';
@@ -594,6 +613,8 @@ const createStory = async (req, res) => {
     }
 };
 
+const { acquireActionLock } = require('../utils/actionGuard');
+
 // toggle like on a story and notify owner
 const likeStory = async (req, res) => {
     let connection;
@@ -605,6 +626,13 @@ const likeStory = async (req, res) => {
 
         if (!storyId || !userId) {
             return res.status(400).json({ error: 'Missing storyId or userId' });
+        }
+
+        // Action Deduplication (Priority 1)
+        const allowed = await acquireActionLock(userId, storyId, 'like_story', 2);
+        if (!allowed) {
+            console.log('🔒 Action deduped: like_story');
+            return res.json({ success: true, action: 'deduped', liked: true }); // Assume liked for frontend consistency on spam
         }
 
         // Get connection for transaction
@@ -765,6 +793,13 @@ const shareStory = async (req, res) => {
         // Validate inputs
         if (!storyId || !userId) {
             return res.status(400).json({ error: 'Missing storyId or userId' });
+        }
+
+        // Action Deduplication
+        const allowed = await acquireActionLock(userId, storyId, 'share_story', 5); // 5 sec block for share
+        if (!allowed) {
+            console.log('🔒 Action deduped: share_story');
+            return res.json({ success: true, share_count: 0, deduped: true });
         }
 
         // First check if story exists

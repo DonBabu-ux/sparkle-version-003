@@ -112,18 +112,28 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
         const newPosts: Post[] = res.data.posts || res.data.feed || [];
         lastFetchTime.current = Date.now();
 
-        // Deduplicate
+        // Deduplicate against both state and seenPosts ref
         const filtered = newPosts.filter((p) => {
           if (seenPosts.current.has(p.post_id)) return false;
           seenPosts.current.add(p.post_id);
           return true;
         });
-
+        
         if (isInitial) {
           setPosts(filtered);
-          seenPosts.current = new Set(filtered.map((p) => p.post_id));
+          // Reset seenPosts to exactly what we just set
+          seenPosts.current = new Set(filtered.map(p => p.post_id));
         } else {
-          setPosts((prev) => [...prev, ...filtered]);
+          setPosts((prev) => {
+            // Final safety check against race conditions in state
+            const final = [...prev];
+            filtered.forEach(p => {
+              if (!final.some(existing => existing.post_id === p.post_id)) {
+                final.push(p);
+              }
+            });
+            return final;
+          });
         }
 
         setHasMore(res.data.hasMore !== false && newPosts.length > 0);

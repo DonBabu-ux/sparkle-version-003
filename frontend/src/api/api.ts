@@ -33,16 +33,40 @@ const api = axios.create({
   },
 });
 
+// CSRF state
+let csrfToken: string | null = null;
+
+const fetchCsrfToken = async () => {
+  try {
+    const { data } = await axios.get(`${api.defaults.baseURL}/csrf-token`, { withCredentials: true });
+    csrfToken = data.csrfToken;
+    return csrfToken;
+  } catch (err) {
+    console.error('Failed to fetch CSRF token:', err);
+    return null;
+  }
+};
+
 console.log('🚀 Sparkle API initialized at:', api.defaults.baseURL);
 
-// Interceptor to add auth token and device info
+// Interceptor to add auth token, CSRF token, and device info
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const token = useUserStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    // Add CSRF token for state-changing requests
+    if (['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase() || '')) {
+      if (!csrfToken) {
+        await fetchCsrfToken();
+      }
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+
     // Add Device ID for multi-device detection
     config.headers['x-device-id'] = localStorage.getItem('sparkle_device_id') || 'unknown';
     

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const groupsController = require('../../controllers/groups.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
-const { upload } = require('../../middleware/upload.middleware');
+const { upload, postUpload } = require('../../middleware/upload.middleware');
 const { csrfProtection } = require('../../middleware/security.middleware');
 
 // Apply CSRF protection to all state-changing routes
@@ -16,7 +16,7 @@ router.get('/:id', authMiddleware, groupsController.getGroupAPI);
 router.post('/', authMiddleware, upload.single('pfp'), groupsController.createGroup);
 
 // Match spec: POST /api/groups/:id/post
-router.post('/:id/post', authMiddleware, upload.single('image'), groupsController.createGroupPost);
+router.post('/:id/post', authMiddleware, postUpload.array('image', 10), groupsController.createGroupPost);
 
 // Match spec: GET /api/groups/:id/posts?page=1
 router.get('/:id/posts', authMiddleware, groupsController.getGroupPostsAPI);
@@ -37,5 +37,6 @@ router.get('/:id/members', authMiddleware, groupsController.getMembersDetailedAP
 router.post('/:id/users/:userId/remove', authMiddleware, groupsController.removeMemberAPI);
 router.post('/:id/users/:userId/promote', authMiddleware, groupsController.promoteMemberAPI);
 router.delete('/:id/posts/:postId', authMiddleware, groupsController.deletePostAPI);
+router.post('/:id/invite', authMiddleware, groupsController.inviteFriends);
 
 module.exports = router;

@@ -114,7 +114,7 @@ router.get('/messages/:conversation_id', async (req, res) => {
 
         const [messages] = await pool.query(`
             SELECT m.*, s.delivered_at, s.read_at, u.username as sender_username, u.name as sender_name, u.avatar_url as sender_avatar,
-                   (SELECT JSON_ARRAYAGG(JSON_OBJECT('user_id', user_id, 'reaction', reaction_type)) FROM marketplace_message_reactions WHERE message_id = m.id) as reactions
+                   (SELECT JSON_ARRAYAGG(JSON_OBJECT('user_id', user_id, 'reaction', emoji)) FROM marketplace_message_reactions WHERE message_id = m.id) as reactions
             FROM marketplace_messages m
             LEFT JOIN marketplace_message_status s ON m.id = s.message_id
             LEFT JOIN users u ON m.sender_id = u.user_id
@@ -174,8 +174,8 @@ router.post('/messages/:message_id/react', async (req, res) => {
         const userId = req.user.user_id;
         if (!reaction) return res.status(400).json({ error: 'Reaction is required' });
         const id = uuidv4();
-        await pool.query(`DELETE FROM marketplace_message_reactions WHERE message_id = ? AND user_id = ?`, [req.params.message_id, userId]);
-        await pool.query(`INSERT INTO marketplace_message_reactions (id, message_id, user_id, reaction_type) VALUES (?, ?, ?, ?)`, [id, req.params.message_id, userId, reaction]);
+        await pool.query(`DELETE FROM marketplace_message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?`, [req.params.message_id, userId, reaction]);
+        await pool.query(`INSERT INTO marketplace_message_reactions (reaction_id, message_id, user_id, emoji) VALUES (?, ?, ?, ?)`, [id, req.params.message_id, userId, reaction]);
         res.json({ success: true, message: 'Reacted' });
     } catch(err) {
         res.status(500).json({ error: err.message });

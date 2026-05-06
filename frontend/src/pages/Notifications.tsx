@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { getAvatarUrl } from '../utils/imageUtils';
 import Navbar from '../components/Navbar';
-import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, ArrowLeft, CheckCircle2, Search, MoreHorizontal, X, BellOff, AlertOctagon } from 'lucide-react';
+import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, ArrowLeft, CheckCircle2, Search, MoreHorizontal, X, BellOff, AlertOctagon, AtSign } from 'lucide-react';
 
 interface Notification {
   notification_id: string;
@@ -86,6 +86,7 @@ export default function Notifications() {
       case 'follow': return '#1877f2';
       case 'spark': return '#f59e0b';
       case 'comment': return '#31a24c';
+      case 'mention': return '#ec4899';
       case 'group': return '#8b5cf6';
       case 'marketplace': return '#14b8a6';
       case 'poke': return '#6366f1';
@@ -98,6 +99,7 @@ export default function Notifications() {
       case 'follow': return <User size={12} className="text-white" strokeWidth={3} />;
       case 'spark': return <Zap size={12} className="text-white fill-white" />;
       case 'comment': return <MessageSquare size={12} className="text-white fill-white" />;
+      case 'mention': return <AtSign size={12} className="text-white" strokeWidth={3} />;
       case 'group': return <Users size={12} className="text-white" strokeWidth={3} />;
       case 'marketplace': return <ShoppingBag size={12} className="text-white" strokeWidth={3} />;
       case 'poke': return <Hand size={12} className="text-white fill-white" />;
@@ -127,6 +129,9 @@ export default function Notifications() {
       const { entity_type, entity_id, sub_entity_id } = notif.target;
       
       switch (entity_type) {
+        case 'mention':
+          targetUrl = `/post/${entity_id}`;
+          break;
         case 'post':
         case 'like':
         case 'comment':

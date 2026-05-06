@@ -135,6 +135,62 @@ class RedisService {
             return [];
         }
     }
+
+    /**
+     * Hash Operations
+     */
+    async hgetall(key) {
+        if (!this.isEnabled) return null;
+        try {
+            return await this.client.hgetall(key);
+        } catch (error) {
+            logger.error(`Redis HGetAll Error [${key}]:`, error.message);
+            return null;
+        }
+    }
+
+    async hincrbyfloat(key, field, value) {
+        if (!this.isEnabled) return 0;
+        try {
+            return await this.client.hincrbyfloat(key, field, value);
+        } catch (error) {
+            logger.error(`Redis HIncrByFloat Error [${key}][${field}]:`, error.message);
+            return 0;
+        }
+    }
+
+    /**
+     * List Operations
+     */
+    async lpush(key, ...members) {
+        if (!this.isEnabled) return 0;
+        try {
+            return await this.client.lpush(key, ...members);
+        } catch (error) {
+            logger.error(`Redis LPush Error [${key}]:`, error.message);
+            return 0;
+        }
+    }
+
+    async lrange(key, start, stop) {
+        if (!this.isEnabled) return [];
+        try {
+            return await this.client.lrange(key, start, stop);
+        } catch (error) {
+            logger.error(`Redis LRange Error [${key}]:`, error.message);
+            return [];
+        }
+    }
+
+    async ltrim(key, start, stop) {
+        if (!this.isEnabled) return null;
+        try {
+            return await this.client.ltrim(key, start, stop);
+        } catch (error) {
+            logger.error(`Redis LTrim Error [${key}]:`, error.message);
+            return null;
+        }
+    }
 }
 
 // Export a singleton instance

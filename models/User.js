@@ -225,28 +225,36 @@ class User {
      * Search users that the current user is following
      */
     static async searchFollowing(query, currentUserId, limit = 20) {
+        const relationshipQuery = `
+            (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id AND following_id = ?) as is_follower,
+            (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count
+        `;
+
         if (!query || !query.trim()) {
             const [users] = await pool.query(
-                `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major
-             FROM follows f
-             JOIN users u ON f.following_id = u.user_id
-             WHERE f.follower_id = ?
-             LIMIT ?`,
-                [currentUserId, limit]
+                `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major,
+                        ${relationshipQuery}
+                 FROM follows f
+                 JOIN users u ON f.following_id = u.user_id
+                 WHERE f.follower_id = ?
+                 LIMIT ?`,
+                [currentUserId, currentUserId, currentUserId, limit]
             );
-            return users;
+            return users.map(u => ({ ...u, is_mutual: (u.is_followed_by_me && u.is_follower) }));
         }
 
         const [users] = await pool.query(
-            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major
-         FROM follows f
-         JOIN users u ON f.following_id = u.user_id
-         WHERE f.follower_id = ? 
-         AND (u.name LIKE ? OR u.username LIKE ?)
-         LIMIT ?`,
-            [currentUserId, `%${query}%`, `%${query}%`, limit]
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.major,
+                    ${relationshipQuery}
+             FROM follows f
+             JOIN users u ON f.following_id = u.user_id
+             WHERE f.follower_id = ? 
+             AND (u.name LIKE ? OR u.username LIKE ?)
+             LIMIT ?`,
+            [currentUserId, currentUserId, currentUserId, `%${query}%`, `%${query}%`, limit]
         );
-        return users;
+        return users.map(u => ({ ...u, is_mutual: (u.is_followed_by_me && u.is_follower) }));
     }
 
     /**

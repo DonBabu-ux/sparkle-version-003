@@ -214,7 +214,7 @@ export default function CreateStory() {
           formData.append('stickers', JSON.stringify(stickers));
           formData.append('parent_story_id', parentId || '');
           if (selectedMusic) formData.append('music_info', JSON.stringify(selectedMusic));
-          await api.post('/stories', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+          await api.post('/stories', formData);
           navigate('/dashboard');
       } catch (e) {
           console.error('Upload failed', e);

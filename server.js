@@ -27,6 +27,7 @@ const { initializeSocket } = require('./socket');
 const { initializeEmail } = require('./config/email');
 require('./workers/notification.worker'); // Start the background notification worker
 require('./workers/inactivityNotifier'); // Start marketplace inactivity worker
+require('./jobs/candidatePool'); // Start feed candidate pool builder
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Vite locally, Render in prod)

@@ -35,7 +35,9 @@ const createPost = async (req, res) => {
             post_type: req.body.post_type || 'public',
             affiliation: req.body.affiliation || req.body.campus || req.user.campus,
             group_id: req.body.group_id,
-            location: req.body.location
+            location: req.body.location,
+            feeling: req.body.feeling,
+            activity: req.body.activity
         };
 
         const postId = await Post.create(userId, postData);
@@ -303,22 +305,40 @@ const translatePost = async (req, res) => {
             return res.status(404).json({ error: 'Post not found' });
         }
 
-        // Mock translation logic - in production use Google Translate / DeepL
-        // For demonstration, we'll just prepend "[Translated] " to the content
-        // if it's not already there.
-        const originalContent = post.content || '';
-        const translatedText = originalContent.startsWith('[Translated]') 
-            ? originalContent 
-            : `[Translated] ${originalContent}`;
+        const TranslationService = require('../utils/translationService');
+        const result = await TranslationService.smartTranslate(post.content);
 
         res.json({
-            originalText: originalContent,
-            translatedText: translatedText,
-            targetLanguage: 'en'
+            originalText: post.content,
+            translatedText: result.text,
+            targetLanguage: result.target
         });
     } catch (error) {
         logger.error('Translate post error:', error);
         res.status(500).json({ error: 'Failed to translate post' });
+    }
+};
+
+const translateComment = async (req, res) => {
+    try {
+        const commentId = req.params.id;
+        const comment = await Post.getCommentById(commentId);
+        
+        if (!comment) {
+            return res.status(404).json({ error: 'Comment not found' });
+        }
+
+        const TranslationService = require('../utils/translationService');
+        const result = await TranslationService.smartTranslate(comment.content);
+
+        res.json({
+            originalText: comment.content,
+            translatedText: result.text,
+            targetLanguage: result.target
+        });
+    } catch (error) {
+        logger.error('Translate comment error:', error);
+        res.status(500).json({ error: 'Failed to translate comment' });
     }
 };
 
@@ -371,6 +391,7 @@ module.exports = {
     sharePost,
     likeComment,
     translatePost,
+    translateComment,
     resharePost,
     getCommentReplies: async (req, res) => {
         try {
@@ -426,6 +447,44 @@ module.exports = {
             res.json({ success: true });
         } catch (error) {
             res.status(500).json({ error: 'Failed' });
+        }
+    },
+    updatePost: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const postId = req.params.id;
+            
+            let media = [];
+            if (req.files && req.files.length > 0) {
+                media = req.files.map(f => ({
+                    url: f.path,
+                    type: f.mimetype.startsWith('video') ? 'video' : 'image'
+                }));
+            }
+
+            const updates = {
+                content: req.body.content,
+                post_type: req.body.post_type,
+                feeling: req.body.feeling,
+                activity: req.body.activity,
+                tagged_users: req.body.tagged_users
+            };
+
+            if (media.length > 0) {
+                updates.media = media;
+            } else if (req.body.remove_media === 'true') {
+                updates.media = [];
+            }
+
+            const success = await Post.update(postId, userId, updates);
+            if (!success) {
+                return res.status(403).json({ error: 'Unauthorized or post not found' });
+            }
+
+            res.json({ success: true, message: 'Post updated successfully' });
+        } catch (error) {
+            logger.error('Update post error:', error);
+            res.status(500).json({ error: 'Failed to update post' });
         }
     }
 };

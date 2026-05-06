@@ -10,6 +10,7 @@ import Navbar from '../components/Navbar';
 import MomentShareModal from '../components/modals/MomentShareModal';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
+import { trackingService } from '../services/TrackingService';
 import clsx from 'clsx';
 
 interface Comment {
@@ -587,11 +588,12 @@ export default function Moments() {
 
   const trackEngagement = async (momentId: string, type: string, value?: number, category?: string) => {
     if (!user) return;
-    try {
-      await api.post(`/moments/${momentId}/engagement`, { type, value, category });
-    } catch (err) {
-      // Silently fail telemetry
-    }
+    trackingService.sendSignal({
+      postId: momentId,
+      action: type as any,
+      watchTime: value,
+      timestamp: Date.now()
+    });
   };
 
   const lastScrollTime = useRef<number>(0);

@@ -179,7 +179,7 @@ const search = async (req, res) => {
                             (LEAST(TIMESTAMPDIFF(HOUR, p.created_at, NOW()), 720) * 0.05)
                         ) as relevance
                      FROM posts p JOIN users u ON p.user_id = u.user_id
-                     WHERE (p.post_type = 'public' OR p.group_id IS NULL) ${filterClause} ${matchClause}
+                     WHERE p.group_id IS NULL ${filterClause} ${matchClause}
                      ORDER BY ${sortClause} LIMIT ? OFFSET ?`,
                     [
                         currentUserId, currentUserId,
@@ -394,7 +394,7 @@ const getDiscovery = async (req, res) => {
         try {
             const [historyUsers] = await pool.query(
                 `SELECT u.user_id, u.username, u.name, u.avatar_url, MAX(sh.searched_at) as last_searched,
-                 (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id AND created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)) as new_posts,
+                 (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id AND group_id IS NULL AND created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)) as new_posts,
                  (SELECT COUNT(*) FROM moments WHERE user_id = u.user_id AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as has_story,
                  (SELECT COUNT(*) FROM comments pc JOIN posts p ON pc.post_id = p.post_id WHERE p.user_id = u.user_id AND pc.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as new_comments
                  FROM search_history sh

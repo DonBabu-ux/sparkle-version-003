@@ -23,7 +23,14 @@ const linkPreviewRoutes = require('./link-preview.routes');
 
 const pool = require('../../config/database');
 
+const { csrfProtection } = require('../../middleware/security.middleware');
+
 router.use('/auth', authRoutes);
+
+// CSRF Token Provider for SPAs
+router.get('/csrf-token', csrfProtection, (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+});
 
 // Health Check Endpoint
 router.get('/health', async (req, res) => {

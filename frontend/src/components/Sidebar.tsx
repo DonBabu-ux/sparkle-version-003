@@ -110,7 +110,7 @@ export default function Sidebar() {
           <div key={item.name} className="flex flex-col">
             <Link to={item.path} className={cn(
               "flex items-center gap-5 p-4.5 rounded-[24px] transition-all duration-500 whitespace-nowrap overflow-hidden group/item relative",
-              isActive(item.path) ? "bg-white shadow-2xl shadow-primary/5 text-primary border border-primary/5" : "text-black/40 hover:bg-white hover:text-black hover:shadow-xl"
+              isActive(item.path) ? "bg-white shadow-2xl shadow-primary/15 text-primary border border-primary/10" : "text-black/40 hover:bg-white hover:text-black hover:shadow-xl"
             )}>
               {isActive(item.path) && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full shadow-2xl shadow-primary"></div>

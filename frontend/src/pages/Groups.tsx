@@ -192,7 +192,7 @@ export default function Groups() {
                 {/* Group info */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '14px' }}>
                   <img
-                    src={group.icon_url || '/uploads/avatars/default.png'}
+                    src={group.icon_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&background=random&color=fff`}
                     style={{ width: '64px', height: '64px', borderRadius: '18px', objectFit: 'cover', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', flexShrink: 0 }}
                     alt={group.name}
                   />

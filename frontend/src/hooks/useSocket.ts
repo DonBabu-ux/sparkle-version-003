@@ -15,7 +15,8 @@ export const useSocket = () => {
         const s = io(SOCKET_URL, {
             query: { userId: user.id || user.user_id },
             auth: { token },
-            withCredentials: true
+            withCredentials: true,
+            transports: ['websocket']
         });
 
         s.on('connect', () => {

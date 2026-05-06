@@ -61,7 +61,11 @@ export default function Connect() {
       const newUsers = res.data.suggestions || res.data.users || res.data || [];
       
       if (isLoadMore) {
-        setUsers(prev => [...prev, ...newUsers]);
+        setUsers(prev => {
+          const existingIds = new Set(prev.map(u => u.user_id || u.id));
+          const filteredNew = newUsers.filter(u => !existingIds.has(u.user_id || u.id));
+          return [...prev, ...filteredNew];
+        });
       } else {
         setUsers(newUsers);
       }

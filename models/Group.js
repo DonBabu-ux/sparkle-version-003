@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 class Group {
     /**
@@ -135,27 +136,102 @@ class Group {
     /**
      * Group Post Logic
      */
-    static async createPost(groupId, userId, content, image = null, video = null) {
-        const postId = crypto.randomUUID();
-        await pool.query(
-            'INSERT INTO group_posts (post_id, group_id, user_id, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)',
-            [postId, groupId, userId, content, image, video]
-        );
-        return postId;
+    static async createPost(groupId, userId, content, image = null, video = null, feeling = null, activity = null, taggedUsers = null) {
+        try {
+            const postId = crypto.randomUUID();
+            
+            // 1. Insert into main posts table
+            await pool.query(
+                `INSERT INTO posts (post_id, user_id, content, group_id, post_type, media_url, media_type, feeling, activity, tagged_users) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    postId, 
+                    userId, 
+                    content, 
+                    groupId, 
+                    'public', 
+                    image ? image.split(',')[0] : null, 
+                    video ? 'video' : (image ? 'image' : null),
+                    feeling || null,
+                    activity || null,
+                    taggedUsers ? (typeof taggedUsers === 'string' ? taggedUsers : JSON.stringify(taggedUsers)) : null
+                ]
+            );
+
+            // 2. Insert multiple images into post_media if applicable
+            if (image) {
+                const urls = image.split(',');
+                for (let i = 0; i < urls.length; i++) {
+                    await pool.query(
+                        `INSERT INTO post_media (media_id, post_id, media_url, media_type, upload_order) 
+                         VALUES (?, ?, ?, ?, ?)`,
+                        [crypto.randomUUID(), postId, urls[i], 'image', i]
+                    );
+                }
+            }
+
+            // 3. Send notifications to tagged users
+            if (taggedUsers) {
+                const users = typeof taggedUsers === 'string' ? JSON.parse(taggedUsers) : taggedUsers;
+                const notificationController = require('../controllers/notification.controller');
+                
+                for (const u of users) {
+                    if (u.user_id !== userId) {
+                        await notificationController.createNotification({
+                            user_id: u.user_id,
+                            actor_id: userId,
+                            type: 'mention',
+                            title: 'New Tag',
+                            content: `tagged you in a post: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
+                            related_id: postId,
+                            related_type: 'post',
+                            action_url: `/post/${postId}`
+                        }).catch(err => logger.error('Tag notification failed:', err));
+                    }
+                }
+            }
+
+            return postId;
+        } catch (error) {
+            logger.error('Group.createPost Error:', error);
+            throw error;
+        }
     }
 
     static async getPosts(groupId, limit = 10, offset = 0) {
         const [rows] = await pool.query(
-            `SELECT gp.*, u.username, u.avatar_url AS avatar, g.name AS group_name, g.icon_url AS group_icon
-             FROM group_posts gp
-             JOIN users u ON gp.user_id = u.user_id
-             JOIN groups g ON gp.group_id = g.group_id
-             WHERE gp.group_id = ?
-             ORDER BY gp.created_at DESC
+            `SELECT p.*, p.media_url, 
+                    u.username, u.avatar_url, g.name AS group_name, g.icon_url AS group_icon,
+                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as spark_count,
+                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comment_count,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
+             FROM posts p
+             JOIN users u ON p.user_id = u.user_id
+             JOIN groups g ON p.group_id = g.group_id
+             WHERE p.group_id = ?
+             ORDER BY p.created_at DESC
              LIMIT ? OFFSET ?`,
             [groupId, limit, offset]
         );
-        return rows;
+
+        return rows.map(post => {
+            let media_files = [];
+            if (typeof post.media_files === 'string') {
+                try { media_files = JSON.parse(post.media_files); } catch(e) { media_files = []; }
+            } else if (Array.isArray(post.media_files)) {
+                media_files = post.media_files;
+            }
+            
+            // Filter out null elements from JSON_ARRAYAGG (happens if no media)
+            media_files = (media_files || []).filter(m => m && m.url);
+
+            return {
+                ...post,
+                media_files,
+                post_type: 'group' 
+            };
+        });
     }
     /**
      * Admin Management
@@ -266,6 +342,22 @@ class Group {
     static async deletePost(postId) {
         await pool.query('DELETE FROM group_posts WHERE post_id = ?', [postId]);
         return true;
+    }
+
+    /**
+     * Get all media for a group
+     */
+    static async getMedia(groupId, limit = 50, offset = 0) {
+        const [rows] = await pool.query(
+            `SELECT pm.media_url, pm.media_type, p.post_id, p.created_at
+             FROM post_media pm
+             JOIN posts p ON pm.post_id = p.post_id
+             WHERE p.group_id = ?
+             ORDER BY p.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [groupId, limit, offset]
+        );
+        return rows;
     }
 
     /**

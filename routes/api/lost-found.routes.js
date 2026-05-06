@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const lostFoundController = require('../../controllers/lostFound.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
-const { upload } = require('../../utils/fileUpload');
+const { postUpload } = require('../../middleware/upload.middleware');
 
 // Base path in index.js is `/lost-found`
 
@@ -13,7 +13,7 @@ router.get('/', lostFoundController.getFeed);
 router.get('/:id', lostFoundController.getItem);
 
 // Report a lost/found item
-router.post('/', authMiddleware, upload.array('media', 3), lostFoundController.reportItem);
+router.post('/', authMiddleware, postUpload.array('media', 3), lostFoundController.reportItem);
 
 // Claim an item (reporter)
 router.post('/:id/claim', authMiddleware, lostFoundController.claimItem);

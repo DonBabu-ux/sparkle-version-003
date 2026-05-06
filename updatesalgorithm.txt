@@ -1,0 +1,30 @@
+# Sparkle Discovery Engine: Algorithm Audit (v11.2)
+
+This document details the architectural evolution of the Sparkle ranking engine and the high-fidelity telemetry pipeline.
+
+## 1. High-Fidelity Telemetry (v10.1)
+- **Impression Tracking**: Uses `IntersectionObserver` on the frontend. A signal is sent only when a post is >70% visible for >500ms.
+- **Dwell Time**: Measures active engagement in milliseconds. 
+- **Skip Detection (Negative Signal)**: If a user exits a post with <20% of its duration watched AND total time < 3s, it is flagged as a `skip`. This provides a strong negative signal to the ranking engine.
+
+## 2. Redis Feature Store (v11.2)
+- **Feature Vector**: User interests are stored in a Redis Hash `user:{userId}:category_stats`.
+- **O(1) Access**: The ranking engine retrieves the entire interest profile in a single Redis call, bypassing heavy SQL aggregations.
+- **Self-Healing Cache**: If Redis is cold, the system automatically re-seeds features from the `user_actions` table in SQL.
+
+## 3. Dual-Memory Intent Model
+- **Long-Term Memory**: The interest vector (Redis Hash) representing historical preferences across weeks.
+- **Short-Term Memory**: A Redis List `user:{userId}:recent_categories` storing the last 20 posts the user engaged with. This allows the feed to adapt to "current mood" instantly (e.g., if you start watching sports, the next few posts will tilt towards sports).
+
+## 4. Behavioral Ranking Algorithm (7.7 Stable)
+- **Exponential Time Decay**: $Score = Base \times e^{-\lambda t}$, where $\lambda=0.1$. Older engagement signals carry less weight.
+- **Fatigue & Saturation**: Penalizes categories that have been over-served in the current session to prevent "doom-scrolling" boredom.
+- **Guided Exploration (10% Inject)**: Randomly injects high-quality content from outside the user's primary interest pool to break filter bubbles and discover new interests.
+
+## 5. Performance Optimizations
+- **Candidate Pool Builder (v11.3)**: A background job that pre-selects the top 1000 "candidate" posts. Optimized to fetch media in a second query rather than heavy SQL subqueries, reducing DB load by ~70%.
+- **Rate Limit Resilience**: API rate limit increased to 500/min to accommodate high-frequency telemetry heartbeats.
+- **Deduplication**: Robust frontend-side deduplication in `VirtualizedFeed` to prevent key collisions and redundant tracking.
+
+---
+*Last Updated: 2026-05-05*

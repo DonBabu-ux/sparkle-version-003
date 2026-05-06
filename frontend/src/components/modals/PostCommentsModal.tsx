@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { useUserStore } from '../../store/userStore';
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
+import MentionText from '../MentionText';
 import { formatCount } from '../../utils/format';
 
 interface Comment {
@@ -44,6 +45,14 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   const fetchComments = useCallback(async () => {
+    // Graceful handling for mock posts to avoid 400/500 errors
+    const mockIds = ['d9b2f1e0-3c2b-4b1a-9d8e-7f6a5b4c3d2e', 'a1b2c3d4-e5f6-4a5b-bcde-f01234567890'];
+    if (mockIds.includes(post.post_id)) {
+      setLoading(false);
+      setComments([]); // Or some initial mock comments if desired
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await api.get(`/posts/${post.post_id}/comments?sort=${sortMode}`);
@@ -102,10 +111,20 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
         payload.parent_comment_id = replyingTo.comment_id;
       }
 
-      const res = await api.post(`/posts/${post.post_id}/comments`, payload);
+      const mockIds = ['d9b2f1e0-3c2b-4b1a-9d8e-7f6a5b4c3d2e', 'a1b2c3d4-e5f6-4a5b-bcde-f01234567890'];
+      let resId = '';
+      
+      if (!mockIds.includes(post.post_id)) {
+        const res = await api.post(`/posts/${post.post_id}/comments`, payload);
+        resId = res.data.comment_id;
+      } else {
+        // Simulate backend success for mock posts
+        resId = `mock-comment-${Date.now()}`;
+        await new Promise(r => setTimeout(r, 400)); // Simulate network lag
+      }
       
       const newComment = {
-        comment_id: res.data.comment_id,
+        comment_id: resId,
         content: commentText.trim(),
         user_id: user?.id || user?.user_id,
         username: user?.username,
@@ -221,35 +240,38 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
         )}
       </div>
 
-      <div className="bg-white border-t border-gray-100 p-3 pb-safe">
+      <div className="bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
         {replyingTo && (
-          <div className="flex items-center justify-between bg-gray-50 px-4 py-2 text-[12px] font-semibold text-gray-500 rounded-lg mb-2">
-            <span>Replying to <span className="text-blue-600">@{replyingTo.username}</span></span>
-            <button onClick={() => setReplyingTo(null)} className="hover:text-gray-700 transition-colors"><X size={14} /></button>
+          <div className="flex items-center justify-between bg-blue-50/50 px-4 py-2.5 text-[12px] font-bold text-blue-600 rounded-xl mb-3 border border-blue-100/50">
+            <span className="flex items-center gap-1">
+              Replying to <span className="text-blue-700">@{replyingTo.username}</span>
+            </span>
+            <button onClick={() => setReplyingTo(null)} className="hover:text-blue-800 transition-colors bg-blue-100 p-1 rounded-full"><X size={12} /></button>
           </div>
         )}
-        <div className="px-3 py-2 bg-gray-100 rounded-2xl">
-          <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full">
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 shrink-0">
-                <img src={user?.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
-            </div>
-            <div className="flex-1 relative min-w-0">
+        <div className="flex items-start gap-3 w-full group">
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-gray-100 shrink-0">
+              <img src={user?.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
+          </div>
+          <div className="flex-1 bg-gray-100 rounded-[24px] px-4 py-2 transition-all duration-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-pink-500/20 focus-within:border-pink-500/50 border border-transparent min-w-0">
+            <form onSubmit={handleSubmit} className="flex items-center gap-2">
                <MentionInput
                   value={commentText}
                   onChange={setCommentText}
                   onSubmit={handleSubmit}
+                  replyingToUsername={replyingTo?.username || null}
                   placeholder={replyingTo ? `Replying to ${replyingTo.username}...` : "Write a comment..."}
-                  className="bg-transparent text-[14px] text-gray-900 placeholder:text-gray-400 outline-none w-full py-1"
+                  className="bg-transparent text-[15px] text-gray-900 placeholder:text-gray-500 outline-none w-full py-1.5"
                />
-            </div>
-            <button 
-              type="submit" 
-              disabled={!commentText.trim() || submitting}
-              className="text-blue-600 font-bold text-[14px] disabled:opacity-30 px-2"
-            >
-              {submitting ? '...' : 'Post'}
-            </button>
-          </form>
+               <button 
+                type="submit" 
+                disabled={!commentText.trim() || submitting}
+                className="text-pink-600 font-black text-[14px] disabled:opacity-30 px-2 hover:scale-105 active:scale-95 transition-transform uppercase tracking-wider"
+              >
+                {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Post'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -323,6 +345,9 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
   const [translated, setTranslated] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [translatedContent, setTranslatedContent] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
+
   const hasReplies = comment.replies && comment.replies.length > 0;
 
   const timeAgo = (dateStr: string) => {
@@ -341,6 +366,31 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
     window.location.href = `/profile/${comment.username}`;
   };
 
+  const handleTranslate = async () => {
+    if (translated) {
+      setTranslated(false);
+      return;
+    }
+
+    if (translatedContent) {
+      setTranslated(true);
+      return;
+    }
+
+    setTranslating(true);
+    try {
+      const res = await api.get(`/posts/comments/${comment.comment_id}/translate`);
+      setTranslatedContent(res.data.translatedText);
+      setTranslated(true);
+    } catch (err) {
+      console.error('Translation failed', err);
+      setTranslatedContent('Translation failed.');
+      setTranslated(true);
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   return (
     <div className="flex gap-2 w-full pb-1">
       <img 
@@ -356,34 +406,26 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
             {comment.username}
           </p>
           <div className="text-[14px] text-gray-800 break-words whitespace-pre-wrap leading-tight mt-0.5">
-            {translated ? (
-               "Translation lost."
+            {translating ? (
+              <div className="flex items-center gap-2 text-gray-400 py-1">
+                <Loader2 size={12} className="animate-spin" />
+                <span className="text-[12px]">Translating...</span>
+              </div>
+            ) : translated ? (
+              <span className="italic text-gray-600">{translatedContent || "Translation not available."}</span>
             ) : (
-              <>
-                {comment.content.length > 200 && !isExpanded ? (
-                  <>
-                    {comment.content.substring(0, 200)}... 
-                    <button 
-                      onClick={() => setIsExpanded(true)}
-                      className="text-gray-500 font-bold hover:underline ml-1"
-                    >
-                      See more
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {comment.content}
-                    {comment.content.length > 200 && isExpanded && (
-                      <button 
-                        onClick={() => setIsExpanded(false)}
-                        className="text-gray-500 font-bold hover:underline ml-1"
-                      >
-                        See less
-                      </button>
-                    )}
-                  </>
-                )}
-              </>
+              <MentionText 
+                content={comment.content} 
+                className={clsx(comment.content.length > 200 && !isExpanded && "line-clamp-6")}
+              />
+            )}
+            {comment.content.length > 200 && (
+              <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-gray-500 font-bold hover:underline ml-1 text-[13px]"
+              >
+                {isExpanded ? 'See less' : 'See more'}
+              </button>
             )}
           </div>
         </div>
@@ -399,7 +441,7 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
             Like{comment.like_count > 0 && ` (${formatCount(comment.like_count)})`}
           </button>
           <button onClick={() => onReply(comment)} className="hover:underline">Reply</button>
-          <button onClick={() => setTranslated(!translated)} className="hover:underline text-[11px] font-normal">
+          <button onClick={handleTranslate} className="hover:underline text-[11px] font-normal">
             {translated ? 'Original' : 'Translate'}
           </button>
           <div className="relative">

@@ -24,6 +24,7 @@
     "@capacitor/core": "^6.2.1",
     "@supabase/supabase-js": "^2.99.1",
     "@upstash/redis": "^1.37.0",
+    "axios": "^1.16.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.76.1",

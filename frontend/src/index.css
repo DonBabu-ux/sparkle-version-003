@@ -10,7 +10,7 @@
 
 @theme {
   /* Typography */
-  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-heading: "Varela Round", var(--font-sans);
 
   /* Colors - Pink Soft Palette */
@@ -95,6 +95,11 @@
   @keyframes slide-up {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spark-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1); }
   }
 }
 
@@ -282,3 +287,4 @@ input, textarea, select {
 .animate-scale-in   { animation: scale-in-up 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-float      { animation: float-y 6s ease-in-out infinite; }
 .animate-slide-up   { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-spark-pop { animation: spark-pop 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.49) both; }

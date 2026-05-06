@@ -1,9 +1,25 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import { io, Socket } from 'socket.io-client';
-import { ArrowLeft, Send, Image as ImageIcon, MoreVertical, Check, CheckCheck, Smile, Paperclip, Reply, X, Edit2, Trash2, ShieldCheck, EyeOff, ShoppingBag as ShoppingBagIcon, ShieldAlert, Tag } from 'lucide-react';
+import { ArrowLeft, Send, Image as ImageIcon, MoreVertical, Check, CheckCheck, Smile, Paperclip, Reply, X, Edit2, Trash2, ShieldCheck, EyeOff, ShoppingBag as ShoppingBagIcon, ShieldAlert, Tag, PackageCheck, BadgeDollarSign, ScanSearch, MapPin, Repeat2, CalendarClock } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
+
+const EMOJI_LIST = ['😊', '😂', '🥰', '😍', '😒', '😭', '😩', '😔', '😘', '☺️', '😁', '🥳', '😎', '😡', '🤔', '👍', '❤️', '🔥', '✨', '🙌', '💯', '🙏', '🤝', '💰', '🏠', '🚗', '📦', '🎁', '🛒'];
+
+const VIRTUAL_GIFTS = [
+  { id: 'available', Icon: PackageCheck, label: 'Still Available?', text: 'Is this still available?', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { id: 'offer', Icon: BadgeDollarSign, label: 'Best Price', text: 'What is your best price for this?', color: 'text-amber-600', bg: 'bg-amber-50' },
+  { id: 'condition', Icon: ScanSearch, label: 'Condition', text: 'Could you tell me more about the condition?', color: 'text-blue-600', bg: 'bg-blue-50' },
+  { id: 'pickup', Icon: MapPin, label: 'Pickup Spot', text: 'Where can I pick this up?', color: 'text-rose-600', bg: 'bg-rose-50' },
+  { id: 'swap', Icon: Repeat2, label: 'Open to Swap?', text: 'Are you open to a trade or swap?', color: 'text-violet-600', bg: 'bg-violet-50' },
+  { id: 'reserve', Icon: CalendarClock, label: 'Can You Hold?', text: 'Can you hold this for me until tomorrow?', color: 'text-sky-600', bg: 'bg-sky-50' },
+];
+
+const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY;
 
 interface Message {
   id: string;
@@ -57,12 +73,42 @@ const MarketplaceChat = () => {
   const [userSettings, setUserSettings] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [contextMenuId, setContextMenuId] = useState<string | null>(null);
+  const [reactingToMessageId, setReactingToMessageId] = useState<string | null>(null);
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
   const [amIBlocked, setAmIBlocked] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerTab, setPickerTab] = useState<'emoji' | 'sticker' | 'gif' | 'gift'>('emoji');
+  const [giphyResults, setGiphyResults] = useState<any[]>([]);
+  const [giphyLoading, setGiphyLoading] = useState(false);
+  const [giphySearch, setGiphySearch] = useState('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showPicker && (pickerTab === 'gif' || pickerTab === 'sticker')) {
+      const fetchMedia = async () => {
+        setGiphyLoading(true);
+        try {
+          const type = pickerTab === 'gif' ? 'gifs' : 'stickers';
+          const endpoint = giphySearch ? 'search' : 'trending';
+          const queryParam = giphySearch ? `&q=${encodeURIComponent(giphySearch)}` : '';
+          const url = `https://api.giphy.com/v1/${type}/${endpoint}?api_key=${GIPHY_API_KEY}${queryParam}&limit=20&rating=g`;
+          const res = await fetch(url);
+          const data = await res.json();
+          setGiphyResults(data.data || []);
+        } catch (err) {
+          console.error("Giphy fetch failed", err);
+        } finally {
+          setGiphyLoading(false);
+        }
+      };
+      
+      const debounceTimer = setTimeout(fetchMedia, giphySearch ? 500 : 0);
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [showPicker, pickerTab, giphySearch]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -246,6 +292,41 @@ const MarketplaceChat = () => {
     }
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSendGiphy = (url: string, type: string) => {
+    if (!socket) return;
+    const msgData = {
+      conversationId,
+      text: '',
+      type: type, // 'gif' or 'sticker'
+      mediaUrl: url,
+      replyToId: replyToMessage?.id
+    };
+
+    socket.emit('send_message', msgData, (response: any) => {
+      if (response.status === 'success') {
+        setMessages(prev => [...prev, response.message]);
+      }
+    });
+    setShowPicker(false);
+  };
+
+  const handleSendGift = (gift: {icon: string, label: string, text: string}) => {
+    if (!socket) return;
+    const msgData = {
+      conversationId,
+      text: gift.text,
+      type: 'text',
+      replyToId: replyToMessage?.id
+    };
+
+    socket.emit('send_message', msgData, (response: any) => {
+      if (response.status === 'success') {
+        setMessages(prev => [...prev, response.message]);
+      }
+    });
+    setShowPicker(false);
   };
 
   const handleUpdateStatus = async (newStatus: string) => {
@@ -513,7 +594,13 @@ const MarketplaceChat = () => {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white bg-opacity-50" onClick={() => setContextMenuId(null)}>
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-white bg-opacity-50" 
+        onClick={() => {
+          setContextMenuId(null);
+          setShowPicker(false);
+        }}
+      >
         {messages.map((msg, index) => {
           const isMine = msg.sender_id === user?.user_id;
           return (
@@ -559,6 +646,17 @@ const MarketplaceChat = () => {
                        </div>
                     )}
 
+                    {(msg.message_type === 'gif' || msg.type === 'gif') && (
+                       <div className="relative group">
+                         <img src={msg.media_url || msg.mediaUrl} alt="GIF" className="max-w-[220px] rounded-xl shadow-sm" style={{borderRadius: '12px'}} />
+                         <span className="absolute bottom-1 right-1 bg-black/50 text-white text-[9px] font-black px-1 rounded">GIF</span>
+                       </div>
+                    )}
+
+                    {(msg.message_type === 'sticker' || msg.type === 'sticker') && (
+                       <img src={msg.media_url || msg.mediaUrl} alt="Sticker" className="w-[120px] h-[120px] object-contain" />
+                    )}
+
                     {(msg.message_type === 'video' || msg.type === 'video') && (
                        <video src={msg.media_url || msg.mediaUrl} controls className="max-w-[200px] sm:max-w-[300px] rounded-md shadow-sm" />
                     )}
@@ -580,6 +678,7 @@ const MarketplaceChat = () => {
                     <div className="absolute top-full mt-1 right-0 bg-white shadow-lg rounded-md border border-gray-200 z-20 overflow-hidden min-w-[150px]">
                       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50">
                         {['👍', '❤️', '😂', '🔥', '🙏'].map(emoji => (<button key={emoji} onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }} className="hover:scale-125 transition-transform">{emoji}</button>))}
+                        <button onClick={(e) => { e.stopPropagation(); setReactingToMessageId(msg.id); setContextMenuId(null); }} className="hover:bg-gray-200 rounded-full p-1 text-gray-500 transition-colors">➕</button>
                       </div>
                       {isMine && (
                         <>
@@ -617,6 +716,31 @@ const MarketplaceChat = () => {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      <AnimatePresence>
+        {reactingToMessageId && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            onClick={() => setReactingToMessageId(null)}
+          >
+            <div onClick={e => e.stopPropagation()} className="shadow-2xl rounded-2xl overflow-hidden">
+              <Picker 
+                data={data} 
+                onEmojiSelect={(emoji: any) => { 
+                  handleReact(reactingToMessageId, emoji.native); 
+                  setReactingToMessageId(null); 
+                }} 
+                theme="light"
+                previewPosition="none"
+                skinTonePosition="none"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isBlockedByMe || amIBlocked ? (
         <div className="bg-white border-t p-8 text-center pb-12 animate-in slide-in-from-bottom-4 duration-500">
@@ -716,6 +840,95 @@ const MarketplaceChat = () => {
             </div>
           )}
 
+          <AnimatePresence>
+            {showPicker && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 320, opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="bg-white border-b border-gray-100 overflow-hidden flex flex-col"
+              >
+                <div className="flex border-b border-gray-50 sticky top-0 bg-white z-10">
+                  {(['emoji', 'sticker', 'gif', 'gift'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => { setPickerTab(tab); setGiphySearch(''); }}
+                      className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+                        pickerTab === tab ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-gray-400 hover:bg-gray-50'
+                      }`}
+                    >
+                      {tab === 'gif' ? 'GIFs' : tab === 'emoji' ? 'Emojis' : tab === 'sticker' ? 'Stickers' : 'Quick Replies'}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-4 no-scrollbar bg-gray-50/30">
+                  {pickerTab === 'emoji' && (
+                    <div className="flex justify-center -mx-4 -my-4">
+                      <Picker 
+                        data={data} 
+                        onEmojiSelect={(emoji: any) => { setInputText(prev => prev + emoji.native); setShowPicker(false); }} 
+                        theme="light"
+                        previewPosition="none"
+                        skinTonePosition="none"
+                      />
+                    </div>
+                  )}
+
+                  {(pickerTab === 'gif' || pickerTab === 'sticker') && (
+                    <div className="space-y-4">
+                      <div className="sticky top-0 bg-white/80 backdrop-blur-sm p-1 rounded-lg border border-gray-100 shadow-sm mb-4">
+                        <input 
+                          value={giphySearch}
+                          onChange={(e) => setGiphySearch(e.target.value)}
+                          placeholder={`Search ${pickerTab}s...`}
+                          className="w-full bg-transparent px-3 py-2 text-xs font-bold outline-none"
+                        />
+                      </div>
+                      {giphyLoading ? (
+                        <div className="flex justify-center p-8">
+                          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2 pb-4">
+                          {giphyResults.map(item => (
+                            <button
+                              key={item.id}
+                              onClick={() => handleSendGiphy(item.images.fixed_height.url, pickerTab)}
+                              className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 hover:opacity-80 transition-opacity shadow-sm"
+                            >
+                              <img src={item.images.fixed_height.url} className="w-full h-full object-cover" alt="giphy" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {pickerTab === 'gift' && (
+                    <div className="grid grid-cols-2 gap-3 pb-4">
+                      {VIRTUAL_GIFTS.map(gift => {
+                        const { Icon } = gift;
+                        return (
+                          <button
+                            key={gift.id}
+                            onClick={() => handleSendGift(gift)}
+                            className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-blue-200 hover:shadow-md transition-all group"
+                          >
+                            <div className={`w-10 h-10 rounded-full ${gift.bg} flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform`}>
+                              <Icon size={20} className={gift.color} />
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-wide text-gray-400 group-hover:${gift.color} transition-colors text-center leading-tight`}>{gift.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex items-end gap-3 px-4 py-3 bg-white">
             <button 
               type="button" 
@@ -740,8 +953,13 @@ const MarketplaceChat = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleSend({ preventDefault: () => {} } as any)}
                 placeholder="Type a message..." 
                 className="w-full bg-transparent border-none outline-none py-2.5 text-sm font-medium placeholder:text-gray-400"
+                onFocus={() => setShowPicker(false)}
               />
-              <button className="text-gray-400 hover:text-blue-600 transition-colors">
+              <button 
+                type="button"
+                onClick={() => setShowPicker(!showPicker)}
+                className={`transition-colors p-1 ${showPicker ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'}`}
+              >
                 <Smile size={20} />
               </button>
             </div>

@@ -448,8 +448,32 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
             <button onClick={() => setShowMenu(!showMenu)} className="hover:text-gray-900 font-bold tracking-widest px-1">•••</button>
             {showMenu && (
               <div className="absolute top-full left-0 mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-scale-in">
-                <button onClick={() => setShowMenu(false)} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50">Report</button>
-                <button onClick={() => setShowMenu(false)} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50">Copy</button>
+                <button 
+                  onClick={async () => { 
+                    setShowMenu(false); 
+                    const reason = window.prompt('Why are you reporting this comment?', 'Inappropriate content');
+                    if (!reason) return;
+                    try {
+                      await api.post('/moderation/reports', { comment_id: comment.comment_id, reason });
+                      alert('Comment reported.');
+                    } catch (err) {
+                      alert('Failed to report comment.');
+                    }
+                  }} 
+                  className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Report
+                </button>
+                <button 
+                  onClick={() => { 
+                    setShowMenu(false); 
+                    navigator.clipboard.writeText(comment.content);
+                    alert('Comment copied to clipboard!');
+                  }} 
+                  className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Copy
+                </button>
               </div>
             )}
           </div>

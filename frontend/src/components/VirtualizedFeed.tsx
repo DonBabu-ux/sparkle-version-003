@@ -36,7 +36,7 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className="mb-[3px] sm:mb-3 bg-white sm:rounded-xl shadow-sm p-4 border border-gray-200">
+    <div className="mb-[3px] sm:mb-3 bg-white rounded-[8px] sm:rounded-[12px] shadow-sm p-4 border border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[14px] font-bold text-gray-500 uppercase tracking-wider">People you might know</h3>
         <button onClick={() => navigate('/connect')} className="text-[12px] font-bold text-blue-600 hover:underline">See all</button>

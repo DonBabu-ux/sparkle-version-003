@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, ThumbsUp, MessageCircle, Share2, Globe, Lock, X, Users } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { 
+  MoreHorizontal, ThumbsUp, MessageCircle, Share2, Globe, Lock, X, Users,
+  Bookmark, Link as LinkIcon, PlusCircle, MinusCircle, Flag, Pencil, Trash2,
+  Bell, Info, Clock, EyeOff
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 import api from '../api/api';
@@ -37,7 +43,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, caretLeft: 0 });
   const [deleting, setDeleting] = useState(false);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isOwner = currentUser?.user_id === post.user_id || currentUser?.username === post.username;
@@ -89,12 +97,20 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     return () => window.removeEventListener('userFollowed', handleGlobalFollow);
   }, [post.user_id]);
 
-  // Prevent background scrolling when modal is open
-
+  // Close dropdown on page scroll or resize, but NOT when scrolling inside the dropdown
   useEffect(() => {
-    if (menuOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = 'unset';
-    return () => { document.body.style.overflow = 'unset'; };
+    if (!menuOpen) return;
+    const close = (e: Event) => {
+      // If the scroll originated inside the dropdown panel, don't close
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setMenuOpen(false);
+    };
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
   }, [menuOpen]);
 
   const handleSpark = async (e: React.MouseEvent) => {
@@ -146,8 +162,79 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     alert('Link copied to clipboard!');
   };
 
+  const handleInterested = async () => {
+    setMenuOpen(false);
+    try {
+      await api.post(`/posts/${post.post_id}/action`, { action_type: 'click' });
+      alert('Noted! We will show you more posts like this.');
+    } catch (err) {
+      console.error('Failed to log interest', err);
+    }
+  };
+
+  const handleNotInterestedAction = async () => {
+    setMenuOpen(false);
+    try {
+      await api.post(`/posts/${post.post_id}/action`, { action_type: 'dislike' });
+      window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
+      alert('Hidden. We will show you less of this.');
+    } catch (err) {
+      console.error('Failed to log dislike', err);
+    }
+  };
+
+  const handleSavePost = async () => {
+    setMenuOpen(false);
+    try {
+      await api.post(`/posts/${post.post_id}/save`);
+      alert('Post saved to bookmarks!');
+    } catch (err) {
+      console.error('Failed to save post', err);
+      alert('Failed to save post.');
+    }
+  };
+
+  const handleSnooze = async () => {
+    setMenuOpen(false);
+    try {
+      await api.post(`/posts/${post.post_id}/action`, { action_type: 'snooze' });
+      window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
+      alert(`Snoozed ${post.name || post.username} for 30 days.`);
+    } catch (err) {
+      console.error('Failed to snooze', err);
+    }
+  };
+
+  const handleHideAll = async () => {
+    setMenuOpen(false);
+    try {
+      await api.post(`/posts/${post.post_id}/action`, { action_type: 'hide_all' });
+      window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
+      alert(`Hiding all posts from ${post.name || post.username}.`);
+    } catch (err) {
+      console.error('Failed to hide all', err);
+    }
+  };
+
+  const handleWhySeeing = () => {
+    setMenuOpen(false);
+    let reason = "This post was recommended based on your interests and activity on Sparkle.";
+    if (isFollowed) {
+      reason = `You're seeing this because you follow ${post.name || post.username}.`;
+    } else if (post.category && post.category !== 'General') {
+      reason = `You're seeing this because you've shown interest in ${post.category} content.`;
+    }
+    alert(reason);
+  };
+
+  const handleToggleNotifications = () => {
+    setMenuOpen(false);
+    alert('Notifications turned on for this post! You will be alerted of new activity.');
+  };
+
   const handleNotInterested = () => {
     setMenuOpen(false);
+    window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
     alert('Post hidden. We\'ll show you less of this.');
   };
 
@@ -178,7 +265,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
   return (
     <div
       ref={cardRef}
-      className={`bg-white rounded-[6px] sm:rounded-xl shadow-sm overflow-hidden border border-gray-200 transition-opacity duration-300 ${
+      className={`bg-white rounded-[8px] sm:rounded-[12px] shadow-sm overflow-hidden border border-gray-200 transition-opacity duration-300 ${
         deleting ? 'opacity-30 pointer-events-none' : ''
       }`}
     >
@@ -275,14 +362,32 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
         {/* 3-dot and X menu Trigger */}
         <div className="flex items-center gap-2">
           <button
+            ref={menuBtnRef}
             onClick={e => {
               e.stopPropagation();
-              setActiveModal('post_options', null, { post });
+              if (window.innerWidth < 640) {
+                setActiveModal('post_options', null, { post });
+              } else {
+                if (!menuOpen) {
+                  const rect = menuBtnRef.current!.getBoundingClientRect();
+                  const DROPDOWN_W = 380;
+                  const CARET_HALF = 14;
+                  // Button center X in viewport
+                  const btnCenterX = (rect.left + rect.right) / 2;
+                  // Align dropdown's right edge with button's right edge, clamped to viewport
+                  const leftPos = Math.max(8, Math.min(rect.right - DROPDOWN_W, window.innerWidth - DROPDOWN_W - 8));
+                  // Caret's left offset inside the dropdown so it always points at the button center
+                  const caretLeft = Math.max(8, Math.min(btnCenterX - leftPos - CARET_HALF, DROPDOWN_W - 36));
+                  setDropdownPos({ top: rect.bottom + 8, left: leftPos, caretLeft });
+                }
+                setMenuOpen(prev => !prev);
+              }
             }}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
           >
             <MoreHorizontal size={20} />
           </button>
+
           <button
             onClick={handleNotInterested}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
@@ -290,6 +395,170 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             <X size={24} />
           </button>
         </div>
+
+        {createPortal(
+          <AnimatePresence>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-[9990]" onClick={() => setMenuOpen(false)} />
+                <motion.div
+                  ref={menuRef}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.12, ease: 'easeOut' }}
+                  style={{ top: dropdownPos.top, left: dropdownPos.left, position: 'fixed' }}
+                  className="w-[380px] bg-white rounded-[14px] shadow-[0_2px_32px_rgba(0,0,0,0.22)] z-[9991] relative"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/* Triangle caret — dynamically aligned to the ··· button center */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '-13px',
+                      left: `${dropdownPos.caretLeft}px`,
+                      width: 0,
+                      height: 0,
+                      borderLeft: '14px solid transparent',
+                      borderRight: '14px solid transparent',
+                      borderBottom: '14px solid white',
+                      filter: 'drop-shadow(0 -4px 4px rgba(0,0,0,0.18))',
+                      zIndex: 1,
+                    }}
+                  />
+                  {/* Inner wrapper clips items to the rounded corners */}
+                  <div className="overflow-hidden rounded-[14px]">
+                  {/* Scrollable list */}
+                  <div className="overflow-y-auto max-h-[480px] py-1">
+
+                    {/* Group 1 — Interest signals */}
+                    {!isOwner && (
+                      <>
+                        <button onClick={handleInterested} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <PlusCircle size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <div>
+                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Interested</p>
+                            <p className="text-[13px] text-[#65676b] leading-[1.3]">More of your posts will be like this.</p>
+                          </div>
+                        </button>
+                        <button onClick={handleNotInterestedAction} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <MinusCircle size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <div>
+                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Not interested</p>
+                            <p className="text-[13px] text-[#65676b] leading-[1.3]">Less of your posts will be like this.</p>
+                          </div>
+                        </button>
+                        <div className="h-px bg-[#ced0d4] my-1 mx-3" />
+                      </>
+                    )}
+
+                    {/* Group 2 — Save */}
+                    <button onClick={handleSavePost} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                        <Bookmark size={18} className="text-[#050505]" strokeWidth={2} />
+                      </div>
+                      <div>
+                        <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Save post</p>
+                        <p className="text-[13px] text-[#65676b] leading-[1.3]">Add this to your saved items.</p>
+                      </div>
+                    </button>
+
+                    <div className="h-px bg-[#ced0d4] my-1 mx-3" />
+
+                    {/* Group 3 — Info actions */}
+                    <button onClick={handleToggleNotifications} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                        <Bell size={18} className="text-[#050505]" strokeWidth={2} />
+                      </div>
+                      <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Turn on notifications for this post</p>
+                    </button>
+                    <button onClick={handleWhySeeing} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                        <Info size={18} className="text-[#050505]" strokeWidth={2} />
+                      </div>
+                      <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Why am I seeing this post?</p>
+                    </button>
+
+                    {!isOwner && (
+                      <>
+                        <div className="h-px bg-[#ced0d4] my-1 mx-3" />
+                        <button onClick={handleReport} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <Flag size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Report post</p>
+                        </button>
+                        <button onClick={handleNotInterestedAction} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <EyeOff size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <div>
+                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Hide post</p>
+                            <p className="text-[13px] text-[#65676b] leading-[1.3]">See fewer posts like this.</p>
+                          </div>
+                        </button>
+                        <button onClick={handleSnooze} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <Clock size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <div>
+                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Snooze {post.name || post.username} for 30 days</p>
+                            <p className="text-[13px] text-[#65676b] leading-[1.3]">Temporarily stop seeing posts.</p>
+                          </div>
+                        </button>
+                        <button onClick={handleHideAll} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <X size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <div>
+                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Hide all from {post.name || post.username}</p>
+                            <p className="text-[13px] text-[#65676b] leading-[1.3]">Stop seeing posts from this person.</p>
+                          </div>
+                        </button>
+                        <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <LinkIcon size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Copy link</p>
+                        </button>
+                      </>
+                    )}
+
+                    {isOwner && (
+                      <>
+                        <div className="h-px bg-[#ced0d4] my-1 mx-3" />
+                        <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <LinkIcon size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Copy link</p>
+                        </button>
+                        <button onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                            <Pencil size={18} className="text-[#050505]" strokeWidth={2} />
+                          </div>
+                          <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Edit post</p>
+                        </button>
+                        <button onClick={handleDelete} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                            <Trash2 size={18} className="text-red-600" strokeWidth={2} />
+                          </div>
+                          <p className="text-[15px] font-semibold text-red-600 leading-[1.3]">Delete post</p>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
       </div>
 
       {/* Content */}

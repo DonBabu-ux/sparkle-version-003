@@ -47,11 +47,11 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center bg-black/40 backdrop-blur-[4px] transition-opacity duration-300"
+      className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center bg-black/50 transition-opacity duration-75"
       onClick={onClose}
     >
       <div 
-        className="bg-white w-full sm:max-w-md rounded-t-[24px] sm:rounded-[24px] shadow-[0_-8px_30px_rgb(0,0,0,0.12)] flex flex-col overflow-hidden animate-slide-up will-change-transform"
+        className="bg-white w-full sm:max-w-md rounded-t-[24px] sm:rounded-[24px] shadow-[0_-8px_30px_rgb(0,0,0,0.12)] flex flex-col overflow-hidden will-change-transform"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-center p-4 border-b border-gray-100 relative bg-white">
@@ -66,7 +66,16 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
 
         <div className="p-2 overflow-y-auto max-h-[70vh] bg-white pb-safe">
           <button
-            onClick={() => { onClose(); setActiveModal('post', null, { editPost: post }); }}
+            onClick={async () => { 
+              try {
+                await api.post(`/posts/${post.post_id}/save`);
+                alert('Post saved to bookmarks!');
+                onClose();
+              } catch (err) {
+                console.error('Failed to save post', err);
+                alert('Failed to save post.');
+              }
+            }}
             className="w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors rounded-xl"
           >
             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">

@@ -205,7 +205,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-4 sm:mt-6 lg:mt-0">
           <section className="flex flex-col gap-1.5 sm:gap-4">
             {/* COMPOSER */}
-            <div className="bg-white sm:rounded-xl shadow-sm p-4 animate-fade-in border-y sm:border border-gray-200">
+            <div className="bg-white rounded-[8px] sm:rounded-[12px] shadow-sm p-4 animate-fade-in border sm:border border-gray-200">
               <div className="flex gap-3 items-center mb-4">
                 <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-10 h-10 rounded-full object-cover border border-gray-100" alt="" />
                 <button onClick={() => setActiveModal('creationHub')} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full py-2 px-4 text-left transition-colors text-[16px]">What's on your mind, {user?.name?.split(' ')[0] || ''}?</button>
@@ -281,12 +281,12 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <aside className="hidden xl:flex flex-col gap-4 sticky top-24 h-fit animate-fade-in">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="bg-white rounded-[12px] border border-gray-200 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4"><h3 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Suggested People</h3><Link to="/connect" className="text-[12px] font-bold text-blue-600 hover:underline">See all</Link></div>
               <div className="space-y-2">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4 opacity-30"><Orbit size={32} className="text-gray-400 animate-spin-slow" /><p className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest text-center">No Suggestions</p></div>}</div>
             </div>
             {/* Trending */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm overflow-hidden group">
+            <div className="bg-white rounded-[12px] border border-gray-200 p-6 shadow-sm overflow-hidden group">
                <div className="flex flex-col gap-4">
                   <h3 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Trending</h3>
                   <div className="space-y-3">{trendingTags.map(tag => (

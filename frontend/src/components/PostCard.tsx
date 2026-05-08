@@ -16,6 +16,7 @@ import { formatCount } from '../utils/format';
 import { trackingService } from '../services/TrackingService';
 import type { Post } from '../types/post';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
+import Avatar from './Avatar';
 import MentionText from './MentionText';
 import { getFeelingIcon, getActivityIcon } from '../utils/postUtils';
 
@@ -49,6 +50,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isOwner = currentUser?.user_id === post.user_id || currentUser?.username === post.username;
+  const isGroupAdmin = post.group_id && (post.user_role === 'admin' || post.user_role === 'owner' || post.user_role === 'moderator');
+  const canDelete = isOwner || isGroupAdmin || currentUser?.role === 'admin';
   const timeAgo = post.created_at
     ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
     : 'recently';
@@ -135,11 +138,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     setDeleting(true);
     setMenuOpen(false);
     try {
-      await api.delete(`/posts/${post.post_id}`);
+      if (post.group_id) {
+        await api.delete(`/groups/${post.group_id}/posts/${post.post_id}`);
+      } else {
+        await api.delete(`/posts/${post.post_id}`);
+      }
       onDeleted?.(post.post_id);
     } catch (err) {
       console.error('Failed to delete post:', err);
       setDeleting(false);
+      alert('Failed to delete post.');
     }
   };
 
@@ -272,10 +280,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       {/* Header */}
       <div className="flex items-start gap-2 p-3 pb-2">
         <Link to={`/profile/${post.username}`} className="shrink-0 mt-0.5">
-          <img
-            src={getAvatarUrl(post.avatar_url, post.username)}
-            className="w-10 h-10 rounded-full object-cover"
-            alt={post.username}
+          <Avatar 
+            src={post.avatar_url} 
+            name={post.name || post.username} 
+            size="md" 
           />
         </Link>
 
@@ -528,7 +536,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
                       </>
                     )}
 
-                    {isOwner && (
+                    {(isOwner || canDelete) && (
                       <>
                         <div className="h-px bg-[#ced0d4] my-1 mx-3" />
                         <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
@@ -537,18 +545,24 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
                           </div>
                           <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Copy link</p>
                         </button>
-                        <button onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <Pencil size={18} className="text-[#050505]" strokeWidth={2} />
-                          </div>
-                          <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Edit post</p>
-                        </button>
-                        <button onClick={handleDelete} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                            <Trash2 size={18} className="text-red-600" strokeWidth={2} />
-                          </div>
-                          <p className="text-[15px] font-semibold text-red-600 leading-[1.3]">Delete post</p>
-                        </button>
+                        
+                        {isOwner && (
+                          <button onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                            <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
+                              <Pencil size={18} className="text-[#050505]" strokeWidth={2} />
+                            </div>
+                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Edit post</p>
+                          </button>
+                        )}
+                        
+                        {canDelete && (
+                          <button onClick={handleDelete} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
+                            <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                              <Trash2 size={18} className="text-red-600" strokeWidth={2} />
+                            </div>
+                            <p className="text-[15px] font-semibold text-red-600 leading-[1.3]">Delete post</p>
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

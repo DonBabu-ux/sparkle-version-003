@@ -165,6 +165,40 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
     }
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      await api.delete(`/posts/comments/${commentId}`);
+      const removeComment = (list: Comment[]): Comment[] => {
+        return list.filter(c => c.comment_id !== commentId).map(c => {
+          if (c.replies) return { ...c, replies: removeComment(c.replies) };
+          return c;
+        });
+      };
+      setComments(removeComment(comments));
+    } catch (err) {
+      console.error('Failed to delete comment', err);
+      alert('Failed to delete comment.');
+    }
+  };
+
+  const handleUpdateComment = async (commentId: string, newContent: string) => {
+    try {
+      await api.patch(`/posts/comments/${commentId}`, { content: newContent });
+      const updateContent = (list: Comment[]): Comment[] => {
+        return list.map(c => {
+          if (c.comment_id === commentId) return { ...c, content: newContent };
+          if (c.replies) return { ...c, replies: updateContent(c.replies) };
+          return c;
+        });
+      };
+      setComments(updateContent(comments));
+    } catch (err) {
+      console.error('Failed to update comment', err);
+      alert('Failed to update comment.');
+    }
+  };
+
   return (
     <div className="flex flex-col h-[90vh] md:h-[600px] bg-white overflow-hidden relative border border-gray-200 rounded-t-xl md:rounded-xl shadow-2xl">
       <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white">
@@ -224,8 +258,11 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
               <CommentItem 
                 key={comment.comment_id} 
                 comment={comment} 
+                post={post}
                 onReply={(c) => setReplyingTo(c)} 
                 onLike={(id) => handleLike(id)} 
+                onDelete={(id) => handleDeleteComment(id)}
+                onUpdate={(id, content) => handleUpdateComment(id, content)}
                 onCloseModal={onClose}
               />
             ))}
@@ -340,13 +377,36 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   );
 }
 
-function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comment, onReply: (c: Comment) => void, onLike: (id: string) => void, onCloseModal: () => void }) {
+function CommentItem({ 
+  comment, 
+  post,
+  onReply, 
+  onLike, 
+  onDelete,
+  onUpdate,
+  onCloseModal 
+}: { 
+  comment: Comment, 
+  post: any,
+  onReply: (c: Comment) => void, 
+  onLike: (id: string) => void, 
+  onDelete: (id: string) => void,
+  onUpdate: (id: string, content: string) => void,
+  onCloseModal: () => void 
+}) {
+  const { user: currentUser } = useUserStore();
   const [showReplies, setShowReplies] = useState(false);
   const [translated, setTranslated] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<string | null>(null);
   const [translating, setTranslating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+
+  const isAuthor = currentUser?.user_id === comment.user_id || currentUser?.id === comment.user_id;
+  const isGroupAdmin = post.group_id && (post.user_role === 'admin' || post.user_role === 'owner' || post.user_role === 'moderator');
+  const canDelete = isAuthor || isGroupAdmin || currentUser?.role === 'admin';
 
   const hasReplies = comment.replies && comment.replies.length > 0;
 
@@ -406,7 +466,31 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
             {comment.username}
           </p>
           <div className="text-[14px] text-gray-800 break-words whitespace-pre-wrap leading-tight mt-0.5">
-            {translating ? (
+            {isEditing ? (
+              <div className="flex flex-col gap-2 mt-1">
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-lg p-2 text-[14px] outline-none focus:border-blue-500"
+                  rows={2}
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                  <button 
+                    onClick={() => { setIsEditing(false); setEditContent(comment.content); }}
+                    className="text-[12px] font-bold text-gray-500 hover:underline"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => { onUpdate(comment.comment_id, editContent); setIsEditing(false); }}
+                    className="text-[12px] font-bold text-blue-600 hover:underline"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            ) : translating ? (
               <div className="flex items-center gap-2 text-gray-400 py-1">
                 <Loader2 size={12} className="animate-spin" />
                 <span className="text-[12px]">Translating...</span>
@@ -419,7 +503,7 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
                 className={clsx(comment.content.length > 200 && !isExpanded && "line-clamp-6")}
               />
             )}
-            {comment.content.length > 200 && (
+            {!isEditing && comment.content.length > 200 && (
               <button 
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="text-gray-500 font-bold hover:underline ml-1 text-[13px]"
@@ -448,22 +532,24 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
             <button onClick={() => setShowMenu(!showMenu)} className="hover:text-gray-900 font-bold tracking-widest px-1">•••</button>
             {showMenu && (
               <div className="absolute top-full left-0 mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-scale-in">
-                <button 
-                  onClick={async () => { 
-                    setShowMenu(false); 
-                    const reason = window.prompt('Why are you reporting this comment?', 'Inappropriate content');
-                    if (!reason) return;
-                    try {
-                      await api.post('/moderation/reports', { comment_id: comment.comment_id, reason });
-                      alert('Comment reported.');
-                    } catch (err) {
-                      alert('Failed to report comment.');
-                    }
-                  }} 
-                  className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
-                >
-                  Report
-                </button>
+                {!isAuthor && (
+                  <button 
+                    onClick={async () => { 
+                      setShowMenu(false); 
+                      const reason = window.prompt('Why are you reporting this comment?', 'Inappropriate content');
+                      if (!reason) return;
+                      try {
+                        await api.post('/moderation/reports', { comment_id: comment.comment_id, reason });
+                        alert('Comment reported.');
+                      } catch (err) {
+                        alert('Failed to report comment.');
+                      }
+                    }} 
+                    className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Report
+                  </button>
+                )}
                 <button 
                   onClick={() => { 
                     setShowMenu(false); 
@@ -474,6 +560,22 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
                 >
                   Copy
                 </button>
+                {isAuthor && (
+                  <button 
+                    onClick={() => { setShowMenu(false); setIsEditing(true); }} 
+                    className="w-full text-left px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button 
+                    onClick={() => { setShowMenu(false); onDelete(comment.comment_id); }} 
+                    className="w-full text-left px-4 py-2 text-[13px] font-semibold text-red-600 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -491,8 +593,11 @@ function CommentItem({ comment, onReply, onLike, onCloseModal }: { comment: Comm
                   <CommentItem 
                     key={reply.comment_id} 
                     comment={reply} 
+                    post={post}
                     onReply={onReply} 
                     onLike={onLike} 
+                    onDelete={onDelete}
+                    onUpdate={onUpdate}
                     onCloseModal={onCloseModal}
                   />
                 ))}

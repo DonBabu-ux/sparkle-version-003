@@ -6,14 +6,16 @@ import {
   Users, Globe, Layers, MessageSquare, Lock, ArrowLeft, Shield, 
   Sparkles, ChevronRight, Share2, Info, Image as ImageIcon, 
   MoreHorizontal, UserPlus, Heart, MessageCircle, Flag, ShieldAlert,
-  Search, Camera, Plus, Activity
+  Search, Camera, Plus, Activity, Settings, LogOut
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import GroupPostModal from '../components/modals/GroupPostModal';
 import GroupInviteModal from '../components/modals/GroupInviteModal';
 import GroupSettingsModal from '../components/modals/GroupSettingsModal';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
+import Avatar from '../components/Avatar';
 
 import type { Post } from '../types/post';
 import type { Group } from '../types/group';
@@ -32,6 +34,7 @@ export default function GroupDetail() {
   const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
+  const [isOwner, setIsOwner] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('posts');
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
@@ -75,6 +78,7 @@ export default function GroupDetail() {
 
         setIsMember(!!groupData.userRole && groupData.memberStatus === 'active');
         setUserRole(groupData.userRole || '');
+        setIsOwner(groupData.userRole === 'owner');
         setPendingJoin(groupData.memberStatus === 'pending');
       }
     } catch (err) {
@@ -125,14 +129,14 @@ export default function GroupDetail() {
 
   if (!group) return null;
 
-  const isAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'moderator';
+   const isAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'moderator';
 
-  return (
+   return (
     <div className="flex min-h-screen bg-[#F0F2F5] font-sans text-slate-900">
       <Navbar />
       
       <main className="flex-1 lg:ml-72 pb-20 relative">
-        {/* Sticky Mobile Header with Back Button */}
+        {/* Sticky Mobile Header */}
         <div className="lg:hidden sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between">
            <button onClick={() => navigate('/groups')} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 active:scale-95 transition-all">
               <ArrowLeft size={20} />
@@ -160,22 +164,32 @@ export default function GroupDetail() {
                 />
                 <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-all" />
                 {isAdmin && (
-                  <button className="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg hover:bg-white transition-all">
-                    <Camera size={18} /> Edit Cover
-                  </button>
+                  <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                    <button 
+                      onClick={() => setShowSettingsModal(true)}
+                      className="bg-white/90 backdrop-blur px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-black shadow-lg hover:bg-white transition-all active:scale-95"
+                    >
+                      <Camera size={18} /> Edit Cover
+                    </button>
+                    <button 
+                      onClick={() => setShowSettingsModal(true)}
+                      className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-black shadow-lg hover:bg-primary/90 transition-all active:scale-95"
+                    >
+                      <Shield size={18} /> Circle Settings
+                    </button>
+                  </div>
                 )}
              </div>
 
              <div className="px-4 md:px-8 pb-4">
                 <div className="flex flex-col md:flex-row items-center md:items-end gap-6 -mt-12 md:-mt-16 mb-6">
                    <div className="relative">
-                      <img 
-                        src={group.icon_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&background=random&color=fff`} 
-                        className="w-32 h-32 md:w-44 md:h-44 rounded-full border-4 border-white shadow-md bg-white object-cover"
-                        alt=""
-                      />
+                      <Avatar src={group.icon_url} name={group.name} size="xxl" className="border-4 border-white shadow-md bg-white" />
                       {isAdmin && (
-                        <button className="absolute bottom-2 right-2 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200 hover:bg-gray-200 transition-all">
+                        <button 
+                          onClick={() => setShowSettingsModal(true)}
+                          className="absolute bottom-2 right-2 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200 hover:bg-gray-200 transition-all active:scale-90"
+                        >
                            <Camera size={20} />
                         </button>
                       )}
@@ -185,48 +199,112 @@ export default function GroupDetail() {
                       <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-1">{group.name}</h1>
                       <div className="flex items-center justify-center md:justify-start gap-2 text-gray-500 font-bold text-sm">
                          {group.is_public ? <Globe size={16} /> : <Lock size={16} />}
-                         <span>{group.is_public ? 'Public group' : 'Private group'}</span>
+                         <span>{group.is_public ? 'Public circle' : 'Private circle'}</span>
                          <span>•</span>
                          <span>{group.member_count} members</span>
                       </div>
                    </div>
 
-                   <div className="flex items-center gap-3 mb-2">
-                      <button 
-                        onClick={handleJoinLeave}
-                        className={`h-10 px-6 rounded-lg font-black text-sm flex items-center gap-2 transition-all ${
-                          isMember 
-                            ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' 
-                            : 'bg-primary text-white shadow-xl shadow-primary/40 hover:bg-primary/90'
-                        }`}
-                      >
-                         {isMember ? <Users size={18} /> : <UserPlus size={18} />}
-                         {isMember ? 'Joined' : pendingJoin ? 'Pending' : 'Join Group'}
-                      </button>
-                      <button 
-                        onClick={() => setShowInviteModal(true)}
-                        className="h-10 px-6 bg-gray-200 text-gray-800 rounded-lg font-black text-sm hover:bg-gray-300 transition-all flex items-center gap-2"
-                      >
-                         <Plus size={18} /> Invite
-                      </button>
-                      <div 
-                        onClick={() => setShowDropdown(!showDropdown)}
-                        className="h-10 w-10 bg-gray-200 text-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-300 transition-all relative cursor-pointer"
-                      >
-                         <MoreHorizontal size={20} />
-                         {showDropdown && (
-                           <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-2">
-                              <button onClick={() => setShowSettingsModal(true)} className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-sm font-bold text-gray-700">
-                                <Shield size={18} className="text-gray-400" /> Group Settings
-                              </button>
-                              <button className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-sm font-bold text-gray-700">
-                                <Share2 size={18} className="text-gray-400" /> Share Group
-                              </button>
-                              <button className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-sm font-bold text-gray-700">
-                                <Flag size={18} className="text-gray-400" /> Report Group
-                              </button>
-                           </div>
-                         )}
+                    <div className="flex items-center gap-2 mb-2">
+                        {/* ADMIN DASHBOARD (Shield) */}
+                        {isAdmin && (
+                          <button 
+                            onClick={() => setShowSettingsModal(true)}
+                            title="Admin Dashboard"
+                            className="h-10 w-10 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg shadow-primary/30 hover:bg-primary/90 transition-all active:scale-90"
+                          >
+                             <Shield size={20} />
+                          </button>
+                        )}
+
+                        {/* MEMBER SETTINGS (Gear) - if member */}
+                        {isMember && (
+                          <button 
+                            onClick={() => setShowDropdown(!showDropdown)}
+                            title="Member Settings"
+                            className="h-10 w-10 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-all active:scale-90"
+                          >
+                             <Settings size={20} />
+                          </button>
+                        )}
+
+                        {/* JOIN / REQUEST BUTTON */}
+                        {!isMember && !isAdmin && (
+                          <button 
+                            onClick={handleJoinLeave}
+                            disabled={pendingJoin}
+                            className={`h-10 px-8 rounded-lg font-black text-sm flex items-center gap-2 transition-all active:scale-95 ${
+                              pendingJoin 
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                : 'bg-primary text-white shadow-xl shadow-primary/40 hover:bg-primary/90'
+                            }`}
+                          >
+                             {pendingJoin ? 'Requested' : <><UserPlus size={18} /> Join Circle</>}
+                          </button>
+                        )}
+
+                        {/* INVITE BUTTON */}
+                        {(isMember || isAdmin) && (
+                          <button 
+                            onClick={() => setShowInviteModal(true)}
+                            className="h-10 px-6 bg-gray-100 text-gray-800 rounded-lg font-black text-sm hover:bg-gray-200 transition-all flex items-center gap-2 active:scale-95"
+                          >
+                             <Plus size={18} /> Invite
+                          </button>
+                        )}
+                      <div className="relative">
+                        {!isMember && (
+                          <div 
+                            onClick={() => setShowDropdown(!showDropdown)}
+                            className="h-10 w-10 bg-gray-200 text-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-300 transition-all relative cursor-pointer active:scale-90"
+                          >
+                             <MoreHorizontal size={20} />
+                          </div>
+                        )}
+                        
+                        <AnimatePresence>
+                          {showDropdown && (
+                            <>
+                              <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-40"
+                                onClick={() => setShowDropdown(false)}
+                              />
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                transition={{ duration: 0.1, ease: 'easeOut' }}
+                                className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 p-2 overflow-hidden"
+                              >
+                                 <button 
+                                   onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Link copied!'); setShowDropdown(false); }}
+                                   className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-sm font-black text-gray-700 transition-colors"
+                                 >
+                                   <Share2 size={18} className="text-gray-400" /> Share Circle
+                                 </button>
+                                 
+                                 <button 
+                                   onClick={() => { alert('Reported'); setShowDropdown(false); }}
+                                   className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-sm font-black text-gray-400 transition-colors"
+                                 >
+                                   <Flag size={18} className="text-gray-300" /> Report Circle
+                                 </button>
+ 
+                                 {isMember && !isOwner && (
+                                    <button 
+                                      onClick={() => { handleJoinLeave(); setShowDropdown(false); }}
+                                      className="w-full flex items-center gap-3 p-3 hover:bg-red-50 rounded-lg text-sm font-black text-red-500 transition-colors border-t border-gray-50 mt-1 pt-3"
+                                    >
+                                      <LogOut size={18} className="text-red-400" /> Leave Circle
+                                    </button>
+                                 )}
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
                       </div>
                    </div>
                 </div>
@@ -255,6 +333,7 @@ export default function GroupDetail() {
            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               <div className="lg:col-span-4 space-y-6">
+                 {/* ABOUT SIDEBAR */}
                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                     <h3 className="text-xl font-black text-gray-900 mb-4">About</h3>
                     <p className="text-sm text-gray-600 leading-relaxed mb-6 font-medium">
@@ -264,181 +343,143 @@ export default function GroupDetail() {
                        <div className="flex items-center gap-3 text-sm text-gray-700 font-bold">
                           <Globe size={20} className="text-gray-400" />
                           <div>
-                             <p>Public</p>
-                             <p className="text-xs text-gray-500 font-medium">Anyone can see who's in the group and what they post.</p>
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-3 text-sm text-gray-700 font-bold">
-                          <Users size={20} className="text-gray-400" />
-                          <div>
-                             <p>Visible</p>
-                             <p className="text-xs text-gray-500 font-medium">Anyone can find this group.</p>
+                             <p>{group.is_public ? 'Public' : 'Private'}</p>
+                             <p className="text-xs text-gray-500 font-medium">
+                                {group.is_public ? 'Anyone can see content and posts.' : 'Only approved members can see content.'}
+                             </p>
                           </div>
                        </div>
                        <div className="flex items-center gap-3 text-sm text-gray-700 font-bold">
                           <Info size={20} className="text-gray-400" />
                           <div>
-                             <p>{group.category || 'General'} Group</p>
+                             <p>{group.category || 'General'} Circle</p>
                           </div>
                        </div>
                     </div>
                     <button 
-                      onClick={() => {
-                        setActiveTab('about');
-                        window.scrollTo({ top: 400, behavior: 'smooth' });
-                      }} 
+                      onClick={() => setActiveTab('about')} 
                       className="w-full mt-6 py-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg font-black text-sm transition-all"
                     >
                        Learn More
                     </button>
                  </div>
 
+                 {/* MEMBER PREVIEW (MEMBER LIST VISIBILITY) */}
                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                     <div className="flex items-center justify-between mb-4">
-                       <h3 className="text-xl font-black text-gray-900">Photos</h3>
-                       <button onClick={() => setActiveTab('media')} className="text-sm font-bold text-primary hover:underline">See all</button>
+                       <h3 className="text-xl font-black text-gray-900">Members</h3>
+                       <button onClick={() => setActiveTab('members')} className="text-sm font-bold text-primary hover:underline">See all</button>
                     </div>
-                    <div className="grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
-                       {media.length > 0 ? (
-                         media.slice(0, 4).map((item, idx) => (
-                           <div key={idx} className="aspect-square bg-gray-100 relative group overflow-hidden cursor-pointer" onClick={() => setActiveTab('media')}>
-                             <img 
-                               src={item.media_url.startsWith('http') ? item.media_url : `http://localhost:3000/${item.media_url.replace(/\\/g, '/')}`} 
-                               className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
-                               alt="" 
-                             />
-                             {idx === 3 && media.length > 4 && (
-                               <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-xl">
-                                 +{media.length - 4}
-                               </div>
-                             )}
-                           </div>
-                         ))
-                       ) : (
-                         [1,2,3,4,5,6].map(i => (
-                            <div key={i} className="aspect-square bg-gray-100" />
-                         ))
+                    <div className="flex items-center gap-2 mb-4">
+                       <div className="flex items-center -space-x-3">
+                          {members.slice(0, 5).map((m, i) => (
+                             <Avatar key={i} src={m.avatar} name={m.username} size="md" className="border-2 border-white" />
+                          ))}
+                       </div>
+                       {group.member_count > 5 && (
+                          <span className="text-xs text-gray-500 font-black ml-1">+{group.member_count - 5} others</span>
                        )}
                     </div>
+                    <button 
+                      onClick={() => setShowInviteModal(true)}
+                      className="w-full py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-black text-sm transition-all flex items-center justify-center gap-2"
+                    >
+                       <UserPlus size={18} /> Invite to Circle
+                    </button>
                  </div>
               </div>
 
               <div className="lg:col-span-8 space-y-6">
+                 {/* VISIBILITY LOGIC: Hidden content for private groups */}
                  {activeTab === 'posts' && (
                     <>
-                       {isMember ? (
-                          <div className="bg-white rounded-[32px] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden group transition-all hover:shadow-primary/10">
-                             <div className="p-5 md:p-6">
-                                <div className="flex items-center gap-4 mb-6">
-                                   <div className="relative">
-                                      <img 
-                                        src={getAvatarUrl(user?.avatar_url, user?.username)} 
-                                        className="w-12 h-12 rounded-2xl object-cover ring-4 ring-gray-50 shadow-sm" 
-                                        alt="" 
-                                      />
-                                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full" />
+                       {isMember || group.is_public ? (
+                          <>
+                             {isMember && (
+                                <div className="bg-white rounded-[32px] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden group transition-all hover:shadow-primary/10">
+                                   <div className="p-5 md:p-6">
+                                      <div className="flex items-center gap-4 mb-6">
+                                         <Avatar 
+                                           src={user?.avatar_url} 
+                                           name={user?.username} 
+                                           size="lg" 
+                                           className="rounded-2xl ring-4 ring-gray-50"
+                                         />
+                                         <button 
+                                           onClick={() => { setPostModalView('post'); setShowPostModal(true); }}
+                                           className="flex-1 bg-gray-50 hover:bg-white hover:ring-2 hover:ring-primary/20 text-gray-400 text-left px-6 py-4 rounded-[20px] font-bold text-base transition-all"
+                                         >
+                                            What's on your mind?
+                                         </button>
+                                      </div>
+                                      <div className="grid grid-cols-3 gap-3">
+                                          <button onClick={() => { setPostModalView('post'); setShowPostModal(true); }} className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-green-50 rounded-[20px] transition-all group/btn">
+                                             <ImageIcon size={20} className="text-green-500" />
+                                             <span className="text-[10px] md:text-xs font-black text-gray-500 uppercase tracking-widest">Photo</span>
+                                          </button>
+                                          <button onClick={() => setShowInviteModal(true)} className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-blue-50 rounded-[20px] transition-all group/btn">
+                                             <UserPlus size={20} className="text-blue-500" />
+                                             <span className="text-[10px] md:text-xs font-black text-gray-500 uppercase tracking-widest">Invite</span>
+                                          </button>
+                                          <button onClick={() => { setPostModalView('feeling'); setShowPostModal(true); }} className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-yellow-50 rounded-[20px] transition-all group/btn">
+                                             <Activity size={20} className="text-yellow-500" />
+                                             <span className="text-[10px] md:text-xs font-black text-gray-500 uppercase tracking-widest">Feeling</span>
+                                          </button>
+                                       </div>
                                    </div>
-                                   <button 
-                                     onClick={() => { setPostModalView('post'); setShowPostModal(true); }}
-                                     className="flex-1 bg-gray-50 hover:bg-white hover:ring-2 hover:ring-primary/20 text-gray-400 text-left px-6 py-4 rounded-[20px] font-bold text-base transition-all"
-                                   >
-                                      What's on your mind?
-                                   </button>
                                 </div>
-                                
-                                <div className="grid grid-cols-3 gap-3">
-                                    <button onClick={() => { setPostModalView('post'); setShowPostModal(true); }} className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-green-50 rounded-[20px] transition-all group/btn">
-                                       <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center text-green-500 group-hover/btn:scale-110 transition-transform">
-                                          <ImageIcon size={20} />
-                                       </div>
-                                       <span className="text-[10px] md:text-xs font-black text-gray-500 uppercase tracking-widest">Photo</span>
-                                    </button>
-                                    <button onClick={() => { setPostModalView('post'); setShowPostModal(true); }} className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-blue-50 rounded-[20px] transition-all group/btn">
-                                       <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center text-blue-500 group-hover/btn:scale-110 transition-transform">
-                                          <UserPlus size={20} />
-                                       </div>
-                                       <span className="text-[10px] md:text-xs font-black text-gray-500 uppercase tracking-widest">Tag</span>
-                                    </button>
-                                    <button onClick={() => { setPostModalView('feeling'); setShowPostModal(true); }} className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-yellow-50 rounded-[20px] transition-all group/btn">
-                                       <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center text-yellow-500 group-hover/btn:scale-110 transition-transform">
-                                          <Activity size={20} />
-                                       </div>
-                                       <span className="text-[10px] md:text-xs font-black text-gray-500 uppercase tracking-widest">Activity</span>
-                                    </button>
-                                 </div>
+                             )}
+
+                             <div className="space-y-6">
+                                {posts.length > 0 ? posts.map(post => (
+                                   <PostCard key={post.post_id} post={post} />
+                                )) : (
+                                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-400 font-bold uppercase tracking-widest text-sm">
+                                      No posts yet
+                                   </div>
+                                )}
                              </div>
-                             <div className="bg-gray-50/50 px-8 py-3 flex items-center justify-between border-t border-gray-100">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Community Spark</span>
-                                <div className="flex gap-1">
-                                   <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                                   <div className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
-                                </div>
+                          </>
+                       ) : (
+                          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center space-y-6">
+                             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                                <Lock size={40} />
                              </div>
-                          </div>
-                       ) : !group.is_public && (
-                          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center space-y-4">
-                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
-                                <Lock size={32} />
-                             </div>
-                             <h3 className="text-2xl font-black text-gray-900">This Group is Private</h3>
-                             <p className="text-gray-500 font-medium">Join this group to view posts and participate in discussions.</p>
-                             <button onClick={handleJoinLeave} className="px-8 py-3 bg-primary text-white rounded-lg font-black text-sm shadow-xl shadow-primary/40">
-                                Join Group
-                             </button>
+                             <h3 className="text-3xl font-black text-gray-900 tracking-tight">This Circle is Private</h3>
+                             <p className="text-gray-500 font-medium max-w-sm mx-auto">Join this circle to view posts, participate in discussions, and connect with the community.</p>
+                             {!isMember && (
+                                <button 
+                                  onClick={handleJoinLeave}
+                                  className="px-10 py-4 bg-primary text-white rounded-xl font-black text-sm shadow-2xl shadow-primary/40 hover:scale-105 transition-all"
+                                >
+                                  Join Circle
+                                </button>
+                             )}
                           </div>
                        )}
-
-                       <div className="space-y-6">
-                          {posts.length > 0 ? posts.map(post => (
-                             <PostCard key={post.post_id} post={post} />
-                          )) : (
-                             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-400 font-bold uppercase tracking-widest text-sm">
-                                No posts yet
-                             </div>
-                          )}
-                       </div>
                     </>
                  )}
 
                  {activeTab === 'about' && (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-8">
-                       <div className="flex items-center gap-4 mb-2">
-                          <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary">
-                             <Info size={24} />
-                          </div>
-                          <h2 className="text-2xl font-black text-gray-900">About this group</h2>
-                       </div>
-                       <div className="space-y-6 text-gray-600 leading-relaxed font-medium">
-                          <p className="text-[17px]">{group.description || 'Welcome to our community! This space is dedicated to sharing ideas, organizing events, and connecting with others.'}</p>
-                          <div className="grid grid-cols-2 gap-4 pt-4">
-                             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Members</p>
-                                <p className="text-xl font-black text-gray-900">{group.memberCount || 0}</p>
-                             </div>
-                             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Created</p>
-                                <p className="text-xl font-black text-gray-900">{new Date(group.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
-                             </div>
-                          </div>
-                       </div>
+                       <h2 className="text-2xl font-black text-gray-900">About this circle</h2>
+                       <p className="text-[17px] text-gray-600 leading-relaxed font-medium">
+                          {group.description || 'No description provided.'}
+                       </p>
                        <div className="pt-8 border-t border-gray-100">
                           <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
-                             <Shield size={20} className="text-primary" /> Group rules
+                             <Shield size={20} className="text-primary" /> Community Rules
                           </h3>
                           <div className="space-y-4">
                              {[
-                               { t: 'Be kind and courteous', d: 'We\'re all in this together to create a welcoming environment.' },
-                               { t: 'No hate speech or bullying', d: 'Make sure everyone feels safe and respected.' },
-                               { t: 'No promotions or spam', d: 'Give more than you take to this community.' },
-                               { t: 'Respect privacy', d: 'What\'s shared in the group should stay in the group.' }
+                                { t: 'Be respectful', d: 'Treat everyone with kindness and respect.' },
+                                { t: 'No spam', d: 'Do not post promotional content or spam.' },
+                                { t: 'Privacy first', d: 'Respect the privacy of all community members.' }
                              ].map((r, i) => (
-                               <div key={i} className="p-5 bg-white border border-gray-100 rounded-2xl hover:border-primary/40 transition-all group/rule">
-                                  <p className="font-bold text-gray-900 mb-1 flex items-center gap-2">
-                                     <span className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-black group-hover/rule:bg-primary group-hover/rule:text-white transition-colors">{i+1}</span>
-                                     {r.t}
-                                  </p>
-                                  <p className="text-sm text-gray-500 font-medium pl-8">{r.d}</p>
-                               </div>
+                                <div key={i} className="p-5 bg-gray-50 border border-gray-100 rounded-2xl">
+                                   <p className="font-bold text-gray-900 mb-1">{i+1}. {r.t}</p>
+                                   <p className="text-sm text-gray-500 font-medium">{r.d}</p>
+                                </div>
                              ))}
                           </div>
                        </div>
@@ -447,21 +488,13 @@ export default function GroupDetail() {
 
                  {activeTab === 'members' && (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                       <h2 className="text-2xl font-black text-gray-900 mb-6">Members</h2>
-                       <div className="relative mb-6">
-                          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                          <input 
-                            type="text" 
-                            placeholder="Find a member" 
-                            value={memberSearchQuery}
-                            onChange={(e) => setMemberSearchQuery(e.target.value)}
-                            className="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-10 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/40" 
-                          />
+                       <div className="flex items-center justify-between mb-6">
+                          <h2 className="text-2xl font-black text-gray-900">Members</h2>
+                          <span className="bg-gray-100 px-3 py-1 rounded-full text-xs font-black text-gray-500">{group.member_count} Total</span>
                        </div>
+                       
                        <div className="space-y-4">
-                          {members
-                           .filter(m => m.name?.toLowerCase().includes(memberSearchQuery.toLowerCase()) || m.username?.toLowerCase().includes(memberSearchQuery.toLowerCase()))
-                           .map((m, i) => (
+                          {members.map((m, i) => (
                              <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-all cursor-pointer" onClick={() => navigate(`/profile/${m.username}`)}>
                                 <div className="flex items-center gap-4">
                                    <img 
@@ -470,51 +503,33 @@ export default function GroupDetail() {
                                      alt="" 
                                    />
                                    <div>
-                                      <p className="font-bold text-gray-900">{m.name}</p>
-                                      <p className="text-xs text-gray-500 font-medium">@{m.username} \u2022 {m.role.charAt(0).toUpperCase() + m.role.slice(1)}</p>
+                                      <p className="font-bold text-gray-900 flex items-center gap-2">
+                                         {m.name}
+                                         {m.role === 'owner' && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-600 text-[10px] font-black rounded-full uppercase">Founder</span>}
+                                         {m.role === 'admin' && <span className="px-2 py-0.5 bg-blue-100 text-blue-600 text-[10px] font-black rounded-full uppercase">Admin</span>}
+                                      </p>
+                                      <p className="text-xs text-gray-500 font-medium">@{m.username}</p>
                                    </div>
                                 </div>
-                                {m.user_id !== user?.user_id && (
-                                  <button className={`h-9 px-4 rounded-lg text-xs font-black transition-all shadow-md active:scale-95 ${
-                                    m.is_followed 
-                                      ? 'bg-primary text-white shadow-primary/30' 
-                                      : 'bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white'
-                                  }`}>
-                                     {m.is_followed ? 'Following' : 'Follow'}
-                                  </button>
+                                {isAdmin && m.user_id !== user?.user_id && (
+                                   <button 
+                                     onClick={(e) => { e.stopPropagation(); setShowSettingsModal(true); }}
+                                     className="p-2 hover:bg-gray-200 rounded-lg text-gray-400"
+                                   >
+                                      <Shield size={18} />
+                                   </button>
                                 )}
                              </div>
                           ))}
-                          {members.length === 0 && (
-                            <div className="py-12 text-center text-gray-400 font-bold uppercase tracking-widest text-sm">
-                              No members found
-                            </div>
+                          {/* MEMBER LIST VISIBILITY SYSTEM */}
+                          {!isAdmin && group.member_count > 20 && (
+                             <div className="py-8 text-center border-t border-dashed border-gray-100 mt-4">
+                                <p className="text-sm text-gray-400 font-black uppercase tracking-widest">
+                                   and {group.member_count - 20} others
+                                </p>
+                             </div>
                           )}
                        </div>
-                    </div>
-                 )}
-
-                 {activeTab === 'media' && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                       <h2 className="text-2xl font-black text-gray-900 mb-6">Group Media</h2>
-                       {media.length > 0 ? (
-                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                           {media.map((item, i) => (
-                             <div key={i} className="aspect-square rounded-xl overflow-hidden group relative cursor-pointer">
-                                <img 
-                                  src={item.media_url.startsWith('http') ? item.media_url : `http://localhost:3000/${item.media_url.replace(/\\/g, '/')}`} 
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                                  alt="" 
-                                />
-                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                             </div>
-                           ))}
-                         </div>
-                       ) : (
-                         <div className="py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-sm border-2 border-dashed border-gray-100 rounded-xl">
-                            No photos or videos yet
-                         </div>
-                       )}
                     </div>
                  )}
               </div>
@@ -522,37 +537,24 @@ export default function GroupDetail() {
         </div>
       </main>
 
+      {/* Modals remain same but handle updated roles */}
       {showPostModal && (
         <GroupPostModal 
           groupId={id!} 
           groupName={group.name} 
           initialView={postModalView}
           onClose={() => setShowPostModal(false)}
-          onSuccess={() => {
-            setShowPostModal(false);
-            fetchGroupData(); 
-          }}
+          onSuccess={() => { setShowPostModal(false); fetchGroupData(); }}
         />
       )}
-
-      {showInviteModal && (
-        <GroupInviteModal 
-          groupId={id!} 
-          groupName={group.name} 
-          onClose={() => setShowInviteModal(false)}
-        />
-      )}
-
+      {showInviteModal && <GroupInviteModal groupId={id!} groupName={group.name} onClose={() => setShowInviteModal(false)} />}
       {showSettingsModal && (
         <GroupSettingsModal 
           groupId={id!} 
           groupData={group}
           userRole={userRole}
           onClose={() => setShowSettingsModal(false)}
-          onUpdate={() => {
-            setShowSettingsModal(false);
-            fetchGroupData();
-          }}
+          onUpdate={() => { setShowSettingsModal(false); fetchGroupData(); }}
         />
       )}
     </div>

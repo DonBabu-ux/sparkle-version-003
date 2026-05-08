@@ -13,45 +13,45 @@
   --font-sans: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-heading: "Varela Round", var(--font-sans);
 
-  /* Colors - Pink Soft Palette */
-  --color-primary: #FF3D6D;
-  --color-primary-600: #e31b4d;
-  --color-primary-400: #ff6b8b;
+  /* Colors - Vibrant Electric Pink Palette */
+  --color-primary: #FF006E;
+  --color-primary-600: #d9005d;
+  --color-primary-400: #ff4d9c;
   
   --color-secondary: #000000;
   --color-secondary-600: #000000;
   
-  --color-rose-500: #FF3D6D;
-  --color-rose-400: #fb7185;
-  --color-rose-200: #fecdd3;
+  --color-rose-500: #FF006E;
+  --color-rose-400: #ff2d85;
+  --color-rose-200: #ffb3d1;
 
   --color-slate-950: #fff1f2;
   --color-slate-900: #ffe4e6;
   --color-slate-800: #fecdd3;
   
-  /* Restoring Pink Spectrum to actual Pink */
-  --color-pink-50: #fff1f2;
-  --color-pink-100: #ffe4e6;
-  --color-pink-200: #fecdd3;
-  --color-pink-300: #f9a8d4;
-  --color-pink-400: #f472b6;
-  --color-pink-500: #FF3D6D;
-  --color-pink-600: #db2777;
-  --color-pink-700: #be185d;
-  --color-pink-800: #9d174d;
-  --color-pink-900: #831843;
+  /* Restoring Pink Spectrum to Vibrant Pink */
+  --color-pink-50: #fff5f7;
+  --color-pink-100: #ffebee;
+  --color-pink-200: #ffccd5;
+  --color-pink-300: #ff99ae;
+  --color-pink-400: #ff4d7d;
+  --color-pink-500: #FF006E;
+  --color-pink-600: #e60063;
+  --color-pink-700: #bf0052;
+  --color-pink-800: #990042;
+  --color-pink-900: #7a0035;
   
   /* Charcoal for specific use cases */
   --color-charcoal-900: #121212;
   --color-charcoal-700: #333333;
   --color-charcoal-500: #4a4a4a;
   
-  /* Gradients */
-  --background-image-primary-gradient: linear-gradient(135deg, #ff6b8b 0%, #ff3d6d 100%);
-  --background-image-secondary-gradient: linear-gradient(135deg, #222 0%, #000 100%);
-  --background-image-universe-gradient: linear-gradient(135deg, #fff0f4 0%, #fff9fa 55%, #fef0f5 100%);
-  --background-image-pink-glow: radial-gradient(circle at center, rgba(255, 61, 109, 0.22) 0%, transparent 70%);
-  --background-image-glass-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 240, 244, 0.6) 100%);
+  /* Gradients - More Vibrant */
+  --background-image-primary-gradient: linear-gradient(135deg, #ff4d9c 0%, #ff006e 100%);
+  --background-image-secondary-gradient: linear-gradient(135deg, #333 0%, #000 100%);
+  --background-image-universe-gradient: linear-gradient(135deg, #fff2f6 0%, #fffbfc 55%, #fdf5f8 100%);
+  --background-image-pink-glow: radial-gradient(circle at center, rgba(255, 0, 110, 0.28) 0%, transparent 75%);
+  --background-image-glass-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 242, 246, 0.7) 100%);
 
   /* Border Radii */
   --radius-sm: 8px;

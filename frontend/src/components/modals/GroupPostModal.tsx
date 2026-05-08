@@ -70,7 +70,12 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
       }
       
       files.forEach(f => fd.append('image', f));
-      await api.post(`/groups/${groupId}/post`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await api.post(`/groups/${groupId}/post`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      
+      if (res.data.status === 'pending') {
+        alert('Your post has been submitted and is waiting for admin approval.');
+      }
+
       onSuccess();
       onClose();
     } catch (err) {

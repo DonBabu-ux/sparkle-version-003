@@ -22,6 +22,7 @@ import {
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import { getAvatarUrl } from '../utils/imageUtils';
+import Avatar from './Avatar';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -117,10 +118,11 @@ export default function Sidebar() {
               )}
               <div className="shrink-0 w-8 h-8 flex items-center justify-center transition-transform group-hover/item:scale-125 group-hover/item:rotate-6">
                 {item.isProfile ? (
-                  <img 
-                    src={getAvatarUrl(user?.avatar_url, user?.username)} 
-                    className={cn("w-9 h-9 rounded-full object-cover border-2 transition-all duration-700", isActive(item.path) ? "border-primary/20" : "border-transparent group-hover/item:border-gray-100")}
-                    alt="Profile"
+                  <Avatar 
+                    src={user?.avatar_url} 
+                    name={user?.username} 
+                    size="sm"
+                    className={cn("border-2 transition-all duration-700", isActive(item.path) ? "border-primary/20" : "border-transparent group-hover/item:border-gray-100")}
                   />
                 ) : (
                   <item.icon size={26} strokeWidth={isActive(item.path) ? 4 : 3} />
@@ -228,16 +230,18 @@ export default function Sidebar() {
              exit={{ opacity: 0, y: 10 }}
              className="px-8 mt-4 pt-8 border-t border-black/5 overflow-hidden"
           >
-             <div className="flex items-center gap-5">
-                <div className="w-12 h-12 rounded-2xl bg-black text-white flex items-center justify-center font-black italic shadow-2xl relative group/avatar">
-                   {user?.username?.charAt(0).toUpperCase()}
-                   <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-4 border-white"></div>
-                </div>
+              <div className="flex items-center gap-5">
+                <Avatar 
+                  src={user?.avatar_url} 
+                  name={user?.username} 
+                  size="lg"
+                  className="rounded-2xl"
+                />
                 <div className="flex flex-col min-w-0">
                    <span className="font-black text-black text-sm uppercase tracking-tighter truncate italic">@{user?.username}</span>
                    <span className="text-[10px] font-black text-black/20 uppercase tracking-widest mt-1 italic">Authenticated</span>
                 </div>
-             </div>
+              </div>
           </motion.div>
         )}
       </AnimatePresence>

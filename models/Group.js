@@ -234,7 +234,7 @@ class Group {
         });
     }
     /**
-     * Admin Management
+     * Admin Management & Moderation
      */
     static async getPendingRequests(groupId) {
         const [rows] = await pool.query(
@@ -273,6 +273,43 @@ class Group {
         return true;
     }
 
+    static async muteMember(groupId, userId, muted = true) {
+        await pool.query('UPDATE group_members SET muted = ? WHERE group_id = ? AND user_id = ?', [muted ? 1 : 0, groupId, userId]);
+        return true;
+    }
+
+    static async banMember(groupId, userId, banned = true) {
+        await pool.query('UPDATE group_members SET banned = ? WHERE group_id = ? AND user_id = ?', [banned ? 1 : 0, groupId, userId]);
+        return true;
+    }
+
+    /**
+     * Post Moderation
+     */
+    static async getPendingPosts(groupId) {
+        const [rows] = await pool.query(
+            `SELECT p.*, u.username, u.name, u.avatar_url,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                     FROM post_media pm WHERE pm.post_id = p.post_id) as media_files
+             FROM posts p
+             JOIN users u ON p.user_id = u.user_id
+             WHERE p.group_id = ? AND p.approval_status = 'pending'
+             ORDER BY p.created_at DESC`,
+            [groupId]
+        );
+        return rows;
+    }
+
+    static async approvePost(postId) {
+        await pool.query("UPDATE posts SET approval_status = 'approved' WHERE post_id = ?", [postId]);
+        return true;
+    }
+
+    static async rejectPost(postId) {
+        await pool.query("UPDATE posts SET approval_status = 'rejected' WHERE post_id = ?", [postId]);
+        return true;
+    }
+
     /**
      * Get member preview (up to 3, prioritized by followed users)
      */
@@ -281,7 +318,7 @@ class Group {
             SELECT u.user_id, u.username, u.avatar_url as avatar, u.name
             FROM group_members gm
             JOIN users u ON gm.user_id = u.user_id
-            WHERE gm.group_id = ? AND gm.status = 'active'
+            WHERE gm.group_id = ? AND gm.status = 'active' AND gm.banned = 0
         `;
         
         const params = [groupId];
@@ -301,19 +338,26 @@ class Group {
 
     /**
      * Get all members with detailed info for the members tab
+     * Restricted logic: If not admin, limit to 20
      */
-    static async getMembersDetailed(groupId, currentUserId = null) {
+    static async getMembersDetailed(groupId, currentUserId = null, isAdmin = false) {
         let query = `
-            SELECT u.user_id, u.username, u.name, u.avatar_url as avatar, gm.role, gm.status,
+            SELECT u.user_id, u.username, u.name, u.avatar_url as avatar, gm.role, gm.status, gm.muted, gm.banned,
                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
                    (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id AND following_id = ?) as follows_me
             FROM group_members gm
             JOIN users u ON gm.user_id = u.user_id
-            WHERE gm.group_id = ? AND gm.status = 'active'
-            ORDER BY gm.role = 'admin' DESC, gm.role = 'moderator' DESC, gm.created_at ASC
+            WHERE gm.group_id = ? AND gm.status = 'active' AND gm.banned = 0
+            ORDER BY gm.role = 'owner' DESC, gm.role = 'admin' DESC, gm.role = 'moderator' DESC, gm.created_at ASC
         `;
         
-        const [rows] = await pool.query(query, [currentUserId, currentUserId, groupId]);
+        const params = [currentUserId, currentUserId, groupId];
+
+        if (!isAdmin) {
+            query += ` LIMIT 20 `;
+        }
+        
+        const [rows] = await pool.query(query, params);
         return rows;
     }
 
@@ -321,7 +365,10 @@ class Group {
      * Update group settings
      */
     static async update(groupId, data) {
-        const allowedFields = ['name', 'description', 'icon_url', 'cover_image', 'is_public', 'category', 'requires_approval', 'allow_posts'];
+        const allowedFields = [
+            'name', 'description', 'icon_url', 'cover_image', 'is_public', 'category', 
+            'requires_approval', 'allow_posts', 'require_post_approval', 'who_can_post', 'who_can_invite'
+        ];
         const updates = [];
         const params = [];
         
@@ -340,7 +387,8 @@ class Group {
     }
 
     static async deletePost(postId) {
-        await pool.query('DELETE FROM group_posts WHERE post_id = ?', [postId]);
+        // Soft delete or hard delete based on preference. Here hard delete for moderation.
+        await pool.query('DELETE FROM posts WHERE post_id = ?', [postId]);
         return true;
     }
 
@@ -352,7 +400,7 @@ class Group {
             `SELECT pm.media_url, pm.media_type, p.post_id, p.created_at
              FROM post_media pm
              JOIN posts p ON pm.post_id = p.post_id
-             WHERE p.group_id = ?
+             WHERE p.group_id = ? AND p.approval_status = 'approved'
              ORDER BY p.created_at DESC
              LIMIT ? OFFSET ?`,
             [groupId, limit, offset]
@@ -364,7 +412,7 @@ class Group {
      * Delete an entire group (owner only — cascades posts, members, requests)
      */
     static async deleteGroup(groupId) {
-        await pool.query('DELETE FROM group_posts WHERE group_id = ?', [groupId]);
+        await pool.query('DELETE FROM posts WHERE group_id = ?', [groupId]);
         await pool.query('DELETE FROM group_members WHERE group_id = ?', [groupId]);
         await pool.query('DELETE FROM group_requests WHERE group_id = ?', [groupId]);
         await pool.query('DELETE FROM groups WHERE group_id = ?', [groupId]);

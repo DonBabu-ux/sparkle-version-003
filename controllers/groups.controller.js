@@ -26,7 +26,7 @@ const renderGroupDetail = async (req, res) => {
         let userRole = null;
         let memberStatus = null;
         if (req.user) {
-            const member = await Group.getMember(groupId, req.user.user_id);
+            const member = await Group.getMember(groupId, req.user.userId || req.user.user_id);
             if (member) {
                 userRole = member.role;
                 memberStatus = member.status;
@@ -59,7 +59,7 @@ const renderGroupDetail = async (req, res) => {
 const updateGroupAPI = async (req, res) => {
     try {
         const groupId = req.params.id;
-        const userId = req.user.user_id;
+        const userId = req.user.userId || req.user.user_id;
 
         const member = await Group.getMember(groupId, userId);
         if (!member || (member.role !== 'admin' && member.role !== 'moderator' && member.role !== 'owner')) {
@@ -69,9 +69,10 @@ const updateGroupAPI = async (req, res) => {
         const updateData = { ...req.body };
         
         // Sanitize boolean values from body
-        if (updateData.is_public !== undefined) updateData.is_public = updateData.is_public === 'true' || updateData.is_public === 1 || updateData.is_public === true ? 1 : 0;
-        if (updateData.requires_approval !== undefined) updateData.requires_approval = updateData.requires_approval === 'true' || updateData.requires_approval === 1 || updateData.requires_approval === true ? 1 : 0;
-        if (updateData.allow_posts !== undefined) updateData.allow_posts = updateData.allow_posts === 'true' || updateData.allow_posts === 1 || updateData.allow_posts === true ? 1 : 0;
+        const boolFields = ['is_public', 'requires_approval', 'allow_posts', 'require_post_approval'];
+        boolFields.forEach(f => {
+            if (updateData[f] !== undefined) updateData[f] = updateData[f] === 'true' || updateData[f] === 1 || updateData[f] === true ? 1 : 0;
+        });
 
         if (req.files) {
             if (req.files.icon) updateData.icon_url = req.files.icon[0].path;
@@ -92,7 +93,14 @@ const updateGroupAPI = async (req, res) => {
  */
 const getMembersDetailedAPI = async (req, res) => {
     try {
-        const members = await Group.getMembersDetailed(req.params.id, req.user.user_id);
+        const groupId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+
+        // Check if user is admin to determine visibility limit
+        const member = await Group.getMember(groupId, userId);
+        const isAdmin = member && (member.role === 'admin' || member.role === 'owner' || member.role === 'moderator');
+
+        const members = await Group.getMembersDetailed(groupId, userId, isAdmin);
         res.json(members);
     } catch (error) {
         res.status(500).json({ error: 'Failed' });
@@ -106,7 +114,7 @@ const getMembersDetailedAPI = async (req, res) => {
 const createGroupPost = async (req, res) => {
     try {
         const groupId = req.params.id;
-        const userId = req.user.user_id;
+        const userId = req.user.userId || req.user.user_id;
         let content = req.body.content;
         let images = [];
 
@@ -130,9 +138,14 @@ const createGroupPost = async (req, res) => {
         }
 
         const group = await Group.findById(groupId);
-        if (group && !group.allow_posts && member.role !== 'owner' && member.role !== 'admin') {
+        if (!group) return res.status(404).json({ error: 'Group not found' });
+
+        if (!group.allow_posts && member.role !== 'owner' && member.role !== 'admin') {
             return res.status(403).json({ error: 'Posting has been disabled by community admin' });
         }
+
+        // Post Approval Logic
+        const approval_status = group.require_post_approval && member.role !== 'owner' && member.role !== 'admin' ? 'pending' : 'approved';
 
         const postId = await Group.createPost(
             groupId, 
@@ -144,11 +157,18 @@ const createGroupPost = async (req, res) => {
             req.body.activity || null,
             req.body.tagged_users || null
         );
+
+        // Update approval status if pending
+        if (approval_status === 'pending') {
+            const pool = require('../config/database');
+            await pool.query('UPDATE posts SET approval_status = ? WHERE post_id = ?', [approval_status, postId]);
+        }
         
         res.status(201).json({ 
             success: true, 
-            message: 'Post created successfully',
-            post_id: postId 
+            message: approval_status === 'pending' ? 'Post submitted for approval' : 'Post created successfully',
+            post_id: postId,
+            status: approval_status
         });
     } catch (error) {
         logger.error('Create Group Post Error:', error);
@@ -172,6 +192,112 @@ const getGroupPostsAPI = async (req, res) => {
     } catch (error) {
         logger.error('API Group Posts Error:', error);
         res.status(500).json({ error: 'Failed to fetch posts' });
+    }
+};
+
+/**
+ * Post Moderation APIs
+ */
+const getPendingPostsAPI = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+
+        const member = await Group.getMember(groupId, userId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner')) {
+            return res.status(403).json({ error: 'Admin only' });
+        }
+
+        const posts = await Group.getPendingPosts(groupId);
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+const approvePostAPI = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const userId = req.user.userId || req.user.user_id;
+
+        // Get group ID from post
+        const [posts] = await pool.query('SELECT group_id FROM posts WHERE post_id = ?', [postId]);
+        if (posts.length === 0) return res.status(404).json({ error: 'Post not found' });
+        const groupId = posts[0].group_id;
+
+        const member = await Group.getMember(groupId, userId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner' && member.role !== 'moderator')) {
+            return res.status(403).json({ error: 'Permission denied' });
+        }
+
+        await Group.approvePost(postId);
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Approve Post Error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+const rejectPostAPI = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const userId = req.user.userId || req.user.user_id;
+
+        const [posts] = await pool.query('SELECT group_id FROM posts WHERE post_id = ?', [postId]);
+        if (posts.length === 0) return res.status(404).json({ error: 'Post not found' });
+        const groupId = posts[0].group_id;
+
+        const member = await Group.getMember(groupId, userId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner' && member.role !== 'moderator')) {
+            return res.status(403).json({ error: 'Permission denied' });
+        }
+
+        await Group.rejectPost(postId);
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Reject Post Error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+/**
+ * Member Moderation APIs
+ */
+const muteMemberAPI = async (req, res) => {
+    try {
+        const { id, userId } = req.params;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const member = await Group.getMember(id, currentUserId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner' && member.role !== 'moderator')) {
+            return res.status(403).json({ error: 'Permission denied' });
+        }
+
+        const { muted } = req.body;
+        await Group.muteMember(id, userId, muted);
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Mute Member Error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+const banMemberAPI = async (req, res) => {
+    try {
+        const { id, userId } = req.params;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const member = await Group.getMember(id, currentUserId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner' && member.role !== 'moderator')) {
+            return res.status(403).json({ error: 'Permission denied' });
+        }
+
+        const { banned } = req.body;
+        await Group.banMember(id, userId, banned);
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Ban Member Error:', error);
+        res.status(500).json({ error: 'Failed' });
     }
 };
 
@@ -210,7 +336,7 @@ const renderGroups = async (req, res) => {
 
 const joinGroup = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.userId || req.user.user_id;
         const groupId = req.params.id;
 
         const group = await Group.findById(groupId);
@@ -237,7 +363,7 @@ const joinGroup = async (req, res) => {
 
 const leaveGroup = async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = req.user.userId || req.user.user_id;
         const groupId = req.params.id;
 
         const member = await Group.getMember(groupId, userId);
@@ -255,7 +381,7 @@ const leaveGroup = async (req, res) => {
 const deleteGroupAPI = async (req, res) => {
     try {
         const groupId = req.params.id;
-        const userId = req.user.user_id;
+        const userId = req.user.userId || req.user.user_id;
 
         const member = await Group.getMember(groupId, userId);
         if (!member || member.role !== 'owner') {
@@ -273,7 +399,7 @@ const deleteGroupAPI = async (req, res) => {
 const createGroup = async (req, res) => {
     try {
         const { name, campus, description, is_public, category } = req.body;
-        const userId = req.user.user_id;
+        const userId = req.user.userId || req.user.user_id;
 
         if (!name) {
             return res.status(400).json({ error: 'Group name is required' });
@@ -310,7 +436,7 @@ const getGroupsAPI = async (req, res) => {
     try {
         const campus = req.query.campus;
         const filter = req.query.filter || 'all';
-        const userId = req.user ? req.user.user_id : null;
+        const userId = req.user ? (req.user.userId || req.user.user_id) : null;
         let groups = await Group.getAll(userId);
 
         if (campus && campus !== 'all') {
@@ -356,6 +482,18 @@ const getPendingRequestsAPI = async (req, res) => {
 const approveRequestAPI = async (req, res) => {
     try {
         const requestId = req.params.requestId;
+        const userId = req.user.userId || req.user.user_id;
+
+        // Get group ID from request
+        const [requests] = await pool.query('SELECT group_id FROM group_requests WHERE id = ?', [requestId]);
+        if (requests.length === 0) return res.status(404).json({ error: 'Request not found' });
+        const groupId = requests[0].group_id;
+
+        const member = await Group.getMember(groupId, userId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner' && member.role !== 'moderator')) {
+            return res.status(403).json({ error: 'Permission denied' });
+        }
+
         const success = await Group.approveRequest(requestId);
         res.json({ success });
     } catch (error) {
@@ -367,6 +505,17 @@ const approveRequestAPI = async (req, res) => {
 const rejectRequestAPI = async (req, res) => {
     try {
         const requestId = req.params.requestId;
+        const userId = req.user.userId || req.user.user_id;
+
+        const [requests] = await pool.query('SELECT group_id FROM group_requests WHERE id = ?', [requestId]);
+        if (requests.length === 0) return res.status(404).json({ error: 'Request not found' });
+        const groupId = requests[0].group_id;
+
+        const member = await Group.getMember(groupId, userId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner' && member.role !== 'moderator')) {
+            return res.status(403).json({ error: 'Permission denied' });
+        }
+
         const success = await Group.rejectRequest(requestId);
         res.json({ success });
     } catch (error) {
@@ -378,6 +527,19 @@ const rejectRequestAPI = async (req, res) => {
 const removeMemberAPI = async (req, res) => {
     try {
         const { id, userId } = req.params;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const member = await Group.getMember(id, currentUserId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner' && member.role !== 'moderator')) {
+            return res.status(403).json({ error: 'Permission denied' });
+        }
+
+        // Prevent removing owner unless you are owner (well, even then, owner can't be removed usually)
+        const targetMember = await Group.getMember(id, userId);
+        if (targetMember && targetMember.role === 'owner') {
+            return res.status(403).json({ error: 'Cannot remove the circle owner' });
+        }
+
         const success = await Group.removeMember(id, userId);
         res.json({ success });
     } catch (error) {
@@ -389,6 +551,13 @@ const removeMemberAPI = async (req, res) => {
 const promoteMemberAPI = async (req, res) => {
     try {
         const { id, userId } = req.params;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const member = await Group.getMember(id, currentUserId);
+        if (!member || (member.role !== 'admin' && member.role !== 'owner')) {
+            return res.status(403).json({ error: 'Only admins or owners can promote members' });
+        }
+
         const success = await Group.updateMemberRole(id, userId, 'admin');
         res.json({ success });
     } catch (error) {
@@ -397,14 +566,39 @@ const promoteMemberAPI = async (req, res) => {
     }
 };
 
+const demoteMemberAPI = async (req, res) => {
+    try {
+        const { id, userId } = req.params;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        const member = await Group.getMember(id, currentUserId);
+        if (!member || (member.role !== 'owner')) {
+            return res.status(403).json({ error: 'Only the circle owner can demote admins' });
+        }
+
+        const success = await Group.updateMemberRole(id, userId, 'member');
+        res.json({ success });
+    } catch (error) {
+        logger.error('API Demote Member Error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
 const deletePostAPI = async (req, res) => {
     try {
         const { id, postId } = req.params;
-        const userId = req.user.user_id;
+        const userId = req.user.userId || req.user.user_id;
 
-        // Check if admin/moderator of the group
+        // Get post to check author
+        const [posts] = await pool.query('SELECT user_id FROM posts WHERE post_id = ?', [postId]);
+        if (posts.length === 0) return res.status(404).json({ error: 'Post not found' });
+        const postAuthorId = posts[0].user_id;
+
+        // Check if author OR admin/moderator of the group
         const member = await Group.getMember(id, userId);
-        if (!member || (member.role !== 'admin' && member.role !== 'moderator')) {
+        const isAdmin = member && (member.role === 'admin' || member.role === 'moderator' || member.role === 'owner');
+        
+        if (userId !== postAuthorId && !isAdmin) {
             return res.status(403).json({ error: 'Permission denied' });
         }
 
@@ -423,7 +617,7 @@ const deletePostAPI = async (req, res) => {
 const getGroupAPI = async (req, res) => {
     try {
         const groupId = req.params.id;
-        const userId = req.user ? req.user.user_id : null;
+        const userId = req.user ? (req.user.userId || req.user.user_id) : null;
         
         const group = await Group.findById(groupId);
         if (!group) {
@@ -435,17 +629,21 @@ const getGroupAPI = async (req, res) => {
         const admins = await Group.getAdmins(groupId);
         const posts = await Group.getPosts(groupId, 20, 0);
         const media = await Group.getMedia(groupId, 50, 0);
-        const members = await Group.getMembersDetailed(groupId, userId);
         
         let userRole = null;
         let memberStatus = null;
+        let isAdmin = false;
+
         if (userId) {
             const member = await Group.getMember(groupId, userId);
             if (member) {
                 userRole = member.role;
                 memberStatus = member.status;
+                isAdmin = userRole === 'admin' || userRole === 'owner' || userRole === 'moderator';
             }
         }
+
+        const members = await Group.getMembersDetailed(groupId, userId, isAdmin);
 
         res.json({
             success: true,
@@ -471,7 +669,7 @@ const inviteFriends = async (req, res) => {
     try {
         const groupId = req.params.id;
         const { userIds } = req.body;
-        const senderId = req.user.user_id;
+        const senderId = req.user.userId || req.user.user_id;
 
         if (!userIds || !Array.isArray(userIds)) {
             return res.status(400).json({ error: 'User IDs are required' });
@@ -517,9 +715,15 @@ module.exports = {
     rejectRequestAPI,
     removeMemberAPI,
     promoteMemberAPI,
+    demoteMemberAPI,
     deletePostAPI,
     updateGroupAPI,
     getMembersDetailedAPI,
     getGroupAPI,
-    inviteFriends
+    inviteFriends,
+    getPendingPostsAPI,
+    approvePostAPI,
+    rejectPostAPI,
+    muteMemberAPI,
+    banMemberAPI
 };

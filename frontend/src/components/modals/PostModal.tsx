@@ -10,6 +10,7 @@ import { useUserStore } from '../../store/userStore';
 interface PostModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  editPost?: any;
 }
 
 const POST_TYPES = [
@@ -18,17 +19,19 @@ const POST_TYPES = [
   { value: 'friends', label: 'Friends', icon: Ghost, color: 'text-purple-500' },
 ];
 
-export default function PostModal({ onClose, onSuccess }: PostModalProps) {
+export default function PostModal({ onClose, onSuccess, editPost }: PostModalProps) {
   const { user } = useUserStore();
 
-  const [content, setContent] = useState('');
-  const [postType, setPostType] = useState('public');
+  const [content, setContent] = useState(editPost?.content || '');
+  const [postType, setPostType] = useState(editPost?.post_type || 'public');
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const [location, setLocation] = useState('');
-  const [showLocationInput, setShowLocationInput] = useState(false);
+  const [location, setLocation] = useState(editPost?.location || '');
+  const [showLocationInput, setShowLocationInput] = useState(!!editPost?.location);
   const [showEmojiHint, setShowEmojiHint] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [previews, setPreviews] = useState<string[]>(
+    editPost?.media_url ? editPost.media_url.split(',') : []
+  );
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -56,11 +59,18 @@ export default function PostModal({ onClose, onSuccess }: PostModalProps) {
       fd.append('post_type', postType);
       if (location) fd.append('location', location);
       files.forEach(f => fd.append('media', f));
-      await api.post('/posts', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      
+      if (editPost) {
+        await api.patch(`/posts/${editPost.post_id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } else {
+        await api.post('/posts', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
+      
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Post creation failed:', err);
+      console.error('Post operation failed:', err);
+      alert('Failed to save post.');
     } finally {
       setUploading(false);
     }
@@ -84,7 +94,7 @@ export default function PostModal({ onClose, onSuccess }: PostModalProps) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="w-8" /> {/* spacer */}
           <h2 className="text-[17px] font-black text-gray-900 tracking-tight uppercase italic">
-            Create Post
+            {editPost ? 'Edit Post' : 'Create Post'}
           </h2>
           <button
             onClick={onClose}
@@ -277,7 +287,7 @@ export default function PostModal({ onClose, onSuccess }: PostModalProps) {
           >
             {uploading
               ? <Loader2 size={20} className="animate-spin mx-auto" />
-              : 'Post'}
+              : (editPost ? 'Save Changes' : 'Post')}
           </button>
         </div>
 

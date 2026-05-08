@@ -29,4 +29,8 @@ router.post('/:id/action', authMiddleware, postController.logAction);
 router.put('/:id', authMiddleware, mutationRateLimiter, postUpload.array('media', 10), postController.updatePost);
 router.delete('/:id', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.deletePost);
 
+// Comment Management
+router.patch('/comments/:id', authMiddleware, mutationRateLimiter, postController.updateComment);
+router.delete('/comments/:id', authMiddleware, mutationRateLimiter, postController.deleteComment);
+
 module.exports = router;

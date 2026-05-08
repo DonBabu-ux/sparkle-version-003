@@ -9,7 +9,7 @@ const BASE_URL = API_URL.replace(/\/api\/?$/, '');
  * Prioritizes provided URL, then falls back to a hosted default or local asset.
  * Section 5: Default Avatar Handling (APK Safe)
  */
-export const getAvatarUrl = (url?: string | null, username?: string): string => {
+export const getAvatarUrl = (url?: string | null): string => {
   // 1. Check for valid URL
   if (url && url !== 'null' && url !== 'undefined' && url.trim() !== '') {
     // If it's already a full URL (Cloudinary, etc)
@@ -20,19 +20,13 @@ export const getAvatarUrl = (url?: string | null, username?: string): string => 
     if (url.startsWith('/uploads')) {
       return `${BASE_URL}${url}`;
     }
-    // If it's a bundled asset path (starts with /assets or contains hashed name)
+    // If it's a bundled asset path
     if (url.startsWith('/') || url.includes('assets/')) {
       return url;
     }
   }
 
-  // 2. High-quality remote fallback (Works even if local assets fail in APK)
-  if (username) {
-    const cleanUsername = username.replace(/[^a-zA-Z0-9]/g, '');
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanUsername)}&background=ff3d6d&color=fff&bold=true&size=128`;
-  }
-
-  // 3. Last resort: Bundled local asset
+  // 2. Fallback to local asset (or return empty for component to handle)
   return defaultAvatar;
 };
 

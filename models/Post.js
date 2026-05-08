@@ -1498,6 +1498,27 @@ class Post {
         const [rows] = await pool.query('SELECT * FROM comments WHERE comment_id = ?', [commentId]);
         return rows[0] || null;
     }
+
+    static async deleteComment(commentId, userId, isAdmin = false) {
+        let query = 'DELETE FROM comments WHERE comment_id = ?';
+        let params = [commentId];
+        
+        if (!isAdmin) {
+            query += ' AND user_id = ?';
+            params.push(userId);
+        }
+        
+        const [result] = await pool.query(query, params);
+        return result.affectedRows > 0;
+    }
+
+    static async updateComment(commentId, userId, content) {
+        const [result] = await pool.query(
+            'UPDATE comments SET content = ? WHERE comment_id = ? AND user_id = ?',
+            [content, commentId, userId]
+        );
+        return result.affectedRows > 0;
+    }
 }
 
 module.exports = Post;

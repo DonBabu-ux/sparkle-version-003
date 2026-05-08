@@ -15,6 +15,7 @@ import {
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import { getAvatarUrl } from '../utils/imageUtils';
+import Avatar from './Avatar';
 
 import PostModal from './modals/PostModal';
 import PollModal from './modals/PollModal';
@@ -149,10 +150,11 @@ export default function Navbar() {
         {/* Col 7 — Profile */}
         <Link to={`/profile/${user?.username}`} className="relative flex items-center justify-center h-full">
           {isActive(`/profile/${user?.username}`) && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-          <img
-            src={getAvatarUrl(user?.avatar_url, user?.username)}
-            className={clsx("w-7 h-7 rounded-full object-cover border-2 transition-all duration-300", isActive(`/profile/${user?.username}`) ? 'border-primary' : (isMoments ? 'border-white/40' : 'border-slate-200'))}
-            alt="Profile"
+          <Avatar 
+            src={user?.avatar_url} 
+            name={user?.username} 
+            size="nav"
+            className={clsx("border-2 transition-all duration-300", isActive(`/profile/${user?.username}`) ? 'border-primary' : (isMoments ? 'border-white/40' : 'border-slate-200'))}
           />
         </Link>
 
@@ -207,7 +209,7 @@ export default function Navbar() {
           ) : (
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
               <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
-                {activeModal === 'post' && <PostModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+                {activeModal === 'post' && <PostModal editPost={(modalData as any)?.editPost} onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
                 {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
                 {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
                 {activeModal === 'listing' && <ListingModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}

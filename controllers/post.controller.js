@@ -62,11 +62,30 @@ const deletePost = async (req, res) => {
         const userId = req.user.userId || req.user.user_id;
         const postId = req.params.id;
 
-        const deleted = await Post.delete(postId, userId);
-        if (!deleted) {
-            return res.status(404).json({ error: 'Post not found or unauthorized' });
+        const post = await Post.findById(postId);
+        if (!post) return res.status(404).json({ error: 'Post not found' });
+
+        let isAuthorized = post.user_id === userId;
+
+        // Check if admin of the group if it's a group post
+        if (!isAuthorized && post.group_id) {
+            const Group = require('../models/Group');
+            const member = await Group.getMember(post.group_id, userId);
+            if (member && (member.role === 'admin' || member.role === 'owner' || member.role === 'moderator')) {
+                isAuthorized = true;
+            }
         }
 
+        // Also check if global admin (optional based on app structure)
+        if (!isAuthorized && req.user.role === 'admin') {
+            isAuthorized = true;
+        }
+
+        if (!isAuthorized) {
+            return res.status(403).json({ error: 'Unauthorized to delete this post' });
+        }
+
+        const deleted = await Post.delete(postId, post.user_id); // Pass author ID to ensure correct delete logic
         res.json({ message: 'Post deleted successfully' });
     } catch (error) {
         logger.error('Delete post error:', error);
@@ -485,6 +504,53 @@ module.exports = {
         } catch (error) {
             logger.error('Update post error:', error);
             res.status(500).json({ error: 'Failed to update post' });
+        }
+    },
+    deleteComment: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const commentId = req.params.id;
+
+            const comment = await Post.getCommentById(commentId);
+            if (!comment) return res.status(404).json({ error: 'Comment not found' });
+
+            let isAdmin = false;
+            if (req.user.role === 'admin') isAdmin = true;
+
+            // Also check group admin if post is in a group
+            if (!isAdmin) {
+                const post = await Post.findById(comment.post_id);
+                if (post && post.group_id) {
+                    const Group = require('../models/Group');
+                    const member = await Group.getMember(post.group_id, userId);
+                    if (member && (member.role === 'admin' || member.role === 'owner' || member.role === 'moderator')) {
+                        isAdmin = true;
+                    }
+                }
+            }
+
+            const deleted = await Post.deleteComment(commentId, userId, isAdmin);
+            if (!deleted) return res.status(403).json({ error: 'Unauthorized' });
+
+            res.json({ success: true, message: 'Comment deleted' });
+        } catch (error) {
+            logger.error('Delete comment error:', error);
+            res.status(500).json({ error: 'Failed to delete comment' });
+        }
+    },
+    updateComment: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const commentId = req.params.id;
+            const { content } = req.body;
+
+            const success = await Post.updateComment(commentId, userId, content);
+            if (!success) return res.status(403).json({ error: 'Unauthorized' });
+
+            res.json({ success: true, message: 'Comment updated' });
+        } catch (error) {
+            logger.error('Update comment error:', error);
+            res.status(500).json({ error: 'Failed to update comment' });
         }
     }
 };

@@ -36,7 +36,13 @@ router.post('/:id/update', authMiddleware, upload.fields([{ name: 'icon', maxCou
 router.get('/:id/members', authMiddleware, groupsController.getMembersDetailedAPI);
 router.post('/:id/users/:userId/remove', authMiddleware, groupsController.removeMemberAPI);
 router.post('/:id/users/:userId/promote', authMiddleware, groupsController.promoteMemberAPI);
+router.post('/:id/users/:userId/demote', authMiddleware, groupsController.demoteMemberAPI);
 router.delete('/:id/posts/:postId', authMiddleware, groupsController.deletePostAPI);
 router.post('/:id/invite', authMiddleware, groupsController.inviteFriends);
+router.get('/:id/pending-posts', authMiddleware, groupsController.getPendingPostsAPI);
+router.post('/posts/:postId/approve', authMiddleware, groupsController.approvePostAPI);
+router.post('/posts/:postId/reject', authMiddleware, groupsController.rejectPostAPI);
+router.post('/:id/users/:userId/mute', authMiddleware, groupsController.muteMemberAPI);
+router.post('/:id/users/:userId/ban', authMiddleware, groupsController.banMemberAPI);
 
 module.exports = router;

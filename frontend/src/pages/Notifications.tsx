@@ -42,7 +42,48 @@ export default function Notifications() {
         const response = await api.get('/notifications');
         if (response.data.success || response.data) {
           const fetchedNotifs = response.data.notifications || response.data || [];
-          setNotifications(fetchedNotifs);
+          
+          // Inject Mock Notifications for Preview (Council Signal Matrix)
+          const mockNotifs: Notification[] = [
+            {
+              notification_id: 'mock-1',
+              type: 'spark',
+              title: 'New Spark',
+              content: 'sparked your recent broadcast on the Spectrum.',
+              actor_name: 'Sarah Chen',
+              actor_username: 'sarah_node',
+              actor_avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+              created_at: new Date().toISOString(),
+              is_read: false,
+              target: { entity_type: 'post', entity_id: '1' }
+            },
+            {
+              notification_id: 'mock-2',
+              type: 'mention',
+              title: 'Mention',
+              content: 'transmitted your frequency in a comment.',
+              actor_name: 'David Matrix',
+              actor_username: 'd_matrix',
+              actor_avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
+              created_at: new Date(Date.now() - 3600000).toISOString(),
+              is_read: false,
+              target: { entity_type: 'mention', entity_id: '2' }
+            },
+            {
+              notification_id: 'mock-3',
+              type: 'marketplace',
+              title: 'Marketplace',
+              content: 'sent a trade offer for your listing.',
+              actor_name: 'Bazaar Bot',
+              actor_username: 'bazaar',
+              actor_avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bazaar',
+              created_at: new Date(Date.now() - 7200000).toISOString(),
+              is_read: true,
+              target: { entity_type: 'marketplace', entity_id: '3' }
+            }
+          ];
+
+          setNotifications([...mockNotifs, ...fetchedNotifs]);
         }
       } catch (err) {
         console.error('Failed to fetch notifications:', err);

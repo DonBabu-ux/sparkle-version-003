@@ -16,23 +16,30 @@ export const useSocket = () => {
             query: { userId: user.id || user.user_id },
             auth: { token },
             withCredentials: true,
-            transports: ['websocket']
+            transports: ['websocket'],
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
         });
 
         s.on('connect', () => {
             console.log('📡 Connected to Sparkle Matrix');
         });
 
-        s.on('disconnect', () => {
-            console.log('📡 Disconnected from Sparkle Matrix');
+        s.on('connect_error', (err) => {
+            console.warn('📡 Sparkle Matrix connection error:', err.message);
         });
 
         setSocket(s);
 
         return () => {
-            s.disconnect();
+            if (s) {
+                s.off('connect');
+                s.off('connect_error');
+                s.off('disconnect');
+                s.disconnect();
+            }
         };
-    }, [user]);
+    }, [user?.id, user?.user_id]); // Depend on specific IDs instead of the whole user object
 
     return socket;
 };

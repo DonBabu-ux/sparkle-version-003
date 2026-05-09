@@ -1,6 +1,14 @@
 const pool = require('../config/database');
 const QRCode = require('qrcode');
 const { getIO } = require('../socket');
+const PollEngagementService = require('../services/poll-engagement.service');
+const { v4: uuidv4 } = require('uuid');
+
+const getSafeAvatarUrl = (url) => {
+    if (!url) return '/uploads/avatars/default.png';
+    if (url.startsWith('http')) return url;
+    return url.startsWith('/') ? url : `/${url}`;
+};
 
 const renderPolls = async (req, res) => {
     try {
@@ -96,14 +104,100 @@ const renderStreams = async (req, res) => {
 const getPolls = async (req, res) => {
     try {
         const affiliation = req.query.affiliation || req.query.campus;
-        let query = 'SELECT p.*, u.username, u.name as creator_name FROM polls p JOIN users u ON p.creator_id = u.user_id WHERE (p.expires_at IS NULL OR p.expires_at > NOW())';
-        const params = [];
+        const currentUserId = req.user?.user_id || req.user?.userId || null;
+        const filter = req.query.filter || 'for_you'; // 'for_you', 'trending', 'friends', 'new'
+        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+        const offset = parseInt(req.query.offset) || 0;
+        
+        let query = `
+            SELECT p.*, u.username, u.name as creator_name, u.avatar_url as creator_avatar,
+                   (p.expires_at IS NOT NULL AND p.expires_at < NOW()) as is_expired,
+                   (p.expires_at IS NOT NULL AND p.expires_at > NOW() AND p.expires_at < DATE_ADD(NOW(), INTERVAL 6 HOUR)) as is_ending_soon,
+                   (SELECT option_id FROM poll_votes WHERE poll_id = p.poll_id AND user_id = ?) as user_voted_option
+            FROM polls p 
+            JOIN users u ON p.creator_id = u.user_id 
+            WHERE 1=1
+        `;
+        
+        const params = [currentUserId];
         if (affiliation && affiliation !== 'all') {
             query += ' AND p.campus = ?';
             params.push(affiliation);
         }
-        const [polls] = await pool.query(query + ' ORDER BY p.created_at DESC', params);
-        res.json(polls);
+
+        if (filter === 'friends' && currentUserId) {
+            query += ' AND p.creator_id IN (SELECT following_id FROM follows WHERE follower_id = ?)';
+            params.push(currentUserId);
+            query += ' ORDER BY p.created_at DESC';
+        } else if (filter === 'trending') {
+            // Trending: Primary sort by score, secondary by recent
+            query += ' ORDER BY p.engagement_score DESC, p.created_at DESC';
+        } else if (filter === 'ending_soon') {
+            query += ' AND p.expires_at > NOW()';
+            query += ' ORDER BY p.expires_at ASC';
+        } else if (filter === 'for_you') {
+            query += ' AND (p.expires_at IS NULL OR p.expires_at > NOW())';
+            query += ' ORDER BY p.engagement_score DESC, p.created_at DESC';
+            // Large candidate pool for personalization
+            const candidateLimit = offset === 0 ? 100 : 50; 
+            query += ` LIMIT ${candidateLimit} OFFSET ${offset}`;
+        } else {
+            // 'new' / recent
+            query += ' ORDER BY p.created_at DESC';
+        }
+
+        // Apply SQL limit if not for_you (for_you has custom limit above)
+        if (filter !== 'for_you') {
+            query += ` LIMIT ${limit} OFFSET ${offset}`;
+        }
+
+        const [polls] = await pool.query(query, params);
+        
+        // 1. Calculate AI-Ranked Personalized Scores (Only for For You)
+        let rankedPolls = polls;
+        if (filter === 'for_you') {
+            rankedPolls = await PollEngagementService.calculateBatchDiscoveryScores(polls, currentUserId);
+            // Sort by personalized discovery score
+            rankedPolls.sort((a, b) => (b.discovery_score || 0) - (a.discovery_score || 0));
+            // Slice to requested limit
+            rankedPolls = rankedPolls.slice(0, limit);
+        }
+
+        // 2. Batch Fetch Social Context (Friends who voted) - ONLY for the results being returned
+        if (currentUserId && rankedPolls.length > 0) {
+            const pollIds = rankedPolls.map(p => p.poll_id);
+            const [friendsVoted] = await pool.query(`
+                SELECT v.poll_id, u.avatar_url, u.username 
+                FROM poll_votes v
+                JOIN users u ON v.user_id = u.user_id
+                JOIN follows f ON f.following_id = u.user_id
+                WHERE v.poll_id IN (?) AND f.follower_id = ?
+            `, [pollIds, currentUserId]);
+
+            // Group by poll_id
+            const friendsMap = friendsVoted.reduce((acc, f) => {
+                if (!acc[f.poll_id]) acc[f.poll_id] = [];
+                if (acc[f.poll_id].length < 3) {
+                    acc[f.poll_id].push({ ...f, avatar_url: getSafeAvatarUrl(f.avatar_url) });
+                }
+                return acc;
+            }, {});
+
+            rankedPolls.forEach(poll => {
+                poll.creator_avatar = getSafeAvatarUrl(poll.creator_avatar);
+                poll.friends_participating = friendsMap[poll.poll_id] || [];
+            });
+        } else {
+            rankedPolls.forEach(poll => {
+                poll.creator_avatar = getSafeAvatarUrl(poll.creator_avatar);
+                poll.friends_participating = [];
+            });
+        }
+
+        res.json({ 
+            polls: rankedPolls, 
+            hasMore: filter === 'for_you' ? polls.length > limit : polls.length >= limit 
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -123,12 +217,6 @@ const getEvents = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-};
-
-// Helper to sanitize avatars - prioritizes internal uploads
-const getSafeAvatarUrl = (url) => {
-    if (url && url.startsWith('/uploads/')) return url;
-    return '/uploads/avatars/default.png';
 };
 
 // Helper for media - prioritizes internal uploads, fallbacks for broken external
@@ -346,18 +434,47 @@ const createPoll = async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        const { question, options, campus, category, is_anonymous, expires_at } = req.body;
+        const { question, options, campus, category, is_anonymous, expires_in, allow_invites } = req.body;
         const creator_id = req.user.user_id || req.user.userId;
-        const poll_id = require('crypto').randomUUID();
+
+        // 1. ANTI-SPAM: Daily Limit (5 polls per day)
+        const [dailyPolls] = await connection.query(`
+            SELECT COUNT(*) as count FROM polls 
+            WHERE creator_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
+        `, [creator_id]);
+
+        if (dailyPolls[0].count >= 5) {
+            await connection.rollback();
+            connection.release();
+            return res.status(429).json({ error: 'Daily poll limit reached (5/day). Try again tomorrow!' });
+        }
+
+        const poll_id = uuidv4();
+
+        // Handle Expiry Logic
+        let expires_at = null;
+        if (expires_in) {
+            const now = new Date();
+            if (expires_in === '30m') now.setMinutes(now.getMinutes() + 30);
+            else if (expires_in === '1h') now.setHours(now.getHours() + 1);
+            else if (expires_in === '6h') now.setHours(now.getHours() + 6);
+            else if (expires_in === '12h') now.setHours(now.getHours() + 12);
+            else if (expires_in === '24h') now.setHours(now.getHours() + 24);
+            else if (expires_in === '3d') now.setDate(now.getDate() + 3);
+            else if (expires_in === '7d') now.setDate(now.getDate() + 7);
+            else expires_at = new Date(expires_in); // Custom date string
+            
+            if (!expires_at) expires_at = now;
+        }
 
         await connection.query(
-            'INSERT INTO polls (poll_id, creator_id, question, campus, category, is_anonymous, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [poll_id, creator_id, question, campus, category, is_anonymous ? 1 : 0, expires_at]
+            'INSERT INTO polls (poll_id, creator_id, question, campus, category, is_anonymous, expires_at, allow_invites) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [poll_id, creator_id, question, campus || req.user.campus, category || 'General', is_anonymous ? 1 : 0, expires_at, allow_invites !== false ? 1 : 0]
         );
 
         if (options && Array.isArray(options)) {
             for (let i = 0; i < options.length; i++) {
-                const option_id = require('crypto').randomUUID();
+                const option_id = uuidv4();
                 await connection.query(
                     'INSERT INTO poll_options (option_id, poll_id, option_text, option_order) VALUES (?, ?, ?, ?)',
                     [option_id, poll_id, options[i], i]
@@ -366,6 +483,10 @@ const createPoll = async (req, res) => {
         }
 
         await connection.commit();
+        
+        // Trigger Smart Notification Workflow
+        PollEngagementService.processPollNotifications(poll_id, creator_id);
+
         res.status(201).json({ message: 'Poll created', poll_id });
     } catch (error) {
         await connection.rollback();
@@ -376,113 +497,135 @@ const createPoll = async (req, res) => {
 };
 
 const votePoll = async (req, res) => {
-    console.log('🗳️ votePoll called');
-    console.log('Params:', req.params);
-    console.log('Body:', req.body);
-    console.log('User:', req.user);
-
     let connection;
     try {
-        // Validate inputs
-        if (!req.params.id) {
-            return res.status(400).json({ error: 'Poll ID is required' });
-        }
-        if (!req.body.option_id) {
-            return res.status(400).json({ error: 'Option ID is required' });
-        }
-        if (!req.user || (!req.user.user_id && !req.user.userId)) {
-            return res.status(401).json({ error: 'User not authenticated' });
-        }
-
-        const { id } = req.params; // poll_id
+        const { id } = req.params;
         const { option_id } = req.body;
         const user_id = req.user.user_id || req.user.userId;
-        const vote_id = require('crypto').randomUUID();
-
-        console.log(`Attempting to vote: poll=${id}, option=${option_id}, user=${user_id}`);
+        const vote_id = uuidv4();
 
         connection = await pool.getConnection();
-        console.log('✅ DB Connection acquired');
-
         await connection.beginTransaction();
-        console.log('Transaction started');
 
-        // Check if already voted
+        // 1. Check Expiry & Participation Data
+        const [pollCheck] = await connection.query('SELECT expires_at, total_votes FROM polls WHERE poll_id = ?', [id]);
+        if (pollCheck.length === 0) return res.status(404).json({ error: 'Poll not found' });
+        
+        if (pollCheck[0].expires_at && new Date(pollCheck[0].expires_at) < new Date()) {
+            return res.status(400).json({ error: 'This poll has ended and is no longer accepting votes.' });
+        }
+
+        // 2. Check if already voted
         const [existing] = await connection.query(
             'SELECT vote_id FROM poll_votes WHERE poll_id = ? AND user_id = ?',
             [id, user_id]
         );
 
         if (existing.length > 0) {
-            console.warn('⚠️ User already voted');
             await connection.rollback();
-            connection.release();
             return res.status(400).json({ error: 'You have already voted on this poll' });
         }
 
-        // Record vote
+        // 3. Record vote
         await connection.query(
             'INSERT INTO poll_votes (vote_id, poll_id, option_id, user_id) VALUES (?, ?, ?, ?)',
             [vote_id, id, option_id, user_id]
         );
-        console.log('Vote recorded');
 
-        // Update counts
         await connection.query(
-            'UPDATE poll_options SET vote_count = vote_count + 1 WHERE option_id = ?',
+            'UPDATE poll_options SET vote_count = COALESCE(vote_count, 0) + 1 WHERE option_id = ?',
             [option_id]
         );
-        console.log('Option count updated');
 
         await connection.query(
-            'UPDATE polls SET total_votes = total_votes + 1 WHERE poll_id = ?',
+            'UPDATE polls SET total_votes = COALESCE(total_votes, 0) + 1 WHERE poll_id = ?',
             [id]
         );
-        console.log('Poll total updated');
 
         await connection.commit();
-        console.log('✅ Vote committed successfully');
-
-        connection.release();
-        res.json({ message: 'Vote submitted', success: true });
-    } catch (error) {
-        console.error('❌ Vote error:', error);
-
-        if (connection) {
-            try {
-                await connection.rollback();
-                console.log('Transaction rolled back');
-            } catch (rollbackError) {
-                console.error('Rollback error:', rollbackError);
-            }
-
-            try {
-                connection.release();
-                console.log('Connection released after error');
-            } catch (releaseError) {
-                console.error('Release error:', releaseError);
-            }
+        
+        // 4. Async Engagement Scoring & Interaction Tracking
+        PollEngagementService.updateEngagementScore(id);
+        const [poll] = await pool.query('SELECT category FROM polls WHERE poll_id = ?', [id]);
+        if (poll.length > 0) {
+            PollEngagementService.trackUserInteraction(user_id, poll[0].category);
         }
 
-        // Send error response
-        if (!res.headersSent) {
-            res.status(500).json({
-                error: 'Failed to submit vote',
-                details: error.message,
-                success: false
+        // Increment Vote Streak if first vote of the day
+        await pool.query(`
+            UPDATE users 
+            SET poll_vote_streak = poll_vote_streak + 1 
+            WHERE user_id = ? AND NOT EXISTS (
+                SELECT 1 FROM poll_votes 
+                WHERE user_id = ? 
+                AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
+                AND poll_id != ?
+            )
+        `, [user_id, user_id, id]);
+
+        // 5. Real-time Broadcast
+        const io = getIO();
+        if (io) {
+            io.emit('poll_participation', { 
+                poll_id: id, 
+                option_id: option_id,
+                total_votes: (pollCheck[0].total_votes || 0) + 1 
             });
         }
+
+        res.json({ message: 'Vote submitted', success: true });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        res.status(500).json({ error: error.message });
+    } finally {
+        if (connection) connection.release();
     }
 };
 
 const getPollResults = async (req, res) => {
     try {
         const { id } = req.params;
-        const [results] = await pool.query(
+        const currentUserId = req.user?.user_id || req.user?.userId || null;
+
+        // Fetch the main poll data
+        const [polls] = await pool.query(
+            'SELECT p.*, u.username, u.name as creator_name, u.avatar_url as creator_avatar FROM polls p JOIN users u ON p.creator_id = u.user_id WHERE p.poll_id = ?',
+            [id]
+        );
+
+        if (polls.length === 0) return res.status(404).json({ error: 'Poll not found' });
+        const poll = polls[0];
+
+        // Fetch options
+        const [options] = await pool.query(
             'SELECT * FROM poll_options WHERE poll_id = ? ORDER BY vote_count DESC',
             [id]
         );
-        res.json(results);
+
+        // Fetch voters for all options
+        const [voters] = await pool.query(`
+            SELECT v.option_id, u.user_id, u.name, u.username, u.avatar_url,
+                   (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_following
+            FROM poll_votes v
+            JOIN users u ON v.user_id = u.user_id
+            WHERE v.poll_id = ?
+        `, [currentUserId, id]);
+
+        // Group voters into options
+        poll.options = options.map(opt => ({
+            ...opt,
+            voters: voters.filter(v => v.option_id === opt.option_id).map(v => ({
+                ...v,
+                avatar_url: getSafeAvatarUrl(v.avatar_url),
+                is_following: !!v.is_following
+            }))
+        }));
+
+        // Check if current user voted
+        const [userVote] = await pool.query('SELECT option_id FROM poll_votes WHERE poll_id = ? AND user_id = ?', [id, currentUserId]);
+        poll.user_voted_option = userVote.length > 0 ? userVote[0].option_id : null;
+
+        res.json({ poll });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -679,6 +822,108 @@ const notifyAttendees = async (req, res) => {
     }
 };
 
+const inviteToPoll = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { user_ids } = req.body; // Array of user IDs to invite
+        const inviter_id = req.user.user_id || req.user.userId;
+
+        if (!user_ids || !Array.isArray(user_ids)) {
+            return res.status(400).json({ error: 'user_ids must be an array' });
+        }
+
+        const [poll] = await pool.query('SELECT question, allow_invites FROM polls WHERE poll_id = ?', [id]);
+        if (poll.length === 0) return res.status(404).json({ error: 'Poll not found' });
+        if (!poll[0].allow_invites) return res.status(403).json({ error: 'Invitations are disabled for this poll' });
+
+        const [inviter] = await pool.query('SELECT name FROM users WHERE user_id = ?', [inviter_id]);
+        const inviterName = inviter[0].name || 'Someone';
+
+        for (const target_id of user_ids) {
+            // Prevent duplicate invites
+            const [existing] = await pool.query('SELECT invite_id FROM poll_invites WHERE poll_id = ? AND invitee_id = ?', [id, target_id]);
+            if (existing.length > 0) continue;
+
+            const invite_id = uuidv4();
+            await pool.query(
+                'INSERT INTO poll_invites (invite_id, poll_id, inviter_id, invitee_id) VALUES (?, ?, ?, ?)',
+                [invite_id, id, inviter_id, target_id]
+            );
+
+            // Send notification
+            await pool.query(`
+                INSERT INTO notifications (notification_id, user_id, type, title, content, related_id, actor_id, action_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                uuidv4(),
+                target_id,
+                'poll_invite',
+                'Poll Invitation',
+                `${inviterName} invited you to vote on: "${poll[0].question}"`,
+                id,
+                inviter_id,
+                `/polls/${id}`
+            ]);
+        }
+
+        res.json({ success: true, message: 'Invitations sent' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.predictPollWinner = async (req, res) => {
+    const { id } = req.params;
+    const { option_id } = req.body;
+    const user_id = req.user.user_id;
+
+    try {
+        const [poll] = await pool.query('SELECT is_expired FROM polls WHERE poll_id = ?', [id]);
+        if (poll.length === 0) return res.status(404).json({ message: 'Poll not found' });
+        if (poll[0].is_expired) return res.status(400).json({ message: 'Poll has already ended' });
+
+        const predictionId = uuidv4();
+        await pool.query(`
+            INSERT INTO poll_predictions (prediction_id, poll_id, user_id, option_id)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE option_id = VALUES(option_id)
+        `, [predictionId, id, user_id, option_id]);
+
+        res.json({ message: 'Prediction recorded' });
+    } catch (err) {
+        console.error('Prediction error:', err);
+        res.status(500).json({ message: 'Error recording prediction' });
+    }
+};
+
+exports.trackPollInteraction = async (req, res) => {
+    const { id } = req.params;
+    const { type } = req.body; // 'share', 'skip', 'save'
+    const user_id = req.user.user_id;
+
+    try {
+        if (type === 'share') {
+            await pool.query('UPDATE polls SET share_count = share_count + 1 WHERE poll_id = ?', [id]);
+        }
+
+        // Update behavioral interest
+        const [poll] = await pool.query('SELECT category FROM polls WHERE poll_id = ?', [id]);
+        if (poll.length > 0) {
+            await pool.query(`
+                INSERT INTO user_poll_interests (user_id, category, interaction_count)
+                VALUES (?, ?, 1)
+                ON DUPLICATE KEY UPDATE interaction_count = interaction_count + 1
+            `, [user_id, poll[0].category]);
+        }
+
+        await pollEngagementService.updateEngagementScore(id);
+        res.json({ message: 'Interaction tracked' });
+    } catch (err) {
+        console.error('Interaction tracking error:', err);
+        res.status(500).json({ message: 'Error tracking interaction' });
+    }
+};
+
 module.exports = {
     renderPolls,
     renderPollDetail,
@@ -707,5 +952,8 @@ module.exports = {
     approveRSVP,
     updateEvent,
     getEventAnalytics,
-    notifyAttendees
+    notifyAttendees,
+    inviteToPoll,
+    predictPollWinner: exports.predictPollWinner,
+    trackPollInteraction: exports.trackPollInteraction
 };

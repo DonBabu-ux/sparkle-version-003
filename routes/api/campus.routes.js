@@ -1,14 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const campusController = require('../../controllers/campus.controller');
-const { authMiddleware } = require('../../middleware/auth.middleware');
+const { authMiddleware, optionalAuthMiddleware } = require('../../middleware/auth.middleware');
 
 // ---- Polls ----
-router.get('/polls', campusController.getPolls);                                                // Browse (supports ?campus= filter)
+router.get('/polls', optionalAuthMiddleware, campusController.getPolls);                                                // Browse (supports ?campus= filter)
 router.post('/polls', authMiddleware, campusController.createPoll);                             // Create poll (with duration via expires_at)
 router.post('/polls/:id/vote', authMiddleware, campusController.votePoll);                      // Vote
-router.get('/polls/:id/results', campusController.getPollResults);                              // View results
+router.get('/polls/:id/results', optionalAuthMiddleware, campusController.getPollResults);                              // View results
+router.post('/polls/:id/invite', authMiddleware, campusController.inviteToPoll);                    // NEW - Invite others
 router.get('/polls/:id/share', campusController.sharePoll);                                     // NEW — share poll link
+router.post('/polls/:id/predict', authMiddleware, campusController.predictPollWinner);              // NEW — predict winner
+router.post('/polls/:id/interaction', authMiddleware, campusController.trackPollInteraction);      // NEW — track skips/shares
 
 // ---- Events ----
 router.get('/events', campusController.getEvents);                                              // Browse events

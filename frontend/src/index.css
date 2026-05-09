@@ -288,3 +288,12 @@ input, textarea, select {
 .animate-float      { animation: float-y 6s ease-in-out infinite; }
 .animate-slide-up   { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-spark-pop { animation: spark-pop 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.49) both; }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(0, 0, 0, 0.03) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}

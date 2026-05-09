@@ -15,6 +15,7 @@ router.get('/active-friends', authMiddleware, userController.getActiveFriends);
 router.get('/search', authMiddleware, validate(searchSchema, 'query'), userController.searchUsers);
 router.get('/suggestions', authMiddleware, userController.getSuggestions);
 router.get('/following', authMiddleware, userController.searchFollowingUsers);
+router.get('/followers', authMiddleware, userController.getMyFollowers);
 
 // Social & Blocking Routes
 router.get('/blocks', authMiddleware, socialController.getBlockedUsers);

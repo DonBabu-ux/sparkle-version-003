@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart2, Plus, ChevronRight, Hash, Calendar, MapPin, Orbit } from 'lucide-react';
+import { BarChart2, Plus, ChevronRight, Hash, Calendar, MapPin, Orbit, Sparkles, Zap, Users } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import CountdownTimer from '../components/ui/CountdownTimer';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 
@@ -20,9 +21,15 @@ interface Poll {
   is_anonymous?: boolean;
   total_votes?: number;
   created_at: string;
+  expires_at?: string;
   campus?: string;
   options?: PollOption[];
   user_voted?: boolean;
+  engagement_score?: number;
+  is_ending_soon?: boolean;
+  is_expired?: boolean;
+  creator_avatar?: string;
+  friends_participating?: any[];
 }
 
 export default function Polls() {
@@ -31,26 +38,87 @@ export default function Polls() {
   const navigate = useNavigate();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
-  const [campusFilter, setCampusFilter] = useState<'all' | 'campus'>('all');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [filter, setFilter] = useState('for_you');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isInitialLoad, setIsInitialBurst] = useState(true);
 
-  const fetchPolls = useCallback(async () => {
-    setLoading(true);
+  const fetchPolls = useCallback(async (isLoadMore = false) => {
+    if (loadingMore || (loading && isLoadMore)) return;
+    
+    if (isLoadMore) setLoadingMore(true);
+    else setLoading(true);
+
     try {
-      const params: Record<string, string> = {};
-      if (campusFilter === 'campus' && user?.campus) params.campus = user.campus;
-      const res = await api.get('/polls', { params });
-      setPolls(res.data.polls || res.data || []);
+      const currentOffset = isLoadMore ? offset : 0;
+      const currentLimit = (isLoadMore || !isInitialLoad) ? 10 : 2; 
+
+      const res = await api.get('/polls', { 
+        params: { 
+          filter, 
+          offset: currentOffset,
+          limit: currentLimit
+        } 
+      });
+      
+      const incomingPolls = res.data.polls || [];
+      
+      setPolls(prev => {
+        if (!isLoadMore) return incomingPolls;
+        
+        // Prevent duplicates
+        const existingIds = new Set(prev.map(p => p.poll_id));
+        const filtered = incomingPolls.filter((p: Poll) => !existingIds.has(p.poll_id));
+        return [...prev, ...filtered];
+      });
+
+      setHasMore(res.data.hasMore);
+      setOffset(prev => prev + incomingPolls.length);
+
+      // Handle the initial burst transition
+      if (isInitialLoad && !isLoadMore && res.data.hasMore && incomingPolls.length === 2) {
+         setIsInitialBurst(false);
+         // Small delay before fetching the rest to keep UI smooth
+         setTimeout(() => fetchPolls(true), 400);
+      }
     } catch (err) {
-      console.error('Polls fetch error:', err);
+      console.error('Fetch polls error:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [campusFilter, user?.campus]);
+  }, [filter, offset, loading, loadingMore, isInitialLoad]);
 
-  useEffect(() => { fetchPolls(); }, [fetchPolls]);
+  useEffect(() => {
+    setOffset(0);
+    setHasMore(true);
+    fetchPolls(false);
+  }, [filter]); // Only re-fetch when filter changes
+
+  // Infinite Scroll Observer
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 500) {
+        if (!loading && !loadingMore && hasMore) {
+          fetchPolls(true);
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loading, loadingMore, hasMore, fetchPolls]);
+
+  const tabs = [
+    { id: 'for_you', label: 'For You', icon: <Sparkles size={14} /> },
+    { id: 'trending', label: 'Trending', icon: <BarChart2 size={14} /> },
+    { id: 'friends', label: 'Friends', icon: <Users size={14} /> },
+    { id: 'ending_soon', label: 'Ending Soon', icon: <Zap size={14} /> },
+    { id: 'new', label: 'Recent', icon: <Calendar size={14} /> }
+  ];
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+    <div className="flex bg-transparent min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
 
       {/* Background orbs */}
@@ -60,119 +128,173 @@ export default function Polls() {
       <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-[1400px] mx-auto w-full pt-20 md:pt-32">
         
         {/* ── Header ── */}
-        <header className="flex flex-col xl:flex-row items-center justify-between gap-16 mb-24 animate-fade-in px-4">
-          <div className="max-w-3xl space-y-8">
-            <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
-              <BarChart2 size={18} strokeWidth={3} className="text-primary" />
-              <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Village Pulse</span>
+        <header className="flex flex-col xl:flex-row items-center justify-between gap-6 mb-8 animate-fade-in px-4">
+          <div className="max-w-3xl space-y-4">
+            <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-md shadow-primary/5">
+              <BarChart2 size={14} strokeWidth={3} className="text-primary" />
+              <span className="text-[10px] font-bold text-black uppercase tracking-wider">Polls</span>
             </div>
-            <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
-              Campus <span className="text-primary italic">Consensus.</span>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
+              Sparkle <span className="text-primary">Consensus</span>
             </h1>
-            <p className="text-xl font-bold text-black opacity-60 leading-relaxed max-w-xl italic border-l-8 border-primary/20 pl-8">
-              Cast your vote and synchronize your node with the collective village harmonic.
+            <p className="text-sm md:text-base font-medium text-black/60 leading-relaxed max-w-xl border-l-4 border-primary/20 pl-4">
+              Cast your vote and synchronize your node with the collective harmonic.
             </p>
           </div>
 
           <button 
             onClick={() => setActiveModal('poll', fetchPolls)}
-            className="group w-full xl:w-auto h-24 px-12 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.3em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] hover:shadow-primary/60 transition-all active:scale-95 flex items-center justify-center gap-6"
+            className="group w-full xl:w-auto h-12 px-6 bg-primary text-white rounded-full font-bold text-sm uppercase tracking-wide shadow-lg shadow-primary/30 hover:scale-105 hover:shadow-primary/50 transition-all active:scale-95 flex items-center justify-center gap-2"
           >
-            <Plus size={32} strokeWidth={4} /> Initialize Poll
+            <Plus size={20} strokeWidth={3} /> Create Poll
           </button>
         </header>
 
-        {/* Filter Section */}
-        <div className="flex items-center gap-6 mb-20 animate-fade-in px-4">
-          {[
-            { id: 'all', label: 'Universal', icon: Hash },
-            { id: 'campus', label: 'Local Sector', icon: MapPin }
-          ].map(filter => (
-            <button 
-              key={filter.id}
-              onClick={() => setCampusFilter(filter.id as 'all' | 'campus')}
-              className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center gap-4 border shadow-sm italic ${campusFilter === filter.id ? 'bg-white border-white text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 border-white/60 text-black opacity-30 hover:opacity-100 hover:bg-white'}`}
+        {/* Discovery Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mb-8 animate-fade-in px-4 pb-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setFilter(tab.id)}
+              className={`flex items-center gap-2 px-6 h-11 rounded-full text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap shadow-sm border ${filter === tab.id ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-white text-gray-400 border-white/60 hover:text-primary hover:bg-primary/5'}`}
             >
-              <filter.icon size={16} strokeWidth={3} /> {filter.label}
+              {tab.icon} {tab.label}
             </button>
           ))}
         </div>
 
         <div className="relative z-10 px-4">
-          {loading ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pb-40">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-72 bg-white/40 backdrop-blur-3xl border border-white rounded-[56px] animate-pulse shadow-sm p-12 space-y-6">
-                   <div className="w-1/3 h-4 bg-black/5 rounded-full" />
-                   <div className="w-full h-8 bg-black/5 rounded-full" />
-                   <div className="w-1/2 h-4 bg-black/5 rounded-full" />
+          {loading && polls.length === 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="h-64 bg-white/60 backdrop-blur-3xl border border-white rounded-3xl p-8 space-y-6 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+                   <div className="flex justify-between items-center">
+                      <div className="w-24 h-4 bg-gray-100 rounded-lg animate-pulse" />
+                      <div className="w-16 h-4 bg-primary/5 rounded-lg animate-pulse" />
+                   </div>
+                   <div className="w-full h-8 bg-gray-100 rounded-xl animate-pulse" />
+                   <div className="space-y-3">
+                      <div className="w-full h-12 bg-gray-50 rounded-2xl animate-pulse" />
+                      <div className="w-full h-12 bg-gray-50 rounded-2xl animate-pulse" />
+                   </div>
                 </div>
               ))}
             </div>
           ) : polls.length === 0 ? (
-            <div className="py-64 flex flex-col items-center justify-center text-center gap-8 bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in">
-               <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
-               <div className="space-y-6 px-8">
-                  <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter">Silent Frequency.</h3>
-                  <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No active polls found. Be the first to initiate a consensus harmonic in your sector.</p>
-                  <button onClick={() => setActiveModal('poll', fetchPolls)} className="mt-8 px-12 h-18 bg-primary/10 border-2 border-primary/20 text-primary rounded-[24px] font-black uppercase tracking-widest italic hover:bg-primary hover:text-white transition-all">Start Broadcast</button>
+            <div className="py-20 flex flex-col items-center justify-center text-center gap-6 bg-white/40 backdrop-blur-3xl border-2 border-dashed border-white rounded-3xl shadow-lg shadow-primary/5 animate-fade-in">
+               <Orbit size={64} strokeWidth={1.5} className="text-primary/20 animate-spin-slow" />
+               <div className="space-y-4 px-6">
+                  <h3 className="text-2xl font-black text-black/40 uppercase tracking-tight">Silent Frequency.</h3>
+                  <p className="text-xs font-bold text-black/40 uppercase tracking-wider max-w-xs mx-auto">No active polls found. Be the first to initiate a consensus harmonic in your sector.</p>
+                  <button onClick={() => setActiveModal('poll', fetchPolls)} className="mt-4 px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full font-bold uppercase tracking-wide hover:bg-primary hover:text-white transition-all text-xs">Start Broadcast</button>
                </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pb-64">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-24">
               {polls.map((poll, idx) => (
                 <div 
                   key={poll.poll_id} 
                   onClick={() => navigate(`/polls/${poll.poll_id}`)}
-                  className="group relative bg-white/80 backdrop-blur-3xl border border-white/65 p-12 rounded-[56px] hover:scale-[1.02] transition-all duration-700 cursor-pointer shadow-2xl shadow-primary/5 animate-scale-in"
-                  style={{ animationDelay: `${idx * 100}ms` }}
+                  className="group relative bg-white border border-white/60 p-6 md:p-8 rounded-xl hover:scale-[1.01] transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:shadow-primary/5 animate-scale-in flex flex-col"
+                  style={{ animationDelay: `${idx * 50}ms` }}
                 >
-                  {/* Glass Card Gradient Shine */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none rounded-[56px]" />
-
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-12 relative z-10">
-                     <div className="flex items-center gap-4 px-6 py-3 bg-black/5 rounded-full text-[9px] font-black text-black opacity-30 uppercase tracking-[0.2em] italic">
-                        <Calendar size={14} strokeWidth={3} /> {new Date(poll.created_at).toLocaleDateString()}
+                  <div className="flex justify-between items-center gap-4 mb-4 relative z-10">
+                     <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-xl text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                          <Calendar size={12} strokeWidth={2.5} /> {new Date(poll.created_at).toLocaleDateString()}
+                       </div>
+                       {(poll.engagement_score ?? 0) > 10 ? (
+                         <span className="bg-amber-400 text-white text-[9px] font-black px-2 py-1 rounded-xl uppercase flex items-center gap-1">
+                            <BarChart2 size={10} /> Trending
+                         </span>
+                       ) : null}
+                       {!!poll.is_ending_soon && !poll.is_expired ? (
+                          <div className="px-2 py-1.5 bg-rose-500 text-white rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-rose-200 animate-pulse">
+                           Ending Soon
+                         </div>
+                       ) : null}
+                       {poll.expires_at && !poll.is_expired && (
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-xl border border-rose-100">
+                            <CountdownTimer expiresAt={poll.expires_at} onEnd={() => fetchPolls(false)} className="!bg-transparent !border-none !p-0 !text-rose-500 font-black text-[9px]" />
+                          </div>
+                        )}
                      </div>
-                     <div className="px-8 py-3 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-primary/20 italic">
-                        {poll.total_votes || 0} Harmonics Syncing
+                     <div className="px-3 py-1.5 bg-primary/10 text-primary rounded-xl text-[10px] font-bold uppercase tracking-wider">
+                        {poll.total_votes && poll.total_votes > 0 ? `${poll.total_votes} Votes` : 'Initial Node'}
                      </div>
                   </div>
 
-                  <h3 className="text-3xl font-black text-black mb-6 group-hover:text-primary transition-all duration-500 leading-none tracking-tighter uppercase italic">
+                  <h3 className="text-[17px] font-black text-gray-900 mb-4 group-hover:text-primary transition-colors leading-snug uppercase tracking-tight">
                      {poll.question}
                   </h3>
 
-                  <div className="flex items-center gap-4 mb-12 px-2 relative z-10">
-                     <span className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.2em] italic">Node</span>
-                     <span className="text-[11px] font-black text-black italic uppercase tracking-widest">{poll.is_anonymous ? 'Classified' : (poll.creator_name || `@${poll.username}`)}</span>
-                     <span className="w-1.5 h-1.5 rounded-full bg-primary/20" />
-                     <span className="text-[11px] font-black text-primary italic uppercase tracking-widest">{poll.campus || 'Global Spectrum'}</span>
+                  <div className="flex items-center gap-2 mb-6 relative z-10 text-[11px] font-semibold text-gray-500">
+                     <img src={poll.creator_avatar || '/uploads/avatars/default.png'} className="w-4 h-4 rounded-full" alt="" />
+                     <span>By <span className="text-gray-800">{poll.is_anonymous ? 'Classified' : (poll.creator_name || `@${poll.username}`)}</span></span>
+                     <span className="w-1 h-1 rounded-full bg-gray-300" />
+                     <span className="text-primary">{poll.campus || 'Global Spectrum'}</span>
                   </div>
 
-                  <div className="space-y-8 relative z-10">
+                  {poll.friends_participating && poll.friends_participating.length > 0 ? (
+                    <div className="mb-6 flex items-center gap-2 animate-fade-in">
+                       <div className="flex -space-x-2">
+                          {poll.friends_participating.map((f: any, i: number) => (
+                            <img key={i} src={f.avatar_url} className="w-6 h-6 rounded-full border-2 border-white shadow-sm" alt="" />
+                          ))}
+                       </div>
+                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                         {poll.friends_participating.length === 1 
+                           ? `@${poll.friends_participating[0].username} voted` 
+                           : `Friends are voting`}
+                       </p>
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-4 relative z-10 flex-1">
                   {poll.options && poll.options.slice(0, 2).map(opt => {
                     const pct = poll.total_votes && poll.total_votes > 0 ? Math.round((opt.vote_count / poll.total_votes) * 100) : 0;
                     return (
-                      <div key={opt.option_id} className="space-y-4">
-                        <div className="flex justify-between font-black text-[11px] text-black uppercase tracking-tighter italic">
-                           <span className="truncate pr-4">{opt.option_text}</span>
-                           <span className={pct > 0 ? 'text-primary scale-110' : 'opacity-20'}>{pct}%</span>
+                      <div key={opt.option_id} className="space-y-2">
+                        <div className="flex justify-between font-bold text-[12px] text-gray-700">
+                           <span className="truncate pr-2">{opt.option_text}</span>
+                           <span className={pct > 0 ? 'text-primary' : 'text-gray-400'}>{pct}%</span>
                         </div>
-                        <div className="h-3 bg-black/5 rounded-full overflow-hidden shadow-inner p-0.5">
-                           <div className="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%` }} />
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                           <div className="h-full bg-primary rounded-full transition-all duration-500 ease-out" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     );
                   })}
                   </div>
 
-                  <div className="mt-16 pt-10 border-t border-black/5 flex items-center justify-between text-black opacity-10 group-hover:opacity-100 group-hover:text-primary transition-all duration-700 relative z-10">
-                     <p className="text-[11px] font-black italic uppercase tracking-[0.3em]">Join Conversation</p>
-                     <ChevronRight size={28} strokeWidth={4} className="group-hover:translate-x-4 transition-transform duration-500" />
+                  <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-gray-400 group-hover:text-primary transition-all relative z-10">
+                     <p className="text-[11px] font-black uppercase tracking-widest">{poll.is_expired ? 'View Results' : 'Join Conversation'}</p>
+                     <ChevronRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               ))}
+
+              {loadingMore && (
+                <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
+                   {[...Array(2)].map((_, i) => (
+                    <div key={i} className="h-48 bg-white/40 backdrop-blur-3xl border border-white rounded-3xl p-6 relative overflow-hidden">
+                       <div className="absolute inset-0 animate-shimmer" />
+                       <div className="w-1/3 h-4 bg-gray-100 rounded-full animate-pulse mb-4" />
+                       <div className="w-full h-8 bg-gray-100 rounded-xl animate-pulse" />
+                       <div className="w-2/3 h-4 bg-gray-50 rounded-full animate-pulse mt-4" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* End of Feed Indicator */}
+              {!hasMore && polls.length > 0 ? (
+                <div className="col-span-full py-10 flex flex-col items-center gap-4">
+                  <div className="w-12 h-1 bg-gray-200 rounded-full" />
+                  <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">End of Spectrum</p>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

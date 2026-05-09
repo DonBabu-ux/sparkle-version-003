@@ -492,6 +492,25 @@ const getFollowers = async (req, res) => {
     }
 };
 
+const getMyFollowers = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const followers = await User.getFollowersDetailed(userId, userId);
+        
+        const mappedFollowers = followers.map(f => ({
+            ...f,
+            id: f.user_id,
+            profile_picture: f.avatar_url || '/uploads/avatars/default.png',
+            is_followed_by_me: !!f.is_followed_by_me
+        }));
+
+        res.json(mappedFollowers);
+    } catch (error) {
+        logger.error('Get my followers error:', error);
+        res.status(500).json({ error: 'Failed to get followers' });
+    }
+};
+
 const getFollowing = async (req, res) => {
     try {
         const userId = req.params.id;
@@ -742,5 +761,6 @@ module.exports = {
     revokeSession,
     logoutAllDevices,
     generateSecurityToken,
-    updateNote
+    updateNote,
+    getMyFollowers
 };

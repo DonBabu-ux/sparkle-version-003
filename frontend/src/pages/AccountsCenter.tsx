@@ -56,8 +56,7 @@ export default function AccountsCenter() {
         <header className="flex flex-col xl:flex-row items-center justify-between gap-16 mb-24 animate-fade-in px-4">
           <div className="max-w-2xl space-y-8 text-center xl:text-left">
             <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full shadow-xl shadow-primary/5 mx-auto xl:mx-0">
-               <Shield size={18} strokeWidth={3} className="text-primary" />
-               <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Consolidated Node Matrix</span>
+                <span className="text-[10px] font-bold text-black uppercase tracking-[0.4em]">Security & Accounts</span>
             </div>
             <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
                Account <span className="text-primary italic">Center.</span>
@@ -79,7 +78,7 @@ export default function AccountsCenter() {
         <div className="space-y-24 animate-fade-in relative z-10 w-full mb-64 px-4 text-left">
           {/* Linked Profiles */}
           <section>
-            <h2 className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.5em] mb-12 ml-10 italic">Linked Satellite Nodes</h2>
+            <h2 className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.5em] mb-12 ml-10 italic">Your Accounts</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               {accounts?.map(acc => (
                 <div key={acc.user.user_id} className={`p-10 rounded-[56px] border-4 transition-all duration-700 flex items-center justify-between group ${acc.user.user_id === user?.user_id ? 'bg-black border-black text-white shadow-2xl' : 'bg-white border-white text-black hover:shadow-2xl'}`}>
@@ -101,7 +100,7 @@ export default function AccountsCenter() {
                   </div>
                   <div className="flex items-center gap-4">
                     {acc.user.user_id === user?.user_id ? (
-                      <span className="px-6 py-2 bg-primary/10 text-primary border border-primary/20 rounded-full text-[9px] font-black uppercase tracking-widest italic group-hover:bg-primary group-hover:text-white transition-all shadow-xl">Active Node</span>
+                      <span className="px-6 py-2 bg-primary/10 text-primary border border-primary/20 rounded-full text-[9px] font-black uppercase tracking-widest italic group-hover:bg-primary group-hover:text-white transition-all shadow-xl">Active</span>
                     ) : (
                       <button 
                         onClick={() => { switchAccount(acc.user.user_id); navigate('/dashboard'); }}
@@ -120,7 +119,7 @@ export default function AccountsCenter() {
                 <div className="w-16 h-16 rounded-[24px] bg-black/5 flex items-center justify-center text-black/10 group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
                   <Plus size={32} strokeWidth={4} />
                 </div>
-                <span className="text-xl font-black italic uppercase tracking-tighter text-black opacity-10 group-hover:opacity-100 transition-all">Add Satellite Node</span>
+                <span className="text-xl font-black italic uppercase tracking-tighter text-black opacity-10 group-hover:opacity-100 transition-all">Add Account</span>
               </button>
             </div>
           </section>

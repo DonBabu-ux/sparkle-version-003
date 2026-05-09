@@ -86,6 +86,16 @@ export const useUserStore = create<UserState>()(
       },
 
       logout: () => {
+        // Clear all UI blocking states (Modals)
+        try {
+          const { closeModal } = require('./modalStore').useModalStore.getState();
+          closeModal();
+        } catch (e) {}
+        try {
+          const { setActiveModal } = require('./marketplaceStore').useMarketplaceStore.getState();
+          setActiveModal(null);
+        } catch (e) {}
+
         const activeId = get().activeAccountId;
         const accounts = get().accounts.filter(acc => acc.user.user_id !== activeId);
         
@@ -113,6 +123,16 @@ export const useUserStore = create<UserState>()(
       },
 
       switchAccount: (userId) => {
+        // Clear all UI blocking states (Modals)
+        try {
+          const { closeModal } = require('./modalStore').useModalStore.getState();
+          closeModal();
+        } catch (e) {}
+        try {
+          const { setActiveModal } = require('./marketplaceStore').useMarketplaceStore.getState();
+          setActiveModal(null);
+        } catch (e) {}
+
         const account = get().accounts.find(acc => acc.user.user_id === userId);
         if (account) {
           set({ 

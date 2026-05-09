@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
-import { Users, Plus, Shield, Search, ArrowRight, Sparkles, Globe, Compass, Lock } from 'lucide-react';
+import { Users, Plus, Shield, Search, ArrowRight, Sparkles, Globe, Compass, Lock, ArrowLeft } from 'lucide-react';
 import type { Group } from '../types/group';
 import { useNavigate } from 'react-router-dom';
 
@@ -47,10 +47,19 @@ export default function Groups() {
         <header className="mb-10" style={{ animation: 'slideUp 0.6s ease both' }}>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5" style={{ background: 'rgba(255,61,109,0.12)', border: '1px solid rgba(255,61,109,0.25)' }}>
-                <Sparkles size={13} style={{ color: '#FF3D6D' }} />
-                <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.12em', color: '#FF3D6D', textTransform: 'uppercase', fontStyle: 'normal' }}>Sparkle Communities</span>
+              {/* Back Button & Badge Row */}
+              <div className="flex items-center gap-3 mb-5">
+                <button 
+                  onClick={() => navigate('/dashboard')}
+                  className="w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-md rounded-full shadow-sm hover:shadow-md transition-all border border-gray-200 text-gray-500 hover:text-gray-900 active:scale-95"
+                  aria-label="Go to Dashboard"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(255,61,109,0.12)', border: '1px solid rgba(255,61,109,0.25)' }}>
+                  <Sparkles size={13} style={{ color: '#FF3D6D' }} />
+                  <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.12em', color: '#FF3D6D', textTransform: 'uppercase', fontStyle: 'normal' }}>Sparkle Communities</span>
+                </div>
               </div>
               {/* Heading — inline style bypasses global heading overrides */}
               <h1 style={{ fontSize: 'clamp(2rem, 6vw, 3.5rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#1a1a2e', fontStyle: 'normal', textTransform: 'none', fontFamily: 'inherit', marginBottom: '12px' }}>

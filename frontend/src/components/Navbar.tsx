@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../api/api';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
@@ -179,7 +180,6 @@ export default function Navbar() {
                 { name: 'Moment', icon: PlayCircle, action: () => navigate('/moments/create'), color: 'text-sky-500' },
                 { name: 'Listing', icon: Store, action: () => setActiveModal('listing'), color: 'text-amber-500' },
                 { name: 'Campus Poll', icon: BarChart3, action: () => setActiveModal('poll'), color: 'text-emerald-500' },
-                { name: 'Event', icon: Calendar, action: () => setActiveModal('event'), color: 'text-indigo-500' },
                 { name: 'Confession', icon: Ghost, action: () => setActiveModal('confession'), color: 'text-slate-500', isNew: true },
             ].map((item, idx) => (
                 <button 
@@ -200,56 +200,63 @@ export default function Navbar() {
       )}
 
       {/* Global Modals */}
-      {activeModal && (
-        <>
-          {activeModal === 'media_preview' ? (
-            <MediaPreviewModal />
-          ) : activeModal === 'post_options' ? (
-            <PostOptionsModal post={(modalData as any)?.post} onClose={() => setActiveModal(null)} />
-          ) : (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
-              <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
-                {activeModal === 'post' && <PostModal editPost={(modalData as any)?.editPost} onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-                {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-                {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-                {activeModal === 'listing' && <ListingModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-                {activeModal === 'confession' && <ConfessionModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-                {activeModal === 'settings' && <SettingsModal onClose={() => setActiveModal(null)} />}
-                {activeModal === 'share' && <ShareModal onClose={() => setActiveModal(null)} />}
-                {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-                {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}
-                {activeModal === 'creation_hub' && <CreationHubModal onClose={() => setActiveModal(null)} />}
-                {activeModal === 'highlight' && (
-                  <CreateHighlightModal 
-                    isOpen={true} 
-                    onClose={() => setActiveModal(null)} 
-                    onCreated={(h) => {
-                      setActiveModal(null);
-                      triggerSuccess();
-                    }} 
-                  />
-                )}
-                {activeModal === 'highlight_player' && (
-                  <HighlightPlayerModal
-                    isOpen={true}
-                    onClose={() => setActiveModal(null)}
-                    title={modalData?.title}
-                    stories={modalData?.stories}
-                    ownerUsername={modalData?.ownerUsername}
-                    ownerAvatar={modalData?.ownerAvatar}
-                  />
-                )}
-                {activeModal === 'archive' && (
-                  <ArchiveModal 
-                    isOpen={true} 
-                    onClose={() => setActiveModal(null)} 
-                  />
-                )}
-              </div>
+      {(() => {
+        if (!activeModal) return null;
+
+        if (activeModal === 'media_preview') return <MediaPreviewModal />;
+        if (activeModal === 'post_options') return <PostOptionsModal post={(modalData as any)?.post} onClose={() => setActiveModal(null)} />;
+
+        const handledModals = [
+          'post', 'poll', 'event', 'listing', 'confession', 'settings', 
+          'share', 'reshare', 'post_comments', 'creation_hub', 
+          'highlight', 'highlight_player', 'archive'
+        ];
+
+        if (!handledModals.includes(activeModal)) return null;
+
+        return (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
+            <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
+              {activeModal === 'post' && <PostModal editPost={(modalData as any)?.editPost} onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+              {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+              {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+              {activeModal === 'listing' && <ListingModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+              {activeModal === 'confession' && <ConfessionModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+              {activeModal === 'settings' && <SettingsModal onClose={() => setActiveModal(null)} />}
+              {activeModal === 'share' && <ShareModal onClose={() => setActiveModal(null)} />}
+              {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+              {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}
+              {activeModal === 'creation_hub' && <CreationHubModal onClose={() => setActiveModal(null)} />}
+              {activeModal === 'highlight' && (
+                <CreateHighlightModal 
+                  isOpen={true} 
+                  onClose={() => setActiveModal(null)} 
+                  onCreated={(h) => {
+                    setActiveModal(null);
+                    triggerSuccess();
+                  }} 
+                />
+              )}
+              {activeModal === 'highlight_player' && (
+                <HighlightPlayerModal
+                  isOpen={true}
+                  onClose={() => setActiveModal(null)}
+                  title={modalData?.title}
+                  stories={modalData?.stories}
+                  ownerUsername={modalData?.ownerUsername}
+                  ownerAvatar={modalData?.ownerAvatar}
+                />
+              )}
+              {activeModal === 'archive' && (
+                <ArchiveModal 
+                  isOpen={true} 
+                  onClose={() => setActiveModal(null)} 
+                />
+              )}
             </div>
-          )}
-        </>
-      )}
+          </div>
+        );
+      })()}
 
       {/* Grid Mega Menu */}
       {gridMenuOpen && (
@@ -260,8 +267,8 @@ export default function Navbar() {
           >
             <div className="flex items-center justify-between mb-8 px-4">
                 <div>
-                  <span className="text-3xl font-black text-black tracking-tight italic">Explore</span>
-                  <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mt-1 italic">VILLAGE FREQUENCIES</p>
+                  <span className="text-3xl font-black text-black tracking-tight italic">Sparkle Hub</span>
+                  <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mt-1 italic">ALL FEATURES</p>
                 </div>
                 <button onClick={() => setGridMenuOpen(false)} className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/30 hover:text-primary transition-colors">
                   <X size={20} strokeWidth={3} />
@@ -270,25 +277,22 @@ export default function Navbar() {
 
             <div className="grid grid-cols-3 gap-3 mb-8 overflow-y-auto no-scrollbar pr-1">
                 {[
-                { name: 'Market', icon: ShoppingBag, color: 'text-amber-500', path: '/marketplace' },
+                { name: 'Marketplace', icon: ShoppingBag, color: 'text-amber-500', path: '/marketplace' },
                 { name: 'Groups', icon: Users, color: 'text-sky-500', path: '/groups' },
-                { name: 'Clubs', icon: Sparkles, color: 'text-primary', path: '/clubs' },
-                { name: 'Events', icon: Calendar, color: 'text-rose-500', path: '/events' },
                 { name: 'Polls', icon: BarChart3, color: 'text-emerald-500', path: '/polls' },
-                { name: 'Chat', icon: MessageSquare, color: 'text-indigo-500', path: '/messages' },
-                { name: 'Moments', icon: PlayCircle, color: 'text-sky-400', path: '/moments' },
-                { name: 'The Vault', icon: Ghost, color: 'text-slate-500', path: '/confessions' },
-                { name: 'Skills', icon: Zap, color: 'text-yellow-500', path: '/skill-market' },
-                { name: 'Streams', icon: Activity, color: 'text-red-500', path: '/streams' },
+                { name: 'Messages', icon: MessageSquare, color: 'text-indigo-500', path: '/messages' },
+                { name: 'Shorts', icon: PlayCircle, color: 'text-sky-400', path: '/moments' },
+                { name: 'Anonymous', icon: Ghost, color: 'text-slate-500', path: '/confessions' },
+                { name: 'Services', icon: Zap, color: 'text-yellow-500', path: '/skill-market' },
+                { name: 'Live Video', icon: Activity, color: 'text-red-500', path: '/streams' },
                 { name: 'Search', icon: SearchIcon, color: 'text-black/40', path: '/search' },
-                { name: 'Connect', icon: UserPlus, color: 'text-primary', path: '/connect' },
-                { name: 'Lost Found', icon: Package, color: 'text-orange-500', path: '/lost-found' },
-                { name: 'Memories', icon: History, color: 'text-indigo-400', path: '/memories' },
-                { name: 'Gallery', icon: ImageIcon, color: 'text-pink-500', path: '/gallery' },
-                { name: 'Invite', icon: Send, color: 'text-teal-500', path: '/invite' },
-                { name: 'Verified', icon: CheckCircle2, color: 'text-blue-500', path: '/verified' },
-                { name: 'Pro Hub', icon: Briefcase, color: 'text-orange-600', path: '/professional-dashboard' },
-                { name: 'Chat Opts', icon: Settings, color: 'text-slate-400', path: '/messages/settings' },
+                { name: 'Find Friends', icon: UserPlus, color: 'text-primary', path: '/connect' },
+                { name: 'Archive', icon: History, color: 'text-indigo-400', path: '/memories' },
+                { name: 'Photos', icon: ImageIcon, color: 'text-pink-500', path: '/gallery' },
+                { name: 'Share App', icon: Send, color: 'text-teal-500', path: '/invite' },
+                { name: 'Get Verified', icon: CheckCircle2, color: 'text-blue-500', path: '/verified' },
+                { name: 'Professional Dashboard', icon: Briefcase, color: 'text-orange-600', path: '/professional-dashboard' },
+                { name: 'Chat Settings', icon: Settings, color: 'text-slate-400', path: '/messages/settings' },
                 { name: 'Support', icon: LifeBuoy, color: 'text-gray-400', path: '/help' },
                 ].map((item) => (
                 <button 
@@ -338,10 +342,33 @@ export default function Navbar() {
 }
 
 function NotificationBell() {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get('/notifications');
+        const notifs = res.data.notifications || res.data || [];
+        const count = notifs.filter((n: any) => !n.is_read).length;
+        setUnreadCount(count);
+      } catch (e) {
+        console.error('Failed to fetch unread count', e);
+      }
+    };
+    
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Link to="/notifications" className="relative w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/30 hover:text-primary transition-all active:scale-90">
       <Bell size={20} strokeWidth={2.5} />
-      <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full ring-2 ring-white"></span>
+      {unreadCount > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-[#e41e3f] text-white text-[12px] font-bold rounded-full border-2 border-white shadow-sm flex items-center justify-center font-sans tracking-tight antialiased z-10">
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </span>
+      )}
     </Link>
   );
 }

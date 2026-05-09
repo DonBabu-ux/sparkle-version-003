@@ -159,7 +159,7 @@ export default function Sidebar() {
         {isHovered && (
           <div className="mt-4 px-6 border-l-4 border-black/5 flex flex-col gap-4 animate-fade-in">
              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-black/20 italic leading-none">Council Health</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-black/20 italic leading-none">System Status</span>
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-2xl shadow-emerald-500"></div>
              </div>
              <div className="h-1 bg-black/5 rounded-full overflow-hidden">

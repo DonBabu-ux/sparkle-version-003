@@ -19,6 +19,26 @@ interface CreationHubModalProps {
   onClose: () => void;
 }
 
+const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M17 10c.5-1.5 0-3-1-4l-1-1h-6l-1 1c-1 1-1.5 2.5-1 4" />
+    <path d="M3 10h18l-1.5 3H4.5L3 10z" />
+    <circle cx="8.5" cy="17" r="2.5" />
+    <circle cx="15.5" cy="17" r="2.5" />
+    <path d="M11 17h2" />
+  </svg>
+);
+
 export default function CreationHubModal({ onClose }: CreationHubModalProps) {
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
@@ -81,9 +101,10 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
 
             {[
                 { name: 'market signal', icon: Store, action: () => setActiveModal('listing'), desc: 'LIQUIDITY INJECT', color: 'text-black' },
+                { name: 'skill resonance', icon: Hammer, action: () => setActiveModal('skill_offer'), desc: 'EXPERTISE SYNC', color: 'text-black' },
                 { name: 'pulse poll', icon: BarChart3, action: () => setActiveModal('poll'), desc: 'AGGREGATE RESONANCE', color: 'text-black' },
                 { name: 'village rift', icon: Calendar, action: () => setActiveModal('event'), desc: 'TEMPORAL COORDINATE', color: 'text-black' },
-                { name: 'confession', icon: Ghost, action: () => setActiveModal('confession'), desc: 'DEEP CORE SYNC', color: 'text-rose-500' },
+                { name: 'confession', icon: SpyIcon, action: () => setActiveModal('confession'), desc: 'DEEP CORE SYNC', color: 'text-rose-500' },
             ].map((item, idx) => (
                 <button 
                     key={idx}

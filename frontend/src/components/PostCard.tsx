@@ -1,10 +1,35 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react'; // Refined Post Interaction System
 import { createPortal } from 'react-dom';
 import { 
-  MoreHorizontal, ThumbsUp, MessageCircle, Share2, Globe, Lock, X, Users,
-  Bookmark, Link as LinkIcon, PlusCircle, MinusCircle, Flag, Pencil, Trash2,
-  Bell, Info, Clock, EyeOff
+  MoreHorizontal, Globe, Lock, X, Users, Link as LinkIcon, PlusCircle, MinusCircle, Flag, Pencil, Trash2,
+  Bell, Info, Clock, EyeOff, ThumbsUp, Bookmark
 } from 'lucide-react';
+
+// Premium Action Icons (matched to modern social aesthetics)
+const HeartIcon = ({ active, size = 25, className = "" }: { active?: boolean, size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  </svg>
+);
+
+const CommentIcon = ({ size = 25, className = "" }: { size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M20.65 17.15a10 10 0 1 1 2.35-6.15 10 10 0 0 1-2.35 6.15L23 23l-5.85-2.35Z" />
+  </svg>
+);
+
+const SendIcon = ({ size = 23, className = "" }: { size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${className} rotate-[-15deg] translate-y-[2.5px]`}>
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+
+const BookmarkIcon = ({ active, size = 25, className = "" }: { active?: boolean, size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+  </svg>
+);
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
@@ -13,6 +38,7 @@ import { Link } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
 import { formatCount } from '../utils/format';
+import { emitHeart } from './TikTokHearts';
 import { trackingService } from '../services/TrackingService';
 import type { Post } from '../types/post';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
@@ -26,11 +52,22 @@ interface PostCardProps {
 }
 
 const IncognitoIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className = "" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M17 12c-1.5 0-2.8 1.1-3 2.5a3.5 3.5 0 0 0-4 0c-.2-1.4-1.5-2.5-3-2.5a3.5 3.5 0 1 0 3.5 3.5c0-.1 0-.3 0-.4a1.5 1.5 0 0 1 3 0c0 .1 0 .3 0 .4a3.5 3.5 0 1 0 3.5-3.5Z" />
-    <path d="M3 11c1-2 3-3 5-3h8c2 0 4 1 5 3" />
-    <path d="M12 3v5" />
-    <path d="M8 3h8" />
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M17 10c.5-1.5 0-3-1-4l-1-1h-6l-1 1c-1 1-1.5 2.5-1 4" />
+    <path d="M3 10h18l-1.5 3H4.5L3 10z" />
+    <circle cx="8.5" cy="17" r="2.5" />
+    <circle cx="15.5" cy="17" r="2.5" />
+    <path d="M11 17h2" />
   </svg>
 );
 
@@ -41,6 +78,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
   const [isFollowed, setIsFollowed] = useState(post.is_followed);
+  const [isSaved, setIsSaved] = useState(post.is_saved);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -116,19 +154,42 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     };
   }, [menuOpen]);
 
-  const handleSpark = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const isSparkedRef = useRef(isSparked);
+  useEffect(() => { isSparkedRef.current = isSparked; }, [isSparked]);
+
+  const handleSpark = async (e?: React.MouseEvent, forceLike?: boolean) => {
+    if (e) {
+      e.stopPropagation();
+      emitHeart(e.clientX, e.clientY);
+    }
+    
+    if (!currentUser) return;
+    
+    // Synchronously check if already liked to prevent multiple API calls during rapid tapping
+    if (forceLike && isSparkedRef.current) return;
+
     const originalSparked = isSparked;
     const originalCount = sparkCount;
+    
+    // Optimistically update ref and state
+    if (forceLike) isSparkedRef.current = true;
     setIsSparked(!originalSparked);
     setSparkCount(prev => (originalSparked ? prev - 1 : prev + 1));
+    
+    // Track engagement if first spark
+    if (!originalSparked) {
+      trackingService.trackEngagement(post.post_id, 'like');
+    }
+
     try {
-      await api.post(`/posts/${post.post_id}/spark`);
-      if (!originalSparked) {
-        trackingService.trackEngagement(post.post_id, 'like');
+      if (originalSparked) {
+        await api.post(`/posts/${post.post_id}/unspark`);
+      } else {
+        await api.post(`/posts/${post.post_id}/spark`);
       }
     } catch {
       setIsSparked(originalSparked);
+      isSparkedRef.current = originalSparked;
       setSparkCount(originalCount);
     }
   };
@@ -193,12 +254,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
   const handleSavePost = async () => {
     setMenuOpen(false);
+    const wasSaved = isSaved;
+    setIsSaved(!wasSaved);
+    
     try {
-      await api.post(`/posts/${post.post_id}/save`);
-      alert('Post saved to bookmarks!');
+      if (wasSaved) {
+        await api.post(`/posts/${post.post_id}/unsave`);
+      } else {
+        await api.post(`/posts/${post.post_id}/save`);
+      }
     } catch (err) {
-      console.error('Failed to save post', err);
-      alert('Failed to save post.');
+      setIsSaved(wasSaved);
+      console.error('Failed to toggle save state', err);
     }
   };
 
@@ -598,7 +665,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       {!isTextOnly && (
         <div 
           className="relative bg-[#f0f2f5] cursor-pointer overflow-hidden w-full"
-          onClick={() => setActiveModal('media_preview', null, { post })}
+          onClick={(e) => {
+            // Show heart on every tap
+            emitHeart(e.clientX, e.clientY);
+            setActiveModal('media_preview', null, { post });
+          }}
+          onDoubleClick={(e) => handleSpark(e, true)}
         >
           {post.media_files && post.media_files.length > 0 ? (
             <div className={`grid gap-0.5 ${
@@ -646,11 +718,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       )}
 
       {/* Stats */}
-      <div className="px-3 py-2 flex items-center justify-between">
-        <div className="flex items-center cursor-pointer hover:underline">
+      <div 
+        className="px-3 py-2 flex items-center justify-between cursor-pointer active:bg-gray-50/50 transition-colors"
+        onClick={(e) => handleSpark(e, true)}
+      >
+        <div className="flex items-center hover:underline">
           {/* Primary Like Icon - Restored and spaced to avoid collision */}
-          <div className="w-[16px] h-[16px] rounded-full bg-[#1877F2] flex items-center justify-center ring-2 ring-white z-30 shadow-sm mr-2">
-            <ThumbsUp size={8} fill="white" className="text-white" />
+          <div className="w-[16px] h-[16px] rounded-full bg-primary flex items-center justify-center ring-2 ring-white z-30 shadow-sm mr-2">
+            <HeartIcon size={10} active={true} className="text-white" />
           </div>
  
           <div className="ml-2 flex items-center leading-tight">
@@ -676,36 +751,54 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center border-t border-gray-100 mx-2 py-0.5 mt-0.5 mb-1">
+      {/* Actions Row */}
+      <div className="flex items-center justify-between px-4 py-2 border-t border-gray-50 mt-1">
+        <div className="flex items-center gap-3">
+          {/* Spark (Like) */}
+          <button
+            onClick={handleSpark}
+            className={`flex items-center gap-1.5 py-2 px-1 transition-all active:scale-90 group ${
+              isSparked ? 'text-primary' : 'text-gray-400 hover:text-primary'
+            }`}
+          >
+            <HeartIcon 
+              size={20} 
+              active={isSparked}
+              className="transition-transform group-hover:scale-110" 
+            />
+            <span className="text-[13px] font-bold tracking-tight">
+              {formatCount(post.spark_count || 0)}
+            </span>
+          </button>
+          
+          {/* Comment */}
+          <button
+            onClick={() => setActiveModal('post_comments', null, { post })}
+            className="flex items-center gap-1.5 py-2 px-1 text-gray-400 hover:text-primary transition-all active:scale-90 group"
+          >
+            <CommentIcon size={20} className="transition-transform group-hover:scale-110" />
+            <span className="text-[13px] font-bold tracking-tight">
+              {formatCount(post.comment_count || 0)}
+            </span>
+          </button>
+          
+          {/* Send / Share */}
+          <button
+            onClick={() => setActiveModal('share', null, { post })}
+            className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-primary transition-all active:scale-90 group"
+          >
+          <SendIcon className="transition-transform group-hover:scale-110" />
+          </button>
+        </div>
+
+        {/* Bookmark */}
         <button
-          onClick={handleSpark}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all active:scale-95 group ${
-            isSparked ? 'text-primary' : 'text-gray-500 hover:bg-gray-50'
+          onClick={handleSavePost}
+          className={`flex items-center justify-center w-10 h-10 transition-colors ${
+            isSaved ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'
           }`}
         >
-          <ThumbsUp 
-            size={16} 
-            strokeWidth={isSparked ? 2.5 : 2} 
-            className={isSparked ? 'fill-primary animate-spark-pop' : 'group-hover:scale-110 transition-transform'} 
-          />
-          <span className="text-[12px] font-bold tracking-tight">Like</span>
-        </button>
-        
-        <button
-          onClick={() => setActiveModal('post_comments', null, { post })}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg transition-all active:scale-95 group"
-        >
-          <MessageCircle size={16} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
-          <span className="text-[12px] font-bold tracking-tight">Comment</span>
-        </button>
-        
-        <button
-          onClick={() => setActiveModal('share', null, { post })}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg transition-all active:scale-95 group"
-        >
-          <Share2 size={16} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
-          <span className="text-[12px] font-bold tracking-tight">Share</span>
+          <BookmarkIcon active={isSaved} />
         </button>
       </div>
 

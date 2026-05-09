@@ -1,149 +1,258 @@
 import { useState, useEffect } from 'react';
-import { Hammer, Zap, Star, ShieldCheck, ChevronRight } from 'lucide-react';
+import { 
+  Hammer, Zap, Star, ShieldCheck, ChevronRight, 
+  Search, Filter, Plus, Briefcase, GraduationCap, 
+  Code, Palette, PenTool, Music, Cpu, MoreHorizontal
+} from 'lucide-react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useModalStore } from '../store/modalStore';
 
 interface SkillOffer {
+  offer_id: string;
   title: string;
   description: string;
-  provider_name?: string;
-  provider_avatar?: string;
-  price_display?: string;
+  category: string;
+  price: number;
+  is_free: boolean;
+  username: string;
+  name: string;
+  avatar_url: string;
+  average_rating: number | null;
+  review_count: number;
+  created_at: string;
 }
+
+const CATEGORIES = [
+  { id: 'all', name: 'All Skills', icon: Briefcase },
+  { id: 'tutoring', name: 'Tutoring', icon: GraduationCap },
+  { id: 'coding', name: 'Coding', icon: Code },
+  { id: 'design', name: 'Design', icon: Palette },
+  { id: 'writing', name: 'Writing', icon: PenTool },
+  { id: 'music', name: 'Music', icon: Music },
+  { id: 'tech', name: 'Tech Support', icon: Cpu },
+];
 
 export default function SkillMarket() {
   const [skills, setSkills] = useState<SkillOffer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const { setActiveModal, refreshCounter } = useModalStore();
 
   useEffect(() => {
-    const fetchSkills = async () => {
-      try {
-        const response = await api.get('/marketplace/skills');
-        const data = response.data.skillOffers || response.data.data || (Array.isArray(response.data) ? response.data : []);
-        setSkills(data);
-      } catch (err) {
-        console.error('Failed to fetch skills:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchSkills();
-  }, []);
+  }, [activeCategory, refreshCounter]);
+
+  const fetchSkills = async () => {
+    setLoading(true);
+    try {
+      const params: any = {};
+      if (activeCategory !== 'all') params.category = activeCategory;
+      
+      const response = await api.get('/skill-market/offers', { params });
+      const data = response.data.offers || response.data;
+      setSkills(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to fetch skills:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredSkills = skills.filter(skill => 
+    skill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    skill.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="skill-market-page">
+    <div className="skill-market-page min-h-screen bg-[#fcfdff] flex lowercase">
       <Navbar />
       
-      <main className="skill-layout">
-        <header className="skill-hero animate-fade-in">
-           <div className="hero-badge">
-              <Zap size={14} fill="currentColor" />
-              <span>SKILL RESONANCE</span>
-           </div>
-           <h1>Sparkle Skill Exchange</h1>
-           <p>Monetize your expertise or find specialized talent right within your student community.</p>
-        </header>
+      <main className="flex-1 lg:pl-24 pt-20 lg:pt-0">
+        <div className="max-w-[1400px] mx-auto px-6 py-10">
+          
+          {/* Header & Search */}
+          <header className="mb-12">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+              <div className="max-w-2xl">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] mb-6 italic"
+                >
+                  <Zap size={14} fill="currentColor" />
+                  Skill Matrix Active
+                </motion.div>
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="text-5xl lg:text-7xl font-black tracking-tighter italic uppercase leading-[0.85] mb-6"
+                >
+                  Student <br />
+                  <span className="text-primary">Power Hub</span>
+                </motion.h1>
+                <motion.p 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-lg font-bold text-black/40 max-w-lg leading-relaxed italic"
+                >
+                  monetize your expertise or find specialized talent right within your student community. turn knowledge into value.
+                </motion.p>
+              </div>
 
-        {loading ? (
-          <div className="loader-box">
-             <div className="spinner"></div>
-             <p>Scanning for talent...</p>
-          </div>
-        ) : (
-          <div className="skill-grid">
-             {/* Offer Service Card */}
-             <div className="skill-card create-card glass-card animate-scale-in">
-                <div className="icon-wrap">
-                   <Hammer size={32} />
+              <div className="flex flex-col gap-4 w-full lg:max-w-sm">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-primary/5 rounded-[24px] blur-xl group-focus-within:bg-primary/10 transition-all" />
+                  <div className="relative flex items-center bg-white border-2 border-black/[0.03] rounded-[24px] px-6 h-16 shadow-sm group-focus-within:border-primary/20 transition-all">
+                    <Search className="text-black/20 mr-4" size={20} strokeWidth={3} />
+                    <input 
+                      type="text" 
+                      placeholder="search skills..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-none outline-none w-full font-bold text-black placeholder:text-black/20 italic"
+                    />
+                  </div>
                 </div>
-                <h3>Offer Your Service</h3>
-                <p>Coding, Design, Tutoring or anything in between. Turn your skills into cash.</p>
-                <button className="primary-btn-premium mt-auto">List a Service</button>
-             </div>
+                <button 
+                  onClick={() => setActiveModal('skill_offer')}
+                  className="h-16 bg-black text-white rounded-[24px] font-black uppercase italic tracking-tighter text-lg flex items-center justify-center gap-3 hover:bg-primary transition-all active:scale-95 shadow-xl shadow-black/10"
+                >
+                  <Plus size={20} strokeWidth={4} />
+                  List a service
+                </button>
+              </div>
+            </div>
+          </header>
 
-             {skills.map((skill, idx) => (
-                <div key={idx} className="skill-card glass-card animate-scale-in" style={{ animationDelay: `${idx * 0.1}s` }}>
-                   <div className="card-header">
-                      <div className="provider-info">
-                         <img src={skill.provider_avatar || '/uploads/avatars/default.png'} alt="" />
-                         <div className="provider-meta">
-                            <span className="provider-name">{skill.provider_name || 'Expert'}</span>
-                            <div className="rating">
-                               <Star size={10} fill="currentColor" />
-                               <span>4.9 (12 reviews)</span>
+          {/* Category Bar */}
+          <div className="mb-12 overflow-x-auto no-scrollbar -mx-6 px-6">
+            <div className="flex items-center gap-3">
+              {CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                const isActive = activeCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`
+                      shrink-0 flex items-center gap-3 px-6 py-4 rounded-[20px] font-black text-sm transition-all relative
+                      ${isActive ? 'bg-black text-white shadow-lg' : 'bg-white border-2 border-black/[0.03] text-black/40 hover:bg-black/5'}
+                    `}
+                  >
+                    <Icon size={18} strokeWidth={isActive ? 3 : 2} />
+                    <span className="italic uppercase tracking-tight">{cat.name}</span>
+                    {isActive && <motion.div layoutId="cat-glow" className="absolute inset-0 bg-primary/20 blur-xl -z-10 rounded-full" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="relative min-h-[400px]">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-32 gap-6 opacity-40">
+                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                <p className="font-black text-[10px] uppercase tracking-[0.4em] italic">Syncing matrix...</p>
+              </div>
+            ) : filteredSkills.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-32 text-center">
+                <div className="w-24 h-24 bg-black/5 rounded-[40px] flex items-center justify-center mb-8">
+                  <Hammer size={40} className="text-black/10" />
+                </div>
+                <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2">No skills found</h3>
+                <p className="font-bold text-black/20 max-w-xs italic uppercase tracking-widest text-[10px]">be the first to offer this service in your sector.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                <AnimatePresence>
+                  {filteredSkills.map((skill, idx) => (
+                    <motion.div 
+                      key={skill.offer_id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                      onClick={() => setActiveModal('skill_detail', null, { offerId: skill.offer_id })}
+                      className="group bg-white border-4 border-black/[0.02] rounded-[48px] p-8 hover:border-primary/10 transition-all hover:shadow-[0_40px_80px_rgba(225,29,72,0.05)] flex flex-col relative overflow-hidden cursor-pointer"
+                    >
+                      {/* Background Decor */}
+                      <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.05] group-hover:scale-110 transition-all">
+                        <Hammer size={120} strokeWidth={1} />
+                      </div>
+
+                      <div className="flex items-start justify-between mb-8 relative z-10">
+                        <div className="flex items-center gap-4">
+                          <img 
+                            src={skill.avatar_url || '/uploads/avatars/default.png'} 
+                            className="w-14 h-14 rounded-2xl object-cover border-2 border-black/5 group-hover:scale-110 transition-transform"
+                            alt="" 
+                          />
+                          <div>
+                            <h4 className="font-black text-[15px] text-black leading-none mb-1 uppercase italic tracking-tighter">{skill.name}</h4>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-0.5 text-amber-500">
+                                <Star size={10} fill="currentColor" />
+                                <span className="font-black text-[10px] italic">{skill.average_rating || '5.0'}</span>
+                              </div>
+                              <span className="text-[10px] font-bold text-black/20 uppercase tracking-widest">({skill.review_count} rvs)</span>
                             </div>
-                         </div>
+                          </div>
+                        </div>
+                        <div className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/10 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                          <ShieldCheck size={20} strokeWidth={3} />
+                        </div>
                       </div>
-                      <ShieldCheck size={18} className="verified-icon" />
-                   </div>
 
-                   <div className="card-body">
-                      <h3>{skill.title}</h3>
-                      <p>{skill.description}</p>
-                   </div>
-
-                   <div className="card-footer">
-                      <div className="price-info">
-                         <span className="label">Starting at</span>
-                         <span className="price">KSh {skill.price_display || '800'}</span>
+                      <div className="flex-1 mb-8 relative z-10">
+                        <div className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-3 italic">
+                          {CATEGORIES.find(c => c.id === skill.category)?.name || skill.category}
+                        </div>
+                        <h3 className="text-2xl font-black text-black leading-tight tracking-tighter uppercase italic mb-4 group-hover:text-primary transition-colors">
+                          {skill.title}
+                        </h3>
+                        <p className="text-[13px] font-bold text-black/40 leading-relaxed italic line-clamp-3">
+                          {skill.description}
+                        </p>
                       </div>
-                      <button className="engage-btn">
-                         Engage <ChevronRight size={14} />
-                      </button>
-                   </div>
-                </div>
-             ))}
+
+                      <div className="flex items-center justify-between pt-8 border-t-2 border-black/[0.02] relative z-10">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-black/20 uppercase tracking-widest mb-1 italic">Starting at</span>
+                          <span className="text-2xl font-black text-emerald-500 tracking-tighter italic">
+                            {skill.is_free ? 'FREE' : `KSH ${skill.price}`}
+                          </span>
+                        </div>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setActiveModal('skill_detail', null, { offerId: skill.offer_id }); }}
+                          className="px-8 py-4 bg-black text-white rounded-[20px] font-black text-sm uppercase italic tracking-tighter hover:bg-primary transition-all active:scale-95 shadow-lg shadow-black/5"
+                        >
+                          Engage <ChevronRight size={16} className="inline ml-1" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
 
       <style>{`
-        .skill-market-page { min-height: 100vh; background: #f8fafc; display: flex; flex-direction: row; }
-        .skill-layout { flex: 1; padding: 40px; overflow-y: auto; }
-
-        .skill-hero { max-width: 800px; margin-bottom: 60px; }
-        .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,107,139,0.1); color: var(--primary); padding: 8px 16px; border-radius: 20px; font-weight: 800; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 20px; }
-        .skill-hero h1 { font-size: 3.5rem; font-weight: 900; color: #0f172a; letter-spacing: -2px; line-height: 1; margin: 0 0 10px; }
-        .skill-hero p { color: #64748b; font-size: 1.2rem; line-height: 1.6; }
-
-        .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .skill-card { display: flex; flex-direction: column; padding: 24px; min-height: 380px; border-radius: 24px; }
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-        .provider-info { display: flex; align-items: center; gap: 12px; }
-        .provider-info img { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; }
-        .provider-meta { display: flex; flex-direction: column; }
-        .provider-name { font-weight: 800; font-size: 0.9rem; color: #1e293b; }
-        .rating { display: flex; align-items: center; gap: 4px; color: #f59e0b; font-size: 0.7rem; font-weight: 800; }
-        .verified-icon { color: var(--primary); opacity: 0.8; }
-
-        .card-body { flex: 1; }
-        .card-body h3 { font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0 0 12px; line-height: 1.3; }
-        .card-body p { color: #64748b; font-size: 0.95rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-
-        .card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05); }
-        .price-info { display: flex; flex-direction: column; }
-        .price-info .label { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
-        .price-info .price { font-size: 1.25rem; font-weight: 900; color: #059669; }
-
-        .engage-btn { display: flex; align-items: center; gap: 6px; background: #0f172a; color: white; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 0.85rem; transition: 0.2s; }
-        .engage-btn:hover { background: var(--primary); transform: scale(1.05); }
-
-        .create-card { background: var(--primary-gradient); color: white; border: none; align-items: center; text-align: center; justify-content: center; }
-        .create-card .icon-wrap { width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
-        .create-card h3 { color: white; margin-bottom: 12px; font-size: 1.4rem; }
-        .create-card p { color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-bottom: 30px; }
-        .primary-btn-premium { width: 100%; background: white; color: var(--primary); padding: 14px; border-radius: 14px; font-weight: 900; font-size: 0.85rem; border: none; cursor: pointer; transition: 0.2s; }
-        .primary-btn-premium:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-
-        .loader-box { height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; gap: 16px; }
-
-        @media (max-width: 1024px) {
-          .skill-market-page { flex-direction: column; }
-          .skill-layout { padding: 80px 20px 100px; }
-          .skill-hero h1 { font-size: 2.5rem; }
-        }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scale-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .animate-fade-in { animation: fade-in 0.8s ease-out forwards; }
+        .animate-scale-in { animation: scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>
   );
 }
+

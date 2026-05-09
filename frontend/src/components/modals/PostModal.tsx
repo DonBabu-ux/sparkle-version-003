@@ -14,10 +14,30 @@ interface PostModalProps {
   editPost?: any;
 }
 
+const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M17 10c.5-1.5 0-3-1-4l-1-1h-6l-1 1c-1 1-1.5 2.5-1 4" />
+    <path d="M3 10h18l-1.5 3H4.5L3 10z" />
+    <circle cx="8.5" cy="17" r="2.5" />
+    <circle cx="15.5" cy="17" r="2.5" />
+    <path d="M11 17h2" />
+  </svg>
+);
+
 const POST_TYPES = [
   { value: 'public', label: 'Public', icon: Globe, color: 'text-blue-500' },
   { value: 'private', label: 'Private', icon: Lock, color: 'text-gray-600' },
-  { value: 'friends', label: 'Friends', icon: Ghost, color: 'text-purple-500' },
+  { value: 'friends', label: 'Incognito', icon: SpyIcon, color: 'text-purple-500' },
 ];
 
 export default function PostModal({ onClose, onSuccess, editPost }: PostModalProps) {

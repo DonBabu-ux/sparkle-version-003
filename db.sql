@@ -370,20 +370,32 @@ CREATE TABLE `event_rsvps` (
 DROP TABLE IF EXISTS `confessions`;
 CREATE TABLE `confessions` (
   `confession_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
   `content` TEXT NOT NULL,
   `campus` VARCHAR(100) NOT NULL,
-  `category` VARCHAR(50) DEFAULT NULL,
+  `category` VARCHAR(50) DEFAULT 'general',
+  `author_alias` VARCHAR(50) DEFAULT NULL,
+  `image_url` VARCHAR(500) DEFAULT NULL,
+  `heart_count` INT DEFAULT 0,
+  `fire_count` INT DEFAULT 0,
+  `smile_count` INT DEFAULT 0,
+  `relate_count` INT DEFAULT 0,
+  `support_count` INT DEFAULT 0,
+  `downvote_count` INT DEFAULT 0,
   `rating_count` INT DEFAULT 0,
   `comment_count` INT DEFAULT 0,
+  `discovery_score` FLOAT DEFAULT 0,
   `is_approved` TINYINT(1) DEFAULT 1,
   `is_best_of_day` TINYINT(1) DEFAULT 0,
   `is_best_of_week` TINYINT(1) DEFAULT 0,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `approved_at` TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (`confession_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_confessions_campus` (`campus`, `created_at`),
   INDEX `idx_confessions_popular` (`rating_count`, `created_at`),
-  INDEX `idx_confessions_best` (`is_best_of_day`, `created_at`)
+  INDEX `idx_confessions_best` (`is_best_of_day`, `created_at`),
+  INDEX `idx_confessions_discovery` (`discovery_score`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `confession_reactions`;
@@ -391,13 +403,43 @@ CREATE TABLE `confession_reactions` (
   `reaction_id` CHAR(36) NOT NULL,
   `confession_id` CHAR(36) NOT NULL,
   `user_id` CHAR(36) NOT NULL,
-  `reaction_type` ENUM('upvote', 'downvote', 'fire', 'heart') DEFAULT 'upvote',
+  `reaction_type` ENUM('upvote', 'downvote', 'heart', 'fire', 'smile', 'laugh', 'funny', 'relate', 'support') NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`reaction_id`),
   UNIQUE KEY `unique_user_confession_reaction` (`user_id`, `confession_id`),
   FOREIGN KEY (`confession_id`) REFERENCES `confessions`(`confession_id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
   INDEX `idx_confession_reactions_confession` (`confession_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `confession_comments`;
+CREATE TABLE `confession_comments` (
+  `comment_id` CHAR(36) NOT NULL,
+  `confession_id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `parent_id` CHAR(36) DEFAULT NULL,
+  `content` TEXT NOT NULL,
+  `author_alias` VARCHAR(50) DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`comment_id`),
+  FOREIGN KEY (`confession_id`) REFERENCES `confessions`(`confession_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`parent_id`) REFERENCES `confession_comments`(`comment_id`) ON DELETE CASCADE,
+  INDEX `idx_confession_comments_confession` (`confession_id`, `created_at`),
+  INDEX `idx_confession_comments_parent` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `confession_reports`;
+CREATE TABLE `confession_reports` (
+  `report_id` CHAR(36) NOT NULL,
+  `confession_id` CHAR(36) NOT NULL,
+  `reporter_id` CHAR(36) NOT NULL,
+  `reason` TEXT NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`report_id`),
+  UNIQUE KEY `unique_user_confession_report` (`reporter_id`, `confession_id`),
+  FOREIGN KEY (`confession_id`) REFERENCES `confessions`(`confession_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reporter_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================

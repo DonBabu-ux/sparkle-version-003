@@ -60,6 +60,7 @@ import Streams from './pages/Streams';
 import ProfessionalDashboard from './pages/ProfessionalDashboard';
 import GlobalEffects from './components/GlobalEffects';
 import LoadingBar from './components/LoadingBar';
+import { TikTokHearts } from './components/TikTokHearts';
 
 // Phase 4 — Utility
 import LostFound from './pages/LostFound';
@@ -126,6 +127,7 @@ function App() {
         <LoadingBar />
         <GlobalEffects />
         <MarketplaceModals />
+        <TikTokHearts />
         <Routes>
           {/* ── Phase 1: Auth & Core ── */}
           <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />

@@ -28,6 +28,8 @@ import ShareModal from './modals/ShareModal';
 import ReshareModal from './modals/ReshareModal';
 import PostCommentsModal from './modals/PostCommentsModal';
 import CreationHubModal from './modals/CreationHubModal';
+import SkillOfferModal from './modals/SkillOfferModal';
+import SkillDetailModal from './modals/SkillDetailModal';
 import MediaPreviewModal from './modals/MediaPreviewModal';
 import CreateHighlightModal from './modals/CreateHighlightModal';
 import HighlightPlayerModal from './modals/HighlightPlayerModal';
@@ -36,6 +38,26 @@ import PostOptionsModal from './modals/PostOptionsModal';
 import FloatingAction from './FloatingAction';
 
 import Sidebar from './Sidebar';
+
+const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M17 10c.5-1.5 0-3-1-4l-1-1h-6l-1 1c-1 1-1.5 2.5-1 4" />
+    <path d="M3 10h18l-1.5 3H4.5L3 10z" />
+    <circle cx="8.5" cy="17" r="2.5" />
+    <circle cx="15.5" cy="17" r="2.5" />
+    <path d="M11 17h2" />
+  </svg>
+);
 
 export default function Navbar() {
   const { user, logout } = useUserStore();
@@ -180,7 +202,7 @@ export default function Navbar() {
                 { name: 'Moment', icon: PlayCircle, action: () => navigate('/moments/create'), color: 'text-sky-500' },
                 { name: 'Listing', icon: Store, action: () => setActiveModal('listing'), color: 'text-amber-500' },
                 { name: 'Campus Poll', icon: BarChart3, action: () => setActiveModal('poll'), color: 'text-emerald-500' },
-                { name: 'Confession', icon: Ghost, action: () => setActiveModal('confession'), color: 'text-slate-500', isNew: true },
+                { name: 'Confession', icon: SpyIcon, action: () => setActiveModal('confession'), color: 'text-slate-500', isNew: true },
             ].map((item, idx) => (
                 <button 
                 key={idx}
@@ -227,6 +249,8 @@ export default function Navbar() {
               {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}
               {activeModal === 'creation_hub' && <CreationHubModal onClose={() => setActiveModal(null)} />}
+              {activeModal === 'skill_offer' && <SkillOfferModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
+              {activeModal === 'skill_detail' && <SkillDetailModal offerId={(modalData as any)?.offerId} onClose={() => setActiveModal(null)} />}
               {activeModal === 'highlight' && (
                 <CreateHighlightModal 
                   isOpen={true} 
@@ -282,7 +306,7 @@ export default function Navbar() {
                 { name: 'Polls', icon: BarChart3, color: 'text-emerald-500', path: '/polls' },
                 { name: 'Messages', icon: MessageSquare, color: 'text-indigo-500', path: '/messages' },
                 { name: 'Shorts', icon: PlayCircle, color: 'text-sky-400', path: '/moments' },
-                { name: 'Anonymous', icon: Ghost, color: 'text-slate-500', path: '/confessions' },
+                { name: 'Anonymous', icon: SpyIcon, color: 'text-slate-500', path: '/confessions' },
                 { name: 'Services', icon: Zap, color: 'text-yellow-500', path: '/skill-market' },
                 { name: 'Live Video', icon: Activity, color: 'text-red-500', path: '/streams' },
                 { name: 'Search', icon: SearchIcon, color: 'text-black/40', path: '/search' },

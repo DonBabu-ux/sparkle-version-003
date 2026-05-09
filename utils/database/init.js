@@ -955,6 +955,7 @@ const initMarketplaceTables = async () => {
 
 const initConfessionTables = async () => {
     try {
+        // 1. Ensure confessions table exists with all modern columns
         await pool.query(`
             CREATE TABLE IF NOT EXISTS confessions (
                 confession_id   CHAR(36) PRIMARY KEY,
@@ -962,40 +963,66 @@ const initConfessionTables = async () => {
                 content         TEXT NOT NULL,
                 campus          VARCHAR(100) NOT NULL,
                 category        VARCHAR(50) DEFAULT 'general',
+                author_alias    VARCHAR(50) DEFAULT NULL,
+                image_url       VARCHAR(500) DEFAULT NULL,
                 heart_count     INT DEFAULT 0,
                 fire_count      INT DEFAULT 0,
                 smile_count     INT DEFAULT 0,
+                relate_count    INT DEFAULT 0,
+                support_count   INT DEFAULT 0,
                 downvote_count  INT DEFAULT 0,
                 rating_count    INT DEFAULT 0,
+                comment_count   INT DEFAULT 0,
+                discovery_score FLOAT DEFAULT 0,
                 is_approved     TINYINT(1) DEFAULT 1,
+                is_best_of_day  TINYINT(1) DEFAULT 0,
+                is_best_of_week TINYINT(1) DEFAULT 0,
                 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                approved_at     TIMESTAMP NULL DEFAULT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
-        // Migration: Add user_id and count columns if they don't exist
+        // Migration: Add missing columns if they don't exist
         const [cols] = await pool.query("SHOW COLUMNS FROM confessions");
         const colNames = cols.map(c => c.Field);
         
-        if (!colNames.includes('user_id')) {
-            await pool.query('ALTER TABLE confessions ADD COLUMN user_id CHAR(36) NULL AFTER confession_id');
-            logger.info('Added user_id to confessions table');
-        }
-        
-        const counts = ['heart_count', 'fire_count', 'smile_count', 'downvote_count'];
-        for (const count of counts) {
-            if (!colNames.includes(count)) {
-                await pool.query(`ALTER TABLE confessions ADD COLUMN ${count} INT DEFAULT 0`);
-                logger.info(`Added ${count} to confessions table`);
+        const confessionsCols = [
+            { name: 'user_id', type: 'CHAR(36) NULL' },
+            { name: 'author_alias', type: 'VARCHAR(50) DEFAULT NULL' },
+            { name: 'image_url', type: 'VARCHAR(500) DEFAULT NULL' },
+            { name: 'heart_count', type: 'INT DEFAULT 0' },
+            { name: 'fire_count', type: 'INT DEFAULT 0' },
+            { name: 'smile_count', type: 'INT DEFAULT 0' },
+            { name: 'relate_count', type: 'INT DEFAULT 0' },
+            { name: 'support_count', type: 'INT DEFAULT 0' },
+            { name: 'downvote_count', type: 'INT DEFAULT 0' },
+            { name: 'rating_count', type: 'INT DEFAULT 0' },
+            { name: 'comment_count', type: 'INT DEFAULT 0' },
+            { name: 'discovery_score', type: 'FLOAT DEFAULT 0' },
+            { name: 'is_best_of_day', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_best_of_week', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'approved_at', type: 'TIMESTAMP NULL DEFAULT NULL' }
+        ];
+
+        for (const col of confessionsCols) {
+            if (!colNames.includes(col.name)) {
+                try {
+                    await pool.query(`ALTER TABLE confessions ADD COLUMN ${col.name} ${col.type}`);
+                    logger.info(`Added column ${col.name} to confessions table`);
+                } catch (err) {
+                    logger.warn(`Failed to add column ${col.name} to confessions:`, err.message);
+                }
             }
         }
 
+        // 2. Ensure confession_reactions exists and has full ENUM
         await pool.query(`
             CREATE TABLE IF NOT EXISTS confession_reactions (
                 reaction_id     CHAR(36) PRIMARY KEY,
                 confession_id   CHAR(36) NOT NULL,
                 user_id         CHAR(36) NOT NULL,
-                reaction_type   ENUM('heart', 'fire', 'laugh', 'downvote', 'smile', 'upvote') NOT NULL,
+                reaction_type   ENUM('upvote', 'downvote', 'heart', 'fire', 'smile', 'laugh', 'funny', 'relate', 'support') NOT NULL,
                 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE KEY unique_user_confession_reaction (user_id, confession_id),
                 FOREIGN KEY (confession_id) REFERENCES confessions(confession_id) ON DELETE CASCADE,
@@ -1003,18 +1030,52 @@ const initConfessionTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
+        // Migration: Update reaction_type enum to support all types
+        try {
+            await pool.query(`
+                ALTER TABLE confession_reactions 
+                MODIFY COLUMN reaction_type ENUM('upvote', 'downvote', 'heart', 'fire', 'smile', 'laugh', 'funny', 'relate', 'support') NOT NULL
+            `);
+        } catch (err) {
+            logger.warn('Failed to update confession_reactions enum:', err.message);
+        }
+
+        // 3. Ensure confession_comments table exists with parent_id and author_alias
         await pool.query(`
             CREATE TABLE IF NOT EXISTS confession_comments (
                 comment_id      CHAR(36) PRIMARY KEY,
                 confession_id   CHAR(36) NOT NULL,
                 user_id         CHAR(36) NOT NULL,
+                parent_id       CHAR(36) DEFAULT NULL,
                 content         TEXT NOT NULL,
+                author_alias    VARCHAR(50) DEFAULT NULL,
                 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (confession_id) REFERENCES confessions(confession_id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (parent_id) REFERENCES confession_comments(comment_id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
+        // Migration: Add parent_id and author_alias to confession_comments
+        try {
+            const [ccols] = await pool.query("SHOW COLUMNS FROM confession_comments");
+            const ccolNames = ccols.map(c => c.Field);
+            
+            if (!ccolNames.includes('parent_id')) {
+                await pool.query('ALTER TABLE confession_comments ADD COLUMN parent_id CHAR(36) DEFAULT NULL AFTER user_id');
+                await pool.query('ALTER TABLE confession_comments ADD FOREIGN KEY (parent_id) REFERENCES confession_comments(comment_id) ON DELETE CASCADE');
+                logger.info('Added parent_id to confession_comments');
+            }
+            
+            if (!ccolNames.includes('author_alias')) {
+                await pool.query('ALTER TABLE confession_comments ADD COLUMN author_alias VARCHAR(50) DEFAULT NULL AFTER parent_id');
+                logger.info('Added author_alias to confession_comments');
+            }
+        } catch (err) {
+            logger.warn('Failed to migrate confession_comments:', err.message);
+        }
+
+        // 4. Ensure confession_reports table exists
         await pool.query(`
             CREATE TABLE IF NOT EXISTS confession_reports (
                 report_id       CHAR(36) PRIMARY KEY,
@@ -1028,7 +1089,7 @@ const initConfessionTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
-        logger.debug('✅ Confessions tables verified');
+        logger.debug('✅ Confessions tables verified and modernized');
     } catch (err) {
         logger.error('❌ Failed to init Confessions tables:', err.message);
         throw err;

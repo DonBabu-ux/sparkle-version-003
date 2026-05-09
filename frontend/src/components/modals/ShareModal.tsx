@@ -16,7 +16,10 @@ interface ShareModalProps {
 export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   const navigate = useNavigate();
   const { modalData, setActiveModal } = useModalStore();
-  const post = modalData as { post: Post } | null;
+  const modalPayload = modalData as { post?: Post, isAnonymous?: boolean, contentUrl?: string } | null;
+  const post = modalPayload?.post || null;
+  const isAnonymous = modalPayload?.isAnonymous || false;
+  const resolvedContentUrl = contentUrl || modalPayload?.contentUrl || `${window.location.origin}/post/${post?.post_id}`;
 
   const [search, setSearch] = useState('');
   const [recipients, setRecipients] = useState<User[]>([]);
@@ -39,18 +42,16 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   }, []);
 
   const handleCopyLink = () => {
-    const url = contentUrl || `${window.location.origin}/post/${post?.post.post_id}`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(resolvedContentUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShareToFriend = async (friend: User) => {
     try {
-      const url = contentUrl || `${window.location.origin}/post/${post?.post.post_id}`;
       await api.post('/messages', {
         receiver_id: friend.user_id,
-        content: `Check this out: ${url}`
+        content: `Check this out: ${resolvedContentUrl}`
       });
       onClose();
     } catch (err) {
@@ -59,9 +60,10 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   };
 
   const handleSavePost = async () => {
-    if (!post) return;
+    if (!post && !isAnonymous) return;
     try {
-      await api.post(`/posts/${post.post.post_id}/save`);
+      // If it's a regular post, save it. (Confessions handle their own saves externally right now, but we can prevent a crash here)
+      if (post) await api.post(`/posts/${post.post_id}/save`);
       setIsSaved(true);
       setTimeout(onClose, 1000);
     } catch (err) {
@@ -71,7 +73,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
 
   const handleRepublish = () => {
     if (!post) return;
-    setActiveModal('reshare', null, { post: post.post });
+    setActiveModal('reshare', null, { post: post });
   };
 
   const handleAddToStory = () => {
@@ -80,7 +82,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   };
 
   const shareToExternal = (platform: string) => {
-    const url = encodeURIComponent(contentUrl || `${window.location.origin}/post/${post?.post.post_id}`);
+    const url = encodeURIComponent(resolvedContentUrl);
     const text = encodeURIComponent('Check this out on Sparkle!');
     let shareUrl = '';
 
@@ -182,16 +184,19 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
 
         {/* Secondary Options */}
         <div className="flex flex-col gap-1 pt-3 border-t border-gray-100">
-            <button 
-              onClick={handleAddToStory}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group"
-            >
-                <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-100"><PlusCircle size={20}/></div>
-                <div>
-                    <div className="text-[14px] font-bold text-gray-900">Add to story</div>
-                    <div className="text-[12px] text-gray-500">Share this to your story</div>
-                </div>
-            </button>
+            {!isAnonymous && (
+              <button 
+                onClick={handleAddToStory}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group"
+              >
+                  <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-100"><PlusCircle size={20}/></div>
+                  <div>
+                      <div className="text-[14px] font-bold text-gray-900">Add to story</div>
+                      <div className="text-[12px] text-gray-500">Share this to your story</div>
+                  </div>
+              </button>
+            )}
+            
             <button 
               onClick={handleSavePost}
               className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group"
@@ -202,16 +207,19 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
                     <div className="text-[12px] text-gray-500">Add this to your saved items</div>
                 </div>
             </button>
-            <button 
-              onClick={handleRepublish}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group"
-            >
-                <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center group-hover:bg-gray-200"><Repeat size={20}/></div>
-                <div>
-                    <div className="text-[14px] font-bold text-gray-900">Republish</div>
-                    <div className="text-[12px] text-gray-500">Share to your followers' feed</div>
-                </div>
-            </button>
+            
+            {!isAnonymous && (
+              <button 
+                onClick={handleRepublish}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors w-full text-left group"
+              >
+                  <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center group-hover:bg-gray-200"><Repeat size={20}/></div>
+                  <div>
+                      <div className="text-[14px] font-bold text-gray-900">Republish</div>
+                      <div className="text-[12px] text-gray-500">Share to your followers' feed</div>
+                  </div>
+              </button>
+            )}
         </div>
       </div>
 

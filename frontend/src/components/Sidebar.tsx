@@ -30,6 +30,26 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M17 10c.5-1.5 0-3-1-4l-1-1h-6l-1 1c-1 1-1.5 2.5-1 4" />
+    <path d="M3 10h18l-1.5 3H4.5L3 10z" />
+    <circle cx="8.5" cy="17" r="2.5" />
+    <circle cx="15.5" cy="17" r="2.5" />
+    <path d="M11 17h2" />
+  </svg>
+);
+
 export default function Sidebar() {
   const { user, logout } = useUserStore();
   const { setActiveModal } = useModalStore();
@@ -103,7 +123,7 @@ export default function Sidebar() {
           { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
           { name: 'Connect', icon: Users, path: '/connect' },
           { name: 'Moments', icon: PlayCircle, path: '/moments' },
-          { name: 'The Vault', icon: Ghost, path: '/confessions' },
+          { name: 'The Vault', icon: SpyIcon, path: '/confessions' },
           { name: 'Transmissions', icon: Send, path: '/messages' },
           { name: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
           { name: 'Profile', icon: null, path: `/profile/${user?.username}`, isProfile: true },

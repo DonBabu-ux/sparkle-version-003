@@ -2,10 +2,10 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import api from "../api/api";
 import PostCard from "./PostCard";
 import type { Post } from "../types/post";
-import { Ghost } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDeviceSeed } from "../hooks/useDeviceSeed";
 import Spinner from "./ui/Spinner";
+import { Orbit } from "lucide-react";
 
 const LIMIT = 10;
 
@@ -13,6 +13,26 @@ interface VirtualizedFeedProps {
   initialPosts?: Post[];
   suggestions?: any[];
 }
+
+const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M17 10c.5-1.5 0-3-1-4l-1-1h-6l-1 1c-1 1-1.5 2.5-1 4" />
+    <path d="M3 10h18l-1.5 3H4.5L3 10z" />
+    <circle cx="8.5" cy="17" r="2.5" />
+    <circle cx="15.5" cy="17" r="2.5" />
+    <path d="M11 17h2" />
+  </svg>
+);
 
 // Memoized row to prevent re-renders of already-rendered posts
 const FeedRow = React.memo(({ post, onDeleted }: { post: Post; onDeleted: (id: string) => void }) => (
@@ -235,7 +255,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   if (posts.length === 0 && !loading) {
     return (
       <div className="py-48 bg-white/20 border-4 border-dashed border-white rounded-[64px] flex flex-col items-center justify-center gap-10 text-center shadow-inner mx-4">
-        <Ghost size={120} strokeWidth={1} className="text-black/5 animate-bounce-slow" />
+        <SpyIcon size={120} strokeWidth={1} className="text-black/5 animate-bounce-slow" />
         <div className="space-y-6">
           <h3 className="text-4xl font-black text-black/10 uppercase tracking-tighter italic leading-none">
             No Posts Yet.

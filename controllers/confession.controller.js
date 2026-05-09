@@ -37,16 +37,18 @@ const createConfession = async (req, res) => {
 
         if (!content || !content.trim()) return res.status(400).json({ error: 'Content is required' });
 
-        // Basic "AI" Filter (Keyword based for now)
-        const badWords = ['hate', 'violence', 'kill', 'suicide']; // Community safety
+        // Basic content moderation
+        const badWords = ['hate', 'violence', 'kill', 'suicide'];
         const hasBadWords = badWords.some(word => content.toLowerCase().includes(word));
-
         if (hasBadWords) {
             return res.status(400).json({ error: 'Your confession matches our community guidelines flag. Please be kind!' });
         }
 
         const userId = req.user.user_id || req.user.userId;
-        const id = await Confession.create(userId, content.trim(), affiliation, category);
+        // req.file is set by multer when an image is uploaded; req.file.path is the Cloudinary URL
+        const imageUrl = req.file ? req.file.path : null;
+
+        const id = await Confession.create(userId, content.trim(), affiliation, category, imageUrl);
         
         res.status(201).json({ 
             status: 'success', 
@@ -109,17 +111,19 @@ const reportConfession = async (req, res) => {
 const commentAnonymously = async (req, res) => {
     try {
         const { id } = req.params;
-        const { content } = req.body;
+        const { content, parent_id } = req.body;
         const userId = req.user.user_id || req.user.userId;
 
         if (!content || !content.trim()) return res.status(400).json({ error: 'Comment cannot be empty' });
 
-        const commentId = await Confession.addComment(id, userId, content.trim());
+        const commentId = await Confession.addComment(id, userId, content.trim(), parent_id);
 
         // Batch 3: Anonymous Notifications
         const confession = await Confession.findById(id);
+        const notificationController = require('./notification.controller');
+
+        // 1. Notify Confession Author
         if (confession && confession.user_id && confession.user_id !== userId) {
-            const notificationController = require('./notification.controller');
             await notificationController.createInternalNotification(
                 confession.user_id,
                 'anonymous',
@@ -127,6 +131,23 @@ const commentAnonymously = async (req, res) => {
                 `Someone commented on your anonymous confession!`,
                 `/confessions?id=${id}`
             );
+        }
+
+        // 2. Notify Parent Comment Author (if it's a reply)
+        if (parent_id) {
+            const parentComment = await Confession.findCommentById(parent_id);
+            if (parentComment && parentComment.user_id && parentComment.user_id !== userId) {
+                // Avoid double notification if the confession author is also the parent commenter
+                if (parentComment.user_id !== confession?.user_id) {
+                    await notificationController.createInternalNotification(
+                        parentComment.user_id,
+                        'anonymous',
+                        'reply',
+                        `Someone replied to your whisper!`,
+                        `/confessions?id=${id}`
+                    );
+                }
+            }
         }
 
         res.status(201).json({ message: 'Comment posted anonymously', comment_id: commentId });
@@ -148,11 +169,14 @@ const getComments = async (req, res) => {
     }
 };
 
-// Get confessions filtered by affiliation
+// Get confessions filtered by affiliation and category
 const getConfessionsByAffiliation = async (req, res) => {
     try {
         const affiliation = req.params.campus || req.query.campus || 'all';
-        const confessions = await Confession.getRecent(affiliation);
+        const category = req.query.category || null;
+        
+        // Use getFeed for the "Special Home Feed" experience (discovery ranked)
+        const confessions = await Confession.getFeed(affiliation, 20, category);
         res.json({ status: 'success', data: confessions });
     } catch (error) {
         logger.error('Get Confessions By Affiliation Error:', error);

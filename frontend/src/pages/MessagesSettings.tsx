@@ -41,45 +41,50 @@ export default function MessagesSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdf2f4] text-black font-sans pb-20 lg:pb-0 overflow-x-hidden">
+    <div className="min-h-screen bg-[#fdf2f4] text-black font-sans pb-20 lg:pb-0 overflow-x-hidden pt-12 md:pt-20">
       <Navbar />
 
       {/* Background orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed top-[-10%] right-[-5%] w-[300px] md:w-[700px] h-[300px] md:h-[700px] bg-red-200/20 rounded-full blur-[80px] md:blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[-5%] w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-pink-200/20 rounded-full blur-[60px] md:blur-[120px] pointer-events-none z-0" />
       
-      <div className="max-w-4xl mx-auto pt-32 px-6 relative z-10">
+      {/* Brand Watermark */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black/[0.015] pointer-events-none z-0" aria-hidden>
+        <Orbit size={600} strokeWidth={0.5} className="animate-spin-slow" />
+      </div>
+
+      <div className="max-w-4xl mx-auto pt-10 md:pt-16 px-4 md:px-6 relative z-10">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16 animate-fade-in px-4">
-          <div className="flex items-center gap-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 mb-10 md:mb-12 animate-fade-in">
+          <div className="flex items-center gap-5 md:gap-8">
             <button 
               onClick={() => navigate('/messages')}
-              className="w-16 h-16 rounded-3xl bg-white/80 backdrop-blur-3xl flex items-center justify-center text-black shadow-xl border border-white hover:scale-110 active:scale-95 transition-all"
+              className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-3xl bg-white/80 backdrop-blur-3xl flex items-center justify-center text-black shadow-lg border border-white hover:scale-105 active:scale-95 transition-all"
             >
-              <ArrowLeft size={28} strokeWidth={3} />
+              <ArrowLeft size={22} md:size={28} strokeWidth={3} />
             </button>
             <div>
-              <h1 className="text-4xl md:text-6xl font-black text-black tracking-tighter italic uppercase leading-none">Chat <span className="text-primary italic">Pulse</span></h1>
-              <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-3 italic">Sync your conversation harmonics</p>
+              <h1 className="text-2xl md:text-4xl font-black text-black tracking-tight italic leading-none">Message Settings</h1>
+              <p className="text-sm md:text-base font-medium text-black/40 mt-2">Manage your message notifications, privacy, and security settings.</p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-12 animate-fade-in">
+        <div className="space-y-6 md:space-y-8 animate-fade-in pb-20">
           {/* Notifications Section */}
-          <section className="bg-white/80 backdrop-blur-3xl rounded-[48px] shadow-2xl shadow-primary/5 border border-white overflow-hidden p-10 md:p-12 hover:shadow-primary/10 transition-shadow">
-            <div className="flex items-center gap-6 mb-12 px-2">
-              <div className="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center border border-primary/10 shadow-sm animate-pulse">
-                <Bell size={28} strokeWidth={3} />
+          <section className="bg-white/70 backdrop-blur-3xl rounded-[24px] md:rounded-[32px] shadow-2xl shadow-black/5 border border-white/60 overflow-hidden p-6 md:p-10 transition-all hover:bg-white/80">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
+                <Bell size={20} md:size={24} strokeWidth={2.5} />
               </div>
-              <h2 className="text-3xl font-black text-black uppercase tracking-tighter italic">Alerts</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-black tracking-tight">Notifications</h2>
             </div>
 
-            <div className="p-4 space-y-5">
+            <div className="space-y-6">
               <div className="flex items-center justify-between group">
-                <div>
-                   <h3 className="text-xl font-black text-black uppercase tracking-tighter italic group-hover:text-primary transition-colors">Signal Ping</h3>
-                   <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.2em] mt-2 italic leading-none">Notify for incoming harmonics</p>
+                <div className="max-w-[75%]">
+                   <h3 className="text-base md:text-lg font-bold text-black group-hover:text-primary transition-colors">Message notifications</h3>
+                   <p className="text-sm md:text-base text-black/40 mt-1 leading-snug">Get notified when you receive a new message.</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input 
@@ -92,28 +97,28 @@ export default function MessagesSettings() {
                       updateSetting('push_notifications', val ? 1 : 0);
                     }} 
                   />
-                  <div className="w-20 h-10 bg-black/5 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-10 peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-primary shadow-inner"></div>
+                  <div className="w-14 h-8 bg-black/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>
             </div>
           </section>
 
           {/* Privacy Section */}
-          <section className="bg-white/80 backdrop-blur-3xl rounded-[48px] shadow-2xl shadow-primary/5 border border-white overflow-hidden p-10 md:p-12 hover:shadow-primary/10 transition-shadow">
-            <div className="flex items-center gap-6 mb-12 px-2">
-              <div className="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
-                <Lock size={28} strokeWidth={3} />
+          <section className="bg-white/70 backdrop-blur-3xl rounded-[24px] md:rounded-[32px] shadow-2xl shadow-black/5 border border-white/60 overflow-hidden p-6 md:p-10 transition-all hover:bg-white/80">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
+                <Lock size={20} md:size={24} strokeWidth={2.5} />
               </div>
-              <h2 className="text-3xl font-black text-black uppercase tracking-tighter italic">Privacy Sync</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-black tracking-tight">Privacy settings</h2>
             </div>
 
-            <div className="p-4 space-y-12">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 group">
-                <div>
-                  <h3 className="text-xl font-black text-black uppercase tracking-tighter italic group-hover:text-primary transition-colors">Frequency Filter</h3>
-                  <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.2em] mt-2 italic">Who can transmit to your node?</p>
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+                <div className="md:max-w-[60%]">
+                  <h3 className="text-base md:text-lg font-bold text-black group-hover:text-primary transition-colors">Who can message you</h3>
+                  <p className="text-sm md:text-base text-black/40 mt-1 leading-snug">Choose who is allowed to send you direct messages.</p>
                 </div>
-                <div className="relative">
+                <div className="relative w-full md:w-48">
                   <select 
                     value={messagePrivacy}
                     onChange={(e) => {
@@ -121,24 +126,24 @@ export default function MessagesSettings() {
                       setMessagePrivacy(val);
                       updateSetting('message_privacy', val);
                     }}
-                    className="appearance-none bg-black/5 hover:bg-white border-2 border-transparent focus:border-primary text-black text-xs font-black uppercase tracking-widest rounded-[22px] px-10 py-5 pr-14 focus:outline-none transition-all cursor-pointer italic"
+                    className="w-full appearance-none bg-black/5 hover:bg-black/10 border border-black/5 text-black text-sm font-semibold rounded-xl px-5 py-3 pr-10 focus:outline-none transition-all cursor-pointer"
                   >
-                    <option value="everyone">Open Signal</option>
-                    <option value="followers">Neighbors Only</option>
-                    <option value="no_one">Muted Orbit</option>
+                    <option value="everyone">Everyone</option>
+                    <option value="followers">Followers only</option>
+                    <option value="no_one">No one</option>
                   </select>
-                  <ChevronDown size={18} strokeWidth={4} className="absolute right-5 top-1/2 -translate-y-1/2 text-black/10 pointer-events-none group-hover:text-primary transition-colors" />
+                  <ChevronDown size={16} strokeWidth={3} className="absolute right-4 top-1/2 -translate-y-1/2 text-black/30 pointer-events-none" />
                 </div>
               </div>
 
-              <div className="w-full h-px bg-black/[0.03]"></div>
+              <div className="w-full h-px bg-black/[0.06]"></div>
 
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 group">
-                <div>
-                  <h3 className="text-xl font-black text-black uppercase tracking-tighter italic group-hover:text-primary transition-colors">Last Sync Aura</h3>
-                  <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.2em] mt-2 italic">Visibility of your last broadcast</p>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+                <div className="md:max-w-[60%]">
+                  <h3 className="text-base md:text-lg font-bold text-black group-hover:text-primary transition-colors">Last seen status</h3>
+                  <p className="text-sm md:text-base text-black/40 mt-1 leading-snug">Control who can see when you were last online.</p>
                 </div>
-                <div className="relative">
+                <div className="relative w-full md:w-48">
                   <select 
                     value={lastSeenPrivacy}
                     onChange={(e) => {
@@ -146,140 +151,143 @@ export default function MessagesSettings() {
                       setLastSeenPrivacy(val);
                       updateSetting('last_seen_privacy', val);
                     }}
-                    className="appearance-none bg-black/5 hover:bg-white border-2 border-transparent focus:border-primary text-black text-xs font-black uppercase tracking-widest rounded-[22px] px-10 py-5 pr-14 focus:outline-none transition-all cursor-pointer italic"
+                    className="w-full appearance-none bg-black/5 hover:bg-black/10 border border-black/5 text-black text-sm font-semibold rounded-xl px-5 py-3 pr-10 focus:outline-none transition-all cursor-pointer"
                   >
-                    <option value="everyone">Universal</option>
-                    <option value="followers">Synced Only</option>
-                    <option value="no_one">Hidden Node</option>
+                    <option value="everyone">Everyone</option>
+                    <option value="followers">Followers only</option>
+                    <option value="no_one">Private</option>
                   </select>
-                  <ChevronDown size={18} strokeWidth={4} className="absolute right-5 top-1/2 -translate-y-1/2 text-black/10 pointer-events-none group-hover:text-primary transition-colors" />
+                  <ChevronDown size={16} strokeWidth={3} className="absolute right-4 top-1/2 -translate-y-1/2 text-black/30 pointer-events-none" />
                 </div>
               </div>
 
-              <div className="w-full h-px bg-black/[0.03]"></div>
+              <div className="w-full h-px bg-black/[0.06]"></div>
 
               <button 
                 onClick={() => navigate('/settings/blocked')}
-                className="w-full flex items-center justify-between group py-4 px-2"
+                className="w-full flex items-center justify-between group"
               >
-                <div className="flex items-center gap-6">
-                  <div className="w-12 h-12 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover:bg-primary group-hover:text-white group-hover:scale-110 transition-all shadow-sm border border-black/5">
-                    <UserX size={24} strokeWidth={3} />
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-black/5 flex items-center justify-center text-black/30 group-hover:bg-primary group-hover:text-white transition-all">
+                    <UserX size={18} strokeWidth={2.5} />
                   </div>
                   <div className="text-left">
-                    <h3 className="text-xl font-black text-black uppercase tracking-tighter italic group-hover:text-primary transition-colors">Blacklist</h3>
-                    <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.2em] mt-1 italic">Manage isolated nodes</p>
+                    <h3 className="text-base md:text-lg font-bold text-black group-hover:text-primary transition-colors">Blocked users</h3>
+                    <p className="text-sm text-black/40 leading-snug">Manage users you have blocked from messaging you.</p>
                   </div>
                 </div>
-                <ArrowLeft size={24} strokeWidth={4} className="text-black/10 rotate-180 group-hover:text-primary group-hover:translate-x-2 transition-all" />
+                <ArrowLeft size={18} strokeWidth={3} className="text-black/20 rotate-180 group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </button>
             </div>
           </section>
 
-          {/* Theme & Aesthetics Section */}
-          <section className="bg-white/80 backdrop-blur-3xl rounded-[48px] shadow-2xl shadow-primary/5 border border-white overflow-hidden p-10 md:p-12 hover:shadow-primary/10 transition-shadow">
-            <div className="flex items-center gap-6 mb-12 px-2">
-              <div className="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
-                <Orbit size={28} strokeWidth={3} />
+          {/* Theme Section */}
+          <section className="bg-white/70 backdrop-blur-3xl rounded-[24px] md:rounded-[32px] shadow-2xl shadow-black/5 border border-white/60 overflow-hidden p-6 md:p-10 transition-all hover:bg-white/80">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
+                <Orbit size={20} md:size={24} strokeWidth={2.5} />
               </div>
-              <h2 className="text-3xl font-black text-black uppercase tracking-tighter italic">Aesthetics</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-black tracking-tight">Appearance</h2>
             </div>
 
-            <div className="p-4 space-y-12">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 group">
-                <div>
-                  <h3 className="text-xl font-black text-black uppercase tracking-tighter italic group-hover:text-primary transition-colors">Chat Background</h3>
-                  <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.2em] mt-2 italic">Set the mood of your private space</p>
-                </div>
-                <div className="relative flex gap-3">
-                  <button onClick={() => {setChatTheme('default'); updateSetting('chat_theme', 'default')}} className={`w-12 h-12 rounded-full border-4 transition-all ${chatTheme === 'default' ? 'border-primary scale-110' : 'border-transparent hover:scale-105'} bg-gray-100`}></button>
-                  <button onClick={() => {setChatTheme('dark'); updateSetting('chat_theme', 'dark')}} className={`w-12 h-12 rounded-full border-4 transition-all ${chatTheme === 'dark' ? 'border-primary scale-110' : 'border-transparent hover:scale-105'} bg-zinc-900`}></button>
-                  <button onClick={() => {setChatTheme('pink'); updateSetting('chat_theme', 'pink')}} className={`w-12 h-12 rounded-full border-4 transition-all ${chatTheme === 'pink' ? 'border-primary scale-110' : 'border-transparent hover:scale-105'} bg-pink-100`}></button>
-                  <button onClick={() => {setChatTheme('blue'); updateSetting('chat_theme', 'blue')}} className={`w-12 h-12 rounded-full border-4 transition-all ${chatTheme === 'blue' ? 'border-primary scale-110' : 'border-transparent hover:scale-105'} bg-blue-100`}></button>
-                </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+              <div className="md:max-w-[60%]">
+                <h3 className="text-base md:text-lg font-bold text-black group-hover:text-primary transition-colors">Chat theme</h3>
+                <p className="text-sm md:text-base text-black/40 mt-1 leading-snug">Choose a background color for your conversations.</p>
+              </div>
+              <div className="flex gap-3">
+                {[
+                  { key: 'default', color: 'bg-gray-100' },
+                  { key: 'dark', color: 'bg-zinc-900' },
+                  { key: 'pink', color: 'bg-pink-200' },
+                  { key: 'blue', color: 'bg-blue-200' }
+                ].map((theme) => (
+                  <button 
+                    key={theme.key}
+                    onClick={() => {setChatTheme(theme.key); updateSetting('chat_theme', theme.key)}} 
+                    className={`w-10 h-10 rounded-full border-2 transition-all ${chatTheme === theme.key ? 'border-primary scale-110 shadow-md' : 'border-white hover:scale-105 shadow-sm'} ${theme.color}`}
+                  />
+                ))}
               </div>
             </div>
           </section>
 
           {/* Security Section */}
-          <section className="bg-white/80 backdrop-blur-3xl rounded-[48px] shadow-2xl shadow-primary/5 border border-white overflow-hidden p-10 md:p-12 hover:shadow-primary/10 transition-shadow">
-            <div className="flex items-center gap-6 mb-12 px-2">
-              <div className="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
-                <Lock size={28} strokeWidth={3} />
+          <section className="bg-white/70 backdrop-blur-3xl rounded-[24px] md:rounded-[32px] shadow-2xl shadow-black/5 border border-white/60 overflow-hidden p-6 md:p-10 transition-all hover:bg-white/80">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
+                <Lock size={20} md:size={24} strokeWidth={2.5} />
               </div>
-              <h2 className="text-3xl font-black text-black uppercase tracking-tighter italic">Vault Security</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-black tracking-tight">Security</h2>
             </div>
 
-            <div className="p-4 space-y-12">
-              <div className="flex items-center justify-between group">
-                <div>
-                   <h3 className="text-xl font-black text-black uppercase tracking-tighter italic group-hover:text-primary transition-colors">Access PIN Code</h3>
-                   <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.2em] mt-2 italic leading-none">Require a passcode to view direct messages</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={securityPinEnabled} 
-                    onChange={(e) => {
-                      const val = e.target.checked;
-                      if(val) {
-                          const pin = prompt("Enter a 4-digit PIN for your messages:");
-                          if (pin && pin.length >= 4) {
-                              setSecurityPinEnabled(true);
-                              updateSetting('chat_pin', pin);
-                          }
-                      } else {
-                          setSecurityPinEnabled(false);
-                          updateSetting('chat_pin', '');
-                      }
-                    }} 
-                  />
-                  <div className="w-20 h-10 bg-black/5 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-10 peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-8 after:w-8 after:transition-all peer-checked:bg-primary shadow-inner"></div>
-                </label>
+            <div className="flex items-center justify-between group">
+              <div className="max-w-[75%]">
+                 <h3 className="text-base md:text-lg font-bold text-black group-hover:text-primary transition-colors">Chat lock (PIN)</h3>
+                 <p className="text-sm md:text-base text-black/40 mt-1 leading-snug">Protect your messages with a 4-digit security PIN.</p>
               </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={securityPinEnabled} 
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    if(val) {
+                        const pin = prompt("Enter a 4-digit PIN for your messages:");
+                        if (pin && pin.length >= 4) {
+                            setSecurityPinEnabled(true);
+                            updateSetting('chat_pin', pin);
+                        } else {
+                            e.target.checked = false;
+                        }
+                    } else {
+                        setSecurityPinEnabled(false);
+                        updateSetting('chat_pin', '');
+                    }
+                  }} 
+                />
+                <div className="w-14 h-8 bg-black/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+              </label>
             </div>
           </section>
 
-          {/* Chat Settings Section */}
-          <section className="bg-white/80 backdrop-blur-3xl rounded-[48px] shadow-2xl shadow-primary/5 border border-white overflow-hidden p-10 md:p-12 hover:shadow-primary/10 transition-shadow">
-            <div className="flex items-center gap-6 mb-12 px-2">
-              <div className="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
-                <MessageCircle size={28} strokeWidth={3} />
+          {/* Maintenance Section */}
+          <section className="bg-white/70 backdrop-blur-3xl rounded-[24px] md:rounded-[32px] shadow-2xl shadow-black/5 border border-white/60 overflow-hidden p-6 md:p-10 transition-all hover:bg-white/80">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/10 shadow-sm">
+                <MessageCircle size={20} md:size={24} strokeWidth={2.5} />
               </div>
-              <h2 className="text-3xl font-black text-black uppercase tracking-tighter italic">Harmonic Maintenance</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-black tracking-tight">Account history</h2>
             </div>
             
-            <div className="p-4">
-              <button 
-                onClick={() => {
-                  if (window.confirm('Wipe all conversation history? This action is irreversible.')) {
-                    // Implement delete all conversations logic if needed
-                    console.log('Purge protocol initiated');
-                  }
-                }}
-                className="w-full flex items-center justify-between group p-8 bg-red-500/5 hover:bg-red-500/10 border-2 border-dashed border-red-500/20 rounded-[32px] transition-all"
-              >
-                <div className="flex items-center gap-8">
-                  <div className="w-14 h-14 rounded-2xl bg-red-500 text-white flex items-center justify-center shadow-xl shadow-red-500/30 group-hover:scale-110 transition-transform">
-                    <Trash2 size={28} strokeWidth={3} />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-xl font-black text-red-500 uppercase tracking-tighter italic leading-none">Purge Frequency</h3>
-                    <p className="text-[10px] font-black text-red-500/30 uppercase tracking-[0.3em] mt-3 italic leading-none">Wipe all village signal history</p>
-                  </div>
+            <button 
+              onClick={() => {
+                if (window.confirm('Delete all your message history? This cannot be undone.')) {
+                  console.log('Purge protocol initiated');
+                }
+              }}
+              className="w-full flex items-center justify-between group p-6 bg-red-500/5 hover:bg-red-500/10 border border-dashed border-red-500/30 rounded-2xl transition-all"
+            >
+              <div className="flex items-center gap-5">
+                <div className="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/20 group-hover:scale-105 transition-transform">
+                  <Trash2 size={20} strokeWidth={2.5} />
                 </div>
-                <ArrowLeft size={24} strokeWidth={4} className="text-red-500/20 rotate-180 group-hover:translate-x-2 transition-all" />
-              </button>
-            </div>
+                <div className="text-left">
+                  <h3 className="text-base md:text-lg font-bold text-red-500">Clear all messages</h3>
+                  <p className="text-sm text-red-500/60 mt-0.5">Permanently delete all your conversations and chat history.</p>
+                </div>
+              </div>
+              <ArrowLeft size={18} strokeWidth={3} className="text-red-500/30 rotate-180 group-hover:translate-x-1 transition-all" />
+            </button>
           </section>
         </div>
       </div>
 
       {loading && (
-        <div className="fixed bottom-8 right-8 bg-white/80 backdrop-blur-3xl px-8 py-4 rounded-[28px] shadow-2xl border border-white flex items-center gap-4 animate-bounce z-[100]">
-           <Orbit size={20} strokeWidth={4} className="text-primary animate-spin-slow" />
-           <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic leading-none">Transmitting...</span>
+        <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-white/90 backdrop-blur-3xl px-6 md:px-8 py-3 md:py-4 rounded-2xl md:rounded-[28px] shadow-2xl border border-white flex items-center gap-3 md:gap-4 animate-bounce z-[100]">
+           <Orbit size={18} md:size={20} strokeWidth={4} className="text-primary animate-spin-slow" />
+           <span className="text-xs font-bold text-black italic leading-none">Transmitting...</span>
         </div>
       )}
 
@@ -290,5 +298,6 @@ export default function MessagesSettings() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
+
   );
 }

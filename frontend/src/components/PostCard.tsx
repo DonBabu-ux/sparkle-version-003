@@ -260,12 +260,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
   // but if backend sent it, let's just make sure.
   if (post.post_type === 'private' && !isOwner) {
     return (
-      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-4 p-6 border border-gray-200 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-          <Lock size={24} className="text-gray-400" />
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-3 p-4 border border-gray-200 flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+          <Lock size={20} className="text-gray-400" />
         </div>
-        <h3 className="text-gray-900 font-bold text-[16px] mb-1">Post Unavailable</h3>
-        <p className="text-gray-500 text-[14px]">This post is private and cannot be viewed.</p>
+        <h3 className="text-gray-900 font-bold text-[14px] mb-1">Post Unavailable</h3>
+        <p className="text-gray-500 text-[12px]">This post is private and cannot be viewed.</p>
       </div>
     );
   }
@@ -278,12 +278,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       }`}
     >
       {/* Header */}
-      <div className="flex items-start gap-2 p-3 pb-2">
+      <div className="flex items-start gap-2 p-2.5 pb-1.5">
         <Link to={`/profile/${post.username}`} className="shrink-0 mt-0.5">
           <Avatar 
             src={post.avatar_url} 
             name={post.name || post.username} 
-            size="md" 
+            size="sm" 
           />
         </Link>
 
@@ -291,13 +291,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
           <div className="flex items-center gap-1 flex-wrap leading-tight">
             <Link
               to={`/profile/${post.username}`}
-              className="font-bold text-[15px] text-gray-900 hover:underline"
+              className="font-bold text-[13px] text-gray-900 hover:underline"
             >
               {post.name || post.username}
             </Link>
             
             {(post.feeling || post.activity) && (
-              <div className="flex items-center gap-1 text-[14px] text-gray-500 font-medium flex-wrap">
+              <div className="flex items-center gap-1 text-[12px] text-gray-500 font-medium flex-wrap">
                 {post.feeling && (
                   <>
                     <span>is feeling</span>
@@ -348,21 +348,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
                     setIsFollowed(false);
                   }
                 }}
-                className="ml-1 text-[13px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                className="ml-0.5 text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
               >
                 · Follow
               </button>
             )}
           </div>
-          <div className="flex items-center gap-1 text-[13px] text-gray-500 leading-tight mt-0.5">
+          <div className="flex items-center gap-1 text-[11px] text-gray-500 leading-tight mt-0.5">
             <span className="hover:underline cursor-pointer">{timeAgo.replace('about ', '').replace('less than a minute ago', 'Just now')}</span>
             <span>·</span>
             {post.post_type === 'public' ? (
-              <Globe size={12} className="fill-current text-gray-500" />
+              <Globe size={11} className="fill-current text-gray-500" />
             ) : post.post_type === 'private' || post.post_type === 'campus_only' ? (
-              <Lock size={12} className="fill-current text-gray-500" />
+              <Lock size={11} className="fill-current text-gray-500" />
             ) : (
-              <IncognitoIcon size={12} className="text-gray-500" />
+              <IncognitoIcon size={11} className="text-gray-500" />
             )}
           </div>
         </div>
@@ -400,7 +400,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             onClick={handleNotInterested}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
@@ -578,14 +578,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       {/* Content */}
       <div className="px-3 pb-2 pt-1">
         {post.content && (
-          <div className="text-[15px] text-gray-900 leading-normal">
+          <div className="text-[14px] text-gray-900 leading-snug">
             <MentionText
               content={post.content.length > 150 && !isExpanded ? post.content.substring(0, 150) + '...' : post.content}
             />
             {post.content.length > 150 && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-gray-600 font-semibold hover:underline ml-1"
+                className="text-gray-500 font-bold hover:underline ml-1 text-[13px]"
               >
                 {isExpanded ? 'less' : 'more'}
               </button>
@@ -646,50 +646,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       )}
 
       {/* Stats */}
-      <div className="px-4 py-2.5 flex items-center justify-between">
+      <div className="px-3 py-2 flex items-center justify-between">
         <div className="flex items-center cursor-pointer hover:underline">
           {/* Primary Like Icon - Restored and spaced to avoid collision */}
-          <div className="w-[18px] h-[18px] rounded-full bg-[#1877F2] flex items-center justify-center ring-2 ring-white z-30 shadow-sm mr-3">
-            <ThumbsUp size={10} fill="white" className="text-white" />
+          <div className="w-[16px] h-[16px] rounded-full bg-[#1877F2] flex items-center justify-center ring-2 ring-white z-30 shadow-sm mr-2">
+            <ThumbsUp size={8} fill="white" className="text-white" />
           </div>
-
-          <div className="flex items-center gap-4 h-12">
-             {/* Dynamic Swaying Avatars - Max 3, staggered heights, same-direction sway */}
-             {!isOwner && Array.isArray(post.liker_avatars) && post.liker_avatars.length > 0 && post.liker_avatars.map((avatar, i) => (
-               <motion.div
-                 key={i}
-                 animate={{ 
-                   y: [0, -5, 0],
-                   rotate: [0, -1, 0, 1, 0]
-                 }}
-                 transition={{ 
-                   duration: 4, 
-                   repeat: Infinity, 
-                   ease: "easeInOut"
-                 }}
-                 className="relative"
-                 style={{ 
-                   zIndex: 10 - i,
-                   // Staggered height: second one is higher
-                   marginTop: i === 1 ? '-12px' : '4px'
-                 }}
-               >
-                 <img 
-                   src={getAvatarUrl(avatar)} 
-                   className="w-[32px] h-[32px] rounded-full border-2 border-white object-cover shadow-md" 
-                   alt="mutual" 
-                 />
-                 {/* Tiny Blue Like Badge at bottom right - Tucked inward */}
-                 <div className="absolute bottom-0 right-0 w-[14px] h-[14px] bg-[#1877F2] rounded-full flex items-center justify-center ring-[1.5px] ring-white shadow-sm">
-                    <ThumbsUp size={8} fill="white" className="text-white" />
-                 </div>
-               </motion.div>
-             ))}
-          </div>
-
-          <div className="ml-5 flex items-center leading-tight">
+ 
+          <div className="ml-2 flex items-center leading-tight">
             {sparkCount > 0 && (
-              <span className="text-[14px] text-gray-700 font-medium">
+              <span className="text-[12px] text-gray-600 font-medium">
                 {post.top_liker_name ? (
                   <>
                     Liked by <span className="font-bold text-gray-900">{post.top_liker_name}</span>
@@ -704,42 +670,42 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
             )}
           </div>
         </div>
-        <div className="text-[14px] text-gray-500 flex gap-3">
+        <div className="text-[12px] text-gray-400 flex gap-2.5">
           {post.comment_count ? <span className="hover:underline cursor-pointer">{formatCount(post.comment_count)} comments</span> : null}
           {post.reshare_count ? <span className="hover:underline cursor-pointer">{formatCount(post.reshare_count)} shares</span> : null}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center border-t border-gray-100 mx-3 py-1 mt-1 mb-1">
+      <div className="flex items-center border-t border-gray-100 mx-2 py-0.5 mt-0.5 mb-1">
         <button
           onClick={handleSpark}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-all active:scale-95 group ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all active:scale-95 group ${
             isSparked ? 'text-primary' : 'text-gray-500 hover:bg-gray-50'
           }`}
         >
           <ThumbsUp 
-            size={18} 
+            size={16} 
             strokeWidth={isSparked ? 2.5 : 2} 
             className={isSparked ? 'fill-primary animate-spark-pop' : 'group-hover:scale-110 transition-transform'} 
           />
-          <span className="text-[13px] font-bold tracking-tight">Like</span>
+          <span className="text-[12px] font-bold tracking-tight">Like</span>
         </button>
         
         <button
           onClick={() => setActiveModal('post_comments', null, { post })}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-gray-500 hover:bg-gray-50 rounded-lg transition-all active:scale-95 group"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg transition-all active:scale-95 group"
         >
-          <MessageCircle size={18} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
-          <span className="text-[13px] font-bold tracking-tight">Comment</span>
+          <MessageCircle size={16} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+          <span className="text-[12px] font-bold tracking-tight">Comment</span>
         </button>
         
         <button
           onClick={() => setActiveModal('share', null, { post })}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-gray-500 hover:bg-gray-50 rounded-lg transition-all active:scale-95 group"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg transition-all active:scale-95 group"
         >
-          <Share2 size={18} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
-          <span className="text-[13px] font-bold tracking-tight">Share</span>
+          <Share2 size={16} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+          <span className="text-[12px] font-bold tracking-tight">Share</span>
         </button>
       </div>
 

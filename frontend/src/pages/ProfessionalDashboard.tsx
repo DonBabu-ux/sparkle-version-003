@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
+import Navbar from '../components/Navbar';
+import { 
+  Eye, Globe, Users, Heart, BarChart3, TrendingUp, 
+  Plus, Sparkles, ArrowLeft, Shield, DollarSign, MessageSquare 
+} from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 
 export default function ProfessionalDashboard() {
   const navigate = useNavigate();
@@ -28,21 +34,20 @@ export default function ProfessionalDashboard() {
         const res = await api.get('/analytics/creator');
         const data = res.data;
         setStats({
-          profileViews: data.profileViews,
-          followersGrowth: data.followersGrowth,
-          accountReach: data.accountReach,
-          followers: data.followers,
-          totalSparks: data.totalSparks,
-          totalComments: data.totalComments,
-          totalShares: data.totalShares
+          profileViews: data.profileViews || 0,
+          followersGrowth: data.followersGrowth || 0,
+          accountReach: data.accountReach || 0,
+          followers: data.followers || 0,
+          totalSparks: data.totalSparks || 0,
+          totalComments: data.totalComments || 0,
+          totalShares: data.totalShares || 0
         });
 
-        // Distribution from counts
-        const totalPosts = (data.distribution.video || 0) + (data.distribution.image || 0) + (data.distribution.text || 0) || 1;
+        const totalPosts = (data.distribution?.video || 0) + (data.distribution?.image || 0) + (data.distribution?.text || 0) || 1;
         setDist({
-          videos: Math.round(((data.distribution.video || 0) / totalPosts) * 100),
-          photos: Math.round(((data.distribution.image || 0) / totalPosts) * 100),
-          stories: 0 // Fetching stories might need another count
+          videos: Math.round(((data.distribution?.video || 0) / totalPosts) * 100),
+          photos: Math.round(((data.distribution?.image || 0) / totalPosts) * 100),
+          stories: 0
         });
 
         setLoading(false);
@@ -55,145 +60,157 @@ export default function ProfessionalDashboard() {
     document.title = 'Professional Dashboard | Sparkle';
   }, []);
 
-  return (
-    <div className="min-h-screen pb-20 p-4 lg:p-8">
-      {/* Header aligned exactly with EJS pro-header */}
-      <div className="max-w-6xl mx-auto">
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[24px] p-8 md:p-10 text-white shadow-2xl shadow-indigo-200 mb-8">
-          <button onClick={() => navigate('/dashboard')} className="absolute top-8 right-8 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center transition-colors shadow-sm">
-            <i className="fas fa-times"></i>
-          </button>
-          
-          <div className="relative z-10">
-            <h1 className="text-3xl font-black mb-2 tracking-tight" style={{fontFamily: 'Outfit'}}>Professional Dashboard</h1>
-            <p className="text-white/80 font-medium max-w-sm">Insights, Analytics & Monetization for Sparkle Creators</p>
-          </div>
-          
-          <i className="fas fa-chart-line absolute -bottom-10 -right-5 opacity-10" style={{ fontSize: '180px' }}></i>
-        </div>
-
-        {loading ? (
-           <div className="flex justify-center items-center h-64 text-indigo-500">
-             <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-           </div>
-        ) : (
-          <div className="space-y-8 animate-fade-in">
-            {/* Overview Stats */}
-            <div>
-              <h2 className="text-lg font-black text-slate-800 mb-4">Overview</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                
-                <div className="glass-card bg-white/80 p-6 rounded-[20px]">
-                  <div className="flex justify-between items-center text-[11px] font-black tracking-widest text-slate-400 uppercase mb-2">
-                    Profile Views <i className="fas fa-eye text-indigo-500 text-sm"></i>
-                  </div>
-                  <div className="text-3xl font-black text-slate-800">{stats.profileViews.toLocaleString()}</div>
-                  <div className="text-xs font-bold text-emerald-500 mt-2"><i className="fas fa-arrow-up"></i> +{stats.followersGrowth}%</div>
-                </div>
-
-                <div className="glass-card bg-white/80 p-6 rounded-[20px]">
-                  <div className="flex justify-between items-center text-[11px] font-black tracking-widest text-slate-400 uppercase mb-2">
-                    Account Reach <i className="fas fa-globe text-rose-500 text-sm"></i>
-                  </div>
-                  <div className="text-3xl font-black text-slate-800">{stats.accountReach.toLocaleString()}</div>
-                  <div className="text-xs font-bold text-emerald-500 mt-2"><i className="fas fa-arrow-up"></i> +8.2%</div>
-                </div>
-
-                <div className="glass-card bg-white/80 p-6 rounded-[20px]">
-                  <div className="flex justify-between items-center text-[11px] font-black tracking-widest text-slate-400 uppercase mb-2">
-                    Followers <i className="fas fa-users text-blue-500 text-sm"></i>
-                  </div>
-                  <div className="text-3xl font-black text-slate-800">{stats.followers.toLocaleString()}</div>
-                  <div className="text-xs font-bold text-slate-400 mt-2"><i className="fas fa-minus"></i> Stable</div>
-                </div>
-
-                <div className="glass-card bg-white/80 p-6 rounded-[20px]">
-                  <div className="flex justify-between items-center text-[11px] font-black tracking-widest text-slate-400 uppercase mb-2">
-                    Interactions <i className="fas fa-heart text-rose-500 text-sm"></i>
-                  </div>
-                  <div className="text-3xl font-black text-slate-800">{(stats.totalSparks + stats.totalComments).toLocaleString()}</div>
-                  <div className="text-xs font-bold text-emerald-500 mt-2"><i className="fas fa-arrow-up"></i> +{stats.followersGrowth}%</div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Middle Section (Analytics Graph Placeholder + Ads Removed matching EJS) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="glass-card bg-white/60 p-6 rounded-[20px]">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-black text-slate-800 m-0">Insights Graph</h2>
-                  <select className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-black text-slate-600 outline-none">
-                    <option>Last 7 Days</option>
-                    <option>Last 30 Days</option>
-                  </select>
-                </div>
-                {/* Simulated Graph block */}
-                <div className="h-[200px] bg-white rounded-2xl flex flex-col items-center justify-center border border-slate-100 shadow-sm relative overflow-hidden">
-                   <div className="absolute inset-0 bg-gradient-to-t from-indigo-50/50 to-transparent"></div>
-                   <div className="absolute bottom-0 w-full h-[150px] opacity-20" style={{ background: 'url("data:image/svg+xml,%3Csvg preserveAspectRatio=\'none\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0,100 L0,50 C20,60 40,30 60,70 C80,10 90,80 100,20 L100,100 Z\' fill=\'%236366f1\'/%3E%3C/svg%3E") no-repeat center/100% 100%' }}></div>
-                   <span className="text-xs font-bold text-slate-400 relative z-10 bg-white/80 px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">Chart.js implementation ready!</span>
-                </div>
-              </div>
-
-              <div className="glass-card bg-white/60 p-6 rounded-[20px] flex flex-col justify-between">
-                <div>
-                  <h2 className="text-lg font-black text-slate-800 m-0 mb-4">Content Analytics</h2>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Content Types Distribution</p>
-                  
-                  <div className="h-3 bg-slate-100 rounded-full flex overflow-hidden mb-4">
-                    <div className="h-full bg-purple-500 transition-all duration-1000" style={{ width: `${dist.videos}%`}}></div>
-                    <div className="h-full bg-rose-400 transition-all duration-1000" style={{ width: `${dist.photos}%`}}></div>
-                    <div className="h-full bg-blue-400 transition-all duration-1000" style={{ width: `${dist.stories}%`}}></div>
-                  </div>
-                  
-                  <div className="flex gap-4 mb-6">
-                    <div className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-purple-500"></div> Videos ({dist.videos}%)</div>
-                    <div className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-rose-400"></div> Photos/Posts ({dist.photos}%)</div>
-                  </div>
-                </div>
-
-                <div className="pt-5 border-t border-slate-200">
-                  <h3 className="text-sm font-black text-slate-800 mb-3">Audience Engagement</h3>
-                  <div className="flex justify-between">
-                    <div>
-                      <div className="text-2xl font-black text-slate-800">{stats.totalSparks.toLocaleString()}</div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Sparks</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-black text-slate-800">{stats.totalComments.toLocaleString()}</div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Comments</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Ad Monetization Block */}
-            <div className="relative overflow-hidden glass-card p-6 md:p-8 rounded-[24px] bg-gradient-to-r from-rose-50 to-orange-50 border border-rose-100">
-                <i className="fas fa-bullhorn absolute -right-6 -top-6 text-9xl text-rose-500 opacity-5 -rotate-12"></i>
-                <h2 className="text-xl font-black text-slate-800 mb-2 relative z-10">Ads & Monetization</h2>
-                <p className="text-slate-500 font-medium text-sm max-w-lg mb-6 relative z-10">Reach more students across the Sparkle network. Turn your best performing posts into ads.</p>
-
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 mb-6 flex justify-between items-center border border-white shadow-sm relative z-10 max-w-lg">
-                  <div>
-                    <div className="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-1">Available Balance</div>
-                    <div className="text-2xl font-black text-emerald-500">₹ 0.00</div>
-                  </div>
-                  <button className="bg-emerald-500 hover:bg-emerald-600 transition-colors text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-200">
-                     + Add Funds
-                  </button>
-                </div>
-
-                <div className="flex gap-3 relative z-10 max-w-lg">
-                   <button className="flex-1 premium-btn shadow-rose-200 text-sm py-3 justify-center bg-gradient-to-r from-rose-500 to-pink-500">Create Ad</button>
-                   <button className="flex-1 bg-white text-slate-700 font-bold text-sm py-3 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors" onClick={() => { alert('Select a post to boost from your profile!'); navigate('/profile'); }}>Boost Post</button>
-                </div>
-            </div>
-
-          </div>
-        )}
+  if (loading) return (
+    <div className="flex bg-[#fafafa] min-h-screen">
+      <Navbar />
+      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-4">
+        <Spinner size="large" color="text-primary" />
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Syncing Insights...</p>
       </div>
+    </div>
+  );
+
+  return (
+    <div className="flex bg-[#fafafa] min-h-screen text-black overflow-x-hidden font-sans pb-20">
+      <Navbar />
+
+      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-4xl mx-auto w-full pt-16 md:pt-24">
+        
+        {/* Compact Header */}
+        <header className="mb-6 animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm border border-gray-100 text-gray-400 active:scale-90 transition-all"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-white backdrop-blur-xl shadow-sm">
+              <Sparkles size={12} strokeWidth={3} className="text-primary" />
+              <span className="text-[8px] font-black text-black uppercase tracking-widest italic">Creator Hub</span>
+            </div>
+          </div>
+          
+          <div className="text-center md:text-left">
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-1">
+              Professional <span className="text-primary">Dashboard.</span>
+            </h1>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Insights & Growth Analytics</p>
+          </div>
+        </header>
+
+        <div className="space-y-6 animate-fade-in">
+          {/* High Density Stats Grid */}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { label: 'Profile Views', value: stats.profileViews, icon: <Eye size={16} />, growth: stats.followersGrowth },
+              { label: 'Reach', value: stats.accountReach, icon: <Globe size={16} />, growth: 8.2 },
+              { label: 'Followers', value: stats.followers, icon: <Users size={16} />, growth: null },
+              { label: 'Interactions', value: stats.totalSparks + stats.totalComments, icon: <Heart size={16} />, growth: stats.followersGrowth }
+            ].map(s => (
+              <div key={s.label} className="p-4 bg-white rounded-[24px] border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest italic">{s.label}</span>
+                  <div className="w-7 h-7 rounded-lg bg-primary/5 text-primary flex items-center justify-center">
+                    {s.icon}
+                  </div>
+                </div>
+                <div className="text-xl font-black text-gray-900 uppercase italic leading-none mb-1">
+                  {s.value > 999 ? `${(s.value / 1000).toFixed(1)}k` : s.value}
+                </div>
+                {s.growth !== null && (
+                   <div className="text-[8px] font-black text-emerald-500 uppercase italic">
+                     +{s.growth}% <TrendingUp size={8} className="inline ml-0.5" />
+                   </div>
+                )}
+              </div>
+            ))}
+          </section>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Insights Placeholder */}
+            <div className="bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                  <BarChart3 size={14} className="text-primary" /> Reach Graph
+                </h3>
+                <span className="text-[8px] font-black text-gray-300 uppercase">Last 30 Days</span>
+              </div>
+              <div className="h-40 bg-gray-50/50 rounded-2xl flex items-center justify-center border border-dashed border-gray-100">
+                <p className="text-[8px] font-black text-gray-300 uppercase tracking-[0.2em] italic">Telemetry Active</p>
+              </div>
+            </div>
+
+            {/* Distribution */}
+            <div className="bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm">
+              <h3 className="text-[10px] font-black uppercase tracking-widest italic mb-4 flex items-center gap-2">
+                <Shield size={14} className="text-primary" /> Content Logic
+              </h3>
+              <div className="space-y-4">
+                <div className="h-2 bg-gray-50 rounded-full overflow-hidden flex">
+                  <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${dist.videos}%` }} />
+                  <div className="bg-gray-900 h-full transition-all duration-1000" style={{ width: `${dist.photos}%` }} />
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                    <span className="text-[8px] font-black text-gray-400 uppercase italic">Videos ({dist.videos}%)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-gray-900" />
+                    <span className="text-[8px] font-black text-gray-400 uppercase italic">Photos ({dist.photos}%)</span>
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-gray-50 flex justify-between">
+                   <div className="text-center">
+                     <div className="text-sm font-black text-gray-900 italic leading-none">{stats.totalSparks}</div>
+                     <div className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">Sparks</div>
+                   </div>
+                   <div className="text-center">
+                     <div className="text-sm font-black text-gray-900 italic leading-none">{stats.totalComments}</div>
+                     <div className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">Comments</div>
+                   </div>
+                   <div className="text-center">
+                     <div className="text-sm font-black text-gray-900 italic leading-none">{stats.totalShares}</div>
+                     <div className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">Shares</div>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Monetization - Compact */}
+          <section className="bg-gray-900 rounded-[32px] p-6 text-white relative overflow-hidden shadow-xl shadow-gray-200">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[60px] pointer-events-none" />
+             <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-primary">
+                   <DollarSign size={16} strokeWidth={3} />
+                </div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest italic">Capital & Ads</h3>
+             </div>
+             
+             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4 flex justify-between items-center">
+                <div>
+                   <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-1">Available Funds</p>
+                   <p className="text-lg font-black italic tracking-tight">₹ 0.00</p>
+                </div>
+                <button className="h-8 px-4 bg-primary text-white rounded-lg text-[9px] font-black uppercase tracking-widest italic active:scale-90 transition-all shadow-lg shadow-primary/20">
+                  + Add
+                </button>
+             </div>
+
+             <div className="grid grid-cols-2 gap-3">
+                <button className="py-2.5 bg-primary text-white rounded-xl text-[9px] font-black uppercase tracking-widest italic shadow-lg shadow-primary/20 active:scale-95 transition-all">Create Ad</button>
+                <button className="py-2.5 bg-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest italic hover:bg-white/20 transition-all">Boost Hub</button>
+             </div>
+          </section>
+        </div>
+      </main>
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+      `}</style>
     </div>
   );
 }

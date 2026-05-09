@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Check, Orbit } from 'lucide-react';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 interface ArchivedStory {
   id: string;
@@ -108,7 +109,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
             <div className="flex-1 overflow-y-auto p-1 no-scrollbar">
               {loading ? (
                 <div className="flex justify-center p-12">
-                  <Orbit className="animate-spin text-white/50" size={24} />
+                  <Spinner size="medium" color="text-primary" />
                 </div>
               ) : stories.length === 0 ? (
                 <div className="flex flex-col items-center p-12 text-white/40 text-sm text-center gap-3">
@@ -203,7 +204,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
                 onClick={handleCreate}
                 className="w-full py-5 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-2xl transition-all active:scale-[0.95] flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 uppercase tracking-tighter text-lg"
               >
-                {saving ? <Orbit className="animate-spin" size={24} /> : null}
+                {saving ? <Spinner size="medium" color="text-primary" /> : null}
                 {saving ? 'TRANSMITTING...' : 'ADD TO VAULT'}
               </button>
             </div>

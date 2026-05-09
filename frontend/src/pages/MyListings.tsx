@@ -5,6 +5,7 @@ import api from '../api/api';
 import type { Listing } from '../types/listing';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
+import Spinner from '../components/ui/Spinner';
 
 export default function MyListings() {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export default function MyListings() {
       <main className="max-w-6xl mx-auto px-4 pt-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-12 h-12 border-4 border-marketplace-bg border-t-marketplace-text rounded-full animate-spin" />
+            <Spinner size="large" color="text-primary" />
             <p className="text-marketplace-muted font-bold animate-pulse">Loading your shop...</p>
           </div>
         ) : listings.length === 0 ? (

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Play, MessageCircle, Heart, Search, Filter } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import Spinner from '../components/ui/Spinner';
 
 interface ExploreItem {
   id: string;
@@ -283,7 +284,7 @@ export default function Explore() {
               
               {loadingMore && (
                 <div className="col-span-3 py-8 flex justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <Spinner size="medium" color="text-primary" />
                 </div>
               )}
             </div>

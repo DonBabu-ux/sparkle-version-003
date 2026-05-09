@@ -4,6 +4,7 @@ import { ArrowLeft, BadgeCheck, ShieldCheck, Star, FileText, Upload, Send, Check
 import Navbar from '../components/Navbar';
 import { useUserStore } from '../store/userStore';
 import { getAvatarUrl } from '../utils/imageUtils';
+import Spinner from '../components/ui/Spinner';
 
 export default function Verified() {
   const navigate = useNavigate();
@@ -133,7 +134,7 @@ export default function Verified() {
 
                 <button type="submit" disabled={loading} className="submit-btn mobile-full-btn">
                   {loading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <Spinner size="small" color="text-white" />
                   ) : (
                     <>
                       <Send size={18} />

@@ -7,6 +7,7 @@ import { ArrowLeft, Send, Image as ImageIcon, MoreVertical, Check, CheckCheck, S
 import { useUserStore } from '../store/userStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
+import Spinner from '../components/ui/Spinner';
 
 const EMOJI_LIST = ['😊', '😂', '🥰', '😍', '😒', '😭', '😩', '😔', '😘', '☺️', '😁', '🥳', '😎', '😡', '🤔', '👍', '❤️', '🔥', '✨', '🙌', '💯', '🙏', '🤝', '💰', '🏠', '🚗', '📦', '🎁', '🛒'];
 
@@ -834,7 +835,7 @@ const MarketplaceChat = () => {
               ))}
               {isUploading && (
                 <div className="w-20 h-20 bg-gray-100 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center animate-pulse">
-                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <Spinner size="small" color="text-primary" />
                 </div>
               )}
             </div>
@@ -887,7 +888,7 @@ const MarketplaceChat = () => {
                       </div>
                       {giphyLoading ? (
                         <div className="flex justify-center p-8">
-                          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                          <Spinner size="medium" color="text-primary" />
                         </div>
                       ) : (
                         <div className="grid grid-cols-2 gap-2 pb-4">

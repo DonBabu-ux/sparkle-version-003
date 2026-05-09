@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Calendar, MapPin, Users, Clock, Loader2, Orbit, Sparkles, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 interface EventModalProps {
   onClose: () => void;
@@ -150,7 +151,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
           onClick={handleSubmit} 
           disabled={submitting}
         >
-          {submitting ? <Loader2 className="animate-spin" /> : (
+          {submitting ? <Spinner size="medium" color="text-primary" /> : (
             <>
                 BROADCAST SPECTRUM 
                 <ArrowRight size={24} strokeWidth={4} className="group-hover:translate-x-3 transition-transform duration-500" />

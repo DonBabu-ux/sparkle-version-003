@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
+import Spinner from '../components/ui/Spinner';
 
 export default function SearchHistory() {
   const navigate = useNavigate();
@@ -114,7 +115,7 @@ export default function SearchHistory() {
         <main className="max-w-3xl mx-auto w-full p-6 lg:p-12 pb-40">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32 gap-6 opacity-20">
-               <RotateCw className="animate-spin" size={40} strokeWidth={2.5} />
+               <Spinner size="small" color="text-primary" />
                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Syncing frequencies...</span>
             </div>
           ) : history.length === 0 ? (

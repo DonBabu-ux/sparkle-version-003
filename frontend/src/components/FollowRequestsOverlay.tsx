@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Check, UserX, User } from 'lucide-react';
 import api from '../api/api';
+import Spinner from '../components/ui/Spinner';
 
 interface FollowRequest {
   request_id: string;
@@ -64,7 +65,7 @@ export default function FollowRequestsOverlay({ onClose }: FollowRequestsOverlay
         <div className="max-h-[400px] overflow-y-auto p-4 space-y-3">
           {loading ? (
             <div className="py-10 text-center animate-pulse">
-              <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <Spinner size="medium" color="text-primary" />
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">In Sync...</p>
             </div>
           ) : requests.length === 0 ? (

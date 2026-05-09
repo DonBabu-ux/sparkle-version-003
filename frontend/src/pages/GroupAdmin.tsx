@@ -3,7 +3,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import type { Group } from '../types/group';
-import { Shield, ArrowLeft, Check, X, Users, Sparkles } from 'lucide-react';
+import { Shield, ArrowLeft, Check, X, Users, Sparkles, AlertCircle } from 'lucide-react';
+import { getAvatarUrl } from '../utils/imageUtils';
+import Spinner from '../components/ui/Spinner';
 
 interface GroupRequest {
   request_id: string;
@@ -28,12 +30,15 @@ export default function GroupAdmin() {
           api.get(`/groups/${id}/requests`)
         ]);
         
-        if (!groupRes.data.userRole || groupRes.data.userRole !== 'owner') {
+        // Use groupRes.data.isAdmin or similar if userRole is not present
+        const isAuthorized = groupRes.data.userRole === 'owner' || groupRes.data.userRole === 'admin';
+        
+        if (!isAuthorized) {
           navigate(`/groups/${id}`);
           return;
         }
 
-        setGroup(groupRes.data.group);
+        setGroup(groupRes.data.group || groupRes.data);
         setRequests(requestsRes.data || []);
       } catch (err) {
         console.error('Admin load failed:', err);
@@ -47,128 +52,122 @@ export default function GroupAdmin() {
 
   const handleAction = async (requestId: string, action: 'approve' | 'reject') => {
     try {
-      const res = await api.post(`/groups/requests/${requestId}/${action}`);
-      if (res.data.success) {
-        setRequests(prev => prev.filter(r => r.request_id !== requestId));
-      }
+      await api.post(`/groups/requests/${requestId}/${action}`);
+      setRequests(prev => prev.filter(r => r.request_id !== requestId));
     } catch (err) {
       console.error(`${action} failed:`, err);
     }
   };
 
   if (loading) return (
-    <div className="flex min-h-screen font-sans" style={{ background: 'linear-gradient(135deg, #fff0f4 0%, #fff9fa 60%, #fef0f5 100%)' }}>
+    <div className="flex min-h-screen bg-[#fafafa]">
       <Navbar />
-      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-6">
-        <div className="w-16 h-16 border-4 rounded-full animate-spin" style={{ borderColor: 'rgba(255,61,109,0.2)', borderTopColor: '#FF3D6D' }} />
-        <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em', fontStyle: 'normal' }}>Loading Admin...</p>
+      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-4">
+        <Spinner size="large" color="text-primary" />
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Decrypting...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen font-sans" style={{ background: 'linear-gradient(135deg, #fff0f4 0%, #fff9fa 60%, #fef0f5 100%)' }}>
+    <div className="flex min-h-screen bg-[#fafafa] text-black font-sans pb-20">
       <Navbar />
-      <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
-      <div className="fixed bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,100,150,0.14) 0%, transparent 70%)' }} />
 
-      <main className="flex-1 lg:ml-72 p-6 lg:p-10 relative z-10 max-w-4xl mx-auto w-full pt-20">
-        <div className="flex items-center justify-between mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Link 
-            to={`/groups/${id}`}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition-colors group"
-          >
-            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:bg-slate-50 transition-all">
-              <ArrowLeft size={18} />
+      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-2xl mx-auto w-full pt-16 md:pt-24">
+        <header className="mb-8 animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <Link 
+              to={`/groups/${id}`}
+              className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm border border-gray-100 text-gray-400 active:scale-90 transition-all"
+            >
+              <ArrowLeft size={16} />
+            </Link>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-white backdrop-blur-xl shadow-sm">
+              <Shield size={12} strokeWidth={3} className="text-primary" />
+              <span className="text-[8px] font-black text-black uppercase tracking-widest italic">Admin Hub</span>
             </div>
-            <span className="text-sm">Back to Circle</span>
-          </Link>
-        </div>
-
-        <header className="mb-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
-          <div className="flex items-center gap-5">
-             <div className="w-16 h-16 rounded-[20px] flex items-center justify-center text-white shadow-2xl" style={{ background: 'linear-gradient(135deg, #FF3D6D, #e01f55)' }}>
-                <Shield size={32} />
-             </div>
-             <div>
-                <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.03em', lineHeight: 1.1, fontStyle: 'normal', textTransform: 'none' }}>Circle Admin</h1>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px', fontStyle: 'normal' }}>{group?.name}</p>
-             </div>
+          </div>
+          
+          <div className="text-center md:text-left">
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-1">
+              Circle <span className="text-primary">Admin.</span>
+            </h1>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">
+              {group?.name || 'Managing Community'}
+            </p>
           </div>
         </header>
 
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+        <div className="space-y-6 animate-fade-in">
            <section>
-                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="ml-2 flex items-center gap-2" style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em', fontStyle: 'normal' }}>
-                       <Users size={14} /> Membership Requests
-                    </h3>
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold" style={{ background: 'rgba(255,61,109,0.1)', color: '#FF3D6D', border: '1px solid rgba(255,61,109,0.2)' }}>{requests.length} PENDING</span>
-                 </div>
+              <div className="flex items-center justify-between mb-4 px-2">
+                <h3 className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest italic">
+                  <Users size={14} className="text-primary" /> Requests
+                </h3>
+                <span className="px-2.5 py-1 rounded-lg text-[9px] font-black bg-primary/10 text-primary border border-primary/10 italic">
+                  {requests.length} PENDING
+                </span>
+              </div>
               
-              <div className="rounded-[32px] overflow-hidden" style={{ background: 'rgba(255,255,255,0.92)', border: '1.5px solid rgba(255,61,109,0.12)', boxShadow: '0 4px 24px rgba(255,61,109,0.06)' }}>
+              <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
                  {requests.length > 0 ? (
-                   <div className="divide-y divide-slate-50">
+                   <div className="divide-y divide-gray-50">
                       {requests.map(req => (
-                        <div key={req.request_id} className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-all group">
-                           <div className="flex items-center gap-4">
-                              <img src={req.avatar_url || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-2xl object-cover shadow-sm bg-slate-100" alt="" />
+                        <div key={req.request_id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-all group">
+                           <div className="flex items-center gap-3">
+                              <img src={getAvatarUrl(req.avatar_url, req.username)} className="w-11 h-11 rounded-xl object-cover border-2 border-white shadow-sm" alt="" />
                               <div>
-                                 <h4 className="text-sm font-bold text-slate-800">{req.name || req.username}</h4>
-                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Requested on {new Date(req.created_at).toLocaleDateString()}</p>
+                                 <h4 className="text-[12px] font-black text-gray-900 uppercase italic leading-tight">{req.name || req.username}</h4>
+                                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                                   {new Date(req.created_at).toLocaleDateString()}
+                                 </p>
                               </div>
                            </div>
-                           <div className="flex gap-3">
+                           <div className="flex gap-2">
                               <button 
                                 onClick={() => handleAction(req.request_id, 'reject')}
-                                className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all flex items-center justify-center border border-slate-100"
-                                title="Decline"
+                                className="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 hover:bg-primary/5 hover:text-primary transition-all flex items-center justify-center border border-gray-100"
                               >
-                                <X size={18} strokeWidth={3} />
+                                <X size={16} strokeWidth={3} />
                               </button>
                               <button
                                 onClick={() => handleAction(req.request_id, 'approve')}
-                                className="h-10 px-6 rounded-xl text-white text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
-                                style={{ background: 'linear-gradient(135deg, #FF3D6D, #e01f55)', boxShadow: '0 4px 14px rgba(255,61,109,0.35)', border: 'none', cursor: 'pointer' }}
+                                className="h-9 px-4 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all italic"
                               >
-                                <Check size={16} strokeWidth={3} /> Approve
+                                <Check size={14} strokeWidth={4} /> Approve
                               </button>
                            </div>
                         </div>
                       ))}
                    </div>
                  ) : (
-                   <div className="py-24 text-center">
-                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4">
-                         <Sparkles size={32} />
+                   <div className="py-16 text-center">
+                      <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-200 mx-auto mb-3">
+                         <Sparkles size={24} />
                       </div>
-                      <p className="text-sm font-bold text-slate-300 uppercase tracking-widest">No pending requests</p>
+                      <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">No pending requests</p>
                    </div>
                  )}
               </div>
            </section>
 
-           <section className="p-8 rounded-[32px] border-dashed" style={{ background: 'rgba(255,61,109,0.03)', border: '1.5px dashed rgba(255,61,109,0.2)' }}>
-              <div className="flex items-center gap-4 mb-6">
-                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
-                    <Shield size={20} />
+           <section className="p-6 rounded-[24px] bg-white border border-gray-100 shadow-sm border-dashed">
+              <div className="flex items-center gap-3 mb-4">
+                 <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center text-primary">
+                    <AlertCircle size={16} />
                  </div>
-                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Advanced Controls</h3>
+                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Protocols</h3>
               </div>
-              <p className="text-sm text-slate-400 font-medium italic">Additional circle management features coming soon to the modern Sparkle dashboard.</p>
+              <p className="text-[11px] text-gray-400 font-bold italic leading-relaxed uppercase tracking-tight">
+                Additional governance tools are currently being synchronized for the modern administrative hub.
+              </p>
            </section>
         </div>
       </main>
 
       <style>{`
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slide-in-from-bottom { from { transform: translateY(20px); } to { transform: translateY(0); } }
-        .animate-in { animation-duration: 500ms; animation-fill-mode: both; }
-        .fade-in { animation-name: fade-in; }
-        .slide-in-from-bottom-4 { animation-name: slide-in-from-bottom; }
-        .slide-in-from-bottom-6 { animation-name: slide-in-from-bottom; }
-        .slide-in-from-bottom-8 { animation-name: slide-in-from-bottom; }
-        .delay-200 { animation-delay: 200ms; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
       `}</style>
     </div>
   );

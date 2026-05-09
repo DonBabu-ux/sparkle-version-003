@@ -4,6 +4,7 @@ import api from '../api/api';
 import { getAvatarUrl } from '../utils/imageUtils';
 import Navbar from '../components/Navbar';
 import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, ArrowLeft, CheckCircle2, Search, MoreHorizontal, X, BellOff, AlertOctagon, AtSign } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 
 interface Notification {
   notification_id: string;
@@ -307,7 +308,7 @@ export default function Notifications() {
           <div className="flex flex-col">
             {loading ? (
                <div className="flex justify-center py-10">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <Spinner size="medium" color="text-primary" />
                </div>
             ) : notifications.length > 0 ? (
               <>

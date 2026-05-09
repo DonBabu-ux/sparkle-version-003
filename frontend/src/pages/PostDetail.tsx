@@ -7,6 +7,7 @@ import { Heart, MessageSquare, Send, ArrowLeft, Orbit, ChevronDown, Check, Info 
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { Post } from '../types/post';
+import Spinner from '../components/ui/Spinner';
 
 interface Comment {
   comment_id: string;
@@ -94,7 +95,7 @@ export default function PostDetail() {
       <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center lg:ml-72">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <Spinner size="large" color="text-primary" />
         </div>
       </div>
     );
@@ -213,7 +214,7 @@ export default function PostDetail() {
            <div className="grid gap-6 px-1 relative">
               {loadingComments && (
                 <div className="absolute inset-0 z-10 bg-white/20 backdrop-blur-[2px] flex items-center justify-center rounded-[40px]">
-                  <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <Spinner size="medium" color="text-primary" />
                 </div>
               )}
               {comments.length === 0 ? (

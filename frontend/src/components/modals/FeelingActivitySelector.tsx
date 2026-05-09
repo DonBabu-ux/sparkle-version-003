@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import { getAvatarUrl } from '../../utils/imageUtils';
+import Spinner from '../ui/Spinner';
 
 interface SelectionItem {
   name: string;
@@ -316,7 +317,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
         {activeTab === 'tag' ? (
           loadingFriends ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Loader2 className="animate-spin text-primary" size={32} />
+              <Spinner size="medium" color="text-primary" />
               <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Loading followers...</p>
             </div>
           ) : (

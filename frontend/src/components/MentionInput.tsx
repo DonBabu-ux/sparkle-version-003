@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Clock, Radio, Sparkles } from 'lucide-react';
 import api from '../api/api';
+import Spinner from '../components/ui/Spinner';
 
 interface User {
   user_id: string;
@@ -236,7 +237,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
               {/* --- User results --- */}
               {loading && suggestions.length === 0 ? (
                 <div className="flex justify-center py-6">
-                  <div className="w-5 h-5 border-2 border-gray-300 border-t-pink-500 rounded-full animate-spin" />
+                  <Spinner size="small" color="text-primary" />
                 </div>
               ) : orderedUsers.length > 0 ? (
                 <div>

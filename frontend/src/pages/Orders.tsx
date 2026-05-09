@@ -4,6 +4,7 @@ import { ShoppingCart, Package, ChevronLeft, CreditCard, Clock, ChevronRight, Ch
 import api from '../api/api';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
+import Spinner from '../components/ui/Spinner';
 
 interface Order {
   order_id: string;
@@ -51,7 +52,7 @@ export default function Orders() {
       <main className="max-w-4xl mx-auto px-4 pt-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-12 h-12 border-4 border-marketplace-bg border-t-marketplace-text rounded-full animate-spin" />
+            <Spinner size="large" color="text-primary" />
             <p className="text-marketplace-muted font-bold animate-pulse">Reading ledgers...</p>
           </div>
         ) : orders.length === 0 ? (

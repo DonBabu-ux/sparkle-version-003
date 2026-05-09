@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Orbit, Trash2, ExternalLink, ArrowLeft } from 'lucide-react';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 interface Story {
   id: string;
@@ -88,7 +89,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
         {loading ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
             <div className="relative">
-              <Orbit className="animate-spin text-blue-500" size={60} strokeWidth={1.5} />
+              <Spinner size="medium" color="text-primary" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
               </div>

@@ -6,6 +6,7 @@ import {
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
 import { useUserStore } from '../../store/userStore';
+import Spinner from '../ui/Spinner';
 
 interface PostModalProps {
   onClose: () => void;
@@ -286,7 +287,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
               bg-primary hover:bg-primary/90 active:scale-[0.98] text-white shadow-lg shadow-primary/20"
           >
             {uploading
-              ? <Loader2 size={20} className="animate-spin mx-auto" />
+              ? <Spinner size="medium" color="text-primary" />
               : (editPost ? 'Save Changes' : 'Post')}
           </button>
         </div>

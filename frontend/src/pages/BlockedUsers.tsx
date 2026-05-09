@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserX, Shield, Search } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import Spinner from '../components/ui/Spinner';
 
 interface BlockedUser {
   user_id: string;
@@ -84,7 +85,7 @@ export default function BlockedUsers() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center gap-4">
-              <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+              <Spinner size="medium" color="text-primary" />
               <p className="text-slate-500 text-sm font-medium">Loading blocked users...</p>
             </div>
           ) : filteredUsers.length > 0 ? (

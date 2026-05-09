@@ -8,6 +8,7 @@ import MentionInput from '../MentionInput';
 import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import FeelingActivitySelector from './FeelingActivitySelector';
+import Spinner from '../ui/Spinner';
 
 interface GroupPostModalProps {
   groupId: string;
@@ -107,9 +108,9 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
           />
         )}
 
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div className="w-8" />
-          <h2 className="text-[17px] font-black text-gray-900 tracking-tight uppercase italic">
+          <h2 className="text-sm font-black text-gray-900 tracking-tight uppercase italic">
             Post to {groupName}
           </h2>
           <button
@@ -129,7 +130,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center flex-wrap gap-x-1 gap-y-0.5">
-                <p className="text-[15px] font-bold text-gray-900 leading-tight">
+                <p className="text-sm font-bold text-gray-900 leading-tight">
                   {user?.name || user?.username}
                 </p>
                 
@@ -188,7 +189,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
             <MentionInput
               value={content}
               onChange={setContent}
-              className="w-full min-h-[120px] text-[18px] outline-none placeholder:text-gray-300 resize-none border-none bg-transparent"
+              className="w-full min-h-[100px] text-[15px] outline-none placeholder:text-gray-300 resize-none border-none bg-transparent"
               placeholder={`Share something with ${groupName}...`}
               autoFocus={true}
             />
@@ -245,11 +246,11 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
           <button
             onClick={handleSubmit}
             disabled={!canPost}
-            className="w-full py-3 rounded-lg font-black text-[15px] tracking-tight transition-all
+            className="w-full py-3 rounded-lg font-black text-[13px] tracking-tight transition-all
               disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
               bg-primary hover:bg-primary/90 active:scale-[0.98] text-white shadow-xl shadow-primary/40"
           >
-            {uploading ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Post to Circle'}
+            {uploading ? <Spinner size="small" color="text-primary" /> : 'Post to Circle'}
           </button>
         </div>
       </div>

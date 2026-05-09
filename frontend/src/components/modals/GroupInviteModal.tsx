@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Search, Check, Loader2, UserPlus } from 'lucide-react';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 interface GroupInviteModalProps {
   groupId: string;
@@ -74,10 +75,10 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
         className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-black text-gray-900 tracking-tight uppercase italic">Invite Friends</h2>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">To {groupName}</p>
+            <h2 className="text-base font-black text-gray-900 tracking-tight uppercase italic">Invite Friends</h2>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">To {groupName}</p>
           </div>
           <button
             onClick={onClose}
@@ -103,7 +104,7 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
         <div className="flex-1 overflow-y-auto p-2">
           {loading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-4">
-              <Loader2 className="animate-spin text-primary" size={24} />
+              <Spinner size="medium" color="text-primary" />
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fetching your squad...</p>
             </div>
           ) : filteredFriends.length > 0 ? (
@@ -134,12 +135,12 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
                         )}
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-bold text-gray-900 leading-tight">{friend.name || friend.username}</p>
-                        <p className="text-[11px] font-semibold text-gray-400">@{friend.username}</p>
+                        <p className="text-[13px] font-bold text-gray-900 leading-tight">{friend.name || friend.username}</p>
+                        <p className="text-[10px] font-semibold text-gray-400">@{friend.username}</p>
                       </div>
                     </div>
                     {isInvited ? (
-                      <span className="text-[10px] font-black text-primary uppercase tracking-wider italic">Invited</span>
+                      <span className="text-[9px] font-black text-primary uppercase tracking-wider italic">Invited</span>
                     ) : (
                       <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${
                         isSelected ? 'bg-primary border-primary' : 'border-gray-200'
@@ -162,14 +163,14 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-100 bg-white">
+        <div className="p-4 border-t border-gray-100 bg-white">
           <button
             onClick={handleInvite}
             disabled={selectedIds.length === 0 || sending}
-            className="w-full py-4 bg-primary hover:bg-primary/90 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-2xl font-black text-[14px] uppercase tracking-wider transition-all shadow-xl shadow-primary/40 active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-primary hover:bg-primary/90 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-black text-[12px] uppercase tracking-wider transition-all shadow-xl shadow-primary/40 active:scale-[0.98] flex items-center justify-center gap-2"
           >
             {sending ? (
-              <Loader2 className="animate-spin" size={20} />
+              <Spinner size="medium" color="text-primary" />
             ) : (
               <>
                 Invite {selectedIds.length > 0 ? `${selectedIds.length} Friends` : 'Circle'}

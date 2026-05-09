@@ -4,6 +4,7 @@ import { ChevronLeft, Heart, Trash2, ShoppingBag, ExternalLink, MapPin } from 'l
 import api from '../api/api';
 import type { Listing } from '../types/listing';
 import { motion, AnimatePresence } from 'framer-motion';
+import Spinner from '../components/ui/Spinner';
 
 export default function Wishlist() {
   const navigate = useNavigate();
@@ -60,7 +61,7 @@ export default function Wishlist() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-12 h-12 border-4 border-marketplace-bg border-t-marketplace-text rounded-full animate-spin" />
+            <Spinner size="large" color="text-primary" />
             <p className="text-marketplace-muted font-bold animate-pulse">Opening vault...</p>
           </div>
         ) : items.length > 0 ? (

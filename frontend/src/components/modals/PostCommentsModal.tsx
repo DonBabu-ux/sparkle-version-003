@@ -7,6 +7,7 @@ import api from '../../api/api';
 import MentionInput from '../MentionInput';
 import MentionText from '../MentionText';
 import { formatCount } from '../../utils/format';
+import Spinner from '../ui/Spinner';
 
 interface Comment {
   comment_id: string;
@@ -248,7 +249,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="animate-spin text-black/10" size={32} />
+            <Spinner size="medium" color="text-primary" />
           </div>
         ) : comments.length === 0 ? (
           <div className="text-center py-12 text-gray-400 font-semibold text-[13px]">No comments yet.</div>
@@ -305,7 +306,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
                 disabled={!commentText.trim() || submitting}
                 className="text-pink-600 font-black text-[14px] disabled:opacity-30 px-2 hover:scale-105 active:scale-95 transition-transform uppercase tracking-wider"
               >
-                {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Post'}
+                {submitting ? <Spinner size="small" color="text-primary" /> : 'Post'}
               </button>
             </form>
           </div>
@@ -492,7 +493,7 @@ function CommentItem({
               </div>
             ) : translating ? (
               <div className="flex items-center gap-2 text-gray-400 py-1">
-                <Loader2 size={12} className="animate-spin" />
+                <Spinner size="medium" color="text-primary" />
                 <span className="text-[12px]">Translating...</span>
               </div>
             ) : translated ? (

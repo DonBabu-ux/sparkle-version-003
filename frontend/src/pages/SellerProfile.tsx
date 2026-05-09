@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProfileShareModal from '../components/modals/ProfileShareModal';
 import MarketplaceSettingsModal from '../components/modals/MarketplaceSettingsModal';
 import IdentityVerificationModal from '../components/modals/IdentityVerificationModal';
+import Spinner from '../components/ui/Spinner';
 
 interface Seller {
   user_id: string;
@@ -92,7 +93,7 @@ export default function SellerProfile() {
 
   if (loading) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-       <div className="w-12 h-12 border-4 border-marketplace-bg border-t-marketplace-text rounded-full animate-spin" />
+       <Spinner size="large" color="text-primary" />
     </div>
   );
 

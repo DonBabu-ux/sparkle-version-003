@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Shield, UserX, MessageSquare, Bell, Eye, EyeOff, Check, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
+import Spinner from '../components/ui/Spinner';
 
 interface MarketplaceSettings {
   who_can_message_me: 'everyone' | 'vouched_only' | 'none';
@@ -66,7 +67,7 @@ const MarketplaceSettings = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <Spinner size="medium" color="text-primary" />
       </div>
     );
   }
@@ -207,7 +208,7 @@ const MarketplaceSettings = () => {
 
         {saving && (
           <div className="flex items-center justify-center gap-2 text-sm text-gray-500 animate-pulse">
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+            <Spinner size="small" color="text-primary" />
             <span>Saving changes...</span>
           </div>
         )}

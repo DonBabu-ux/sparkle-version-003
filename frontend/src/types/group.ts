@@ -10,4 +10,5 @@ export interface Group {
   campus?: string;
   verified?: boolean;
   user_membership_status?: string;
+  creator_id?: string;
 }

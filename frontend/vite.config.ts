@@ -15,6 +15,7 @@ export default defineConfig({
         enabled: false
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 5000000,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
         runtimeCaching: [
           {

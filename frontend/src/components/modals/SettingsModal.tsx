@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, User, Shield, Lock, Bell, LogOut, ChevronRight, Camera, Loader2 } from 'lucide-react';
 import { useUserStore } from '../../store/userStore';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -113,7 +114,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               </div>
               <div className="form-actions">
                 <button className="save-settings-btn" onClick={handleSaveProfile} disabled={saving}>
-                  {saving ? <Loader2 className="animate-spin" /> : 'Save Changes'}
+                  {saving ? <Spinner size="medium" color="text-primary" /> : 'Save Changes'}
                 </button>
               </div>
             </div>

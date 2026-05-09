@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, EyeOff, User, ArrowLeft, Heart, MessageSquare } from 'lucide-react';
 import api from '../api/api';
 import { getAvatarUrl } from '../utils/imageUtils';
+import Spinner from '../components/ui/Spinner';
 
 interface StorySnapshot {
     story_id: string;
@@ -51,7 +52,7 @@ export default function StorySnapshot() {
     if (loading) {
         return (
             <div className="h-screen bg-black flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <Spinner size="medium" color="text-primary" />
             </div>
         );
     }

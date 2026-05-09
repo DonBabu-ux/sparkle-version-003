@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Flame, Snowflake, Ghost, Loader2, Orbit, Sparkles, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 interface ConfessionModalProps {
   onClose: () => void;
@@ -104,7 +105,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
           onClick={handleSubmit} 
           disabled={submitting}
         >
-          {submitting ? <Loader2 className="animate-spin" /> : (
+          {submitting ? <Spinner size="medium" color="text-primary" /> : (
             <>
                 FIRE FRAGMENT 
                 <ArrowRight size={24} strokeWidth={4} className="group-hover:translate-x-3 transition-transform duration-500" />

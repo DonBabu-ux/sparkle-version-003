@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { X, Camera, Tag, DollarSign, Package, Loader2, Store, Plus, ChevronLeft } from 'lucide-react';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 interface ListingModalProps {
   onClose: () => void;
@@ -121,7 +122,7 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
         </div>
 
         <button className="w-full py-6 rounded-[24px] bg-primary text-white font-black text-[14px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? <Loader2 className="animate-spin" /> : <>List Item <Package size={20} strokeWidth={3}/></>}
+          {submitting ? <Spinner size="medium" color="text-primary" /> : <>List Item <Package size={20} strokeWidth={3}/></>}
         </button>
       </div>
 

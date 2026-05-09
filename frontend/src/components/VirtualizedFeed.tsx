@@ -2,9 +2,10 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import api from "../api/api";
 import PostCard from "./PostCard";
 import type { Post } from "../types/post";
-import { RefreshCw, Ghost } from "lucide-react";
+import { Ghost } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDeviceSeed } from "../hooks/useDeviceSeed";
+import Spinner from "./ui/Spinner";
 
 const LIMIT = 10;
 
@@ -268,7 +269,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
 
       {/* Sentinel – triggers next page load when visible */}
       <div ref={sentinelRef} className="h-10 w-full flex items-center justify-center">
-        {loading && <RefreshCw size={24} className="animate-spin text-primary" />}
+        {loading && <Spinner size="medium" color="text-primary" />}
       </div>
 
       {!hasMore && posts.length > 0 && (

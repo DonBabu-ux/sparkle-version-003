@@ -30,10 +30,13 @@ class Group {
         if (userId) {
             query += `, 
                 (SELECT status FROM group_members WHERE group_id = g.group_id AND user_id = ?) as user_membership_status,
-                (SELECT role   FROM group_members WHERE group_id = g.group_id AND user_id = ?) as user_role,
+                COALESCE(
+                    (SELECT role FROM group_members WHERE group_id = g.group_id AND user_id = ?),
+                    CASE WHEN g.creator_id = ? THEN 'super_admin' ELSE NULL END
+                ) as user_role,
                 (SELECT status FROM group_requests WHERE group_id = g.group_id AND user_id = ? AND status = 'pending' LIMIT 1) as user_request_status
             `;
-            params.push(userId, userId, userId);
+            params.push(userId, userId, userId, userId);
         }
 
         query += ` FROM groups g ORDER BY g.created_at DESC`;
@@ -72,7 +75,7 @@ class Group {
             `SELECT gm.*, u.username, u.avatar_url as avatar, u.name
              FROM group_members gm
              JOIN users u ON gm.user_id = u.user_id
-             WHERE gm.group_id = ? AND gm.role IN ('admin', 'moderator')`,
+             WHERE gm.group_id = ? AND gm.role IN ('admin', 'moderator', 'owner', 'super_admin')`,
             [groupId]
         );
         return rows;

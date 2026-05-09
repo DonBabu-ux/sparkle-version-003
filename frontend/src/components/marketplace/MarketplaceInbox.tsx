@@ -12,6 +12,7 @@ import { useUserStore } from '../../store/userStore';
 import { useSocket } from '../../hooks/useSocket';
 import { useMarketplaceStore } from '../../store/marketplaceStore';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 // Real chats will be fetched from API
 
@@ -210,7 +211,7 @@ export default function MarketplaceInbox() {
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1877F2]"></div>
+             <Spinner size="medium" color="text-primary" />
           </div>
         ) : filteredChats.length > 0 ? (
           filteredChats.map(chat => (

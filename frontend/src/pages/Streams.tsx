@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Spinner from '../components/ui/Spinner';
 
 export default function Streams() {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ export default function Streams() {
       <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64 text-rose-500">
-             <div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+             <Spinner size="large" color="text-primary" />
              <p className="text-[10px] font-black uppercase tracking-widest">Tuning Frequencies...</p>
           </div>
         ) : mockStreams.length > 0 ? (

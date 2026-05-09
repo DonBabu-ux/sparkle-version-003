@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import api from '../api/api';
 import axios from 'axios';
 import { Compass, Sparkles, Globe, Layers, Eye, EyeOff, ArrowLeft, ArrowRight, Shield } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 
 export default function CreateGroup() {
   const navigate = useNavigate();
@@ -160,7 +161,7 @@ export default function CreateGroup() {
                    style={{ width: '100%', height: '56px', background: 'linear-gradient(135deg, #FF3D6D, #e01f55)', color: '#fff', borderRadius: '18px', fontWeight: 800, fontSize: '14px', border: 'none', cursor: 'pointer', boxShadow: '0 8px 28px rgba(255,61,109,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontStyle: 'normal', textTransform: 'none', opacity: loading ? 0.6 : 1, transition: 'all 0.2s' }}
                  >
                    {loading ? (
-                     <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                     <Spinner size="small" color="text-white" />
                    ) : (
                      <>Create Circle <ArrowRight size={18} /></>
                    )}

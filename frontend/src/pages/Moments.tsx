@@ -12,6 +12,7 @@ import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { trackingService } from '../services/TrackingService';
 import clsx from 'clsx';
+import Spinner from '../components/ui/Spinner';
 
 interface Comment {
   comment_id: string;
@@ -927,7 +928,7 @@ export default function Moments() {
                   {/* Results Grid */}
                   {isSearching ? (
                     <div className="flex-1 flex items-center justify-center">
-                      <Loader2 size={32} className="animate-spin text-primary" />
+                      <Spinner size="medium" color="text-primary" />
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0.5 p-0.5">
@@ -1109,7 +1110,7 @@ export default function Moments() {
                   disabled={!newComment.trim() || submittingComment}
                   className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all disabled:opacity-50"
                 >
-                  {submittingComment ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                  {submittingComment ? <Spinner size="small" color="text-primary" /> : <Send size={18} />}
                 </button>
               </form>
             </motion.div>

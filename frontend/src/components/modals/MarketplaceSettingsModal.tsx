@@ -6,6 +6,7 @@ import {
   Settings, Eye, Bell, Heart, HelpCircle, ArrowLeft, CheckCircle2, TrendingUp, Package, Users, Flag
 } from 'lucide-react';
 import api from '../../api/api';
+import Spinner from '../ui/Spinner';
 
 interface MarketplaceSettingsModalProps {
   isOpen: boolean;
@@ -183,7 +184,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
                   <p className="text-xs font-bold text-amber-700">Stats are being generated. Check back after more activity on your listings.</p>
                 </div>
                 {loading ? (
-                  <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
+                  <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
                 ) : data ? (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-6 bg-slate-50 rounded-lg">
@@ -220,7 +221,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
             {activeView === 'payouts' && (
               <div className="space-y-6">
                 {loading ? (
-                  <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div></div>
+                  <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
                 ) : data && data.length > 0 ? (
                   data.map((payout: any) => (
                     <div key={payout.payout_id} className="p-6 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
@@ -478,7 +479,7 @@ function MarketplaceSupportView() {
           <button onClick={() => setMode('options')} className="text-xs font-black text-indigo-600 hover:underline">New Request</button>
         </div>
         {loading ? (
-          <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
+          <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
         ) : tickets.length > 0 ? (
           tickets.map((t) => (
             <div key={t.ticket_id} className="p-5 bg-slate-50 border border-slate-100 rounded-lg hover:border-slate-200 transition-colors cursor-pointer group">
@@ -532,7 +533,7 @@ function BlockedUsersView() {
       fetchBlocked();
   }, []);
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-rose-200 border-t-rose-600 rounded-full animate-spin"></div></div>;
+  if (loading) return <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>;
 
   const handleReport = async (userId: string) => {
     const reason = prompt("Enter reason for reporting this user:");

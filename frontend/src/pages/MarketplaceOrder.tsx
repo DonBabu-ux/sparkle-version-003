@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
+import Spinner from '../components/ui/Spinner';
 
 export default function MarketplaceOrder() {
   const [searchParams] = useSearchParams();
@@ -100,7 +101,7 @@ export default function MarketplaceOrder() {
 
   if (loading) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-[#1877F2] border-t-transparent rounded-full animate-spin" />
+      <Spinner size="medium" color="text-primary" />
     </div>
   );
 
@@ -224,7 +225,7 @@ export default function MarketplaceOrder() {
               </div>
             ) : placing ? (
               <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <Spinner size="small" color="text-white" />
                 Processing...
               </div>
             ) : (

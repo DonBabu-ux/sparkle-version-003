@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { Calendar, Users, QrCode, Power, Settings, Plus, Camera, Check, X, Bell, Trash2, Edit } from 'lucide-react';
+import { 
+  Calendar, Users, QrCode, Power, Settings, Plus, Camera, Check, X, 
+  Bell, Trash2, Edit, ArrowLeft, Shield, AlertCircle 
+} from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 
 interface Event {
   event_id: string;
@@ -33,8 +37,8 @@ export default function EventsAdmin() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // Form State
   const [formData, setFormData] = useState({
     title: '',
     location: '',
@@ -44,11 +48,8 @@ export default function EventsAdmin() {
     campus: user?.campus || 'Main Campus'
   });
 
-  // Attendee state
   const [activeEventAttendees, setActiveEventAttendees] = useState<string | null>(null);
   const [attendeesList, setAttendeesList] = useState<Attendee[]>([]);
-
-  useEffect(() => { fetchManagedEvents(); }, [fetchManagedEvents]);
 
   const fetchManagedEvents = useCallback(async () => {
     setLoading(true);
@@ -68,6 +69,8 @@ export default function EventsAdmin() {
     }
   }, [targetEventId]);
 
+  useEffect(() => { fetchManagedEvents(); }, [fetchManagedEvents]);
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -80,6 +83,7 @@ export default function EventsAdmin() {
       });
       alert('Event is now Live!');
       setFormData({ title: '', location: '', event_date: '', capacity: '', requirements: '', campus: user?.campus || 'Main Campus' });
+      setShowCreateForm(false);
       fetchManagedEvents();
     } catch {
       alert('Failed to broadcast event.');
@@ -96,7 +100,7 @@ export default function EventsAdmin() {
   };
 
   const deleteEvent = async (id: string) => {
-    if (!confirm('This will permanently remove the event and all RSVPs. Proceed?')) return;
+    if (!confirm('Permanently remove this event?')) return;
     try {
       await api.delete(`/events/${id}`);
       fetchManagedEvents();
@@ -128,267 +132,187 @@ export default function EventsAdmin() {
     }
   };
 
-  const sendAnnouncement = async (eventId: string) => {
-    const msg = prompt('What would you like to broadcast to attendees via Sparkle Socket?');
-    if (!msg) return;
-    try {
-      // Assuming a generic broadcast endpoint exists
-      await api.post(`/events/${eventId}/announce`, { message: msg });
-      alert('Broadcast Sent!');
-    } catch {
-      alert('Failed to send announcement');
-    }
-  };
-
   return (
-    <div className="admin-page min-h-screen">
+    <div className="flex bg-[#fafafa] min-h-screen text-black overflow-x-hidden font-sans pb-20">
       <Navbar />
-      
-      <div className="max-w-[1200px] mx-auto px-4 py-8 pb-32">
-        {/* Header */}
-        <div className="bg-white rounded-3xl p-6 mb-8 shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold text-[#111] bg-gradient-to-r from-[#FF3D6D] to-[#FF7B42] bg-clip-text text-transparent inline-block m-0">Event Control Center</h1>
-            <p className="text-sm font-semibold text-slate-500 mt-1">Manage campus life & attendance</p>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => navigate('/events')} className="px-5 py-2.5 bg-slate-100 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors flex items-center gap-2">
-              <Calendar size={16} /> Public View
-            </button>
-            <button onClick={() => setShowScanner(!showScanner)} className="px-5 py-2.5 bg-emerald-500 rounded-xl text-sm font-bold text-white hover:bg-emerald-600 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20">
-              <QrCode size={16} /> Entry Check-In
-            </button>
-          </div>
-        </div>
 
-        {/* Scanner Section */}
+      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-4xl mx-auto w-full pt-16 md:pt-24">
+        
+        {/* Compact Header */}
+        <header className="mb-6 animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <button 
+              onClick={() => navigate('/events')}
+              className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm border border-gray-100 text-gray-400 active:scale-90 transition-all"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-white backdrop-blur-xl shadow-sm">
+              <Shield size={12} strokeWidth={3} className="text-primary" />
+              <span className="text-[8px] font-black text-black uppercase tracking-widest italic">Event Control</span>
+            </div>
+          </div>
+          
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-1">
+                Campus <span className="text-primary">Life.</span>
+              </h1>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Manage village gatherings</p>
+            </div>
+            <div className="flex gap-2">
+               <button 
+                 onClick={() => setShowScanner(!showScanner)}
+                 className="w-9 h-9 flex items-center justify-center bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 active:scale-90 transition-all"
+               >
+                 <QrCode size={16} />
+               </button>
+               <button 
+                 onClick={() => setShowCreateForm(!showCreateForm)}
+                 className="w-9 h-9 flex items-center justify-center bg-primary text-white rounded-xl shadow-lg shadow-primary/20 active:scale-90 transition-all"
+               >
+                 <Plus size={16} />
+               </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Scanner - Compact Overlay */}
         {showScanner && (
-          <div className="bg-white rounded-3xl p-6 mb-8 border-2 border-emerald-500 shadow-xl text-center">
-             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold flex items-center gap-2"><Camera size={18} /> Live Entrance Scanner</h3>
-                <button onClick={() => setShowScanner(false)} className="text-rose-500 hover:opacity-80"><X size={20} /></button>
+          <div className="bg-white rounded-[24px] p-4 mb-6 border-2 border-emerald-500/20 shadow-xl animate-fade-in">
+             <div className="flex justify-between items-center mb-3">
+                <h3 className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                  <Camera size={14} className="text-emerald-500" /> Scanner Mode
+                </h3>
+                <button onClick={() => setShowScanner(false)} className="text-gray-400"><X size={16} /></button>
              </div>
-             <div className="w-full max-w-[500px] aspect-square bg-black mx-auto rounded-xl flex items-center justify-center relative overflow-hidden">
-                {/* Mocked Scanner UI since html5-qrcode requires DOM mounting in a specific way not suitable for direct raw React pasting without wrapper */}
+             <div className="aspect-square max-w-[240px] bg-black mx-auto rounded-2xl flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-emerald-500/10 z-10" style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(16, 185, 129, 0.4) 51%, transparent 51%)', backgroundSize: '100% 4px', animation: 'scanLine 2s linear infinite' }}></div>
-                <p className="text-white z-20 font-mono text-sm opacity-50 block text-center p-4">
-                    Camera access required. In production, connect `html5-qrcode` or `react-qr-reader` here.
-                </p>
+                <p className="text-[9px] text-white/40 font-black uppercase tracking-widest z-20 text-center px-4">Initializing Lens...</p>
              </div>
-             <p className="mt-4 text-slate-500 text-sm font-semibold">Point camera at student's Entry Pass QR</p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
-          {/* Left Column - Active Management */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-extrabold flex items-center gap-3">
-                <Settings className="text-[#FF3D6D]" size={22} /> Active Management
+        {/* Create Form - High Density */}
+        {showCreateForm && (
+          <div className="bg-white rounded-[24px] p-5 mb-6 border border-gray-100 shadow-sm animate-fade-in">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                <Plus size={14} className="text-primary" /> New Gathering
               </h3>
-              <div className="bg-white px-4 py-2 rounded-xl text-xs font-bold text-slate-500 border border-slate-100 shadow-sm flex items-center gap-2">
-                <Calendar size={14} className="text-[#FF3D6D]" /> {events.length} EVENTS
-              </div>
+              <button onClick={() => setShowCreateForm(false)} className="text-gray-400"><X size={16} /></button>
             </div>
+            <form onSubmit={handleCreateSubmit} className="space-y-3">
+              <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Event Title" className="w-full p-3 bg-gray-50 border-none rounded-xl text-[11px] font-bold outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all uppercase italic" />
+              <div className="grid grid-cols-2 gap-2">
+                <input required type="datetime-local" value={formData.event_date} onChange={e => setFormData({...formData, event_date: e.target.value})} className="p-3 bg-gray-50 border-none rounded-xl text-[10px] font-black outline-none w-full" />
+                <input type="number" value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} placeholder="Capacity" className="p-3 bg-gray-50 border-none rounded-xl text-[11px] font-bold outline-none uppercase" />
+              </div>
+              <button type="submit" className="w-full py-3 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 italic">
+                Launch Event
+              </button>
+            </form>
+          </div>
+        )}
 
-            {loading ? (
-              <div className="text-center p-12 text-slate-400 font-bold animate-pulse">Loading Events...</div>
-            ) : events.length > 0 ? (
-              <div className="flex flex-col gap-6">
-                {events.map((e) => (
-                  <div key={e.event_id} id={`mgmt-card-${e.event_id}`} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
-                    {/* Top Info */}
-                    <div className="flex justify-between items-start mb-6">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white rounded-lg ${e.is_public ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-slate-500'}`}>
-                            {e.is_public ? 'LIVE' : 'PAUSED'}
-                          </span>
-                          <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{e.campus || 'Main Campus'}</span>
-                        </div>
-                        <h4 className="text-xl font-extrabold text-[#111] leading-tight m-0">{e.title}</h4>
+        {/* Managed Events List */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-2 mb-2">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic flex items-center gap-2">
+              <Settings size={14} className="text-primary" /> Management Mode
+            </h3>
+            <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest italic">{events.length} Active</span>
+          </div>
+
+          {loading ? (
+            <div className="py-20 text-center">
+              <Spinner size="medium" color="text-primary" />
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest italic">Syncing Gathering State...</p>
+            </div>
+          ) : events.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {events.map((e) => (
+                <div key={e.event_id} id={`mgmt-card-${e.event_id}`} className="bg-white rounded-[24px] p-4 border border-gray-100 shadow-sm relative overflow-hidden group">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider text-white rounded-md ${e.is_public ? 'bg-emerald-500' : 'bg-gray-400'}`}>
+                          {e.is_public ? 'LIVE' : 'PAUSED'}
+                        </span>
+                        <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest truncate">{e.campus || 'Main Campus'}</span>
                       </div>
-                      <div className="flex gap-2">
-                         <button onClick={() => toggleEventStatus(e.event_id, e.is_public)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${e.is_public ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
-                           <Power size={18} />
-                         </button>
-                         <button onClick={() => deleteEvent(e.event_id)} className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-all">
-                           <Trash2 size={18} />
-                         </button>
-                      </div>
+                      <h4 className="text-[13px] font-black text-gray-900 uppercase italic leading-none truncate">{e.title}</h4>
                     </div>
-
-                    {/* Stats Grid */}
-                    <div onClick={() => loadAttendees(e.event_id)} className="grid grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
-                       <div className="text-center border-r border-slate-200">
-                          <div className="text-3xl font-black text-[#111]">{e.total_rsvps || e.total_reservations || 0}</div>
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total RSVPs</div>
-                       </div>
-                       <div className="text-center">
-                          <div className="text-3xl font-black text-emerald-500">{e.total_attended || 0}</div>
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Present Now</div>
-                       </div>
+                    <div className="flex gap-1.5 shrink-0">
+                       <button onClick={() => toggleEventStatus(e.event_id, e.is_public)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${e.is_public ? 'bg-amber-50 text-amber-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                         <Power size={12} />
+                       </button>
+                       <button onClick={() => deleteEvent(e.event_id)} className="w-7 h-7 rounded-lg flex items-center justify-center bg-gray-50 text-gray-400 hover:text-primary transition-all">
+                         <Trash2 size={12} />
+                       </button>
                     </div>
+                  </div>
 
-                    {/* Capacity Progress */}
-                    {e.max_attendees > 0 && (
-                      <div className="mb-6">
-                        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-2">
-                          <div 
-                            className="h-full rounded-full transition-all duration-1000 bg-gradient-to-r from-[#FF3D6D] to-[#FF7B42]" 
-                            style={{ width: `${Math.min(((e.total_rsvps || 0) / e.max_attendees) * 100, 100)}%` }} 
-                          />
-                        </div>
-                        <div className="flex justify-between text-[11px] font-extrabold text-slate-400">
-                           <span>CAPACITY: {e.max_attendees}</span>
-                           <span className={((e.total_rsvps||0) / e.max_attendees > 0.9) ? 'text-rose-500' : ''}>
-                             {Math.max(0, e.max_attendees - (e.total_rsvps||0))} SPOTS LEFT
-                           </span>
-                        </div>
+                  <div onClick={() => loadAttendees(e.event_id)} className="grid grid-cols-2 gap-2 mb-4 bg-gray-50/50 p-2.5 rounded-xl cursor-pointer hover:bg-primary/5 transition-all">
+                     <div className="text-center border-r border-gray-100">
+                        <div className="text-lg font-black text-gray-900 leading-none">{e.total_rsvps || 0}</div>
+                        <div className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">RSVPs</div>
+                     </div>
+                     <div className="text-center">
+                        <div className="text-lg font-black text-emerald-500 leading-none">{e.total_attended || 0}</div>
+                        <div className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">Present</div>
+                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <button 
+                      onClick={() => loadAttendees(e.event_id)}
+                      className="w-full py-2 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest italic flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <Users size={12} className="text-primary" /> {activeEventAttendees === e.event_id ? 'Hide Guests' : 'Manage Guests'}
+                    </button>
+                    
+                    {activeEventAttendees === e.event_id && (
+                      <div className="mt-2 bg-gray-50 rounded-xl p-1.5 max-h-[160px] overflow-y-auto no-scrollbar space-y-1">
+                        {attendeesList.map(a => (
+                          <div key={a.user_id} className="bg-white p-2 rounded-lg flex justify-between items-center shadow-sm">
+                             <div className="flex items-center gap-2">
+                                <img src={a.avatar_url || `https://ui-avatars.com/api/?name=${a.username}`} className="w-5 h-5 rounded-md border border-gray-100" alt="" />
+                                <span className="text-[9px] font-black uppercase text-gray-900 italic">{a.username}</span>
+                             </div>
+                             {a.status === 'pending' ? (
+                                <div className="flex gap-1">
+                                   <button onClick={() => processRSVP(e.event_id, a.user_id, 'accepted')} className="text-emerald-500 p-1 hover:bg-emerald-50 rounded-md"><Check size={12}/></button>
+                                   <button onClick={() => processRSVP(e.event_id, a.user_id, 'rejected')} className="text-primary p-1 hover:bg-primary/5 rounded-md"><X size={12}/></button>
+                                </div>
+                             ) : (
+                                <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded ${a.status==='accepted'?'bg-emerald-50 text-emerald-500':'bg-primary/5 text-primary'}`}>
+                                   {a.status}
+                                </span>
+                             )}
+                          </div>
+                        ))}
                       </div>
                     )}
-
-                    {/* Management Controls */}
-                    <div className="space-y-6">
-                      {/* Approval Queue */}
-                      <div className="pt-6 border-t border-slate-100">
-                        <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-3">Approval Queue</label>
-                        <button onClick={() => loadAttendees(e.event_id)} className="w-full p-3.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors">
-                          <Users size={16} /> Review Requests
-                        </button>
-                        
-                        {activeEventAttendees === e.event_id && (
-                          <div className="mt-4 bg-slate-50 border border-slate-200 rounded-2xl p-2 max-h-[300px] overflow-y-auto">
-                            {attendeesList.length === 0 ? (
-                               <p className="text-xs text-center text-slate-400 py-4 font-semibold">No RSVP requests yet.</p>
-                            ) : (
-                               attendeesList.map(a => (
-                                 <div key={a.user_id} className="bg-white p-3 rounded-xl mb-2 border border-slate-100 flex justify-between items-center shadow-sm">
-                                    <div className="flex items-center gap-3">
-                                       <img src={a.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full border border-slate-200" alt="" />
-                                       <div className="text-sm font-bold text-[#111]">{a.username}</div>
-                                    </div>
-                                    {a.status === 'pending' ? (
-                                       <div className="flex gap-2">
-                                          <button onClick={() => processRSVP(e.event_id, a.user_id, 'accepted')} className="bg-emerald-100 text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-200 transition-colors"><Check size={16}/></button>
-                                          <button onClick={() => processRSVP(e.event_id, a.user_id, 'rejected')} className="bg-rose-100 text-rose-600 p-1.5 rounded-lg hover:bg-rose-200 transition-colors"><X size={16}/></button>
-                                       </div>
-                                    ) : (
-                                       <span className={`text-[11px] font-black uppercase px-2 py-1 rounded-md ${a.status==='accepted'?'bg-emerald-50 text-emerald-600':'bg-rose-50 text-rose-500'}`}>
-                                          {a.status}
-                                       </span>
-                                    )}
-                                 </div>
-                               ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Event Modifiers */}
-                      <div className="pt-6 border-t border-slate-100">
-                         <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-3">Event Modifiers</label>
-                         <div className="grid grid-cols-2 gap-3">
-                            <button className="p-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:border-[#FF3D6D] hover:text-[#FF3D6D] transition-colors"><Edit size={14}/> Edit</button>
-                            <button onClick={async () => {
-                              const v = prompt("Enter new capacity:");
-                              if(v) {
-                                await api.put(`/events/${e.event_id}`, { max_attendees: parseInt(v) });
-                                fetchManagedEvents();
-                              }
-                            }} className="p-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:border-[#FF3D6D] hover:text-[#FF3D6D] transition-colors"><Users size={14}/> Capacity</button>
-                            <button onClick={async () => {
-                              const r = prompt("Requirements:", e.requirements);
-                              if(r !== null) {
-                                await api.put(`/events/${e.event_id}`, { requirements: r });
-                                fetchManagedEvents();
-                              }
-                            }} className="p-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:border-[#FF3D6D] hover:text-[#FF3D6D] transition-colors"><Settings size={14}/> Requirements</button>
-                            <button className="p-3 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors"><X size={14}/> Close</button>
-                         </div>
-                      </div>
-
-                      {/* Broadcasting */}
-                      <div className="pt-6 border-t border-slate-100">
-                         <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-3">Broadcasting</label>
-                         <button onClick={() => sendAnnouncement(e.event_id)} className="w-full p-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-black text-[13px] flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:opacity-90 transition-opacity">
-                            <Bell size={16} /> Send Live Announcement
-                         </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-3xl p-16 text-center border border-slate-100 shadow-sm flex flex-col items-center">
-                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-5 text-slate-300">
-                    <Calendar size={32} />
-                 </div>
-                 <h4 className="text-xl font-extrabold text-[#111] mb-2">No Managed Events</h4>
-                 <p className="text-sm font-semibold text-slate-500">Use the form to host your first campus event.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column - Create Event Form */}
-          <div className="relative">
-            <div className="bg-white rounded-3xl p-7 border border-slate-200 shadow-xl lg:sticky lg:top-6">
-              <h3 className="text-lg font-extrabold flex items-center gap-3 text-[#111] mb-6">
-                <Plus className="text-[#FF3D6D]" size={20} /> Host New Event
-              </h3>
-              
-              <form onSubmit={handleCreateSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Event Title</label>
-                  <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Event Name" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:bg-white focus:border-[#FF3D6D] focus:ring-2 focus:ring-[#FF3D6D]/20 outline-none transition-all" />
-                </div>
-                
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Location / Venue</label>
-                  <input required type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Where is it?" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:bg-white focus:border-[#FF3D6D] focus:ring-2 focus:ring-[#FF3D6D]/20 outline-none transition-all" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Date & Time</label>
-                    <input required type="datetime-local" value={formData.event_date} onChange={e => setFormData({...formData, event_date: e.target.value})} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:bg-white outline-none w-full appearance-none m-0" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Capacity</label>
-                    <input type="number" value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} placeholder="Infinite" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:bg-white outline-none" />
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Requirements</label>
-                  <textarea value={formData.requirements} onChange={e => setFormData({...formData, requirements: e.target.value})} placeholder="- Bring a laptop..." className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:bg-white outline-none min-h-[90px] resize-none"></textarea>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Campus Scope</label>
-                  <select value={formData.campus} onChange={e => setFormData({...formData, campus: e.target.value})} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:bg-white outline-none appearance-none">
-                    <option value="Main Campus">Main Campus</option>
-                    <option value="Virtual">Virtual / Remote</option>
-                    <option value="North Campus">North Campus</option>
-                    <option value={user?.campus as string}>{user?.campus || 'My Campus'}</option>
-                  </select>
-                </div>
-
-                <button type="submit" className="w-full py-4 mt-2 rounded-2xl bg-gradient-to-r from-[#FF3D6D] to-[#FF7B42] text-white font-black text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-[#FF3D6D]/30 hover:shadow-xl hover:translate-y-[-2px] transition-all">
-                  <span>Push Live</span>
-                  <Plus size={18} strokeWidth={3} />
-                </button>
-              </form>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-[32px] p-12 text-center border border-gray-100 shadow-sm">
+               <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 text-gray-200 mx-auto">
+                  <Calendar size={24} />
+               </div>
+               <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">No events managed yet.</p>
+            </div>
+          )}
         </div>
-      </div>
-      
+      </main>
+
       <style>{`
-        @keyframes scanLine {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(200%); }
-        }
+        @keyframes scanLine { 0% { transform: translateY(-100%); } 100% { transform: translateY(200%); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

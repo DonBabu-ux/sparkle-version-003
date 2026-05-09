@@ -7,6 +7,7 @@ import { ChevronLeft, Share2, Heart, MessageCircle, MapPin, Search, MoreHorizont
 import { getAvatarUrl } from '../utils/imageUtils';
 import { timeAgo } from '../utils/format';
 import type { Listing } from '../types/listing';
+import Spinner from '../components/ui/Spinner';
 
 export default function ListingDetail() {
   const { id } = useParams();
@@ -125,7 +126,7 @@ export default function ListingDetail() {
 
   if (loading) return (
     <div className="flex bg-white min-h-screen text-slate-900 justify-center items-center">
-      <div className="w-8 h-8 border-4 border-[#1877F2] border-t-transparent rounded-full animate-spin"></div>
+      <Spinner size="medium" color="text-primary" />
     </div>
   );
 

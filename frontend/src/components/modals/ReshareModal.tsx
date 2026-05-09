@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Repeat2, Loader2, AtSign } from 'lucide-react';
 import api from '../../api/api';
 import { useModalStore } from '../../store/modalStore';
+import Spinner from '../ui/Spinner';
 
 interface User {
   user_id: string;
@@ -134,7 +135,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
               <div className="preview-media grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500">
                 {originalPost.media_type === 'video' ? (
                   <div className="video-placeholder bg-slate-100 flex items-center justify-center gap-2 py-8">
-                    <Loader2 size={16} className="animate-spin text-slate-400" />
+                    <Spinner size="small" color="text-primary" />
                     <span className="text-slate-500 font-bold">Video Clip</span>
                   </div>
                 ) : (
@@ -160,7 +161,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
              onClick={handleSubmit} 
              disabled={resharing}
            >
-             {resharing ? <Loader2 className="animate-spin" /> : <>Post <Repeat2 size={18} /></>}
+             {resharing ? <Spinner size="medium" color="text-primary" /> : <>Post <Repeat2 size={18} /></>}
            </button>
         </div>
       </div>

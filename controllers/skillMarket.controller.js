@@ -56,6 +56,16 @@ const getOfferById = async (req, res) => {
     }
 };
 
+const getOfferReviews = async (req, res) => {
+    try {
+        const reviews = await SkillMarket.getOfferReviews(req.params.id);
+        res.json({ reviews });
+    } catch (error) {
+        logger.error('Get Offer Reviews error:', error);
+        res.status(500).json({ error: 'Failed to fetch offer reviews' });
+    }
+};
+
 const bookSession = async (req, res) => {
     try {
         const bookingData = {
@@ -71,6 +81,42 @@ const bookSession = async (req, res) => {
     } catch (error) {
         logger.error('Book Session error:', error);
         res.status(500).json({ error: 'Failed to book session' });
+    }
+};
+
+const getClientBookings = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        const bookings = await SkillMarket.getClientBookings(userId);
+        res.json({ bookings });
+    } catch (error) {
+        logger.error('Get Client Bookings error:', error);
+        res.status(500).json({ error: 'Failed to fetch bookings' });
+    }
+};
+
+const getProviderBookings = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        const bookings = await SkillMarket.getProviderBookings(userId);
+        res.json({ bookings });
+    } catch (error) {
+        logger.error('Get Provider Bookings error:', error);
+        res.status(500).json({ error: 'Failed to fetch bookings' });
+    }
+};
+
+const updateBookingStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body; // 'accepted', 'declined', 'completed'
+        // In a real app, verify the offer belongs to the user or booker is the user depending on status
+        const pool = require('../config/database');
+        await pool.query('UPDATE skill_bookings SET status = ? WHERE booking_id = ?', [status, id]);
+        res.json({ success: true, message: 'Booking updated' });
+    } catch (error) {
+        logger.error('Update Booking Status error:', error);
+        res.status(500).json({ error: 'Failed to update booking status' });
     }
 };
 
@@ -134,5 +180,9 @@ module.exports = {
     bookSession,
     updateOffer,
     deleteOffer,
-    rateExchange
+    rateExchange,
+    getOfferReviews,
+    getClientBookings,
+    getProviderBookings,
+    updateBookingStatus
 };

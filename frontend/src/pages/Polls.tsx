@@ -196,9 +196,13 @@ export default function Polls() {
                 <div 
                   key={poll.poll_id} 
                   onClick={() => navigate(`/polls/${poll.poll_id}`)}
-                  className="group relative bg-white border border-white/60 p-6 md:p-8 rounded-xl hover:scale-[1.01] transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:shadow-primary/5 animate-scale-in flex flex-col"
+                  className="group relative bg-white border border-white/60 p-6 md:p-8 rounded-xl hover:scale-[1.01] transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:shadow-primary/5 animate-scale-in flex flex-col overflow-hidden"
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
+                  <div className="absolute -right-5 -bottom-5 text-black/[0.03] -rotate-12 z-0 pointer-events-none" aria-hidden>
+                    <BarChart2 size={140} strokeWidth={0.75} />
+                  </div>
+                  
                   <div className="flex justify-between items-center gap-4 mb-4 relative z-10">
                      <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-xl text-[10px] font-semibold text-gray-500 uppercase tracking-wider">

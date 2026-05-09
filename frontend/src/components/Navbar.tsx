@@ -231,10 +231,19 @@ export default function Navbar() {
         const handledModals = [
           'post', 'poll', 'event', 'listing', 'confession', 'settings', 
           'share', 'reshare', 'post_comments', 'creation_hub', 
+          'skill_offer', 'skill_detail',
           'highlight', 'highlight_player', 'archive'
         ];
 
         if (!handledModals.includes(activeModal)) return null;
+
+        // Skill modals manage their own overlay — render them outside the wrapper
+        if (activeModal === 'skill_offer') {
+          return <SkillOfferModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />;
+        }
+        if (activeModal === 'skill_detail') {
+          return <SkillDetailModal offerId={(modalData as any)?.offerId} onClose={() => setActiveModal(null)} />;
+        }
 
         return (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
@@ -249,8 +258,6 @@ export default function Navbar() {
               {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}
               {activeModal === 'creation_hub' && <CreationHubModal onClose={() => setActiveModal(null)} />}
-              {activeModal === 'skill_offer' && <SkillOfferModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-              {activeModal === 'skill_detail' && <SkillDetailModal offerId={(modalData as any)?.offerId} onClose={() => setActiveModal(null)} />}
               {activeModal === 'highlight' && (
                 <CreateHighlightModal 
                   isOpen={true} 

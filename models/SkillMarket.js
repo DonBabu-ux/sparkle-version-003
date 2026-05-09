@@ -102,6 +102,44 @@ class SkillMarket {
             throw error;
         }
     }
+
+    static async getClientBookings(userId) {
+        try {
+            const query = `
+                SELECT b.*, s.title, s.category, s.price, u.username as provider_username, u.name as provider_name, u.avatar_url as provider_avatar,
+                (SELECT rating FROM skill_reviews r WHERE r.offer_id = b.offer_id AND r.reviewer_id = b.booker_id LIMIT 1) as my_rating
+                FROM skill_bookings b
+                JOIN skill_offers s ON b.offer_id = s.offer_id
+                JOIN users u ON s.user_id = u.user_id
+                WHERE b.booker_id = ?
+                ORDER BY b.created_at DESC
+            `;
+            const [rows] = await pool.query(query, [userId]);
+            return rows;
+        } catch (error) {
+            logger.error('Error getting client bookings:', error);
+            throw error;
+        }
+    }
+
+    static async getProviderBookings(userId) {
+        try {
+            const query = `
+                SELECT b.*, s.title, u.username as client_username, u.name as client_name, u.avatar_url as client_avatar
+                FROM skill_bookings b
+                JOIN skill_offers s ON b.offer_id = s.offer_id
+                JOIN users u ON b.booker_id = u.user_id
+                WHERE s.user_id = ?
+                ORDER BY b.created_at DESC
+            `;
+            const [rows] = await pool.query(query, [userId]);
+            return rows;
+        } catch (error) {
+            logger.error('Error getting provider bookings:', error);
+            throw error;
+        }
+    }
+
     static async updateOffer(offerId, updates) {
         const allowed = ['title', 'description', 'category', 'skill_type', 'price', 'is_free', 'availability'];
         const fields = [], values = [];
@@ -123,12 +161,32 @@ class SkillMarket {
         const [rows] = await pool.query('SELECT offer_id FROM skill_bookings WHERE booking_id = ?', [bookingId]);
         if (!rows.length) throw new Error('Booking not found');
         const { offer_id } = rows[0];
+        
+        // Delete existing review for this offer by this user to simulate UPSERT since we lack a composite unique key
+        await pool.query('DELETE FROM skill_reviews WHERE offer_id = ? AND reviewer_id = ?', [offer_id, userId]);
+        
         await pool.query(
-            `INSERT INTO skill_reviews (review_id, offer_id, booking_id, reviewer_id, rating, review, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE rating = VALUES(rating), review = VALUES(review)`,
-            [reviewId, offer_id, bookingId, userId, rating, review || null]
+            `INSERT INTO skill_reviews (review_id, offer_id, reviewer_id, rating, comment, created_at)
+             VALUES (?, ?, ?, ?, ?, NOW())`,
+            [reviewId, offer_id, userId, rating, review || null]
         );
+    }
+
+    static async getOfferReviews(offerId) {
+        try {
+            const query = `
+                SELECT r.rating, r.comment, r.created_at, u.username, u.avatar_url
+                FROM skill_reviews r
+                JOIN users u ON r.reviewer_id = u.user_id
+                WHERE r.offer_id = ?
+                ORDER BY r.created_at DESC
+            `;
+            const [reviews] = await pool.query(query, [offerId]);
+            return reviews;
+        } catch (error) {
+            logger.error('Error fetching skill offer reviews:', error);
+            throw error;
+        }
     }
 }
 

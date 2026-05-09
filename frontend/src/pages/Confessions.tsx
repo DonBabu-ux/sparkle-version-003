@@ -354,11 +354,15 @@ export default function Confessions() {
               confessions.map((conf, idx) => (
                 <div
                   key={conf.confession_id || idx}
-                  className="bg-white rounded-[28px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-gray-100/60 transition-all duration-500 animate-fade-in hover:shadow-[0_12px_40px_rgba(0,0,0,0.07)] group flex flex-col"
+                  className="bg-white rounded-[28px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-gray-100/60 transition-all duration-500 animate-fade-in hover:shadow-[0_12px_40px_rgba(0,0,0,0.07)] group flex flex-col relative"
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
+                  <div className="absolute -right-5 -bottom-5 text-black/[0.03] -rotate-12 z-0 pointer-events-none" aria-hidden>
+                    <SpyIcon size={160} />
+                  </div>
+                  
                   {/* Text & Header Section */}
-                  <div className="p-5 pb-4">
+                  <div className="p-5 pb-4 relative z-10">
                     {/* Card header */}
                     <div className="flex items-start gap-3 mb-4">
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md bg-gradient-to-br
@@ -426,7 +430,7 @@ export default function Confessions() {
                     className="p-4 pt-3 relative cursor-pointer active:bg-gray-50/50 transition-colors"
                     onClick={(e) => handleReact(conf.confession_id, 'heart', e, true)}
                   >
-                    <div className="flex items-center justify-between w-full" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-3">
                         {/* Reaction Button & Popover */}
                         <div className="relative">

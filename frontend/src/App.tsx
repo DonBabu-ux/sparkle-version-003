@@ -27,6 +27,7 @@ import SellItem from './pages/SellItem';
 import SellerProfile from './pages/SellerProfile';
 import Wishlist from './pages/Wishlist';
 import SkillMarket from './pages/SkillMarket';
+import SkillHub from './pages/SkillHub';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -170,6 +171,7 @@ function App() {
         <Route path="/profile/:id" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
         <Route path="/wishlist" element={isAuthenticated ? <Wishlist /> : <Navigate to="/login" />} />
         <Route path="/skill-market" element={isAuthenticated ? <SkillMarket /> : <Navigate to="/login" />} />
+        <Route path="/skill-market/hub" element={isAuthenticated ? <SkillHub /> : <Navigate to="/login" />} />
 
         {/* ── Phase 2: Social & Community ── */}
         <Route path="/clubs" element={isAuthenticated ? <Clubs /> : <Navigate to="/login" />} />

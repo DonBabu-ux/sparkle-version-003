@@ -1,190 +1,522 @@
 import React, { useState } from 'react';
-import { X, Zap, ChevronRight, GraduationCap, Code, Palette, PenTool, Music, Cpu, Hammer, Check } from 'lucide-react';
+import { X, Zap, GraduationCap, Code, Palette, PenTool, Music, Cpu, Hammer, Check, ArrowRight, DollarSign } from 'lucide-react';
 import api from '../../api/api';
-import { useModalStore } from '../../store/modalStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const CATEGORIES = [
-  { id: 'tutoring', name: 'Tutoring', icon: GraduationCap },
-  { id: 'coding', name: 'Coding', icon: Code },
-  { id: 'design', name: 'Design', icon: Palette },
-  { id: 'writing', name: 'Writing', icon: PenTool },
-  { id: 'music', name: 'Music', icon: Music },
-  { id: 'tech', name: 'Tech Support', icon: Cpu },
-  { id: 'other', name: 'Other', icon: Hammer },
+  { id: 'tutoring',  name: 'Tutoring',     icon: GraduationCap },
+  { id: 'coding',    name: 'Coding',        icon: Code },
+  { id: 'design',    name: 'Design',        icon: Palette },
+  { id: 'writing',   name: 'Writing',       icon: PenTool },
+  { id: 'music',     name: 'Music',         icon: Music },
+  { id: 'tech',      name: 'Tech Support',  icon: Cpu },
+  { id: 'other',     name: 'Other',         icon: Hammer },
 ];
 
 const SKILL_TYPES = [
-  { id: 'teaching', name: 'Teaching/Tutoring', desc: 'Pass on your knowledge' },
-  { id: 'doing', name: 'Service/Work', desc: 'Get things done for others' },
-  { id: 'consulting', name: 'Consulting', desc: 'Provide expert advice' },
+  { id: 'teaching',    name: 'Teaching / Tutoring', desc: 'Share your knowledge one-on-one' },
+  { id: 'doing',       name: 'Service / Work',       desc: 'Complete tasks or projects for others' },
+  { id: 'consulting',  name: 'Consulting',            desc: 'Provide expert advice & strategy' },
 ];
 
-export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () => void, onSuccess?: () => void }) {
+interface FormData {
+  title: string;
+  description: string;
+  category: string;
+  skill_type: string;
+  price: string;
+  is_free: boolean;
+}
+
+export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () => void; onSuccess?: () => void }) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     category: 'tutoring',
     skill_type: 'teaching',
     price: '',
-    is_free: false
+    is_free: false,
   });
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
+  const update = (patch: Partial<FormData>) => setFormData(p => ({ ...p, ...patch }));
+
+  const DESC_MIN_WORDS = 5;
+  const DESC_MAX_WORDS = 150;
+  const words = formData.description.match(/\S+/g) || [];
+  const wordCount = words.length;
+  const descOk   = wordCount >= DESC_MIN_WORDS;
+  const descOver = wordCount > DESC_MAX_WORDS;
+  const canNext  = descOk && !descOver;
+
+ const handleSubmit = async () => {
+    if (formData.title.trim().length < 2) {
+      setStep(1);
+      alert('Please provide a service title (at least 2 characters) before publishing.');
+      return;
+    }
     setLoading(true);
     try {
       await api.post('/skill-market/offers', formData);
-      if (onSuccess) onSuccess();
-      onClose();
+      setDone(true);
+      setTimeout(() => {
+        if (onSuccess) onSuccess();
+        onClose();
+      }, 1800);
     } catch (err) {
       console.error('Failed to create skill offer:', err);
-      alert('Failed to create skill offer. Please try again.');
+      alert('Could not create listing. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 lowercase">
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-3xl" onClick={onClose} />
-      
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 40 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative w-full max-w-[500px] bg-white rounded-[48px] shadow-[0_50px_150px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col border-4 border-black/5"
-        onClick={(e) => e.stopPropagation()}
+    <div className="sof-overlay">
+      <div className="sof-backdrop" onClick={onClose} />
+
+      <motion.div
+        initial={{ opacity: 0, y: 60, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        className="sof-sheet"
+        onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="p-10 pb-6 flex items-center justify-between border-b-4 border-black/[0.02]">
-          <div>
-            <h3 className="font-black text-3xl text-black tracking-tighter italic uppercase leading-none">List Skill</h3>
-            <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Step {step} of 2</p>
-          </div>
-          <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-black/5 flex items-center justify-center text-black/20 hover:text-black transition-all">
-            <X size={20} strokeWidth={4} />
-          </button>
-        </div>
-
-        <div className="p-10 flex-1 overflow-y-auto max-h-[70vh] no-scrollbar">
-          {step === 1 ? (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* Category Selection */}
-              <div>
-                <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-4 block italic px-2">Select Category</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setFormData({ ...formData, category: cat.id })}
-                      className={`
-                        flex items-center gap-3 p-4 rounded-2xl font-bold text-xs transition-all border-2
-                        ${formData.category === cat.id ? 'bg-black text-white border-black shadow-lg' : 'bg-black/5 text-black/40 border-transparent hover:border-black/5'}
-                      `}
-                    >
-                      <cat.icon size={16} strokeWidth={formData.category === cat.id ? 3 : 2} />
-                      <span className="italic uppercase truncate">{cat.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Title & Description */}
-              <div className="space-y-4">
-                <div className="relative group">
-                  <input 
-                    type="text" 
-                    placeholder="SERVICE TITLE (e.g. PYTHON TUTORING)"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value.toUpperCase() })}
-                    className="w-full bg-black/5 rounded-2xl px-6 py-5 font-black text-sm italic uppercase border-2 border-transparent focus:border-primary/20 outline-none transition-all placeholder:text-black/10"
-                  />
-                </div>
-                <div className="relative group">
-                  <textarea 
-                    placeholder="DESCRIBE YOUR EXPERTISE & WHAT YOU OFFER..."
-                    rows={4}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full bg-black/5 rounded-3xl px-6 py-5 font-bold text-sm italic border-2 border-transparent focus:border-primary/20 outline-none transition-all placeholder:text-black/10 no-scrollbar"
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-              {/* Skill Type */}
-              <div>
-                <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-4 block italic px-2">Skill Modality</label>
-                <div className="space-y-2">
-                  {SKILL_TYPES.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setFormData({ ...formData, skill_type: type.id })}
-                      className={`
-                        w-full flex items-center justify-between p-5 rounded-3xl font-bold transition-all border-2
-                        ${formData.skill_type === type.id ? 'bg-black text-white border-black shadow-xl scale-[1.02]' : 'bg-black/5 text-black/40 border-transparent hover:border-black/5'}
-                      `}
-                    >
-                      <div className="text-left">
-                        <span className="block text-sm uppercase italic font-black">{type.name}</span>
-                        <span className="text-[10px] opacity-40 uppercase italic tracking-tighter">{type.desc}</span>
-                      </div>
-                      {formData.skill_type === type.id && <Check size={20} strokeWidth={4} className="text-primary" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Pricing */}
-              <div>
-                <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-4 block italic px-2">Commercial Value</label>
-                <div className="flex items-center gap-4">
-                  <div className={`flex-1 relative transition-opacity ${formData.is_free ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-black/20 italic">KSH</span>
-                    <input 
-                      type="number" 
-                      placeholder="0.00"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="w-full bg-black/5 rounded-3xl pl-16 pr-6 py-5 font-black text-2xl italic border-2 border-transparent focus:border-primary/20 outline-none transition-all"
-                    />
-                  </div>
-                  <button 
-                    onClick={() => setFormData({ ...formData, is_free: !formData.is_free })}
-                    className={`h-20 px-8 rounded-3xl font-black uppercase italic tracking-tighter transition-all flex flex-col items-center justify-center gap-1 border-2
-                      ${formData.is_free ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-black/5 text-black/20 border-transparent'}
-                    `}
-                  >
-                    <Zap size={20} fill={formData.is_free ? 'white' : 'currentColor'} />
-                    <span className="text-[9px]">Free</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-10 pt-4 flex gap-3 relative z-10">
-          {step === 2 && (
-            <button 
-              onClick={() => setStep(1)}
-              className="px-8 py-5 bg-black/5 text-black rounded-[24px] font-black uppercase italic tracking-tighter hover:bg-black/10 transition-all active:scale-95"
+        {done ? (
+          /* ── Success state ─────────────────────────────── */
+          <div className="sof-success">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', damping: 14, delay: 0.1 }}
+              className="sof-success__circle"
             >
-              Back
-            </button>
-          )}
-          <button 
-            disabled={loading || (step === 1 && !formData.title)}
-            onClick={() => step === 1 ? setStep(2) : handleSubmit()}
-            className="flex-1 py-5 bg-black text-white rounded-[24px] font-black uppercase italic tracking-tighter hover:bg-primary transition-all active:scale-95 shadow-xl shadow-black/10 disabled:opacity-20"
-          >
-            {loading ? 'Transmitting...' : step === 1 ? 'Next Phase' : 'Initiate Listing'}
-          </button>
-        </div>
+              <Check size={40} strokeWidth={3} />
+            </motion.div>
+            <h3 className="sof-success__title">Listing created!</h3>
+            <p className="sof-success__sub">Your skill is now live on the marketplace.</p>
+          </div>
+        ) : (
+          <>
+            {/* ── Header ───────────────────────────────────── */}
+            <div className="sof-header">
+              <div>
+                <h2 className="sof-header__title">List a skill</h2>
+                <div className="sof-steps">
+                  {[1, 2].map(n => (
+                    <div key={n} className={`sof-step ${n === step ? 'sof-step--active' : n < step ? 'sof-step--done' : ''}`} />
+                  ))}
+                  <span className="sof-steps__label">Step {step} of 2</span>
+                </div>
+              </div>
+              <button className="sof-close" onClick={onClose} aria-label="Close">
+                <X size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {/* ── Body ─────────────────────────────────────── */}
+            <div className="sof-body">
+              {step === 1 ? (
+                <div className="sof-step-content">
+                  {/* Category grid */}
+                  <div className="sof-field">
+                    <label className="sof-label">Category</label>
+                    <div className="sof-cat-grid">
+                      {CATEGORIES.map(cat => {
+                        const Icon = cat.icon;
+                        const active = formData.category === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => update({ category: cat.id })}
+                            className={`sof-cat ${active ? 'sof-cat--active' : ''}`}
+                          >
+                            <Icon size={15} strokeWidth={active ? 2.5 : 2} />
+                            {cat.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <div className="sof-field">
+                    <label className="sof-label" htmlFor="sof-title">Service title</label>
+                    <input
+                      id="sof-title"
+                      type="text"
+                      placeholder="e.g. Python tutoring for beginners"
+                      value={formData.title}
+                      onChange={e => update({ title: e.target.value })}
+                      className="sof-input"
+                      maxLength={80}
+                    />
+                    <span className="sof-char">{formData.title.length}/80</span>
+                  </div>
+
+                  {/* Description */}
+                  <div className="sof-field">
+                    <label className="sof-label" htmlFor="sof-desc">Description</label>
+                    <textarea
+                      id="sof-desc"
+                      placeholder="Describe what you offer, your experience, and what students can expect…"
+                      rows={4}
+                      value={formData.description}
+                      onChange={e => {
+                        const val = e.target.value;
+                        const wc = (val.match(/\S+/g) || []).length;
+                        if (wc <= DESC_MAX_WORDS + 20) update({ description: val });
+                      }}
+                      className={`sof-textarea ${descOver ? 'sof-textarea--over' : ''}`}
+                    />
+                    {/* Live word counter */}
+                    <div className="sof-wc-bar">
+                      <div className="sof-wc-track">
+                        <div
+                          className={`sof-wc-fill ${
+                            descOver ? 'sof-wc-fill--over'
+                            : descOk  ? 'sof-wc-fill--ok'
+                            : 'sof-wc-fill--low'
+                          }`}
+                          style={{ width: `${Math.min((wordCount / DESC_MAX_WORDS) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <div className="sof-wc-info">
+                        <span className={`sof-wc-msg ${
+                          descOver ? 'sof-wc-msg--over'
+                          : descOk  ? 'sof-wc-msg--ok'
+                          : 'sof-wc-msg--low'
+                        }`}>
+                          {descOver
+                            ? `Too long — remove ${wordCount - DESC_MAX_WORDS} word${wordCount - DESC_MAX_WORDS !== 1 ? 's' : ''}`
+                            : descOk
+                            ? `✓ Minimum met — ${DESC_MAX_WORDS - wordCount} word${DESC_MAX_WORDS - wordCount !== 1 ? 's' : ''} left`
+                            : `${DESC_MIN_WORDS - wordCount} more word${DESC_MIN_WORDS - wordCount !== 1 ? 's' : ''} needed`
+                          }
+                        </span>
+                        <span className={`sof-wc-count ${
+                          descOver ? 'sof-wc-count--over' : descOk ? 'sof-wc-count--ok' : ''
+                        }`}>
+                          {wordCount} / {DESC_MAX_WORDS}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="sof-step-content">
+                  {/* Skill type */}
+                  <div className="sof-field">
+                    <label className="sof-label">Type of service</label>
+                    <div className="sof-types">
+                      {SKILL_TYPES.map(t => {
+                        const active = formData.skill_type === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            onClick={() => update({ skill_type: t.id })}
+                            className={`sof-type ${active ? 'sof-type--active' : ''}`}
+                          >
+                            <div>
+                              <p className="sof-type__name">{t.name}</p>
+                              <p className="sof-type__desc">{t.desc}</p>
+                            </div>
+                            {active && <Check size={18} strokeWidth={2.5} className="sof-type__check" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Pricing */}
+                  <div className="sof-field">
+                    <label className="sof-label">Pricing</label>
+                    <div className="sof-pricing">
+                      <div className={`sof-price-wrap ${formData.is_free ? 'sof-price-wrap--disabled' : ''}`}>
+                        <span className="sof-price-prefix">KSH</span>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          min={0}
+                          value={formData.price}
+                          onChange={e => update({ price: e.target.value })}
+                          disabled={formData.is_free}
+                          className="sof-price-input"
+                        />
+                      </div>
+                      <button
+                        onClick={() => update({ is_free: !formData.is_free })}
+                        className={`sof-free-btn ${formData.is_free ? 'sof-free-btn--active' : ''}`}
+                      >
+                        <Zap size={18} fill={formData.is_free ? 'currentColor' : 'none'} strokeWidth={2} />
+                        Free
+                      </button>
+                    </div>
+                    {!formData.is_free && (
+                      <p className="sof-hint">Set to 0 if you want to negotiate price with each student.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Footer ───────────────────────────────────── */}
+            <div className="sof-footer">
+              {step === 2 && (
+                <button className="sof-back" onClick={() => setStep(1)}>
+                  Back
+                </button>
+              )}
+              <button
+                className="sof-next"
+                disabled={step === 1 ? !canNext : loading}
+                onClick={() => (step === 1 ? setStep(2) : handleSubmit())}
+              >
+                {loading ? (
+                  <span className="sof-spinner" />
+                ) : step === 1 ? (
+                  <>Continue <ArrowRight size={16} /></>
+                ) : (
+                  <>Publish listing <Check size={16} /></>
+                )}
+              </button>
+            </div>
+          </>
+        )}
       </motion.div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        /* Overlay */
+        .sof-overlay {
+          position: fixed; inset: 0;
+          z-index: 10000;
+          display: flex; align-items: flex-end; justify-content: center;
+          font-family: 'Inter', system-ui, sans-serif;
+        }
+        @media (min-width: 640px) {
+          .sof-overlay { align-items: center; padding: 24px; }
+        }
+        .sof-backdrop {
+          position: absolute; inset: 0;
+          background: rgba(0,0,0,0.45);
+          backdrop-filter: blur(12px);
+        }
+
+        /* Sheet */
+        .sof-sheet {
+          position: relative;
+          width: 100%;
+          max-width: 520px;
+          background: #fff;
+          border-radius: 28px 28px 0 0;
+          overflow: hidden;
+          display: flex; flex-direction: column;
+          max-height: 92vh;
+          box-shadow: 0 -20px 60px rgba(0,0,0,0.2);
+        }
+        @media (min-width: 640px) {
+          .sof-sheet { border-radius: 28px; box-shadow: 0 40px 120px rgba(0,0,0,0.25); }
+        }
+
+        /* Header */
+        .sof-header {
+          padding: 24px 24px 16px;
+          display: flex; align-items: flex-start; justify-content: space-between;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .sof-header__title { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+        .sof-steps { display: flex; align-items: center; gap: 6px; }
+        .sof-step {
+          height: 4px; width: 28px; border-radius: 99px;
+          background: #e5e7eb; transition: background 0.2s, width 0.2s;
+        }
+        .sof-step--active { background: #e11d48; width: 40px; }
+        .sof-step--done { background: #10b981; }
+        .sof-steps__label { font-size: 12px; font-weight: 500; color: #9ca3af; margin-left: 4px; }
+        .sof-close {
+          width: 36px; height: 36px;
+          background: #f3f4f6; border: none; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          color: #6b7280; cursor: pointer;
+          transition: background 0.18s, color 0.18s;
+        }
+        .sof-close:hover { background: #e5e7eb; color: #111827; }
+
+        /* Body */
+        .sof-body { flex: 1; overflow-y: auto; padding: 20px 24px; scrollbar-width: none; }
+        .sof-body::-webkit-scrollbar { display: none; }
+        .sof-step-content { display: flex; flex-direction: column; gap: 20px; }
+
+        /* Field */
+        .sof-field { display: flex; flex-direction: column; gap: 8px; }
+        .sof-label { font-size: 12px; font-weight: 600; color: #374151; letter-spacing: 0.01em; }
+        .sof-char { font-size: 11px; color: #9ca3af; text-align: right; margin-top: -4px; }
+
+        /* Category grid */
+        .sof-cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        @media (min-width: 400px) { .sof-cat-grid { grid-template-columns: repeat(3, 1fr); } }
+        .sof-cat {
+          display: flex; align-items: center; gap: 8px;
+          padding: 10px 12px;
+          background: #f9fafb; border: 1.5px solid #f3f4f6;
+          border-radius: 14px;
+          font-size: 13px; font-weight: 600; color: #6b7280;
+          cursor: pointer; transition: all 0.18s;
+        }
+        .sof-cat:hover { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+        .sof-cat--active { background: #111827; color: #fff; border-color: #111827; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+        /* Text inputs */
+        .sof-input, .sof-textarea {
+          width: 100%; padding: 12px 16px;
+          background: #f9fafb; border: 1.5px solid #f3f4f6;
+          border-radius: 14px;
+          font-family: inherit; font-size: 14px; font-weight: 500; color: #111827;
+          outline: none; transition: border-color 0.18s, box-shadow 0.18s;
+          resize: none;
+        }
+        .sof-input::placeholder, .sof-textarea::placeholder { color: #9ca3af; }
+        .sof-input:focus, .sof-textarea:focus {
+          border-color: rgba(225,29,72,0.35);
+          box-shadow: 0 0 0 3px rgba(225,29,72,0.08);
+          background: #fff;
+        }
+        .sof-textarea--over {
+          border-color: rgba(239,68,68,0.4) !important;
+          box-shadow: 0 0 0 3px rgba(239,68,68,0.08) !important;
+        }
+
+        /* Word counter */
+        .sof-wc-bar { display: flex; flex-direction: column; gap: 6px; }
+        .sof-wc-track {
+          height: 4px; border-radius: 99px;
+          background: #f3f4f6; overflow: hidden;
+        }
+        .sof-wc-fill {
+          height: 100%; border-radius: 99px;
+          transition: width 0.25s ease, background 0.25s ease;
+        }
+        .sof-wc-fill--low  { background: #ef4444; }
+        .sof-wc-fill--ok   { background: #10b981; }
+        .sof-wc-fill--over { background: #f97316; }
+        .sof-wc-info {
+          display: flex; align-items: center; justify-content: space-between;
+        }
+        .sof-wc-msg {
+          font-size: 12px; font-weight: 600;
+          transition: color 0.2s;
+        }
+        .sof-wc-msg--low  { color: #ef4444; }
+        .sof-wc-msg--ok   { color: #10b981; }
+        .sof-wc-msg--over { color: #f97316; }
+        .sof-wc-count {
+          font-size: 12px; font-weight: 600; color: #9ca3af;
+          transition: color 0.2s;
+        }
+        .sof-wc-count--ok   { color: #10b981; }
+        .sof-wc-count--over { color: #f97316; }
+
+
+        .sof-types { display: flex; flex-direction: column; gap: 8px; }
+        .sof-type {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 14px 16px;
+          background: #f9fafb; border: 1.5px solid #f3f4f6;
+          border-radius: 16px;
+          cursor: pointer; transition: all 0.18s; text-align: left;
+        }
+        .sof-type:hover { background: #f3f4f6; border-color: #e5e7eb; }
+        .sof-type--active { background: #111827; border-color: #111827; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+        .sof-type__name { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 2px; }
+        .sof-type--active .sof-type__name { color: #fff; }
+        .sof-type__desc { font-size: 12px; font-weight: 500; color: #9ca3af; }
+        .sof-type--active .sof-type__desc { color: rgba(255,255,255,0.6); }
+        .sof-type__check { color: #e11d48; flex-shrink: 0; }
+
+        /* Pricing */
+        .sof-pricing { display: flex; gap: 10px; align-items: stretch; }
+        .sof-price-wrap {
+          flex: 1; position: relative;
+          display: flex; align-items: center;
+          background: #f9fafb; border: 1.5px solid #f3f4f6; border-radius: 14px;
+          padding: 0 16px; transition: opacity 0.2s;
+        }
+        .sof-price-wrap:focus-within {
+          border-color: rgba(225,29,72,0.35);
+          box-shadow: 0 0 0 3px rgba(225,29,72,0.08);
+          background: #fff;
+        }
+        .sof-price-wrap--disabled { opacity: 0.35; pointer-events: none; }
+        .sof-price-prefix { font-size: 13px; font-weight: 700; color: #9ca3af; margin-right: 8px; }
+        .sof-price-input {
+          flex: 1; background: transparent; border: none; outline: none;
+          font-family: inherit; font-size: 20px; font-weight: 700; color: #111827;
+          padding: 14px 0;
+        }
+        .sof-free-btn {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 4px; padding: 0 20px;
+          background: #f9fafb; border: 1.5px solid #f3f4f6; border-radius: 14px;
+          font-size: 12px; font-weight: 700; color: #9ca3af;
+          cursor: pointer; transition: all 0.18s; min-height: 56px;
+        }
+        .sof-free-btn:hover { background: #f3f4f6; color: #374151; }
+        .sof-free-btn--active { background: #ecfdf5; border-color: #10b981; color: #10b981; }
+        .sof-hint { font-size: 11px; font-weight: 500; color: #9ca3af; margin-top: -4px; }
+
+        /* Footer */
+        .sof-footer {
+          display: flex; gap: 10px;
+          padding: 16px 24px 28px;
+          border-top: 1px solid #f3f4f6;
+        }
+        @media (min-width: 640px) { .sof-footer { padding-bottom: 20px; } }
+        .sof-back {
+          padding: 0 20px; height: 52px;
+          background: #f3f4f6; border: none; border-radius: 14px;
+          font-family: inherit; font-size: 14px; font-weight: 600; color: #374151;
+          cursor: pointer; transition: background 0.18s;
+        }
+        .sof-back:hover { background: #e5e7eb; }
+        .sof-next {
+          flex: 1; height: 52px;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          background: #111827; border: none; border-radius: 14px;
+          font-family: inherit; font-size: 14px; font-weight: 700; color: #fff;
+          cursor: pointer; transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
+        }
+        .sof-next:hover:not(:disabled) { background: #e11d48; box-shadow: 0 8px 24px rgba(225,29,72,0.3); }
+        .sof-next:active:not(:disabled) { transform: scale(0.98); }
+        .sof-next:disabled { opacity: 0.35; cursor: not-allowed; }
+        .sof-spinner {
+          width: 18px; height: 18px;
+          border: 2.5px solid rgba(255,255,255,0.3);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: sof-spin 0.65s linear infinite;
+        }
+        @keyframes sof-spin { to { transform: rotate(360deg); } }
+
+        /* Success */
+        .sof-success {
+          display: flex; flex-direction: column; align-items: center;
+          justify-content: center; text-align: center;
+          padding: 60px 32px;
+        }
+        .sof-success__circle {
+          width: 80px; height: 80px;
+          background: #ecfdf5; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          color: #10b981; margin-bottom: 20px;
+          box-shadow: 0 8px 32px rgba(16,185,129,0.2);
+        }
+        .sof-success__title { font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+        .sof-success__sub { font-size: 14px; font-weight: 500; color: #6b7280; }
+      `}</style>
     </div>
   );
 }

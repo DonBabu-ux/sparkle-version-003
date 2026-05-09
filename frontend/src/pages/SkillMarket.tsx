@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { 
-  Hammer, Zap, Star, ShieldCheck, ChevronRight, 
-  Search, Filter, Plus, Briefcase, GraduationCap, 
-  Code, Palette, PenTool, Music, Cpu, MoreHorizontal
+import {
+  Hammer, Zap, Star, ShieldCheck, ChevronRight,
+  Search, Plus, Briefcase, GraduationCap,
+  Code, Palette, PenTool, Music, Cpu, LayoutDashboard
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useModalStore } from '../store/modalStore';
+import clsx from 'clsx';
 
 interface SkillOffer {
   offer_id: string;
@@ -35,6 +37,7 @@ const CATEGORIES = [
 ];
 
 export default function SkillMarket() {
+  const navigate = useNavigate();
   const [skills, setSkills] = useState<SkillOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -50,7 +53,6 @@ export default function SkillMarket() {
     try {
       const params: any = {};
       if (activeCategory !== 'all') params.category = activeCategory;
-      
       const response = await api.get('/skill-market/offers', { params });
       const data = response.data.offers || response.data;
       setSkills(Array.isArray(data) ? data : []);
@@ -61,177 +63,185 @@ export default function SkillMarket() {
     }
   };
 
-  const filteredSkills = skills.filter(skill => 
+  const filteredSkills = skills.filter(skill =>
     skill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     skill.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="skill-market-page min-h-screen bg-[#fcfdff] flex lowercase">
+    <div className="skm-page">
       <Navbar />
-      
-      <main className="flex-1 lg:pl-24 pt-20 lg:pt-0">
-        <div className="max-w-[1400px] mx-auto px-6 py-10">
-          
-          {/* Header & Search */}
-          <header className="mb-12">
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-              <div className="max-w-2xl">
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] mb-6 italic"
+
+      {/* Soft background blobs */}
+      <div className="skm-blob skm-blob--tr" />
+      <div className="skm-blob skm-blob--bl" />
+
+      <main className="skm-main">
+        <div className="skm-container">
+
+          {/* ── Header ─────────────────────────────────── */}
+          <header className="skm-header">
+            <div className="skm-header__inner">
+              {/* Left: copy */}
+              <div className="skm-hero">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="skm-badge"
                 >
-                  <Zap size={14} fill="currentColor" />
-                  Skill Matrix Active
+                  <Zap size={12} fill="currentColor" />
+                  Skills Marketplace
                 </motion.div>
-                <motion.h1 
-                  initial={{ opacity: 0, y: 20 }}
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-5xl lg:text-7xl font-black tracking-tighter italic uppercase leading-[0.85] mb-6"
+                  transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                  className="skm-heading"
                 >
-                  Student <br />
-                  <span className="text-primary">Power Hub</span>
+                  Student{' '}
+                  <span className="skm-heading__accent">Power Hub</span>
                 </motion.h1>
-                <motion.p 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-lg font-bold text-black/40 max-w-lg leading-relaxed italic"
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.25 }}
+                  className="skm-tagline"
                 >
-                  monetize your expertise or find specialized talent right within your student community. turn knowledge into value.
+                  Monetize your expertise or find specialized talent right within
+                  your student community. Turn knowledge into value.
                 </motion.p>
               </div>
 
-              <div className="flex flex-col gap-4 w-full lg:max-w-sm">
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-primary/5 rounded-[24px] blur-xl group-focus-within:bg-primary/10 transition-all" />
-                  <div className="relative flex items-center bg-white border-2 border-black/[0.03] rounded-[24px] px-6 h-16 shadow-sm group-focus-within:border-primary/20 transition-all">
-                    <Search className="text-black/20 mr-4" size={20} strokeWidth={3} />
-                    <input 
-                      type="text" 
-                      placeholder="search skills..."
+              {/* Right: search + CTA */}
+              <div className="skm-actions">
+                <div className="skm-search-wrap">
+                  <div className="skm-search">
+                    <Search className="skm-search__icon" size={17} strokeWidth={2.5} />
+                    <input
+                      type="text"
+                      placeholder="Search skills…"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-transparent border-none outline-none w-full font-bold text-black placeholder:text-black/20 italic"
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="skm-search__input"
                     />
                   </div>
                 </div>
-                <button 
-                  onClick={() => setActiveModal('skill_offer')}
-                  className="h-16 bg-black text-white rounded-[24px] font-black uppercase italic tracking-tighter text-lg flex items-center justify-center gap-3 hover:bg-primary transition-all active:scale-95 shadow-xl shadow-black/10"
+                <button
+                  onClick={() => navigate('/skill-market/hub')}
+                  className="skm-btn--hub"
                 >
-                  <Plus size={20} strokeWidth={4} />
+                  <LayoutDashboard size={17} strokeWidth={2.5} />
+                  Skill Hub
+                </button>
+                <button
+                  onClick={() => setActiveModal('skill_offer')}
+                  className="skm-cta"
+                >
+                  <Plus size={17} strokeWidth={2.5} />
                   List a service
                 </button>
               </div>
             </div>
           </header>
 
-          {/* Category Bar */}
-          <div className="mb-12 overflow-x-auto no-scrollbar -mx-6 px-6">
-            <div className="flex items-center gap-3">
-              {CATEGORIES.map((cat) => {
+          {/* ── Category bar ───────────────────────────── */}
+          <div className="skm-cats-wrap">
+            <div className="skm-cats">
+              {CATEGORIES.map(cat => {
                 const Icon = cat.icon;
-                const isActive = activeCategory === cat.id;
+                const active = activeCategory === cat.id;
                 return (
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`
-                      shrink-0 flex items-center gap-3 px-6 py-4 rounded-[20px] font-black text-sm transition-all relative
-                      ${isActive ? 'bg-black text-white shadow-lg' : 'bg-white border-2 border-black/[0.03] text-black/40 hover:bg-black/5'}
-                    `}
+                    className={clsx('skm-cat', active && 'skm-cat--active')}
                   >
-                    <Icon size={18} strokeWidth={isActive ? 3 : 2} />
-                    <span className="italic uppercase tracking-tight">{cat.name}</span>
-                    {isActive && <motion.div layoutId="cat-glow" className="absolute inset-0 bg-primary/20 blur-xl -z-10 rounded-full" />}
+                    <Icon size={14} strokeWidth={active ? 2.5 : 2} className={active ? 'skm-cat__icon--active' : ''} />
+                    {cat.name}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Content */}
-          <div className="relative min-h-[400px]">
+          {/* ── Grid ───────────────────────────────────── */}
+          <div className="skm-grid-wrap">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-32 gap-6 opacity-40">
-                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                <p className="font-black text-[10px] uppercase tracking-[0.4em] italic">Syncing matrix...</p>
+              <div className="skm-loading">
+                <div className="skm-spinner">
+                  <div className="skm-spinner__track" />
+                  <div className="skm-spinner__bar" />
+                </div>
+                <p className="skm-loading__text">Loading skills…</p>
               </div>
             ) : filteredSkills.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-32 text-center">
-                <div className="w-24 h-24 bg-black/5 rounded-[40px] flex items-center justify-center mb-8">
-                  <Hammer size={40} className="text-black/10" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="skm-empty">
+                <div className="skm-empty__icon">
+                  <Hammer size={32} />
                 </div>
-                <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2">No skills found</h3>
-                <p className="font-bold text-black/20 max-w-xs italic uppercase tracking-widest text-[10px]">be the first to offer this service in your sector.</p>
-              </div>
+                <h3 className="skm-empty__title">No skills found</h3>
+                <p className="skm-empty__sub">Be the first to offer this service in your community.</p>
+              </motion.div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              <div className="skm-grid">
                 <AnimatePresence>
                   {filteredSkills.map((skill, idx) => (
-                    <motion.div 
+                    <motion.div
                       key={skill.offer_id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.05 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.04, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
                       onClick={() => setActiveModal('skill_detail', null, { offerId: skill.offer_id })}
-                      className="group bg-white border-4 border-black/[0.02] rounded-[48px] p-8 hover:border-primary/10 transition-all hover:shadow-[0_40px_80px_rgba(225,29,72,0.05)] flex flex-col relative overflow-hidden cursor-pointer"
+                      className="skm-card"
                     >
-                      {/* Background Decor */}
-                      <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.05] group-hover:scale-110 transition-all">
-                        <Hammer size={120} strokeWidth={1} />
+                      {/* Watermark */}
+                      <div className="skm-card__watermark" aria-hidden>
+                        <Hammer size={140} strokeWidth={0.75} />
                       </div>
 
-                      <div className="flex items-start justify-between mb-8 relative z-10">
-                        <div className="flex items-center gap-4">
-                          <img 
-                            src={skill.avatar_url || '/uploads/avatars/default.png'} 
-                            className="w-14 h-14 rounded-2xl object-cover border-2 border-black/5 group-hover:scale-110 transition-transform"
-                            alt="" 
+                      {/* Author */}
+                      <div className="skm-card__author">
+                        <div className="skm-card__avatar-wrap">
+                          <img
+                            src={skill.avatar_url || '/uploads/avatars/default.png'}
+                            className="skm-card__avatar"
+                            alt=""
                           />
-                          <div>
-                            <h4 className="font-black text-[15px] text-black leading-none mb-1 uppercase italic tracking-tighter">{skill.name}</h4>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-0.5 text-amber-500">
-                                <Star size={10} fill="currentColor" />
-                                <span className="font-black text-[10px] italic">{skill.average_rating || '5.0'}</span>
-                              </div>
-                              <span className="text-[10px] font-bold text-black/20 uppercase tracking-widest">({skill.review_count} rvs)</span>
-                            </div>
+                        </div>
+                        <div>
+                          <h4 className="skm-card__name">{skill.name}</h4>
+                          <div className="skm-card__rating">
+                            <Star size={10} fill="currentColor" className="skm-card__star" />
+                            <span className="skm-card__rating-val">{skill.average_rating || '5.0'}</span>
+                            <span className="skm-card__review-count">({skill.review_count} reviews)</span>
                           </div>
                         </div>
-                        <div className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/10 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                          <ShieldCheck size={20} strokeWidth={3} />
+                        <div className="skm-card__verified">
+                          <ShieldCheck size={18} strokeWidth={2} />
                         </div>
                       </div>
 
-                      <div className="flex-1 mb-8 relative z-10">
-                        <div className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-3 italic">
+                      {/* Body */}
+                      <div className="skm-card__body">
+                        <span className="skm-card__category">
                           {CATEGORIES.find(c => c.id === skill.category)?.name || skill.category}
-                        </div>
-                        <h3 className="text-2xl font-black text-black leading-tight tracking-tighter uppercase italic mb-4 group-hover:text-primary transition-colors">
-                          {skill.title}
-                        </h3>
-                        <p className="text-[13px] font-bold text-black/40 leading-relaxed italic line-clamp-3">
-                          {skill.description}
-                        </p>
+                        </span>
+                        <h3 className="skm-card__title">{skill.title}</h3>
+                        <p className="skm-card__desc">{skill.description}</p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-8 border-t-2 border-black/[0.02] relative z-10">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-black/20 uppercase tracking-widest mb-1 italic">Starting at</span>
-                          <span className="text-2xl font-black text-emerald-500 tracking-tighter italic">
-                            {skill.is_free ? 'FREE' : `KSH ${skill.price}`}
+                      {/* Footer */}
+                      <div className="skm-card__footer">
+                        <div>
+                          <span className="skm-card__price-label">Starts at</span>
+                          <span className="skm-card__price">
+                            {skill.is_free ? 'Free' : `KSH ${skill.price}`}
                           </span>
                         </div>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setActiveModal('skill_detail', null, { offerId: skill.offer_id }); }}
-                          className="px-8 py-4 bg-black text-white rounded-[20px] font-black text-sm uppercase italic tracking-tighter hover:bg-primary transition-all active:scale-95 shadow-lg shadow-black/5"
-                        >
-                          Engage <ChevronRight size={16} className="inline ml-1" />
+                        <button className="skm-card__btn" aria-label="View skill">
+                          <ChevronRight size={18} />
                         </button>
                       </div>
                     </motion.div>
@@ -240,19 +250,402 @@ export default function SkillMarket() {
               </div>
             )}
           </div>
+
         </div>
       </main>
 
       <style>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scale-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .animate-fade-in { animation: fade-in 0.8s ease-out forwards; }
-        .animate-scale-in { animation: scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        /* ─── Font ─────────────────────────────────────────── */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        /* ─── Page shell ───────────────────────────────────── */
+        .skm-page {
+          display: flex;
+          min-height: 100vh;
+          background: #f7f8ff;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          overflow-x: hidden;
+          position: relative;
+        }
+        .skm-blob {
+          position: fixed;
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .skm-blob--tr {
+          width: 45%; height: 45%;
+          top: -10%; right: -8%;
+          background: radial-gradient(circle, rgba(225,29,72,0.06), transparent 70%);
+          filter: blur(80px);
+        }
+        .skm-blob--bl {
+          width: 38%; height: 38%;
+          bottom: -8%; left: -6%;
+          background: radial-gradient(circle, rgba(99,102,241,0.06), transparent 70%);
+          filter: blur(80px);
+        }
+
+        /* ─── Main content ─────────────────────────────────── */
+        .skm-main {
+          flex: 1;
+          z-index: 1;
+          min-width: 0;
+          padding-bottom: 32px;
+        }
+        @media (min-width: 1024px) {
+          .skm-main { padding-left: 96px; }
+        }
+        @media (max-width: 1023px) {
+          .skm-main { padding-bottom: 88px; }
+        }
+        .skm-container {
+          max-width: 1360px;
+          margin: 0 auto;
+          padding: 80px 16px 0;
+        }
+        @media (min-width: 640px) {
+          .skm-container { padding: 40px 32px 0; }
+        }
+        @media (min-width: 1024px) {
+          .skm-container { padding: 32px 48px 0; }
+        }
+
+        /* ─── Header ───────────────────────────────────────── */
+        .skm-header { margin-bottom: 28px; }
+        .skm-header__inner {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        @media (min-width: 1024px) {
+          .skm-header__inner {
+            flex-direction: row;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 40px;
+          }
+        }
+
+        /* Badge */
+        .skm-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          background: rgba(225,29,72,0.08);
+          color: #e11d48;
+          border: 1px solid rgba(225,29,72,0.12);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          margin-bottom: 14px;
+        }
+
+        /* Heading */
+        .skm-heading {
+          font-size: clamp(2rem, 7vw, 4.5rem);
+          font-weight: 800;
+          line-height: 1.08;
+          letter-spacing: -0.03em;
+          color: #111827;
+          margin-bottom: 14px;
+        }
+        .skm-heading__accent {
+          background: linear-gradient(135deg, #e11d48 0%, #6366f1 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        /* Tagline */
+        .skm-tagline {
+          font-size: 14px;
+          font-weight: 500;
+          color: #6b7280;
+          line-height: 1.65;
+          max-width: 420px;
+        }
+        @media (min-width: 640px) {
+          .skm-tagline { font-size: 15px; }
+        }
+
+        /* ─── Actions (search + CTA) ───────────────────────── */
+        .skm-actions { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+        @media (min-width: 1024px) {
+          .skm-actions { max-width: 400px; }
+        }
+
+        .skm-search-wrap { flex: 1; min-width: 200px; }
+        .skm-search {
+          position: relative; display: flex; align-items: center;
+          background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px;
+          padding: 0 16px; height: 48px; transition: all 0.2s;
+        }
+        .skm-search:focus-within { border-color: #111827; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .skm-search__icon { color: #9ca3af; margin-right: 10px; flex-shrink: 0; }
+        .skm-search__input {
+          flex: 1; border: none; background: transparent; outline: none;
+          font-family: inherit; font-size: 14px; font-weight: 500; color: #111827;
+          width: 100%;
+        }
+        .skm-search__input::placeholder { color: #9ca3af; }
+
+        .skm-btn--hub {
+          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+          background: #f3f4f6; color: #111827;
+          border: none; border-radius: 14px; padding: 0 20px; height: 48px;
+          font-family: inherit; font-size: 14px; font-weight: 700;
+          cursor: pointer; transition: all 0.2s ease;
+        }
+        .skm-btn--hub:hover { background: #e5e7eb; transform: translateY(-1px); }
+
+        .skm-cta {
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          height: 48px; padding: 0 24px;
+          background: linear-gradient(135deg, #e11d48, #be123c);
+          color: #fff; border: none; border-radius: 14px;
+          font-family: inherit; font-size: 14px; font-weight: 700;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(225, 29, 72, 0.4);
+          transition: all 0.2s ease;
+        }
+        .skm-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(225, 29, 72, 0.5); }
+        .skm-cta:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(225, 29, 72, 0.4); }
+
+        /* ─── Category bar ─────────────────────────────────── */
+        .skm-cats-wrap {
+          position: sticky;
+          top: 8px;
+          z-index: 30;
+          margin: 0 -16px 24px;
+          padding: 0 16px;
+        }
+        @media (min-width: 640px) {
+          .skm-cats-wrap { margin: 0 0 28px; padding: 0; }
+        }
+        .skm-cats {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          overflow-x: auto;
+          padding: 6px;
+          background: rgba(255,255,255,0.75);
+          backdrop-filter: blur(24px);
+          border: 1px solid rgba(255,255,255,0.7);
+          border-radius: 24px;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+          scrollbar-width: none;
+        }
+        .skm-cats::-webkit-scrollbar { display: none; }
+        .skm-cat {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 8px 16px;
+          border: none;
+          border-radius: 18px;
+          background: transparent;
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          color: #9ca3af;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: background 0.18s, color 0.18s;
+          flex-shrink: 0;
+        }
+        .skm-cat:hover { background: #f3f4f6; color: #374151; }
+        .skm-cat--active { background: #111827; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+        .skm-cat__icon--active { color: #e11d48; }
+
+        /* ─── Loading ──────────────────────────────────────── */
+        .skm-loading {
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          padding: 120px 0; gap: 16px;
+        }
+        .skm-spinner { position: relative; width: 48px; height: 48px; }
+        .skm-spinner__track {
+          position: absolute; inset: 0;
+          border: 3px solid rgba(225,29,72,0.1);
+          border-radius: 50%;
+        }
+        .skm-spinner__bar {
+          position: absolute; inset: 0;
+          border: 3px solid transparent;
+          border-top-color: #e11d48;
+          border-radius: 50%;
+          animation: skm-spin 0.75s linear infinite;
+        }
+        @keyframes skm-spin { to { transform: rotate(360deg); } }
+        .skm-loading__text {
+          font-size: 12px;
+          font-weight: 500;
+          color: #9ca3af;
+          letter-spacing: 0.08em;
+        }
+
+        /* ─── Empty ────────────────────────────────────────── */
+        .skm-empty {
+          display: flex; flex-direction: column;
+          align-items: center; text-align: center;
+          padding: 100px 20px;
+        }
+        .skm-empty__icon {
+          width: 72px; height: 72px;
+          background: #f3f4f6;
+          border-radius: 24px;
+          display: flex; align-items: center; justify-content: center;
+          color: #d1d5db;
+          margin-bottom: 20px;
+        }
+        .skm-empty__title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
+        .skm-empty__sub { font-size: 14px; font-weight: 500; color: #9ca3af; max-width: 280px; }
+
+        /* ─── Grid ─────────────────────────────────────────── */
+        .skm-grid-wrap { min-height: 360px; }
+        .skm-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        @media (min-width: 580px) {
+          .skm-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        }
+        @media (min-width: 1200px) {
+          .skm-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        /* ─── Card ─────────────────────────────────────────── */
+        .skm-card {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          background: #fff;
+          border: 1px solid #f0f0f4;
+          border-radius: 24px;
+          padding: 22px;
+          cursor: pointer;
+          overflow: hidden;
+          transition: border-color 0.2s, box-shadow 0.25s, transform 0.15s;
+        }
+        .skm-card:hover {
+          border-color: rgba(225,29,72,0.18);
+          box-shadow: 0 16px 48px rgba(0,0,0,0.07);
+          transform: translateY(-2px);
+        }
+        .skm-card:active { transform: translateY(0) scale(0.99); }
+
+        .skm-card__watermark {
+          position: absolute;
+          top: 0; right: 0;
+          padding: 16px;
+          opacity: 0.05;
+          pointer-events: none;
+          transition: opacity 0.4s, transform 0.5s;
+          color: #111827;
+        }
+        .skm-card:hover .skm-card__watermark { opacity: 0.1; transform: scale(1.08); }
+
+        /* Author row */
+        .skm-card__author {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 18px;
+          position: relative;
+          z-index: 1;
+        }
+        .skm-card__avatar-wrap { flex-shrink: 0; }
+        .skm-card__avatar {
+          width: 44px; height: 44px;
+          border-radius: 14px;
+          object-fit: cover;
+          border: 2px solid #fff;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .skm-card__name {
+          font-size: 14px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 3px;
+          transition: color 0.18s;
+        }
+        .skm-card:hover .skm-card__name { color: #e11d48; }
+        .skm-card__rating { display: flex; align-items: center; gap: 4px; }
+        .skm-card__star { color: #f59e0b; }
+        .skm-card__rating-val { font-size: 11px; font-weight: 600; color: #374151; }
+        .skm-card__review-count { font-size: 11px; font-weight: 500; color: #9ca3af; }
+        .skm-card__verified {
+          margin-left: auto;
+          width: 36px; height: 36px;
+          background: #f9fafb;
+          border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          color: #d1d5db;
+          transition: background 0.18s, color 0.18s;
+        }
+        .skm-card:hover .skm-card__verified { background: rgba(225,29,72,0.08); color: #e11d48; }
+
+        /* Body */
+        .skm-card__body { flex: 1; margin-bottom: 18px; position: relative; z-index: 1; }
+        .skm-card__category {
+          display: inline-block;
+          padding: 3px 10px;
+          background: #f3f4f6;
+          border-radius: 99px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #6b7280;
+          margin-bottom: 10px;
+        }
+        .skm-card__title {
+          font-size: 17px;
+          font-weight: 700;
+          color: #111827;
+          line-height: 1.35;
+          margin-bottom: 8px;
+          transition: color 0.18s;
+        }
+        .skm-card:hover .skm-card__title { color: #e11d48; }
+        .skm-card__desc {
+          font-size: 13px;
+          font-weight: 500;
+          color: #6b7280;
+          line-height: 1.6;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        /* Footer */
+        .skm-card__footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 16px;
+          border-top: 1px solid #f3f4f6;
+          position: relative;
+          z-index: 1;
+        }
+        .skm-card__price-label { display: block; font-size: 11px; font-weight: 500; color: #9ca3af; margin-bottom: 2px; }
+        .skm-card__price { font-size: 19px; font-weight: 700; color: #10b981; }
+        .skm-card__btn {
+          width: 42px; height: 42px;
+          background: #111827;
+          color: #fff;
+          border: none;
+          border-radius: 14px;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
+        }
+        .skm-card__btn:hover { background: #e11d48; box-shadow: 0 6px 18px rgba(225,29,72,0.28); }
+        .skm-card__btn:active { transform: scale(0.9); }
       `}</style>
     </div>
   );
 }
-

@@ -182,10 +182,15 @@ export default function Groups() {
                 }}
               >
                 {/* Pink accent top line */}
-                <div style={{ position: 'absolute', top: 0, left: '24px', right: '24px', height: '2px', background: 'linear-gradient(90deg, #FF3D6D, transparent)', borderRadius: '0 0 4px 4px', opacity: 0.5 }} />
+                <div style={{ position: 'absolute', top: 0, left: '24px', right: '24px', height: '2px', background: 'linear-gradient(90deg, #FF3D6D, transparent)', borderRadius: '0 0 4px 4px', opacity: 0.5, zIndex: 10 }} />
+
+                {/* Watermark */}
+                <div className="absolute -right-5 -bottom-5 text-black/[0.02] -rotate-12 z-0 pointer-events-none" aria-hidden>
+                  <Users size={160} strokeWidth={0.75} />
+                </div>
 
                 {/* Privacy badge */}
-                <div style={{ position: 'absolute', top: '18px', right: '18px' }}>
+                <div style={{ position: 'absolute', top: '18px', right: '18px', zIndex: 10 }}>
                   {group.is_public === 0 ? (
                     <div style={{ padding: '4px 10px', borderRadius: '20px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Lock size={11} style={{ color: '#f59e0b' }} />

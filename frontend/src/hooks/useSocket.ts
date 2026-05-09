@@ -2,16 +2,15 @@ import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useUserStore } from '../store/userStore';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/api$/, '');
 
 export const useSocket = () => {
     const [socket, setSocket] = useState<Socket | null>(null);
-    const { user } = useUserStore();
+    const { user, token } = useUserStore();
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || !token) return;
 
-        const token = localStorage.getItem('sparkleToken');
         const s = io(SOCKET_URL, {
             query: { userId: user.id || user.user_id },
             auth: { token },
@@ -39,7 +38,7 @@ export const useSocket = () => {
                 s.disconnect();
             }
         };
-    }, [user?.id, user?.user_id]); // Depend on specific IDs instead of the whole user object
+    }, [user?.id, user?.user_id, token]); // Re-init socket if token refreshes
 
     return socket;
 };

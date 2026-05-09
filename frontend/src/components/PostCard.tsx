@@ -752,7 +752,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       </div>
 
       {/* Actions Row */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-gray-50 mt-1">
+      <div 
+        className="flex items-center justify-between px-4 py-2 border-t border-gray-50 mt-1 cursor-pointer"
+        onClick={(e) => handleSpark(e, true)}
+      >
         <div className="flex items-center gap-3">
           {/* Spark (Like) */}
           <button

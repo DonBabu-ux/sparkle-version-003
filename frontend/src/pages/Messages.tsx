@@ -491,8 +491,11 @@ export default function Messages() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
-              <Orbit size={120} strokeWidth={1} className="text-black/5 animate-spin-slow mb-12" />
-              <h2 className="text-5xl font-black text-black mb-4 tracking-tighter italic uppercase underline decoration-primary/20 decoration-8 underline-offset-8">Messages</h2>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black/[0.02] pointer-events-none" aria-hidden>
+                <Orbit size={400} strokeWidth={0.5} className="animate-spin-slow" />
+              </div>
+              <Orbit size={120} strokeWidth={1} className="text-black/5 mb-12 relative z-10" />
+              <h2 className="text-5xl font-black text-black mb-4 tracking-tighter italic uppercase underline decoration-primary/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
               <p className="text-black font-medium opacity-30 max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
               
               <button 

@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const feedController = require('../../controllers/feed.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
-const { upload } = require('../../middleware/upload.middleware');
+const { upload, storiesUpload } = require('../../middleware/upload.middleware');
 
 router.get('/active', authMiddleware, feedController.getStories);
 router.get('/archive', authMiddleware, feedController.getStoryArchive);
-router.post('/', authMiddleware, upload.fields([{ name: 'media', maxCount: 1 }, { name: 'audio', maxCount: 1 }]), feedController.createStory);
+router.post('/', authMiddleware, storiesUpload.fields([{ name: 'media', maxCount: 1 }, { name: 'audio', maxCount: 1 }]), feedController.createStory);
 // interactions
 router.get('/:id/likes', authMiddleware, feedController.getStoryLikes);
 router.get('/:id/viewers', authMiddleware, feedController.getStoryViewers);

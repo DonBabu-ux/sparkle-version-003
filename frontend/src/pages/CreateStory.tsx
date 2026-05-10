@@ -141,13 +141,17 @@ export default function CreateStory() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
+      console.log('📂 File selected:', selectedFile.name, selectedFile.type, selectedFile.size);
+      
+      // Clean up old object URL if it exists
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(previewUrl);
+      }
+
       setFile(selectedFile);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPreviewUrl(event.target?.result as string);
-        setPhase('editor');
-      };
-      reader.readAsDataURL(selectedFile);
+      const objectUrl = URL.createObjectURL(selectedFile);
+      setPreviewUrl(objectUrl);
+      setPhase('editor');
     }
   };
 
@@ -216,6 +220,8 @@ export default function CreateStory() {
           formData.append('parent_story_id', parentId || '');
           if (selectedMusic) formData.append('music_info', JSON.stringify(selectedMusic));
           await api.post('/stories', formData);
+          // Signal dashboard to force-refresh stories on next render
+          sessionStorage.setItem('sparkle_story_posted', '1');
           navigate('/dashboard');
       } catch (e) {
           console.error('Upload failed', e);
@@ -396,9 +402,32 @@ export default function CreateStory() {
 
           {/* 5. EDITOR PHASE (Requirement: Functional Side Icons) */}
           {phase === 'editor' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-[300] bg-[#0A0A0A]">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-[9999] bg-black">
                   {/* The Media Content */}
-                  <img src={previewUrl!} className={`w-full h-full object-cover transition-all duration-700 ${isMagicOn ? 'sepia-[0.4] saturate-[1.2] contrast-[1.1]' : ''}`} alt="Preview" />
+                  {!previewUrl ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white/20">Loading Preview...</div>
+                  ) : (file?.type?.startsWith('video') || (file?.name?.toLowerCase().match(/\.(mp4|webm|mov|avi|m4v)$/i))) ? (
+                    <video 
+                        key={previewUrl}
+                        src={previewUrl} 
+                        autoPlay 
+                        muted 
+                        loop 
+                        playsInline
+                        onLoadedData={() => console.log('📽️ Video preview ready')}
+                        onError={(e) => console.error('📽️ Video Preview Error:', e)}
+                        className={`w-full h-full object-cover transition-all duration-700 ${isMagicOn ? 'sepia-[0.4] saturate-[1.2] contrast-[1.1]' : ''}`}
+                    />
+                  ) : (
+                    <img 
+                        key={previewUrl}
+                        src={previewUrl} 
+                        onLoad={() => console.log('🖼️ Image preview ready')}
+                        onError={(e) => console.error('🖼️ Image Preview Error:', e)}
+                        className={`w-full h-full object-cover transition-all duration-700 ${isMagicOn ? 'sepia-[0.4] saturate-[1.2] contrast-[1.1]' : ''}`} 
+                        alt="Preview" 
+                    />
+                  )}
                   
                   {/* Magic Layer */}
                   {isMagicOn && <div className="absolute inset-0 bg-purple-500/10 pointer-events-none mix-blend-overlay" />}

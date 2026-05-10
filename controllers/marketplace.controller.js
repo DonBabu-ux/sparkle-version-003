@@ -396,6 +396,31 @@ const createListing = [
                 if (!url) {
                     logger.warn(`Missing URL for file ${index}:`, file);
                 }
+                
+                // Register in Cloudinary Architecture
+                if (url) {
+                    try {
+                        const MediaService = require('../services/media.service');
+                        const crypto = require('crypto');
+                        const fileSizeBytes = file.size || 0;
+                        const hashChecksum = crypto.createHash('md5').update(`${user.user_id || user.id}-${fileSizeBytes}-${file.originalname}`).digest('hex');
+                        
+                        MediaService.registerMedia({
+                            ownerId: user.user_id || user.id,
+                            category: 'marketplace',
+                            cloudinaryPublicId: file.filename,
+                            secureUrl: url,
+                            lifecycleState: 'active',
+                            isReusable: false,
+                            fileSizeBytes: fileSizeBytes,
+                            hashChecksum: hashChecksum,
+                            referencedByFeatures: ['marketplace']
+                        }).catch(err => console.error('Media registry fail:', err));
+                    } catch (err) {
+                        console.error('Failed to register marketplace media:', err.message);
+                    }
+                }
+
                 return {
                     url: url || 'invalid_url',
                     type: file.mimetype?.startsWith('video/') ? 'video' : 'image',
@@ -489,11 +514,36 @@ const updateListing = [
             // Process new media if any
             let media = [];
             if (req.files && req.files.length > 0) {
-                media = req.files.map((file, index) => ({
-                    url: file.path || file.filename,
-                    type: file.mimetype.startsWith('image/') ? 'image' : 'video',
-                    order: index
-                }));
+                media = req.files.map((file, index) => {
+                    const url = file.path || file.filename;
+                    // Register in Cloudinary Architecture
+                    try {
+                        const MediaService = require('../services/media.service');
+                        const crypto = require('crypto');
+                        const fileSizeBytes = file.size || 0;
+                        const hashChecksum = crypto.createHash('md5').update(`${user.user_id || user.id}-${fileSizeBytes}-${file.originalname}`).digest('hex');
+                        
+                        MediaService.registerMedia({
+                            ownerId: user.user_id || user.id,
+                            category: 'marketplace',
+                            cloudinaryPublicId: file.filename,
+                            secureUrl: url,
+                            lifecycleState: 'active',
+                            isReusable: false,
+                            fileSizeBytes: fileSizeBytes,
+                            hashChecksum: hashChecksum,
+                            referencedByFeatures: ['marketplace']
+                        }).catch(err => console.error('Media registry fail:', err));
+                    } catch (err) {
+                        console.error('Failed to register marketplace media:', err.message);
+                    }
+
+                    return {
+                        url: url,
+                        type: file.mimetype.startsWith('image/') ? 'image' : 'video',
+                        order: index
+                    };
+                });
             }
             
             // Prepare update data

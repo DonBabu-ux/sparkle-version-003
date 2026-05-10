@@ -74,5 +74,6 @@ router.use('/highlights', highlightsRoutes);
 router.use('/stickers', require('./stickers.routes'));
 router.use('/audio', require('./audio.routes'));
 router.use('/moderation', require('./moderation.routes'));
+router.use('/admin/media', require('./media-admin.routes'));
 
 module.exports = router;

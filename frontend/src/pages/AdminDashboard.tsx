@@ -3,7 +3,7 @@ import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { 
   Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, 
-  Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, ArrowLeft
+  Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, ArrowLeft, Database
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
@@ -182,6 +182,19 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </section>
+
+            {/* Storage Intelligence Panel Link */}
+            <button onClick={() => navigate('/admin/storage')} className="w-full bg-primary text-white p-6 rounded-[24px] flex justify-between items-center shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                     <Database size={24} strokeWidth={3} />
+                  </div>
+                  <div className="text-left">
+                     <h3 className="text-xl font-black uppercase italic tracking-tighter">Storage Intelligence</h3>
+                     <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Manage Media Lifecycles & Cloud Assets</p>
+                  </div>
+               </div>
+            </button>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Activity Feed - Compact */}

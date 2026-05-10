@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, EyeOff, User, ArrowLeft, Heart, MessageSquare } from 'lucide-react';
 import api from '../api/api';
-import { getAvatarUrl } from '../utils/imageUtils';
+import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
 
 interface StorySnapshot {
@@ -83,7 +83,7 @@ export default function StorySnapshot() {
             <div 
                 className="absolute inset-0 opacity-20 blur-3xl transform scale-110"
                 style={{ 
-                    backgroundImage: `url(${story.media_url || '/uploads/defaults/no-image.png'})`,
+                    backgroundImage: `url(${getMediaUrl(story.media_url) || '/uploads/defaults/no-image.png'})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                 }}

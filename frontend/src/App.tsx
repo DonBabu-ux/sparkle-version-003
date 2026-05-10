@@ -16,6 +16,7 @@ import Notifications from './pages/Notifications';
 import Search from './pages/Search';
 import SearchHistory from './pages/SearchHistory';
 import AdminDashboard from './pages/AdminDashboard';
+import StorageIntelligencePanel from './pages/StorageIntelligencePanel';
 import PostDetail from './pages/PostDetail';
 import StoryViewer from './pages/StoryViewer';
 import GroupDetail from './pages/GroupDetail';
@@ -148,6 +149,7 @@ function App() {
         <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
         <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />
         <Route path="/admin" element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />} />
+        <Route path="/admin/storage" element={isAuthenticated ? <StorageIntelligencePanel /> : <Navigate to="/login" />} />
         <Route path="/post/:id" element={isAuthenticated ? <PostDetail /> : <Navigate to="/login" />} />
         <Route path="/stories/:userId" element={isAuthenticated ? <StoryViewer /> : <Navigate to="/login" />} />
         <Route path="/groups/create" element={isAuthenticated ? <CreateGroup /> : <Navigate to="/login" />} />

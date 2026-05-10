@@ -15,7 +15,7 @@ import {
 import StickerRenderer from '../components/stories/StickerRenderer';
 import { useStoryStore } from '../store/storyStore';
 import { useUserStore } from '../store/userStore';
-import { getAvatarUrl } from '../utils/imageUtils';
+import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
 
 // REAL LOGOS SVGS
@@ -360,9 +360,9 @@ export default function StoryViewer() {
                  </motion.p>
                </div>
              ) : currentStory.media_type === 'video' ? (
-               <video src={currentStory.media_url} autoPlay={!isPaused} muted playsInline className="h-full w-full object-cover" />
+               <video src={getMediaUrl(currentStory.media_url)} autoPlay={!isPaused} muted playsInline className="h-full w-full object-cover" />
              ) : (
-               <img src={currentStory.media_url} className="h-full w-full object-cover" alt="" />
+               <img src={getMediaUrl(currentStory.media_url)} className="h-full w-full object-cover" alt="" />
              )}
              <StickerRenderer stickers={currentStory.stickers || []} />
           </div>

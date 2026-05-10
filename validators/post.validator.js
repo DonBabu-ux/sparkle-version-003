@@ -4,7 +4,7 @@ const Joi = require('joi');
  * Create post validation
  */
 const createPostSchema = Joi.object({
-    content: Joi.string().min(1).max(5000).required(),
+    content: Joi.string().max(5000).allow('').optional(),
     media_url: Joi.string().uri().max(500).allow('').optional(),
     media_type: Joi.string().valid('image', 'video', 'audio', 'file').optional(),
     post_type: Joi.string().valid('public', 'campus_only', 'anonymous', 'private').default('public'),

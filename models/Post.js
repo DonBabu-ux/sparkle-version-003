@@ -593,6 +593,8 @@ class Post {
 
             // 2.2 Filter and Score In-Memory
             let scoredPosts = [];
+            let myLatestPost = null;
+
             for (let post of candidatePool) {
                 // Filters
                 if (excludeSet.has(post.post_id)) continue;
@@ -606,6 +608,29 @@ class Post {
                 if (post.post_type !== 'public' && post.user_id !== currentUserId && !followingIds.has(post.user_id)) {
                     if (post.campus !== affiliation && affiliation !== 'all') continue;
                     if (post.is_private === 1 || post.profile_visibility === 'private') continue;
+                }
+
+                // --- FLASH SPOTLIGHT LOGIC (Algorithm 12.2) ---
+                // If it's the user's own post and it's brand new (last 5 mins), pin it to top
+                if (post.user_id === currentUserId && offsetNum === 0 && !cursor) {
+                    const postAgeMins = (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60);
+                    if (postAgeMins < 5) {
+                        if (!myLatestPost || new Date(post.created_at) > new Date(myLatestPost.created_at)) {
+                            myLatestPost = post;
+                        }
+                    }
+                }
+
+                // --- DEDUPLICATION: Hide own posts from the main stream if it's not the pinned one ---
+                if (post.user_id === currentUserId) {
+                    if (myLatestPost && post.post_id === myLatestPost.post_id) {
+                        post.final_score = 999999; // Pin to top
+                    } else {
+                        post.final_score = -100; // Sink to bottom
+                    }
+                    post.is_followed = false;
+                    scoredPosts.push(post);
+                    continue;
                 }
 
                 // --- NEW: ADAPTIVE BEHAVIORAL SCORING ---

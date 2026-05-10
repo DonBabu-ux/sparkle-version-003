@@ -190,9 +190,13 @@ export default function Dashboard() {
   const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isInitialMount.current || refreshCounter > 0) {
+    const storyJustPosted = sessionStorage.getItem('sparkle_story_posted');
+    if (isInitialMount.current || refreshCounter > 0 || storyJustPosted) {
       fetchDashboardData(true, true);
       isInitialMount.current = false;
+      if (storyJustPosted) {
+        sessionStorage.removeItem('sparkle_story_posted');
+      }
     }
   }, [refreshCounter, fetchDashboardData]);
 

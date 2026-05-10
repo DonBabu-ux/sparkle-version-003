@@ -2,6 +2,7 @@ const Post = require('../models/Post');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
 const notificationController = require('./notification.controller');
+const MediaService = require('../services/media.service');
 
 const createPost = async (req, res) => {
     try {
@@ -19,12 +20,37 @@ const createPost = async (req, res) => {
                     mainMediaUrl = file.path;
                     mainMediaType = type;
                 }
+
+                // Register media in Cloudinary Architecture
+                const fileSizeBytes = file.size || 0;
+                const hashChecksum = crypto.createHash('md5').update(`${userId}-${fileSizeBytes}-${file.originalname}`).digest('hex');
+                MediaService.registerMedia({
+                    ownerId: userId,
+                    category: 'post',
+                    cloudinaryPublicId: file.filename,
+                    secureUrl: file.path,
+                    lifecycleState: 'active',
+                    isReusable: false,
+                    fileSizeBytes: fileSizeBytes,
+                    hashChecksum: hashChecksum
+                }).catch(err => console.error('Media registry fail:', err));
+
                 return { url: file.path, type };
             });
         } else if (req.body.media_url) {
             mainMediaUrl = req.body.media_url;
-            mainMediaType = req.body.media_type || 'image';
+            mainMediaType = req.body.media_type || (mainMediaUrl.match(/\.(mp4|webm|mov|avi)$/i) ? 'video' : 'image');
             media = [{ url: mainMediaUrl, type: mainMediaType }];
+        }
+
+        // SMART ROUTING: If video, redirect to Moments logic
+        if (mainMediaType === 'video') {
+            const MomentsController = require('./moments.controller');
+            // Ensure moments controller gets what it expects
+            req.body.media_url = mainMediaUrl; 
+            req.body.caption = req.body.content;
+            req.user.user_id = userId; // Unify userId field
+            return MomentsController.createMoment(req, res);
         }
 
         const postData = {
@@ -49,10 +75,12 @@ const createPost = async (req, res) => {
 
         res.status(201).json({
             message: 'Post created successfully',
-            post_id: postId
+            post_id: postId,
+            type: 'post'
         });
     } catch (error) {
         logger.error('Create post error:', error);
+        console.error('❌ Post Creation Error Details:', error.message, error.stack);
         res.status(500).json({ error: 'Failed to create post' });
     }
 };
@@ -475,10 +503,25 @@ module.exports = {
             
             let media = [];
             if (req.files && req.files.length > 0) {
-                media = req.files.map(f => ({
-                    url: f.path,
-                    type: f.mimetype.startsWith('video') ? 'video' : 'image'
-                }));
+                media = req.files.map(f => {
+                    const fileSizeBytes = f.size || 0;
+                    const hashChecksum = crypto.createHash('md5').update(`${userId}-${fileSizeBytes}-${f.originalname}`).digest('hex');
+                    MediaService.registerMedia({
+                        ownerId: userId,
+                        category: 'post',
+                        cloudinaryPublicId: f.filename,
+                        secureUrl: f.path,
+                        lifecycleState: 'active',
+                        isReusable: false,
+                        fileSizeBytes: fileSizeBytes,
+                        hashChecksum: hashChecksum
+                    }).catch(err => console.error('Media registry fail:', err));
+
+                    return {
+                        url: f.path,
+                        type: f.mimetype.startsWith('video') ? 'video' : 'image'
+                    };
+                });
             }
 
             const updates = {

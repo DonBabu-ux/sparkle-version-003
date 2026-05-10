@@ -429,6 +429,29 @@ const createMoment = async (req, res) => {
         const tags = caption ? (caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
         const hashtags = [...new Set(tags.map(t => t.toLowerCase()))].slice(0, 5);
 
+        // Register media in Cloudinary Architecture
+        if (req.file) {
+            try {
+                const MediaService = require('../services/media.service');
+                const crypto = require('crypto');
+                const fileSizeBytes = req.file.size || 0;
+                const hashChecksum = crypto.createHash('md5').update(`${userId}-${fileSizeBytes}-${req.file.originalname}`).digest('hex');
+                MediaService.registerMedia({
+                    ownerId: userId,
+                    category: 'moment',
+                    cloudinaryPublicId: req.file.filename,
+                    secureUrl: req.file.path,
+                    lifecycleState: 'active',
+                    isReusable: true, // moments are generally permanent or reusable
+                    fileSizeBytes: fileSizeBytes,
+                    hashChecksum: hashChecksum,
+                    referencedByFeatures: ['moments']
+                }).catch(err => console.error('Media registry fail:', err));
+            } catch (err) {
+                console.error('Failed to import or register media:', err.message);
+            }
+        }
+
         // Start transaction
         const connection = await pool.getConnection();
         await connection.beginTransaction();

@@ -27,16 +27,30 @@ https.get('https://api.cloudinary.com', (res) => {
 });
 
 
+// Helper to get fresh drift (Real-Time Sync)
+const getDrift = () => new Promise((resolve) => {
+    https.get('https://api.cloudinary.com/v1_1/demo/ping', (res) => {
+        const serverDate = new Date(res.headers.date);
+        resolve(Math.round((serverDate.getTime() - Date.now()) / 1000));
+    }).on('error', () => resolve(21447)); // Fallback to last known good drift
+});
+
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
+        console.log('☁️ Starting Cloudinary Upload for field:', file.fieldname);
+        const dynamicDrift = await getDrift();
+        const patchedTimestamp = Math.round(Date.now() / 1000) + dynamicDrift;
         const folder = file.fieldname === 'avatar' ? 'sparkle_avatars' : 'sparkle_uploads';
+        
+        console.log(`🕒 Time Drift Sync: ${dynamicDrift}s | Patched Timestamp: ${patchedTimestamp}`);
+        
         return {
             folder: folder,
             resource_type: 'auto',
-            timestamp: Math.round(Date.now() / 1000) + timeOffsetSeconds,
+            timestamp: patchedTimestamp,
             public_id: `${file.fieldname}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
-            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'webm'],
+            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'webm', 'm4v'],
             transformation: file.fieldname === 'avatar' ? [{ width: 500, height: 500, crop: 'limit' }] : []
         };
     },
@@ -45,14 +59,15 @@ const storage = new CloudinaryStorage({
 const marketplaceStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
+        const driftOffset = 21447;
+        const patchedTimestamp = Math.round(Date.now() / 1000) + driftOffset;
         return {
-            folder: 'sparkle_marketplace',
-            resource_type: 'image', // Force image type for marketplace
-            timestamp: Math.round(Date.now() / 1000) + timeOffsetSeconds,
-            public_id: `listing-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
-            allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'], // Images only
+            folder: 'marketplace_listings',
+            allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+            transformation: [{ width: 1000, height: 1000, crop: 'limit' }],
+            timestamp: patchedTimestamp
         };
-    },
+    }
 });
 
 const messageStorage = new CloudinaryStorage({
@@ -127,11 +142,19 @@ const postUpload = multer({
     }
 });
 
+const storiesUpload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 20 * 1024 * 1024 // 20MB limit for Stories (allows high-res videos/images)
+    }
+});
+
 module.exports = {
     upload,
     marketplaceUpload,
     messageUpload,
     momentsUpload,
     postUpload,
+    storiesUpload,
     cloudinary
 };

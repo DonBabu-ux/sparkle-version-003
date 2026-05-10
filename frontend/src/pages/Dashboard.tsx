@@ -12,6 +12,7 @@ import {
   ChevronRight, BarChart3, Calendar 
 } from 'lucide-react';
 import VirtualizedFeed from '../components/VirtualizedFeed';
+import Spinner from '../components/ui/Spinner';
 import { useDeviceSeed } from '../hooks/useDeviceSeed';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '../types/user';
@@ -99,9 +100,10 @@ export default function Dashboard() {
   }, [prependPosts]);
 
   const fetchDashboardData = useCallback(async (isInitial = true, force = false) => {
-    // Reduce 'fresh' window to 10s for production variety
-    const isFresh = lastFetched && (Date.now() - lastFetched < 10000);
+    // Reduce 'fresh' window to 30s for variety but stability
+    const isFresh = lastFetched && (Date.now() - lastFetched < 30000);
     
+    // Only skip if it's an initial load AND we have fresh data AND not forcing
     if (isInitial && isFresh && posts.length > 0 && !force) {
       setLoading(false);
       return; 
@@ -283,7 +285,7 @@ export default function Dashboard() {
           <aside className="hidden xl:flex flex-col gap-4 sticky top-24 h-fit animate-fade-in">
             <div className="bg-white rounded-[12px] border border-gray-200 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4"><h3 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Suggested People</h3><Link to="/connect" className="text-[12px] font-bold text-blue-600 hover:underline">See all</Link></div>
-              <div className="space-y-2">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4 opacity-30"><Orbit size={32} className="text-gray-400 animate-spin-slow" /><p className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest text-center">No Suggestions</p></div>}</div>
+              <div className="space-y-2">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4 opacity-30"><Spinner size="medium" color="text-gray-400" /><p className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest text-center">No Suggestions</p></div>}</div>
             </div>
             {/* Trending */}
             <div className="bg-white rounded-[12px] border border-gray-200 p-6 shadow-sm overflow-hidden group">

@@ -599,7 +599,8 @@ const getUserProfile = async (req, res) => {
             is_requested_by_me: !!user.is_requested_by_me,
             note: user.note || '',
             has_story: !!user.has_story,
-            avatar_url: user.avatar_url || '/uploads/avatars/default.png'
+            avatar_url: user.avatar_url || '/uploads/avatars/default.png',
+            reputation: user.reputation
         };
 
         res.json(profile);

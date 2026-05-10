@@ -28,17 +28,24 @@ const initializeSocket = (server) => {
     // Authentication middleware
     io.use(async (socket, next) => {
         try {
-            const token = socket.handshake.auth.token ||
+            let token = socket.handshake.auth.token ||
                 socket.handshake.headers.cookie?.split('sparkleToken=')[1]?.split(';')[0];
 
             if (!token) {
+                logger.warn(`🔌 Socket Auth: Missing token for socket ${socket.id}`);
                 return next(new Error('Authentication required'));
+            }
+
+            // Handle Bearer prefix if sent by mistake
+            if (token.startsWith('Bearer ')) {
+                token = token.slice(7);
             }
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const user = await User.findById(decoded.userId);
 
             if (!user) {
+                logger.warn(`🔌 Socket Auth: User not found for ID ${decoded.userId}`);
                 return next(new Error('User not found'));
             }
 
@@ -46,8 +53,9 @@ const initializeSocket = (server) => {
             socket.userId = user.user_id;
             next();
         } catch (error) {
-            logger.error('Socket Auth Error:', error.message);
-            next(new Error('Invalid token'));
+            logger.error(`🔌 Socket Auth Error [${socket.id}]:`, error.message);
+            const message = error.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token';
+            next(new Error(message));
         }
     });
 

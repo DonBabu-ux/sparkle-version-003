@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react'; // Refined Post Interaction System
 import { createPortal } from 'react-dom';
 import { 
@@ -358,11 +359,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
           <div className="flex items-center gap-1 flex-wrap leading-tight">
             <Link
               to={`/profile/${post.username}`}
-              className="font-bold text-[13px] text-gray-900 hover:underline"
+              className="font-black text-[13px] text-gray-900 hover:underline uppercase tracking-tighter italic"
             >
               {post.name || post.username}
             </Link>
-            
+
             {(post.feeling || post.activity) && (
               <div className="flex items-center gap-1 text-[12px] text-gray-500 font-medium flex-wrap">
                 {post.feeling && (

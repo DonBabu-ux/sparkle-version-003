@@ -5,6 +5,7 @@ import {
   Play, Send, X, Search, History,
   Volume2, VolumeX, Loader2, Sparkles, Orbit
 } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import MomentShareModal from '../components/modals/MomentShareModal';
@@ -12,7 +13,6 @@ import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { trackingService } from '../services/TrackingService';
 import clsx from 'clsx';
-import Spinner from '../components/ui/Spinner';
 
 interface Comment {
   comment_id: string;
@@ -417,40 +417,19 @@ export default function Moments() {
         } catch (e) { console.error('Error fetching moment', e); }
       }
 
-      // STAGGERED LOADING: First 3 instant, rest follow shortly
-      if (pageNum === 0) {
-        const firstBatch = allData.slice(0, 3);
-        setMoments(firstBatch);
-        
-        // Load the rest after a short delay for perceived speed
-        setTimeout(() => {
-          setMoments(prev => {
-            const combined = [...prev, ...allData.slice(3)];
-            const unique = [];
-            const seen = new Set();
-            for (const m of combined) {
-              if (m && m.moment_id && !seen.has(m.moment_id)) {
-                seen.add(m.moment_id);
-                unique.push(m);
-              }
-            }
-            return unique;
-          });
-        }, 300);
-      } else {
-        setMoments(prev => {
-          const combined = [...prev, ...allData];
-          const unique = [];
-          const seen = new Set();
-          for (const m of combined) {
-            if (m && m.moment_id && !seen.has(m.moment_id)) {
-              seen.add(m.moment_id);
-              unique.push(m);
-            }
+      // DEDUPLICATION: Ensure unique moments
+      setMoments(prev => {
+        const combined = pageNum === 0 ? allData : [...prev, ...allData];
+        const unique = [];
+        const seen = new Set();
+        for (const m of combined) {
+          if (m && m.moment_id && !seen.has(m.moment_id)) {
+            seen.add(m.moment_id);
+            unique.push(m);
           }
-          return unique;
-        });
-      }
+        }
+        return unique;
+      });
 
       setHasMore(pagination?.hasMore ?? allData.length >= 8);
       setPage(pageNum);
@@ -1004,7 +983,9 @@ export default function Moments() {
       >
         {loading ? (
              <div className="h-screen flex flex-col items-center justify-center">
-                <Orbit className="w-16 h-16 text-primary animate-spin-slow mb-6" />
+                <div className="mb-20">
+                  <Spinner size="large" color="text-primary" />
+                </div>
                 <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] italic animate-pulse">Synchronizing Stream</p>
              </div>
         ) : moments.length === 0 ? (

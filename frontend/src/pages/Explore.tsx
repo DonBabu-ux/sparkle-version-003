@@ -36,6 +36,8 @@ export default function Explore() {
   }, [activeCategory]);
 
   const fetchExploreMedia = async (pageNum: number) => {
+    if (loading || (loadingMore && pageNum !== 1)) return;
+    
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
 

@@ -82,7 +82,7 @@ export default function MediaPreviewModal() {
       {showMenu && (
         <div className="absolute inset-0 z-[60] flex flex-col justify-end animate-fade-in">
            <div className="absolute inset-0 bg-black/40" onClick={() => setShowMenu(false)} />
-           <div className="relative bg-white rounded-t-2xl p-4 animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+           <div className="relative bg-white rounded-t-lg p-4 animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" onClick={() => setShowMenu(false)} />
               
               <div className="space-y-1">

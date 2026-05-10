@@ -9,6 +9,7 @@ import ShareModal from '../components/modals/ShareModal';
 import { formatCount } from '../utils/format';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import Spinner from '../components/ui/Spinner';
 import { 
   ShieldCheck, Plus, Orbit, MessageSquare, ArrowLeft, Flame, TrendingUp, Sparkles, Globe, Smile, BookOpen,
   MessageCircleHeart, Star, Feather, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Bookmark, Heart, Send
@@ -346,8 +347,10 @@ export default function Confessions() {
           {/* ── Feed Cards ── */}
           <div className="flex flex-col gap-4 px-4 pb-8">
             {loading ? (
-              <div className="py-24 flex flex-col items-center gap-5">
-                <div className="w-11 h-11 border-[3px] border-gray-100 border-t-primary rounded-full animate-spin" />
+              <div className="py-24 flex flex-col items-center justify-center">
+                <div className="mb-20">
+                  <Spinner size="large" color="text-primary" />
+                </div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] animate-pulse">Scanning Nodes...</p>
               </div>
             ) : confessions.length > 0 ? (

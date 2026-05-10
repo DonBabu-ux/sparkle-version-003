@@ -22,9 +22,16 @@ import {
   GraduationCap,
   Plus,
   History,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Zap,
+  TrendingUp,
+  Target,
+  ChevronDown,
+  LayoutDashboard
 } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
+import { motion, AnimatePresence } from 'framer-motion';
+import Spinner from '../components/ui/Spinner';
 
 export default function Profile() {
   const { username } = useParams();
@@ -42,6 +49,7 @@ export default function Profile() {
   const [modalType, setModalType] = useState<'Followers' | 'Following' | null>(null);
   const { setActiveModal, refreshCounter } = useModalStore();
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
 
   // Highlights
   const [highlights, setHighlights] = useState<{ id: string; title: string; cover_url: string; story_count: number }[]>([]);
@@ -145,24 +153,43 @@ export default function Profile() {
     }
   };
 
-  const handleUpdateNote = async (noteContent: string | null) => {
-    try {
-      const res = await api.patch('/users/profile/note', { note: noteContent });
-      if (res.data.success) {
-        setProfile((prev: User | null) => prev ? { ...prev, note: noteContent || '' } : prev);
-      }
-    } catch (err) {
-      console.error('Failed to update note:', err);
-    }
-  };
+
 
   if (loading) {
     return (
       <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 transition-all">
-          <Orbit className="w-12 h-12 text-primary animate-spin-slow mb-6" />
-          <p className="text-[10px] font-black italic text-black/20 uppercase tracking-[0.4em] animate-pulse">Synchronizing Identity</p>
+          <div className="relative mb-20"> {/* Increased margin */}
+            <Spinner size="xl" color="text-primary" />
+          </div>
+          
+          <div className="flex flex-col items-center gap-6"> {/* Increased gap */}
+             {/* Calibration Watermark moved below spinner */}
+             <div className="opacity-10 mb-2">
+                <Orbit size={60} className="animate-spin-slow" />
+             </div>
+             
+             <div className="h-4 overflow-hidden flex flex-col items-center">
+                <motion.div 
+                  animate={{ y: [0, -20, -40, -60] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", times: [0, 0.33, 0.66, 1] }}
+                  className="flex flex-col items-center"
+                >
+                  {['Synchronizing Identity', 'Calibrating Frequency', 'Scanning Nodes', 'Authenticating Signature'].map((text, i) => (
+                    <span key={i} className="text-[10px] font-black italic text-black/20 uppercase tracking-[0.4em] h-5">{text}</span>
+                  ))}
+                </motion.div>
+             </div>
+             <div className="w-32 h-[1px] bg-black/5 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ x: "-100%" }}
+                  animate={{ x: "100%" }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  className="w-full h-full bg-primary/20"
+                />
+             </div>
+          </div>
         </div>
       </div>
     );
@@ -192,178 +219,266 @@ export default function Profile() {
     <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
       
-      {/* Background Orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 w-full pt-20 lg:pt-12">
+      {/* Main Header Wrapper */}
+
+      {/* Top Navigation Bar with Account Switcher */}
+      <div className="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-black/[0.03] z-[100] flex items-center justify-center px-4">
+        <div className="relative">
+          <button 
+            onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
+            className="flex items-center gap-2 px-4 py-1.5 hover:bg-black/5 rounded-full transition-all group"
+          >
+            <span className="text-sm font-bold text-black tracking-tight">{profile?.username}</span>
+            <ChevronDown size={16} className={`text-black/30 transition-transform ${showAccountSwitcher ? 'rotate-180' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {showAccountSwitcher && (
+              <>
+                <div className="fixed inset-0 z-[-1]" onClick={() => setShowAccountSwitcher(false)} />
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-white rounded-lg shadow-2xl border border-black/5 p-2 z-[101]"
+                >
+                  <div className="px-3 py-2 border-b border-black/5 mb-1">
+                    <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest">Switch Identity</span>
+                  </div>
+                  <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
+                    {accounts.map((acc) => (
+                      <button 
+                        key={acc.user.user_id}
+                        onClick={() => {
+                          if (acc.user.user_id !== currentUser?.user_id) {
+                            switchAccount(acc.user.user_id);
+                            setShowAccountSwitcher(false);
+                            navigate(`/profile/${acc.user.username}`);
+                          }
+                        }}
+                        className={`w-full p-2 flex items-center gap-3 rounded-xl transition-all ${acc.user.user_id === currentUser?.user_id ? 'bg-black/5 border border-black/5 cursor-default' : 'hover:bg-black/5'}`}
+                      >
+                        <img 
+                          src={getAvatarUrl(acc.user.avatar_url, acc.user.username)} 
+                          alt="" 
+                          className="w-8 h-8 rounded-full object-cover border border-black/5" 
+                        />
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold text-black">{acc.user.username}</span>
+                          {acc.user.user_id === currentUser?.user_id ? (
+                            <span className="text-[9px] text-black/40 font-medium uppercase tracking-tight">Active Node</span>
+                          ) : (
+                            <span className="text-[9px] text-black/20 font-medium uppercase tracking-tight">Switch to Node</span>
+                          )}
+                        </div>
+                        {acc.user.user_id === currentUser?.user_id && (
+                          <div className="ml-auto w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button 
+                    onClick={() => { setShowAccountSwitcher(false); navigate('/login'); }}
+                    className="w-full mt-1 p-2.5 flex items-center gap-3 hover:bg-black/5 rounded-xl transition-colors text-left border-t border-black/5 pt-3"
+                  >
+                    <div className="w-8 h-8 rounded-full border border-dashed border-black/20 flex items-center justify-center">
+                      <Plus size={16} className="text-black/40" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-tight text-black">Add Sparkle Account</span>
+                  </button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 w-full pt-24 lg:pt-24">
         <div className="max-w-4xl mx-auto">
-          <header className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-16 mb-10 animate-fade-in w-full">
-            {/* Avatar Column */}
-            <div className="relative shrink-0 mb-4 md:mb-0">
-              <div 
-                className={`w-32 h-32 md:w-40 md:h-40 rounded-full shadow-xl cursor-pointer ${profile?.has_story ? 'p-1 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}
-                onClick={() => {
-                  if (profile?.has_story) setShowAvatarMenu(true);
-                  else setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
-                }}
-              >
-                <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-[#fdf2f4]' : ''}`}>
-                  <img 
-                    src={getAvatarUrl(profile?.avatar_url, profile?.username)} 
-                    alt="" 
-                    className="w-full h-full rounded-full object-cover border border-black/5" 
-                  />
+          <header className="flex flex-col gap-8 mb-12 animate-fade-in w-full">
+            {/* Main Header Row: Avatar + Basic Info */}
+            <div className="flex items-start gap-6 md:gap-10">
+              {/* Avatar Column */}
+              <div className="relative shrink-0">
+                <div 
+                  className={`w-24 h-24 md:w-36 md:h-36 rounded-full shadow-2xl cursor-pointer ${profile?.has_story ? 'p-1 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}
+                  onClick={() => {
+                    if (profile?.has_story) setShowAvatarMenu(true);
+                    else setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
+                  }}
+                >
+                  <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-[#fdf2f4]' : ''}`}>
+                    <img 
+                      src={getAvatarUrl(profile?.avatar_url, profile?.username)} 
+                      alt="" 
+                      className="w-full h-full rounded-full object-cover border border-black/5" 
+                    />
+                  </div>
                 </div>
+
+                {/* Avatar Action Menu */}
+                <AnimatePresence>
+                  {showAvatarMenu && (
+                    <>
+                      <div className="fixed inset-0 z-[1000]" onClick={() => setShowAvatarMenu(false)} />
+                      <motion.div 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        className="absolute top-0 left-full ml-4 z-[1001] bg-white rounded-[14px] shadow-2xl border border-black/5 p-2 flex flex-col gap-1 min-w-[180px]"
+                      >
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); navigate(`/stories/${profile?.id || profile?.user_id}`); }}
+                          className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                          <History size={18} className="text-primary" />
+                          <span className="text-sm font-bold text-black tracking-tight">View Story</span>
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) }); }}
+                          className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                          <ImageIcon size={18} className="text-black/40" />
+                          <span className="text-sm font-bold text-black tracking-tight">View Picture</span>
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+
+                {/* Note Bubble Removed */}
               </div>
 
-              {/* Avatar Action Menu */}
-              {showAvatarMenu && (
-                <>
-                  <div className="fixed inset-0 z-[1000]" onClick={() => setShowAvatarMenu(false)} />
-                  <div className="absolute top-0 left-full ml-4 md:ml-8 z-[1001] bg-white rounded-2xl shadow-2xl border border-black/5 p-2 flex flex-col gap-1 min-w-[180px] animate-fade-in-right max-md:fixed max-md:top-auto max-md:bottom-24 max-md:left-1/2 max-md:-translate-x-1/2 max-md:ml-0">
-                  <div className="px-4 py-2 border-b border-black/5 md:hidden">
-                    <span className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em]">Avatar Options</span>
+              {/* Info Column (Beside Avatar) */}
+              <div className="flex-1 flex flex-col pt-2">
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <h1 className="text-xl md:text-2xl font-black text-black tracking-tight">{profile?.username}</h1>
+                  {profile?.is_verified && (
+                    <div className="bg-[#FF1F6D] p-1 rounded-full shadow-[0_0_10px_rgba(255,31,109,0.5)]">
+                       <Sparkles size={14} className="text-white fill-white" />
+                    </div>
+                  )}
+                  
+                  {/* Stats Row Beside Username */}
+                  <div className="flex items-center gap-6 ml-4 md:ml-8 border-l border-black/5 pl-4 md:pl-8">
+                    <div className="flex flex-col items-center">
+                       <span className="text-sm md:text-base font-black text-black leading-none">{posts.length}</span>
+                       <span className="text-[10px] font-bold text-black uppercase tracking-widest">Posts</span>
+                    </div>
+                    <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Followers')}>
+                       <span className="text-sm md:text-base font-black text-black leading-none">{profile?.followers_count || 0}</span>
+                       <span className="text-[10px] font-bold text-black uppercase tracking-widest">Followers</span>
+                    </div>
+                    <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Following')}>
+                       <span className="text-sm md:text-base font-black text-black leading-none">{profile?.following_count || 0}</span>
+                       <span className="text-[10px] font-bold text-black uppercase tracking-widest">Following</span>
+                    </div>
                   </div>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowAvatarMenu(false);
-                      navigate(`/stories/${profile?.id || profile?.user_id}`);
-                    }}
-                    className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-xl transition-colors flex items-center gap-3"
-                  >
-                    <History size={18} className="text-primary" />
-                    <span className="text-sm font-bold text-black uppercase tracking-tighter">View Story</span>
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowAvatarMenu(false);
-                      setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
-                    }}
-                    className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-xl transition-colors flex items-center gap-3"
-                  >
-                    <ImageIcon size={18} className="text-black/40" />
-                    <span className="text-sm font-bold text-black uppercase tracking-tighter">View Picture</span>
-                  </button>
-                  <div className="h-px bg-black/5 my-1" />
-                  <button 
-                    onClick={() => setShowAvatarMenu(false)}
-                    className="w-full px-4 py-2 text-center text-[10px] font-black text-black/20 uppercase tracking-widest hover:text-black transition-colors"
-                  >
-                    Cancel
-                  </button>
                 </div>
+
+                <div className="flex items-center gap-3">
+                  {showOwnerActions ? (
+                    <button onClick={() => navigate('/settings')} className="px-6 py-2 bg-black text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10">
+                      Edit Node
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {isFollowing ? (
+                        <button onClick={handleFollowToggle} className="px-6 py-2 bg-black/5 hover:bg-black/10 rounded-lg text-xs font-bold text-black transition-all uppercase tracking-widest border border-black/5">
+                          Following
+                        </button>
+                      ) : (
+                        <button onClick={handleFollowToggle} className="px-6 py-2 bg-[#FF1F6D] hover:scale-105 active:scale-95 rounded-lg text-xs font-bold text-white transition-all shadow-lg shadow-[#FF1F6D]/20 uppercase tracking-widest">
+                          Follow
+                        </button>
+                      )}
+                      <button onClick={() => navigate(`/messages/${profile?.user_id || profile?.id}`)} className="px-6 py-2 bg-white border border-black/10 hover:bg-black/5 rounded-lg text-xs font-bold text-black transition-all uppercase tracking-widest">
+                        Message
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+              
+            {/* Content Row: Name, Bio, and Professional Dashboard */}
+            <div className="mt-4 md:pl-2">
+              <h2 className="text-base font-black text-black mb-1 tracking-tight">{profile?.name || profile?.username}</h2>
+              
+              {/* Prestige Node & Power Bar */}
+              {/* Prestige Node & Badges (Only visible to owner to hide 'verification criteria') */}
+              {showOwnerActions && (
+                <>
+                  <div className="w-full max-w-[240px] mb-4">
+                     <div className="flex justify-between items-center mb-1 px-0.5">
+                        <span className="text-[9px] font-bold text-black uppercase tracking-widest">Node Prestige <span className="text-black font-black ml-1">Lvl {profile.reputation?.trustLevel || 1}</span></span>
+                        <span className="text-[9px] font-black text-[#FF1F6D] uppercase tracking-widest">{profile.reputation?.prestigeScore || 0}% Power</span>
+                     </div>
+                     <div className="h-1.5 bg-black/5 rounded-full overflow-hidden p-0.5 border border-white shadow-inner">
+                        <div 
+                          className="h-full bg-gradient-to-r from-black via-slate-800 to-black rounded-full shadow-[0_0_8px_rgba(0,0,0,0.15)] transition-all duration-1000" 
+                          style={{ width: `${profile.reputation?.prestigeScore || 10}%` }}
+                        />
+                     </div>
+                  </div>
+
+                  {/* Badges Flowing Horizontally */}
+                  <div className="flex flex-wrap gap-2 mb-8">
+                     {[
+                       { id: 'spark_seed', color: 'from-amber-400 to-orange-500', icon: <Zap size={12} fill="currentColor" />, active: (profile.reputation?.trustLevel || 0) >= 1 },
+                       { id: 'viral_node', color: 'from-emerald-400 to-cyan-500', icon: <TrendingUp size={12} />, active: (profile.reputation?.trustLevel || 0) >= 3 },
+                       { id: 'verified_node', color: 'from-[#FF1F6D] to-purple-600', icon: <Heart size={12} fill="currentColor" />, active: !!profile.is_verified }
+                     ].filter(b => b.active).map((badge, idx) => (
+                       <div 
+                         key={idx}
+                         className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-tr ${badge.color} text-white shadow-lg border border-white/50`}
+                       >
+                          {badge.icon}
+                          <span className="text-[10px] font-black uppercase tracking-widest">{badge.id.replace('_', ' ')}</span>
+                       </div>
+                     ))}
+                  </div>
                 </>
               )}
 
-              {profile?.note && (
-                <div
-                  title={profile.note}
-                  className={`absolute -top-1 left-0 bg-[#262626] text-white text-[11px] px-3 py-1.5 rounded-2xl rounded-bl-sm font-medium shadow-lg max-w-[120px] truncate cursor-default leading-none ${showOwnerActions ? 'cursor-pointer hover:bg-[#333]' : ''}`}
-                  onClick={() => {
-                    if (!showOwnerActions) return;
-                    const n = prompt('Set your note (max 60 chars):', profile.note || '');
-                    if (n !== null) handleUpdateNote(n.slice(0, 60));
-                  }}
-                >
-                  {profile.note}
-                </div>
-              )}
-              {showOwnerActions && !profile?.note && (
-                <div
-                  className="absolute -top-1 left-0 bg-[#262626]/60 text-white/50 text-[11px] px-3 py-1.5 rounded-2xl rounded-bl-sm font-medium shadow-md cursor-pointer hover:bg-[#262626] hover:text-white transition-colors leading-none"
-                  onClick={() => {
-                    const n = prompt('Set your note (max 60 chars):');
-                    if (n) handleUpdateNote(n.slice(0, 60));
-                  }}
-                >
-                  + Note
-                </div>
-              )}
-            </div>
-
-            {/* Info Column */}
-            <div className="flex-1 flex flex-col items-center md:items-start w-full">
-              
-              {/* Row 1: Username & Settings */}
-              <div className="flex items-center gap-4 mb-2">
-                <h1 className="text-xl md:text-2xl font-bold text-black">{profile?.username}</h1>
-                {profile?.is_verified && <Sparkles size={18} className="text-primary fill-primary" />}
-                {showOwnerActions && (
-                  <button onClick={() => navigate('/settings')} className="text-black hover:text-black/70 transition-colors">
-                    <SettingsIcon size={20} />
-                  </button>
-                )}
-              </div>
-
-              {/* Row 2: Name */}
-              <h2 className="text-[15px] font-semibold text-black mb-2">{profile?.name || profile?.username}</h2>
-
-              {/* Row 3: Stats */}
-              <div className="flex items-center gap-6 mb-3 text-[14px] text-black">
-                <div><span className="font-semibold">{posts.length}</span> posts</div>
-                <div className="cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Followers')}><span className="font-semibold">{profile?.followers_count || 0}</span> followers</div>
-                <div className="cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Following')}><span className="font-semibold">{profile?.following_count || 0}</span> following</div>
-              </div>
-
-              {/* Row 4: Category/Campus */}
               {(profile?.campus || profile?.major) && (
-                <div className="text-[13px] text-black/50 mb-1">
-                  {[profile.campus, profile.major].filter(Boolean).join(' • ')}
+                <div className="text-[11px] font-bold text-black mb-3 uppercase tracking-wider flex items-center gap-2">
+                   <div className="w-1 h-1 bg-primary rounded-full" />
+                   {profile.campus} <span className="text-black/10 mx-1">|</span> {profile.major}
                 </div>
               )}
 
-              {/* Row 5: Bio (multiline support) */}
-              <div className="text-[14px] text-black leading-snug whitespace-pre-wrap mb-2 text-center md:text-left">
-                {profile?.bio || (showOwnerActions ? 'Add a bio to your profile.' : '')}
+              <div className="text-sm font-bold text-black leading-relaxed whitespace-pre-wrap max-w-lg mb-6">
+                {profile?.bio || (showOwnerActions ? 'Initialize your node biography...' : '')}
               </div>
 
-              {/* Row 6: Website Link */}
               {profile?.website && (
-                <a href={`https://${profile.website.replace(/^https?:\/\//, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[14px] font-medium text-[#00376b] hover:underline mb-4">
-                  <LinkIcon size={14} />
+                <a href={`https://${profile.website.replace(/^https?:\/\//, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-[#FF1F6D] hover:underline mb-6 tracking-tight">
+                  <LinkIcon size={14} strokeWidth={2.5} />
                   {profile.website.replace(/^https?:\/\//, '')}
                 </a>
               )}
 
-              {/* Action Buttons (Below Bio) */}
-              <div className="flex w-full md:w-auto gap-2 mt-4 md:mt-2">
-                {showOwnerActions ? (
-                  <>
-                    <button onClick={() => navigate('/settings')} className="flex-1 md:flex-none md:px-8 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-sm font-semibold text-black transition-colors">
-                      Edit Profile
-                    </button>
-                    <button 
-                      onClick={() => setActiveModal('archive')}
-                      className="flex-1 md:flex-none md:px-8 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-sm font-semibold text-black transition-colors"
-                    >
-                      View archive
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {isFollowing ? (
-                      <button onClick={handleFollowToggle} className="flex-1 md:flex-none md:px-8 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-sm font-semibold text-black transition-colors">
-                        Following
-                      </button>
-                    ) : isRequested ? (
-                      <button className="flex-1 md:flex-none md:px-8 py-1.5 bg-black/5 rounded-lg text-sm font-semibold text-black/50 cursor-default">
-                        Requested
-                      </button>
-                    ) : (
-                      <button onClick={handleFollowToggle} className="flex-1 md:flex-none md:px-8 py-1.5 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-semibold text-white transition-colors">
-                        Follow
-                      </button>
-                    )}
-                    <button onClick={() => navigate(`/messages/${profile?.user_id || profile?.id}`)} className="flex-1 md:flex-none md:px-8 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-sm font-semibold text-black transition-colors">
-                      Message
-                    </button>
-                  </>
-                )}
-              </div>
-
+              {/* Professional Dashboard Node (Clickable Card) */}
+              {showOwnerActions && (
+                <div 
+                  onClick={() => navigate('/professional-dashboard')}
+                  className="bg-white/40 backdrop-blur-sm border border-black/[0.03] rounded-2xl p-4 flex items-center justify-between group cursor-pointer hover:bg-white hover:shadow-xl hover:shadow-primary/5 transition-all max-w-sm mb-6"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary/10 to-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <LayoutDashboard size={20} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[13px] font-bold text-black tracking-tight">Professional Dashboard</span>
+                      <span className="text-[10px] text-black/40 font-medium uppercase tracking-wider">Track your network pulse</span>
+                    </div>
+                  </div>
+                  <ChevronDown className="text-black/10 -rotate-90 group-hover:text-primary transition-colors" size={20} />
+                </div>
+              )}
             </div>
           </header>
 
@@ -488,11 +603,14 @@ export default function Profile() {
             ))}
           </div>
           <div className="space-y-4">
-            <div className="text-[9px] font-black text-black/10 tracking-[0.5em] uppercase italic">Sparkle Hub Network — High Frequency Village — © 2025</div>
+            {/* Watermark Removed */}
           </div>
         </footer>
         </div>
       </main>
+
+
+      {/* Local Note Editor Modal Removed */}
 
       {modalType && (
         <FollowListModal

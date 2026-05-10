@@ -36,13 +36,18 @@ const api = axios.create({
 // CSRF state
 let csrfToken: string | null = null;
 
-const fetchCsrfToken = async () => {
+const fetchCsrfToken = async (retries = 3): Promise<string | null> => {
   try {
     const { data } = await axios.get(`${api.defaults.baseURL}/csrf-token`, { withCredentials: true });
     csrfToken = data.csrfToken;
     return csrfToken;
   } catch (err) {
-    console.error('Failed to fetch CSRF token:', err);
+    if (retries > 0) {
+      console.warn(`CSRF fetch failed, retrying... (${retries} left)`);
+      await new Promise(r => setTimeout(r, 1000));
+      return fetchCsrfToken(retries - 1);
+    }
+    console.error('Failed to fetch CSRF token after retries:', err);
     return null;
   }
 };
@@ -95,6 +100,17 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle Network Errors (like ERR_CONNECTION_REFUSED)
+    if (!error.response && originalRequest) {
+      // If it's a network error and we haven't retried this specific request yet
+      if (!originalRequest._networkRetry || originalRequest._networkRetry < 3) {
+        originalRequest._networkRetry = (originalRequest._networkRetry || 0) + 1;
+        console.warn(`🌐 Network error on ${originalRequest.url}, retrying... (${originalRequest._networkRetry})`);
+        await new Promise(r => setTimeout(r, 1000 * originalRequest._networkRetry));
+        return api(originalRequest);
+      }
+    }
+
     // If 401 and not already retrying
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
       if (isRefreshing) {
@@ -129,8 +145,14 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError: any) {
         processQueue(refreshError, null);
+        
+        // Handle refresh network failure
+        if (!refreshError.response) {
+           console.error('📡 Token refresh failed due to network error. Staying logged in.');
+           return Promise.reject(refreshError);
+        }
+
         // ONLY log out if the refresh token is explicitly rejected (401/403)
-        // DO NOT log out if it's just a network error (internet down)
         if (refreshError.response && (refreshError.response.status === 401 || refreshError.response.status === 403)) {
             useUserStore.getState().logout();
         }

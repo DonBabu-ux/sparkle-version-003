@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Copy, Check, MessageCircle, Mail, Send, Smartphone, Sparkles, Orbit, ChevronRight } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import Navbar from '../components/Navbar';
 
 export default function Invite() {
@@ -150,7 +151,7 @@ export default function Invite() {
              </div>
              
              <div className="mt-16 w-full py-8 bg-black/5 rounded-[32px] flex items-center justify-center gap-6 group cursor-pointer hover:bg-black hover:text-white transition-all duration-700">
-                <Orbit size={24} strokeWidth={4} className="text-primary animate-spin-slow" />
+                <Spinner size="medium" color="text-primary" />
                 <span className="text-[10px] font-black uppercase tracking-[0.4em] italic">Check Status Board</span>
                 <ChevronRight size={20} strokeWidth={4} className="group-hover:translate-x-3 transition-transform" />
              </div>

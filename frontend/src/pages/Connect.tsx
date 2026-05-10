@@ -3,6 +3,7 @@ import { Search, UserPlus, Users, UserCheck, Sparkles, Orbit, Compass, Zap, Chec
 import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
 import api from '../api/api';
+import Spinner from '../components/ui/Spinner';
 
 const TABS = [
   { label: 'For You',   icon: Compass },
@@ -169,7 +170,7 @@ export default function Connect() {
             </div>
           ) : users.length === 0 ? (
             <div className="py-32 flex flex-col items-center gap-6 text-center bg-white border border-gray-200 rounded-2xl shadow-sm animate-fade-in">
-              <Orbit size={80} className="text-gray-200 animate-spin-slow" />
+              <Spinner size="large" color="text-gray-200" />
               <div className="space-y-2 px-4">
                 <h3 className="text-xl font-bold text-gray-900">No results found</h3>
                 <p className="text-[14px] text-gray-500 max-w-xs mx-auto">Try searching for something else or explore different tabs.</p>

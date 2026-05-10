@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, MapPin, Settings, MessageSquare, ChevronRight, Orbit, Sparkles } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
@@ -82,7 +83,7 @@ export default function ClubDetail() {
     <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
       <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-8">
-        <Orbit size={64} className="text-primary animate-spin-slow" strokeWidth={4} />
+        <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic animate-pulse">Syncing Circle Node...</p>
       </div>
     </div>

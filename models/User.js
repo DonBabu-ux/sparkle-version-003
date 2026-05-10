@@ -23,6 +23,33 @@ class User {
     }
 
     /**
+     * Derives Social RPG Reputation Metrics
+     */
+    static deriveReputation(user) {
+        const followers = user.followers_count || 0;
+        const posts = user.posts_count || 0;
+        
+        let trustLevel = 1;
+        if (followers >= 5000) trustLevel = 5;
+        else if (followers >= 1000) trustLevel = 4;
+        else if (followers >= 500) trustLevel = 3;
+        else if (followers >= 100) trustLevel = 2;
+
+        const prestigeScore = Math.min(100, Math.round(
+            (followers / 1000) * 40 + 
+            (posts / 50) * 20 +
+            (trustLevel * 8)
+        ));
+
+        return {
+            trustLevel,
+            prestigeScore,
+            nextThreshold: trustLevel < 5 ? [100, 500, 1000, 5000][trustLevel-1] : 5000,
+            isVerified: !!user.is_verified
+        };
+    }
+
+    /**
      * Helper to ensure avatar URLs are properly formatted
      */
     static getSafeAvatarUrl(url) {
@@ -65,6 +92,7 @@ class User {
         const user = users[0] || null;
         if (user) {
             user.userType = this.deriveUserType(user);
+            user.reputation = this.deriveReputation(user);
             this.mapGeneralizedFields(user);
         }
         return user;
@@ -451,6 +479,7 @@ class User {
         const user = users[0] || null;
         if (user) {
             user.userType = this.deriveUserType(user);
+            user.reputation = this.deriveReputation(user);
             this.mapGeneralizedFields(user);
         }
         return user;

@@ -4,6 +4,7 @@ import { ArrowLeft, BarChart2, CheckCircle2, ChevronRight, Users, X, UserPlus, U
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import CountdownTimer from '../components/ui/CountdownTimer';
+import Spinner from '../components/ui/Spinner';
 import { useUserStore } from '../store/userStore';
 import { useSocket } from '../hooks/useSocket';
 
@@ -140,7 +141,7 @@ export default function PollDetail() {
 
   if (loading) return (
     <div className="bg-[#fdf2f4] min-h-screen flex items-center justify-center">
-       <Orbit className="text-primary animate-spin-slow" size={40} />
+       <Spinner size="large" color="text-primary" />
     </div>
   );
 

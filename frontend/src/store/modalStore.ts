@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type ModalType = 'post' | 'post_comments' | 'moment' | 'listing' | 'poll' | 'event' | 'confession' | 'settings' | 'afterglow' | 'share' | 'reshare' | 'creation_hub' | 'media_preview' | 'highlight' | 'highlight_player' | 'archive' | 'post_options' | 'skill_offer' | 'skill_detail' | null;
+type ModalType = 'post' | 'post_comments' | 'moment' | 'listing' | 'poll' | 'event' | 'confession' | 'settings' | 'afterglow' | 'share' | 'reshare' | 'creation_hub' | 'media_preview' | 'highlight' | 'highlight_player' | 'archive' | 'post_options' | 'skill_offer' | 'skill_detail' | 'note_editor' | null;
 
 
 interface ModalState {

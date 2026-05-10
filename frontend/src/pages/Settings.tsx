@@ -4,6 +4,7 @@ import axios from 'axios';
 import api, { authApi } from '../api/api';
 import Navbar from '../components/Navbar';
 import { useUserStore } from '../store/userStore';
+import Spinner from '../components/ui/Spinner';
 import type { User } from '../types/user';
 import { 
   User as UserIcon, 
@@ -303,7 +304,7 @@ export default function Settings() {
                   <div className="pt-12">
                     <button type="submit" disabled={loading} className="w-full h-24 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] shadow-2xl shadow-primary/40 hover:scale-[1.03] active:scale-95 transition-all italic flex items-center justify-center gap-6">
                       {loading ? 'Transmitting...' : 'Full System Sync'}
-                      <Orbit size={24} className={loading ? 'animate-spin' : ''} />
+                      <Spinner size="small" color="text-white" />
                     </button>
                   </div>
                 </form>

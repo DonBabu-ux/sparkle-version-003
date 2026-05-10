@@ -16,6 +16,7 @@ import StickerRenderer from '../components/stories/StickerRenderer';
 import { useStoryStore } from '../store/storyStore';
 import { useUserStore } from '../store/userStore';
 import { getAvatarUrl } from '../utils/imageUtils';
+import Spinner from '../components/ui/Spinner';
 
 // REAL LOGOS SVGS
 const FB_LOGO = (
@@ -227,7 +228,7 @@ export default function StoryViewer() {
 
   if (loading || !userStories) return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
-       <Orbit size={48} strokeWidth={4} className="text-primary animate-spin-slow" />
+       <Spinner size="large" color="text-primary" />
        <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] italic">Harmonizing Frequency...</p>
     </div>
   );

@@ -53,7 +53,7 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
       
       {/* Modal Content */}
       <div 
-        className="relative w-full max-w-[420px] bg-white rounded-[64px] shadow-[0_50px_150px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col animate-scale-in border-4 border-black/5"
+        className="relative w-full max-w-[420px] bg-white rounded-[32px] shadow-[0_50px_150px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col animate-scale-in border-4 border-black/5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute top-0 right-0 p-12 text-black/[0.02] pointer-events-none">
@@ -83,7 +83,7 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
                 <button 
                     key={idx}
                     onClick={() => { onClose(); item.action(); }} 
-                    className="w-full p-6 flex items-center gap-6 hover:bg-black/5 transition-all group rounded-[32px] relative overflow-hidden active:scale-95 border-2 border-transparent hover:border-black/5"
+                    className="w-full p-6 flex items-center gap-6 hover:bg-black/5 transition-all group rounded-2xl relative overflow-hidden active:scale-95 border-2 border-transparent hover:border-black/5"
                 >
                     <div className="absolute inset-x-0 bottom-0 h-1 bg-primary/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                     <div className={`w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center ${item.color} group-hover:bg-black group-hover:text-white transition-all duration-500 scale-110`}>

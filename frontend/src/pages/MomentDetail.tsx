@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, MessageSquare, Share2, Sparkles, Orbit, ChevronLeft } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import clsx from 'clsx';
@@ -74,7 +75,7 @@ export default function MomentDetail() {
 
           {loading ? (
             <div className="w-full flex flex-col items-center justify-center py-48 bg-white/40 backdrop-blur-3xl border border-white rounded-[56px] shadow-2xl">
-               <Orbit className="w-16 h-16 text-primary animate-spin-slow mb-8" strokeWidth={4} />
+               <Spinner size="large" color="text-primary" />
                <p className="text-[10px] font-black italic text-black/20 uppercase tracking-[0.4em] animate-pulse">Syncing Moment Pulse...</p>
             </div>
           ) : !moment ? (

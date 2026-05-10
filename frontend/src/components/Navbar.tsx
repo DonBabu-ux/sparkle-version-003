@@ -35,6 +35,7 @@ import CreateHighlightModal from './modals/CreateHighlightModal';
 import HighlightPlayerModal from './modals/HighlightPlayerModal';
 import ArchiveModal from './modals/ArchiveModal';
 import PostOptionsModal from './modals/PostOptionsModal';
+import NoteEditorModal from './modals/NoteEditorModal';
 import FloatingAction from './FloatingAction';
 
 import Sidebar from './Sidebar';
@@ -188,7 +189,7 @@ export default function Navbar() {
       {showMobileCreate && (
         <div className="fixed inset-0 z-[1900] bg-black/10 backdrop-blur-sm animate-fade-in" onClick={() => setShowMobileCreate(false)}>
           <div 
-            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-60px)] max-w-xs bg-white/95 backdrop-blur-3xl rounded-[40px] shadow-2xl p-2 flex flex-col animate-slide-up border border-white/65 overflow-hidden"
+            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-60px)] max-w-xs bg-white/95 backdrop-blur-3xl rounded-[32px] shadow-2xl p-2 flex flex-col animate-slide-up border border-white/65 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 pt-4 pb-2 border-b border-black/5 mb-2">
@@ -284,6 +285,18 @@ export default function Navbar() {
                   onClose={() => setActiveModal(null)} 
                 />
               )}
+              {activeModal === 'note_editor' && (
+                <NoteEditorModal 
+                  initialNote={(modalData as any)?.initialNote}
+                  onClose={() => setActiveModal(null)}
+                  onSuccess={(note) => {
+                    setActiveModal(null);
+                    triggerSuccess();
+                    // Custom event to update profile UI immediately
+                    window.dispatchEvent(new CustomEvent('noteUpdated', { detail: note }));
+                  }}
+                />
+              )}
             </div>
           </div>
         );
@@ -293,7 +306,7 @@ export default function Navbar() {
       {gridMenuOpen && (
         <div className="fixed inset-0 z-[2000] bg-black/10 backdrop-blur-sm animate-fade-in" onClick={() => setGridMenuOpen(false)}>
           <div 
-            className="absolute top-20 right-5 w-[calc(100%-40px)] max-w-[460px] bg-white/95 backdrop-blur-3xl border border-white rounded-[40px] shadow-2xl p-6 flex flex-col animate-scale-in z-[2001] max-h-[85vh] overflow-hidden"
+            className="absolute top-20 right-5 w-[calc(100%-40px)] max-w-[460px] bg-white/95 backdrop-blur-3xl border border-white rounded-[32px] shadow-2xl p-6 flex flex-col animate-scale-in z-[2001] max-h-[85vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-8 px-4">

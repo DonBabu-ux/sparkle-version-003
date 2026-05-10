@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Orbit, Image as ImageIcon, Grid, Layers, PlayCircle, Eye, Heart } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import type { Post } from '../types/post';
@@ -147,7 +148,7 @@ export default function Gallery() {
           ) : filteredMedia.length === 0 ? (
             <div className="py-32 md:py-64 flex flex-col items-center justify-center gap-8 md:gap-12 text-center animate-fade-in bg-black/[0.01] border-[8px] md:border-[12px] border-dashed border-black/5 rounded-[48px] md:rounded-[96px] shadow-inner px-4">
                <div className="relative">
-                  <Orbit size={80} strokeWidth={1} className="text-black/[0.03] animate-spin-slow md:w-[120px] md:h-[120px]" />
+                  <Spinner size="large" color="text-primary" />
                   <Layers size={40} strokeWidth={1} className="absolute inset-0 m-auto text-black/10 md:w-[60px] md:h-[60px]" />
                </div>
                <div className="space-y-4 md:space-y-6">

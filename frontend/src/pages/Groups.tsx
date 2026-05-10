@@ -41,7 +41,7 @@ export default function Groups() {
       <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
       <div className="fixed bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,100,150,0.14) 0%, transparent 70%)' }} />
 
-      <main className="flex-1 lg:ml-72 px-4 lg:px-10 pb-24 relative z-10 max-w-7xl mx-auto w-full pt-20">
+      <main className="flex-1 lg:ml-72 px-4 lg:px-10 relative z-10 max-w-7xl mx-auto w-full pt-[calc(5rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))]">
 
         {/* Header */}
         <header className="mb-10" style={{ animation: 'slideUp 0.6s ease both' }}>

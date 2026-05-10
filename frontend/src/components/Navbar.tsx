@@ -80,7 +80,7 @@ export default function Navbar() {
 
       {/* Mobile Top Navigation Bar — Glass Header */}
       {!['/search', '/moments', '/marketplace', '/groups'].some(path => location.pathname.startsWith(path)) && (
-        <header className="lg:hidden fixed top-0 left-0 w-full h-18 bg-white/60 backdrop-blur-3xl border-b border-white/40 flex justify-between items-center z-[1100] px-5 pt-4 pb-4 shadow-sm">
+        <header className="lg:hidden fixed top-0 left-0 w-full bg-white/40 backdrop-blur-3xl flex justify-between items-center z-[1100] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-[#fb7185] rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
               <Sparkles size={20} strokeWidth={2.5} />
@@ -116,8 +116,8 @@ export default function Navbar() {
         className={clsx(
           "lg:hidden fixed bottom-0 left-0 right-0 w-full z-[1000] transition-all duration-500",
           isMoments 
-            ? "h-12 bg-gradient-to-t from-black/80 to-transparent border-none shadow-none" 
-            : "h-14 bg-white/70 backdrop-blur-3xl border-t border-black/[0.04] rounded-t-none shadow-[0_-1px_12px_rgba(0,0,0,0.03)]"
+            ? "pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-black/80 to-transparent border-none" 
+            : "pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))] bg-white/50 backdrop-blur-3xl border-none"
         )}
         style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center' }}
       >

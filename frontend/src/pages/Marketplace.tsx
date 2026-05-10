@@ -141,16 +141,16 @@ export default function Marketplace() {
   return (
     <div className={clsx(
         "flex bg-white min-h-screen text-marketplace-text font-sans",
-        !isInboxView && "pb-24"
+        !isInboxView && "pb-[calc(6rem+env(safe-area-inset-bottom))]"
     )}>
       <Navbar />
 
       <div className="flex-1 lg:ml-72 w-full max-w-screen-md mx-auto shadow-sm min-h-screen bg-white">
         
         {/* 1. FB Style Header */}
-        <header className="sticky top-0 z-40 bg-white border-b border-marketplace-border flex flex-col shadow-sm">
+        <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl flex flex-col transition-all">
           {/* Top Row */}
-          <div className="flex items-center justify-between px-3 py-2.5 min-h-[60px]">
+          <div className="flex items-center justify-between px-3 pt-[env(safe-area-inset-top)] pb-2.5 min-h-[60px]">
             <AnimatePresence mode="wait">
               {!isSearching ? (
                 <motion.div 

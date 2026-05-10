@@ -203,9 +203,9 @@ export default function Dashboard() {
       <Navbar />
       <div className="fixed top-0 left-0 w-full h-full bg-[#fdf2f4] z-[-1]" />
 
-      <main className="flex-1 lg:ml-72 p-0 sm:p-4 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-20 lg:pt-8">
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-4 sm:mt-6 lg:mt-0">
-          <section className="flex flex-col gap-1.5 sm:gap-4">
+      <main className="flex-1 lg:ml-72 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-0.5 lg:mt-0">
+          <section className="flex flex-col gap-[1.5px] sm:gap-1.5">
             {/* COMPOSER */}
             <div className="bg-white rounded-[8px] sm:rounded-[12px] shadow-sm p-4 animate-fade-in border sm:border border-gray-200">
               <div className="flex gap-3 items-center mb-4">
@@ -220,10 +220,10 @@ export default function Dashboard() {
             </div>
 
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
-            <div className="animate-fade-in py-2 px-2 sm:px-0">
-              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white sm:bg-transparent rounded-[8px] sm:rounded-none border border-gray-200 sm:border-none shadow-sm sm:shadow-none">
+              <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar px-2 sm:px-0">
                 {/* Add Story Card */}
-                <div onClick={() => navigate('/afterglow/create')} className="flex-shrink-0 w-[112px] h-[200px] bg-white rounded-lg shadow-md cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98]">
+                <div onClick={() => navigate('/afterglow/create')} className="flex-shrink-0 w-[112px] h-[200px] bg-white rounded-[10px] shadow-md cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98]">
                   <div className="h-[150px] w-full overflow-hidden">
                     <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
                   </div>
@@ -240,7 +240,7 @@ export default function Dashboard() {
                     <div 
                       key={group.user_id}
                       onClick={() => navigate(`/stories/${group.user_id}`)}
-                      className="flex-shrink-0 w-[112px] h-[200px] rounded-lg shadow-md cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
+                      className="flex-shrink-0 w-[112px] h-[200px] rounded-[10px] shadow-md cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
                     >
                       <img src={getAvatarUrl(group.stories[0].media_url || group.avatar_url, group.username)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
                       <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
@@ -269,14 +269,7 @@ export default function Dashboard() {
             </div>
 
             {/* FEED */}
-            <div className="space-y-[3px] sm:space-y-3 pb-48 animate-fade-in">
-              <div className="flex items-center justify-between px-4 mb-2 mt-2">
-                <h2 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Feed</h2>
-                <div className="flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-full text-[11px] font-bold text-red-500 shadow-sm">
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>
-                  LIVE
-                </div>
-              </div>
+            <div className="space-y-[3px] sm:space-y-3 pb-48 animate-fade-in mt-[-8px]">
               <VirtualizedFeed initialPosts={posts} suggestions={suggestions} />
             </div>
           </section>

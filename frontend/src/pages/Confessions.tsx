@@ -214,9 +214,9 @@ export default function Confessions() {
       <main className="flex-1 relative z-10 w-full max-w-[680px] mx-auto min-h-screen flex flex-col pb-28">
 
         {/* ── Sticky Header ── */}
-        <div className="sticky top-0 z-50 bg-[#FBFBFD]/80 backdrop-blur-3xl border-b border-gray-200/20">
+        <div className="sticky top-0 z-50 bg-[#FBFBFD]/40 backdrop-blur-3xl transition-all">
           {/* Top row */}
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pb-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}

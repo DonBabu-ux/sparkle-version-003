@@ -146,7 +146,7 @@ export default function Explore() {
       {/* Main Content Area */}
       <div className="flex-1 lg:ml-72 w-full">
         {/* Sticky Header with Search & Filters */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-4 py-4 md:px-8 shadow-sm">
+        <div className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 md:px-8 transition-all">
           <div className="max-w-5xl mx-auto flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="relative flex-1 group">

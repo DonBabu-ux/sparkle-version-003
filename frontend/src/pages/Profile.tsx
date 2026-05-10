@@ -223,7 +223,7 @@ export default function Profile() {
       {/* Main Header Wrapper */}
 
       {/* Top Navigation Bar with Account Switcher */}
-      <div className="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-black/[0.03] z-[100] flex items-center justify-center px-4">
+      <div className="fixed top-0 left-0 lg:left-72 right-0 bg-white/40 backdrop-blur-3xl z-[100] flex items-center justify-center px-4 pt-[env(safe-area-inset-top)] pb-2 transition-all">
         <div className="relative">
           <button 
             onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
@@ -295,7 +295,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 w-full pt-24 lg:pt-24">
+      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 w-full pt-[calc(5rem+env(safe-area-inset-top))] lg:pt-24 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <div className="max-w-4xl mx-auto">
           <header className="flex flex-col gap-8 mb-12 animate-fade-in w-full">
             {/* Main Header Row: Avatar + Basic Info */}

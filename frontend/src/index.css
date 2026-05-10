@@ -145,23 +145,29 @@
   }
   .animate-float      { animation: float-y 6s ease-in-out infinite; }
 
-  .pt-safe { padding-top: var(--safe-area-inset-top); }
-  .pb-safe { padding-bottom: var(--safe-area-inset-bottom); }
-  .pl-safe { padding-left: var(--safe-area-inset-left); }
-  .pr-safe { padding-right: var(--safe-area-inset-right); }
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pl-safe { padding-left: env(safe-area-inset-left, 0px); }
+  .pr-safe { padding-right: env(safe-area-inset-right, 0px); }
   
-  .mt-safe { margin-top: var(--safe-area-inset-top); }
-  .mb-safe { margin-bottom: var(--safe-area-inset-bottom); }
+  .mt-safe { margin-top: env(safe-area-inset-top, 0px); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
 
-  .h-screen-safe { height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom)); }
+  .h-screen-safe { height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
 }
 
 /* Global Reset & Base */
+html {
+  background: #fff0f4;
+}
+
 body {
   @apply text-[#000000] antialiased selection:bg-pink-400/20 font-medium;
   background: linear-gradient(135deg, #fff0f4 0%, #fff9fa 55%, #fef0f5 100%);
   background-attachment: fixed;
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 /* Global ambient pink orbs — injected on every page via ::before/::after on #root */

@@ -275,7 +275,7 @@ export default function GroupDetail() {
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-4">
               <h3 className="text-base font-black text-gray-900 uppercase tracking-tighter italic mb-4">About</h3>
               <p className="text-sm text-gray-600 leading-relaxed mb-6 font-medium">
                 {group.description || 'Welcome to our community!'}
@@ -299,7 +299,7 @@ export default function GroupDetail() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-black text-gray-900 uppercase tracking-tighter italic">Members</h3>
                 <button onClick={() => setActiveTab('members')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">See all</button>
@@ -329,7 +329,7 @@ export default function GroupDetail() {
                 {isMember || group.is_public ? (
                   <>
                     {isMember && (
-                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 overflow-hidden">
+                      <div className="bg-white rounded-[10px] shadow-sm border border-gray-100 p-4 overflow-hidden">
                         <div className="flex items-center gap-3 mb-4">
                           <Avatar 
                             src={user?.avatar_url} 
@@ -339,21 +339,21 @@ export default function GroupDetail() {
                           />
                           <button 
                             onClick={() => { setPostModalView('post'); setShowPostModal(true); }}
-                            className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-400 text-left px-4 py-3 rounded-xl font-bold text-sm transition-all"
+                            className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-400 text-left px-4 py-3 rounded-[10px] font-bold text-sm transition-all"
                           >
                             What's on your mind?
                           </button>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          <button onClick={() => { setPostModalView('post'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-xl transition-all group/btn border border-transparent hover:border-primary/20">
+                          <button onClick={() => { setPostModalView('post'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <ImageIcon size={16} className="text-primary" />
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover/btn:text-primary">Photo</span>
                           </button>
-                          <button onClick={() => setShowInviteModal(true)} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-xl transition-all group/btn border border-transparent hover:border-primary/20">
+                          <button onClick={() => setShowInviteModal(true)} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <UserPlus size={16} className="text-primary" />
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover/btn:text-primary">Invite</span>
                           </button>
-                          <button onClick={() => { setPostModalView('feeling'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-xl transition-all group/btn border border-transparent hover:border-primary/20">
+                          <button onClick={() => { setPostModalView('feeling'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <Activity size={16} className="text-primary" />
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover/btn:text-primary">Feeling</span>
                           </button>
@@ -390,7 +390,7 @@ export default function GroupDetail() {
             )}
 
             {activeTab === 'members' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-50">
                    <h3 className="text-base font-black text-gray-900 uppercase tracking-tighter italic">Members ({members.length})</h3>
                    <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
@@ -427,7 +427,7 @@ export default function GroupDetail() {
             )}
             
             {activeTab === 'about' && (
-               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-8 text-center sm:text-left">
+               <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-6 space-y-8 text-center sm:text-left">
                   <div>
                      <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 leading-none">The Manifesto</h4>
                      <p className="text-base text-gray-600 leading-relaxed font-medium">

@@ -49,6 +49,19 @@ class RedisService {
     }
 
     /**
+     * Get multiple values from Redis (Optimized Batching)
+     */
+    async mget(...keys) {
+        if (!this.isEnabled) return keys.map(() => null);
+        try {
+            return await this.client.mget(...keys);
+        } catch (error) {
+            logger.error(`Redis MGet Error [${keys.length} keys]:`, error.message);
+            return keys.map(() => null);
+        }
+    }
+
+    /**
      * Set a value in Redis with optional TTL (seconds) and options (like NX)
      */
     async set(key, value, ttlOrOptions = null, maybeNx = null) {

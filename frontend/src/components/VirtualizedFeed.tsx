@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useDeviceSeed } from "../hooks/useDeviceSeed";
 import Spinner from "./ui/Spinner";
 import { Orbit } from "lucide-react";
+import ModernOfflineState from "./ui/ModernOfflineState";
 
 const LIMIT = 10;
 
@@ -254,22 +255,13 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   // ── Empty state ─────────────────────────────────────────────────────────────
   if (posts.length === 0 && !loading) {
     return (
-      <div className="py-48 bg-white/20 border-4 border-dashed border-white rounded-[64px] flex flex-col items-center justify-center gap-10 text-center shadow-inner mx-4">
-        <SpyIcon size={120} strokeWidth={1} className="text-black/5 animate-bounce-slow" />
-        <div className="space-y-6">
-          <h3 className="text-4xl font-black text-black/10 uppercase tracking-tighter italic leading-none">
-            No Posts Yet.
-          </h3>
-          <p className="text-[10px] font-black text-black/30 uppercase tracking-[0.3em] max-w-xs mx-auto leading-loose italic">
-            Follow some people to see their posts here.
-          </p>
-          <button
-            onClick={() => navigate("/connect")}
-            className="mt-8 px-12 py-5 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 italic"
-          >
-            Find Friends
-          </button>
-        </div>
+      <div className="py-12">
+        <ModernOfflineState 
+          type="empty"
+          title="Campus is Quiet"
+          message="Follow some people or join some circles to see what's happening on campus!"
+          onRetry={() => fetchFeed(true)}
+        />
       </div>
     );
   }

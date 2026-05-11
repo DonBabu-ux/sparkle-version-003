@@ -32,6 +32,7 @@ import {
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import Spinner from '../components/ui/Spinner';
+import ModernOfflineState from '../components/ui/ModernOfflineState';
 
 export default function Profile() {
   const { username } = useParams();
@@ -199,11 +200,13 @@ export default function Profile() {
     return (
       <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
         <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 text-center p-12 animate-fade-in">
-           <Orbit size={120} strokeWidth={1} className="text-black/5" />
-           <h2 className="text-5xl font-black text-black mt-8 mb-6 tracking-tighter italic uppercase">Signal Lost.</h2>
-           <p className="text-sm font-bold text-black/40 max-w-sm mx-auto mb-10 uppercase tracking-widest leading-loose">This signature does not exist in our village directory.</p>
-           <button onClick={() => navigate('/')} className="px-12 py-5 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-2xl shadow-primary/30 transition-all hover:scale-105 active:scale-95 italic">Go Home</button>
+        <div className="flex-1 flex items-center justify-center lg:ml-72 p-12">
+           <ModernOfflineState 
+             type="error"
+             title="Ghost Profile"
+             message="This sparkle account seems to have vanished or never existed in our campus directory."
+             onRetry={() => window.location.reload()}
+           />
         </div>
       </div>
     );
@@ -582,16 +585,16 @@ export default function Profile() {
                 </div>
             ))
           ) : (
-            <div className="col-span-full py-32 flex flex-col items-center text-center gap-8 animate-fade-in opacity-40">
-               <Orbit size={80} strokeWidth={1.5} className="text-black animate-spin-slow" />
-               <div className="space-y-4">
-                  <h3 className="text-2xl font-black text-black italic uppercase tracking-tighter">
-                     {activeTab === 'posts' ? 'Static Void.' : activeTab === 'reels' ? 'Motion Blank.' : 'Vault Empty.'}
-                  </h3>
-                   <p className="text-[9px] font-black text-black uppercase tracking-[0.2em] max-w-xs mx-auto leading-relaxed">
-                     {activeTab === 'posts' ? 'No signals captured in this frequency.' : activeTab === 'reels' ? 'This frequency lacks visual motion.' : 'Empty memory space detected.'}
-                   </p>
-               </div>
+            <div className="col-span-full py-12">
+               <ModernOfflineState 
+                 type="empty"
+                 title={activeTab === 'posts' ? "Silence is Golden" : activeTab === 'reels' ? "No Motion" : "Vault Empty"}
+                 message={activeTab === 'posts' 
+                   ? "This user hasn't sparked any posts yet. Stay tuned!" 
+                   : activeTab === 'reels' ? "No moments have been captured here yet."
+                   : "Nothing saved in this collection yet."
+                 }
+               />
             </div>
           )}
         </div>

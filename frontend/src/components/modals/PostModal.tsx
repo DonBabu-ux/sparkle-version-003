@@ -6,6 +6,7 @@ import {
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
 import { useUserStore } from '../../store/userStore';
+import { useModalStore } from '../../store/modalStore';
 import Spinner from '../ui/Spinner';
 
 interface PostModalProps {
@@ -42,6 +43,8 @@ const POST_TYPES = [
 
 export default function PostModal({ onClose, onSuccess, editPost }: PostModalProps) {
   const { user } = useUserStore();
+  const { modalData } = useModalStore();
+  const initialFiles = (modalData as any)?.initialFiles || [];
 
   const [content, setContent] = useState(editPost?.content || '');
   const [postType, setPostType] = useState(editPost?.post_type || 'public');
@@ -49,9 +52,9 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
   const [location, setLocation] = useState(editPost?.location || '');
   const [showLocationInput, setShowLocationInput] = useState(!!editPost?.location);
   const [showEmojiHint, setShowEmojiHint] = useState(false);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>(initialFiles);
   const [previews, setPreviews] = useState<string[]>(
-    editPost?.media_url ? editPost.media_url.split(',') : []
+    editPost?.media_url ? editPost.media_url.split(',') : initialFiles.map((f: File) => URL.createObjectURL(f))
   );
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);

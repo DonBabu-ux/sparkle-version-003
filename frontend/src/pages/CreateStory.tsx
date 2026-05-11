@@ -128,7 +128,13 @@ export default function CreateStory() {
           if (photo?.webPath) {
               setPreviewUrl(photo.webPath);
               const blob = await CameraService.convertUriToBlob(photo.webPath);
-              setFile(new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+              // FORCE STRICT MIME-TYPE DETECTION
+              const mimeType = blob.type || 'image/jpeg';
+              const extension = mimeType.split('/')[1] || 'jpg';
+              const fileObj = new File([blob], `capture-${Date.now()}.${extension}`, { type: mimeType });
+              
+              console.log('📸 Camera captured file:', fileObj.name, '| Mime:', fileObj.type, '| Size:', fileObj.size);
+              setFile(fileObj);
               setPhase('editor');
           }
       } catch (e) {
@@ -207,24 +213,49 @@ export default function CreateStory() {
 
   const handleSubmit = async () => {
       if (!file && !selectedMusic && phase !== 'text_story') return;
+      console.log('🚀 Submission started. Mode:', mode, 'File:', file?.name, 'Type:', file?.type, 'Size:', file?.size);
       setUploading(true);
       try {
           const formData = new FormData();
-          if (file) formData.append('media', file);
+          if (file) {
+              console.log('📎 Appending media to FormData:', file.name);
+              formData.append('media', file);
+              
+              // STRICT ATTACHMENT CHECK (Requirement 12.5)
+              const attached = formData.get('media');
+              console.log('🔍 Post-Attachment Check:', attached instanceof File ? '✅ File Attached' : '❌ Attachment Failed!', attached);
+          }
+          
           if (phase === 'text_story') {
               formData.append('text_content', textStoryContent);
               formData.append('text_config', JSON.stringify({ palette: PALETTES[activePalette], font: FONTS[activeFont], align: textAlign, color: selectedTextColor || PALETTES[activePalette].text, highlight: textHighlight }));
           }
-          formData.append('type', phase === 'text_story' ? 'text' : mode);
-          formData.append('stickers', JSON.stringify(stickers));
-          formData.append('parent_story_id', parentId || '');
-          if (selectedMusic) formData.append('music_info', JSON.stringify(selectedMusic));
-          await api.post('/stories', formData);
-          // Signal dashboard to force-refresh stories on next render
-          sessionStorage.setItem('sparkle_story_posted', '1');
-          navigate('/dashboard');
+
+          // SMART ROUTING based on mode
+          if (mode === 'story') {
+              formData.append('type', phase === 'text_story' ? 'text' : 'story');
+              formData.append('stickers', JSON.stringify(stickers));
+              formData.append('parent_story_id', parentId || '');
+              if (selectedMusic) formData.append('music_info', JSON.stringify(selectedMusic));
+              await api.post('/stories', formData);
+              sessionStorage.setItem('sparkle_story_posted', '1');
+              navigate('/dashboard');
+          } else if (mode === 'post') {
+              formData.append('content', editorText || textStoryContent || '');
+              formData.append('post_type', 'public');
+              // Ensure we are using the 'media' field name consistent with postUpload
+              await api.post('/posts', formData);
+              navigate('/dashboard');
+          } else if (mode === 'reel') {
+              formData.append('caption', editorText || textStoryContent || '');
+              await api.post('/moments', formData);
+              navigate('/moments');
+          } else if (mode === 'live') {
+              alert('Live streaming is coming soon to Sparkle Matrix! 🚀');
+          }
       } catch (e) {
           console.error('Upload failed', e);
+          alert('Upload failed. Please check your connection.');
       } finally {
           setUploading(false);
       }
@@ -343,7 +374,10 @@ export default function CreateStory() {
                       <div className="absolute bottom-0 left-0 right-0 p-10 pb-20 flex flex-col items-center gap-10 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
                           <div className="flex items-center gap-14 z-50">
                             <button onClick={handleGalleryClick} className="w-12 h-12 rounded-xl bg-white/10 border-2 border-white/20 flex items-center justify-center active:scale-90 transition-all"><ImageIcon size={20} className="text-white/40" /></button>
-                            <button onMouseDown={handlePress} onMouseUp={handleRelease} className="relative w-24 h-24 flex items-center justify-center group"><div className={`absolute inset-0 rounded-full border-[6px] border-white transition-all ${isRecording ? 'scale-125 border-rose-500' : ''}`} /><div className={`w-18 h-18 rounded-full bg-white transition-all ${isRecording ? 'scale-50 rounded-2xl bg-rose-500' : ''}`} /></button>
+                             <button onMouseDown={handlePress} onMouseUp={handleRelease} className="relative w-24 h-24 flex items-center justify-center group">
+                                <div className={`absolute inset-0 rounded-full border-[6px] transition-all ${isRecording ? 'scale-125 border-rose-500' : mode === 'post' ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : mode === 'reel' ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'border-white'}`} />
+                                <div className={`w-18 h-18 rounded-full transition-all ${isRecording ? 'scale-50 rounded-2xl bg-rose-500' : mode === 'post' ? 'bg-blue-500' : mode === 'reel' ? 'bg-rose-500' : 'bg-white'}`} />
+                             </button>
                             <button onClick={() => setCameraType(cameraType === 'back' ? 'front' : 'back')} className="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white"><RotateCw size={22} /></button>
                           </div>
                           <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-2 px-24 mask-fade-edges relative">{MODES.map(m => (<button key={m} onClick={() => setMode(m)} className={`text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${mode === m ? 'text-white scale-125' : 'text-white/30'}`}>{m}</button>))}</div>
@@ -493,7 +527,14 @@ export default function CreateStory() {
                   <div className="absolute bottom-12 left-0 right-0 px-10 flex items-center justify-between z-[350]">
                       <button onClick={() => setPhase('camera')} className="h-16 w-16 bg-white/10 backdrop-blur-3xl border border-white/10 rounded-full flex items-center justify-center text-white active:scale-90 transition-all"><ChevronLeft size={24} /></button>
                       <button onClick={handleSubmit} disabled={uploading} className="h-16 flex-1 ml-6 bg-white text-black rounded-full flex items-center justify-center gap-3 active:scale-95 transition-all shadow-2xl font-black italic uppercase tracking-tight">
-                          {uploading ? <Spinner size="medium" color="text-primary" /> : <><span className="text-[15px]">Push to Story</span><Send size={18} strokeWidth={3} /></>}
+                          {uploading ? <Spinner size="medium" color="text-primary" /> : (
+                            <>
+                              <span className="text-[15px]">
+                                {mode === 'story' ? 'Push to Story' : mode === 'post' ? 'Post to Feed' : mode === 'reel' ? 'Share Reel' : 'Go Live'}
+                              </span>
+                              <Send size={18} strokeWidth={3} />
+                            </>
+                          )}
                       </button>
                   </div>
               </motion.div>

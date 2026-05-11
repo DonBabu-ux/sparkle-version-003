@@ -8,6 +8,13 @@ import { useUserStore } from '../store/userStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
+import { getMediaUrl } from '../utils/imageUtils';
+
+const SOCKET_URL = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') 
+    : (window.location.protocol === 'capacitor:' 
+        ? 'https://sparkle-version-003-1-f4v3.onrender.com' 
+        : window.location.origin);
 
 const EMOJI_LIST = ['😊', '😂', '🥰', '😍', '😒', '😭', '😩', '😔', '😘', '☺️', '😁', '🥳', '😎', '😡', '🤔', '👍', '❤️', '🔥', '✨', '🙌', '💯', '🙏', '🤝', '💰', '🏠', '🚗', '📦', '🎁', '🛒'];
 
@@ -177,7 +184,7 @@ const MarketplaceChat = () => {
   useEffect(() => {
     if (!user || !token || !conversationId) return;
 
-    const newSocket = io(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/marketplace`, {
+    const newSocket = io(`${SOCKET_URL}/marketplace`, {
       auth: { token, userId: user.user_id },
       transports: ['websocket']
     });
@@ -413,7 +420,7 @@ const MarketplaceChat = () => {
           <div className="flex items-center gap-3">
             <div className="relative">
               <img 
-                src={opponentAvatar || `https://ui-avatars.com/api/?name=${opponentName}&background=E2E8F0&color=94A3B8`} 
+                src={getMediaUrl(opponentAvatar) || `https://ui-avatars.com/api/?name=${opponentName}&background=E2E8F0&color=94A3B8`} 
                 alt={opponentName} 
                 className="w-10 h-10 rounded-full object-cover border border-gray-200 bg-gray-100"
               />
@@ -559,7 +566,7 @@ const MarketplaceChat = () => {
         <div className="flex items-center gap-3">
           <div className="w-14 h-14 bg-gray-50 rounded-md flex items-center justify-center text-gray-300 shadow-inner border border-gray-100 overflow-hidden">
             {conversation.listing_image ? (
-              <img src={conversation.listing_image} alt={conversation.listing_title} className="w-full h-full object-cover" />
+              <img src={getMediaUrl(conversation.listing_image)} alt={conversation.listing_title} className="w-full h-full object-cover" />
             ) : (
               <ImageIcon size={24} />
             )}

@@ -14,7 +14,12 @@ router.get('/new', authMiddleware, feedRateLimiter, feedController.getNewPosts);
 router.get('/liked', authMiddleware, feedRateLimiter, postController.getLikedPosts);
 router.get('/saved', authMiddleware, feedRateLimiter, postController.getSavedPosts);
 router.get('/:id', authMiddleware, validate(postIdSchema, 'params'), postController.getPost);
-router.post('/', authMiddleware, mutationRateLimiter, postUpload.array('media', 10), validate(createPostSchema), postController.createPost);
+router.post('/', authMiddleware, mutationRateLimiter, postUpload.array('media', 10), (req, res, next) => {
+    console.log('📬 Post Upload Request Received');
+    console.log('📦 Body:', req.body);
+    console.log('📎 Files:', req.files?.map(f => ({ name: f.originalname, field: f.fieldname, type: f.mimetype, path: f.path })));
+    next();
+}, validate(createPostSchema), postController.createPost);
 router.post('/:id/spark', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sparkPost);
 router.post('/:id/save', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.savePost);
 router.get('/:id/comments', authMiddleware, validate(postIdSchema, 'params'), postController.getComments);

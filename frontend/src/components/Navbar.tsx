@@ -143,10 +143,19 @@ export default function Navbar() {
         </Link>
 
         {/* Col 3 — Moments */}
-        <Link to="/moments" className="relative flex items-center justify-center h-full">
+        <div
+          onClick={() => {
+            if (location.pathname.startsWith('/moments')) {
+              window.dispatchEvent(new CustomEvent('refreshMomentsFeed'));
+            } else {
+              navigate('/moments');
+            }
+          }}
+          className="relative flex items-center justify-center h-full cursor-pointer"
+        >
           {isActive('/moments') && <motion.div layoutId="nav-notch" className={clsx("absolute inset-x-1 inset-y-1 rounded-2xl -z-10", isMoments ? "bg-white/30" : "bg-primary/20")} transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <PlayCircle size={22} strokeWidth={isActive('/moments') ? 2.5 : 1.8} className={isActive('/moments') ? (isMoments ? 'text-white' : 'text-primary') : (isMoments ? 'text-white/60' : 'text-slate-400')} />
-        </Link>
+        </div>
 
         {/* Col 4 — Plus (column 4 of 7 = exact center) */}
         <div className="flex items-center justify-center h-full cursor-pointer" onClick={() => setShowMobileCreate(!showMobileCreate)}>

@@ -12,6 +12,34 @@ const safeParse = (val) => {
 };
 
 /**
+ * Deterministic-but-unique per-user float in [0,1]
+ * Breaks score ties differently for every user.
+ */
+const userSeed = (userId) => {
+    let h = 0;
+    for (let i = 0; i < userId.length; i++) {
+        h = (Math.imul(31, h) + userId.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h % 1000) / 1000;
+};
+
+/**
+ * Fisher-Yates shuffle within score bands so items with similar
+ * scores appear in a different order for every user.
+ */
+const bandShuffle = (arr, bandSize = 5) => {
+    const out = [...arr];
+    for (let i = 0; i < out.length; i += bandSize) {
+        const end = Math.min(i + bandSize, out.length);
+        for (let j = end - 1; j > i; j--) {
+            const k = i + Math.floor(Math.random() * (j - i + 1));
+            [out[j], out[k]] = [out[k], out[j]];
+        }
+    }
+    return out;
+};
+
+/**
  * Moments Ranking Service — Production Speed Edition
  *
  * Key optimizations:
@@ -72,7 +100,7 @@ class MomentsRankingService {
                                / (COALESCE(m.view_count, 0) + 10.0)) * IFNULL(m.completion_rate, 1.0) * IFNULL(m.quality_score, 1.0) as base_score
                         FROM moments m
                         JOIN users u ON m.user_id = u.user_id
-                        WHERE m.category = ?
+                        WHERE LOWER(m.category) = LOWER(?)
                         ORDER BY m.created_at DESC LIMIT 100
                     `, [cat])
                 )
@@ -120,10 +148,11 @@ class MomentsRankingService {
      *  - Fast-path fallback when Redis is cold
      */
     async getRankedFeed(userId, limit = 8, options = {}) {
-        const { query, offset = 0 } = options;
+        const { query, offset = 0, refresh = false } = options;
 
         // ── Per-user result cache (skip full pipeline on warm re-opens) ─────
-        if (!query && offset === 0) {
+        // Bypass cache if the client explicitly asked for a refresh
+        if (!query && offset === 0 && !refresh) {
             const cacheKey = `ranked_feed:${userId}`;
             const cached = await redis.get(cacheKey);
             if (cached) {
@@ -147,17 +176,36 @@ class MomentsRankingService {
             this.getFollowingPool(userId)
         ]);
 
-        const candidates = await this._retrieveCandidates(userId, query, offset, sivProfile, followingPool);
-        const scoredCandidates = this._scoreCandidates(userId, candidates, query, sivProfile, followingPool);
-        const reranked = this._rerank(scoredCandidates, limit);
-        const finalBatch = await this._applyExplorationAndDeduplicate(userId, reranked, limit, !!query);
+        // RACE: Set a 2.5s timeout for the entire ranking process to ensure snappy response
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Ranking Timeout')), 2500));
+        
+        try {
+            const result = await Promise.race([
+                (async () => {
+                    const candidates = await this._retrieveCandidates(userId, query, offset, sivProfile, followingPool);
+                    const scoredCandidates = this._scoreCandidates(userId, candidates, query, sivProfile, followingPool);
+                    const reranked = this._rerank(scoredCandidates, limit);
+                    return await this._applyExplorationAndDeduplicate(userId, reranked, limit, !!query);
+                })(),
+                timeoutPromise
+            ]);
 
-        // ── Cache the result for 30 seconds ──────────────────────────────────
-        if (!query && offset === 0 && finalBatch.length > 0) {
-            redis.set(`ranked_feed:${userId}`, JSON.stringify(finalBatch), 30).catch(() => {});
+            // ── Cache the result for 30 seconds ──────────────────────────────────
+            if (!query && offset === 0 && result.length > 0) {
+                redis.set(`ranked_feed:${userId}`, JSON.stringify(result), 30).catch(() => {});
+            }
+
+            return result;
+        } catch (error) {
+            console.warn(`⚠️ Moments Ranking Optimization: ${error.message}. Using fast-path fallback.`);
+            // FAST PATH: Direct DB fallback if ranking is too slow
+            const [fallback] = await pool.query(`
+                SELECT m.*, u.username, u.name as user_name, u.avatar_url
+                FROM moments m JOIN users u ON m.user_id = u.user_id
+                ORDER BY m.created_at DESC LIMIT ? OFFSET ?
+            `, [limit, offset]);
+            return fallback;
         }
-
-        return finalBatch;
     }
 
     /** Background refresh so the next open is instant too */
@@ -232,6 +280,8 @@ class MomentsRankingService {
      */
     _scoreCandidates(userId, candidates, query, sivProfile, followingPool) {
         const followingIds = new Set(followingPool.map(f => f.moment_id));
+        const uSeed = userSeed(userId); // unique per user, consistent within session
+        const hasSIV  = Object.keys(sivProfile).length > 0;
 
         return candidates.map(m => {
             let baseScore = Number(m.base_score) || 1.0;
@@ -251,7 +301,15 @@ class MomentsRankingService {
             const ageHours = (Date.now() - new Date(m.created_at).getTime()) / (1000 * 60 * 60);
             const timeDecay = 1.0 / Math.pow(Math.max(ageHours, 0) + 2, 0.8);
 
-            const finalScore = (baseScore * interestMatch * affinityBoost * timeDecay) + (Math.random() * 0.05);
+            // Exploration noise:
+            // - Cold start (no SIV): high noise (0.3) → diverse feeds across users
+            // - Warm session (SIV active): lower noise (0.1) → personalization dominates
+            const noiseRange = hasSIV ? 0.1 : 0.3;
+            // uSeed shifts the noise window per-user so two users with identical
+            // scores see a different ordering even from the same candidate pool
+            const explorationNoise = (Math.random() * noiseRange) + (uSeed * 0.05);
+
+            const finalScore = (baseScore * interestMatch * affinityBoost * timeDecay) + explorationNoise;
 
             return {
                 ...m,
@@ -262,13 +320,19 @@ class MomentsRankingService {
     }
 
     _rerank(candidates, limit) {
+        // Sort by score descending
         candidates.sort((a, b) => b.exploration_score - a.exploration_score);
+
+        // Shuffle within 5-item score bands so same-score items appear
+        // in a random order (different every request, different per user
+        // because noise is user-seeded)
+        const shuffled = bandShuffle(candidates, 5);
 
         const reranked = [];
         const seenCreators = new Set();
         const backlogged = [];
 
-        for (const c of candidates) {
+        for (const c of shuffled) {
             if (!seenCreators.has(c.user_id)) {
                 reranked.push(c);
                 seenCreators.add(c.user_id);
@@ -291,7 +355,9 @@ class MomentsRankingService {
 
         let unique = candidates.filter(c => !seenSet.has(c.moment_id));
 
-        if (unique.length === 0 && candidates.length > 0) {
+        // SOFT RESET: If we have very few unique items left, recycle the seen set
+        if (unique.length < Math.floor(limit / 2) && candidates.length > 0) {
+            console.log(`♻️ Soft resetting seen videos for user ${userId} to maintain feed density`);
             unique = candidates;
             await redis.del(`seen_video_set:user:${userId}`);
         }
@@ -300,17 +366,15 @@ class MomentsRankingService {
         const nonAligned = unique.filter(c => !c.is_aligned);
 
         const alignedCount = Math.floor(limit * 0.7);
-        const adjacentCount = Math.floor(limit * 0.2);
-        const randomCount = limit - alignedCount - adjacentCount;
-
         const finalBatch = [
             ...aligned.slice(0, alignedCount),
-            ...nonAligned.slice(0, adjacentCount),
-            ...nonAligned.sort(() => Math.random() - 0.5).slice(0, randomCount)
+            ...nonAligned.slice(0, limit - Math.min(aligned.length, alignedCount))
         ];
 
+        // Ensure we strictly meet the limit if possible
         if (finalBatch.length < limit && unique.length > finalBatch.length) {
-            const remaining = unique.filter(u => !finalBatch.find(f => f.moment_id === u.moment_id));
+            const seenIds = new Set(finalBatch.map(f => f.moment_id));
+            const remaining = unique.filter(u => !seenIds.has(u.moment_id));
             finalBatch.push(...remaining.slice(0, limit - finalBatch.length));
         }
 

@@ -560,14 +560,14 @@ class Post {
             // Fallback if cron job hasn't run or Redis is down
             if (!candidatePool || candidatePool.length === 0) {
                 const [fallbackPosts] = await pool.query(`
-                    SELECT p.*, u.username, u.name as user_name, u.avatar_url,
+                    SELECT p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus, 
+                           p.group_id, p.location, p.created_at, p.category,
+                           u.username, u.name as user_name, u.avatar_url,
                            u.campus as user_affiliation, u.is_private, u.profile_visibility,
                            COALESCE(p.spark_count, 0) as sparks,
                            COALESCE(p.comment_count, 0) as comments,
                            COALESCE(p.share_count, 0) as shares,
-                           COALESCE(p.view_count, 0) as views,
-                           (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
-                            FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
+                           COALESCE(p.view_count, 0) as views
                     FROM posts p JOIN users u ON p.user_id = u.user_id
                     WHERE p.created_at > NOW() - INTERVAL 30 DAY
                     AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
@@ -614,7 +614,7 @@ class Post {
                 // If it's the user's own post and it's brand new (last 5 mins), pin it to top
                 if (post.user_id === currentUserId && offsetNum === 0 && !cursor) {
                     const postAgeMins = (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60);
-                    if (postAgeMins < 5) {
+                    if (postAgeMins < 1) {
                         if (!myLatestPost || new Date(post.created_at) > new Date(myLatestPost.created_at)) {
                             myLatestPost = post;
                         }
@@ -701,17 +701,34 @@ class Post {
             
             const limitNum = Number(limit) || 10;
             const offsetNum = Number(offset) || 0;
-            const posts = scoredPosts.slice(offsetNum, offsetNum + limitNum);
+            const finalBatch = scoredPosts.slice(offsetNum, offsetNum + limitNum);
             
-            // 3. DIVERSITY LAYER (Post-Processing)
-            let filteredPosts = (posts || []).map(p => ({
-                ...p,
-                is_sparked: sparkedIds.has(p.post_id) ? 1 : 0
-            }));
-            
+            // 3. Hydrate final batch (Fetch media only for what we actually show)
+            const finalIds = finalBatch.map(p => p.post_id);
+            if (finalIds.length > 0) {
+                const [mediaFiles] = await pool.query(`
+                    SELECT post_id, media_url as url, media_type as type 
+                    FROM post_media 
+                    WHERE post_id IN (${finalIds.map(() => '?').join(',')})
+                    ORDER BY post_id, upload_order ASC
+                `, finalIds).catch(() => [[]]);
+                
+                const mediaMap = {};
+                mediaFiles.forEach(m => {
+                    if (!mediaMap[m.post_id]) mediaMap[m.post_id] = [];
+                    mediaMap[m.post_id].push(m);
+                });
+
+                finalBatch.forEach(p => {
+                    p.media_files = mediaMap[p.post_id] || [];
+                    p.is_sparked = sparkedIds.has(p.post_id) ? 1 : 0;
+                    p.is_followed = followingIds.has(p.user_id);
+                });
+            }
+
             let finalResults = [];
             let lastCreatorId = null;
-            let pool_posts = [...filteredPosts];
+            let pool_posts = [...finalBatch];
             
             while (pool_posts.length > 0) {
                 let index = pool_posts.findIndex(p => p.user_id !== lastCreatorId);

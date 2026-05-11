@@ -6,6 +6,7 @@ import api from '../api/api';
 import CountdownTimer from '../components/ui/CountdownTimer';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
+import ModernOfflineState from '../components/ui/ModernOfflineState';
 
 interface PollOption {
   option_id: string;
@@ -182,13 +183,13 @@ export default function Polls() {
               ))}
             </div>
           ) : polls.length === 0 ? (
-            <div className="py-20 flex flex-col items-center justify-center text-center gap-6 bg-white/40 backdrop-blur-3xl border-2 border-dashed border-white rounded-3xl shadow-lg shadow-primary/5 animate-fade-in">
-               <Orbit size={64} strokeWidth={1.5} className="text-primary/20 animate-spin-slow" />
-               <div className="space-y-4 px-6">
-                  <h3 className="text-2xl font-black text-black/40 uppercase tracking-tight">Silent Frequency.</h3>
-                  <p className="text-xs font-bold text-black/40 uppercase tracking-wider max-w-xs mx-auto">No active polls found. Be the first to initiate a consensus harmonic in your sector.</p>
-                  <button onClick={() => setActiveModal('poll', fetchPolls)} className="mt-4 px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full font-bold uppercase tracking-wide hover:bg-primary hover:text-white transition-all text-xs">Start Broadcast</button>
-               </div>
+            <div className="py-20">
+               <ModernOfflineState 
+                 type="empty"
+                 title="Consensus Needed"
+                 message="No active polls found in this frequency. Be the first to spark a conversation and gather the village's opinion!"
+                 onRetry={() => fetchPolls(false)}
+               />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-24">

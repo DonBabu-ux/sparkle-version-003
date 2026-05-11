@@ -4,6 +4,7 @@ import { Play, MessageCircle, Heart, Search, Filter } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
+import ModernOfflineState from '../components/ui/ModernOfflineState';
 
 interface ExploreItem {
   id: string;
@@ -192,18 +193,13 @@ export default function Explore() {
               ))}
             </div>
           ) : mediaItems.length === 0 ? (
-            <div className="py-40 flex flex-col items-center justify-center text-center">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <Search size={40} className="text-gray-300" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">No Content Found</h3>
-              <p className="text-gray-500 max-w-sm">We couldn't find any posts for this category right now. Try refreshing.</p>
-              <button 
-                onClick={() => fetchExploreMedia(1)}
-                className="mt-8 px-8 py-3 bg-primary text-white rounded-full font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
-              >
-                Refresh Explore
-              </button>
+            <div className="py-20">
+               <ModernOfflineState 
+                 type="empty"
+                 title="Discovery Silence"
+                 message="We couldn't find any sparks in this frequency right now. Try a different category or refresh!"
+                 onRetry={() => fetchExploreMedia(1)}
+               />
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-1 md:gap-6 pb-24">

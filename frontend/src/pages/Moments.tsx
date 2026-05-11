@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Heart, MessageCircle, Share2, BookmarkCheck, 
   Play, Send, X, Search, History,
-  Volume2, VolumeX, Loader2, Sparkles, Orbit
+  Volume2, VolumeX, Loader2, Sparkles, Eye, Orbit
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,7 +12,9 @@ import MomentShareModal from '../components/modals/MomentShareModal';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { trackingService } from '../services/TrackingService';
+import { getMediaUrl } from '../utils/imageUtils';
 import clsx from 'clsx';
+import ModernOfflineState from '../components/ui/ModernOfflineState';
 
 interface Comment {
   comment_id: string;
@@ -43,13 +45,14 @@ interface Moment {
   is_liked?: boolean;
   is_saved?: boolean;
   is_following?: boolean;
+  user_id?: string;
 }
 
 const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: string) => void }) => {
   return (
     <div className="flex gap-3 mb-5 group animate-fade-in">
       <img 
-        src={comment.avatar_url || '/uploads/avatars/default.png'} 
+        src={getMediaUrl(comment.avatar_url) || '/uploads/avatars/default.png'} 
         className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" 
         alt={comment.username}
       />
@@ -175,7 +178,8 @@ const ReelItem = ({
   };
 
   // Only load src when this card is active or immediately adjacent (preload 1 ahead)
-  const mediaSrc = isNearActive ? (moment.video_url || moment.media_url) : undefined;
+  const rawSrc = isNearActive ? (moment.video_url || moment.media_url) : undefined;
+  const mediaSrc = getMediaUrl(rawSrc);
   const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!(moment.video_url || moment.media_url)?.match(/\.(mp4|webm|ogg|quicktime|mov)$/i);
   // NOTE: TikTok iframes cannot be programmatically paused — we never embed them.
   // Treat TikTok URLs as opaque videos (or show a thumbnail). This prevents
@@ -215,7 +219,7 @@ const ReelItem = ({
           {isVideo ? (
             <video 
               ref={videoRef}
-              src={mediaSrc} 
+              src={mediaSrc || undefined} 
               poster={moment.thumbnail_url}
               loop
               muted={muted}
@@ -225,7 +229,7 @@ const ReelItem = ({
             />
           ) : (
             <img 
-              src={mediaSrc || moment.thumbnail_url} 
+              src={mediaSrc || moment.thumbnail_url || undefined} 
               alt="Moment" 
               className="w-full h-full object-contain pointer-events-none"
             />
@@ -267,17 +271,17 @@ const ReelItem = ({
       </div>
 
       {/* Side Actions (Rationalized for mobile) */}
-      <div className="absolute right-3 bottom-24 flex flex-col items-center gap-4 z-20">
+      <div className="absolute right-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-4 z-20">
         <div className="relative mb-2 group/avatar">
           <img 
-            src={moment.avatar_url || '/uploads/avatars/default.png'} 
+            src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/default.png'} 
             className="w-11 h-11 rounded-full border-2 border-white object-cover cursor-pointer shadow-xl transition-all group-hover/avatar:scale-110" 
             alt=""
             onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}
           />
           {!moment.is_following && (
             <button 
-              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-110 transition-transform"
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-110 transition-transform pointer-events-auto"
               onClick={(e) => { e.stopPropagation(); onFollow(moment.user_id || '', moment.moment_id); }}
             >
               +
@@ -319,13 +323,19 @@ const ReelItem = ({
       </div>
 
       {/* Info Overlay (Rationalized) */}
-      <div className="absolute inset-x-0 bottom-0 p-5 pb-6 z-10 flex flex-col gap-2 pointer-events-none">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-bold text-white tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1.5" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}>
+      <div className="absolute inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 p-5 pb-8 z-10 flex flex-col gap-2 pointer-events-none">
+        <div className="flex items-center gap-3">
+          <div className="text-[17px] font-black text-white tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] not-italic normal-case" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}>
             @{moment.username}
-            <Sparkles size={14} className="text-primary fill-primary" />
-          </h3>
-          <span className="text-[8px] font-black uppercase tracking-widest bg-black/40 backdrop-blur-md text-white px-2.5 py-0.5 rounded-full border border-white/10">Signal</span>
+          </div>
+          {!moment.is_following && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onFollow(moment.user_id || '', moment.moment_id); }}
+              className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-primary/40 pointer-events-auto active:scale-90 transition-all"
+            >
+              Follow
+            </button>
+          )}
         </div>
         {moment.caption && (
           <p className="text-[14px] font-medium text-white/95 leading-snug drop-shadow-md pr-16 line-clamp-2">
@@ -333,9 +343,9 @@ const ReelItem = ({
           </p>
         )}
         <div className="flex items-center gap-3 mt-1">
-          <div className="flex items-center gap-1.5 opacity-60">
-             <Orbit size={12} className="animate-spin-slow text-white" />
-             <span className="text-[9px] font-bold text-white uppercase tracking-wider">{moment.view_count || 0} signals</span>
+          <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
+             <Eye size={12} className="text-white/80" />
+             <span className="text-[10px] font-black text-white/90 tracking-wide">{moment.view_count || 0} views</span>
           </div>
           <button 
             onClick={(e) => { e.stopPropagation(); onOpenSearch(); }}
@@ -348,7 +358,7 @@ const ReelItem = ({
       </div>
 
       {/* Cinematic Progress Bar (TikTok style) */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 z-[30] pointer-events-none">
+      <div className="absolute bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 h-1 bg-white/10 z-[30] pointer-events-none">
         <motion.div 
           className="h-full bg-white/60 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
           initial={{ width: 0 }}
@@ -390,22 +400,61 @@ export default function Moments() {
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<{ id: string, progress: number } | null>(null);
   const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
-  
-  // Pagination
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [fetchingMore, setFetchingMore] = useState(false);
   
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const touchStart = useRef<number>(0);
+  const [pullOffset, setPullOffset] = useState(0);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const fetchMoments = useCallback(async (pageNum = 0) => {
+  useEffect(() => {
+    const onNavRefresh = () => {
+      setIsRefreshing(true);
+      handleRefresh();
+    };
+    window.addEventListener('refreshMomentsFeed', onNavRefresh);
+    return () => window.removeEventListener('refreshMomentsFeed', onNavRefresh);
+  }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (scrollRef.current && scrollRef.current.scrollTop === 0) {
+      touchStart.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart.current > 0 && scrollRef.current && scrollRef.current.scrollTop === 0) {
+      const currentTouch = e.touches[0].clientY;
+      const offset = currentTouch - touchStart.current;
+      if (offset > 0) {
+        // Resist pull after 100px
+        const resistedOffset = offset > 100 ? 100 + (offset - 100) * 0.3 : offset;
+        setPullOffset(resistedOffset);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullOffset > 70) {
+      setIsRefreshing(true);
+      handleRefresh();
+    }
+    setPullOffset(0);
+    touchStart.current = 0;
+  };
+
+  const fetchMoments = useCallback(async (pageNum = 0, isRefresh = false) => {
     if (fetchingMore || (pageNum === page && pageNum !== 0)) return;
     
     if (pageNum === 0) setLoading(true);
     else setFetchingMore(true);
 
     try {
-      const res = await api.get(`/moments/stream?page=${pageNum}&limit=12`);
+      const refreshParam = isRefresh ? '&refresh=true' : '';
+      const res = await api.get(`/moments/stream?page=${pageNum}&limit=12${refreshParam}`);
       const { moments: newMoments, pagination } = res.data;
       const allData = newMoments || [];
       
@@ -438,16 +487,25 @@ export default function Moments() {
     } finally {
       setLoading(false);
       setFetchingMore(false);
+      setIsRefreshing(false);
     }
   }, [id]);
 
   useEffect(() => { fetchMoments(0); }, [id]);
+
+  /** Pull-to-refresh: bypass 30s cache, reset scroll, get a reshuffled feed */
+  const handleRefresh = useCallback(() => {
+    setActiveIndex(0);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    fetchMoments(0, true);
+  }, [fetchMoments]);
 
   const loadMore = () => {
     if (!fetchingMore && hasMore) {
       fetchMoments(page + 1);
     }
   };
+
 
   const handleSearch = async (query: string, type: string = activeSearchTab, force: boolean = false) => {
     if (!query || !query.trim()) return;
@@ -741,8 +799,26 @@ export default function Moments() {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#fdf2f4] flex flex-col font-sans overflow-hidden">
+    <div className="fixed inset-0 bg-black flex flex-col font-sans overflow-hidden">
       <Navbar />
+
+      {/* Pull to Refresh Spinner */}
+      {(pullOffset > 0 || isRefreshing) && (
+        <div 
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[2000] pointer-events-none transition-all"
+          style={{ 
+            transform: `translateX(-50%) translateY(${pullOffset}px)`,
+            opacity: Math.min(pullOffset / 50, 1)
+          }}
+        >
+          <div className={clsx(
+            "w-10 h-10 bg-white rounded-full shadow-xl flex items-center justify-center",
+            isRefreshing && "animate-spin"
+          )}>
+            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+          </div>
+        </div>
+      )}
 
       {/* Top Navigation Bar Overlay (Minimalist) */}
       {!isSearchOpen && (
@@ -762,14 +838,17 @@ export default function Moments() {
               </span>
             </div>
           </div>
-          <button 
-            onClick={() => setIsSearchOpen(true)}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform"
-          >
-            <Search size={18} />
-          </button>
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <button 
+              onClick={() => setIsSearchOpen(true)}
+              className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-90 transition-transform"
+            >
+              <Search size={18} />
+            </button>
+          </div>
         </div>
       )}
+
 
       {/* Moments Specific Search Overlay */}
       <AnimatePresence>
@@ -933,7 +1012,7 @@ export default function Moments() {
                         >
                           {moment.media_type === 'user' ? (
                             <>
-                                <img src={moment.avatar_url || '/uploads/avatars/default.png'} className="w-20 h-20 rounded-full border-2 border-primary/20 object-cover shadow-xl" />
+                                <img src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/default.png'} className="w-20 h-20 rounded-full border-2 border-primary/20 object-cover shadow-xl" />
                                 <div className="text-center">
                                     <p className="text-sm font-black text-white leading-none">@{moment.username}</p>
                                     <p className="text-[10px] text-white/40 mt-1 font-bold uppercase tracking-widest">{moment.follower_count || 0} Followers</p>
@@ -944,7 +1023,7 @@ export default function Moments() {
                             <>
                                 {moment.media_type === 'video' ? (
                                     <video 
-                                    src={moment.video_url || moment.media_url} 
+                                    src={getMediaUrl(moment.video_url || moment.media_url) || undefined} 
                                     muted 
                                     autoPlay={false} 
                                     loop
@@ -952,11 +1031,11 @@ export default function Moments() {
                                     className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <img src={moment.media_url} className="w-full h-full object-cover" />
+                                    <img src={getMediaUrl(moment.media_url) || undefined} className="w-full h-full object-cover" />
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                                 <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-                                    <img src={moment.avatar_url || '/uploads/avatars/default.png'} className="w-4 h-4 rounded-full border border-white/20" />
+                                    <img src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/default.png'} className="w-4 h-4 rounded-full border border-white/20" />
                                     <span className="text-[10px] font-bold text-white/90">@{moment.username}</span>
                                 </div>
                                 <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-white">
@@ -978,8 +1057,11 @@ export default function Moments() {
       
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar"
+        className="flex-1 overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black"
         onScroll={handleScroll}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {loading ? (
              <div className="h-screen flex flex-col items-center justify-center">
@@ -988,23 +1070,21 @@ export default function Moments() {
                 </div>
                 <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] italic animate-pulse">Synchronizing Stream</p>
              </div>
-        ) : moments.length === 0 ? (
-            <div className="h-screen flex flex-col items-center justify-center p-10 text-center animate-fade-in">
-                <div className="w-32 h-32 bg-white/40 border-4 border-dashed border-white rounded-[48px] flex items-center justify-center mb-10 text-black/5 rotate-12">
-                   <Play size={64} fill="currentColor" stroke="none" />
-                </div>
-                <h2 className="text-4xl font-black text-black mb-4 italic uppercase tracking-tighter">Quiet Frequency.</h2>
-                <p className="text-[11px] font-bold text-black/20 uppercase tracking-widest max-w-[240px] mb-12">No signals captured on campus yet.</p>
-                <button 
-                  onClick={() => navigate('/dashboard')} 
-                  className="px-10 py-5 bg-primary text-white font-black rounded-[20px] uppercase tracking-widest italic shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-sm"
-                >
-                  Return to Pulse
-                </button>
+        ) : moments.length === 0 && !loading ? (
+            <div className="h-full flex items-center justify-center p-6 lg:ml-72">
+                <ModernOfflineState 
+                    type={isFallback ? "error" : "empty"}
+                    title={isFallback ? "Network Hiccup" : "Fresh Feed Incoming"}
+                    message={isFallback 
+                        ? "We're having trouble reaching the main campus stream. Try refreshing your connection!"
+                        : "You've caught up with everything on campus! Check back in a bit for new sparks."
+                    }
+                    onRetry={() => fetchMoments(0)}
+                />
             </div>
         ) : (
             moments.map((m, idx) => (
-              <div key={m.moment_id} className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 lg:ml-72 transition-all overflow-hidden relative">
+              <div key={m.moment_id} className="h-full w-full snap-start snap-always flex items-center justify-center lg:pl-72 relative overflow-hidden">
                 <ReelItem 
                    active={idx === activeIndex}
                    isNearActive={Math.abs(idx - activeIndex) <= 1}

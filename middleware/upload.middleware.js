@@ -38,12 +38,12 @@ const getDrift = () => new Promise((resolve) => {
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-        console.log('☁️ Starting Cloudinary Upload for field:', file.fieldname);
+        console.log('☁️ Starting Cloudinary Upload for field:', file.fieldname, '| Original Name:', file.originalname);
         const dynamicDrift = await getDrift();
         const patchedTimestamp = Math.round(Date.now() / 1000) + dynamicDrift;
         const folder = file.fieldname === 'avatar' ? 'sparkle_avatars' : 'sparkle_uploads';
         
-        console.log(`🕒 Time Drift Sync: ${dynamicDrift}s | Patched Timestamp: ${patchedTimestamp}`);
+        console.log(`🕒 Time Drift Sync: ${dynamicDrift}s | Patched Timestamp: ${patchedTimestamp} | Folder: ${folder}`);
         
         return {
             folder: folder,

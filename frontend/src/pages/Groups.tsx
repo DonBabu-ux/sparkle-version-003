@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { Users, Plus, Shield, Search, ArrowRight, Sparkles, Globe, Compass, Lock, ArrowLeft } from 'lucide-react';
 import type { Group } from '../types/group';
 import { useNavigate } from 'react-router-dom';
+import ModernOfflineState from '../components/ui/ModernOfflineState';
 
 export default function Groups() {
   const { user } = useUserStore();
@@ -139,20 +140,16 @@ export default function Groups() {
             ))}
           </div>
         ) : !filtered.length ? (
-          <div className="py-24 flex flex-col items-center text-center px-6 rounded-[36px]" style={{ background: 'rgba(255,255,255,0.8)', border: '1.5px solid rgba(255,61,109,0.12)', boxShadow: '0 4px 24px rgba(255,61,109,0.06)', animation: 'slideUp 0.5s ease both' }}>
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6" style={{ background: 'rgba(255,61,109,0.08)', border: '2px solid rgba(255,61,109,0.15)' }}>
-              <Compass size={36} style={{ color: '#FF3D6D' }} />
-            </div>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1a1a2e', fontStyle: 'normal', textTransform: 'none', marginBottom: '8px' }}>No Circles Found</h3>
-            <p style={{ color: '#94a3b8', fontSize: '14px', maxWidth: '260px', margin: '0 auto 24px', fontStyle: 'normal', textTransform: 'none' }}>
-              {query ? `No results for "${query}"` : 'No circles in this category yet.'}
-            </p>
-            <button
-              onClick={() => setFilter('all')}
-              style={{ padding: '10px 24px', background: 'rgba(255,61,109,0.1)', color: '#FF3D6D', borderRadius: '12px', fontWeight: 700, fontSize: '13px', border: '1px solid rgba(255,61,109,0.2)', cursor: 'pointer', fontStyle: 'normal', textTransform: 'none' }}
-            >
-              Clear Filters
-            </button>
+          <div className="py-12">
+            <ModernOfflineState 
+              type="empty"
+              title={query ? "Search Blank" : "No Circles Yet"}
+              message={query 
+                ? `We couldn't find any circles matching "${query}". Try a different frequency!` 
+                : "The campus hasn't formed any circles in this category yet. Be the first to spark one!"
+              }
+              onRetry={() => { setQuery(''); setFilter('all'); }}
+            />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 pb-10">

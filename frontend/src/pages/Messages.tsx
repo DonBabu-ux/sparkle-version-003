@@ -28,6 +28,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
+import ModernOfflineState from '../components/ui/ModernOfflineState';
 
 interface ChatConversation {
   chat_id: string;
@@ -317,10 +318,13 @@ export default function Messages() {
 
           <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-3 no-scrollbar scroll-smooth">
             {conversations.length === 0 && !loading ? (
-              <div className="py-20 text-center animate-fade-in px-8 flex flex-col items-center bg-white/30 border border-white rounded-[40px] shadow-inner">
-                <Orbit size={80} strokeWidth={1} className="text-black/5" />
-                <h3 className="text-xl font-bold text-black/10 italic mt-4 uppercase">No Messages.</h3>
-                <p className="text-[10px] font-bold text-black/10 mt-2 max-w-[180px] leading-relaxed uppercase tracking-wider">Start a chat to see it here.</p>
+              <div className="py-12 px-4">
+                 <ModernOfflineState 
+                   type="empty"
+                   title="Inbox is Empty"
+                   message="No sparks in your inbox yet. Start a new chat to connect with your village!"
+                   onRetry={() => fetchInbox()}
+                 />
               </div>
             ) : (
               conversations.map(chat => (

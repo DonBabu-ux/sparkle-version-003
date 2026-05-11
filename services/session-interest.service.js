@@ -79,10 +79,8 @@ class SessionInterestService {
     async getSessionProfile(userId) {
         const sessionKey = `siv:${userId}`;
 
-        // Fire all Redis GETs simultaneously instead of one-by-one
-        const values = await Promise.all(
-            CATEGORIES.map(cat => redis.get(`${sessionKey}:${cat}`))
-        );
+        const keys = CATEGORIES.map(cat => `${sessionKey}:${cat}`);
+        const values = await redis.mget(...keys);
 
         const profile = {};
         CATEGORIES.forEach((cat, i) => {

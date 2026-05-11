@@ -5,6 +5,7 @@ import { getAvatarUrl } from '../utils/imageUtils';
 import Navbar from '../components/Navbar';
 import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, ArrowLeft, CheckCircle2, Search, MoreHorizontal, X, BellOff, AlertOctagon, AtSign } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import ModernOfflineState from '../components/ui/ModernOfflineState';
 
 interface Notification {
   notification_id: string;
@@ -49,7 +50,7 @@ export default function Notifications() {
               notification_id: 'mock-1',
               type: 'spark',
               title: 'New Spark',
-              content: 'sparked your recent broadcast on the Spectrum.',
+              content: 'sparked your post!',
               actor_name: 'Sarah Chen',
               actor_username: 'sarah_node',
               actor_avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
@@ -61,7 +62,7 @@ export default function Notifications() {
               notification_id: 'mock-2',
               type: 'mention',
               title: 'Mention',
-              content: 'transmitted your frequency in a comment.',
+              content: 'mentioned you in a comment!',
               actor_name: 'David Matrix',
               actor_username: 'd_matrix',
               actor_avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
@@ -73,7 +74,7 @@ export default function Notifications() {
               notification_id: 'mock-3',
               type: 'marketplace',
               title: 'Marketplace',
-              content: 'sent a trade offer for your listing.',
+              content: 'sent a trade offer!',
               actor_name: 'Bazaar Bot',
               actor_username: 'bazaar',
               actor_avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bazaar',
@@ -367,10 +368,13 @@ export default function Notifications() {
                 )}
               </>
             ) : (
-              <div className="py-20 flex flex-col items-center justify-center text-center text-gray-500">
-                 <Bell size={48} className="text-gray-300 mb-4" />
-                 <h3 className="text-xl font-bold text-gray-900">No notifications</h3>
-                 <p className="text-[15px] mt-1">We'll let you know when something happens.</p>
+              <div className="py-20">
+                 <ModernOfflineState 
+                   type="empty"
+                   title="All Caught Up"
+                   message="You've addressed all your alerts! We'll ping you as soon as something new sparks."
+                   onRetry={() => window.location.reload()}
+                 />
               </div>
             )}
           </div>

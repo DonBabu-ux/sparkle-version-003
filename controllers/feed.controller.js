@@ -113,24 +113,31 @@ const getFeedPosts = async (req, res) => {
         const lockKey = `lock:feed:${currentUserId}:${device_id}`;
         const refreshKey = `refresh_count:${currentUserId}:${device_id}`;
 
+        const [refreshCountRaw, seenRaw, cachedPostsRaw, batchOffsetRaw] = await Promise.all([
+            redisService.get(refreshKey),
+            redisService.get(seenKey),
+            isForceRefresh ? Promise.resolve(null) : redisService.get(cacheListKey),
+            isForceRefresh ? Promise.resolve(null) : redisService.get(batchKey)
+        ]);
+
         if (isForceRefresh) {
-            await redisService.del(batchKey);
-            await redisService.del(cacheListKey);
-            await redisService.incr(refreshKey); // Increment refresh counter for seed entropy
+            await Promise.all([
+                redisService.del(batchKey),
+                redisService.del(cacheListKey),
+                redisService.incr(refreshKey)
+            ]);
         }
 
         // Add refresh_count to the seed to ensure completely new permutations on every pull-to-refresh
-        const refreshCount = Number(await redisService.get(refreshKey)) || 0;
+        const refreshCount = Number(refreshCountRaw) || 0;
         const sessionSeed = numericSeed + refreshCount;
 
-        let seenRaw = await redisService.get(seenKey);
         let seenSet = new Set(Array.isArray(seenRaw) ? seenRaw : []);
 
         const pageLimit = Number(limit) || 10;
         let page = [];
 
         if (!isForceRefresh) {
-            const cachedPostsRaw = await redisService.get(cacheListKey);
             let cachedPosts = Array.isArray(cachedPostsRaw) ? cachedPostsRaw : [];
             
             if (cachedPosts.length >= pageLimit) {
@@ -491,34 +498,35 @@ const renderPost = async (req, res) => {
 const createStory = async (req, res) => {
     try {
         const { caption } = req.body;
+        let media_url = null;
 
-        // Handle both file upload and direct URL with multiple field name support
-        let media_url;
+        console.log('🎬 Story Create Attempt:', {
+            hasFiles: !!req.files,
+            hasFile: !!req.file,
+            fileKeys: req.files ? Object.keys(req.files) : [],
+            bodyType: req.body.type,
+            textContent: !!req.body.text_content
+        });
+
         if (req.files && req.files.media) {
-            // File upload from multipart/form-data
-            console.log('DEBUG req.files.media[0]:', req.files.media[0]);
             media_url = req.files.media[0].path || req.files.media[0].secure_url;
-            console.log('📸 Story media from file upload:', media_url);
+            console.log('📸 Story media from file upload (req.files.media):', media_url);
         } else if (req.file) {
-            console.log('DEBUG req.file:', req.file);
-            // Fallback for single file upload
             media_url = req.file.path || req.file.secure_url;
+            console.log('📸 Story media from file upload (req.file):', media_url);
+        } else if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+            media_url = req.files[0].path || req.files[0].secure_url;
+            console.log('📸 Story media from file upload (req.files array):', media_url);
         } else if (req.body.media_url) {
-            // Direct URL from JSON
             media_url = req.body.media_url;
             console.log('🔗 Story media from URL (media_url):', media_url);
         } else if (req.body.media) {
-            // Alternative field name 'media' (for compatibility)
             media_url = req.body.media;
             console.log('🔗 Story media from URL (media):', media_url);
         }
 
         if (!media_url && req.body.type !== 'text' && !req.body.text_content) {
-            console.error('❌ No media provided in request:', {
-                hasFiles: !!req.files,
-                bodyFields: Object.keys(req.body),
-                typeValue: req.body.type
-            });
+            console.error('❌ No media provided in story request after checking all fields');
             return res.status(400).json({ error: 'Media is required for story' });
         }
 
@@ -544,6 +552,8 @@ const createStory = async (req, res) => {
             media_type = req.files.media[0].mimetype.startsWith('video') ? 'video' : 'image';
         } else if (req.file) {
             media_type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
+        } else if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+            media_type = req.files[0].mimetype.startsWith('video') ? 'video' : 'image';
         } else if (media_url) {
             // Try to determine from URL extension
             const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.mpg', '.mpeg'];
@@ -738,8 +748,8 @@ const likeStory = async (req, res) => {
                     await notificationController.createNotification({
                         user_id: storyData.user_id,
                         type: 'story_like',
-                        title: 'Story Liked',
-                        content: `${actor[0]?.name || 'Someone'} liked your story`,
+                        title: 'New Story Love',
+                        content: `Someone just loved your story!`,
                         actor_id: userId,
                         actor_name: actor[0]?.name,
                         action_url: `/stories/${storyId}`
@@ -899,11 +909,10 @@ const shareStory = async (req, res) => {
                 const notificationId = crypto.randomUUID();
                 await connection.query(
                     `INSERT INTO notifications (notification_id, user_id, type, title, content, actor_id, action_url) 
-                     VALUES (?, ?, 'story_share', 'Story Shared', ?, ?, ?)`,
+                     VALUES (?, ?, 'story_share', 'Story Spreading', 'Someone shared your story with their circle', ?, ?)`,
                     [
                         notificationId,
                         story[0].user_id,
-                        `${actor[0]?.name || 'Someone'} shared your story`,
                         userId,
                         `/stories/${storyId}`
                     ]

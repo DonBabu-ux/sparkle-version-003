@@ -12,15 +12,14 @@ const isNative = window.location.protocol === 'capacitor:';
 
 // URLs
 const LIVE_URL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
-const LOCAL_URL = 'http://localhost:3000/api';
-
 // Logic: Strictly live for APK, local for local dev, live for deployed web
 let defaultBaseURL = LIVE_URL;
 
 if (isNative) {
   defaultBaseURL = LIVE_URL;
 } else if (isLocalhost) {
-  defaultBaseURL = LOCAL_URL;
+  // Use relative path for web dev to leverage Vite proxy (handles CORS + localhost/127.0.0.1 issues)
+  defaultBaseURL = '/api';
 }
 
 

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
+import { getMediaUrl } from '../utils/imageUtils';
 
 interface AdminStats {
   users?: { total: number };
@@ -324,6 +325,6 @@ export default function AdminDashboard() {
 
 function getAvatarUrl(url: string | undefined, username: string | undefined) {
   if (url && url.startsWith('http')) return url;
-  if (url) return `http://localhost:3000${url}`;
+  if (url) return getMediaUrl(url);
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(username || 'U')}&background=random&color=fff`;
 }

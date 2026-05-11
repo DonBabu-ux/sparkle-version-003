@@ -308,11 +308,13 @@ const normalizeSearchQuery = (q) => {
 const getMomentsStream = async (req, res) => {
     try {
         // Tables/columns are guaranteed by prewarm() at server start — no need to re-check here.
-        const { page = 0, limit = 8, query, type } = req.query;
+        const { page = 0, limit = 8, query, type, refresh } = req.query;
         const limitNum = Math.min(parseInt(limit, 10) || 8, 20);
         const currentUserId = req.user.user_id;
         const pageNum = parseInt(page, 10) || 0;
         const offset = pageNum * limitNum;
+        // refresh=true bypasses the 30s per-user cache → full reshuffle
+        const forceRefresh = refresh === 'true' || refresh === '1';
 
         // Capture Search Intent as Interest (SIV Signal)
         if (query) {
@@ -326,7 +328,9 @@ const getMomentsStream = async (req, res) => {
         // Pool generation is always non-blocking background work
         momentsRankingService.generateCandidatePools().catch(err => logger.error('Pool Gen Error:', err));
 
-        const finalMoments = await momentsRankingService.getRankedFeed(currentUserId, limitNum, { query, type, offset });
+        const finalMoments = await momentsRankingService.getRankedFeed(
+            currentUserId, limitNum, { query, type, offset, refresh: forceRefresh }
+        );
 
         res.json({
             moments: finalMoments,
@@ -415,15 +419,32 @@ const sparkMoment = async (req, res) => {
 const createMoment = async (req, res) => {
     try {
         const { caption, category = 'general' } = req.body;
-        const media_url = req.file ? req.file.path : (req.body.media_url || req.body.video_url);
-        const userId = req.user.user_id;
+        
+        // SUPPORT BOTH SINGLE AND ARRAY UPLOADS (Fix for redirected post requests)
+        let media_url = req.body.media_url || req.body.video_url || null;
+        let detected_mimetype = null;
+
+        if (req.file) {
+            media_url = req.file.path;
+            detected_mimetype = req.file.mimetype;
+        } else if (req.files) {
+            // Handle array or fields
+            const fileArray = Array.isArray(req.files) ? req.files : (req.files.media || req.files.video || []);
+            if (fileArray.length > 0) {
+                media_url = fileArray[0].path;
+                detected_mimetype = fileArray[0].mimetype;
+            }
+        }
+
+        const userId = req.user.user_id || req.user.userId;
 
         if (!media_url) {
+            console.error('❌ Moment Creation Failed: No media_url found in req.file, req.files, or req.body');
             return res.status(400).json({ error: 'Media is required' });
         }
 
         const momentId = require('crypto').randomUUID();
-        const media_type = req.file ? req.file.mimetype.split('/')[0] : 'video';
+        const media_type = detected_mimetype ? detected_mimetype.split('/')[0] : (media_url.includes('video') ? 'video' : 'image');
 
         // Extract hashtags (Max 5)
         const tags = caption ? (caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];

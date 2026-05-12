@@ -35,19 +35,19 @@ export default function SearchHistory() {
     try {
       await api.delete(`/search/history/${id}`);
       setHistory(prev => prev.filter(item => item.id !== id));
-      showToast('Memory cleared.');
+      showToast('Search deleted.');
     } catch (err) {
       console.error('Delete item failed:', err);
-      showToast('Failed to clear memory.', 'error');
+      showToast('Failed to delete.', 'error');
     }
   };
 
   const clearAll = async () => {
-    if (!window.confirm("Erase all search memories? This cannot be undone.")) return;
+    if (!window.confirm("Delete all search history? This cannot be undone.")) return;
     try {
       await api.delete('/search/history');
       setHistory([]);
-      showToast('All memories erased.');
+      showToast('History cleared.');
     } catch (err) {
       console.error('Clear all failed:', err);
       showToast('Failed to clear history.', 'error');
@@ -86,25 +86,25 @@ export default function SearchHistory() {
       <main className="flex-1 lg:ml-72 flex flex-col relative z-10">
         
         {/* Sleek Header */}
-        <header className="sticky top-0 z-[100] bg-white/70 backdrop-blur-3xl border-b border-black/[0.03] px-6 py-8">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-6">
+        <header className="sticky top-0 z-[100] bg-white/80 backdrop-blur-3xl border-b border-black/[0.03] px-4 md:px-6 py-4 md:py-8">
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 md:gap-6 min-w-0">
               <button 
                 onClick={() => navigate(-1)} 
-                className="w-12 h-12 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white rounded-2xl transition-all active:scale-95 group shadow-sm"
+                className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white rounded-xl md:rounded-2xl transition-all active:scale-95 group shadow-sm"
               >
-                  <ArrowLeft size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
+                  <ArrowLeft size={16} md:size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
-              <div>
-                <h1 className="text-xl font-black text-black uppercase tracking-tight italic leading-none">History</h1>
-                <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.2em] mt-2">Your search signals</p>
+              <div className="min-w-0">
+                <h1 className="text-lg md:text-xl font-black text-black uppercase tracking-tight italic leading-none truncate">History</h1>
+                <p className="text-[9px] md:text-[10px] font-black text-black/20 uppercase tracking-[0.2em] mt-1 md:mt-2 truncate">Your recent searches</p>
               </div>
             </div>
 
             {history.length > 0 && (
               <button 
                 onClick={clearAll} 
-                className="px-6 py-3 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border border-red-100"
+                className="px-4 md:px-6 py-2.5 md:py-3 bg-red-50 hover:bg-red-500 hover:text-white text-red-500 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border border-red-100 whitespace-nowrap"
               >
                 Clear All
               </button>
@@ -116,15 +116,15 @@ export default function SearchHistory() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32 gap-6 opacity-20">
                <Spinner size="small" color="text-primary" />
-               <span className="text-[10px] font-black uppercase tracking-[0.3em]">Syncing frequencies...</span>
+               <span className="text-[10px] font-black uppercase tracking-[0.3em]">Loading history...</span>
             </div>
           ) : history.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 text-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
               <div className="w-24 h-24 bg-black/[0.02] rounded-[32px] flex items-center justify-center text-black/10 mb-8 shadow-inner">
                 <Clock size={48} strokeWidth={2.5} />
               </div>
-              <h2 className="text-2xl font-black text-black italic uppercase tracking-tight mb-3">Clean Slate</h2>
-              <p className="text-black/20 font-bold text-sm max-w-[280px] leading-relaxed">Your search memories are empty. Time to discover new sparks in the village!</p>
+              <h2 className="text-2xl font-black text-black italic uppercase tracking-tight mb-3">No history</h2>
+              <p className="text-black/20 font-bold text-sm max-w-[280px] leading-relaxed">Your search history is empty. Time to discover something new!</p>
               <button 
                 onClick={() => navigate('/search')} 
                 className="mt-10 px-10 py-5 bg-black text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/10 italic"
@@ -160,7 +160,7 @@ export default function SearchHistory() {
                             <span className="opacity-10 text-xs">•</span>
                             <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:text-primary transition-colors">
                               <Lock size={12} />
-                              <span>Private Memory</span>
+                              <span>Private</span>
                             </div>
                           </div>
                         </div>

@@ -56,7 +56,7 @@ function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => 
       <img src={getAvatarUrl(s.avatar_url, s.username)} className="w-10 h-10 rounded-full object-cover border border-gray-200" alt="" />
       <div className="flex-1 min-w-0">
         <p className="font-bold text-[14px] text-gray-900 truncate">{s.username}</p>
-        <p className="text-[12px] text-gray-500 truncate">{s.campus || 'Main Frequency'}</p>
+        <p className="text-[12px] text-gray-500 truncate">{s.campus || 'Main Campus'}</p>
       </div>
       <button className={`px-4 py-1.5 rounded-md font-bold text-[13px] transition-all ${following ? 'bg-gray-200 text-gray-500' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`} onClick={handleFollow} disabled={loading || following}>
         {loading ? '...' : following ? 'Following' : 'Follow'}
@@ -136,9 +136,9 @@ export default function Dashboard() {
         if (suggestionsRes.data.suggestions) setSuggestions(suggestionsRes.data.suggestions);
         setTrendingTags([
           { tag: 'campus_life', count: '12.4k' },
-          { tag: 'high_frequency', count: '8.8k' },
+          { tag: 'campus_talk', count: '8.8k' },
           { tag: 'announcements', count: '5.1k' },
-          { tag: 'village_vibes', count: '942' }
+          { tag: 'campus_vibes', count: '942' }
         ]);
       } else {
         appendPosts(newPosts);

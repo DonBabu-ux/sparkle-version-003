@@ -96,10 +96,10 @@ export default function Search() {
         await api.delete(`/search/history/${id}`);
         setHistory(prev => prev.filter(item => item.id !== id));
         setActionItem(null);
-        showToast('Memory cleared.');
+        showToast('Search deleted.');
     } catch (err) {
         console.error('Delete history failed:', err);
-        showToast('Failed to clear memory.', 'error');
+        showToast('Failed to delete.', 'error');
     }
   };
 
@@ -130,36 +130,13 @@ export default function Search() {
   const debouncedSearch = useMemo(
     () => debounce((q: string, type: TabType) => {
         handleSearch(q, type);
-        setShowSuggestions(false);
     }, 450),
     [handleSearch]
-  );
-
-  const debouncedSuggestions = useMemo(
-    () => debounce(async (q: string) => {
-        if (q.trim().length < 2) {
-            setSuggestions([]);
-            setShowSuggestions(false);
-            return;
-        }
-        try {
-            const res = await api.get('/search/suggestions', { params: { q } });
-            if (res.data.status === 'success') {
-                setSuggestions(res.data.data || []);
-                setShowSuggestions(true);
-            }
-        } catch (err) { console.error('Suggestions error:', err); }
-    }, 200),
-    []
   );
 
   useEffect(() => {
     fetchInitialData();
   }, [fetchInitialData]);
-
-  useEffect(() => {
-    debouncedSuggestions(query);
-  }, [query, debouncedSuggestions]);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -186,7 +163,7 @@ export default function Search() {
   ];
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden selection:bg-primary/10">
+    <div className="block lg:flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden selection:bg-primary/10">
       <Navbar />
       
       {/* Cinematic Background Elements */}
@@ -198,21 +175,21 @@ export default function Search() {
       <main className="flex-1 lg:ml-72 flex flex-col relative z-10">
         
         {/* Sleek Search Header */}
-        <header className="sticky top-0 z-[100] bg-white/70 backdrop-blur-3xl border-b border-black/[0.03] px-6 py-8">
-          <div className="max-w-3xl mx-auto flex items-center gap-6">
+        <header className="sticky top-0 z-[100] bg-white/95 backdrop-blur-3xl border-b border-black/[0.03] px-4 md:px-6 py-3 md:py-8">
+          <div className="max-w-3xl mx-auto flex items-center gap-3 md:gap-6">
               <button 
                 onClick={() => navigate(-1)} 
-                className="w-12 h-12 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white rounded-2xl transition-all active:scale-95 group shadow-sm"
+                className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white rounded-xl md:rounded-2xl transition-all active:scale-95 group shadow-sm"
               >
-                  <ArrowLeft size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
+                  <ArrowLeft size={16} md:size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
               
               <div className="flex-1 relative" ref={searchRef}>
-                  <SearchIcon size={20} strokeWidth={3} className={`absolute left-6 top-1/2 -translate-y-1/2 transition-all duration-500 ${query ? 'text-primary scale-110' : 'text-black/10'}`} />
+                  <SearchIcon size={18} md:size={20} strokeWidth={3} className={`absolute left-4 md:left-6 top-1/2 -translate-y-1/2 transition-all duration-500 ${query ? 'text-primary scale-110' : 'text-black/10'}`} />
                   <input 
                       type="text" 
-                      placeholder="Scan the frequency..."
-                      className="w-full h-18 bg-black/[0.03] border border-transparent rounded-[24px] px-12 text-center text-sm font-black italic text-black placeholder:text-black/20 focus:bg-white focus:border-black/5 focus:shadow-2xl focus:shadow-black/5 transition-all outline-none"
+                      placeholder="Find people, posts, groups..."
+                      className="w-full h-12 md:h-18 bg-black/[0.03] border border-transparent rounded-[16px] md:rounded-[24px] px-12 text-center text-sm font-bold md:font-black text-black placeholder:text-black/20 focus:bg-white focus:border-black/5 focus:shadow-2xl focus:shadow-black/5 transition-all outline-none"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={handleKeyDown}
@@ -220,49 +197,17 @@ export default function Search() {
                   />
                   {query && (
                       <button 
-                        onClick={() => { setQuery(''); setResults({}); setSuggestions([]); setShowSuggestions(false); }} 
-                        className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-black/5 rounded-2xl text-black/40 hover:text-black hover:bg-black/10 transition-all"
+                        onClick={() => { setQuery(''); setResults({}); }} 
+                        className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 w-7 h-7 md:w-10 md:h-10 flex items-center justify-center bg-black/5 rounded-lg md:rounded-2xl text-black/40 hover:text-black hover:bg-black/10 transition-all"
                       >
-                          <X size={18} strokeWidth={3} />
+                          <X size={14} md:size={18} strokeWidth={3} />
                       </button>
                   )}
-
-                  {/* Glassmorphic Suggestions */}
-                  <AnimatePresence>
-                      {showSuggestions && suggestions.length > 0 && (
-                          <motion.div 
-                              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                              className="absolute top-full left-0 right-0 mt-4 bg-white/95 backdrop-blur-3xl border border-black/5 rounded-3xl shadow-2xl p-3 z-[200] overflow-hidden"
-                          >
-                              {suggestions.map((s, i) => (
-                                  <div 
-                                      key={`sug-${i}`} 
-                                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-black/5 cursor-pointer transition-all group"
-                                      onClick={() => {
-                                          setQuery(s.value);
-                                          setShowSuggestions(false);
-                                          handleSearch(s.value, activeTab);
-                                      }}
-                                  >
-                                      <div className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/20 group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                                          {s.type === 'hashtag' ? <Hash size={18} strokeWidth={2.5} /> : <SearchIcon size={18} strokeWidth={2.5} />}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                          <span className="block text-sm font-bold text-black truncate">{s.label}</span>
-                                          <span className="block text-[10px] font-bold text-black/20 uppercase tracking-widest">{s.type}</span>
-                                      </div>
-                                  </div>
-                              ))}
-                          </motion.div>
-                      )}
-                  </AnimatePresence>
               </div>
           </div>
         </header>
 
-        <div className="max-w-3xl mx-auto w-full p-6 lg:p-12 pb-40">
+        <div className="max-w-3xl mx-auto w-full px-4 md:px-12 py-6 md:py-12 pb-40">
             
             {!query.trim() ? (
                 <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -332,7 +277,7 @@ export default function Search() {
                                         </button>
                                     </motion.div>
                                 )) : (
-                                    <p className="text-sm font-bold text-black/10 italic px-4">Your search memory is empty.</p>
+                                    <p className="text-sm font-bold text-black/10 italic px-4">Your search history is empty.</p>
                                 )}
                             </div>
                         </section>
@@ -344,17 +289,16 @@ export default function Search() {
                             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-md">
                                 <Compass size={24} className="text-primary" />
                             </div>
-                            <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-4">Discover the Village</h3>
-                            <p className="text-white/40 font-bold text-sm leading-relaxed max-w-sm">Explore trending communities, local markets, and hidden sparks near you.</p>
+                            <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-4">See what's happening</h3>
+                            <p className="text-white/40 font-bold text-sm leading-relaxed max-w-sm">Check out new groups, the marketplace, and trending posts around campus.</p>
                         </div>
                         <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/20 to-transparent group-hover:scale-110 transition-transform duration-700" />
                         <Sparkles size={120} className="absolute -bottom-10 -right-10 text-white/5 rotate-12 group-hover:scale-110 transition-transform duration-700" />
                     </section>
                 </div>
             ) : (
-                /* Sleek Results View */
-                <div className="animate-in fade-in duration-500 space-y-12">
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 sticky top-[108px] z-50 bg-white/80 backdrop-blur-xl py-4 -mx-4 px-4 border-b border-black/[0.03]">
+                <div className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 sticky top-[73px] md:top-[108px] z-50 bg-white/80 backdrop-blur-xl py-3 md:py-4 -mx-4 px-4 border-b border-black/[0.03]">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
@@ -394,40 +338,48 @@ export default function Search() {
                                     {type === 'posts' && Array.isArray(items) && items.map((p, j) => (
                                         <PostCard key={`res-p-${p.post_id || p.id || j}`} post={p} />
                                     ))}
-                                    {(type === 'groups' || type === 'clubs') && Array.isArray(items) && items.map((g, j) => (
+                                    {(type === 'groups' || type === 'clubs' || type === 'hashtags') && Array.isArray(items) && items.map((g, j) => (
                                         <div 
                                           key={`res-g-${g.id || j}`} 
-                                          onClick={() => navigate(`/${type}/${g.id}`)} 
-                                          className="flex items-center gap-6 p-6 bg-black/[0.02] hover:bg-black text-black hover:text-white rounded-[32px] transition-all cursor-pointer group active:scale-[0.98] duration-500"
+                                          onClick={() => navigate(type === 'hashtags' ? `/hashtag/${g.title?.replace('#', '')}` : `/${type}/${g.id}`)} 
+                                          className="flex items-center gap-3 md:gap-6 p-4 md:p-6 bg-black/[0.02] hover:bg-black text-black hover:text-white rounded-[24px] md:rounded-[32px] transition-all cursor-pointer group active:scale-[0.98] duration-500 w-full overflow-hidden"
                                         >
-                                            <img src={g.image || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-2xl object-cover border border-white/10 shadow-lg group-hover:scale-105 transition-all" alt="" />
+                                            {type === 'hashtags' ? (
+                                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-white/10 shrink-0 transition-all">
+                                                    <Hash size={24} md:size={32} strokeWidth={3} className="text-black/20 group-hover:text-white" />
+                                                </div>
+                                            ) : (
+                                                <img src={g.image || '/uploads/avatars/default.png'} className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl object-cover border border-white/10 shadow-lg group-hover:scale-105 transition-all shrink-0" alt="" />
+                                            )}
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-xl font-black leading-none mb-2 italic truncate">{g.title}</div>
-                                                <div className="text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:text-primary transition-colors">{g.subtitle || 'Community'}</div>
+                                                <div className="text-base md:text-xl font-bold md:font-black leading-none mb-1 md:mb-2 italic truncate">{g.title}</div>
+                                                <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:text-primary transition-colors">
+                                                    {type === 'hashtags' ? 'Hashtag' : g.subtitle || 'Community'}
+                                                </div>
                                             </div>
-                                            <ChevronRight size={20} className="opacity-10 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                                            <ChevronRight size={18} md:size={20} className="opacity-10 group-hover:opacity-100 transition-all group-hover:translate-x-1 shrink-0" />
                                         </div>
                                     ))}
                                     {type === 'marketplace' && Array.isArray(items) && items.map((item, j) => (
                                         <div 
                                           key={`res-m-${item.id || j}`} 
                                           onClick={() => navigate(`/marketplace/listings/${item.id}`)} 
-                                          className="flex items-center gap-6 p-6 bg-black/[0.02] hover:bg-black text-black hover:text-white rounded-[32px] transition-all cursor-pointer group active:scale-[0.98] duration-500"
+                                          className="flex items-center gap-4 md:gap-6 p-4 md:p-6 bg-black/[0.02] hover:bg-black text-black hover:text-white rounded-[24px] md:rounded-[32px] transition-all cursor-pointer group active:scale-[0.98] duration-500 w-full overflow-hidden"
                                         >
-                                            <img src={item.image || '/uploads/avatars/default.png'} className="w-20 h-20 rounded-2xl object-cover border border-white/10 shadow-lg group-hover:scale-105 transition-all" alt="" />
+                                            <img src={item.image || '/uploads/avatars/default.png'} className="w-16 h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl object-cover border border-white/10 shadow-lg group-hover:scale-105 transition-all shrink-0" alt="" />
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-xl font-black leading-none mb-3 italic truncate">{item.title}</div>
-                                                <div className="flex items-center gap-4">
-                                                    <span className="text-lg font-black text-primary tracking-tighter group-hover:text-white transition-colors">KSh {item.subtitle}</span>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-20">Marketplace</span>
+                                                <div className="text-lg md:text-xl font-black leading-none mb-2 md:mb-3 italic truncate">{item.title}</div>
+                                                <div className="flex items-center gap-2 md:gap-4">
+                                                    <span className="text-base md:text-lg font-black text-primary tracking-tighter group-hover:text-white transition-colors">KSh {item.subtitle}</span>
+                                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-20">Market</span>
                                                 </div>
                                             </div>
-                                            <ChevronRight size={20} className="opacity-10 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                                            <ChevronRight size={18} md:size={20} className="opacity-10 group-hover:opacity-100 transition-all group-hover:translate-x-1 shrink-0" />
                                         </div>
                                     ))}
                                     {Array.isArray(items) && items.length === 0 && (
-                                        <div className="text-center py-16 bg-black/[0.01] rounded-[32px] border border-dashed border-black/5">
-                                           <p className="text-[10px] font-black text-black/10 uppercase tracking-widest italic">Signal lost in the frequency.</p>
+                                        <div className="text-center py-8 md:py-16 bg-black/[0.01] rounded-[24px] md:rounded-[32px] border border-dashed border-black/5 px-6 mx-2">
+                                            <p className="text-[10px] md:text-xs font-black text-black/20 uppercase tracking-widest italic leading-relaxed">No results found matching your search.</p>
                                         </div>
                                     )}
                                 </div>
@@ -477,7 +429,7 @@ export default function Search() {
                             <div className="w-16 h-16 rounded-[24px] bg-black/5 flex items-center justify-center text-black/10 mb-6">
                                 <Clock size={32} strokeWidth={2.5} />
                             </div>
-                            <h3 className="text-2xl font-black text-black italic uppercase">Signal Memory</h3>
+                             <h3 className="text-2xl font-black text-black italic uppercase">Search History</h3>
                             <p className="text-primary font-bold text-base mt-3 italic px-4">"{actionItem.query}"</p>
                         </>
                     )}
@@ -492,7 +444,7 @@ export default function Search() {
                             >
                                 <div className="flex items-center gap-4">
                                     <Send size={18} strokeWidth={2.5} className="text-primary group-hover:text-white" />
-                                    <span className="font-black text-xs uppercase tracking-widest italic">Transmit Message</span>
+                                     <span className="font-black text-xs uppercase tracking-widest italic">Send a message</span>
                                 </div>
                                 <ChevronRight size={18} className="opacity-10 group-hover:opacity-40" />
                             </button>
@@ -517,7 +469,7 @@ export default function Search() {
                             >
                                 <div className="flex items-center gap-4">
                                     <User size={18} strokeWidth={2.5} className="text-primary group-hover:text-white" />
-                                    <span className="font-black text-xs uppercase tracking-widest italic">View Identity</span>
+                                    <span className="font-black text-xs uppercase tracking-widest italic">View Profile</span>
                                 </div>
                                 <ChevronRight size={18} className="opacity-10 group-hover:opacity-40" />
                             </button>
@@ -529,7 +481,7 @@ export default function Search() {
                         >
                             <div className="flex items-center gap-4">
                                 <Trash2 size={18} strokeWidth={2.5} className="text-red-500 group-hover:text-white" />
-                                <span className="font-black text-xs uppercase tracking-widest italic">Erase Frequency</span>
+                                 <span className="font-black text-xs uppercase tracking-widest italic">Delete from history</span>
                             </div>
                             <ChevronRight size={18} className="opacity-20 group-hover:opacity-40" />
                         </button>

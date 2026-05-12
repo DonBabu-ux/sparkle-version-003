@@ -196,8 +196,8 @@ export default function Explore() {
             <div className="py-20">
                <ModernOfflineState 
                  type="empty"
-                 title="Discovery Silence"
-                 message="We couldn't find any sparks in this frequency right now. Try a different category or refresh!"
+                 title="Nothing to see yet"
+                 message="There are no posts here right now. Try looking in a different category or refresh the page!"
                  onRetry={() => fetchExploreMedia(1)}
                />
             </div>
@@ -237,7 +237,7 @@ export default function Explore() {
                       />
                     ) : (
                       <img
-                        src={m.media_url || 'https://placehold.co/400x400?text=Scan+Error'}
+                        src={m.media_url || 'https://placehold.co/400x400?text=Image+Error'}
                         alt={m.content || m.username}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         loading="lazy"

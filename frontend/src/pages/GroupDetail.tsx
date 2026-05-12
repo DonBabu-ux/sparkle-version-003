@@ -240,7 +240,7 @@ export default function GroupDetail() {
                     disabled={joining || pendingJoin}
                     className="flex-1 h-9 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-sm"
                   >
-                    {joining ? 'Harmonizing...' : pendingJoin ? 'Sync Pending' : 'Join Circle'}
+                    {joining ? 'Joining...' : pendingJoin ? 'Requested' : 'Join Circle'}
                   </button>
                 )}
 
@@ -429,7 +429,7 @@ export default function GroupDetail() {
             {activeTab === 'about' && (
                <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-6 space-y-8 text-center sm:text-left">
                   <div>
-                     <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 leading-none">The Manifesto</h4>
+                     <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 leading-none">Description</h4>
                      <p className="text-base text-gray-600 leading-relaxed font-medium">
                         {group.description || 'No description provided.'}
                      </p>

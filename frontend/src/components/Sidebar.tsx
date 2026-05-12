@@ -111,7 +111,7 @@ export default function Sidebar() {
                   <span className="font-black text-3xl tracking-tighter text-black italic uppercase leading-none">
                     Sparkle<span className="text-primary italic">.</span>
                   </span>
-                  <span className="text-[8px] font-black text-black opacity-20 uppercase tracking-[0.5em] mt-1 italic">Village Core v3</span>
+                  <span className="text-[8px] font-black text-black opacity-20 uppercase tracking-[0.5em] mt-1 italic">Social Core v3</span>
                 </motion.div>
             )}
           </AnimatePresence>
@@ -123,8 +123,8 @@ export default function Sidebar() {
           { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
           { name: 'Connect', icon: Users, path: '/connect' },
           { name: 'Moments', icon: PlayCircle, path: '/moments' },
-          { name: 'The Vault', icon: SpyIcon, path: '/confessions' },
-          { name: 'Transmissions', icon: Send, path: '/messages' },
+          { name: 'Confessions', icon: SpyIcon, path: '/confessions' },
+          { name: 'Messages', icon: Send, path: '/messages' },
           { name: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
           { name: 'Profile', icon: null, path: `/profile/${user?.username}`, isProfile: true },
         ].map((item) => (
@@ -171,7 +171,7 @@ export default function Sidebar() {
             >
                 <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 translate-x-[-100%] group-hover/create:translate-x-[100%] transition-transform duration-1000" />
                 <PlusCircle size={28} strokeWidth={4} className="group-hover/create:rotate-90 transition-transform duration-500 shrink-0" />
-                {isHovered && <span className="text-sm tracking-[0.2em] whitespace-nowrap">Sync Signal</span>}
+                {isHovered && <span className="text-sm tracking-[0.2em] whitespace-nowrap">Create Post</span>}
             </button>
         </div>
 
@@ -200,7 +200,7 @@ export default function Sidebar() {
             <div className="shrink-0 w-8 h-8 flex items-center justify-center transition-transform group-hover/item:scale-125">
               <Menu size={28} strokeWidth={activeHub === 'more' ? 4 : 3} />
             </div>
-            {isHovered && <span className="font-black text-[13px] uppercase tracking-[0.1em] italic">Protocols</span>}
+            {isHovered && <span className="font-black text-[13px] uppercase tracking-[0.1em] italic">More Options</span>}
           </div>
           
           <AnimatePresence>
@@ -212,15 +212,15 @@ export default function Sidebar() {
                     className="absolute bottom-20 left-2 w-72 bg-white/95 backdrop-blur-3xl border border-white rounded-[40px] p-4 shadow-2xl shadow-black/10 flex flex-col gap-1 z-[1001]"
                 >
                 <div className="px-5 pt-3 pb-5 mb-3 border-b border-black/5">
-                   <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.5em] italic">Satellite Nodes</span>
+                   <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.5em] italic">Community Hub</span>
                 </div>
                 {[
-                    { name: 'Collective Groups', icon: Users, path: '/groups' },
-                    { name: 'Campus Consensus', icon: BarChart3, path: '/polls' },
-                    { name: 'Village Events', icon: Calendar, path: '/events' },
-                    { name: 'System Override', icon: Settings, path: '/settings' },
+                    { name: 'Campus Groups', icon: Users, path: '/groups' },
+                    { name: 'Campus Polls', icon: BarChart3, path: '/polls' },
+                    { name: 'Upcoming Events', icon: Calendar, path: '/events' },
+                    { name: 'App Settings', icon: Settings, path: '/settings' },
                     { name: 'Professional Hub', icon: Zap, path: '/professional-dashboard' },
-                    ...(user?.role?.includes('admin') ? [{ name: 'Council Central', icon: ShieldCheck, path: '/admin' }] : []),
+                    ...(user?.role?.includes('admin') ? [{ name: 'Admin Panel', icon: ShieldCheck, path: '/admin' }] : []),
                 ].map(item => (
                     <Link key={item.name} to={item.path} className="flex items-center gap-4 p-4 rounded-[22px] text-[13px] font-black text-black opacity-40 hover:opacity-100 hover:text-primary hover:bg-primary/5 transition-all italic uppercase tracking-tighter">
                         <item.icon size={22} strokeWidth={3} />
@@ -233,7 +233,7 @@ export default function Sidebar() {
                     className="flex items-center gap-4 p-5 rounded-[22px] text-[13px] font-black text-red-500 hover:bg-red-500 hover:text-white transition-all text-left italic uppercase tracking-widest shadow-sm hover:shadow-red-500/20"
                 >
                     <LogOut size={22} strokeWidth={4} />
-                    <span>Terminate</span>
+                    <span>Log Out</span>
                 </button>
                 </motion.div>
             )}
@@ -259,7 +259,7 @@ export default function Sidebar() {
                 />
                 <div className="flex flex-col min-w-0">
                    <span className="font-black text-black text-sm uppercase tracking-tighter truncate italic">@{user?.username}</span>
-                   <span className="text-[10px] font-black text-black/20 uppercase tracking-widest mt-1 italic">Authenticated</span>
+                   <span className="text-[10px] font-black text-black/20 uppercase tracking-widest mt-1 italic">Online</span>
                 </div>
               </div>
           </motion.div>

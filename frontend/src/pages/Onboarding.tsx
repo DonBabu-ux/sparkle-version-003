@@ -21,10 +21,10 @@ export default function Onboarding() {
             <Sparkles size={48} strokeWidth={2.5} />
           </div>
           <h1 className="text-6xl md:text-8xl font-black text-black tracking-tighter leading-none mb-8 italic uppercase">
-            Village <span className="text-primary">Genesis</span>
+            Welcome to <span className="text-primary">Sparkle</span>
           </h1>
           <p className="text-xl font-bold text-black opacity-60 leading-relaxed max-w-2xl mx-auto italic">
-            Sparkle is the campus network for discovered frequencies. Connect with neighbors, share signals, and amplify the village harmonics.
+            Sparkle is your campus social network. Connect with people around you, share what's happening, and stay in the loop with your community.
           </p>
         </div>
 
@@ -37,8 +37,8 @@ export default function Onboarding() {
                 <Compass size={32} strokeWidth={3} className="animate-spin-slow" />
               </div>
               <div>
-                 <h2 className="text-4xl font-black text-black tracking-tighter uppercase italic leading-none">Your Orbit</h2>
-                 <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Standard operational procedures.</p>
+                 <h2 className="text-4xl font-black text-black tracking-tighter uppercase italic leading-none">Your Community</h2>
+                 <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">How things work here.</p>
               </div>
             </div>
             
@@ -47,29 +47,29 @@ export default function Onboarding() {
                 <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm border border-black/5">
                    <Compass size={28} strokeWidth={4} />
                 </div>
-                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Scan Signals</h3>
-                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Browse high-frequency topics and discover what neighbors are broadcasting.</p>
+                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Explore Posts</h3>
+                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">See what's trending and discover what people are sharing on campus.</p>
               </div>
               <div className="space-y-6 group">
                 <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm border border-black/5">
                    <UserPlus size={28} strokeWidth={4} />
                 </div>
-                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Sync Nodes</h3>
-                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Synchronize with creators and influencers to stay updated with fresh pulses.</p>
+                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Follow People</h3>
+                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Follow your friends and favorite creators to see their latest updates.</p>
               </div>
               <div className="space-y-6 group">
                 <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm border border-black/5">
                    <PenSquare size={28} strokeWidth={4} />
                 </div>
-                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Broadcast Sparks</h3>
-                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Post your frequencies, bold visions, or visual chronicles to engage with the village.</p>
+                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Share Your Story</h3>
+                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Post photos, videos, or quick updates to share your moments with the community.</p>
               </div>
               <div className="space-y-6 group">
                 <div className="w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm border border-black/5">
                    <MessageCircle size={28} strokeWidth={4} />
                 </div>
-                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">High Fidelity</h3>
-                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Like, comment, and echo sparks to solidify active village conversations.</p>
+                <h3 className="text-2xl font-black text-black uppercase tracking-tighter italic leading-none">Stay Connected</h3>
+                <p className="text-[15px] font-bold text-black opacity-60 leading-relaxed italic">Like and comment on posts to keep the conversation going.</p>
               </div>
             </div>
           </section>
@@ -81,18 +81,18 @@ export default function Onboarding() {
                 <Sparkles size={32} strokeWidth={3} />
               </div>
               <div>
-                 <h2 className="text-4xl font-black text-black tracking-tighter uppercase italic leading-none">Algorithm Sync</h2>
-                 <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Your personalized village stream.</p>
+                 <h2 className="text-4xl font-black text-black tracking-tighter uppercase italic leading-none">Your Feed</h2>
+                 <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Posts picked just for you.</p>
               </div>
             </div>
             
-            <p className="text-lg font-bold text-black opacity-60 leading-relaxed mb-10 px-4 italic">Your personalized feed is strictly curated based on your unique coordinates:</p>
+            <p className="text-lg font-bold text-black opacity-60 leading-relaxed mb-10 px-4 italic">Your personalized feed shows you content based on:</p>
             
             <div className="bg-black/5 rounded-[40px] p-10 mb-8 space-y-6">
               {[
-                "Who you synchronize with",
-                "Frequencies you echo",
-                "Trending sparks in your sector"
+                "People you follow",
+                "Posts you've liked",
+                "What's popular on campus"
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-6 group">
                   <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg border border-primary/20 text-primary">
@@ -102,7 +102,7 @@ export default function Onboarding() {
                 </div>
               ))}
             </div>
-            <p className="text-[11px] font-black text-primary uppercase tracking-[0.4em] italic px-8">Increased engagement improves signal clarity.</p>
+            <p className="text-[11px] font-black text-primary uppercase tracking-[0.4em] italic px-8">The more you interact, the better your feed gets.</p>
           </section>
 
           {/* Privacy & Safety */}
@@ -113,19 +113,19 @@ export default function Onboarding() {
                 <Shield size={32} strokeWidth={3} />
               </div>
               <div>
-                 <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Encrypted</h2>
-                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mt-2 italic">Safety and protocol enforcement.</p>
+                 <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Safe & Secure</h2>
+                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mt-2 italic">Safety is our top priority.</p>
               </div>
             </div>
             
             <div className="grid sm:grid-cols-2 gap-12 relative z-10">
                <div className="space-y-4">
                   <h4 className="font-black text-primary text-xl uppercase tracking-tighter italic">Total Ownership</h4>
-                  <p className="text-base font-bold text-white/40 italic">Manage exactly what signals you propagate and who receives them.</p>
+                  <p className="text-base font-bold text-white/40 italic">Manage exactly what you share and who can see it.</p>
                </div>
                <div className="space-y-4">
-                  <h4 className="font-black text-primary text-xl uppercase tracking-tighter italic">Active Sentry</h4>
-                  <p className="text-base font-bold text-white/40 italic">Suspicious harmonics are proactively filtered to protect your node 24/7.</p>
+                  <h4 className="font-black text-primary text-xl uppercase tracking-tighter italic">Smart Safety</h4>
+                  <p className="text-base font-bold text-white/40 italic">We automatically filter out spam and harmful content to keep you safe 24/7.</p>
                </div>
             </div>
           </section>
@@ -133,14 +133,14 @@ export default function Onboarding() {
           {/* Final Call */}
           <section className="text-center py-20 animate-fade-in delay-500">
              <h2 className="text-5xl md:text-7xl font-black text-black tracking-tighter uppercase italic leading-none mb-12">
-                Ready for <span className="text-primary italic">Lift-off?</span>
+                Ready to <span className="text-primary italic">Join?</span>
              </h2>
 
              <div className="flex flex-col sm:flex-row gap-8 justify-center items-center mb-16">
                  {[
-                   { n: "1", t: "Sync Nodes" },
-                   { n: "2", t: "Scan Trends" },
-                   { n: "3", t: "Broadcast" }
+                   { n: "1", t: "Follow Friends" },
+                   { n: "2", t: "Explore" },
+                   { n: "3", t: "Share" }
                  ].map((step, i) => (
                     <div key={i} className="flex flex-col items-center gap-4 group">
                        <div className="text-5xl font-black text-black/5 group-hover:text-primary/20 transition-colors leading-none italic">{step.n}</div>
@@ -153,7 +153,7 @@ export default function Onboarding() {
               onClick={() => navigate('/dashboard')}
               className="px-16 py-8 bg-primary text-white text-xl font-black rounded-[32px] shadow-2xl shadow-primary/40 hover:scale-[1.05] hover:shadow-primary/60 transition-all active:scale-95 flex items-center justify-center gap-6 mx-auto uppercase tracking-[0.2em] italic"
             >
-              Initialize Orbit <ChevronRight size={32} strokeWidth={4} />
+              Get Started <ChevronRight size={32} strokeWidth={4} />
             </button>
           </section>
 

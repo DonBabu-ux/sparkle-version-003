@@ -37,7 +37,7 @@ const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: str
 
 // Memoized row to prevent re-renders of already-rendered posts
 const FeedRow = React.memo(({ post, onDeleted }: { post: Post; onDeleted: (id: string) => void }) => (
-  <div className="mb-[1.5px] sm:mb-1.5">
+  <div className="mb-0">
     <PostCard post={post} onDeleted={onDeleted} />
   </div>
 ));
@@ -58,14 +58,14 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className="mb-[1.5px] sm:mb-1.5 bg-white rounded-[8px] sm:rounded-[12px] shadow-sm p-4 border border-gray-200">
+    <div className="mb-0 bg-white dark:bg-black rounded-[8px] sm:rounded-[12px] shadow-sm dark:shadow-none p-4 border border-black/5 dark:border-white/5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[14px] font-bold text-gray-500 uppercase tracking-wider">People you might know</h3>
         <button onClick={() => navigate('/connect')} className="text-[12px] font-bold text-blue-600 hover:underline">See all</button>
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
         {suggestions.slice(0, 5).map((s) => (
-          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2 p-2 rounded-xl bg-gray-50 border border-gray-100">
+          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2 p-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
             <img 
               src={s.avatar_url || '/uploads/avatars/default.png'} 
               className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm cursor-pointer" 
@@ -73,8 +73,8 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
               onClick={() => navigate(`/profile/${s.username}`)}
             />
             <div className="min-w-0 w-full px-1">
-              <p className="text-[13px] font-bold text-gray-900 truncate">{s.username}</p>
-              <p className="text-[11px] text-gray-500 truncate">{s.campus || 'Sparkle'}</p>
+              <p className="text-[13px] font-bold text-gray-900 dark:text-white truncate">{s.username}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{s.campus || 'Sparkle'}</p>
             </div>
             <button 
               onClick={() => handleFollow(s.user_id)}
@@ -267,7 +267,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   }
 
   return (
-    <div className="space-y-[1.5px] sm:space-y-1.5">
+    <div className="space-y-0">
       {/* Render posts – FeedRow is memoized so only new items re-render */}
       {posts.map((post, index) => (
         <React.Fragment key={post.post_id}>

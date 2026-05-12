@@ -16,6 +16,7 @@ import StickerRenderer from '../components/stories/StickerRenderer';
 import { useStoryStore } from '../store/storyStore';
 import { useUserStore } from '../store/userStore';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
+import { emitHeart } from '../components/TikTokHearts';
 import Spinner from '../components/ui/Spinner';
 
 // REAL LOGOS SVGS
@@ -108,6 +109,7 @@ export default function StoryViewer() {
   const longPressTimer = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const pausedRef = useRef(false);
+  const lastTap = useRef<number>(0);
 
   useEffect(() => {
     const fetchStories = async () => {
@@ -237,7 +239,8 @@ export default function StoryViewer() {
   const isOwner = String(currentUser?.user_id) === String(userStories.user_id);
   const unviewedCount = userStories.stories.length - currentIndex;
 
-  const handleLike = async () => {
+  const handleLike = async (e?: any) => {
+    if (e && e.clientX) emitHeart(e.clientX, e.clientY, 'v');
     try {
       const res = await api.post(`/stories/${currentStory.story_id}/like`);
       const updatedStories = [...userStories.stories];
@@ -311,7 +314,16 @@ export default function StoryViewer() {
       >
         <div 
           className="w-full h-full relative overflow-hidden bg-gray-900"
-          onMouseDown={() => longPressTimer.current = setTimeout(() => setIsLongPressing(true), 200)}
+          onMouseDown={(e) => {
+            const now = Date.now();
+            if (now - lastTap.current < 300) {
+              handleLike(e);
+              lastTap.current = 0;
+            } else {
+              lastTap.current = now;
+              longPressTimer.current = setTimeout(() => setIsLongPressing(true), 200);
+            }
+          }}
           onMouseUp={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); setIsLongPressing(false); }}
         >
           {/* Progress Bars */}
@@ -415,15 +427,18 @@ export default function StoryViewer() {
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <button onClick={() => setShowShareModal(true)} className="text-white p-2 active:scale-75 transition-all"><Send size={24} /></button>
-                    <button onClick={() => setShowMentionModal(true)} className="text-white p-2 active:scale-75 transition-all"><AtSign size={24} /></button>
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowShareModal(true); }} className="text-white p-2 active:scale-75 transition-all"><Send size={24} /></button>
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowMentionModal(true); }} className="text-white p-2 active:scale-75 transition-all"><AtSign size={24} /></button>
                     <button 
-                      onClick={() => window.open(`whatsapp://send?text=Check out my story on Sparkle! ${window.location.href}`)} 
+                      onClick={(e) => {
+                        emitHeart(e.clientX, e.clientY, 'v');
+                        window.open(`whatsapp://send?text=Check out my story on Sparkle! ${window.location.href}`);
+                      }} 
                       className="p-2 active:scale-75 transition-all"
                     >
                       {WA_LOGO}
                     </button>
-                    <button onClick={() => setShowOptionsSheet(true)} className="flex flex-col items-center gap-0.5 text-white p-2 active:scale-75 transition-all">
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowOptionsSheet(true); }} className="flex flex-col items-center gap-0.5 text-white p-2 active:scale-75 transition-all">
                       <MoreHorizontal size={22} />
                       <span className="text-[8px] font-black uppercase tracking-widest">More</span>
                     </button>
@@ -432,7 +447,7 @@ export default function StoryViewer() {
              ) : (
                <div className="flex flex-col w-full gap-2 pointer-events-auto">
                   <button 
-                    onClick={() => setShowCommentModal(true)} 
+                    onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowCommentModal(true); }} 
                     className="self-start mb-1 active:opacity-50 transition-opacity"
                   >
                      <span className="text-[12px] font-medium text-white/80 italic tracking-wide shadow-lg">say something...</span>
@@ -441,11 +456,11 @@ export default function StoryViewer() {
                   <div className="flex items-center w-full gap-4">
                     <div className="flex-1 relative">
                       <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] text-white" />
-                      <button onClick={() => handleSendStoryMessage(replyText)} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
+                      <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); handleSendStoryMessage(replyText); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
                     </div>
                     <div className="flex items-center gap-5">
-                      <button onClick={handleLike} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}><Heart size={26} /></button>
-                      <button onClick={() => setShowShareModal(true)} className="text-white"><Share2 size={24} /></button>
+                      <button onClick={(e) => handleLike(e)} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}><Heart size={26} /></button>
+                      <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowShareModal(true); }} className="text-white"><Share2 size={24} /></button>
                     </div>
                   </div>
                </div>

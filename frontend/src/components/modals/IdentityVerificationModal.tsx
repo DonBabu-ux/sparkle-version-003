@@ -228,7 +228,7 @@ export default function IdentityVerificationModal({ isOpen, onClose, onComplete 
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
             className="fixed inset-x-0 bottom-0 bg-white/95 backdrop-blur-3xl rounded-t-[48px] z-[251] px-8 pt-10 pb-12 max-w-lg mx-auto border-t border-white"
           >
             <div className="flex justify-center mb-8">

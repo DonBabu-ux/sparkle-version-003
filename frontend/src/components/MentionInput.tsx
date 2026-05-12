@@ -109,27 +109,36 @@ const MentionInput: React.FC<MentionInputProps> = ({
   }, []);
 
   useEffect(() => {
+    if (value.length > 0 && cursorPos === 0) {
+      setCursorPos(value.length);
+    }
+  }, [value]);
+
+  useEffect(() => {
     if (!mentionQuery) return;
     setShowPanel(true);
     const timer = setTimeout(() => fetchSuggestions(mentionQuery), mentionQuery === '@' ? 0 : 300);
     return () => clearTimeout(timer);
   }, [mentionQuery, fetchSuggestions]);
 
+  useEffect(() => {
+    // Only detect if the last character typed or the current cursor context is a mention trigger
+    const beforeCursor = value.slice(0, cursorPos);
+    const match = beforeCursor.match(/@(\w*)$/);
+    if (match) {
+      setMentionQuery(match[0]);
+    } else if (!value.includes('@')) {
+      // If no @ at all, definitely close
+      setMentionQuery('');
+      setShowPanel(false);
+    }
+  }, [value, cursorPos]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     const pos = e.target.selectionStart || 0;
     onChange(val);
     setCursorPos(pos);
-
-    const beforeCursor = val.slice(0, pos);
-    const match = beforeCursor.match(/@(\w*)$/);
-    if (match) {
-      setMentionQuery(match[0]);
-    } else {
-      setMentionQuery('');
-      setSuggestions([]);
-      setShowPanel(false);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -165,7 +174,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
   }, [suggestions, replyUser, mentionQuery]);
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full h-full flex items-center">
       <input
         ref={inputRef}
         type="text"

@@ -52,13 +52,13 @@ function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => 
   };
 
   return (
-    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => navigate(`/profile/${s.username}`)}>
-      <img src={getAvatarUrl(s.avatar_url, s.username)} className="w-10 h-10 rounded-full object-cover border border-gray-200" alt="" />
+    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => navigate(`/profile/${s.username}`)}>
+      <img src={getAvatarUrl(s.avatar_url, s.username)} className="w-10 h-10 rounded-full object-cover border border-black/5 dark:border-white/10" alt="" />
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-[14px] text-gray-900 truncate">{s.username}</p>
-        <p className="text-[12px] text-gray-500 truncate">{s.campus || 'Main Campus'}</p>
+        <p className="font-bold text-[14px] text-black dark:text-white truncate">{s.username}</p>
+        <p className="text-[12px] text-black/40 dark:text-white/40 truncate">{s.campus || 'Main Campus'}</p>
       </div>
-      <button className={`px-4 py-1.5 rounded-md font-bold text-[13px] transition-all ${following ? 'bg-gray-200 text-gray-500' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`} onClick={handleFollow} disabled={loading || following}>
+      <button className={`px-4 py-1.5 rounded-lg font-bold text-[13px] transition-all ${following ? 'bg-black/5 dark:bg-white/5 text-black/20 dark:text-white/20' : 'bg-primary/5 text-primary hover:bg-primary/10'}`} onClick={handleFollow} disabled={loading || following}>
         {loading ? '...' : following ? 'Following' : 'Follow'}
       </button>
     </div>
@@ -203,37 +203,49 @@ export default function Dashboard() {
   // Feed managed by VirtualizedFeed component
   
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
+    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
-      <div className="fixed top-0 left-0 w-full h-full bg-[#fdf2f4] z-[-1]" />
 
       <main className="flex-1 lg:ml-72 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-0.5 lg:mt-0">
-          <section className="flex flex-col gap-[1.5px] sm:gap-1.5">
+          <section className="flex flex-col gap-0 bg-white dark:bg-black">
             {/* COMPOSER */}
-            <div className="bg-white rounded-[8px] sm:rounded-[12px] shadow-sm p-4 animate-fade-in border sm:border border-gray-200">
-              <div className="flex gap-3 items-center mb-4">
-                <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-10 h-10 rounded-full object-cover border border-gray-100" alt="" />
-                <button onClick={() => setActiveModal('creationHub')} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full py-2 px-4 text-left transition-colors text-[16px]">What's on your mind, {user?.name?.split(' ')[0] || ''}?</button>
+            <div className="bg-white dark:bg-[#000000] rounded-lg shadow-sm p-4 animate-fade-in border border-black/5 dark:border-white/5">
+              <div className="flex gap-4 items-center mb-5">
+                <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
+                <button onClick={() => setActiveModal('creationHub')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black/40 dark:text-white/40 rounded-lg px-5 text-left transition-colors font-medium text-sm">
+                  What's on your mind, {user?.name || user?.username}?
+                </button>
               </div>
-              <div className="border-t border-gray-100 pt-2 flex items-center justify-around px-1">
-                <label className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer group"><Video size={24} className="text-[#f02849]" /><span className="text-[13px] font-semibold text-gray-500 whitespace-nowrap">Video</span><input type="file" className="hidden" accept="video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} /></label>
-                <label className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer group"><Image size={24} className="text-[#45bd62]" /><span className="text-[13px] font-semibold text-gray-500 whitespace-nowrap">Photo/video</span><input type="file" multiple className="hidden" accept="image/*,video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} /></label>
-                <button onClick={() => setActiveModal('poll')} className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors group"><Smile size={24} className="text-[#f7b928]" /><span className="text-[13px] font-semibold text-gray-500 whitespace-nowrap hidden sm:inline">Feeling/activity</span><span className="text-[13px] font-semibold text-gray-500 whitespace-nowrap sm:hidden">Feeling</span></button>
+              <div className="border-t border-black/5 dark:border-white/5 pt-3 flex items-center justify-around">
+                <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-red-500/5 rounded-xl transition-all cursor-pointer group text-red-500/60 dark:text-red-400">
+                  <Video size={20} className="text-red-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Video</span>
+                  <input type="file" className="hidden" accept="video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
+                </label>
+                <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-emerald-500/5 rounded-xl transition-all cursor-pointer group text-emerald-500/60 dark:text-emerald-400">
+                  <Image size={20} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Photo</span>
+                  <input type="file" multiple className="hidden" accept="image/*,video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
+                </label>
+                <button onClick={() => setActiveModal('poll')} className="flex items-center gap-2.5 px-4 py-2 hover:bg-amber-500/5 rounded-xl transition-all group text-amber-500/60 dark:text-amber-400">
+                  <Smile size={20} className="text-amber-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Feeling</span>
+                </button>
               </div>
             </div>
 
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
-            <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white sm:bg-transparent rounded-[8px] sm:rounded-none border border-gray-200 sm:border-none shadow-sm sm:shadow-none">
+            <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white dark:bg-black sm:bg-transparent rounded-[8px] sm:rounded-none border-none shadow-none">
               <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar px-2 sm:px-0">
                 {/* Add Story Card */}
-                <div onClick={() => navigate('/afterglow/create')} className="flex-shrink-0 w-[112px] h-[200px] bg-white rounded-[10px] shadow-md cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98]">
+                <div onClick={() => navigate('/afterglow/create')} className="flex-shrink-0 w-[112px] h-[200px] bg-white dark:bg-black rounded-lg shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98] border border-black/5 dark:border-white/10">
                   <div className="h-[150px] w-full overflow-hidden">
                     <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
                   </div>
-                  <div className="h-[50px] w-full flex flex-col items-center justify-end pb-2 relative">
-                    <div className="absolute top-[-20px] w-10 h-10 bg-[#1877F2] rounded-full border-4 border-white flex items-center justify-center text-white shadow-sm z-10"><Plus size={24} strokeWidth={3} /></div>
-                    <span className="text-[12px] font-bold text-gray-700">Create story</span>
+                  <div className="h-[50px] w-full flex flex-col items-center justify-end pb-3 relative bg-white dark:bg-[#121212]">
+                    <div className="absolute top-[-20px] w-10 h-10 bg-primary rounded-full border-4 border-white dark:border-[#121212] flex items-center justify-center text-white shadow-xl z-10"><Plus size={24} strokeWidth={4} /></div>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-black dark:text-white">Add Story</span>
                   </div>
                 </div>
 
@@ -244,27 +256,25 @@ export default function Dashboard() {
                     <div 
                       key={group.user_id}
                       onClick={() => navigate(`/stories/${group.user_id}`)}
-                      className="flex-shrink-0 w-[112px] h-[200px] rounded-[10px] shadow-md cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
+                      className="flex-shrink-0 w-[112px] h-[200px] rounded-lg shadow-lg cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
                     >
                       <img src={getAvatarUrl(group.stories[0].media_url || group.avatar_url, group.username)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
                       <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                       
-                      {/* GENIUS: Ring & Badge Indicator (Requirement) */}
                       <div className="absolute top-3 left-3 w-10 h-10 rounded-full relative z-10">
-                         <div className={`absolute inset-[-4px] rounded-full border-[3px] transition-colors duration-500 ${unviewed > 0 ? 'border-[#1877F2] shadow-[0_0_10px_rgba(24,119,242,0.4)]' : 'border-gray-400/50'}`} />
-                         <div className="w-full h-full rounded-full border-2 border-black overflow-hidden relative">
+                         <div className={`absolute inset-[-4px] rounded-full border-[3px] transition-colors duration-500 ${unviewed > 0 ? 'border-primary shadow-[0_0_12px_rgba(232,53,131,0.5)]' : 'border-black/20 dark:border-white/20'}`} />
+                         <div className="w-full h-full rounded-full border-2 border-black/10 dark:border-white/10 overflow-hidden relative">
                             <img src={getAvatarUrl(group.avatar_url, group.username)} className="w-full h-full object-cover" alt="" />
                          </div>
-                         {/* Unviewed Count Badge */}
                          {unviewed > 0 && (
-                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-[#1877F2] text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-lg">
+                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-lg">
                               {unviewed}
                            </motion.div>
                          )}
                       </div>
                       
-                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-                        <p className="text-[12px] font-bold text-white truncate">{group.username || group.user_name}</p>
+                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                        <p className="text-[10px] font-black text-white uppercase tracking-widest truncate">{group.username || group.user_name}</p>
                       </div>
                     </div>
                   );
@@ -280,21 +290,27 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <aside className="hidden xl:flex flex-col gap-4 sticky top-24 h-fit animate-fade-in">
-            <div className="bg-white rounded-[12px] border border-gray-200 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4"><h3 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Suggested People</h3><Link to="/connect" className="text-[12px] font-bold text-blue-600 hover:underline">See all</Link></div>
-              <div className="space-y-2">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4 opacity-30"><Spinner size="medium" color="text-gray-400" /><p className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest text-center">No Suggestions</p></div>}</div>
+            <div className="bg-white dark:bg-[#121212] rounded-3xl border border-black/5 dark:border-white/10 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Connect</h3>
+                <Link to="/connect" className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">View All</Link>
+              </div>
+              <div className="space-y-4">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4 opacity-30"><Spinner size="medium" color="text-black/30 dark:text-white/30" /><p className="text-[12px] font-semibold text-black/30 dark:text-white/30 uppercase tracking-widest text-center">No Suggestions</p></div>}</div>
             </div>
             {/* Trending */}
-            <div className="bg-white rounded-[12px] border border-gray-200 p-6 shadow-sm overflow-hidden group">
-               <div className="flex flex-col gap-4">
-                  <h3 className="text-[17px] font-bold text-gray-500 uppercase tracking-wide">Trending</h3>
+            <div className="bg-white dark:bg-[#121212] rounded-3xl border border-black/5 dark:border-white/10 p-6 shadow-sm overflow-hidden group">
+               <div className="flex flex-col gap-6">
+                  <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Hot Right Now</h3>
                   <div className="space-y-3">{trendingTags.map(tag => (
-                      <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-3 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors group/tag">
-                         <div className="flex items-center justify-between"><p className="text-[15px] font-bold text-gray-900 group-hover/tag:text-blue-600">#{tag.tag}</p><TrendingUp size={14} className="text-blue-600 opacity-0 group-hover/tag:opacity-100 transition-opacity" /></div>
-                         <p className="text-[11px] font-semibold text-gray-400 mt-1 uppercase tracking-wider">{tag.count} POSTS</p>
+                      <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-4 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-primary/20 rounded-2xl transition-all group/tag">
+                         <div className="flex items-center justify-between">
+                            <p className="text-[15px] font-black text-black dark:text-white group-hover/tag:text-primary italic uppercase tracking-tight">#{tag.tag}</p>
+                            <TrendingUp size={14} className="text-primary opacity-0 group-hover/tag:opacity-100 transition-opacity" />
+                         </div>
+                         <p className="text-[10px] font-bold text-black/30 dark:text-white/30 mt-1 uppercase tracking-widest">{tag.count} Sparks</p>
                       </Link>
                     ))}</div>
-                  <Link to="/explore" className="w-full py-2 bg-gray-100 rounded-lg flex items-center justify-center gap-2 text-[12px] font-bold text-gray-600 hover:bg-gray-200 transition-colors group/more">Explore More <ChevronRight size={14} className="group-hover/more:translate-x-1 transition-transform" /></Link>
+                  <Link to="/explore" className="w-full h-11 bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center gap-2 text-[11px] font-black text-black/40 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all group/more uppercase tracking-widest">Explore More <ChevronRight size={14} className="group-hover/more:translate-x-1 transition-transform" /></Link>
                </div>
             </div>
           </aside>

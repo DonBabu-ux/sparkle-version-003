@@ -163,7 +163,7 @@ export default function Search() {
   ];
 
   return (
-    <div className="block lg:flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden selection:bg-primary/10">
+    <div className="block lg:flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
       <Navbar />
       
       {/* Cinematic Background Elements */}
@@ -175,21 +175,21 @@ export default function Search() {
       <main className="flex-1 lg:ml-72 flex flex-col relative z-10">
         
         {/* Sleek Search Header */}
-        <header className="sticky top-0 z-[100] bg-white/95 backdrop-blur-3xl border-b border-black/[0.03] px-4 md:px-6 py-3 md:py-8">
-          <div className="max-w-3xl mx-auto flex items-center gap-3 md:gap-6">
-              <button 
-                onClick={() => navigate(-1)} 
-                className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white rounded-xl md:rounded-2xl transition-all active:scale-95 group shadow-sm"
-              >
-                  <ArrowLeft size={16} md:size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
+        <header className="sticky top-0 z-[100] bg-white/95 dark:bg-black/95 backdrop-blur-3xl border-b border-black/5 dark:border-white/10 px-4 py-4 md:py-6">
+          <div className="max-w-3xl mx-auto flex items-center gap-4">
+                <button 
+                  onClick={() => navigate(-1)} 
+                  className="w-10 h-10 shrink-0 flex items-center justify-center bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 text-gray-900 dark:text-white hover:text-primary hover:border-primary/20 rounded-xl transition-all active:scale-95 group shadow-sm"
+                >
+                  <ArrowLeft size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
               
               <div className="flex-1 relative" ref={searchRef}>
-                  <SearchIcon size={18} md:size={20} strokeWidth={3} className={`absolute left-4 md:left-6 top-1/2 -translate-y-1/2 transition-all duration-500 ${query ? 'text-primary scale-110' : 'text-black/10'}`} />
+                  <SearchIcon size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-500 ${query ? 'text-primary' : 'text-gray-300'}`} />
                   <input 
                       type="text" 
-                      placeholder="Find people, posts, groups..."
-                      className="w-full h-12 md:h-18 bg-black/[0.03] border border-transparent rounded-[16px] md:rounded-[24px] px-12 text-center text-sm font-bold md:font-black text-black placeholder:text-black/20 focus:bg-white focus:border-black/5 focus:shadow-2xl focus:shadow-black/5 transition-all outline-none"
+                      placeholder="Search Sparkle..."
+                      className="sparkle-input pl-12 h-12 md:h-14 !rounded-2xl"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={handleKeyDown}
@@ -198,9 +198,9 @@ export default function Search() {
                   {query && (
                       <button 
                         onClick={() => { setQuery(''); setResults({}); }} 
-                        className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 w-7 h-7 md:w-10 md:h-10 flex items-center justify-center bg-black/5 rounded-lg md:rounded-2xl text-black/40 hover:text-black hover:bg-black/10 transition-all"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-gray-400 hover:text-gray-900 transition-all"
                       >
-                          <X size={14} md:size={18} strokeWidth={3} />
+                          <X size={14} strokeWidth={3} />
                       </button>
                   )}
               </div>
@@ -217,12 +217,12 @@ export default function Search() {
                         {/* Trending */}
                         <section>
                             <div className="flex items-center gap-3 mb-6 px-2">
-                                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                                    <TrendingUp size={20} strokeWidth={2.5} />
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                    <TrendingUp size={20} />
                                 </div>
-                                <h2 className="text-xl font-black text-black uppercase tracking-tight italic">Trending</h2>
+                                <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Trending</h2>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 {Array.isArray(trending) && trending.length > 0 ? trending.map((tag, i) => (
                                     <motion.div 
                                       key={`tag-${i}`} 
@@ -230,16 +230,16 @@ export default function Search() {
                                       animate={{ opacity: 1, x: 0 }}
                                       transition={{ delay: i * 0.05 }}
                                       onClick={() => setQuery(tag.name.replace('#', ''))} 
-                                      className="flex items-center justify-between p-4 rounded-2xl hover:bg-black/[0.03] cursor-pointer transition-all group"
+                                      className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-white/5 border border-transparent hover:border-black/5 dark:hover:border-white/10 hover:shadow-sm cursor-pointer transition-all group"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <span className="text-sm font-black text-black/20 group-hover:text-primary transition-colors italic">0{i + 1}</span>
-                                            <span className="text-base font-bold text-black italic">{tag.name}</span>
+                                            <span className="text-sm font-black text-gray-300 group-hover:text-primary transition-colors italic">0{i + 1}</span>
+                                            <span className="text-base font-bold text-gray-900 italic">{tag.name}</span>
                                         </div>
-                                        <span className="text-[10px] font-black text-black/10 uppercase tracking-widest group-hover:text-black/40">{tag.count} Sparks</span>
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tag.count} Sparks</span>
                                     </motion.div>
                                 )) : (
-                                    <p className="text-sm font-bold text-black/10 italic px-4">Nothing trending yet...</p>
+                                    <p className="text-sm font-bold text-gray-300 italic px-4">Nothing trending yet...</p>
                                 )}
                             </div>
                         </section>
@@ -248,62 +248,64 @@ export default function Search() {
                         <section>
                             <div className="flex items-center justify-between mb-6 px-2">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/20">
-                                        <Clock size={20} strokeWidth={2.5} />
+                                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
+                                        <Clock size={20} />
                                     </div>
-                                    <h2 className="text-xl font-black text-black uppercase tracking-tight italic">Recent</h2>
+                                    <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Recent</h2>
                                 </div>
-                                <button onClick={() => navigate('/search/history')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline opacity-60">History</button>
+                                <button onClick={() => navigate('/search/history')} className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline opacity-80">Full History</button>
                             </div>
                             
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 {Array.isArray(history) && history.length > 0 ? history.slice(0, 5).map((h, i) => (
                                     <motion.div 
                                       key={`hist-${h.id || i}`} 
                                       initial={{ opacity: 0, x: 10 }}
                                       animate={{ opacity: 1, x: 0 }}
                                       transition={{ delay: i * 0.05 }}
-                                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-black/[0.03] cursor-pointer transition-all group" 
+                                      className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-white/5 border border-transparent hover:border-black/5 dark:hover:border-white/10 hover:shadow-sm cursor-pointer transition-all group" 
                                       onClick={() => setQuery(h.query)}
                                     >
                                         <div className="flex-1 min-w-0">
-                                            <span className="block text-base font-bold text-black italic truncate">{h.query}</span>
+                                            <span className="block text-base font-bold text-gray-900 italic truncate">{h.query}</span>
                                         </div>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setActionItem({ ...h, type: 'history' }); }}
-                                            className="w-8 h-8 flex items-center justify-center text-black/10 hover:text-black hover:bg-black/5 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                            className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-primary hover:bg-primary/5 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                                         >
                                             <MoreHorizontal size={16} strokeWidth={3} />
                                         </button>
                                     </motion.div>
                                 )) : (
-                                    <p className="text-sm font-bold text-black/10 italic px-4">Your search history is empty.</p>
+                                    <p className="text-sm font-bold text-gray-300 italic px-4">Your history is clear.</p>
                                 )}
                             </div>
                         </section>
                     </div>
 
                     {/* Explore Teaser */}
-                    <section className="relative overflow-hidden bg-black text-white rounded-[40px] p-10 group cursor-pointer" onClick={() => navigate('/explore')}>
-                        <div className="relative z-10">
-                            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-md">
-                                <Compass size={24} className="text-primary" />
+                    <section className="relative overflow-hidden bg-gray-900 text-white rounded-[32px] p-8 md:p-12 group cursor-pointer shadow-xl" onClick={() => navigate('/explore')}>
+                        <div className="relative z-10 max-w-md">
+                            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-primary/20">
+                                <Compass size={24} className="text-white" />
                             </div>
-                            <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-4">See what's happening</h3>
-                            <p className="text-white/40 font-bold text-sm leading-relaxed max-w-sm">Check out new groups, the marketplace, and trending posts around campus.</p>
+                            <h3 className="text-3xl md:text-4xl font-black italic tracking-tight uppercase leading-none mb-4">Discover More</h3>
+                            <p className="text-gray-400 font-medium text-sm leading-relaxed">
+                                Explore trending groups, active marketplaces, and popular moments from across the Sparkle community.
+                            </p>
                         </div>
-                        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/20 to-transparent group-hover:scale-110 transition-transform duration-700" />
-                        <Sparkles size={120} className="absolute -bottom-10 -right-10 text-white/5 rotate-12 group-hover:scale-110 transition-transform duration-700" />
+                        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent group-hover:scale-110 transition-transform duration-700" />
+                        <Sparkles size={120} className="absolute -bottom-10 -right-10 text-white/[0.03] rotate-12 group-hover:scale-110 transition-transform duration-700" />
                     </section>
                 </div>
             ) : (
                 <div className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 sticky top-[73px] md:top-[108px] z-50 bg-white/80 backdrop-blur-xl py-3 md:py-4 -mx-4 px-4 border-b border-black/[0.03]">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 sticky top-[81px] md:top-[105px] z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl py-4 -mx-4 px-4 border-b border-black/[0.03] dark:border-white/[0.03]">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap italic border-2 ${activeTab === tab.id ? 'bg-black border-black text-white shadow-xl shadow-black/10' : 'bg-transparent border-transparent text-black/30 hover:text-black hover:bg-black/5'}`}
+                                className={`px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border ${activeTab === tab.id ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-primary/30 hover:text-primary'}`}
                             >
                                 {tab.label}
                             </button>
@@ -323,10 +325,10 @@ export default function Search() {
                         )}
                         
                         {Object.entries(results).map(([type, items]: [string, SearchResult[]], i) => (
-                            <section key={`res-sec-${type}-${i}`} className="space-y-8 animate-in slide-in-from-bottom-4 duration-700">
+                            <section key={`res-sec-${type}-${i}`} className="space-y-6 animate-fade-in">
                                 <div className="flex items-center gap-4">
-                                   <h3 className="text-xs font-black text-black italic uppercase tracking-[0.2em] opacity-20">{type}</h3>
-                                   <div className="flex-1 h-[1px] bg-black/[0.05]" />
+                                   <h3 className="text-[10px] font-black text-gray-400 dark:text-white/40 italic uppercase tracking-widest">{type}</h3>
+                                   <div className="flex-1 h-[1px] bg-gray-200/50" />
                                 </div>
                                 
                                 <div className="grid gap-6">
@@ -342,39 +344,39 @@ export default function Search() {
                                         <div 
                                           key={`res-g-${g.id || j}`} 
                                           onClick={() => navigate(type === 'hashtags' ? `/hashtag/${g.title?.replace('#', '')}` : `/${type}/${g.id}`)} 
-                                          className="flex items-center gap-3 md:gap-6 p-4 md:p-6 bg-black/[0.02] hover:bg-black text-black hover:text-white rounded-[24px] md:rounded-[32px] transition-all cursor-pointer group active:scale-[0.98] duration-500 w-full overflow-hidden"
+                                          className="flex items-center gap-4 p-5 bg-white dark:bg-black border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
                                         >
                                             {type === 'hashtags' ? (
-                                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-white/10 shrink-0 transition-all">
-                                                    <Hash size={24} md:size={32} strokeWidth={3} className="text-black/20 group-hover:text-white" />
+                                                <div className="w-14 h-14 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 shrink-0 transition-all">
+                                                    <Hash size={24} className="text-primary" />
                                                 </div>
                                             ) : (
-                                                <img src={g.image || '/uploads/avatars/default.png'} className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl object-cover border border-white/10 shadow-lg group-hover:scale-105 transition-all shrink-0" alt="" />
+                                                <img src={g.image || '/uploads/avatars/default.png'} className="w-14 h-14 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-base md:text-xl font-bold md:font-black leading-none mb-1 md:mb-2 italic truncate">{g.title}</div>
-                                                <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:text-primary transition-colors">
+                                                <div className="text-lg font-bold text-gray-900 leading-none mb-1 italic uppercase tracking-tight truncate">{g.title}</div>
+                                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-primary transition-colors">
                                                     {type === 'hashtags' ? 'Hashtag' : g.subtitle || 'Community'}
                                                 </div>
                                             </div>
-                                            <ChevronRight size={18} md:size={20} className="opacity-10 group-hover:opacity-100 transition-all group-hover:translate-x-1 shrink-0" />
+                                            <ChevronRight size={18} className="text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                                         </div>
                                     ))}
                                     {type === 'marketplace' && Array.isArray(items) && items.map((item, j) => (
                                         <div 
                                           key={`res-m-${item.id || j}`} 
                                           onClick={() => navigate(`/marketplace/listings/${item.id}`)} 
-                                          className="flex items-center gap-4 md:gap-6 p-4 md:p-6 bg-black/[0.02] hover:bg-black text-black hover:text-white rounded-[24px] md:rounded-[32px] transition-all cursor-pointer group active:scale-[0.98] duration-500 w-full overflow-hidden"
+                                          className="flex items-center gap-4 p-5 bg-white dark:bg-black border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
                                         >
-                                            <img src={item.image || '/uploads/avatars/default.png'} className="w-16 h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl object-cover border border-white/10 shadow-lg group-hover:scale-105 transition-all shrink-0" alt="" />
+                                            <img src={item.image || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-lg md:text-xl font-black leading-none mb-2 md:mb-3 italic truncate">{item.title}</div>
-                                                <div className="flex items-center gap-2 md:gap-4">
-                                                    <span className="text-base md:text-lg font-black text-primary tracking-tighter group-hover:text-white transition-colors">KSh {item.subtitle}</span>
-                                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-20">Market</span>
+                                                <div className="text-lg font-bold text-gray-900 leading-none mb-2 italic uppercase tracking-tight truncate">{item.title}</div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-lg font-black text-primary tracking-tighter">KSh {item.subtitle}</span>
+                                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Market</span>
                                                 </div>
                                             </div>
-                                            <ChevronRight size={18} md:size={20} className="opacity-10 group-hover:opacity-100 transition-all group-hover:translate-x-1 shrink-0" />
+                                            <ChevronRight size={18} className="text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                                         </div>
                                     ))}
                                     {Array.isArray(items) && items.length === 0 && (
@@ -429,7 +431,7 @@ export default function Search() {
                             <div className="w-16 h-16 rounded-[24px] bg-black/5 flex items-center justify-center text-black/10 mb-6">
                                 <Clock size={32} strokeWidth={2.5} />
                             </div>
-                             <h3 className="text-2xl font-black text-black italic uppercase">Search History</h3>
+                             <h3 className="text-2xl font-black text-black dark:text-white italic uppercase">Search History</h3>
                             <p className="text-primary font-bold text-base mt-3 italic px-4">"{actionItem.query}"</p>
                         </>
                     )}
@@ -440,7 +442,7 @@ export default function Search() {
                         <>
                             <button 
                                 onClick={() => { navigate(`/messages?chat=${actionItem.user_id || actionItem.id}`); setActionItem(null); }}
-                                className="flex items-center justify-between p-6 bg-black/[0.03] hover:bg-black hover:text-white rounded-[24px] transition-all group active:scale-[0.98]"
+                                className="flex items-center justify-between p-6 bg-black/[0.03] dark:bg-white/5 hover:bg-black dark:hover:bg-white/10 hover:text-white rounded-[24px] transition-all group active:scale-[0.98]"
                             >
                                 <div className="flex items-center gap-4">
                                     <Send size={18} strokeWidth={2.5} className="text-primary group-hover:text-white" />
@@ -452,7 +454,7 @@ export default function Search() {
                             <button 
                                 onClick={() => handlePoke(actionItem.user_id || actionItem.id, actionItem.name)}
                                 disabled={poking}
-                                className="flex items-center justify-between p-6 bg-black/[0.03] hover:bg-black hover:text-white rounded-[24px] transition-all group active:scale-[0.98]"
+                                className="flex items-center justify-between p-6 bg-black/[0.03] dark:bg-white/5 hover:bg-black dark:hover:bg-white/10 hover:text-white rounded-[24px] transition-all group active:scale-[0.98]"
                             >
                                 <div className="flex items-center gap-4">
                                     <Hand size={18} strokeWidth={2.5} className="text-primary group-hover:text-white" />
@@ -465,7 +467,7 @@ export default function Search() {
 
                             <button 
                                 onClick={() => { navigate(`/profile/${actionItem.username}`); setActionItem(null); }}
-                                className="flex items-center justify-between p-6 bg-black/[0.03] hover:bg-black hover:text-white rounded-[24px] transition-all group active:scale-[0.98]"
+                                className="flex items-center justify-between p-6 bg-black/[0.03] dark:bg-white/5 hover:bg-black dark:hover:bg-white/10 hover:text-white rounded-[24px] transition-all group active:scale-[0.98]"
                             >
                                 <div className="flex items-center gap-4">
                                     <User size={18} strokeWidth={2.5} className="text-primary group-hover:text-white" />

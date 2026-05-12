@@ -47,12 +47,13 @@ export default function UserActionModal({ user, onClose }: Props) {
             <>
                 <motion.div 
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    transition={{ duration: 0.1 }}
                     onClick={onClose}
                     className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[5000] flex items-end sm:items-center justify-center p-0 sm:p-4"
                 />
                 <motion.div 
                     initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
                     className="fixed bottom-0 sm:bottom-auto sm:relative bg-white w-full sm:max-w-[360px] rounded-t-2xl sm:rounded-2xl shadow-2xl z-[5001] overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >

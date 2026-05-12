@@ -1,6 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700;800;900&family=Varela+Round&display=swap');
 @import "tailwindcss";
 
+/* ============================================================
+   CRITICAL: Force Tailwind v4 to use .dark CLASS selector
+   instead of the default @media (prefers-color-scheme: dark).
+   Without this, dark: utilities respond to OS preference only,
+   making the in-app light/dark toggle completely non-functional.
+   ============================================================ */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
@@ -72,9 +80,9 @@
   /* Animations */
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-slow: pulse-slow 8s infinite ease-in-out;
-  --animate-scale-in: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  --animate-fade-in: fade-in 0.8s ease-out forwards;
-  --animate-slide-up: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-scale-in: scale-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in: fade-in 0.3s ease-out forwards;
+  --animate-slide-up: slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
@@ -154,11 +162,19 @@
   .mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
 
   .h-screen-safe { height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+
+  .bg-app {
+    background-color: #fdf2f4 !important;
+  }
 }
 
 /* Global Reset & Base */
 html {
   background: #fff0f4;
+}
+
+.dark html {
+  background: #000000 !important;
 }
 
 body {
@@ -168,6 +184,126 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+.dark html {
+  background: #000000 !important;
+}
+
+/* Base text visibility in dark mode - only for standard containers */
+.dark .bg-black h1, .dark .bg-black h2, .dark .bg-black h3, .dark .bg-black h4, .dark .bg-black h5, .dark .bg-black h6, 
+.dark .bg-black p, .dark .bg-black span, .dark .bg-black label {
+  color: #FFFFFF;
+}
+
+.dark .bg-white, .dark .bg-white\/5, .dark .bg-white\/10, .dark .bg-white\/20, .dark .bg-white\/30, .dark .bg-white\/40, .dark .bg-white\/50, .dark .bg-white\/60, .dark .bg-white\/70, .dark .bg-white\/80, .dark .bg-white\/90, .dark .bg-white\/95 {
+  background-color: #000000 !important;
+  border-color: #262626 !important;
+}
+
+.dark .bg-blue-100, .dark .bg-blue-50, .dark .bg-[#ebf5ff] {
+  background-color: #1a1a1a !important;
+}
+
+.dark .bg-gray-50, .dark .bg-gray-100, .dark .bg-gray-200, .dark .bg-slate-50, .dark .bg-zinc-50, .dark .bg-[#f0f2f5], .dark .bg-[#f2f2f2] {
+  background-color: #000000 !important;
+}
+
+.dark .border, .dark .border-gray-50, .dark .border-gray-100, .dark .border-gray-200, .dark .border-gray-300, .dark .border-black\/5, .dark .border-pink-50 {
+  border-color: #262626 !important;
+}
+
+.dark .text-black, .dark .text-black\/20, .dark .text-black\/30, .dark .text-black\/40, .dark .text-black\/50, .dark .text-black\/60, .dark .text-black\/70, .dark .text-black\/80, .dark .text-black\/90 {
+  color: #FFFFFF !important;
+}
+
+.dark .text-black\/30, .dark .text-black\/40 {
+  color: #A8A8A8 !important;
+}
+
+.dark .text-gray-600, .dark .text-gray-500, .dark .text-gray-400, .dark .text-slate-500 {
+  color: #A8A8A8 !important;
+}
+
+.dark .sparkle-input {
+  background: #000000 !important;
+  border-color: #262626 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .sparkle-input:focus {
+  border-color: #FF006E !important;
+  background: #000000 !important;
+}
+
+.dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl, .dark .shadow-2xl, .dark .shadow-premium {
+  box-shadow: none !important;
+}
+
+.dark #root::before, .dark #root::after {
+  opacity: 0.05;
+}
+
+.dark .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-100:hover, .dark .hover\:bg-black\/5:hover {
+  background-color: #1A1A1A !important;
+}
+
+.dark .bg-\[\#fdf2f4\] {
+  background-color: #000000 !important;
+}
+
+.dark .glass {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  border-color: #262626 !important;
+}
+
+.dark .navbar {
+  background-color: #000000 !important;
+  border-right-color: #262626 !important;
+}
+
+.dark .secondary-btn {
+  background-color: #121212 !important;
+  color: #FFFFFF !important;
+  border-color: #262626 !important;
+}
+
+.dark .premium-card {
+  background-color: #000000 !important;
+  border-color: #262626 !important;
+}
+
+.dark .card {
+  background-color: #121212 !important;
+  border-color: #262626 !important;
+}
+
+.dark hr {
+  border-color: #262626 !important;
+  opacity: 0.5;
+}
+
+.dark .modal-content {
+  background-color: #000000 !important;
+  border-color: #262626 !important;
+}
+
+.dark .lucide {
+  color: inherit;
+}
+
+.dark .bg-primary\/5, .dark .bg-primary\/10 {
+  background-color: rgba(255, 0, 110, 0.15) !important;
+}
+
+.dark .bg-app {
+  background-color: #000000 !important;
 }
 
 /* Global ambient pink orbs — injected on every page via ::before/::after on #root */
@@ -289,10 +425,10 @@ input, textarea, select {
 }
 
 .animate-spin-slow  { animation: spin-slow 45s linear infinite; }
-.animate-fade-in    { animation: fade-in-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-scale-in   { animation: scale-in-up 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in    { animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-scale-in   { animation: scale-in-up 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-float      { animation: float-y 6s ease-in-out infinite; }
-.animate-slide-up   { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-up   { animation: slide-up 0.15s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-spark-pop { animation: spark-pop 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.49) both; }
 @keyframes shimmer {
   0% { background-position: -200% 0; }

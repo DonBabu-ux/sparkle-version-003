@@ -37,7 +37,7 @@ const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: str
 
 const POST_TYPES = [
   { value: 'public', label: 'Public', icon: Globe, color: 'text-blue-500' },
-  { value: 'private', label: 'Private', icon: Lock, color: 'text-gray-600' },
+  { value: 'private', label: 'Private', icon: Lock, color: 'text-gray-600 dark:text-gray-400' },
   { value: 'friends', label: 'Incognito', icon: SpyIcon, color: 'text-purple-500' },
 ];
 
@@ -110,37 +110,37 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
     >
       {/* Modal Card */}
       <div
-        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white dark:bg-black w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-black/5 dark:border-white/10"
         onClick={e => e.stopPropagation()}
       >
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
           <div className="w-8" /> {/* spacer */}
-          <h2 className="text-[17px] font-black text-gray-900 tracking-tight uppercase italic">
+          <h2 className="text-[17px] font-black text-gray-900 dark:text-white tracking-tight uppercase italic">
             {editPost ? 'Edit Post' : 'Create Post'}
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
             title="Close"
           >
-            <X size={18} className="text-gray-600" strokeWidth={2.5} />
+            <X size={18} className="text-gray-600 dark:text-white/60" strokeWidth={2.5} />
           </button>
         </div>
 
         {/* ── Scrollable Body ── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
 
           {/* User row + post type */}
           <div className="flex items-center gap-3 px-5 py-4">
             <img
               src={user?.avatar_url || '/uploads/avatars/default.png'}
-              className="w-11 h-11 rounded-full object-cover border border-gray-100 shrink-0"
+              className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0"
               alt=""
             />
             <div>
-              <p className="text-[15px] font-bold text-gray-900 leading-tight">
+              <p className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight">
                 {user?.name || user?.username}
               </p>
 
@@ -148,27 +148,27 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
               <div className="relative mt-1">
                 <button
                   onClick={() => setShowTypeDropdown(p => !p)}
-                  className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg transition-colors"
+                  className="flex items-center gap-1 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors border border-transparent dark:border-white/5"
                 >
                   <TypeIcon size={13} className={selectedType.color} />
-                  <span className="text-[12px] font-semibold text-gray-700 capitalize">
+                  <span className="text-[12px] font-semibold text-gray-700 dark:text-white/70 capitalize">
                     {selectedType.label}
                   </span>
-                  <ChevronDown size={12} className="text-gray-500" />
+                  <ChevronDown size={12} className="text-gray-500 dark:text-white/30" />
                 </button>
 
                 {showTypeDropdown && (
-                  <div className="absolute top-8 left-0 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="absolute top-8 left-0 w-44 bg-white dark:bg-black rounded-xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden animate-scale-in">
                     {POST_TYPES.map(t => {
                       const Icon = t.icon;
                       return (
                         <button
                           key={t.value}
                           onClick={() => { setPostType(t.value); setShowTypeDropdown(false); }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                         >
                           <Icon size={16} className={t.color} />
-                          <span className="text-[13px] font-semibold text-gray-800">{t.label}</span>
+                          <span className="text-[13px] font-semibold text-gray-800 dark:text-white/90">{t.label}</span>
                           {postType === t.value && <Check size={14} className="text-primary ml-auto" />}
                         </button>
                       );
@@ -184,7 +184,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
             <MentionInput
               value={content}
               onChange={setContent}
-              className="w-full min-h-[100px] text-[18px] outline-none placeholder:text-gray-300 resize-none border-none bg-transparent"
+              className="w-full min-h-[100px] text-[18px] outline-none placeholder:text-gray-300 dark:placeholder:text-white/20 text-black dark:text-white resize-none border-none bg-transparent"
               placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || ''}?`}
               autoFocus={true}
             />
@@ -192,7 +192,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
 
           {/* Emoji hint */}
           {showEmojiHint && (
-            <div className="mx-5 mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-[13px] text-yellow-700 font-semibold flex items-center justify-between">
+            <div className="mx-5 mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/30 rounded-xl text-[13px] text-yellow-700 dark:text-yellow-500 font-semibold flex items-center justify-between">
               😊 Emoji picker coming soon — type emojis directly in your post!
               <button onClick={() => setShowEmojiHint(false)}><X size={14} /></button>
             </div>
@@ -200,19 +200,19 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
 
           {/* Location input */}
           {showLocationInput && (
-            <div className="mx-5 mb-3 flex items-center gap-2 border border-blue-200 bg-blue-50 rounded-xl px-3 py-2">
+            <div className="mx-5 mb-3 flex items-center gap-2 border border-blue-200 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2">
               <MapPin size={16} className="text-blue-500 shrink-0" />
               <input
                 type="text"
                 value={location}
                 onChange={e => setLocation(e.target.value)}
                 placeholder="Add a location..."
-                className="flex-1 bg-transparent text-[14px] font-semibold text-blue-700 placeholder:text-blue-300 outline-none"
+                className="flex-1 bg-transparent text-[14px] font-semibold text-blue-700 dark:text-blue-400 placeholder:text-blue-300 dark:placeholder:text-blue-900/50 outline-none"
                 autoFocus
               />
               <button
                 onClick={() => { setShowLocationInput(false); setLocation(''); }}
-                className="text-blue-400 hover:text-blue-600"
+                className="text-blue-400 hover:text-blue-600 dark:text-blue-600/60 dark:hover:text-blue-400"
               >
                 <X size={14} />
               </button>
@@ -221,14 +221,14 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
 
           {/* Media previews */}
           {previews.length > 0 && (
-            <div className="mx-5 mb-3 border border-gray-200 rounded-xl overflow-hidden">
+            <div className="mx-5 mb-3 border border-black/5 dark:border-white/10 rounded-xl overflow-hidden">
               <div className={`grid gap-1 ${previews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {previews.map((p, i) => (
-                  <div key={i} className="relative aspect-square bg-gray-100">
+                  <div key={i} className="relative aspect-square bg-black/5 dark:bg-white/5">
                     <img src={p} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeFile(i)}
-                      className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+                      className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors border border-white/20"
                     >
                       <X size={12} className="text-white" strokeWidth={3} />
                     </button>
@@ -238,7 +238,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
               {/* Clear all */}
               <button
                 onClick={() => { setFiles([]); setPreviews([]); }}
-                className="w-full py-2 text-[12px] font-bold text-red-500 hover:bg-red-50 transition-colors"
+                className="w-full py-2 text-[12px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
               >
                 Remove all media
               </button>
@@ -247,18 +247,18 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
         </div>
 
         {/* ── Footer ── */}
-        <div className="px-5 pb-5 pt-3 border-t border-gray-100 space-y-3">
+        <div className="px-5 pb-5 pt-3 border-t border-black/5 dark:border-white/10 space-y-3">
 
           {/* Add to post row */}
-          <div className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-2.5">
-            <span className="text-[14px] font-semibold text-gray-600">Add to your post</span>
+          <div className="flex items-center justify-between border border-black/5 dark:border-white/10 rounded-xl px-4 py-2.5 bg-black/5 dark:bg-white/5">
+            <span className="text-[14px] font-semibold text-gray-600 dark:text-white/50">Add to your post</span>
             <div className="flex items-center gap-0.5">
 
               {/* Photo/Video */}
               <button
                 onClick={() => fileRef.current?.click()}
                 title="Photo / Video"
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors group"
+                className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-colors group"
               >
                 <ImageIcon size={22} className="text-[#45bd62] group-hover:scale-110 transition-transform" />
               </button>
@@ -267,7 +267,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
               <button
                 onClick={() => alert('Tag people — coming soon!')}
                 title="Tag people"
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors group"
+                className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-colors group"
               >
                 <Tag size={22} className="text-[#1877F2] group-hover:scale-110 transition-transform" />
               </button>
@@ -276,7 +276,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
               <button
                 onClick={() => setShowEmojiHint(true)}
                 title="Feeling / Emoji"
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors group"
+                className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-colors group"
               >
                 <Smile size={22} className="text-[#f7b928] group-hover:scale-110 transition-transform" />
               </button>
@@ -285,7 +285,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
               <button
                 onClick={() => setShowLocationInput(p => !p)}
                 title="Check in"
-                className={`p-2 hover:bg-gray-100 rounded-xl transition-colors group ${showLocationInput ? 'bg-blue-50' : ''}`}
+                className={`p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-colors group ${showLocationInput ? 'bg-blue-100/50 dark:bg-blue-900/30' : ''}`}
               >
                 <MapPin size={22} className={`group-hover:scale-110 transition-transform ${showLocationInput ? 'text-blue-600' : 'text-[#f02849]'}`} />
               </button>
@@ -306,11 +306,11 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
             onClick={handleSubmit}
             disabled={!canPost}
             className="w-full py-3 rounded-xl font-black text-[15px] tracking-tight transition-all
-              disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
+              disabled:bg-black/5 dark:disabled:bg-white/5 disabled:text-black/20 dark:disabled:text-white/20 disabled:cursor-not-allowed
               bg-primary hover:bg-primary/90 active:scale-[0.98] text-white shadow-lg shadow-primary/20"
           >
             {uploading
-              ? <Spinner size="medium" color="text-primary" />
+              ? <Spinner size="medium" color="text-white" />
               : (editPost ? 'Save Changes' : 'Post')}
           </button>
         </div>

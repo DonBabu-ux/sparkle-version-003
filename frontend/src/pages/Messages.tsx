@@ -274,17 +274,17 @@ export default function Messages() {
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] h-screen overflow-hidden text-black font-sans">
+    <div className="flex bg-white dark:bg-black h-screen overflow-hidden text-black dark:text-white font-sans transition-colors duration-300">
       <Navbar />
       
       <div className="flex-1 flex lg:ml-72 relative h-full overflow-hidden pt-18 lg:pt-0">
         {/* SIDEBAR */}
-        <aside className={`w-full lg:w-[420px] bg-white/40 backdrop-blur-3xl border-r border-white flex flex-col transition-all duration-700 min-h-0 ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
+        <aside className={`w-full lg:w-[420px] bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-r border-white dark:border-white/10 flex flex-col transition-all duration-700 min-h-0 ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
           <header className="p-8 pb-6">
              <div className="flex items-center justify-between mb-10">
                <div>
-                  <h1 className="text-4xl font-black text-black tracking-tight italic">Messages</h1>
-                  <p className="text-[11px] font-bold text-black/20 uppercase tracking-[0.2em] mt-2">Direct Messages</p>
+                  <h1 className="text-4xl font-black text-black dark:text-white tracking-tight italic">Messages</h1>
+                  <p className="text-[11px] font-bold text-black/20 dark:text-white/20 uppercase tracking-[0.2em] mt-2">Direct Messages</p>
                </div>
                <button 
                 onClick={openNewChat}
@@ -308,7 +308,7 @@ export default function Messages() {
                   <button 
                     key={tab}
                     onClick={() => setInboxTab(tab)}
-                    className={`px-6 py-2 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all whitespace-nowrap italic ${inboxTab === tab ? 'bg-primary text-white shadow-lg' : 'bg-white/40 text-black/30 hover:bg-white/60'}`}
+                    className={`px-6 py-2 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all whitespace-nowrap italic ${inboxTab === tab ? 'bg-primary text-white shadow-lg' : 'bg-white/40 dark:bg-white/5 text-black/30 dark:text-white/30 hover:bg-white/60 dark:hover:bg-white/10'}`}
                   >
                     {tab}
                   </button>
@@ -339,11 +339,11 @@ export default function Messages() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
-                       <h4 className="font-black text-black text-base tracking-tight truncate leading-none italic uppercase group-hover:text-primary transition-colors">{chat.partner_name}</h4>
-                       <span className="text-[9px] font-black text-black/20 uppercase tracking-widest">{safeTime(chat.last_message_time)}</span>
+                       <h4 className="font-black text-black dark:text-white text-base tracking-tight truncate leading-none italic uppercase group-hover:text-primary transition-colors">{chat.partner_name}</h4>
+                       <span className="text-[9px] font-black text-black/20 dark:text-white/20 uppercase tracking-widest">{safeTime(chat.last_message_time)}</span>
                     </div>
                     <div className="flex justify-between items-center mt-1">
-                      <p className={`text-[12px] font-medium truncate italic ${chat.unread_count > 0 ? 'text-black' : 'text-black/30'}`}>
+                      <p className={`text-[12px] font-medium truncate italic ${chat.unread_count > 0 ? 'text-black dark:text-white' : 'text-black/30 dark:text-white/30'}`}>
                         {chat.last_message ? formatMessageText(chat.last_message) : 'No messages yet...'}
                       </p>
                       {chat.unread_count > 0 && (
@@ -372,23 +372,23 @@ export default function Messages() {
                     <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-12 h-12 rounded-[18px] object-cover border border-white shadow-sm group-hover:scale-110 transition-transform" alt="" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-black tracking-tight italic leading-none group-hover:text-primary transition-colors cursor-pointer uppercase" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>{selectedChat.partner_name}</h3>
+                    <h3 className="text-xl font-black text-black dark:text-white tracking-tight italic leading-none group-hover:text-primary transition-colors cursor-pointer uppercase" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>{selectedChat.partner_name}</h3>
                     <div className="flex items-center gap-2 mt-1.5 px-0.5">
-                        <div className={`w-1.5 h-1.5 rounded-full ${partnerTyping ? 'bg-primary' : (selectedChat.partner_online ? 'bg-emerald-500' : 'bg-black/10')} animate-pulse`}></div>
-                        <p className="text-[10px] font-bold text-black/20 uppercase tracking-widest leading-none">{partnerTyping ? 'Typing...' : (selectedChat.partner_online ? 'Online' : 'Offline')}</p>
+                        <div className={`w-1.5 h-1.5 rounded-full ${partnerTyping ? 'bg-primary' : (selectedChat.partner_online ? 'bg-emerald-500' : 'bg-black/10 dark:bg-white/10')} animate-pulse`}></div>
+                        <p className="text-[10px] font-bold text-black/20 dark:text-white/20 uppercase tracking-widest leading-none">{partnerTyping ? 'Typing...' : (selectedChat.partner_online ? 'Online' : 'Offline')}</p>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 relative z-10">
-                  <button className="hidden sm:flex w-11 h-11 rounded-xl bg-white/60 border border-white items-center justify-center text-black/20 hover:text-primary transition-all active:scale-95 shadow-sm"><Phone size={18} strokeWidth={3} /></button>
-                  <button className="hidden sm:flex w-11 h-11 rounded-xl bg-white/60 border border-white items-center justify-center text-black/20 hover:text-primary transition-all active:scale-95 shadow-sm"><Video size={18} strokeWidth={3} /></button>
+                  <button className="hidden sm:flex w-11 h-11 rounded-xl bg-white/60 dark:bg-white/5 border border-white dark:border-white/10 items-center justify-center text-black/20 dark:text-white/20 hover:text-primary transition-all active:scale-95 shadow-sm"><Phone size={18} strokeWidth={3} /></button>
+                  <button className="hidden sm:flex w-11 h-11 rounded-xl bg-white/60 dark:bg-white/5 border border-white dark:border-white/10 items-center justify-center text-black/20 dark:text-white/20 hover:text-primary transition-all active:scale-95 shadow-sm"><Video size={18} strokeWidth={3} /></button>
                   <div className="relative">
-                    <button onClick={() => setShowChatSettings(!showChatSettings)} className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm border ${showChatSettings ? 'bg-primary text-white border-primary shadow-primary/20' : 'bg-white/60 border-white text-black/20 hover:text-black'}`}><MoreVertical size={18} strokeWidth={3} /></button>
+                    <button onClick={() => setShowChatSettings(!showChatSettings)} className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm border ${showChatSettings ? 'bg-primary text-white border-primary shadow-primary/20' : 'bg-white/60 dark:bg-white/5 border-white dark:border-white/10 text-black/20 dark:text-white/20 hover:text-black dark:hover:text-white'}`}><MoreVertical size={18} strokeWidth={3} /></button>
                     {showChatSettings && (
-                      <div className="absolute right-0 top-full mt-4 w-64 bg-white/95 backdrop-blur-3xl border border-white rounded-[32px] shadow-2xl z-50 p-4 animate-scale-in">
+                      <div className="absolute right-0 top-full mt-4 w-64 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-3xl border border-white dark:border-white/10 rounded-[32px] shadow-2xl z-50 p-4 animate-scale-in">
                         <button className="w-full flex items-center gap-4 p-4 hover:bg-primary hover:text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all group italic"><Info size={18} strokeWidth={3} /> Contact Profile</button>
-                        <button className="w-full flex items-center gap-4 p-4 hover:bg-black hover:text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all group italic"><Archive size={18} strokeWidth={3} /> Archive Chat</button>
-                        <div className="my-2 h-px w-full bg-black/5 mx-2"></div>
+                        <button className="w-full flex items-center gap-4 p-4 hover:bg-black dark:hover:bg-white/10 hover:text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all group italic"><Archive size={18} strokeWidth={3} /> Archive Chat</button>
+                        <div className="my-2 h-px w-full bg-black/5 dark:bg-white/5 mx-2"></div>
                         <button className="w-full flex items-center gap-4 p-4 hover:bg-red-500 hover:text-white rounded-2xl text-[10px] font-bold text-red-500 uppercase tracking-widest transition-all group italic"><Trash2 size={18} strokeWidth={3} /> Delete Chat</button>
                       </div>
                     )}
@@ -404,7 +404,7 @@ export default function Messages() {
                     return (
                       <div key={msg.message_id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-fade-in`}>
                         <div className={`max-w-[80%] md:max-w-[70%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          <div className={`px-6 py-4 rounded-[20px] md:rounded-[28px] text-md font-bold leading-relaxed shadow-sm transition-all duration-500 relative overflow-hidden group border ${isMe ? 'bg-primary text-white border-primary rounded-tr-none' : 'bg-white/80 backdrop-blur-xl text-black border-white rounded-tl-none'}`}>
+                          <div className={`px-6 py-4 rounded-[20px] md:rounded-[28px] text-md font-bold leading-relaxed shadow-sm transition-all duration-500 relative overflow-hidden group border ${isMe ? 'bg-primary text-white border-primary rounded-tr-none' : 'bg-white/80 dark:bg-white/5 backdrop-blur-xl text-black dark:text-white border-white dark:border-white/10 rounded-tl-none'}`}>
                             {(() => {
                                const content = msg.content;
                                try {
@@ -426,7 +426,7 @@ export default function Messages() {
                                } catch(e) {}
                                return <p className="whitespace-pre-wrap">{content}</p>;
                             })()}
-                            <div className={`flex items-center gap-2 mt-3 opacity-60 text-[9px] font-bold uppercase tracking-widest italic ${isMe ? 'justify-end text-white' : 'justify-start text-black/20'}`}>
+                            <div className={`flex items-center gap-2 mt-3 opacity-60 text-[9px] font-bold uppercase tracking-widest italic ${isMe ? 'justify-end text-white' : 'justify-start text-black/20 dark:text-white/20'}`}>
                               {safeTime(msg.created_at)}
                               {isMe && (msg.status === 'read' ? <CheckCircle2 size={10} strokeWidth={4} /> : <Check size={10} strokeWidth={4} />)}
                             </div>
@@ -439,38 +439,38 @@ export default function Messages() {
                 </div>
               </div>
 
-              <footer className="p-6 bg-white/60 backdrop-blur-3xl border-t border-white z-20 shadow-inner">
+              <footer className="p-6 bg-white/60 dark:bg-black/60 backdrop-blur-3xl border-t border-white dark:border-white/10 z-20 shadow-inner">
                 <form onSubmit={handleSendMessage} className="flex items-center gap-4 max-w-[900px] mx-auto relative px-2">
                   <div className="relative">
                     <button 
                       type="button"
                       onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                      className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-500 shadow-sm border ${showAttachmentMenu ? 'bg-black text-white rotate-45 border-black shadow-xl' : 'bg-white border-white text-black/20 hover:text-black hover:border-black/5'}`}
+                      className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-500 shadow-sm border ${showAttachmentMenu ? 'bg-black dark:bg-white text-white dark:text-black rotate-45 border-black dark:border-white shadow-xl' : 'bg-white dark:bg-white/5 border-white dark:border-white/10 text-black/20 dark:text-white/20 hover:text-black dark:hover:text-white hover:border-black/5 dark:hover:border-white/5'}`}
                     >
                       <Paperclip size={22} strokeWidth={3} />
                     </button>
                     {showAttachmentMenu && (
-                      <div className="absolute bottom-full left-0 mb-6 bg-white/95 backdrop-blur-3xl border border-white rounded-[32px] shadow-2xl p-4 flex flex-col gap-2 w-64 animate-scale-in">
+                      <div className="absolute bottom-full left-0 mb-6 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-3xl border border-white dark:border-white/10 rounded-[32px] shadow-2xl p-4 flex flex-col gap-2 w-64 animate-scale-in">
                         {[
                           { icon: ImageIcon, label: 'Photos', color: 'text-primary' },
-                          { icon: FileText, label: 'Files', color: 'text-black' },
-                          { icon: MapPin, label: 'Location', color: 'text-black/30' },
+                          { icon: FileText, label: 'Files', color: 'text-black dark:text-white' },
+                          { icon: MapPin, label: 'Location', color: 'text-black/30 dark:text-white/30' },
                         ].map(item => (
-                          <button key={item.label} className="flex items-center gap-4 p-3.5 hover:bg-primary/5 rounded-2xl transition-all group italic">
-                            <div className={`w-10 h-10 bg-black/5 ${item.color} rounded-xl flex items-center justify-center transition-all duration-700`}><item.icon size={18} strokeWidth={3} /></div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-black/50 group-hover:text-black">{item.label}</span>
+                          <button key={item.label} className="flex items-center gap-4 p-3.5 hover:bg-primary/5 dark:hover:bg-white/5 rounded-2xl transition-all group italic">
+                            <div className={`w-10 h-10 bg-black/5 dark:bg-white/5 ${item.color} rounded-xl flex items-center justify-center transition-all duration-700`}><item.icon size={18} strokeWidth={3} /></div>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-black/50 dark:text-white/50 group-hover:text-black dark:group-hover:text-white">{item.label}</span>
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
                   
-                  <div className="flex-1 relative group bg-white/60 border border-white rounded-[24px] focus-within:bg-white focus-within:border-primary transition-all shadow-sm">
+                  <div className="flex-1 relative group bg-white/60 dark:bg-white/5 border border-white dark:border-white/10 rounded-[24px] focus-within:bg-white dark:focus-within:bg-[#121212] focus-within:border-primary transition-all shadow-sm">
                     <textarea 
                       value={newMessage}
                       onChange={handleTyping}
                       placeholder="Write a message..."
-                      className="w-full bg-transparent py-4 pl-8 pr-16 text-base font-bold text-black placeholder:text-black/10 outline-none resize-none h-[56px] no-scrollbar leading-tight italic"
+                      className="w-full bg-transparent py-4 pl-8 pr-16 text-base font-bold text-black dark:text-white placeholder:text-black/10 dark:placeholder:text-white/10 outline-none resize-none h-[56px] no-scrollbar leading-tight italic"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -478,7 +478,7 @@ export default function Messages() {
                         }
                       }}
                     />
-                    <button type="button" className="absolute right-6 top-1/2 -translate-y-1/2 text-black/5 hover:text-primary transition-colors">
+                    <button type="button" className="absolute right-6 top-1/2 -translate-y-1/2 text-black/5 dark:text-white/5 hover:text-primary transition-colors">
                       <Smile size={22} strokeWidth={3} />
                     </button>
                   </div>
@@ -486,7 +486,7 @@ export default function Messages() {
                   <button 
                     type="submit"
                     disabled={!newMessage.trim() || sending}
-                    className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-500 ${newMessage.trim() ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-105 active:scale-95 border border-primary' : 'bg-white border-white text-black/5'}`}
+                    className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-500 ${newMessage.trim() ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-105 active:scale-95 border border-primary' : 'bg-white dark:bg-white/5 border-white dark:border-white/10 text-black/5 dark:text-white/5'}`}
                   >
                     <Send size={22} strokeWidth={3} />
                   </button>
@@ -495,12 +495,12 @@ export default function Messages() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black/[0.02] pointer-events-none" aria-hidden>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black/[0.02] dark:text-white/[0.02] pointer-events-none" aria-hidden>
                 <Orbit size={400} strokeWidth={0.5} className="animate-spin-slow" />
               </div>
-              <Orbit size={120} strokeWidth={1} className="text-black/5 mb-12 relative z-10" />
-              <h2 className="text-5xl font-black text-black mb-4 tracking-tighter italic uppercase underline decoration-primary/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
-              <p className="text-black font-medium opacity-30 max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
+              <Orbit size={120} strokeWidth={1} className="text-black/5 dark:text-white/5 mb-12 relative z-10" />
+              <h2 className="text-5xl font-black text-black dark:text-white mb-4 tracking-tighter italic uppercase underline decoration-primary/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
+              <p className="text-black dark:text-white font-medium opacity-30 dark:opacity-40 max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
               
               <button 
                 onClick={openNewChat}
@@ -515,25 +515,25 @@ export default function Messages() {
 
       {/* New Chat Modal */}
       {showNewChatModal && (
-         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex justify-center pt-20 px-4" onClick={() => setShowNewChatModal(false)}>
-            <div className="bg-white rounded-[32px] w-full max-w-md h-[70vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
-               <div className="p-6 border-b border-black/[0.05] flex justify-between items-center bg-[#fdf2f4]">
-                 <h2 className="text-xl font-black uppercase italic tracking-tighter">New Message</h2>
-                 <button onClick={() => setShowNewChatModal(false)} className="w-10 h-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-all"><X size={20} strokeWidth={3} /></button>
+         <div className="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-sm z-[100] flex justify-center pt-20 px-4" onClick={() => setShowNewChatModal(false)}>
+            <div className="bg-white dark:bg-[#121212] rounded-[32px] w-full max-w-md h-[70vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
+               <div className="p-6 border-b border-black/[0.05] dark:border-white/[0.05] flex justify-between items-center bg-[#fdf2f4] dark:bg-black/40">
+                 <h2 className="text-xl font-black text-black dark:text-white uppercase italic tracking-tighter">New Message</h2>
+                 <button onClick={() => setShowNewChatModal(false)} className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-all text-black dark:text-white"><X size={20} strokeWidth={3} /></button>
                </div>
-               <div className="p-4 border-b border-black/[0.05]">
-                 <div className="relative bg-black/5 rounded-2xl flex items-center px-4 h-12 focus-within:bg-white focus-within:border focus-within:border-primary transition-all">
-                   <Search size={18} className="text-black/30" strokeWidth={3} />
-                   <input type="text" placeholder="Search users..." className="bg-transparent w-full h-full outline-none ml-3 font-bold text-sm placeholder:text-black/20 italic" />
+               <div className="p-4 border-b border-black/[0.05] dark:border-white/[0.05]">
+                 <div className="relative bg-black/5 dark:bg-white/5 rounded-2xl flex items-center px-4 h-12 focus-within:bg-white dark:focus-within:bg-[#121212] focus-within:border focus-within:border-primary transition-all">
+                   <Search size={18} className="text-black/30 dark:text-white/30" strokeWidth={3} />
+                   <input type="text" placeholder="Search users..." className="bg-transparent w-full h-full outline-none ml-3 font-bold text-sm text-black dark:text-white placeholder:text-black/20 dark:placeholder:text-white/20 italic" />
                  </div>
                </div>
                <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
                  {suggestedContacts.map(contact => (
-                    <div key={contact.user_id} onClick={() => startNewChat(contact)} className="flex items-center gap-4 p-4 hover:bg-black/5 rounded-2xl cursor-pointer transition-all active:scale-[0.98]">
-                       <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-xl object-cover border border-black/5 shadow-sm" />
+                    <div key={contact.user_id} onClick={() => startNewChat(contact)} className="flex items-center gap-4 p-4 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl cursor-pointer transition-all active:scale-[0.98]">
+                       <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-xl object-cover border border-black/5 dark:border-white/5 shadow-sm" />
                        <div>
-                         <h4 className="font-black italic uppercase text-sm leading-none">{contact.name || contact.username}</h4>
-                         <p className="text-[10px] text-black/40 font-bold uppercase tracking-widest mt-1">@{contact.username}</p>
+                         <h4 className="font-black text-black dark:text-white italic uppercase text-sm leading-none">{contact.name || contact.username}</h4>
+                         <p className="text-[10px] text-black/40 dark:text-white/40 font-bold uppercase tracking-widest mt-1">@{contact.username}</p>
                        </div>
                     </div>
                  ))}

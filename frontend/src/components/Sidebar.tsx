@@ -74,7 +74,7 @@ export default function Sidebar() {
         setActiveHub(null);
       }}
       className={cn(
-        "fixed left-0 top-0 h-screen bg-white/80 backdrop-blur-3xl border-r border-white flex flex-col pt-12 pb-12 z-[1000] overflow-hidden transition-all shadow-[60px_0_120px_rgba(225,29,72,0.02)]",
+        "fixed left-0 top-0 h-screen bg-white/80 dark:bg-black/80 backdrop-blur-3xl border-r border-white dark:border-white/5 flex flex-col pt-12 pb-12 z-[1000] overflow-hidden transition-all shadow-[60px_0_120px_rgba(225,29,72,0.02)]",
       )}
     >
       {/* Background Decor Element (Only visible when hovered) */}
@@ -108,10 +108,10 @@ export default function Sidebar() {
                   exit={{ opacity: 0, x: -10 }}
                   className="flex flex-col ml-1"
                 >
-                  <span className="font-black text-3xl tracking-tighter text-black italic uppercase leading-none">
+                  <span className="font-black text-3xl tracking-tighter text-black dark:text-white italic uppercase leading-none">
                     Sparkle<span className="text-primary italic">.</span>
                   </span>
-                  <span className="text-[8px] font-black text-black opacity-20 uppercase tracking-[0.5em] mt-1 italic">Social Core v3</span>
+                  <span className="text-[8px] font-black text-black dark:text-white/20 opacity-20 uppercase tracking-[0.5em] mt-1 italic">Social Core v3</span>
                 </motion.div>
             )}
           </AnimatePresence>
@@ -131,7 +131,7 @@ export default function Sidebar() {
           <div key={item.name} className="flex flex-col">
             <Link to={item.path} className={cn(
               "flex items-center gap-5 p-4.5 rounded-[24px] transition-all duration-500 whitespace-nowrap overflow-hidden group/item relative",
-              isActive(item.path) ? "bg-white shadow-2xl shadow-primary/15 text-primary border border-primary/10" : "text-black/40 hover:bg-white hover:text-black hover:shadow-xl"
+              isActive(item.path) ? "bg-white dark:bg-white/5 shadow-2xl shadow-primary/15 text-primary border border-primary/10" : "text-black/40 dark:text-white/40 hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white hover:shadow-xl"
             )}>
               {isActive(item.path) && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full shadow-2xl shadow-primary"></div>
@@ -151,7 +151,7 @@ export default function Sidebar() {
               {isHovered && (
                 <span className={cn(
                   "font-black text-[13px] uppercase tracking-[0.1em] italic transition-all duration-500", 
-                  isActive(item.path) ? "text-primary translate-x-1" : "text-black"
+                  isActive(item.path) ? "text-primary translate-x-1" : "text-black dark:text-white"
                 )}>
                   {item.name}
                 </span>
@@ -177,12 +177,12 @@ export default function Sidebar() {
 
         {/* System Monitoring / Activity Hints */}
         {isHovered && (
-          <div className="mt-4 px-6 border-l-4 border-black/5 flex flex-col gap-4 animate-fade-in">
+          <div className="mt-4 px-6 border-l-4 border-black/5 dark:border-white/5 flex flex-col gap-4 animate-fade-in">
              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-black/20 italic leading-none">System Status</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-black/20 dark:text-white/20 italic leading-none">System Status</span>
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-2xl shadow-emerald-500"></div>
              </div>
-             <div className="h-1 bg-black/5 rounded-full overflow-hidden">
+             <div className="h-1 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 w-[94%] shadow-2xl shadow-emerald-500/50"></div>
              </div>
           </div>
@@ -193,7 +193,7 @@ export default function Sidebar() {
           <div 
             className={cn(
               "flex items-center gap-5 p-4.5 rounded-[24px] transition-all duration-700 whitespace-nowrap cursor-pointer group/item mx-1 relative",
-              activeHub === 'more' ? "bg-white shadow-2xl text-primary border border-black/5 scale-[1.05]" : "text-black/40 hover:bg-white hover:text-black"
+              activeHub === 'more' ? "bg-white dark:bg-white/5 shadow-2xl text-primary border border-black/5 dark:border-white/5 scale-[1.05]" : "text-black/40 dark:text-white/40 hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white"
             )}
             onClick={() => toggleHub('more')}
           >
@@ -209,10 +209,10 @@ export default function Sidebar() {
                     initial={{ opacity: 0, x: 20, scale: 0.95 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: 10, scale: 0.95 }}
-                    className="absolute bottom-20 left-2 w-72 bg-white/95 backdrop-blur-3xl border border-white rounded-[40px] p-4 shadow-2xl shadow-black/10 flex flex-col gap-1 z-[1001]"
+                    className="absolute bottom-20 left-2 w-72 bg-white/95 dark:bg-black/95 backdrop-blur-3xl border border-black/5 dark:border-white/10 rounded-[40px] p-4 shadow-2xl shadow-black/10 flex flex-col gap-1 z-[1001]"
                 >
-                <div className="px-5 pt-3 pb-5 mb-3 border-b border-black/5">
-                   <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.5em] italic">Community Hub</span>
+                <div className="px-5 pt-3 pb-5 mb-3 border-b border-black/5 dark:border-white/5">
+                   <span className="text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.5em] italic">Community Hub</span>
                 </div>
                 {[
                     { name: 'Campus Groups', icon: Users, path: '/groups' },
@@ -222,12 +222,12 @@ export default function Sidebar() {
                     { name: 'Professional Hub', icon: Zap, path: '/professional-dashboard' },
                     ...(user?.role?.includes('admin') ? [{ name: 'Admin Panel', icon: ShieldCheck, path: '/admin' }] : []),
                 ].map(item => (
-                    <Link key={item.name} to={item.path} className="flex items-center gap-4 p-4 rounded-[22px] text-[13px] font-black text-black opacity-40 hover:opacity-100 hover:text-primary hover:bg-primary/5 transition-all italic uppercase tracking-tighter">
+                    <Link key={item.name} to={item.path} className="flex items-center gap-4 p-4 rounded-[22px] text-[13px] font-black text-black dark:text-white opacity-40 hover:opacity-100 hover:text-primary hover:bg-primary/5 dark:hover:bg-white/5 transition-all italic uppercase tracking-tighter">
                         <item.icon size={22} strokeWidth={3} />
                         <span>{item.name}</span>
                     </Link>
                 ))}
-                <div className="h-2 bg-black/5 my-4 mx-6 rounded-full" />
+                <div className="h-2 bg-black/5 dark:bg-white/5 my-4 mx-6 rounded-full" />
                 <button 
                     onClick={() => { logout(); navigate('/login'); }} 
                     className="flex items-center gap-4 p-5 rounded-[22px] text-[13px] font-black text-red-500 hover:bg-red-500 hover:text-white transition-all text-left italic uppercase tracking-widest shadow-sm hover:shadow-red-500/20"
@@ -248,18 +248,18 @@ export default function Sidebar() {
              initial={{ opacity: 0, y: 10 }}
              animate={{ opacity: 1, y: 0 }}
              exit={{ opacity: 0, y: 10 }}
-             className="px-8 mt-4 pt-8 border-t border-black/5 overflow-hidden"
+             className="px-8 mt-4 pt-8 border-t border-black/5 dark:border-white/10 overflow-hidden"
           >
               <div className="flex items-center gap-5">
                 <Avatar 
                   src={user?.avatar_url} 
                   name={user?.username} 
                   size="lg"
-                  className="rounded-2xl"
+                  className="rounded-2xl border-none"
                 />
                 <div className="flex flex-col min-w-0">
-                   <span className="font-black text-black text-sm uppercase tracking-tighter truncate italic">@{user?.username}</span>
-                   <span className="text-[10px] font-black text-black/20 uppercase tracking-widest mt-1 italic">Online</span>
+                   <span className="font-black text-black dark:text-white text-sm uppercase tracking-tighter truncate italic">@{user?.username}</span>
+                   <span className="text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-widest mt-1 italic">Online</span>
                 </div>
               </div>
           </motion.div>

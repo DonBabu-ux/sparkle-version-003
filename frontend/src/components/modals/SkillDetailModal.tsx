@@ -111,7 +111,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
         initial={{ opacity: 0, y: 80 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 80 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+        transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
         className="sdm-sheet"
         onClick={e => e.stopPropagation()}
       >
@@ -335,12 +335,14 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           box-shadow: 0 -20px 60px rgba(0,0,0,0.2);
           overflow: hidden;
         }
+        .dark .sdm-sheet { background: #000; border: 1px solid rgba(255,255,255,0.1); border-bottom: none; }
         @media (min-width: 640px) {
           .sdm-sheet {
             border-radius: 28px;
             box-shadow: 0 40px 120px rgba(0,0,0,0.28);
             max-height: 88vh;
           }
+          .dark .sdm-sheet { border-bottom: 1px solid rgba(255,255,255,0.1); }
         }
 
         /* Close */
@@ -353,7 +355,9 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           color: #6b7280; cursor: pointer;
           transition: background 0.18s, color 0.18s;
         }
+        .dark .sdm-close { background: rgba(255,255,255,0.1); color: #fff; }
         .sdm-close:hover { background: #e5e7eb; color: #111827; }
+        .dark .sdm-close:hover { background: rgba(255,255,255,0.15); }
 
         /* Body scroll */
         .sdm-body {
@@ -372,6 +376,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           border: 3px solid #fff;
           box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         }
+        .dark .sdm-hero__avatar { border-color: rgba(255,255,255,0.1); }
         .sdm-hero__meta { flex: 1; min-width: 0; padding-top: 2px; }
         .sdm-hero__badges { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
         .sdm-badge {
@@ -381,15 +386,19 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
         }
         .sdm-badge--cat { background: rgba(225,29,72,0.08); color: #e11d48; }
         .sdm-badge--verified { background: #ecfdf5; color: #10b981; }
+        .dark .sdm-badge--verified { background: rgba(16,185,129,0.1); }
         .sdm-hero__title {
           font-size: 20px; font-weight: 800; color: #111827;
           line-height: 1.25; margin-bottom: 8px;
         }
+        .dark .sdm-hero__title { color: #fff; }
         @media (min-width: 480px) { .sdm-hero__title { font-size: 24px; } }
         .sdm-hero__author { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .sdm-hero__name { font-size: 13px; font-weight: 600; color: #374151; }
+        .dark .sdm-hero__name { color: #9ca3af; }
         .sdm-hero__sep { color: #d1d5db; }
         .sdm-hero__rating { display: flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 600; color: #374151; }
+        .dark .sdm-hero__rating { color: #9ca3af; }
         .sdm-star { color: #f59e0b; }
         .sdm-hero__count { font-size: 12px; font-weight: 500; color: #9ca3af; }
 
@@ -399,6 +408,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           line-height: 1.7; margin-bottom: 20px;
           padding-left: 14px; border-left: 3px solid #f3f4f6;
         }
+        .dark .sdm-desc { color: #9ca3af; border-color: rgba(255,255,255,0.05); }
 
         /* Price row */
         .sdm-price-row {
@@ -406,6 +416,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           background: #f9fafb; border-radius: 18px; padding: 14px 18px;
           margin-bottom: 20px;
         }
+        .dark .sdm-price-row { background: rgba(255,255,255,0.05); }
         .sdm-price { display: flex; flex-direction: column; gap: 2px; }
         .sdm-price__label { font-size: 11px; font-weight: 500; color: #9ca3af; }
         .sdm-price__val { font-size: 22px; font-weight: 800; color: #10b981; }
@@ -416,7 +427,9 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           font-family: inherit; font-size: 13px; font-weight: 600;
           cursor: pointer; transition: background 0.18s, box-shadow 0.18s;
         }
+        .dark .sdm-chat-btn { background: #fff; color: #000; }
         .sdm-chat-btn:hover { background: #e11d48; box-shadow: 0 6px 18px rgba(225,29,72,0.25); }
+        .dark .sdm-chat-btn:hover { color: #fff; }
 
         /* Tabs */
         .sdm-tabs {
@@ -424,6 +437,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           background: #f3f4f6; border-radius: 14px; padding: 4px;
           margin-bottom: 20px;
         }
+        .dark .sdm-tabs { background: rgba(255,255,255,0.05); }
         .sdm-tab {
           flex: 1; padding: 9px 0;
           border: none; border-radius: 11px; background: transparent;
@@ -431,6 +445,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           cursor: pointer; transition: all 0.18s;
         }
         .sdm-tab--active { background: #fff; color: #111827; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .dark .sdm-tab--active { background: #222; color: #fff; }
 
         /* Booking */
         .sdm-book { display: flex; flex-direction: column; gap: 14px; }
@@ -440,6 +455,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           display: flex; align-items: center; gap: 5px;
           font-size: 12px; font-weight: 600; color: #374151;
         }
+        .dark .sdm-label { color: #9ca3af; }
         .sdm-input, .sdm-textarea {
           width: 100%; padding: 11px 14px;
           background: #f9fafb; border: 1.5px solid #f3f4f6;
@@ -448,11 +464,15 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           outline: none; transition: border-color 0.18s, box-shadow 0.18s;
           resize: none;
         }
+        .dark .sdm-input, .dark .sdm-textarea {
+          background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); color: #fff;
+        }
         .sdm-input:focus, .sdm-textarea:focus {
           border-color: rgba(225,29,72,0.3);
           box-shadow: 0 0 0 3px rgba(225,29,72,0.07);
           background: #fff;
         }
+        .dark .sdm-input:focus, .dark .sdm-textarea:focus { background: #000; border-color: #e11d48; }
         .sdm-select { cursor: pointer; }
         .sdm-textarea::placeholder { color: #9ca3af; }
         .sdm-book-btn {
@@ -463,7 +483,9 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           cursor: pointer; transition: background 0.18s, box-shadow 0.2s, transform 0.12s;
           margin-top: 4px;
         }
+        .dark .sdm-book-btn { background: #fff; color: #000; }
         .sdm-book-btn:hover:not(:disabled) { background: #e11d48; box-shadow: 0 8px 24px rgba(225,29,72,0.3); }
+        .dark .sdm-book-btn:hover:not(:disabled) { color: #fff; }
         .sdm-book-btn:active:not(:disabled) { transform: scale(0.98); }
         .sdm-book-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .sdm-spinner {
@@ -487,14 +509,19 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           color: #10b981; margin-bottom: 16px;
           box-shadow: 0 6px 24px rgba(16,185,129,0.2);
         }
+        .dark .sdm-booked__icon { background: rgba(16,185,129,0.1); }
         .sdm-booked__title { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+        .dark .sdm-booked__title { color: #fff; }
         .sdm-booked__sub { font-size: 14px; font-weight: 500; color: #6b7280; max-width: 280px; margin-bottom: 24px; line-height: 1.6; }
+        .dark .sdm-booked__sub { color: #9ca3af; }
         .sdm-booked__cta {
           padding: 11px 28px; background: #111827; color: #fff; border: none;
           border-radius: 13px; font-family: inherit; font-size: 14px; font-weight: 600;
           cursor: pointer; transition: background 0.18s;
         }
+        .dark .sdm-booked__cta { background: #fff; color: #000; }
         .sdm-booked__cta:hover { background: #e11d48; }
+        .dark .sdm-booked__cta:hover { color: #fff; }
 
         /* Reviews */
         .sdm-reviews { display: flex; flex-direction: column; gap: 14px; }
@@ -504,10 +531,12 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           background: #f9fafb; border-radius: 18px;
           font-size: 14px; font-weight: 500; color: #9ca3af;
         }
+        .dark .sdm-reviews__empty { background: rgba(255,255,255,0.05); }
         .sdm-reviews__empty-icon { color: #d1d5db; }
         .sdm-review {
           background: #f9fafb; border-radius: 18px; padding: 16px;
         }
+        .dark .sdm-review { background: rgba(255,255,255,0.05); }
         .sdm-review__header {
           display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
         }
@@ -518,6 +547,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           font-size: 13px; font-weight: 700; flex-shrink: 0;
         }
         .sdm-review__name { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+        .dark .sdm-review__name { color: #fff; }
         .sdm-review__stars { display: flex; gap: 2px; color: #f59e0b; }
         .sdm-review__date { font-size: 11px; font-weight: 500; color: #9ca3af; margin-left: auto; }
         .sdm-review__comment {
@@ -525,6 +555,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           line-height: 1.65;
           padding-left: 10px; border-left: 2px solid #e5e7eb;
         }
+        .dark .sdm-review__comment { color: #9ca3af; border-color: rgba(255,255,255,0.05); }
       `}</style>
     </div>
   );

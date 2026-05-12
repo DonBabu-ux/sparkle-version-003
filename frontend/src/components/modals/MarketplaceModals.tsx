@@ -145,7 +145,7 @@ export default function MarketplaceModals() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
             className={clsx(
               "relative bg-white w-full shadow-2xl flex flex-col overflow-hidden",
               activeModal === 'categories' || activeModal === 'inbox' 

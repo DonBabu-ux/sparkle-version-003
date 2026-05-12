@@ -35,7 +35,7 @@ export default function Groups() {
   ) ?? [];
 
   return (
-    <div className="flex min-h-screen font-sans" style={{ background: 'linear-gradient(135deg, #fff0f4 0%, #fff9fa 60%, #fef0f5 100%)' }}>
+    <div className="flex bg-[#fdf2f4] dark:bg-black min-h-screen text-[#1a1a2e] dark:text-white font-sans">
       <Navbar />
 
       {/* Decorative blobs */}
@@ -52,7 +52,7 @@ export default function Groups() {
               <div className="flex items-center gap-3 mb-5">
                 <button 
                   onClick={() => navigate('/dashboard')}
-                  className="w-8 h-8 flex items-center justify-center bg-white/80 backdrop-blur-md rounded-full shadow-sm hover:shadow-md transition-all border border-gray-200 text-gray-500 hover:text-gray-900 active:scale-95"
+                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-white/10 backdrop-blur-md rounded-full shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white hover:text-gray-900 active:scale-95"
                   aria-label="Go to Dashboard"
                 >
                   <ArrowLeft size={16} />
@@ -63,13 +63,13 @@ export default function Groups() {
                 </div>
               </div>
               {/* Heading — inline style bypasses global heading overrides */}
-              <h1 style={{ fontSize: 'clamp(2rem, 6vw, 3.5rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#1a1a2e', fontStyle: 'normal', textTransform: 'none', fontFamily: 'inherit', marginBottom: '12px' }}>
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-gray-900 dark:text-white mb-3">
                 Discover{' '}
-                <span style={{ color: '#FF3D6D' }}>Circles</span>
+                <span className="text-primary">Circles</span>
               </h1>
-              <p style={{ fontSize: '1rem', color: '#64748b', fontWeight: 500, fontStyle: 'normal', textTransform: 'none' }}>
+              <p className="text-base text-gray-500 dark:text-gray-400 font-medium">
                 Connect with like-minded people at{' '}
-                <strong style={{ color: '#1a1a2e', textDecoration: 'underline', textDecorationColor: 'rgba(255,61,109,0.4)', textDecorationThickness: '3px', fontStyle: 'normal' }}>
+                <strong className="text-gray-900 dark:text-white underline decoration-primary/40 decoration-[3px]">
                   {user?.campus || 'your campus'}
                 </strong>.
               </p>
@@ -97,14 +97,12 @@ export default function Groups() {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search by name or interest..."
-                style={{ width: '100%', height: '52px', background: 'rgba(255,255,255,0.95)', border: '1.5px solid rgba(255,61,109,0.15)', borderRadius: '16px', paddingLeft: '48px', paddingRight: '16px', fontSize: '14px', color: '#1a1a2e', outline: 'none', boxShadow: '0 2px 12px rgba(255,61,109,0.06)', fontStyle: 'normal', textTransform: 'none' }}
-                onFocus={e => { e.target.style.borderColor = 'rgba(255,61,109,0.5)'; e.target.style.boxShadow = '0 0 0 4px rgba(255,61,109,0.08)'; }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(255,61,109,0.15)'; e.target.style.boxShadow = '0 2px 12px rgba(255,61,109,0.06)'; }}
+                className="w-full h-[52px] bg-white dark:bg-black border border-primary/15 dark:border-white/10 rounded-2xl pl-12 pr-4 text-sm text-gray-900 dark:text-white outline-none shadow-sm focus:border-primary/50 dark:focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
               />
             </div>
 
             {/* Filter tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1.5px solid rgba(255,61,109,0.12)', boxShadow: '0 2px 12px rgba(255,61,109,0.05)' }}>
+            <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/80 dark:bg-white/5 border border-primary/10 dark:border-white/10 shadow-sm">
               {[
                 { key: 'all', label: 'All', icon: Globe },
                 { key: 'my', label: 'Joined', icon: Users },
@@ -136,7 +134,7 @@ export default function Groups() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="h-64 rounded-3xl animate-pulse" style={{ background: 'rgba(255,255,255,0.7)', border: '1.5px solid rgba(255,61,109,0.08)' }} />
+              <div key={i} className="h-64 rounded-3xl animate-pulse bg-white/70 dark:bg-white/5 border border-primary/10 dark:border-white/10" />
             ))}
           </div>
         ) : !filtered.length ? (
@@ -157,25 +155,9 @@ export default function Groups() {
               <div
                 key={group.group_id}
                 onClick={() => navigate(`/groups/${group.group_id}`)}
-                className="cursor-pointer flex flex-col relative overflow-hidden"
+                className="cursor-pointer flex flex-col relative overflow-hidden bg-white dark:bg-black border border-primary/10 dark:border-white/10 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-300"
                 style={{
-                  background: 'rgba(255,255,255,0.92)',
-                  border: '1.5px solid rgba(255,61,109,0.1)',
-                  borderRadius: '28px',
-                  padding: '24px',
-                  boxShadow: '0 2px 16px rgba(255,61,109,0.05)',
-                  transition: 'all 0.35s ease',
                   animation: `slideUp 0.5s ${idx * 0.05}s ease both`,
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,61,109,0.35)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(255,61,109,0.14)';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,61,109,0.1)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 16px rgba(255,61,109,0.05)';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
                 }}
               >
                 {/* Pink accent top line */}
@@ -189,55 +171,55 @@ export default function Groups() {
                 {/* Privacy badge */}
                 <div style={{ position: 'absolute', top: '18px', right: '18px', zIndex: 10 }}>
                   {group.is_public === 0 ? (
-                    <div style={{ padding: '4px 10px', borderRadius: '20px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Lock size={11} style={{ color: '#f59e0b' }} />
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b', textTransform: 'none', fontStyle: 'normal' }}>Private</span>
+                    <div className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center gap-1.5">
+                      <Lock size={11} className="text-amber-500" />
+                      <span className="text-[10px] font-bold text-amber-500">Private</span>
                     </div>
                   ) : (
-                    <div style={{ padding: '4px 10px', borderRadius: '20px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#10b981', textTransform: 'none', fontStyle: 'normal' }}>Public</span>
+                    <div className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                      <span className="text-[10px] font-bold text-emerald-500">Public</span>
                     </div>
                   )}
                 </div>
 
                 {/* Group info */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '14px' }}>
+                <div className="flex items-start gap-4 mb-4">
                   <img
                     src={group.icon_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&background=random&color=fff`}
-                    style={{ width: '64px', height: '64px', borderRadius: '18px', objectFit: 'cover', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', flexShrink: 0 }}
+                    className="w-16 h-16 rounded-[18px] object-cover shadow-lg shrink-0"
                     alt={group.name}
                   />
-                  <div style={{ paddingTop: '4px', overflow: 'hidden', flex: 1 }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1a1a2e', fontStyle: 'normal', textTransform: 'none', lineHeight: 1.3, marginBottom: '4px', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div className="pt-1 min-w-0 flex-1">
+                    <h3 className="text-[16px] font-black text-gray-900 dark:text-white leading-snug mb-1 truncate">
                       {group.name}
                     </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#94a3b8', fontSize: '11px', fontWeight: 600, textTransform: 'none', fontStyle: 'normal' }}>
+                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-[11px] font-bold">
                       <Users size={11} />
                       <span>{group.member_count ?? 0} members</span>
                     </div>
                   </div>
                 </div>
 
-                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '16px', flex: 1, fontStyle: 'normal', textTransform: 'none', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed mb-4 line-clamp-2 flex-1">
                   {group.description || 'A community space for members to connect and share.'}
                 </p>
 
                 {/* Footer */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '14px', borderTop: '1px solid rgba(255,61,109,0.08)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/5">
+                  <div className="flex items-center">
                     {[1, 2, 3].map(j => (
-                      <div key={j} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', overflow: 'hidden', marginLeft: j > 1 ? '-8px' : '0', background: '#f1f5f9' }}>
-                        <img src={`https://ui-avatars.com/api/?name=U+${j}&background=random&color=fff`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      <div key={j} className="w-7 h-7 rounded-full border-2 border-white dark:border-black overflow-hidden -ml-2 first:ml-0 bg-gray-100 dark:bg-white/5">
+                        <img src={`https://ui-avatars.com/api/?name=U+${j}&background=random&color=fff`} className="w-full h-full object-cover" alt="" />
                       </div>
                     ))}
                     {(group.member_count || 0) > 3 && (
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid white', background: 'rgba(255,61,109,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '-8px' }}>
-                        <span style={{ fontSize: '9px', fontWeight: 700, color: '#FF3D6D', fontStyle: 'normal' }}>+{group.member_count - 3}</span>
+                      <div className="w-7 h-7 rounded-full border-2 border-white dark:border-black bg-primary/10 dark:bg-primary/20 flex items-center justify-center -ml-2">
+                        <span className="text-[9px] font-black text-primary">+{group.member_count - 3}</span>
                       </div>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#FF3D6D', fontSize: '12px', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'none', fontStyle: 'normal' }}>
+                  <div className="flex items-center gap-1.5 text-primary text-[12px] font-black uppercase tracking-wider">
                     Join
                     <ArrowRight size={14} strokeWidth={3} />
                   </div>

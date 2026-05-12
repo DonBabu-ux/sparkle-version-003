@@ -59,7 +59,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
+        transition={{ duration: 0.1 }}
         className="absolute inset-0 bg-black/60 backdrop-blur-[3px]"
         onClick={onClose}
       />
@@ -68,21 +68,21 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 450 }}
-        className="bg-white w-full sm:max-w-xs rounded-t-[28px] sm:rounded-[28px] shadow-2xl flex flex-col overflow-hidden relative z-10"
+        transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
+        className="bg-white dark:bg-black w-full sm:max-w-xs rounded-t-[28px] sm:rounded-[28px] shadow-2xl flex flex-col overflow-hidden relative z-10 border-t border-black/5 dark:border-white/10"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-center p-3 border-b border-gray-50 relative bg-white">
-          <div className="w-10 h-1 bg-gray-100 rounded-full sm:hidden" />
+        <div className="flex justify-center p-3 border-b border-black/5 dark:border-white/10 relative bg-white dark:bg-black">
+          <div className="w-10 h-1 bg-black/10 dark:bg-white/10 rounded-full sm:hidden" />
           <button 
             onClick={onClose}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-50 rounded-full transition-colors active:scale-90"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors active:scale-90"
           >
-            <X size={16} className="text-gray-400" />
+            <X size={16} className="text-black/40 dark:text-white/40" />
           </button>
         </div>
 
-        <div className="p-1.5 overflow-y-auto bg-white pb-safe">
+        <div className="p-1.5 overflow-y-auto bg-white dark:bg-black pb-safe">
           <button
             onClick={async () => { 
               try {
@@ -94,27 +94,27 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                 alert('Failed to save');
               }
             }}
-            className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl group"
+            className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors rounded-xl group"
           >
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-              <Bookmark size={18} className="text-slate-600" strokeWidth={2} />
+            <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0">
+              <Bookmark size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
             </div>
             <div className="text-left">
-              <p className="text-[14px] font-semibold text-gray-900">Save post</p>
-              <p className="text-[11px] font-medium text-gray-500">Add to your collection</p>
+              <p className="text-[14px] font-semibold text-black dark:text-white">Save post</p>
+              <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Add to your collection</p>
             </div>
           </button>
 
           <button
             onClick={handleCopyLink}
-            className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl group"
+            className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors rounded-xl group"
           >
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-              <LinkIcon size={18} className="text-gray-600" strokeWidth={2} />
+            <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0">
+              <LinkIcon size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
             </div>
             <div className="text-left">
-              <p className="text-[14px] font-semibold text-gray-900">Copy link</p>
-              <p className="text-[11px] font-medium text-gray-500">Share this spark</p>
+              <p className="text-[14px] font-semibold text-black dark:text-white">Copy link</p>
+              <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Share this spark</p>
             </div>
           </button>
 
@@ -128,14 +128,14 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                   }
                   alert('Noted! We will show more like this.'); 
                 }}
-                className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl group"
+                className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors rounded-xl group"
               >
-                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-                  <PlusCircle size={18} className="text-gray-600" strokeWidth={2} />
+                <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0">
+                  <PlusCircle size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[14px] font-semibold text-gray-900">Interested</p>
-                  <p className="text-[11px] font-medium text-gray-500">Show more like this</p>
+                  <p className="text-[14px] font-semibold text-black dark:text-white">Interested</p>
+                  <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Show more like this</p>
                 </div>
               </button>
 
@@ -148,27 +148,27 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                   window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
                   alert('Hidden. We will show less of this.'); 
                 }}
-                className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl group"
+                className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors rounded-xl group"
               >
-                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-                  <MinusCircle size={18} className="text-gray-600" strokeWidth={2} />
+                <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0">
+                  <MinusCircle size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[14px] font-semibold text-gray-900">Not interested</p>
-                  <p className="text-[11px] font-medium text-gray-500">Hide from my feed</p>
+                  <p className="text-[14px] font-semibold text-black dark:text-white">Not interested</p>
+                  <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Hide from my feed</p>
                 </div>
               </button>
 
               <button
                 onClick={handleReport}
-                className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-rose-50/50 active:bg-rose-100 transition-colors rounded-xl group"
+                className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 active:bg-rose-100 dark:active:bg-rose-950/40 transition-colors rounded-xl group"
               >
-                <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0">
                   <Flag size={18} className="text-rose-500" strokeWidth={2} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[14px] font-semibold text-rose-600">Report post</p>
-                  <p className="text-[11px] font-medium text-rose-400">Flag for moderation</p>
+                  <p className="text-[14px] font-semibold text-rose-600 dark:text-rose-400">Report post</p>
+                  <p className="text-[11px] font-medium text-rose-400 dark:text-rose-500/60">Flag for moderation</p>
                 </div>
               </button>
             </>
@@ -176,19 +176,19 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
 
           {(isOwner || canDelete) && (
             <>
-              <div className="h-px bg-gray-50 mx-6 my-1" />
+              <div className="h-px bg-black/5 dark:bg-white/10 mx-6 my-1" />
 
               {isOwner && (
                 <button
                   onClick={() => { onClose(); setActiveModal('post', null, { editPost: post }); }}
-                  className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors rounded-xl group"
+                  className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors rounded-xl group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-                    <Pencil size={18} className="text-gray-600" strokeWidth={2} />
+                  <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0">
+                    <Pencil size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
                   </div>
                   <div className="text-left">
-                    <p className="text-[14px] font-semibold text-gray-900">Edit post</p>
-                    <p className="text-[11px] font-medium text-gray-500">Modify your spark</p>
+                    <p className="text-[14px] font-semibold text-black dark:text-white">Edit post</p>
+                    <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Modify your spark</p>
                   </div>
                 </button>
               )}
@@ -196,14 +196,14 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
               {canDelete && (
                 <button
                   onClick={handleDelete}
-                  className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-rose-50/50 active:bg-rose-100 transition-colors rounded-xl group"
+                  className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 active:bg-rose-100 dark:active:bg-rose-950/40 transition-colors rounded-xl group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0">
                     <Trash2 size={18} className="text-rose-500" strokeWidth={2} />
                   </div>
                   <div className="text-left">
-                    <p className="text-[14px] font-semibold text-rose-600">Delete post</p>
-                    <p className="text-[11px] font-medium text-rose-400">Remove permanently</p>
+                    <p className="text-[14px] font-semibold text-rose-600 dark:text-rose-400">Delete post</p>
+                    <p className="text-[11px] font-medium text-rose-400 dark:text-rose-500/60">Remove permanently</p>
                   </div>
                 </button>
               )}

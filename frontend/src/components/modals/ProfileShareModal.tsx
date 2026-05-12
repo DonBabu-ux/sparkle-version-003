@@ -78,14 +78,15 @@ export default function ProfileShareModal({ isOpen, onClose, username, name }: P
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
           />
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
             className="fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] z-[101] px-6 pt-8 pb-10 max-w-lg mx-auto"
           >
             <div className="flex items-center justify-between mb-8">

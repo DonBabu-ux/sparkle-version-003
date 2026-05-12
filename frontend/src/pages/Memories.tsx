@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, History, Calendar, Sparkles, ChevronRight, Share2 } from 'lucide-react';
+import { ArrowLeft, History, Calendar, Sparkles, ChevronRight, Share2, X } from 'lucide-react';
 import api from '../api/api';
+import Navbar from '../components/Navbar';
 import type { Post } from '../types/post';
 
 export default function Memories() {
@@ -27,64 +28,99 @@ export default function Memories() {
   }, []);
 
   return (
-    <div className="memories-root">
-      <div className="memories-content">
-        <div className="memories-container responsive-container">
-          <header className="memories-header">
-            <button onClick={() => navigate(-1)} className="back-btn">
-              <ArrowLeft size={24} />
+    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans transition-colors duration-300 overflow-x-hidden">
+      <Navbar />
+      
+      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pt-20 lg:pt-0">
+        <div className="max-w-[700px] mx-auto pb-24">
+          <header className="flex gap-5 mb-10 items-start">
+            <button 
+              onClick={() => navigate(-1)} 
+              className="w-11 h-11 rounded-full bg-white dark:bg-white/10 border border-black/5 dark:border-white/10 flex items-center justify-center text-black dark:text-white shadow-sm hover:scale-105 active:scale-95 transition-all shrink-0"
+            >
+              <ArrowLeft size={20} strokeWidth={3} />
             </button>
-            <div className="header-info">
-              <h1>Memories</h1>
-              <p>Relive your favorite Sparkle moments from the past.</p>
+            <div className="min-w-0">
+              <h1 className="text-4xl lg:text-5xl font-black text-black dark:text-white tracking-tighter leading-none italic uppercase">Memories</h1>
+              <p className="text-sm font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mt-2">Relive your favorite Sparkle moments</p>
             </div>
           </header>
 
-          <div className="memories-main">
+          <div className="space-y-10">
             {/* Today's Special Memory */}
-            <div className="on-this-day-card responsive-card">
-              <div className="card-badge">
-                <Calendar size={14} />
-                <span>ON THIS DAY</span>
+            <div className="bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-[32px] p-8 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] dark:opacity-[0.05] group-hover:scale-110 transition-transform duration-1000">
+                <History size={160} strokeWidth={1} />
               </div>
-              <div className="card-date">April 20, 2024</div>
-              <h3>1 Year Ago Today</h3>
-              <p>You shared a moment that sparkled!</p>
-              
-              {memories.length > 0 ? (
-                <div className="featured-memory animate-scale-in" onClick={() => setPreviewImage(memories[0])}>
-                  <img src={memories[0].media_url || '/uploads/posts/default.png'} alt="" />
-                  <div className="memory-overlay">
-                    <Sparkles size={24} className="text-white" />
+
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-5 py-2 rounded-full font-black text-[10px] uppercase tracking-[0.2em] mb-6">
+                  <Calendar size={14} strokeWidth={3} />
+                  <span>On This Day</span>
+                </div>
+                
+                <div className="text-black/40 dark:text-white/40 font-bold text-xs uppercase tracking-widest mb-1 italic">{new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+                <h3 className="text-3xl font-black text-black dark:text-white italic uppercase tracking-tighter mb-8">1 Year Ago Today</h3>
+                
+                {memories.length > 0 ? (
+                  <div 
+                    className="w-full aspect-video rounded-[24px] overflow-hidden cursor-pointer relative shadow-2xl group/img" 
+                    onClick={() => setPreviewImage(memories[0])}
+                  >
+                    <img 
+                      src={memories[0].media_url || '/uploads/posts/default.png'} 
+                      className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-1000" 
+                      alt="" 
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover/img:bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-500">
+                      <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center text-white scale-75 group-hover/img:scale-100 transition-all duration-500">
+                        <Sparkles size={32} strokeWidth={2.5} />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="empty-memory-box">
-                  <History size={48} className="text-slate-200" />
-                  <p>No posts from this day in previous years.</p>
-                </div>
-              )}
+                ) : (
+                  <div className="w-full py-16 bg-black/5 dark:bg-white/5 rounded-[24px] border-2 border-dashed border-black/10 dark:border-white/10 flex flex-col items-center gap-4 text-black/20 dark:text-white/20">
+                    <History size={48} strokeWidth={1.5} />
+                    <p className="font-bold text-xs uppercase tracking-widest italic">No posts found from this day.</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* List of Recent Memories */}
-            <div className="memories-list-section">
-              <h2 className="section-title">Past Highlights</h2>
-              <div className="memories-grid responsive-grid">
+            <div>
+              <div className="flex items-center justify-between mb-6 px-2">
+                <h2 className="text-lg font-black text-black dark:text-white italic uppercase tracking-widest">Past Highlights</h2>
+                <div className="h-px flex-1 bg-black/5 dark:bg-white/10 mx-6"></div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {loading ? (
-                  [...Array(4)].map((_, i) => <div key={i} className="memory-skeleton animate-pulse" />)
+                  Array(4).fill(0).map((_, i) => (
+                    <div key={i} className="aspect-square bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-[28px] animate-pulse" />
+                  ))
                 ) : memories.map(memory => (
-                  <div key={memory.post_id} className="memory-card group" onClick={() => setPreviewImage(memory)}>
-                    <div className="memory-thumb">
-                      <img src={memory.media_url || '/uploads/posts/default.png'} alt="" />
-                      <div className="memory-date-overlay">
-                        <span>{new Date(memory.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                  <div 
+                    key={memory.post_id} 
+                    className="bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-[28px] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 cursor-pointer group" 
+                    onClick={() => setPreviewImage(memory)}
+                  >
+                    <div className="relative h-48 overflow-hidden">
+                      <img src={memory.media_url || '/uploads/posts/default.png'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt="" />
+                      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-white font-black text-[10px] uppercase tracking-widest">
+                        {new Date(memory.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </div>
                     </div>
-                    <div className="memory-info">
-                      <p className="truncate">{memory.content || 'A beautiful memory...'}</p>
-                      <div className="memory-footer">
-                        <span className="text-rose-500 font-bold"><Sparkles size={12} className="inline mr-1" /> {memory.sparks || 0}</span>
-                        <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                    <div className="p-5">
+                      <p className="text-sm font-bold text-black/70 dark:text-white/70 truncate italic">
+                        {memory.content || 'A beautiful memory worth keeping...'}
+                      </p>
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center gap-1.5 text-primary">
+                          <Sparkles size={14} strokeWidth={3} />
+                          <span className="text-xs font-black tracking-widest">{memory.sparks || 0}</span>
+                        </div>
+                        <ChevronRight size={18} className="text-black/20 dark:text-white/20 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
                       </div>
                     </div>
                   </div>
@@ -92,84 +128,50 @@ export default function Memories() {
               </div>
             </div>
 
-            <div className="memories-footer">
-              <button className="share-memories-btn mobile-full-btn">
-                <Share2 size={18} />
-                <span>Share your memories</span>
+            <div className="pt-6">
+              <button className="w-full h-16 flex items-center justify-center gap-3 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl text-black dark:text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 group shadow-lg active:scale-[0.98]">
+                <Share2 size={18} strokeWidth={3} className="group-hover:rotate-12 transition-transform" />
+                <span>Share Memories</span>
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
+      {/* Image Preview Modal */}
       {previewImage && (
-        <div className="image-preview-overlay" onClick={() => setPreviewImage(null)}>
-          <button className="preview-close" onClick={() => setPreviewImage(null)}>
-            <ArrowLeft size={24} />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 animate-fade-in" onClick={() => setPreviewImage(null)}>
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl"></div>
+          
+          <button 
+            className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full flex items-center justify-center text-white z-10 transition-all" 
+            onClick={() => setPreviewImage(null)}
+          >
+            <X size={24} strokeWidth={3} />
           </button>
-          <img src={previewImage.media_url || '/uploads/posts/default.png'} alt="Memory" className="preview-image" onClick={e => e.stopPropagation()} />
-          <button className="preview-footer-btn" onClick={(e) => { e.stopPropagation(); navigate(`/post/${previewImage.post_id}`); }}>
-            View Full Post <ChevronRight size={16} />
-          </button>
+
+          <div className="relative z-10 w-full max-w-5xl h-full flex flex-col items-center justify-center gap-8" onClick={e => e.stopPropagation()}>
+            <img 
+              src={previewImage.media_url || '/uploads/posts/default.png'} 
+              alt="Memory" 
+              className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl animate-scale-in" 
+            />
+            
+            <button 
+              className="px-10 py-5 bg-white dark:bg-white/10 border border-white/20 rounded-2xl text-white font-black text-xs uppercase tracking-[0.3em] hover:bg-primary hover:border-primary transition-all duration-500 shadow-2xl flex items-center gap-3 italic"
+              onClick={() => navigate(`/post/${previewImage.post_id}`)}
+            >
+              View Full Post <ChevronRight size={18} strokeWidth={3} />
+            </button>
+          </div>
         </div>
       )}
 
       <style>{`
-        .memories-root { display: flex; flex-direction: column; background: #F0F2F5; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .memories-content { flex: 1; height: 100vh; overflow-y: auto; padding: 20px; }
-        .memories-container { max-width: 700px; margin: 20px auto; padding-bottom: 80px; }
-        .memories-header { display: flex; gap: 16px; margin-bottom: 32px; align-items: flex-start; }
-        .back-btn { background: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e293b; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s; flex-shrink: 0; }
-        .back-btn:active { transform: scale(0.9); }
-        .header-info h1 { font-size: 2rem; font-weight: 800; color: #0f172a; margin-bottom: 4px; font-family: 'Outfit', sans-serif; line-height: 1.1; }
-        .header-info p { color: #64748b; font-size: 1rem; line-height: 1.4; }
-
-        .on-this-day-card { background: white; border-radius: 28px; padding: 24px; margin-bottom: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; border: 1px solid rgba(255, 61, 109, 0.1); }
-        .card-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 61, 109, 0.1); color: #FF3D6D; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 16px; }
-        .card-date { color: #94a3b8; font-weight: 700; font-size: 0.85rem; margin-bottom: 4px; }
-        .on-this-day-card h3 { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; }
-        .on-this-day-card p { color: #64748b; margin-bottom: 24px; font-size: 0.95rem; }
-
-        .featured-memory { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 20px; overflow: hidden; cursor: pointer; }
-        .featured-memory img { width: 100%; height: 100%; object-fit: cover; }
-        .memory-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
-        .featured-memory:hover .memory-overlay { opacity: 1; }
-
-        .empty-memory-box { padding: 40px 20px; background: #f8fafc; border-radius: 20px; color: #94a3b8; border: 2px dashed #e2e8f0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-
-        .section-title { font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 16px; padding-left: 8px; }
-        .memories-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-        .memory-card { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #f1f5f9; cursor: pointer; transition: transform 0.3s; }
-        .memory-card:hover { transform: translateY(-3px); }
-        .memory-thumb { position: relative; height: 140px; overflow: hidden; }
-        .memory-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .memory-date-overlay { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); color: white; font-size: 0.65rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; }
-        .memory-info { padding: 14px; }
-        .memory-info p { font-size: 0.85rem; color: #475569; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
-        .memory-footer { display: flex; justify-content: space-between; align-items: center; }
-
-        .share-memories-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px; background: white; border: 2px solid #e2e8f0; border-radius: 20px; color: #1e293b; font-weight: 800; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; margin-top: 32px; }
-        .share-memories-btn:hover { border-color: #FF3D6D; color: #FF3D6D; background: rgba(255, 61, 109, 0.05); }
-
-        .memory-skeleton { aspect-ratio: 1/1; background: white; border-radius: 24px; }
-
-        .image-preview-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; }
-        .preview-close { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: none; width: 44px; height: 44px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
-        .preview-close:hover { background: rgba(255,255,255,0.2); }
-        .preview-image { max-width: 90vw; max-height: 85vh; border-radius: 12px; object-fit: contain; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        .preview-footer-btn { position: absolute; bottom: 30px; padding: 12px 24px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; color: white; font-weight: 800; display: flex; gap: 8px; align-items: center; cursor: pointer; backdrop-filter: blur(4px); transition: all 0.2s; }
-        .preview-footer-btn:hover { background: rgba(255,255,255,0.25); }
-
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
         @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-
-        @media (max-width: 600px) {
-          .memories-content { padding: 16px; }
-          .memories-container { margin: 10px auto; padding-bottom: 60px; }
-          .memories-grid { grid-template-columns: 1fr; gap: 12px; }
-          .header-info h1 { font-size: 1.6rem; }
-          .on-this-day-card { padding: 20px 16px; }
-          .featured-memory { aspect-ratio: 4/3; }
-        }
+        .animate-scale-in { animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>
   );

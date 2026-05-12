@@ -80,7 +80,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
       <motion.div
         initial={{ opacity: 0, y: 60, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
         className="sof-sheet"
         onClick={e => e.stopPropagation()}
       >
@@ -318,8 +318,10 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           max-height: 92vh;
           box-shadow: 0 -20px 60px rgba(0,0,0,0.2);
         }
+        .dark .sof-sheet { background: #000; border: 1px solid rgba(255,255,255,0.1); border-bottom: none; }
         @media (min-width: 640px) {
           .sof-sheet { border-radius: 28px; box-shadow: 0 40px 120px rgba(0,0,0,0.25); }
+          .dark .sof-sheet { border-bottom: 1px solid rgba(255,255,255,0.1); }
         }
 
         /* Header */
@@ -328,12 +330,15 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           display: flex; align-items: flex-start; justify-content: space-between;
           border-bottom: 1px solid #f3f4f6;
         }
+        .dark .sof-header { border-color: rgba(255,255,255,0.1); }
         .sof-header__title { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+        .dark .sof-header__title { color: #fff; }
         .sof-steps { display: flex; align-items: center; gap: 6px; }
         .sof-step {
           height: 4px; width: 28px; border-radius: 99px;
           background: #e5e7eb; transition: background 0.2s, width 0.2s;
         }
+        .dark .sof-step { background: rgba(255,255,255,0.1); }
         .sof-step--active { background: #e11d48; width: 40px; }
         .sof-step--done { background: #10b981; }
         .sof-steps__label { font-size: 12px; font-weight: 500; color: #9ca3af; margin-left: 4px; }
@@ -344,7 +349,9 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           color: #6b7280; cursor: pointer;
           transition: background 0.18s, color 0.18s;
         }
+        .dark .sof-close { background: rgba(255,255,255,0.1); color: #fff; }
         .sof-close:hover { background: #e5e7eb; color: #111827; }
+        .dark .sof-close:hover { background: rgba(255,255,255,0.15); }
 
         /* Body */
         .sof-body { flex: 1; overflow-y: auto; padding: 20px 24px; scrollbar-width: none; }
@@ -354,6 +361,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
         /* Field */
         .sof-field { display: flex; flex-direction: column; gap: 8px; }
         .sof-label { font-size: 12px; font-weight: 600; color: #374151; letter-spacing: 0.01em; }
+        .dark .sof-label { color: #9ca3af; }
         .sof-char { font-size: 11px; color: #9ca3af; text-align: right; margin-top: -4px; }
 
         /* Category grid */
@@ -367,8 +375,11 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           font-size: 13px; font-weight: 600; color: #6b7280;
           cursor: pointer; transition: all 0.18s;
         }
+        .dark .sof-cat { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); color: #9ca3af; }
         .sof-cat:hover { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+        .dark .sof-cat:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .sof-cat--active { background: #111827; color: #fff; border-color: #111827; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .dark .sof-cat--active { background: #fff; color: #000; border-color: #fff; }
 
         /* Text inputs */
         .sof-input, .sof-textarea {
@@ -379,12 +390,14 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           outline: none; transition: border-color 0.18s, box-shadow 0.18s;
           resize: none;
         }
+        .dark .sof-input, .dark .sof-textarea { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); color: #fff; }
         .sof-input::placeholder, .sof-textarea::placeholder { color: #9ca3af; }
         .sof-input:focus, .sof-textarea:focus {
           border-color: rgba(225,29,72,0.35);
           box-shadow: 0 0 0 3px rgba(225,29,72,0.08);
           background: #fff;
         }
+        .dark .sof-input:focus, .dark .sof-textarea:focus { background: #000; border-color: #e11d48; }
         .sof-textarea--over {
           border-color: rgba(239,68,68,0.4) !important;
           box-shadow: 0 0 0 3px rgba(239,68,68,0.08) !important;
@@ -396,6 +409,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           height: 4px; border-radius: 99px;
           background: #f3f4f6; overflow: hidden;
         }
+        .dark .sof-wc-track { background: rgba(255,255,255,0.05); }
         .sof-wc-fill {
           height: 100%; border-radius: 99px;
           transition: width 0.25s ease, background 0.25s ease;
@@ -429,12 +443,19 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           border-radius: 16px;
           cursor: pointer; transition: all 0.18s; text-align: left;
         }
+        .dark .sof-type { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
         .sof-type:hover { background: #f3f4f6; border-color: #e5e7eb; }
+        .dark .sof-type:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); }
         .sof-type--active { background: #111827; border-color: #111827; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+        .dark .sof-type--active { background: #fff; border-color: #fff; }
         .sof-type__name { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 2px; }
+        .dark .sof-type__name { color: #fff; }
         .sof-type--active .sof-type__name { color: #fff; }
-        .sof-type__desc { font-size: 12px; font-weight: 500; color: #9ca3af; }
+        .dark .sof-type--active .sof-type__name { color: #000; }
+        .sof-type__desc { font-size: 12px; font-weight: 500; color: #6b7280; }
+        .dark .sof-type__desc { color: #9ca3af; }
         .sof-type--active .sof-type__desc { color: rgba(255,255,255,0.6); }
+        .dark .sof-type--active .sof-type__desc { color: rgba(0,0,0,0.6); }
         .sof-type__check { color: #e11d48; flex-shrink: 0; }
 
         /* Pricing */
@@ -445,11 +466,13 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           background: #f9fafb; border: 1.5px solid #f3f4f6; border-radius: 14px;
           padding: 0 16px; transition: opacity 0.2s;
         }
+        .dark .sof-price-wrap { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
         .sof-price-wrap:focus-within {
           border-color: rgba(225,29,72,0.35);
           box-shadow: 0 0 0 3px rgba(225,29,72,0.08);
           background: #fff;
         }
+        .dark .sof-price-wrap:focus-within { background: #000; border-color: #e11d48; }
         .sof-price-wrap--disabled { opacity: 0.35; pointer-events: none; }
         .sof-price-prefix { font-size: 13px; font-weight: 700; color: #9ca3af; margin-right: 8px; }
         .sof-price-input {
@@ -457,6 +480,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           font-family: inherit; font-size: 20px; font-weight: 700; color: #111827;
           padding: 14px 0;
         }
+        .dark .sof-price-input { color: #fff; }
         .sof-free-btn {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
           gap: 4px; padding: 0 20px;
@@ -464,8 +488,11 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           font-size: 12px; font-weight: 700; color: #9ca3af;
           cursor: pointer; transition: all 0.18s; min-height: 56px;
         }
+        .dark .sof-free-btn { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
         .sof-free-btn:hover { background: #f3f4f6; color: #374151; }
+        .dark .sof-free-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .sof-free-btn--active { background: #ecfdf5; border-color: #10b981; color: #10b981; }
+        .dark .sof-free-btn--active { background: rgba(16,185,129,0.1); }
         .sof-hint { font-size: 11px; font-weight: 500; color: #9ca3af; margin-top: -4px; }
 
         /* Footer */
@@ -474,6 +501,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           padding: 16px 24px 28px;
           border-top: 1px solid #f3f4f6;
         }
+        .dark .sof-footer { border-color: rgba(255,255,255,0.1); }
         @media (min-width: 640px) { .sof-footer { padding-bottom: 20px; } }
         .sof-back {
           padding: 0 20px; height: 52px;
@@ -481,6 +509,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           font-family: inherit; font-size: 14px; font-weight: 600; color: #374151;
           cursor: pointer; transition: background 0.18s;
         }
+        .dark .sof-back { background: rgba(255,255,255,0.1); color: #fff; }
         .sof-back:hover { background: #e5e7eb; }
         .sof-next {
           flex: 1; height: 52px;
@@ -489,7 +518,9 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           font-family: inherit; font-size: 14px; font-weight: 700; color: #fff;
           cursor: pointer; transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
         }
+        .dark .sof-next { background: #fff; color: #000; }
         .sof-next:hover:not(:disabled) { background: #e11d48; box-shadow: 0 8px 24px rgba(225,29,72,0.3); }
+        .dark .sof-next:hover:not(:disabled) { color: #fff; }
         .sof-next:active:not(:disabled) { transform: scale(0.98); }
         .sof-next:disabled { opacity: 0.35; cursor: not-allowed; }
         .sof-spinner {
@@ -499,6 +530,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           border-radius: 50%;
           animation: sof-spin 0.65s linear infinite;
         }
+        .dark .sof-spinner { border-top-color: #000; }
         @keyframes sof-spin { to { transform: rotate(360deg); } }
 
         /* Success */
@@ -514,8 +546,11 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           color: #10b981; margin-bottom: 20px;
           box-shadow: 0 8px 32px rgba(16,185,129,0.2);
         }
+        .dark .sof-success__circle { background: rgba(16,185,129,0.1); }
         .sof-success__title { font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+        .dark .sof-success__title { color: #fff; }
         .sof-success__sub { font-size: 14px; font-weight: 500; color: #6b7280; }
+        .dark .sof-success__sub { color: #9ca3af; }
       `}</style>
     </div>
   );

@@ -141,26 +141,26 @@ export default function Explore() {
   }, [loading, loadingMore, hasMore, page]);
 
   return (
-    <div className="flex min-h-screen text-gray-900 font-sans overflow-hidden">
+    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans overflow-hidden transition-colors duration-300">
       <Navbar />
 
       {/* Main Content Area */}
       <div className="flex-1 lg:ml-72 w-full">
         {/* Sticky Header with Search & Filters */}
-        <div className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 md:px-8 transition-all">
+        <div className="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-3xl border-b border-black/[0.03] dark:border-white/10 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 md:px-8 transition-all">
           <div className="max-w-5xl mx-auto flex flex-col gap-4">
-            <div className="flex items-center gap-3">
+             <div className="flex items-center gap-3">
               <div className="relative flex-1 group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors duration-300" size={18} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black/20 dark:text-white/20 group-focus-within:text-primary transition-colors duration-300" size={18} />
                 <input 
                   type="text" 
-                  placeholder="Search moments, posts, tags..." 
+                  placeholder="Search Sparkle Discovery..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-gray-100 border border-transparent focus:bg-white focus:border-primary/20 focus:ring-4 focus:ring-primary/5 rounded-full py-3 pl-12 pr-4 text-sm font-medium outline-none transition-all duration-300 shadow-inner"
+                  className="sparkle-input pl-12 h-11 md:h-12 !rounded-full !bg-black/5 dark:!bg-white/5 focus:!bg-white dark:focus:!bg-white/10 dark:text-white border-none shadow-sm"
                 />
               </div>
-              <button className="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors text-gray-600">
+              <button className="w-11 h-11 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-black dark:text-white shadow-sm">
                 <Filter size={18} />
               </button>
             </div>
@@ -171,10 +171,10 @@ export default function Explore() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-5 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-300 ${
+                  className={`px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 border ${
                     activeCategory === cat 
-                      ? 'bg-gray-900 text-white shadow-md transform scale-[1.02]' 
-                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      ? 'bg-black dark:bg-white border-black dark:border-white text-white dark:text-black shadow-lg shadow-black/10' 
+                      : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-black/40 dark:text-white/40 hover:border-primary/20 hover:text-primary'
                   }`}
                 >
                   {cat}
@@ -189,7 +189,7 @@ export default function Explore() {
           {loading && page === 1 && mediaItems.length === 0 ? (
             <div className="grid grid-cols-3 gap-1 md:gap-6">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="aspect-square bg-gray-200 rounded-md md:rounded-2xl animate-pulse" />
+                <div key={i} className="aspect-square bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-md md:rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : mediaItems.length === 0 ? (
@@ -214,10 +214,10 @@ export default function Explore() {
                 const isLastElement = i === mediaItems.length - 1;
 
                 return (
-                  <div 
+                   <div 
                     ref={isLastElement ? lastElementRef : null}
                     key={`${m.id}-${i}`} 
-                    className={`group relative cursor-pointer overflow-hidden rounded-sm md:rounded-2xl bg-gray-100 ${spanClass}`}
+                    className={`group relative cursor-pointer overflow-hidden rounded-xl md:rounded-3xl bg-white dark:bg-black border border-black/5 dark:border-white/10 ${spanClass}`}
                     onClick={() => {
                       if (m.type === 'moment') {
                         navigate(`/moments/${m.id}`);

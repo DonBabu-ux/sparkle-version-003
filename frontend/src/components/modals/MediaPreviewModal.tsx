@@ -138,7 +138,7 @@ export default function MediaPreviewModal() {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
-        .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .animate-slide-up { animation: slide-up 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
       `}</style>
     </div>
   );

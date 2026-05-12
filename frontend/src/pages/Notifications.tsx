@@ -251,8 +251,8 @@ export default function Notifications() {
     <div 
       key={notif.notification_id || notif.id}
       onClick={() => handleNotificationClick(notif)}
-      className={`flex items-start gap-3 p-3 transition-colors cursor-pointer border-b border-gray-100 last:border-0 hover:bg-gray-50
-        ${!notif.is_read ? 'bg-[#ebf5ff]' : 'bg-white'}`}
+      className={`flex items-start gap-3 p-3 transition-colors cursor-pointer border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5
+        ${!notif.is_read ? 'bg-[#ebf5ff] dark:bg-white/5' : 'bg-white dark:bg-black'}`}
     >
       <div className="relative shrink-0 mt-1">
         <img src={notif.actor_avatar || '/uploads/avatars/default.png'} className="w-[56px] h-[56px] rounded-full object-cover border border-black/5" alt="" />
@@ -313,12 +313,12 @@ export default function Notifications() {
   );
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans">
+    <div className="flex bg-app min-h-screen text-black font-sans">
       <Navbar />
       
       <main className="flex-1 lg:ml-72 pt-20 pb-20 max-w-2xl mx-auto w-full">
         {/* Sticky Header Card */}
-        <header className="sticky top-[70px] z-30 bg-white shadow-sm border-b border-gray-200/60 px-4 py-3">
+        <header className="sticky top-[70px] z-30 bg-white dark:bg-black shadow-sm border-b border-black/5 dark:border-white/5 px-4 py-3">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
@@ -346,7 +346,7 @@ export default function Notifications() {
         </header>
 
         {/* Notifications List Card */}
-        <div className="bg-white min-h-[500px]">
+        <div className="bg-white dark:bg-black min-h-[500px]">
           <div className="flex flex-col">
             {loading ? (
                <div className="flex justify-center py-10">

@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Heart, MessageCircle, Share2, BookmarkCheck, 
   Play, Send, X, Search, History,
-  Volume2, VolumeX, Loader2, Sparkles, Eye, Orbit
+  Volume2, VolumeX, Loader2, Sparkles, Eye, Orbit,
+  Smile, ArrowUp
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,8 +14,25 @@ import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { trackingService } from '../services/TrackingService';
 import { getMediaUrl } from '../utils/imageUtils';
+import { emitHeart } from '../components/TikTokHearts';
 import clsx from 'clsx';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
+import MentionInput from '../components/MentionInput';
+import MentionText from '../components/MentionText';
+
+// Local utility to avoid import issues
+const formatCount = (num: number): string => {
+  if (!num || isNaN(num)) return '0';
+  if (num >= 1000000) {
+    const formatted = (num / 1000000).toFixed(1);
+    return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'M' : formatted + 'M';
+  }
+  if (num >= 1000) {
+    const formatted = (num / 1000).toFixed(1);
+    return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'k' : formatted + 'k';
+  }
+  return num.toString();
+};
 
 interface Comment {
   comment_id: string;
@@ -48,29 +66,47 @@ interface Moment {
   user_id?: string;
 }
 
-const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: string) => void }) => {
+const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: string, e?: React.MouseEvent) => void }) => {
   return (
-    <div className="flex gap-3 mb-5 group animate-fade-in">
+    <div className="flex gap-3 mb-6 group animate-fade-in items-start">
       <img 
         src={getMediaUrl(comment.avatar_url) || '/uploads/avatars/default.png'} 
-        className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" 
+        className="w-9 h-9 rounded-full object-cover border border-gray-100 shadow-sm shrink-0" 
         alt={comment.username}
       />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-0.5">
+        <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-bold text-gray-900">@{comment.username}</span>
-            <span className="text-[10px] font-medium text-gray-400">
+            <span className="text-[14px] font-bold text-gray-900">@{comment.username}</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
               {new Date(comment.created_at).toLocaleDateString()}
             </span>
           </div>
-          <button className="text-gray-300 hover:text-primary transition-colors" onClick={() => onLike(comment.comment_id)}>
-            <Heart size={12} className={comment.is_liked ? "fill-primary stroke-primary" : ""} />
+          <button 
+            className="text-gray-300 hover:text-primary transition-all active:scale-125" 
+            onClick={(e) => onLike(comment.comment_id, e)}
+          >
+            <Heart size={14} className={comment.is_liked ? "fill-primary stroke-primary" : ""} />
           </button>
         </div>
-        <p className="text-[13px] text-gray-700 font-medium leading-normal">{comment.content}</p>
-        <div className="flex items-center gap-4 mt-1">
-          <button className="text-[10px] font-bold text-primary uppercase tracking-wider hover:underline">Reply</button>
+        
+        <div className="text-[14px] text-gray-700 font-medium leading-relaxed break-words">
+           {comment.content.includes('giphy.com') ? (
+             <div className="mt-2 mb-1">
+               <img 
+                 src={comment.content} 
+                 alt="sticker" 
+                 className="w-[140px] h-[140px] object-contain rounded-xl shadow-sm"
+               />
+             </div>
+           ) : (
+             <MentionText content={comment.content} className="text-gray-700" />
+           )}
+        </div>
+
+        <div className="flex items-center gap-6 mt-2">
+          <button className="text-[11px] font-black text-primary uppercase tracking-widest hover:underline active:opacity-50">Reply</button>
+          <button className="text-[11px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600">Translate</button>
         </div>
       </div>
     </div>
@@ -82,6 +118,16 @@ const TikTokLoader = () => (
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#fe2c55] rounded-full animate-tiktok-dot-1" />
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#25f4ee] rounded-full animate-tiktok-dot-2" />
   </div>
+);
+
+const CommentIcon = ({ size = 20, className = "" }) => (
+  <svg 
+    width={size} height={size} viewBox="0 0 24 24" fill="none" 
+    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M16.1 20A9 9 0 1 1 20 16.1L22 22Z" />
+  </svg>
 );
 
 const ReelItem = ({ 
@@ -112,8 +158,8 @@ const ReelItem = ({
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
-  const [hearts, setHearts] = useState<{ id: number; x: number; y: number; rotate: number }[]>([]);
   const [progress, setProgress] = useState(0);
+  const lastTap = useRef<number>(0);
   const navigate = useNavigate();
   const heartIdCounter = useRef(0);
   const viewTracked = useRef(false);
@@ -166,8 +212,24 @@ const ReelItem = ({
   };
 
   const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
-    // Toggle play/pause on tap
-    togglePlay();
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      // Double Tap detected
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      
+      emitHeart(clientX, clientY);
+      if (!moment.is_liked) {
+        onLike(moment.moment_id);
+      }
+      lastTap.current = 0; // Reset
+    } else {
+      // Single Tap
+      lastTap.current = now;
+      togglePlay();
+    }
   };
 
   const onVideoTimeUpdate = () => {
@@ -240,29 +302,6 @@ const ReelItem = ({
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
 
-        {/* Vigorous Hearts Burst Layer */}
-        <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
-          <AnimatePresence>
-            {hearts.map(heart => (
-              <motion.div
-                key={heart.id}
-                initial={{ scale: 0, opacity: 0, x: heart.x - 40, y: heart.y - 40, rotate: heart.rotate }}
-                animate={{ 
-                  scale: [1, 1.5, 2], 
-                  opacity: [1, 1, 0], 
-                  y: heart.y - 200, // Fly up
-                  x: heart.x - 40 + (Math.random() - 0.5) * 50 // Slight horizontal drift
-                }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="absolute text-primary pointer-events-none"
-              >
-                <Heart size={80} fill="currentColor" strokeWidth={0} className="drop-shadow-2xl" />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
         {!playing && isVideo && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] pointer-events-none">
             <Play size={64} fill="white" className="opacity-60 drop-shadow-2xl" />
@@ -289,21 +328,37 @@ const ReelItem = ({
           )}
         </div>
  
-        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { e.stopPropagation(); onLike(moment.moment_id); }}>
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { 
+          e.stopPropagation(); 
+          emitHeart(e.clientX, e.clientY, 'v');
+          onLike(moment.moment_id); 
+        }}>
           <div className={clsx("w-12 h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_liked ? "bg-primary border-primary text-white" : "bg-black/20 border-white/20 text-white")}>
             <Heart size={24} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.like_count || 0}</span>
+          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">
+            {formatCount(moment.like_count || moment.spark_count || moment.sparks_count || 0)}
+          </span>
         </button>
  
-        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { e.stopPropagation(); onOpenComments(moment.moment_id); }}>
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { 
+          e.stopPropagation(); 
+          emitHeart(e.clientX, e.clientY, 'v');
+          onOpenComments(moment.moment_id); 
+        }}>
           <div className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all group-hover/btn:scale-110 shadow-lg">
-            <MessageCircle size={24} strokeWidth={2.5} />
+            <CommentIcon size={24} />
           </div>
-          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.comment_count || 0}</span>
+          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">
+            {formatCount(moment.comment_count || moment.comments_count || 0)}
+          </span>
         </button>
  
-        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { e.stopPropagation(); onSave(moment.moment_id); }}>
+        <button className="flex flex-col items-center gap-0.5 group/btn" onClick={(e) => { 
+          e.stopPropagation(); 
+          emitHeart(e.clientX, e.clientY, 'v');
+          onSave(moment.moment_id); 
+        }}>
           <div className={clsx("w-12 h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_saved ? "bg-amber-400 border-amber-400 text-white" : "bg-black/20 border-white/20 text-white")}>
             <BookmarkCheck size={24} fill={moment.is_saved ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
@@ -311,7 +366,11 @@ const ReelItem = ({
         </button>
  
         <button 
-          onClick={(e) => { e.stopPropagation(); onShare(moment); }}
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            emitHeart(e.clientX, e.clientY, 'v');
+            onShare(moment); 
+          }}
           className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all hover:bg-white/40 shadow-lg"
         >
           <Share2 size={22} strokeWidth={2.5} />
@@ -385,6 +444,12 @@ export default function Moments() {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null);
   
+  // Giphy & Sticker States
+  const [showStickers, setShowStickers] = useState(false);
+  const [giphyResults, setGiphyResults] = useState<any[]>([]);
+  const [giphyLoading, setGiphyLoading] = useState(false);
+  const [giphySearch, setGiphySearch] = useState('');
+  
   // Moments Search States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -402,6 +467,30 @@ export default function Moments() {
   const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+
+  // Fetch Giphy Stickers
+  useEffect(() => {
+    const fetchGiphy = async () => {
+      setGiphyLoading(true);
+      try {
+        const endpoint = giphySearch.trim() 
+          ? `/giphy/search?q=${encodeURIComponent(giphySearch)}` 
+          : '/giphy/trending';
+        const res = await api.get(endpoint);
+        setGiphyResults(res.data.data || []);
+      } catch (err) {
+        console.error('Giphy fetch error', err);
+      } finally {
+        setGiphyLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      if (showStickers) fetchGiphy();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [giphySearch, showStickers]);
   const [fetchingMore, setFetchingMore] = useState(false);
   
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -716,20 +805,23 @@ export default function Moments() {
     }
   };
 
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddComment = async (e?: React.FormEvent, stickerUrl?: string) => {
+    if (e) e.preventDefault();
+    const content = stickerUrl || newComment;
+    if (!content.trim() || !activeMomentId || submittingComment) return;
+
     if (!user) {
       navigate('/login');
       return;
     }
-    if (!newComment.trim() || !activeMomentId || submittingComment) return;
     
     setSubmittingComment(true);
     try {
-      const res = await api.post(`/moments/${activeMomentId}/comments`, { comment: newComment });
+      const res = await api.post(`/moments/${activeMomentId}/comments`, { comment: content });
       const added = res.data.comment || res.data;
       setComments(prev => [added, ...prev]);
       setNewComment('');
+      setShowStickers(false);
       
       setMoments(prev => prev.map(m => m.moment_id === activeMomentId ? {
         ...m, comment_count: (m.comment_count || 0) + 1
@@ -1154,26 +1246,122 @@ export default function Moments() {
                     <p className="text-[12px] font-bold uppercase tracking-widest">No comments yet</p>
                   </div>
                 ) : (
-                  comments.map(c => <CommentItem key={c.comment_id} comment={c} onLike={() => {}} />)
+                  <div className="space-y-1">
+                    {comments.map(c => (
+                      <CommentItem 
+                        key={c.comment_id} 
+                        comment={c} 
+                        onLike={(id, e) => {
+                          if (e) emitHeart(e.clientX, e.clientY);
+                        }} 
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
- 
-              <form className="p-4 bg-white border-t border-gray-100 flex gap-3 items-center" onSubmit={handleAddComment}>
-                <input 
-                  type="text" 
-                  placeholder="Add a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="flex-1 h-10 bg-gray-100 rounded-full px-5 text-[14px] font-medium outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all"
-                />
-                <button 
-                  type="submit"
-                  disabled={!newComment.trim() || submittingComment}
-                  className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all disabled:opacity-50"
-                >
-                  {submittingComment ? <Spinner size="small" color="text-primary" /> : <Send size={18} />}
-                </button>
-              </form>
+
+              {/* Interaction Bar Area */}
+              <div className="relative p-4 pb-8 bg-white border-t border-gray-100 flex flex-col gap-3">
+                {/* Sticker Picker Overlay (Now relative to bar) */}
+                <AnimatePresence>
+                  {showStickers && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute bottom-full left-4 right-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] border border-gray-100 p-4 mb-4 z-[1002] h-[320px] flex flex-col"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-black uppercase tracking-widest text-gray-400">Giphy Stickers</span>
+                        <button onClick={() => setShowStickers(false)} className="text-gray-400 hover:text-gray-900"><X size={16} /></button>
+                      </div>
+                      <div className="relative mb-3">
+                        <input 
+                          type="text" 
+                          placeholder="Search Giphy..."
+                          value={giphySearch}
+                          onChange={(e) => setGiphySearch(e.target.value)}
+                          className="w-full bg-gray-100 rounded-xl py-2 px-4 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                        <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      </div>
+                      <div className="flex-1 overflow-y-auto no-scrollbar">
+                        {giphyLoading ? (
+                          <div className="h-full flex items-center justify-center"><Spinner size="medium" color="text-primary" /></div>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-2">
+                            {giphyResults.map((gif: any) => (
+                              <button 
+                                key={gif.id}
+                                onClick={() => handleAddComment(undefined, gif.images.fixed_height.url)}
+                                className="aspect-square rounded-lg overflow-hidden bg-gray-50 hover:scale-105 active:scale-95 transition-all"
+                              >
+                                <img src={gif.images.fixed_height.url} className="w-full h-full object-cover" alt="" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Quick Reactions */}
+                <div className="flex items-center justify-between px-2 mb-1">
+                  {['❤️', '🔥', '😍', '😮', '😊', '😂', '💯', '🙌'].map(emoji => (
+                    <button 
+                      key={emoji}
+                      onClick={() => handleAddComment(undefined, emoji)}
+                      className="text-[20px] hover:scale-125 active:scale-90 transition-transform"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Input Area (Sleek, No Nesting) */}
+                <div className="flex items-center gap-3 px-1">
+                  <div className="flex-1 bg-gray-100/80 rounded-full flex items-center min-h-[52px] px-3 transition-all focus-within:bg-white focus-within:ring-[6px] focus-within:ring-primary/5 border border-transparent focus-within:border-primary/20 shadow-sm">
+                    <div className="flex-1">
+                      <MentionInput 
+                        value={newComment}
+                        onChange={setNewComment}
+                        placeholder="Add a comment..."
+                        onSubmit={() => handleAddComment()}
+                        className="w-full bg-transparent border-none outline-none text-[15px] font-semibold py-3 px-2 text-gray-800 placeholder:text-gray-400"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => setNewComment(prev => prev + (prev.endsWith(' ') || prev === '' ? '@' : ' @'))}
+                        className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-primary font-bold text-[17px] transition-all active:scale-90"
+                      >
+                        @
+                      </button>
+                      <button 
+                        onClick={() => setShowStickers(!showStickers)}
+                        className={clsx(
+                          "w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90", 
+                          showStickers ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-gray-400 hover:text-primary"
+                        )}
+                      >
+                        <Smile size={22} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={() => handleAddComment()}
+                    disabled={!newComment.trim() || submittingComment}
+                    className={clsx(
+                      "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 shadow-xl",
+                      newComment.trim() ? "bg-primary text-white shadow-primary/30" : "bg-gray-100 text-gray-300"
+                    )}
+                  >
+                    {submittingComment ? <Spinner size="small" color="text-white" /> : <ArrowUp size={24} strokeWidth={3} />}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </>
         )}

@@ -1,67 +1,99 @@
-
-import React, { useState, useRef, useEffect } from 'react'; // Refined Post Interaction System
-import { createPortal } from 'react-dom';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
-  MoreHorizontal, Globe, Lock, X, Users, Link as LinkIcon, PlusCircle, MinusCircle, Flag, Pencil, Trash2,
-  Bell, Info, Clock, EyeOff, ThumbsUp, Bookmark
+  MoreHorizontal, Share2, MessageCircle, Heart, Bookmark, X, 
+  Globe, Lock, MapPin, Smile, Clock, EyeOff, Flag, Pencil, 
+  Trash2, Bell, Info, Link as LinkIcon, UserPlus, UserMinus,
+  Sparkles, Zap, ChevronDown, Check, Send
 } from 'lucide-react';
-
-// Premium Action Icons (matched to modern social aesthetics)
-const HeartIcon = ({ active, size = 25, className = "" }: { active?: boolean, size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-  </svg>
-);
-
-const CommentIcon = ({ size = 25, className = "" }: { size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M20.65 17.15a10 10 0 1 1 2.35-6.15 10 10 0 0 1-2.35 6.15L23 23l-5.85-2.35Z" />
-  </svg>
-);
-
-const SendIcon = ({ size = 23, className = "" }: { size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${className} rotate-[15deg] translate-y-[2px] translate-x-[1px]`}>
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-  </svg>
-);
-
-const BookmarkIcon = ({ active, size = 25, className = "" }: { active?: boolean, size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-  </svg>
-);
-import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import clsx from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import api from '../api/api';
-import { Link } from 'react-router-dom';
-import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
+import { useModalStore } from '../store/modalStore';
 import { formatCount } from '../utils/format';
-import { emitHeart } from './TikTokHearts';
-import { trackingService } from '../services/TrackingService';
-import type { Post } from '../types/post';
-import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
-import Avatar from './Avatar';
 import MentionText from './MentionText';
-import { getFeelingIcon, getActivityIcon } from '../utils/postUtils';
+import Avatar from './Avatar';
+import { emitHeart as spawnTikTokHeart } from './TikTokHearts';
+import clsx from 'clsx';
+
+interface Post {
+  post_id: string;
+  user_id: string;
+  username: string;
+  name?: string;
+  avatar_url?: string;
+  content: string;
+  media_url?: string;
+  media_type?: string;
+  media_files?: { url: string; type: string }[];
+  post_type: string;
+  created_at: string;
+  spark_count: number;
+  comment_count: number;
+  reshare_count: number;
+  is_sparked: boolean;
+  is_saved: boolean;
+  location?: string;
+  feeling?: string;
+  activity?: string;
+  user_role?: string;
+  group_id?: string;
+  top_liker_name?: string;
+}
 
 interface PostCardProps {
   post: Post;
-  onDeleted?: (postId: string) => void;
+  onRefresh?: () => void;
 }
 
-const IncognitoIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className = "" }) => (
+// Custom Icons for better branding
+const HeartIcon = ({ size = 20, active = false, className = "" }) => (
   <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2.5" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+    width={size} height={size} viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} 
+    stroke="currentColor" strokeWidth={active ? "0" : "2.5"} strokeLinecap="round" strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  </svg>
+);
+
+const CommentIcon = ({ size = 20, className = "" }) => (
+  <svg 
+    width={size} height={size} viewBox="0 0 24 24" fill="none" 
+    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M16.1 20A9 9 0 1 1 20 16.1L22 22Z" />
+  </svg>
+);
+
+const SendIcon = ({ size = 20, className = "" }) => (
+  <svg 
+    width={size} height={size} viewBox="0 0 24 24" fill="none" 
+    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="m22 2-7 20-4-9-9-4Z" />
+    <path d="M22 2 11 13" />
+  </svg>
+);
+
+const BookmarkIcon = ({ size = 20, active = false, className = "" }) => (
+  <svg 
+    width={size} height={size} viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} 
+    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
+  </svg>
+);
+
+const IncognitoIcon = ({ size = 16, className = "" }) => (
+  <svg 
+    width={size} height={size} viewBox="0 0 24 24" fill="none" 
+    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
     className={className}
   >
     <path d="M17 10c.5-1.5 0-3-1-4l-1-1h-6l-1 1c-1 1-1.5 2.5-1 4" />
@@ -72,131 +104,59 @@ const IncognitoIcon: React.FC<{ size?: number; className?: string }> = ({ size =
   </svg>
 );
 
-const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
-  const { setActiveModal } = useModalStore();
+const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
+  const navigate = useNavigate();
   const { user: currentUser } = useUserStore();
-
+  const { setActiveModal, triggerRefresh } = useModalStore();
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
-  const [isFollowed, setIsFollowed] = useState(post.is_followed);
   const [isSaved, setIsSaved] = useState(post.is_saved);
-  const [isExpanded, setIsExpanded] = useState(false);
-
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, caretLeft: 0 });
+  const [isFollowed, setIsFollowed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, caretLeft: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const isOwner = currentUser?.user_id === post.user_id || currentUser?.username === post.username;
   const isGroupAdmin = post.group_id && (post.user_role === 'admin' || post.user_role === 'owner' || post.user_role === 'moderator');
   const canDelete = isOwner || isGroupAdmin || currentUser?.role === 'admin';
-  const timeAgo = post.created_at
-    ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
-    : 'recently';
 
-  // --- HIGH-FIDELITY TELEMETRY (Algorithm 10.1) ---
-  const cardRef = useRef<HTMLDivElement>(null);
-  const startTimeRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
-            // Started viewing
-            if (!startTimeRef.current) {
-              startTimeRef.current = Date.now();
-              trackingService.trackImpression(post.post_id);
-            }
-          } else {
-            // Stopped viewing
-            if (startTimeRef.current) {
-              const watchTime = Date.now() - startTimeRef.current;
-              // Only log if they looked for at least 500ms
-              if (watchTime > 500) {
-                trackingService.trackExit(post.post_id, watchTime);
-              }
-              startTimeRef.current = null;
-            }
-          }
-        });
-      },
-      { threshold: [0, 0.7] }
-    );
-
-    if (cardRef.current) observer.observe(cardRef.current);
-    return () => observer.disconnect();
-  }, [post.post_id]);
-
-  useEffect(() => {
-    const handleGlobalFollow = (e: any) => {
-      if (e.detail === post.user_id) {
-        setIsFollowed(true);
-      }
-    };
-    window.addEventListener('userFollowed', handleGlobalFollow);
-    return () => window.removeEventListener('userFollowed', handleGlobalFollow);
-  }, [post.user_id]);
-
-  // Close dropdown on page scroll or resize, but NOT when scrolling inside the dropdown
-  useEffect(() => {
-    if (!menuOpen) return;
-    const close = (e: Event) => {
-      // If the scroll originated inside the dropdown panel, don't close
-      if (menuRef.current?.contains(e.target as Node)) return;
-      setMenuOpen(false);
-    };
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-    };
-  }, [menuOpen]);
-
-  const isSparkedRef = useRef(isSparked);
-  useEffect(() => { isSparkedRef.current = isSparked; }, [isSparked]);
-
-  const handleSpark = async (e?: React.MouseEvent, forceLike?: boolean) => {
+  const handleSpark = async (e?: React.MouseEvent, fromDoubleTap = false) => {
     if (e) {
       e.stopPropagation();
-      emitHeart(e.clientX, e.clientY);
+      if (fromDoubleTap) {
+        spawnTikTokHeart(e.clientX, e.clientY);
+        if (isSparked) return; // Don't unlike on double tap
+      }
     }
     
-    if (!currentUser) return;
-    
-    // Synchronously check if already liked to prevent multiple API calls during rapid tapping
-    if (forceLike && isSparkedRef.current) return;
-
-    const originalSparked = isSparked;
-    const originalCount = sparkCount;
-    
-    // Optimistically update ref and state
-    if (forceLike) isSparkedRef.current = true;
-    setIsSparked(!originalSparked);
-    setSparkCount(prev => (originalSparked ? prev - 1 : prev + 1));
-    
-    // Track engagement if first spark
-    if (!originalSparked) {
-      trackingService.trackEngagement(post.post_id, 'like');
-    }
+    const newSparked = fromDoubleTap ? true : !isSparked;
+    setIsSparked(newSparked);
+    setSparkCount(prev => Math.max(0, prev + (newSparked ? 1 : -1)));
 
     try {
-      if (originalSparked) {
-        await api.post(`/posts/${post.post_id}/unspark`);
-      } else {
-        await api.post(`/posts/${post.post_id}/spark`);
-      }
-    } catch {
-      setIsSparked(originalSparked);
-      isSparkedRef.current = originalSparked;
-      setSparkCount(originalCount);
+      await api.post(`/posts/${post.post_id}/like`);
+    } catch (err) {
+      setIsSparked(!newSparked);
+      setSparkCount(prev => Math.max(0, prev + (!newSparked ? 1 : -1)));
+    }
+  };
+
+  const handleSavePost = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsSaved(!isSaved);
+    try {
+      await api.post(`/posts/${post.post_id}/save`);
+    } catch (err) {
+      setIsSaved(!isSaved);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this post? This cannot be undone.')) return;
+    if (!window.confirm('Delete this post?')) return;
     setDeleting(true);
     setMenuOpen(false);
     try {
@@ -205,98 +165,43 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       } else {
         await api.delete(`/posts/${post.post_id}`);
       }
-      onDeleted?.(post.post_id);
+      triggerRefresh();
     } catch (err) {
-      console.error('Failed to delete post:', err);
       setDeleting(false);
-      alert('Failed to delete post.');
-    }
-  };
-
-  const handleReport = async () => {
-    setMenuOpen(false);
-    const reason = window.prompt('Why are you reporting this post? (e.g. spam, inappropriate)', 'Inappropriate content');
-    if (!reason) return;
-
-    try {
-      await api.post('/moderation/reports', { post_id: post.post_id, reason });
-      alert('Post reported. Our moderation team and AI engine will review it shortly.');
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to report post.');
+      alert('Failed to delete post');
     }
   };
 
   const handleCopyLink = () => {
-    setMenuOpen(false);
     navigator.clipboard.writeText(`${window.location.origin}/post/${post.post_id}`);
     alert('Link copied to clipboard!');
+    setMenuOpen(false);
   };
 
-  const handleInterested = async () => {
+  const handleReport = () => {
+    const reason = window.prompt('Why are you reporting this post?', 'Inappropriate content');
+    if (!reason) return;
+    api.post('/moderation/reports', { post_id: post.post_id, reason })
+      .then(() => alert('Post reported.'))
+      .catch(() => alert('Failed to report.'));
     setMenuOpen(false);
-    try {
-      await api.post(`/posts/${post.post_id}/action`, { action_type: 'click' });
-      alert('Noted! We will show you more posts like this.');
-    } catch (err) {
-      console.error('Failed to log interest', err);
-    }
   };
 
-  const handleNotInterestedAction = async () => {
+  const handleSnooze = () => {
+    alert(`Snoozed ${post.name || post.username} for 30 days.`);
     setMenuOpen(false);
-    try {
-      await api.post(`/posts/${post.post_id}/action`, { action_type: 'dislike' });
-      window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
-      alert('Hidden. We will show you less of this.');
-    } catch (err) {
-      console.error('Failed to log dislike', err);
-    }
   };
 
-  const handleSavePost = async () => {
+  const handleHideAll = () => {
+    alert(`Hiding all posts from ${post.name || post.username}.`);
     setMenuOpen(false);
-    const wasSaved = isSaved;
-    setIsSaved(!wasSaved);
-    
-    try {
-      if (wasSaved) {
-        await api.post(`/posts/${post.post_id}/unsave`);
-      } else {
-        await api.post(`/posts/${post.post_id}/save`);
-      }
-    } catch (err) {
-      setIsSaved(wasSaved);
-      console.error('Failed to toggle save state', err);
-    }
-  };
-
-  const handleSnooze = async () => {
-    setMenuOpen(false);
-    try {
-      await api.post(`/posts/${post.post_id}/action`, { action_type: 'snooze' });
-      window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
-      alert(`Snoozed ${post.name || post.username} for 30 days.`);
-    } catch (err) {
-      console.error('Failed to snooze', err);
-    }
-  };
-
-  const handleHideAll = async () => {
-    setMenuOpen(false);
-    try {
-      await api.post(`/posts/${post.post_id}/action`, { action_type: 'hide_all' });
-      window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
-      alert(`Hiding all posts from ${post.name || post.username}.`);
-    } catch (err) {
-      console.error('Failed to hide all', err);
-    }
   };
 
   const handleWhySeeing = () => {
     setMenuOpen(false);
-    let reason = "This post was recommended based on your interests and activity on Sparkle.";
-    if (isFollowed) {
-      reason = `You're seeing this because you follow ${post.name || post.username}.`;
+    let reason = "You're seeing this because it's a popular post in your community.";
+    if (post.group_id) {
+      reason = "You're seeing this because it was posted in a group you're a member of.";
     } else if (post.category && post.category !== 'General') {
       reason = `You're seeing this because you've shown interest in ${post.category} content.`;
     }
@@ -314,34 +219,42 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
     alert('Post hidden. We\'ll show you less of this.');
   };
 
-  const isVideo =
-    post.media_type === 'video' ||
+  const isVideo = 
+    post.media_type === 'video' || 
     post.media_url?.match(/\.(mp4|webm|ogg|mov|quicktime)$/i);
-  const isTextOnly =
-    (!post.media_url ||
-     post.media_url === 'undefined' ||
-     post.media_url === 'null' ||
-     post.media_url.trim() === '') &&
+  const isTextOnly = 
+    (!post.media_url || 
+     post.media_url === 'undefined' || 
+     post.media_url === 'null' || 
+     post.media_url.trim() === '') && 
     (!post.media_files || post.media_files.length === 0);
 
-  // If this is a private post and not owner, we shouldn't even render it, 
-  // but if backend sent it, let's just make sure.
   if (post.post_type === 'private' && !isOwner) {
     return (
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-3 p-4 border border-gray-200 flex flex-col items-center justify-center text-center">
-        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2">
-          <Lock size={20} className="text-gray-400" />
+      <div className="bg-white dark:bg-black rounded-none sm:rounded-[12px] shadow-sm overflow-hidden mb-3 p-4 border border-black/5 dark:border-white/10 flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-2">
+          <Lock size={20} className="text-black/40 dark:text-white/40" />
         </div>
-        <h3 className="text-gray-900 font-bold text-[14px] mb-1">Post Unavailable</h3>
-        <p className="text-gray-500 text-[12px]">This post is private and cannot be viewed.</p>
+        <h3 className="text-black dark:text-white font-bold text-[14px] mb-1">Post Unavailable</h3>
+        <p className="text-black/40 dark:text-white/40 text-[12px]">This post is private and cannot be viewed.</p>
       </div>
     );
   }
 
+  const timeAgo = formatDistanceToNow(new Date(post.created_at));
+  const getMediaUrl = (url: string) => url.startsWith('http') ? url : `${api.defaults.baseURL}${url}`;
+
+  const getFeelingIcon = (feeling: string) => {
+    const f = feeling.toLowerCase();
+    if (f.includes('happy')) return Smile;
+    if (f.includes('sad')) return Smile; // maybe use a sad icon if available
+    return Smile;
+  };
+
   return (
-    <div
+    <div 
       ref={cardRef}
-      className={`bg-white rounded-[8px] sm:rounded-[12px] shadow-sm overflow-hidden border border-gray-200 transition-opacity duration-300 ${
+      className={`bg-white dark:bg-black rounded-none sm:rounded-[12px] shadow-sm dark:shadow-none overflow-hidden border-b sm:border border-black/5 dark:border-white/10 transition-opacity duration-300 ${
         deleting ? 'opacity-30 pointer-events-none' : ''
       }`}
     >
@@ -357,19 +270,19 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <div className="flex items-center gap-1 flex-wrap leading-tight">
-            <Link
-              to={`/profile/${post.username}`}
-              className="font-black text-[13px] text-gray-900 hover:underline uppercase tracking-tighter italic"
+            <Link 
+              to={`/profile/${post.username}`} 
+              className="font-black text-[13px] text-black dark:text-white hover:underline uppercase tracking-tighter italic"
             >
               {post.name || post.username}
             </Link>
 
             {(post.feeling || post.activity) && (
-              <div className="flex items-center gap-1 text-[12px] text-gray-500 font-medium flex-wrap">
+               <div className="flex items-center gap-1 text-[12px] text-black/40 dark:text-white/40 font-medium flex-wrap">
                 {post.feeling && (
                   <>
                     <span>is feeling</span>
-                    <span className="font-bold text-gray-900 capitalize flex items-center gap-1">
+                    <span className="font-bold text-black dark:text-white capitalize flex items-center gap-1">
                       {post.feeling}
                       {(() => { const Icon = getFeelingIcon(post.feeling); return Icon ? <Icon size={14} className="text-primary" /> : null; })()}
                     </span>
@@ -378,28 +291,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
                 {post.feeling && post.activity && <span>and</span>}
                 {post.activity && (
                   <>
-                    {!post.feeling && <span>is</span>}
-                    <span className="font-bold text-gray-900 capitalize flex items-center gap-1">
-                      {post.activity}
-                      {(() => { const Icon = getActivityIcon(post.activity!); return Icon ? <Icon size={14} className="text-primary" /> : null; })()}
-                    </span>
+                    <span>is</span>
+                    <span className="font-bold text-black dark:text-white capitalize">{post.activity}</span>
                   </>
                 )}
-
-                {post.tagged_users && (() => {
-                  const users = typeof post.tagged_users === 'string' ? JSON.parse(post.tagged_users) : post.tagged_users;
-                  if (!users || users.length === 0) return null;
-                  return (
-                    <div className="flex items-center gap-1">
-                      <span>with</span>
-                      <span className="font-bold text-gray-900">
-                        {users[0].name || users[0].username}
-                        {users.length > 1 && ` and ${users.length - 1} others`}
-                      </span>
-                      <Users size={14} className="text-primary ml-0.5" />
-                    </div>
-                  );
-                })()}
               </div>
             )}
 
@@ -422,22 +317,22 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
               </button>
             )}
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-gray-500 leading-tight mt-0.5">
+          <div className="flex items-center gap-1 text-[11px] text-black/40 dark:text-white/40 leading-tight mt-0.5">
             <span className="hover:underline cursor-pointer">{timeAgo.replace('about ', '').replace('less than a minute ago', 'Just now')}</span>
             <span>·</span>
             {post.post_type === 'public' ? (
-              <Globe size={11} className="fill-current text-gray-500" />
+              <Globe size={11} className="fill-current text-black/40 dark:text-white/40" />
             ) : post.post_type === 'private' || post.post_type === 'campus_only' ? (
-              <Lock size={11} className="fill-current text-gray-500" />
+              <Lock size={11} className="fill-current text-black/40 dark:text-white/40" />
             ) : (
-              <IncognitoIcon size={11} className="text-gray-500" />
+              <IncognitoIcon size={11} className="text-black/40 dark:text-white/40" />
             )}
           </div>
         </div>
 
         {/* 3-dot and X menu Trigger */}
         <div className="flex items-center gap-2">
-          <button
+          <button 
             ref={menuBtnRef}
             onClick={e => {
               e.stopPropagation();
@@ -448,25 +343,22 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
                   const rect = menuBtnRef.current!.getBoundingClientRect();
                   const DROPDOWN_W = 380;
                   const CARET_HALF = 14;
-                  // Button center X in viewport
                   const btnCenterX = (rect.left + rect.right) / 2;
-                  // Align dropdown's right edge with button's right edge, clamped to viewport
                   const leftPos = Math.max(8, Math.min(rect.right - DROPDOWN_W, window.innerWidth - DROPDOWN_W - 8));
-                  // Caret's left offset inside the dropdown so it always points at the button center
                   const caretLeft = Math.max(8, Math.min(btnCenterX - leftPos - CARET_HALF, DROPDOWN_W - 36));
                   setDropdownPos({ top: rect.bottom + 8, left: leftPos, caretLeft });
                 }
                 setMenuOpen(prev => !prev);
               }
             }}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-black/40 dark:text-white/60"
           >
             <MoreHorizontal size={20} />
           </button>
 
-          <button
+          <button 
             onClick={handleNotInterested}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-black/40 dark:text-white/60"
           >
             <X size={20} />
           </button>
@@ -484,156 +376,119 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.12, ease: 'easeOut' }}
                   style={{ top: dropdownPos.top, left: dropdownPos.left, position: 'fixed' }}
-                  className="w-[380px] bg-white rounded-[14px] shadow-[0_2px_32px_rgba(0,0,0,0.22)] z-[9991] relative"
+                  className="w-[380px] bg-white dark:bg-black rounded-[14px] shadow-2xl dark:shadow-none z-[9991] relative border border-black/5 dark:border-white/10"
                   onClick={e => e.stopPropagation()}
                 >
-                  {/* Triangle caret — dynamically aligned to the ··· button center */}
                   <div
                     style={{
                       position: 'absolute',
                       top: '-13px',
                       left: `${dropdownPos.caretLeft}px`,
-                      width: 0,
-                      height: 0,
+                      width: 0, height: 0,
                       borderLeft: '14px solid transparent',
                       borderRight: '14px solid transparent',
-                      borderBottom: '14px solid white',
-                      filter: 'drop-shadow(0 -4px 4px rgba(0,0,0,0.18))',
-                      zIndex: 1,
+                      borderBottom: '14px solid currentColor',
                     }}
+                    className="text-white dark:text-black"
                   />
-                  {/* Inner wrapper clips items to the rounded corners */}
-                  <div className="overflow-hidden rounded-[14px]">
-                  {/* Scrollable list */}
-                  <div className="overflow-y-auto max-h-[480px] py-1">
-
-                    {/* Group 1 — Interest signals */}
-                    {!isOwner && (
-                      <>
-                        <button onClick={handleInterested} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <PlusCircle size={18} className="text-[#050505]" strokeWidth={2} />
-                          </div>
-                          <div>
-                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Interested</p>
-                            <p className="text-[13px] text-[#65676b] leading-[1.3]">More of your posts will be like this.</p>
-                          </div>
-                        </button>
-                        <button onClick={handleNotInterestedAction} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <MinusCircle size={18} className="text-[#050505]" strokeWidth={2} />
-                          </div>
-                          <div>
-                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Not interested</p>
-                            <p className="text-[13px] text-[#65676b] leading-[1.3]">Less of your posts will be like this.</p>
-                          </div>
-                        </button>
-                        <div className="h-px bg-[#ced0d4] my-1 mx-3" />
-                      </>
-                    )}
-
-                    {/* Group 2 — Save */}
-                    <button onClick={handleSavePost} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                        <Bookmark size={18} className="text-[#050505]" strokeWidth={2} />
+                  
+                  <div className="p-1.5 overflow-y-auto max-h-[85vh] custom-scrollbar">
+                    <button onClick={handleSavePost} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left group">
+                      <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                        <Bookmark size={18} className="text-black dark:text-white" strokeWidth={2} />
                       </div>
                       <div>
-                        <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Save post</p>
-                        <p className="text-[13px] text-[#65676b] leading-[1.3]">Add this to your saved items.</p>
+                        <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Save post</p>
+                        <p className="text-[13px] text-black/40 dark:text-white/40 leading-[1.3]">Add this to your saved items.</p>
                       </div>
                     </button>
-
-                    <div className="h-px bg-[#ced0d4] my-1 mx-3" />
-
-                    {/* Group 3 — Info actions */}
-                    <button onClick={handleToggleNotifications} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                        <Bell size={18} className="text-[#050505]" strokeWidth={2} />
+                    <button onClick={handleToggleNotifications} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                      <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                        <Bell size={18} className="text-black dark:text-white" strokeWidth={2} />
                       </div>
-                      <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Turn on notifications for this post</p>
+                      <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Turn on notifications for this post</p>
                     </button>
-                    <button onClick={handleWhySeeing} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                        <Info size={18} className="text-[#050505]" strokeWidth={2} />
+                    <button onClick={handleWhySeeing} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                      <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                        <Info size={18} className="text-black dark:text-white" strokeWidth={2} />
                       </div>
-                      <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Why am I seeing this post?</p>
+                      <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Why am I seeing this post?</p>
                     </button>
 
                     {!isOwner && (
                       <>
-                        <div className="h-px bg-[#ced0d4] my-1 mx-3" />
-                        <button onClick={handleReport} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <Flag size={18} className="text-[#050505]" strokeWidth={2} />
+                        <div className="h-px bg-black/5 dark:bg-white/10 my-1 mx-3" />
+                        <button onClick={handleReport} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                            <Flag size={18} className="text-black dark:text-white" strokeWidth={2} />
                           </div>
-                          <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Report post</p>
+                          <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Report post</p>
                         </button>
-                        <button onClick={handleNotInterestedAction} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <EyeOff size={18} className="text-[#050505]" strokeWidth={2} />
+                        <button onClick={handleNotInterested} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                            <EyeOff size={18} className="text-black dark:text-white" strokeWidth={2} />
                           </div>
                           <div>
-                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Hide post</p>
-                            <p className="text-[13px] text-[#65676b] leading-[1.3]">See fewer posts like this.</p>
+                            <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Hide post</p>
+                            <p className="text-[13px] text-black/40 dark:text-white/40 leading-[1.3]">See fewer posts like this.</p>
                           </div>
                         </button>
-                        <button onClick={handleSnooze} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <Clock size={18} className="text-[#050505]" strokeWidth={2} />
+                        <button onClick={handleSnooze} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                            <Clock size={18} className="text-black dark:text-white" strokeWidth={2} />
                           </div>
                           <div>
-                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Snooze {post.name || post.username} for 30 days</p>
-                            <p className="text-[13px] text-[#65676b] leading-[1.3]">Temporarily stop seeing posts.</p>
+                            <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Snooze {post.name || post.username} for 30 days</p>
+                            <p className="text-[13px] text-black/40 dark:text-white/40 leading-[1.3]">Temporarily stop seeing posts.</p>
                           </div>
                         </button>
-                        <button onClick={handleHideAll} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <X size={18} className="text-[#050505]" strokeWidth={2} />
+                        <button onClick={handleHideAll} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                            <X size={18} className="text-black dark:text-white" strokeWidth={2} />
                           </div>
                           <div>
-                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Hide all from {post.name || post.username}</p>
-                            <p className="text-[13px] text-[#65676b] leading-[1.3]">Stop seeing posts from this person.</p>
+                            <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Hide all from {post.name || post.username}</p>
+                            <p className="text-[13px] text-black/40 dark:text-white/40 leading-[1.3]">Stop seeing posts from this person.</p>
                           </div>
                         </button>
-                        <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <LinkIcon size={18} className="text-[#050505]" strokeWidth={2} />
+                        <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                            <LinkIcon size={18} className="text-black dark:text-white" strokeWidth={2} />
                           </div>
-                          <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Copy link</p>
+                          <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Copy link</p>
                         </button>
                       </>
                     )}
 
                     {(isOwner || canDelete) && (
                       <>
-                        <div className="h-px bg-[#ced0d4] my-1 mx-3" />
-                        <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                          <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                            <LinkIcon size={18} className="text-[#050505]" strokeWidth={2} />
+                        <div className="h-px bg-black/5 dark:bg-white/10 my-1 mx-3" />
+                        <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                          <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                            <LinkIcon size={18} className="text-black dark:text-white" strokeWidth={2} />
                           </div>
-                          <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Copy link</p>
+                          <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Copy link</p>
                         </button>
                         
                         {isOwner && (
-                          <button onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                            <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center shrink-0">
-                              <Pencil size={18} className="text-[#050505]" strokeWidth={2} />
+                          <button onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                            <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
+                              <Pencil size={18} className="text-black dark:text-white" strokeWidth={2} />
                             </div>
-                            <p className="text-[15px] font-semibold text-[#050505] leading-[1.3]">Edit post</p>
+                            <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Edit post</p>
                           </button>
                         )}
                         
                         {canDelete && (
-                          <button onClick={handleDelete} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-[#f2f2f2] transition-colors text-left">
-                            <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                              <Trash2 size={18} className="text-red-600" strokeWidth={2} />
+                          <button onClick={handleDelete} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
+                            <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                              <Trash2 size={18} className="text-red-500" strokeWidth={2} />
                             </div>
-                            <p className="text-[15px] font-semibold text-red-600 leading-[1.3]">Delete post</p>
+                            <p className="text-[15px] font-semibold text-red-500 leading-[1.3]">Delete post</p>
                           </button>
                         )}
                       </>
                     )}
-                  </div>
                   </div>
                 </motion.div>
               </>
@@ -646,14 +501,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       {/* Content */}
       <div className="px-3 pb-2 pt-1">
         {post.content && (
-          <div className="text-[14px] text-gray-900 leading-snug">
-            <MentionText
-              content={post.content.length > 150 && !isExpanded ? post.content.substring(0, 150) + '...' : post.content}
+          <div className="text-[14px] text-black dark:text-white leading-snug">
+            <MentionText 
+              content={post.content.length > 150 && !isExpanded ? post.content.substring(0, 150) + '...' : post.content} 
             />
             {post.content.length > 150 && (
-              <button
+              <button 
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-gray-500 font-bold hover:underline ml-1 text-[13px]"
+                className="text-black/40 dark:text-white/40 font-bold hover:underline ml-1 text-[13px]"
               >
                 {isExpanded ? 'less' : 'more'}
               </button>
@@ -665,10 +520,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
       {/* Media Grid */}
       {!isTextOnly && (
         <div 
-          className="relative bg-[#f0f2f5] cursor-pointer overflow-hidden w-full"
+          className="relative bg-black/5 dark:bg-black cursor-pointer overflow-hidden w-full"
           onClick={(e) => {
-            // Show heart on every tap
-            emitHeart(e.clientX, e.clientY);
+            spawnTikTokHeart(e.clientX, e.clientY);
             setActiveModal('media_preview', null, { post });
           }}
           onDoubleClick={(e) => handleSpark(e, true)}
@@ -720,95 +574,141 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDeleted }) => {
 
       {/* Stats */}
       <div 
-        className="px-3 py-2 flex items-center justify-between cursor-pointer active:bg-gray-50/50 transition-colors"
-        onClick={(e) => handleSpark(e, true)}
+        className="px-3 py-2 flex items-center justify-between cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors"
+        onClick={(e) => {
+          spawnTikTokHeart(e.clientX, e.clientY);
+          handleSpark(e, true);
+        }}
       >
         <div className="flex items-center hover:underline">
-          {/* Primary Like Icon - Restored and spaced to avoid collision */}
-          <div className="w-[16px] h-[16px] rounded-full bg-primary flex items-center justify-center ring-2 ring-white z-30 shadow-sm mr-2">
+          <div className="w-[16px] h-[16px] rounded-full bg-primary flex items-center justify-center ring-2 ring-white dark:ring-black z-30 shadow-sm mr-2">
             <HeartIcon size={10} active={true} className="text-white" />
           </div>
  
           <div className="ml-2 flex items-center leading-tight">
             {sparkCount > 0 && (
-              <span className="text-[12px] text-gray-600 font-medium">
+              <span className="text-[12px] text-black/40 dark:text-white/40 font-medium">
                 {post.top_liker_name ? (
                   <>
-                    Liked by <span className="font-bold text-gray-900">{post.top_liker_name}</span>
+                    Liked by <span className="font-bold text-black dark:text-white">{post.top_liker_name}</span>
                     {sparkCount > 1 && (
-                      <> and <span className="font-bold text-gray-900">{formatCount(sparkCount - 1)} others</span></>
+                      <> and <span className="font-bold text-black dark:text-white">{formatCount(sparkCount - 1)} others</span></>
                     )}
                   </>
                 ) : (
-                  <span className="font-bold text-gray-900">{formatCount(sparkCount)} {sparkCount === 1 ? 'like' : 'likes'}</span>
+                  <span className="font-bold text-black dark:text-white">{formatCount(sparkCount)} {sparkCount === 1 ? 'like' : 'likes'}</span>
                 )}
               </span>
             )}
           </div>
         </div>
-        <div className="text-[12px] text-gray-400 flex gap-2.5">
-          {post.comment_count ? <span className="hover:underline cursor-pointer">{formatCount(post.comment_count)} comments</span> : null}
-          {post.reshare_count ? <span className="hover:underline cursor-pointer">{formatCount(post.reshare_count)} shares</span> : null}
+        <div className="text-[12px] text-black/40 dark:text-white/40 flex gap-2.5 font-bold">
+          {(post.comment_count || post.comments_count || (typeof post.comments === 'number' ? post.comments : 0)) ? <span className="hover:underline cursor-pointer">{formatCount(post.comment_count || post.comments_count || (typeof post.comments === 'number' ? post.comments : 0))} comments</span> : null}
+          {(post.reshare_count || post.share_count) ? <span className="hover:underline cursor-pointer">{formatCount(post.reshare_count || post.share_count)} shares</span> : null}
         </div>
       </div>
 
-      {/* Actions Row */}
+      {/* Actions Row - Integrated for a unified look */}
       <div 
-        className="flex items-center justify-between px-4 py-2 border-t border-gray-50 mt-1 cursor-pointer"
-        onClick={(e) => handleSpark(e, true)}
+        className="flex items-center justify-between px-4 pb-2.5 pt-0.5 cursor-pointer"
+        onClick={(e) => {
+          spawnTikTokHeart(e.clientX, e.clientY);
+          handleSpark(e, true);
+        }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
           {/* Spark (Like) */}
-          <button
-            onClick={handleSpark}
-            className={`flex items-center gap-1.5 py-2 px-1 transition-all active:scale-90 group ${
-              isSparked ? 'text-primary' : 'text-gray-400 hover:text-primary'
-            }`}
-          >
-            <HeartIcon 
-              size={20} 
-              active={isSparked}
-              className="transition-transform group-hover:scale-110" 
-            />
-            <span className="text-[13px] font-bold tracking-tight">
-              {formatCount(post.spark_count || 0)}
+          <div className="flex flex-col items-center">
+            <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter">
+              {formatCount(
+                post.spark_count || 
+                post.likes_count || 
+                (typeof post.sparks === 'number' ? post.sparks : 0) || 
+                (Array.isArray(post.sparks) ? post.sparks.length : 0) || 
+                0
+              )}
             </span>
-          </button>
+            <button
+              onClick={(e) => {
+                spawnTikTokHeart(e.clientX, e.clientY, 'v');
+                handleSpark(e);
+              }}
+              className={`p-1 transition-all active:scale-90 group ${
+                isSparked ? 'text-primary' : 'text-black/90 dark:text-white/90 hover:text-primary'
+              }`}
+            >
+              <HeartIcon 
+                size={22} 
+                active={isSparked}
+                className="transition-transform group-hover:scale-110" 
+              />
+            </button>
+          </div>
           
           {/* Comment */}
-          <button
-            onClick={() => setActiveModal('post_comments', null, { post })}
-            className="flex items-center gap-1.5 py-2 px-1 text-gray-400 hover:text-primary transition-all active:scale-90 group"
-          >
-            <CommentIcon size={20} className="transition-transform group-hover:scale-110" />
-            <span className="text-[13px] font-bold tracking-tight">
-              {formatCount(post.comment_count || 0)}
+          <div className="flex flex-col items-center">
+            <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter">
+              {formatCount(
+                post.comment_count || 
+                post.comments_count || 
+                (typeof post.comments === 'number' ? post.comments : 0) || 
+                (Array.isArray(post.comments) ? post.comments.length : 0) || 
+                0
+              )}
             </span>
-          </button>
+            <button
+              onClick={(e) => {
+                spawnTikTokHeart(e.clientX, e.clientY, 'v');
+                setActiveModal('post_comments', null, { post });
+              }}
+              className="p-1 text-black/90 dark:text-white/90 hover:text-primary transition-all active:scale-90 group"
+            >
+              <CommentIcon size={22} className="transition-transform group-hover:scale-110" />
+            </button>
+          </div>
           
           {/* Send / Share */}
-          <button
-            onClick={() => setActiveModal('share', null, { post })}
-            className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-primary transition-all active:scale-90 group"
-          >
-          <SendIcon className="transition-transform group-hover:scale-110" />
-          </button>
+          <div className="flex flex-col items-center">
+            <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter invisible">0</span>
+            <button
+              onClick={(e) => {
+                spawnTikTokHeart(e.clientX, e.clientY, 'v');
+                setActiveModal('share', null, { post });
+              }}
+              className="flex items-center justify-center p-1 text-black/90 dark:text-white/90 hover:text-primary transition-all active:scale-90 group"
+            >
+              <SendIcon className="transition-transform group-hover:scale-110" />
+            </button>
+          </div>
         </div>
 
-        {/* Bookmark */}
-        <button
-          onClick={handleSavePost}
-          className={`flex items-center justify-center w-10 h-10 transition-colors ${
-            isSaved ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'
-          }`}
-        >
-          <BookmarkIcon active={isSaved} />
-        </button>
+        {/* Bookmark / Save */}
+        <div className="flex flex-col items-center">
+          <span 
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveModal('post_comments', null, { post });
+            }}
+            className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter cursor-pointer hover:text-primary"
+          >
+            {formatCount(post.comment_count || post.comments_count || 0)}
+          </span>
+          <button
+            onClick={(e) => {
+              spawnTikTokHeart(e.clientX, e.clientY, 'v');
+              handleSavePost(e);
+            }}
+            className={`p-1 transition-colors ${
+              isSaved ? 'text-yellow-500' : 'text-black/90 dark:text-white/90 hover:text-yellow-500'
+            }`}
+          >
+            <BookmarkIcon size={22} active={isSaved} className="transition-transform group-hover:scale-110" />
+          </button>
+        </div>
       </div>
-
 
     </div>
   );
 };
 
-export default React.memo(PostCard);
+export default PostCard;

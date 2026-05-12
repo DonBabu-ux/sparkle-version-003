@@ -56,13 +56,13 @@ export default function Verified() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#fdf2f4] flex items-center justify-center">
+    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
       <Spinner size="large" color="text-primary" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#fdf2f4] text-black font-sans pb-20 lg:pb-0 overflow-x-hidden pt-12 md:pt-20 relative">
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden pt-12 md:pt-20 relative transition-colors duration-300">
       <Navbar />
 
       {/* Background orbs */}
@@ -74,13 +74,13 @@ export default function Verified() {
         <header className="flex items-center gap-5 md:gap-8 mb-10 md:mb-12 animate-fade-in">
           <button 
             onClick={() => navigate(-1)} 
-            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/80 backdrop-blur-3xl flex items-center justify-center text-black shadow-lg border border-white hover:scale-105 active:scale-95 transition-all"
+            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white dark:bg-black/50 backdrop-blur-3xl flex items-center justify-center text-black dark:text-white shadow-lg border border-white dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
           >
             <ArrowLeft size={22} md:size={26} strokeWidth={3} />
           </button>
           <div>
-            <h1 className="text-2xl md:text-4xl font-black text-black tracking-tight italic leading-none uppercase">Trust Node</h1>
-            <p className="text-sm md:text-base font-medium text-black/40 mt-2 italic uppercase tracking-widest">Identity & Reputation Evolution</p>
+            <h1 className="text-2xl md:text-4xl font-black text-black dark:text-white tracking-tight italic leading-none uppercase">Trust Node</h1>
+            <p className="text-sm md:text-base font-medium text-black/40 dark:text-white/40 mt-2 italic uppercase tracking-widest">Identity & Reputation Evolution</p>
           </div>
         </header>
 
@@ -88,7 +88,7 @@ export default function Verified() {
           {step === 1 && (
             <div className="space-y-6">
               {/* Profile Trust Card */}
-              <div className="bg-white/70 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 p-8 md:p-10 text-center relative overflow-hidden">
+              <div className="bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-8 md:p-10 text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-5">
                    <Shield size={120} strokeWidth={1} />
                 </div>
@@ -97,9 +97,9 @@ export default function Verified() {
                   <img 
                     src={getAvatarUrl(user?.avatar_url, user?.username)} 
                     alt="" 
-                    className="w-full h-full rounded-full object-cover border-4 border-white shadow-2xl"
+                    className="w-full h-full rounded-full object-cover border-4 border-white dark:border-black shadow-2xl"
                   />
-                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1.5 shadow-lg">
+                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-black rounded-full p-1.5 shadow-lg">
                     {stats.trustLevel >= 3 ? (
                       <BadgeCheck size={32} fill="#ff1f6d" color="white" strokeWidth={1} />
                     ) : (
@@ -108,16 +108,16 @@ export default function Verified() {
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-black text-black tracking-tight italic mb-2 uppercase">Level {stats.trustLevel}: {['', 'Recognized', 'Trusted', 'Established', 'Confirmed', 'Verified'][stats.trustLevel]}</h3>
+                <h3 className="text-2xl font-black text-black dark:text-white tracking-tight italic mb-2 uppercase">Level {stats.trustLevel}: {['', 'Recognized', 'Trusted', 'Established', 'Confirmed', 'Verified'][stats.trustLevel]}</h3>
                 <div className="flex justify-center gap-1 mb-8">
                    {[1,2,3,4,5].map(lvl => (
-                     <div key={lvl} className={`h-1.5 w-8 rounded-full transition-all ${lvl <= stats.trustLevel ? 'bg-[#FF1F6D] shadow-[0_0_10px_rgba(255,31,109,0.5)]' : 'bg-slate-200'}`} />
+                     <div key={lvl} className={`h-1.5 w-8 rounded-full transition-all ${lvl <= stats.trustLevel ? 'bg-[#FF1F6D] shadow-[0_0_10px_rgba(255,31,109,0.5)]' : 'bg-slate-200 dark:bg-white/10'}`} />
                    ))}
                 </div>
 
                 {!isEligible ? (
                   <div className="space-y-6 text-left">
-                     <div className="p-6 bg-black/5 rounded-[32px] border border-black/5">
+                     <div className="p-6 bg-black/5 dark:bg-white/5 rounded-[32px] border border-black/5 dark:border-white/5">
                         <div className="flex justify-between items-center mb-4">
                            <div className="flex items-center gap-2">
                               <Users size={16} className="text-black" />
@@ -143,7 +143,7 @@ export default function Verified() {
                         </div>
                      </div>
 
-                     <div className="p-6 bg-purple-50 rounded-[32px] border border-purple-100">
+                     <div className="p-6 bg-purple-50 dark:bg-purple-500/5 rounded-[32px] border border-purple-100 dark:border-purple-500/10">
                         <div className="flex justify-between items-center mb-4">
                            <div className="flex items-center gap-2">
                               <Star size={16} className="text-purple-600" />
@@ -179,13 +179,13 @@ export default function Verified() {
                            <Zap size={24} strokeWidth={3} />
                         </div>
                         <div className="text-left">
-                           <h4 className="text-xs font-black text-emerald-900 uppercase italic">Verification Unlocked!</h4>
-                           <p className="text-[10px] font-bold text-emerald-700/70 uppercase italic tracking-tight">You have met the Sparkle Global criteria. Proceed to evolution.</p>
+                           <h4 className="text-xs font-black text-emerald-900 dark:text-emerald-500 uppercase italic">Verification Unlocked!</h4>
+                           <p className="text-[10px] font-bold text-emerald-700/70 dark:text-emerald-500/40 uppercase italic tracking-tight">You have met the Sparkle Global criteria. Proceed to evolution.</p>
                         </div>
                     </div>
                     <button 
                       onClick={() => setStep(2)} 
-                      className="w-full py-5 rounded-[22px] bg-black text-white font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-3 uppercase tracking-wider italic"
+                      className="w-full py-5 rounded-[22px] bg-black dark:bg-white text-white dark:text-black font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-3 uppercase tracking-wider italic"
                     >
                       Begin Evolution
                       <TrendingUp size={20} strokeWidth={3} />
@@ -202,11 +202,11 @@ export default function Verified() {
                    { label: 'Shield Sync', icon: <Shield size={18} />, color: 'text-amber-600 bg-amber-50' },
                    { label: 'Legacy Badge', icon: <Star size={18} />, color: 'text-[#FF1F6D] bg-pink-50' }
                  ].map((perk, i) => (
-                   <div key={i} className="bg-white/60 backdrop-blur-xl p-4 rounded-3xl border border-white flex flex-col items-center gap-2 text-center">
-                      <div className={`w-10 h-10 rounded-2xl ${perk.color} flex items-center justify-center border border-white shadow-sm`}>
+                   <div key={i} className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-4 rounded-3xl border border-white dark:border-white/10 flex flex-col items-center gap-2 text-center">
+                      <div className={`w-10 h-10 rounded-2xl ${perk.color} flex items-center justify-center border border-white dark:border-white/10 shadow-sm`}>
                         {perk.icon}
                       </div>
-                      <span className="text-[9px] font-black text-black uppercase italic tracking-widest">{perk.label}</span>
+                      <span className="text-[9px] font-black text-black dark:text-white uppercase italic tracking-widest">{perk.label}</span>
                    </div>
                  ))}
               </div>
@@ -214,16 +214,16 @@ export default function Verified() {
           )}
 
           {step === 2 && (
-            <form onSubmit={handleSubmit} className="bg-white/70 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 p-8 md:p-12 transition-all">
+            <form onSubmit={handleSubmit} className="bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-8 md:p-12 transition-all">
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-black/40 uppercase tracking-widest pl-2 italic">Select Evolution Category</label>
+                  <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Select Evolution Category</label>
                   <div className="relative">
                     <select
                       required
                       value={formData.category}
                       onChange={e => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full appearance-none bg-white/80 border-2 border-white/50 text-black text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
+                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-black dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
                     >
                       <option value="">What fits your Node?</option>
                       <option value="creator">Creator Elite</option>
@@ -232,54 +232,54 @@ export default function Verified() {
                       <option value="community_leader">Community Architect</option>
                       <option value="other">Other Unique Signal</option>
                     </select>
-                    <ChevronDown size={18} strokeWidth={3} className="absolute right-5 top-1/2 -translate-y-1/2 text-black/20 pointer-events-none" />
+                    <ChevronDown size={18} strokeWidth={3} className="absolute right-5 top-1/2 -translate-y-1/2 text-black/20 dark:text-white/20 pointer-events-none" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-black/40 uppercase tracking-widest pl-2 italic">Identity Node Auth</label>
+                  <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Identity Node Auth</label>
                   <div className="relative">
                     <select
                       required
                       value={formData.documentType}
                       onChange={e => setFormData({ ...formData, documentType: e.target.value })}
-                      className="w-full appearance-none bg-white/80 border-2 border-white/50 text-black text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
+                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-black dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
                     >
                       <option value="">Select identity source</option>
                       <option value="passport">Global Passport</option>
                       <option value="drivers_license">Driver's Node</option>
                       <option value="national_id">National Registry ID</option>
                     </select>
-                    <ChevronDown size={18} strokeWidth={3} className="absolute right-5 top-1/2 -translate-y-1/2 text-black/20 pointer-events-none" />
+                    <ChevronDown size={18} strokeWidth={3} className="absolute right-5 top-1/2 -translate-y-1/2 text-black/20 dark:text-white/20 pointer-events-none" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-black/40 uppercase tracking-widest pl-2 italic">Signal Evidence (Upload)</label>
+                  <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Signal Evidence (Upload)</label>
                   <div className="group relative">
                     <input type="file" id="id-upload" className="sr-only" required />
                     <label 
                       htmlFor="id-upload" 
-                      className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-black/10 rounded-[32px] bg-white/40 group-hover:bg-white/60 group-hover:border-[#FF1F6D]/30 transition-all cursor-pointer"
+                      className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[32px] bg-white/40 dark:bg-white/5 group-hover:bg-white/60 dark:group-hover:bg-white/10 group-hover:border-[#FF1F6D]/30 transition-all cursor-pointer"
                     >
-                      <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center text-black/20 group-hover:text-[#FF1F6D] transition-colors mb-3">
+                      <div className="w-14 h-14 rounded-full bg-white dark:bg-black shadow-md flex items-center justify-center text-black/20 dark:text-white/20 group-hover:text-[#FF1F6D] transition-colors mb-3">
                         <Upload size={24} strokeWidth={2.5} />
                       </div>
-                      <span className="text-[10px] font-black text-black/60 uppercase italic tracking-widest">Transmit File Signal</span>
-                      <span className="text-[8px] font-bold text-black/30 mt-1 uppercase italic tracking-widest">JPG, PNG, PDF (10MB MAX)</span>
+                      <span className="text-[10px] font-black text-black/60 dark:text-white/60 uppercase italic tracking-widest">Transmit File Signal</span>
+                      <span className="text-[8px] font-bold text-black/30 dark:text-white/20 mt-1 uppercase italic tracking-widest">JPG, PNG, PDF (10MB MAX)</span>
                     </label>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-black/40 uppercase tracking-widest pl-2 italic">Reputation Logic</label>
+                  <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Reputation Logic</label>
                   <textarea
                     rows={4}
                     placeholder="Briefly explain your social signal impact..."
                     required
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full bg-white/80 border-2 border-white/50 text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all shadow-sm placeholder:text-black/20 italic"
+                    className="w-full bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-black dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all shadow-sm placeholder:text-black/20 dark:placeholder:text-white/20 italic"
                   ></textarea>
                 </div>
 
@@ -302,17 +302,17 @@ export default function Verified() {
           )}
 
           {step === 3 && (
-            <div className="bg-white/70 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 p-10 md:p-14 text-center transition-all animate-scale-in">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border border-emerald-100">
+            <div className="bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-10 md:p-14 text-center transition-all animate-scale-in">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border border-emerald-100 dark:border-emerald-500/20">
                 <CheckCircle2 size={56} md:size={80} strokeWidth={2} />
               </div>
-              <h2 className="text-2xl md:text-3xl font-black text-black tracking-tight italic mb-3 uppercase">Signal Transmitted</h2>
-              <p className="text-sm md:text-base text-black/50 leading-relaxed font-medium mb-10 max-w-sm mx-auto italic uppercase">
+              <h2 className="text-2xl md:text-3xl font-black text-black dark:text-white tracking-tight italic mb-3 uppercase">Signal Transmitted</h2>
+              <p className="text-sm md:text-base text-black/50 dark:text-white/40 leading-relaxed font-medium mb-10 max-w-sm mx-auto italic uppercase">
                 Your reputation evolution is being processed. Expect node confirmation within 24–48 hours.
               </p>
 
               <div className="flex justify-between items-center px-4 mb-12 relative">
-                <div className="absolute top-4 left-10 right-10 h-0.5 bg-black/5 z-0" />
+                <div className="absolute top-4 left-10 right-10 h-0.5 bg-black/5 dark:bg-white/5 z-0" />
                 <div className="flex flex-col items-center gap-3 relative z-10">
                   <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
                     <CheckCircle2 size={16} strokeWidth={3} />
@@ -320,22 +320,22 @@ export default function Verified() {
                   <span className="text-[10px] font-black uppercase text-emerald-500 tracking-wider italic">Sent</span>
                 </div>
                 <div className="flex flex-col items-center gap-3 relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-white text-black/10 flex items-center justify-center shadow-sm border border-black/5">
+                  <div className="w-8 h-8 rounded-full bg-white dark:bg-[#121212] text-black/10 dark:text-white/10 flex items-center justify-center shadow-sm border border-black/5 dark:border-white/5">
                     <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
                   </div>
-                  <span className="text-[10px] font-black uppercase text-black/20 tracking-wider italic">Auditing</span>
+                  <span className="text-[10px] font-black uppercase text-black/20 dark:text-white/20 tracking-wider italic">Auditing</span>
                 </div>
                 <div className="flex flex-col items-center gap-3 relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-white text-black/10 flex items-center justify-center shadow-sm border border-black/5">
+                  <div className="w-8 h-8 rounded-full bg-white dark:bg-[#121212] text-black/10 dark:text-white/10 flex items-center justify-center shadow-sm border border-black/5 dark:border-white/5">
                     <div className="w-2 h-2 rounded-full bg-current" />
                   </div>
-                  <span className="text-[10px] font-black uppercase text-black/20 tracking-wider italic">Finalized</span>
+                  <span className="text-[10px] font-black uppercase text-black/20 dark:text-white/20 tracking-wider italic">Finalized</span>
                 </div>
               </div>
 
               <button 
                 onClick={() => navigate('/dashboard')} 
-                className="w-full py-5 rounded-[22px] bg-black text-white font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-black/10 uppercase tracking-wider italic"
+                className="w-full py-5 rounded-[22px] bg-black dark:bg-white text-white dark:text-black font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-black/10 dark:shadow-white/10 uppercase tracking-wider italic"
               >
                 Return to Node
               </button>

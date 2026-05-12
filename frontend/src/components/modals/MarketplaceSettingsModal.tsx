@@ -114,7 +114,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
-          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
           className="fixed inset-0 bg-white z-[200] overflow-y-auto"
         >
           {/* Header */}

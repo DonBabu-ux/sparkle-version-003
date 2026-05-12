@@ -17,7 +17,9 @@ interface UserState {
   isAuthenticated: boolean;
   accounts: AccountSession[];
   activeAccountId: string | null;
+  theme: 'light' | 'dark';
   
+  setTheme: (theme: 'light' | 'dark') => void;
   login: (token: string, refreshToken: string, user: User) => void;
   setToken: (token: string, refreshToken?: string) => void;
   setUser: (user: User | null) => void;
@@ -35,7 +37,9 @@ export const useUserStore = create<UserState>()(
       isAuthenticated: false,
       accounts: [],
       activeAccountId: null,
+      theme: 'light',
 
+      setTheme: (theme) => set({ theme }),
       login: (token, refreshToken, user) => {
         const accounts = get().accounts;
         const existingAccountIndex = accounts.findIndex(acc => acc.user.user_id === user.user_id);
@@ -184,7 +188,8 @@ export const useUserStore = create<UserState>()(
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         accounts: state.accounts,
-        activeAccountId: state.activeAccountId
+        activeAccountId: state.activeAccountId,
+        theme: state.theme
       }),
     }
   )

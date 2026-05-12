@@ -36,7 +36,7 @@ import ModernOfflineState from '../components/ui/ModernOfflineState';
 
 export default function Profile() {
   const { username } = useParams();
-  const { user: currentUser } = useUserStore();
+  const { user: currentUser, accounts, switchAccount } = useUserStore();
   const navigate = useNavigate();
   
   const [profile, setProfile] = useState<User | null>(null);
@@ -158,9 +158,9 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+      <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
         <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 transition-all">
+        <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 transition-all text-black dark:text-white">
           <div className="relative mb-20"> {/* Increased margin */}
             <Spinner size="xl" color="text-primary" />
           </div>
@@ -178,11 +178,11 @@ export default function Profile() {
                   className="flex flex-col items-center"
                 >
                   {['Synchronizing Identity', 'Calibrating Frequency', 'Scanning Nodes', 'Authenticating Signature'].map((text, i) => (
-                    <span key={i} className="text-[10px] font-black italic text-black/20 uppercase tracking-[0.4em] h-5">{text}</span>
+                    <span key={i} className="text-[10px] font-black italic text-black/40 dark:text-white/40 uppercase tracking-[0.4em] h-5">{text}</span>
                   ))}
                 </motion.div>
              </div>
-             <div className="w-32 h-[1px] bg-black/5 rounded-full overflow-hidden">
+             <div className="w-32 h-[1px] bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ x: "-100%" }}
                   animate={{ x: "100%" }}
@@ -198,7 +198,7 @@ export default function Profile() {
 
   if (!profile) {
     return (
-      <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+      <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans">
         <Navbar />
         <div className="flex-1 flex items-center justify-center lg:ml-72 p-12">
            <ModernOfflineState 
@@ -219,21 +219,21 @@ export default function Profile() {
   const showOwnerActions = isOwnProfile || isMeAlias;
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans">
       <Navbar />
       
 
       {/* Main Header Wrapper */}
 
       {/* Top Navigation Bar with Account Switcher */}
-      <div className="fixed top-0 left-0 lg:left-72 right-0 bg-white/40 backdrop-blur-3xl z-[100] flex items-center justify-center px-4 pt-[env(safe-area-inset-top)] pb-2 transition-all">
+      <div className="fixed top-0 left-0 lg:left-72 right-0 bg-white/40 dark:bg-black/40 backdrop-blur-3xl z-[100] flex items-center justify-center px-4 pt-[env(safe-area-inset-top)] pb-2 transition-all">
         <div className="relative">
           <button 
             onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
-            className="flex items-center gap-2 px-4 py-1.5 hover:bg-black/5 rounded-full transition-all group"
+            className="flex items-center gap-2 px-4 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all group"
           >
-            <span className="text-sm font-bold text-black tracking-tight">{profile?.username}</span>
-            <ChevronDown size={16} className={`text-black/30 transition-transform ${showAccountSwitcher ? 'rotate-180' : ''}`} />
+            <span className="text-sm font-bold text-black dark:text-white tracking-tight">{profile?.username}</span>
+            <ChevronDown size={16} className="text-black/30 dark:text-white/30 transition-transform" />
           </button>
 
           <AnimatePresence>
@@ -244,23 +244,26 @@ export default function Profile() {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-white rounded-lg shadow-2xl border border-black/5 p-2 z-[101]"
+                  className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-white dark:bg-black rounded-lg shadow-2xl border border-black/5 dark:border-white/10 p-2 z-[101]"
                 >
-                  <div className="px-3 py-2 border-b border-black/5 mb-1">
-                    <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest">Switch Identity</span>
+                  <div className="px-3 py-2 border-b border-black/5 dark:border-white/5 mb-1">
+                    <span className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">Switch Identity</span>
                   </div>
                   <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
+                    {/* Assuming 'accounts' and 'switchAccount' are defined/provided in context or state */}
+                    {/* @ts-ignore */}
                     {accounts.map((acc) => (
                       <button 
                         key={acc.user.user_id}
                         onClick={() => {
                           if (acc.user.user_id !== currentUser?.user_id) {
+                            // @ts-ignore
                             switchAccount(acc.user.user_id);
                             setShowAccountSwitcher(false);
                             navigate(`/profile/${acc.user.username}`);
                           }
                         }}
-                        className={`w-full p-2 flex items-center gap-3 rounded-xl transition-all ${acc.user.user_id === currentUser?.user_id ? 'bg-black/5 border border-black/5 cursor-default' : 'hover:bg-black/5'}`}
+                        className={`w-full p-2 flex items-center gap-3 rounded-xl transition-all ${acc.user.user_id === currentUser?.user_id ? 'bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 cursor-default' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
                       >
                         <img 
                           src={getAvatarUrl(acc.user.avatar_url, acc.user.username)} 
@@ -268,11 +271,11 @@ export default function Profile() {
                           className="w-8 h-8 rounded-full object-cover border border-black/5" 
                         />
                         <div className="flex flex-col text-left">
-                          <span className="text-xs font-bold text-black">{acc.user.username}</span>
+                          <span className="text-xs font-bold text-black dark:text-white">{acc.user.username}</span>
                           {acc.user.user_id === currentUser?.user_id ? (
-                            <span className="text-[9px] text-black/40 font-medium uppercase tracking-tight">Active Node</span>
+                            <span className="text-[9px] text-black/40 dark:text-white/40 font-medium uppercase tracking-tight">Active Node</span>
                           ) : (
-                            <span className="text-[9px] text-black/20 font-medium uppercase tracking-tight">Switch to Node</span>
+                            <span className="text-[9px] text-black/20 dark:text-white/20 font-medium uppercase tracking-tight">Switch to Node</span>
                           )}
                         </div>
                         {acc.user.user_id === currentUser?.user_id && (
@@ -284,12 +287,12 @@ export default function Profile() {
 
                   <button 
                     onClick={() => { setShowAccountSwitcher(false); navigate('/login'); }}
-                    className="w-full mt-1 p-2.5 flex items-center gap-3 hover:bg-black/5 rounded-xl transition-colors text-left border-t border-black/5 pt-3"
+                    className="w-full mt-1 p-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors text-left border-t border-black/5 dark:border-white/5 pt-3"
                   >
-                    <div className="w-8 h-8 rounded-full border border-dashed border-black/20 flex items-center justify-center">
-                      <Plus size={16} className="text-black/40" />
+                    <div className="w-8 h-8 rounded-full border border-dashed border-black/20 dark:border-white/20 flex items-center justify-center">
+                      <Plus size={16} className="text-black/40 dark:text-white/40" />
                     </div>
-                    <span className="text-xs font-black uppercase tracking-tight text-black">Add Sparkle Account</span>
+                    <span className="text-xs font-black uppercase tracking-tight text-black dark:text-white">Add Sparkle Account</span>
                   </button>
                 </motion.div>
               </>
@@ -312,11 +315,11 @@ export default function Profile() {
                     else setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
                   }}
                 >
-                  <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-[#fdf2f4]' : ''}`}>
+                  <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-white dark:bg-black' : ''}`}>
                     <img 
                       src={getAvatarUrl(profile?.avatar_url, profile?.username)} 
                       alt="" 
-                      className="w-full h-full rounded-full object-cover border border-black/5" 
+                      className="w-full h-full rounded-full object-cover border border-black/5 dark:border-white/5" 
                     />
                   </div>
                 </div>
@@ -330,21 +333,21 @@ export default function Profile() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
-                        className="absolute top-0 left-full ml-4 z-[1001] bg-white rounded-[14px] shadow-2xl border border-black/5 p-2 flex flex-col gap-1 min-w-[180px]"
+                        className="absolute top-0 left-full ml-4 z-[1001] bg-white dark:bg-black rounded-[14px] shadow-2xl border border-black/5 dark:border-white/10 p-2 flex flex-col gap-1 min-w-[180px]"
                       >
-                        <button 
+                         <button 
                           onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); navigate(`/stories/${profile?.id || profile?.user_id}`); }}
-                          className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-lg transition-colors flex items-center gap-3"
+                          className="w-full px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                         >
                           <History size={18} className="text-primary" />
-                          <span className="text-sm font-bold text-black tracking-tight">View Story</span>
+                          <span className="text-sm font-bold text-black dark:text-white tracking-tight">View Story</span>
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) }); }}
-                          className="w-full px-4 py-3 text-left hover:bg-black/5 rounded-lg transition-colors flex items-center gap-3"
+                          className="w-full px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                         >
-                          <ImageIcon size={18} className="text-black/40" />
-                          <span className="text-sm font-bold text-black tracking-tight">View Picture</span>
+                          <ImageIcon size={18} className="text-black/40 dark:text-white/40" />
+                          <span className="text-sm font-bold text-black dark:text-white tracking-tight">View Picture</span>
                         </button>
                       </motion.div>
                     </>
@@ -357,39 +360,39 @@ export default function Profile() {
               {/* Info Column (Beside Avatar) */}
               <div className="flex-1 flex flex-col pt-2">
                 <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <h1 className="text-xl md:text-2xl font-black text-black tracking-tight">{profile?.username}</h1>
+                  <h1 className="text-xl md:text-2xl font-black text-black dark:text-white tracking-tight">{profile?.username}</h1>
                   {profile?.is_verified && (
                     <div className="bg-[#FF1F6D] p-1 rounded-full shadow-[0_0_10px_rgba(255,31,109,0.5)]">
                        <Sparkles size={14} className="text-white fill-white" />
                     </div>
                   )}
                   
-                  {/* Stats Row Beside Username */}
-                  <div className="flex items-center gap-6 ml-4 md:ml-8 border-l border-black/5 pl-4 md:pl-8">
+                   {/* Stats Row Beside Username */}
+                  <div className="flex items-center gap-6 ml-4 md:ml-8 border-l border-black/5 dark:border-white/5 pl-4 md:pl-8">
                     <div className="flex flex-col items-center">
-                       <span className="text-sm md:text-base font-black text-black leading-none">{posts.length}</span>
-                       <span className="text-[10px] font-bold text-black uppercase tracking-widest">Posts</span>
+                       <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{posts.length}</span>
+                       <span className="text-[10px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Posts</span>
                     </div>
                     <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Followers')}>
-                       <span className="text-sm md:text-base font-black text-black leading-none">{profile?.followers_count || 0}</span>
-                       <span className="text-[10px] font-bold text-black uppercase tracking-widest">Followers</span>
+                       <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{profile?.followers_count || 0}</span>
+                       <span className="text-[10px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Followers</span>
                     </div>
                     <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Following')}>
-                       <span className="text-sm md:text-base font-black text-black leading-none">{profile?.following_count || 0}</span>
-                       <span className="text-[10px] font-bold text-black uppercase tracking-widest">Following</span>
+                       <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{profile?.following_count || 0}</span>
+                       <span className="text-[10px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Following</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   {showOwnerActions ? (
-                    <button onClick={() => navigate('/settings')} className="px-6 py-2 bg-black text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10">
+                    <button onClick={() => navigate('/settings')} className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10 dark:shadow-white/5">
                       Edit Node
                     </button>
                   ) : (
                     <div className="flex items-center gap-2">
                       {isFollowing ? (
-                        <button onClick={handleFollowToggle} className="px-6 py-2 bg-black/5 hover:bg-black/10 rounded-lg text-xs font-bold text-black transition-all uppercase tracking-widest border border-black/5">
+                        <button onClick={handleFollowToggle} className="px-6 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest border border-black/5 dark:border-white/5">
                           Following
                         </button>
                       ) : (
@@ -397,7 +400,7 @@ export default function Profile() {
                           Follow
                         </button>
                       )}
-                      <button onClick={() => navigate(`/messages/${profile?.user_id || profile?.id}`)} className="px-6 py-2 bg-white border border-black/10 hover:bg-black/5 rounded-lg text-xs font-bold text-black transition-all uppercase tracking-widest">
+                      <button onClick={() => navigate(`/messages/${profile?.user_id || profile?.id}`)} className="px-6 py-2 bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest shadow-sm active:scale-95">
                         Message
                       </button>
                     </div>
@@ -408,7 +411,7 @@ export default function Profile() {
               
             {/* Content Row: Name, Bio, and Professional Dashboard */}
             <div className="mt-4 md:pl-2">
-              <h2 className="text-base font-black text-black mb-1 tracking-tight">{profile?.name || profile?.username}</h2>
+              <h2 className="text-base font-black text-black dark:text-white mb-1 tracking-tight">{profile?.name || profile?.username}</h2>
               
               {/* Prestige Node & Power Bar */}
               {/* Prestige Node & Badges (Only visible to owner to hide 'verification criteria') */}
@@ -416,12 +419,12 @@ export default function Profile() {
                 <>
                   <div className="w-full max-w-[240px] mb-4">
                      <div className="flex justify-between items-center mb-1 px-0.5">
-                        <span className="text-[9px] font-bold text-black uppercase tracking-widest">Node Prestige <span className="text-black font-black ml-1">Lvl {profile.reputation?.trustLevel || 1}</span></span>
+                        <span className="text-[9px] font-bold text-black dark:text-white uppercase tracking-widest">Node Prestige <span className="text-black dark:text-white font-black ml-1">Lvl {profile.reputation?.trustLevel || 1}</span></span>
                         <span className="text-[9px] font-black text-[#FF1F6D] uppercase tracking-widest">{profile.reputation?.prestigeScore || 0}% Power</span>
                      </div>
-                     <div className="h-1.5 bg-black/5 rounded-full overflow-hidden p-0.5 border border-white shadow-inner">
+                     <div className="h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10 shadow-inner">
                         <div 
-                          className="h-full bg-gradient-to-r from-black via-slate-800 to-black rounded-full shadow-[0_0_8px_rgba(0,0,0,0.15)] transition-all duration-1000" 
+                          className="h-full bg-gradient-to-r from-black dark:from-white via-slate-800 dark:via-slate-200 to-black dark:to-white rounded-full shadow-[0_0_8px_rgba(0,0,0,0.15)] transition-all duration-1000" 
                           style={{ width: `${profile.reputation?.prestigeScore || 10}%` }}
                         />
                      </div>
@@ -447,13 +450,13 @@ export default function Profile() {
               )}
 
               {(profile?.campus || profile?.major) && (
-                <div className="text-[11px] font-bold text-black mb-3 uppercase tracking-wider flex items-center gap-2">
+                <div className="text-[11px] font-bold text-black dark:text-white mb-3 uppercase tracking-wider flex items-center gap-2">
                    <div className="w-1 h-1 bg-primary rounded-full" />
-                   {profile.campus} <span className="text-black/10 mx-1">|</span> {profile.major}
+                   {profile.campus} <span className="text-black/10 dark:text-white/10 mx-1">|</span> {profile.major}
                 </div>
               )}
 
-              <div className="text-sm font-bold text-black leading-relaxed whitespace-pre-wrap max-w-lg mb-6">
+              <div className="text-sm font-bold text-black dark:text-white leading-relaxed whitespace-pre-wrap max-w-lg mb-6">
                 {profile?.bio || (showOwnerActions ? 'Initialize your node biography...' : '')}
               </div>
 
@@ -468,18 +471,18 @@ export default function Profile() {
               {showOwnerActions && (
                 <div 
                   onClick={() => navigate('/professional-dashboard')}
-                  className="bg-white/40 backdrop-blur-sm border border-black/[0.03] rounded-2xl p-4 flex items-center justify-between group cursor-pointer hover:bg-white hover:shadow-xl hover:shadow-primary/5 transition-all max-w-sm mb-6"
+                  className="bg-white/40 dark:bg-black/40 backdrop-blur-sm border border-black/[0.03] dark:border-white/5 rounded-2xl p-4 flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 hover:shadow-xl hover:shadow-primary/5 transition-all max-w-sm mb-6"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary/10 to-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                       <LayoutDashboard size={20} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[13px] font-bold text-black tracking-tight">Professional Dashboard</span>
-                      <span className="text-[10px] text-black/40 font-medium uppercase tracking-wider">Track your network pulse</span>
+                      <span className="text-[13px] font-bold text-black dark:text-white tracking-tight">Professional Dashboard</span>
+                      <span className="text-[10px] text-black/40 dark:text-white/40 font-medium uppercase tracking-wider">Track your network pulse</span>
                     </div>
                   </div>
-                  <ChevronDown className="text-black/10 -rotate-90 group-hover:text-primary transition-colors" size={20} />
+                  <ChevronDown className="text-black/10 dark:text-white/10 -rotate-90 group-hover:text-primary transition-colors" size={20} />
                 </div>
               )}
             </div>
@@ -493,10 +496,10 @@ export default function Profile() {
                 className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
                 onClick={() => setActiveModal('highlight')}
               >
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border border-dashed border-black/30 flex items-center justify-center group-hover:bg-black/5 transition-colors">
-                  <Plus size={24} className="text-black/50" />
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border border-dashed border-black/30 dark:border-white/30 flex items-center justify-center group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors">
+                  <Plus size={24} className="text-black/50 dark:text-white/50" />
                 </div>
-                <span className="text-xs font-medium text-black">New</span>
+                <span className="text-xs font-medium text-black dark:text-white">New</span>
               </div>
             )}
 
@@ -507,8 +510,8 @@ export default function Profile() {
                 className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
                 onClick={() => openHighlight(h.id, h.title)}
               >
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full p-0.5 bg-black/10 group-hover:bg-black/20 transition-colors">
-                  <div className="w-full h-full bg-[#fdf2f4] rounded-full p-0.5 overflow-hidden">
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full p-0.5 bg-black/10 dark:bg-white/10 group-hover:bg-black/20 dark:group-hover:bg-white/20 transition-colors">
+                  <div className="w-full h-full bg-white dark:bg-black rounded-full p-0.5 overflow-hidden">
                     {h.cover_url ? (
                       <img src={h.cover_url} className="w-full h-full rounded-full object-cover" alt={h.title} />
                     ) : (
@@ -518,13 +521,13 @@ export default function Profile() {
                     )}
                   </div>
                 </div>
-                <span className="text-xs font-medium text-black truncate max-w-[64px] text-center">{h.title}</span>
+                <span className="text-xs font-medium text-black dark:text-white truncate max-w-[64px] text-center">{h.title}</span>
               </div>
             ))}
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center justify-center gap-12 border-t border-black/10 w-full mb-4">
+          <div className="flex items-center justify-center gap-12 border-t border-black/10 dark:border-white/10 w-full mb-4">
             {([
               { id: 'posts',  label: 'POSTS',  icon: Grid },
               { id: 'reels',  label: 'REELS',  icon: Clapperboard },
@@ -533,7 +536,7 @@ export default function Profile() {
             ] as const).map(tab => (
               <button 
                 key={tab.id}
-                className={`flex items-center gap-2 py-4 border-t font-semibold text-[12px] tracking-widest transition-all ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-black/50 hover:text-black/70'}`} 
+                className={`flex items-center gap-2 py-4 border-t font-semibold text-[12px] tracking-widest transition-all ${activeTab === tab.id ? 'border-black dark:border-white text-black dark:text-white' : 'border-transparent text-black/50 dark:text-white/50 hover:text-black/70 dark:hover:text-white/70'}`} 
                 onClick={() => setActiveTab(tab.id)}
               >
                 <tab.icon size={14} /> {tab.label}
@@ -545,9 +548,9 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-1 pb-32 animate-fade-in w-full">
             {(activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).length > 0 ? (
               (activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).map((post) => (
-                <div 
+                 <div 
                   key={post.post_id} 
-                  className="relative aspect-square bg-gray-100 overflow-hidden group cursor-pointer" 
+                  className="relative aspect-square bg-gray-100 dark:bg-white/5 overflow-hidden group cursor-pointer" 
                   onClick={() => navigate(`/post/${post.post_id}`)}
                 >
                   <div className="w-full h-full relative">
@@ -556,7 +559,7 @@ export default function Profile() {
                     ) : (post.media_url || post.image_url) ? (
                       <img src={post.media_url || post.image_url} className="w-full h-full object-cover" alt="" />
                     ) : (
-                      <div className="w-full h-full flex flex-col justify-center items-center p-4 text-center text-black">
+                      <div className="w-full h-full flex flex-col justify-center items-center p-4 text-center text-black dark:text-white">
                          <p className="font-medium text-[10px] md:text-xs italic opacity-60 leading-snug break-words line-clamp-4">
                            {post.content || 'No Media'}
                          </p>
@@ -599,8 +602,8 @@ export default function Profile() {
           )}
         </div>
 
-        <footer className="py-16 text-center border-t border-black/[0.03] relative">
-          <div className="flex flex-wrap items-center justify-center gap-12 text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-12 italic">
+        <footer className="py-16 text-center border-t border-black/[0.03] dark:border-white/[0.03] relative">
+          <div className="flex flex-wrap items-center justify-center gap-12 text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.3em] mb-12 italic">
             {['Village', 'Privacy', 'Safety', 'Terms', 'Connect'].map(item => (
                 <span key={item} className="hover:text-primary transition-colors cursor-pointer">{item}</span>
             ))}

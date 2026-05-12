@@ -113,6 +113,16 @@ function App() {
     initAuth();
   }, [hydrated]);
 
+  const theme = useUserStore(state => state.theme);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
   // Show a minimal spinner while the store rehydrates from storage
   if (!hydrated) {
     return (

@@ -79,18 +79,18 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Top Navigation Bar — Glass Header */}
-      {!['/search', '/moments', '/marketplace', '/groups'].some(path => location.pathname.startsWith(path)) && (
-        <header className="lg:hidden fixed top-0 left-0 w-full bg-white/40 backdrop-blur-3xl flex justify-between items-center z-[1100] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
+      {!['/search', '/moments', '/marketplace', '/groups', '/settings', '/profile'].some(path => location.pathname.startsWith(path)) && (
+        <header className="lg:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-[1100] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-[#fb7185] rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
               <Sparkles size={20} strokeWidth={2.5} />
             </div>
-            <span className="font-heading font-black text-xl tracking-tighter text-black">Sparkle</span>
+            <span className="font-heading font-black text-xl tracking-tighter text-black dark:text-white">Sparkle</span>
           </Link>
           
           <div className="flex-1 mx-4">
             <div 
-              className="bg-black/5 h-10 rounded-2xl flex items-center px-4 gap-3 text-black/30 border border-black/5 transition-all active:bg-white"
+              className="bg-black/5 dark:bg-white/5 h-10 rounded-2xl flex items-center px-4 gap-3 text-black/30 dark:text-white/30 border border-black/5 dark:border-white/5 transition-all active:bg-white dark:active:bg-white/10"
               onClick={() => navigate('/search')}
             >
               <SearchIcon size={16} />
@@ -102,7 +102,7 @@ export default function Navbar() {
             <NotificationBell />
             <button 
                 onClick={() => setGridMenuOpen(!gridMenuOpen)}
-                className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/40 hover:bg-black/10 transition-colors active:scale-90"
+                className="w-10 h-10 bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center text-black/40 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/10 transition-colors active:scale-90"
             >
                 <LayoutGrid size={20} strokeWidth={2.5} />
             </button>
@@ -117,7 +117,7 @@ export default function Navbar() {
           "lg:hidden fixed bottom-0 left-0 right-0 w-full z-[1000] transition-all duration-500",
           isMoments 
             ? "pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-black/80 to-transparent border-none" 
-            : "pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))] bg-white/50 backdrop-blur-3xl border-none"
+            : "pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))] bg-white/50 dark:bg-black/80 backdrop-blur-3xl border-none"
         )}
         style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center' }}
       >
@@ -198,11 +198,11 @@ export default function Navbar() {
       {showMobileCreate && (
         <div className="fixed inset-0 z-[1900] bg-black/10 backdrop-blur-sm animate-fade-in" onClick={() => setShowMobileCreate(false)}>
           <div 
-            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-60px)] max-w-xs bg-white/95 backdrop-blur-3xl rounded-[32px] shadow-2xl p-2 flex flex-col animate-slide-up border border-white/65 overflow-hidden"
+            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-60px)] max-w-xs bg-white/95 dark:bg-black/95 backdrop-blur-3xl rounded-[32px] shadow-2xl p-2 flex flex-col animate-slide-up border border-white/65 dark:border-white/10 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 pt-4 pb-2 border-b border-black/5 mb-2">
-                <span className="text-[11px] font-bold text-black/30 uppercase tracking-widest">Create New</span>
+            <div className="px-5 pt-4 pb-2 border-b border-black/5 dark:border-white/5 mb-2">
+                <span className="text-[11px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">Create New</span>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -219,10 +219,10 @@ export default function Navbar() {
                 onClick={() => { setShowMobileCreate(false); item.action(); }} 
                 className="w-full p-4 flex items-center gap-4 hover:bg-primary/5 active:bg-primary/10 transition-all group rounded-2xl relative"
                 >
-                <div className={`w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
+                <div className={`w-9 h-9 rounded-xl bg-white dark:bg-black shadow-sm flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
                     <item.icon size={18} strokeWidth={2.5} />
                 </div>
-                <span className="font-bold text-black text-sm">{item.name}</span>
+                <span className="font-bold text-black dark:text-white text-sm">{item.name}</span>
                 {item.isNew && <div className="absolute right-5 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full animate-pulse" />}
                 </button>
             ))}
@@ -256,7 +256,7 @@ export default function Navbar() {
         }
 
         return (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 dark:bg-black/60 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
             <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
               {activeModal === 'post' && <PostModal editPost={(modalData as any)?.editPost} onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
@@ -315,15 +315,15 @@ export default function Navbar() {
       {gridMenuOpen && (
         <div className="fixed inset-0 z-[2000] bg-black/10 backdrop-blur-sm animate-fade-in" onClick={() => setGridMenuOpen(false)}>
           <div 
-            className="absolute top-20 right-5 w-[calc(100%-40px)] max-w-[460px] bg-white/95 backdrop-blur-3xl border border-white rounded-[32px] shadow-2xl p-6 flex flex-col animate-scale-in z-[2001] max-h-[85vh] overflow-hidden"
+            className="absolute top-20 right-5 w-[calc(100%-40px)] max-w-[460px] bg-white/95 dark:bg-black/95 backdrop-blur-3xl border border-white dark:border-white/10 rounded-[32px] shadow-2xl p-6 flex flex-col animate-scale-in z-[2001] max-h-[85vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-8 px-4">
                 <div>
-                  <span className="text-3xl font-black text-black tracking-tight italic">Sparkle Hub</span>
-                  <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mt-1 italic">ALL FEATURES</p>
+                  <span className="text-3xl font-black text-black dark:text-white tracking-tight italic">Sparkle Hub</span>
+                  <p className="text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.3em] mt-1 italic">ALL FEATURES</p>
                 </div>
-                <button onClick={() => setGridMenuOpen(false)} className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/30 hover:text-primary transition-colors">
+                <button onClick={() => setGridMenuOpen(false)} className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-black/30 dark:text-white/30 hover:text-primary transition-colors">
                   <X size={20} strokeWidth={3} />
                 </button>
             </div>

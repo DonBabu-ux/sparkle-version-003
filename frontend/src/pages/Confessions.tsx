@@ -206,7 +206,7 @@ export default function Confessions() {
   };
 
   return (
-    <div className="flex bg-[#FBFBFD] min-h-screen text-[#1D1D1F] font-sans selection:bg-primary/10">
+    <div className="flex bg-[#FBFBFD] dark:bg-black min-h-screen text-[#1D1D1F] dark:text-white font-sans selection:bg-primary/10">
       {/* Background blobs */}
       <div className="fixed top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
@@ -214,18 +214,18 @@ export default function Confessions() {
       <main className="flex-1 relative z-10 w-full max-w-[680px] mx-auto min-h-screen flex flex-col pb-28">
 
         {/* ── Sticky Header ── */}
-        <div className="sticky top-0 z-50 bg-[#FBFBFD]/40 backdrop-blur-3xl transition-all">
+        <div className="sticky top-0 z-50 bg-[#FBFBFD]/40 dark:bg-black/80 backdrop-blur-3xl transition-all border-b border-black/5 dark:border-white/10">
           {/* Top row */}
           <div className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pb-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-all active:scale-95"
+                className="w-10 h-10 rounded-2xl bg-white dark:bg-black shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center text-black/40 dark:text-white hover:text-primary transition-all active:scale-95"
               >
                 <ArrowLeft size={19} strokeWidth={2.5} />
               </button>
               <div>
-                <h1 className="text-lg font-black tracking-tight text-gray-900 uppercase italic leading-none">Confessions</h1>
+                <h1 className="text-lg font-black tracking-tight text-black dark:text-white uppercase italic leading-none">Confessions</h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="flex -space-x-0.5">
                     {[1,2,3].map(i => (
@@ -242,7 +242,7 @@ export default function Confessions() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="w-10 h-10 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-all shadow-sm active:scale-95">
+              <button className="w-10 h-10 rounded-2xl bg-white dark:bg-black border border-black/5 dark:border-white/10 flex items-center justify-center text-black/40 dark:text-white hover:text-primary transition-all shadow-sm active:scale-95">
                 <TrendingUp size={17} />
               </button>
               {/* Plus button opens the local ConfessionModal */}
@@ -264,7 +264,7 @@ export default function Confessions() {
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0 ${
                   activeCategory === cat.id
                     ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105'
-                    : 'bg-white text-gray-400 border-gray-100 hover:text-primary hover:border-primary/20'
+                    : 'bg-white dark:bg-black text-black/40 dark:text-white/60 border-black/5 dark:border-white/10 hover:text-primary hover:border-primary/20'
                 }`}
               >
                 {cat.icon}
@@ -280,7 +280,7 @@ export default function Confessions() {
           {/* Pulse of the Village – Trending Card */}
           {trendingConfession && !loading && (
             <div className="mx-4 mt-5 mb-6 animate-fade-in">
-              <div className="bg-gradient-to-br from-gray-900 to-black rounded-[28px] p-5 relative overflow-hidden shadow-[0_24px_60px_-12px_rgba(0,0,0,0.35)]">
+              <div className="bg-gradient-to-br from-black/80 to-black rounded-[28px] p-5 relative overflow-hidden shadow-[0_24px_60px_-12px_rgba(0,0,0,0.35)] border border-white/5">
                 {/* flame icon */}
                 <div className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
                   <Flame size={20} className="text-primary animate-pulse" />
@@ -288,7 +288,6 @@ export default function Confessions() {
 
                 <div className="relative z-10 pr-12">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 border border-primary/20 mb-3">
-                    <Sparkles size={10} className="text-primary" />
                     <span className="text-[8px] font-black text-primary uppercase tracking-widest">Pulse of the Hour</span>
                   </div>
 
@@ -300,12 +299,12 @@ export default function Confessions() {
                     <div className="flex items-center gap-2">
                       <div className="flex -space-x-2">
                         {[1,2,3].map(i => (
-                          <div key={i} className="w-7 h-7 rounded-full border-2 border-gray-900 bg-gray-800 flex items-center justify-center">
+                          <div key={i} className="w-7 h-7 rounded-full border-2 border-black bg-white/10 flex items-center justify-center">
                             <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
                           </div>
                         ))}
                       </div>
-                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{trendingConfession.react_count || 0} resonating</span>
+                      <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{trendingConfession.react_count || 0} resonating</span>
                     </div>
                     <button
                       onClick={() => navigate(`/confessions/${trendingConfession.confession_id}`)}
@@ -332,12 +331,12 @@ export default function Confessions() {
                 { label: 'Anonymity',    value: '100% SECURE', icon: <ShieldCheck size={16} /> },
               ].map((stat, i) => (
                 <div key={i} className="flex items-center gap-3 group/stat">
-                  <div className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-primary group-hover/stat:bg-primary group-hover/stat:text-white transition-all duration-300">
+                  <div className="w-10 h-10 rounded-2xl bg-white dark:bg-black shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center text-primary group-hover/stat:bg-primary group-hover/stat:text-white transition-all duration-300">
                     {stat.icon}
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em]">{stat.label}</p>
-                    <p className="text-[13px] font-black text-gray-900 uppercase italic">{stat.value}</p>
+                    <p className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-[0.18em]">{stat.label}</p>
+                    <p className="text-[13px] font-black text-black dark:text-white uppercase italic">{stat.value}</p>
                   </div>
                 </div>
               ))}
@@ -345,22 +344,22 @@ export default function Confessions() {
           </div>
 
           {/* ── Feed Cards ── */}
-          <div className="flex flex-col gap-4 px-4 pb-8">
+          <div className="flex flex-col gap-0 sm:gap-4 px-0 sm:px-4 pb-8">
             {loading ? (
               <div className="py-24 flex flex-col items-center justify-center">
                 <div className="mb-20">
                   <Spinner size="large" color="text-primary" />
                 </div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] animate-pulse">Scanning Nodes...</p>
+                <p className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-[0.4em] animate-pulse">Scanning Nodes...</p>
               </div>
             ) : confessions.length > 0 ? (
               confessions.map((conf, idx) => (
                 <div
                   key={conf.confession_id || idx}
-                  className="bg-white rounded-[28px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-gray-100/60 transition-all duration-500 animate-fade-in hover:shadow-[0_12px_40px_rgba(0,0,0,0.07)] group flex flex-col relative"
+                  className="bg-white dark:bg-black rounded-none sm:rounded-[28px] overflow-hidden shadow-none sm:shadow-[0_8px_32px_rgba(0,0,0,0.04)] border-b sm:border border-black/5 dark:border-white/10 transition-all duration-500 animate-fade-in hover:shadow-[0_12px_40px_rgba(0,0,0,0.07)] group flex flex-col relative"
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
-                  <div className="absolute -right-5 -bottom-5 text-black/[0.03] -rotate-12 z-0 pointer-events-none" aria-hidden>
+                  <div className="absolute -right-5 -bottom-5 text-black/[0.03] dark:text-white/[0.03] -rotate-12 z-0 pointer-events-none" aria-hidden>
                     <SpyIcon size={160} />
                   </div>
                   
@@ -369,24 +368,24 @@ export default function Confessions() {
                     {/* Card header */}
                     <div className="flex items-start gap-3 mb-4">
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md bg-gradient-to-br
-                      ${idx % 4 === 0 ? 'from-pink-500 to-rose-400 shadow-pink-100'
-                      : idx % 4 === 1 ? 'from-blue-500 to-indigo-400 shadow-blue-100'
-                      : idx % 4 === 2 ? 'from-emerald-500 to-teal-400 shadow-emerald-100'
-                      : 'from-amber-400 to-orange-400 shadow-amber-100'}`}
+                      ${idx % 4 === 0 ? 'from-pink-500 to-rose-400'
+                      : idx % 4 === 1 ? 'from-blue-500 to-indigo-400'
+                      : idx % 4 === 2 ? 'from-emerald-500 to-teal-400'
+                      : 'from-amber-400 to-orange-400'}`}
                     >
                       <SpyIcon size={20} className="text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black text-gray-900 uppercase italic truncate">
+                        <span className="text-[11px] font-black text-black dark:text-white uppercase italic truncate">
                           {conf.author_alias || `Anonymous #${idx + 100}`}
                         </span>
-                        <span className="text-[9px] font-semibold text-gray-300 uppercase tracking-wider ml-2 flex-shrink-0">
+                        <span className="text-[9px] font-semibold text-black/20 dark:text-white/20 uppercase tracking-wider ml-2 flex-shrink-0">
                           {conf.created_at ? new Date(conf.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Live'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="px-2 py-0.5 bg-emerald-50 text-[7px] font-black text-emerald-600 rounded uppercase tracking-widest border border-emerald-100/60">
+                        <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-[7px] font-black text-emerald-600 dark:text-emerald-400 rounded uppercase tracking-widest border border-emerald-100/60 dark:border-emerald-900/20">
                           Encrypted
                         </span>
                         {conf.category && (
@@ -399,7 +398,7 @@ export default function Confessions() {
                   </div>
 
                   {/* Content */}
-                  <p className={`text-gray-800 leading-relaxed mb-5 tracking-tight px-0.5
+                  <p className={`text-black/80 dark:text-white/90 leading-relaxed mb-5 tracking-tight px-0.5
                     ${conf.content.length > 180 ? 'text-[15px] font-medium' : 'text-lg font-bold'}`}
                   >
                     {conf.content}
@@ -409,7 +408,7 @@ export default function Confessions() {
                   {/* Attached Image (Edge-to-Edge) */}
                   {conf.image_url && (
                     <div 
-                      className="relative bg-black cursor-pointer border-y border-gray-100 overflow-hidden"
+                      className="relative bg-black cursor-pointer border-y border-black/5 dark:border-white/10 overflow-hidden"
                       onClick={(e) => {
                         emitHeart(e.clientX, e.clientY);
                         setPreviewImage(conf.image_url!);
@@ -430,7 +429,7 @@ export default function Confessions() {
 
                   {/* Actions & Comments Section */}
                   <div 
-                    className="p-4 pt-3 relative cursor-pointer active:bg-gray-50/50 transition-colors"
+                    className="p-4 pt-3 relative cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors"
                     onClick={(e) => handleReact(conf.confession_id, 'heart', e, true)}
                   >
                     <div className="flex items-center justify-between w-full">
@@ -443,7 +442,7 @@ export default function Confessions() {
                               setShowEmojiPicker(false);
                             }}
                             className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all active:scale-90 group/react ${
-                              activeReactionMenu === conf.confession_id ? 'text-primary' : 'text-gray-400 hover:text-primary hover:bg-primary/5'
+                              activeReactionMenu === conf.confession_id ? 'text-primary' : 'text-black/40 dark:text-white/60 hover:text-primary hover:bg-primary/5'
                             }`}
                           >
                             <HeartIcon 
@@ -458,17 +457,17 @@ export default function Confessions() {
 
                           {/* Reaction Palette Popover */}
                           {activeReactionMenu === conf.confession_id && (
-                            <div className="absolute left-0 bottom-14 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 p-4 animate-scale-in z-50 min-w-[250px]">
+                            <div className="absolute left-0 bottom-14 bg-white dark:bg-[#121212] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-black/5 dark:border-white/10 p-4 animate-scale-in z-50 min-w-[250px]">
                               {!showEmojiPicker ? (
                                 <>
-                                  <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-gray-50">
-                                    {(conf.smile_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg">😂 {conf.smile_count}</div>}
-                                    {(conf.relate_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg">😭 {conf.relate_count}</div>}
-                                    {(conf.heart_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg">❤️ {conf.heart_count}</div>}
-                                    {(conf.fire_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg">🔥 {conf.fire_count}</div>}
-                                    {(conf.support_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg">🥺 {conf.support_count}</div>}
+                                  <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-black/5 dark:border-white/10">
+                                    {(conf.smile_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-black/60 dark:text-white/60 bg-black/5 dark:bg-white/5 px-2 py-1 rounded-lg">😂 {conf.smile_count}</div>}
+                                    {(conf.relate_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-black/60 dark:text-white/60 bg-black/5 dark:bg-white/5 px-2 py-1 rounded-lg">😭 {conf.relate_count}</div>}
+                                    {(conf.heart_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-black/60 dark:text-white/60 bg-black/5 dark:bg-white/5 px-2 py-1 rounded-lg">❤️ {conf.heart_count}</div>}
+                                    {(conf.fire_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-black/60 dark:text-white/60 bg-black/5 dark:bg-white/5 px-2 py-1 rounded-lg">🔥 {conf.fire_count}</div>}
+                                    {(conf.support_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-black/60 dark:text-white/60 bg-black/5 dark:bg-white/5 px-2 py-1 rounded-lg">🥺 {conf.support_count}</div>}
                                     {((conf.smile_count || 0) + (conf.relate_count || 0) + (conf.heart_count || 0) + (conf.fire_count || 0) + (conf.support_count || 0)) === 0 && (
-                                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mx-auto italic">Resonate first</span>
+                                      <span className="text-[10px] font-bold text-black/20 dark:text-white/20 uppercase tracking-wider mx-auto italic">Resonate first</span>
                                     )}
                                   </div>
                                   <div className="flex items-center justify-between gap-1">
@@ -489,7 +488,7 @@ export default function Confessions() {
                                     ))}
                                     <button
                                       onClick={() => setShowEmojiPicker(true)}
-                                      className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-white transition-all ml-1"
+                                      className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-black/40 dark:text-white/40 hover:bg-primary hover:text-white transition-all ml-1"
                                     >
                                       <Plus size={18} strokeWidth={2.5} />
                                     </button>
@@ -505,7 +504,7 @@ export default function Confessions() {
                                       };
                                       handleReact(conf.confession_id, typeMap[emoji.native] || 'heart');
                                     }} 
-                                    theme="light"
+                                    theme="dark"
                                     previewPosition="none"
                                     skinTonePosition="none"
                                     searchPosition="none"
@@ -521,7 +520,7 @@ export default function Confessions() {
                         {/* Comments */}
                         <button
                           onClick={() => toggleComments(conf.confession_id)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-gray-400 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 group/comment"
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-black/40 dark:text-white/60 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 group/comment"
                         >
                           <CommentIcon size={20} className="transition-transform group-hover/comment:scale-110" />
                           <span className="text-[13px] font-bold tracking-tight">{formatCount(conf.comment_count || 0)}</span>
@@ -530,7 +529,7 @@ export default function Confessions() {
                         {/* Send / Share */}
                         <button 
                           onClick={() => handleShare(conf.confession_id)}
-                          className="flex items-center justify-center w-10 h-10 rounded-xl text-gray-400 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 group"
+                          className="flex items-center justify-center w-10 h-10 rounded-xl text-black/40 dark:text-white/60 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 group"
                         >
                           <SendIcon className="transition-transform group-hover:scale-110" />
                         </button>
@@ -540,7 +539,7 @@ export default function Confessions() {
                       <button 
                         onClick={() => handleSave(conf.confession_id)}
                         className={`flex items-center justify-center w-10 h-10 rounded-xl transition-colors ${
-                          savedPosts[conf.confession_id] ? 'text-yellow-500 bg-yellow-50/50' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50/50'
+                          savedPosts[conf.confession_id] ? 'text-yellow-500 bg-yellow-50/50 dark:bg-yellow-500/10' : 'text-black/40 dark:text-white/60 hover:text-yellow-500 hover:bg-yellow-50/50'
                         }`}
                       >
                         <BookmarkIcon active={savedPosts[conf.confession_id]} />
@@ -551,12 +550,12 @@ export default function Confessions() {
               ))
             ) : (
               <div className="py-32 flex flex-col items-center gap-6 text-center">
-                <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-                  <Orbit size={36} strokeWidth={1.5} className="text-gray-200 animate-spin-slow" />
+                <div className="w-20 h-20 rounded-3xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center justify-center">
+                  <Orbit size={36} strokeWidth={1.5} className="text-black/10 dark:text-white/10 animate-spin-slow" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-300 uppercase italic tracking-tight">Sector Vacuum</h3>
-                  <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mt-1">No confessions in this category yet.</p>
+                  <h3 className="text-xl font-black text-black/20 dark:text-white/20 uppercase italic tracking-tight">Sector Vacuum</h3>
+                  <p className="text-[10px] font-bold text-black/20 dark:text-white/20 uppercase tracking-widest mt-1">No confessions in this category yet.</p>
                 </div>
                 <button
                   onClick={() => setShowComposeModal(true)}
@@ -616,7 +615,7 @@ export default function Confessions() {
               
               {/* Dropdown Menu */}
               {previewOptionsOpen && (
-                <div className="absolute right-0 top-12 w-56 bg-gray-900 rounded-2xl p-2 border border-white/10 shadow-2xl animate-fade-in origin-top-right">
+                <div className="absolute right-0 top-12 w-56 bg-[#121212] rounded-2xl p-2 border border-white/10 shadow-2xl animate-fade-in origin-top-right">
                   <button 
                     onClick={() => { 
                       window.open(previewImage, '_blank'); 
@@ -661,34 +660,34 @@ export default function Confessions() {
       {/* ── Confession Comments Modal ── */}
       {activeCommentsModal && (
         <div className="fixed inset-0 z-[9999] flex justify-center items-end sm:items-center bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white sm:rounded-[32px] rounded-t-[32px] h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl animate-slide-up sm:animate-scale-in">
+          <div className="w-full max-w-lg bg-white dark:bg-black sm:rounded-[32px] rounded-t-[32px] h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl animate-slide-up sm:animate-scale-in border-t sm:border border-black/5 dark:border-white/10">
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+            <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                   <MessageCircle size={18} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider text-gray-900">Anonymous Replies</h3>
-                  <p className="text-[10px] font-bold text-gray-400 tracking-widest">{commentsData[activeCommentsModal]?.length || 0} Total</p>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-black dark:text-white">Anonymous Replies</h3>
+                  <p className="text-[10px] font-bold text-black/20 dark:text-white/40 tracking-widest">{commentsData[activeCommentsModal]?.length || 0} Total</p>
                 </div>
               </div>
               <button 
                 onClick={() => { setActiveCommentsModal(null); setReplyTo(null); }}
-                className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-black/40 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
               >
                 <X size={20} strokeWidth={2.5} />
               </button>
             </div>
 
             {/* Comments List */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-white dark:bg-black">
               {commentsData[activeCommentsModal]?.length === 0 ? (
                 <div className="py-20 flex flex-col items-center gap-3 text-center">
-                  <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
-                    <SpyIcon size={24} className="text-gray-300" />
+                  <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center">
+                    <SpyIcon size={24} className="text-black/10 dark:text-white/10" />
                   </div>
-                  <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">No replies yet. Whisper first.</p>
+                  <p className="text-[12px] font-bold text-black/20 dark:text-white/20 uppercase tracking-widest">No replies yet. Whisper first.</p>
                 </div>
               ) : (
                 (commentsData[activeCommentsModal] || [])
@@ -701,32 +700,32 @@ export default function Confessions() {
                       <div key={comment.comment_id || cIdx} className="animate-fade-in" style={{ animationDelay: `${cIdx * 50}ms` }}>
                         {/* Parent Comment */}
                         <div className="flex gap-3 group/comment mb-3">
-                          <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <SpyIcon size={18} className="text-gray-400" />
+                          <div className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center flex-shrink-0">
+                            <SpyIcon size={18} className="text-black/20 dark:text-white/20" />
                           </div>
                           <div className="flex-1">
-                            <div className="bg-gray-50 rounded-2xl rounded-tl-sm px-4 py-3">
+                            <div className="bg-black/5 dark:bg-white/5 rounded-2xl rounded-tl-sm px-4 py-3">
                               <div className="flex items-center justify-between mb-1">
                                 <span className={`text-[11px] font-black uppercase tracking-tight italic ${
-                                  comment.author === 'Author' ? 'text-primary' : 'text-gray-700'
+                                  comment.author === 'Author' ? 'text-primary' : 'text-black/60 dark:text-white/80'
                                 }`}>
                                   {comment.author}
                                   {comment.author === 'Author' && (
                                     <span className="ml-1.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[8px] normal-case not-italic tracking-normal">OP</span>
                                   )}
                                 </span>
-                                <span className="text-[9px] font-semibold text-gray-300">
+                                <span className="text-[9px] font-semibold text-black/20 dark:text-white/20">
                                   {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              <p className="text-[14px] font-medium text-gray-700 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+                              <p className="text-[14px] font-medium text-black/70 dark:text-white/70 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
                             </div>
                             
                             {/* Reply action & Toggle */}
                             <div className="mt-1 ml-2 flex items-center gap-4">
                               <button 
                                 onClick={() => setReplyTo({ id: comment.comment_id, author: comment.author })}
-                                className="text-[10px] font-bold text-gray-400 hover:text-primary uppercase tracking-wider transition-colors"
+                                className="text-[10px] font-bold text-black/20 dark:text-white/20 hover:text-primary uppercase tracking-wider transition-colors"
                               >
                                 Reply
                               </button>
@@ -746,28 +745,28 @@ export default function Confessions() {
 
                         {/* Visual nesting for replies (Conditional Rendering) */}
                         {replies.length > 0 && expandedComments[comment.comment_id] && (
-                          <div className="ml-8 border-l-2 border-gray-50 pl-4 space-y-3 mt-1 mb-4 animate-fade-in">
+                          <div className="ml-8 border-l-2 border-black/5 dark:border-white/10 pl-4 space-y-3 mt-1 mb-4 animate-fade-in">
                             {replies.map((reply: any, rIdx: number) => (
                               <div key={reply.comment_id || rIdx} className="flex gap-3 group/reply">
-                                <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-                                  <SpyIcon size={14} className="text-gray-300" />  
+                                <div className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center flex-shrink-0">
+                                  <SpyIcon size={14} className="text-black/10 dark:text-white/10" />  
                                 </div>
                                 <div className="flex-1">
-                                  <div className="bg-gray-50/50 rounded-2xl rounded-tl-sm px-3 py-2 border border-gray-100/50">
+                                  <div className="bg-black/5 dark:bg-white/5 rounded-2xl rounded-tl-sm px-3 py-2 border border-black/5 dark:border-white/5">
                                     <div className="flex items-center justify-between mb-1">
                                       <span className={`text-[10px] font-black uppercase tracking-tight italic ${
-                                        reply.author === 'Author' ? 'text-primary' : 'text-gray-700'
+                                        reply.author === 'Author' ? 'text-primary' : 'text-black/60 dark:text-white/80'
                                       }`}>
                                         {reply.author}
                                         {reply.author === 'Author' && (
                                           <span className="ml-1 px-1 py-0.5 bg-primary/10 text-primary rounded text-[7px] normal-case not-italic tracking-normal">OP</span>
                                         )}
                                       </span>
-                                      <span className="text-[8px] font-semibold text-gray-300">
+                                      <span className="text-[8px] font-semibold text-black/20 dark:text-white/20">
                                         {new Date(reply.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                       </span>
                                     </div>
-                                    <p className="text-[13px] font-medium text-gray-600 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+                                    <p className="text-[13px] font-medium text-black/50 dark:text-white/50 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
                                   </div>
                                 </div>
                               </div>
@@ -781,33 +780,33 @@ export default function Confessions() {
         </div>
 
         {/* Input Area */}
-            <div className="p-4 border-t border-gray-100 bg-white sm:rounded-b-[32px] mb-safe">
+            <div className="p-4 border-t border-black/5 dark:border-white/10 bg-white dark:bg-black sm:rounded-b-[32px] mb-safe">
               {replyTo && (
                 <div className="flex items-center justify-between mb-2 px-2">
                   <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
                     <ArrowLeft size={10} /> Replying to {replyTo.author}
                   </span>
-                  <button onClick={() => setReplyTo(null)} className="text-[10px] font-bold text-gray-400 hover:text-gray-600">Cancel</button>
+                  <button onClick={() => setReplyTo(null)} className="text-[10px] font-bold text-black/20 dark:text-white/20 hover:text-black/40 dark:hover:text-white/40">Cancel</button>
                 </div>
               )}
               <div className="flex gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gray-900 flex items-center justify-center flex-shrink-0 shadow-md">
+                <div className="w-11 h-11 rounded-2xl bg-black dark:bg-white/10 flex items-center justify-center flex-shrink-0 shadow-md">
                   <SpyIcon size={20} className="text-white" />
                 </div>
                 <div className="flex-1 relative">
                   <input
                     value={commentInputs[activeCommentsModal] || ''}
                     onChange={e => setCommentInputs(prev => ({ ...prev, [activeCommentsModal]: e.target.value }))}
-                    onKeyDown={e => e.key === 'Enter' && handleAddComment(activeCommentsModal)}
-                    placeholder={replyTo ? `Whisper to ${replyTo.author}...` : "Whisper into the void..."}
-                    className="w-full h-11 bg-gray-50 border border-transparent rounded-2xl pl-4 pr-12 text-[14px] font-medium focus:bg-white focus:border-primary/20 focus:shadow-sm outline-none transition-all"
+                    placeholder="Whisper your reply..."
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddComment(activeCommentsModal)}
+                    className="w-full h-11 bg-black/5 dark:bg-white/5 rounded-2xl px-4 text-[14px] font-medium text-black dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-white/10 transition-all border border-transparent focus:border-primary/40 placeholder:text-black/20 dark:placeholder:text-white/20"
                   />
-                  <button
+                  <button 
                     onClick={() => handleAddComment(activeCommentsModal)}
-                    disabled={!commentInputs[activeCommentsModal]?.trim() || isCommenting[activeCommentsModal]}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center disabled:opacity-0 transition-all active:scale-95 shadow-md shadow-primary/20"
+                    disabled={!(commentInputs[activeCommentsModal]?.trim())}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center disabled:opacity-30 disabled:scale-95 transition-all shadow-md shadow-primary/20 active:scale-90"
                   >
-                    <Send size={14} strokeWidth={2.5} />
+                    <Send size={14} strokeWidth={3} />
                   </button>
                 </div>
               </div>
@@ -816,17 +815,18 @@ export default function Confessions() {
         </div>
       )}
 
-
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-spin-slow { animation: spin 40s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-spin-slow { animation: spin 8s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );
 }
-
-

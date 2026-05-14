@@ -349,7 +349,7 @@ body {
 }
 
 input, textarea, select {
-  @apply bg-white border border-black/5 rounded-xl px-5 py-4 text-[#000000] outline-none focus:border-pink-300/50 focus:bg-white transition-all placeholder:text-black/30;
+  @apply bg-transparent border-none outline-none focus:ring-0 transition-all;
 }
 
 /* svg icon colors are set per-component, not globally */
@@ -494,4 +494,20 @@ input, textarea, select {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+
+em-emoji-picker {
+  --border-radius: 0;
+  --rgb-accent: 255, 20, 147;
+  --rgb-background: 0, 0, 0;
+  --rgb-color: 255, 255, 255;
+  --shadow: none;
+  border: none !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.dark em-emoji-picker {
+  background: transparent !important;
 }

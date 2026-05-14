@@ -25,6 +25,7 @@ export interface SparkleTheme {
   blurIntensity?: number; // 0 to 100
   darknessOverlay?: number; // 0 to 100
   animationType?: AnimationType;
+  wallpaperStyle?: 'cover' | 'contain' | 'tile';
 }
 
 export interface WordEffect {
@@ -37,15 +38,15 @@ export interface WordEffect {
 const createTheme = (
   id: string, name: string, category: string, primary: string, primary600: string, primary400: string, bgDark: string, bgLight: string,
   isDark: boolean, bubbleSent: string, bubbleRecv: string, sentText: string = '#FFFFFF', recvText: string = '#FFFFFF', 
-  wallpaperUrl?: string, animationType: AnimationType = 'none'
+  wallpaperUrl?: string, animationType: AnimationType = 'none', wallpaperStyle: 'cover' | 'contain' | 'tile' = 'cover'
 ): SparkleTheme => ({
-  id, name, category, isDarkDefault: isDark, wallpaperUrl, animationType, blurIntensity: 20, darknessOverlay: 50,
+  id, name, category, isDarkDefault: isDark, wallpaperUrl, animationType, blurIntensity: 0, darknessOverlay: 0, wallpaperStyle,
   colors: { primary, primary600, primary400, backgroundDark: bgDark, backgroundLight: bgLight, chatBubbleSent: bubbleSent, chatBubbleReceived: bubbleRecv, chatBubbleSentText: sentText, chatBubbleReceivedText: recvText }
 });
 
 export const PRESET_THEMES: SparkleTheme[] = [
-  createTheme('whatsapp_v5', 'WhatsApp Black Ultra', 'Premium', '#7B61FF', '#8B5CFF', '#9C27B0', '#000000', '#000000', true, '#7B61FF', '#21173A', '#ffffff', '#ffffff', '/assets/chat_wallpaper.png'),
-  createTheme('amoled_black', 'AMOLED Black', 'Dark', '#00E5FF', '#00B8CC', '#33EAFF', '#000000', '#000000', true, '#00E5FF', '#111111', '#000000', '#ffffff'),
+  createTheme('whatsapp_v5', 'Sparkle WhatsApp', 'Premium', '#25D366', '#128C7E', '#075E54', '#121212', '#121212', true, '#056162', '#262d31', '#ffffff', '#ffffff', 'https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png', 'none', 'tile'),
+  createTheme('amoled_black', 'AMOLED Black', 'Dark', '#00E5FF', '#00B8CC', '#33EAFF', '#0f0f0f', '#0f0f0f', true, '#00E5FF', '#111111', '#000000', '#ffffff'),
   createTheme('cyberpunk_neon', 'Cyberpunk Neon', 'Neon', '#00FF9D', '#00CC7D', '#33FFB0', '#090A0F', '#090A0F', true, '#FF0055', '#1a1b26', '#ffffff', '#00FF9D'),
   createTheme('purple_galaxy', 'Purple Galaxy', 'Space', '#B14AED', '#8E3BC0', '#C775F5', '#1A0B2E', '#1A0B2E', true, '#B14AED', '#2D1B4E', '#ffffff', '#e9d5ff', 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop', 'stars'),
   createTheme('luxury_gold', 'Luxury Gold', 'Premium', '#D4AF37', '#AA8C2C', '#E2C45E', '#111111', '#111111', true, '#D4AF37', '#222222', '#000000', '#D4AF37'),
@@ -138,6 +139,7 @@ interface ThemeState {
   getWordEffects: (chatId: string) => WordEffect[];
   addWordEffect: (chatId: string, word: string, emoji: string) => void;
   removeWordEffect: (chatId: string, effectId: string) => void;
+  clearAllThemes: () => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -212,6 +214,9 @@ export const useThemeStore = create<ThemeState>()(
             }
           };
         });
+      },
+      clearAllThemes: () => {
+        set({ chatThemes: {} });
       }
     }),
     {

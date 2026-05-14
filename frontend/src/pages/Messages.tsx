@@ -68,8 +68,6 @@ import {
   Mic,
   ChevronRight
 } from 'lucide-react';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import CameraModal from '../components/chat/CameraModal';
@@ -103,6 +101,42 @@ interface ChatMessage {
 }
 
 // --- Components ---
+
+const WordEffectBubbles = ({ emoji, active }: { emoji: string | null, active: boolean }) => {
+  if (!active || !emoji) return null;
+  
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ 
+            y: '110vh', 
+            x: `${Math.random() * 100}vw`,
+            scale: 0.5,
+            opacity: 0,
+            rotate: 0
+          }}
+          animate={{ 
+            y: '-10vh',
+            x: `${Math.random() * 100}vw`,
+            scale: [0.5, 1.5, 1],
+            opacity: [0, 1, 1, 0],
+            rotate: Math.random() * 360
+          }}
+          transition={{ 
+            duration: Math.random() * 2 + 2,
+            delay: Math.random() * 1.5,
+            ease: "easeOut"
+          }}
+          className="absolute text-5xl select-none"
+        >
+          {emoji}
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
 const LiveAnimations = ({ type }: { type: AnimationType | undefined }) => {
   if (!type || type === 'none') return null;
@@ -170,43 +204,66 @@ const ChatBackground = ({ theme }: { theme: SparkleTheme | null }) => {
   const hasImage = !!theme.wallpaperUrl;
   
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-all duration-700 bg-[#000000]">
+    <div 
+      className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-all duration-700"
+      style={{ backgroundColor: theme?.colors?.backgroundDark || '#000000' }}
+    >
       {!hasImage && (
         <div 
           className="absolute inset-0 transition-all duration-700 opacity-100" 
           style={{ 
-            background: `linear-gradient(135deg, ${theme.colors.backgroundDark} 0%, ${theme.colors.backgroundLight} 100%)` 
+            background: `linear-gradient(135deg, ${theme?.colors?.backgroundDark || '#000000'} 0%, ${theme?.colors?.backgroundLight || '#000000'} 100%)` 
           }} 
         />
       )}
       
       {hasImage && (
         <div 
-          className="absolute inset-0 z-0 transition-opacity duration-700" 
+          className="absolute inset-0 z-0" 
           style={{ 
-            backgroundImage: `url(${theme.wallpaperUrl})`,
-            backgroundSize: 'cover',
+            backgroundImage: `url(${theme?.wallpaperUrl})`,
+            backgroundSize: theme?.wallpaperStyle === 'tile' ? '350px' : (theme?.wallpaperStyle || 'cover'),
             backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            filter: `blur(${theme.blurIntensity || 2}px)`,
-            transform: 'scale(1.05)' // prevents blur from leaking edges
+            backgroundRepeat: theme?.wallpaperStyle === 'tile' ? 'repeat' : 'no-repeat',
+            opacity: 1,
           }} 
         />
       )}
 
-      {/* Darkness Overlay for readability */}
-      {hasImage && (
-        <div 
-          className="absolute inset-0 z-0 transition-opacity duration-700" 
-          style={{ backgroundColor: `rgba(0,0,0,${(theme.darknessOverlay ?? 40) / 100})` }}
-        />
-      )}
-
       {/* Live Animations Layer */}
-      <LiveAnimations type={theme.animationType} />
+      <LiveAnimations type={theme?.animationType} />
     </div>
   );
 };
+
+const EMOJIS = {
+  smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕'],
+  gestures: ['👋', '🤚', '🖐', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦵', '🦿', '🦶', '👣', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄'],
+  hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'],
+  nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷', '🕸', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐄', '🐎', '🐖', '🐏', '🐑', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿', '🦔', '🐾', '🐉', '🐲', '🌵', '🎄', '🌲', '🌳', '🌴', '🌱', '🌿', '☘️', '🍀', '🎍', '🎋', '🍃', '🍂', '🍁', '🍄', '🐚', '🌾', '💐', '🌷', '🌹', '🥀', '🌺', '🌸', '🌼', '🌻', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌙', '🌎', '🌍', '🌏', '🪐', '💫', '⭐️', '🌟', '✨', '⚡️', '☄️', '💥', '🔥', '🌪', '🌈', '☀️', '🌤', '⛅️', '🌥', '☁️', '🌦', '🌧', '🌨', '🌩', '🌨', '❄️', '☃️', '⛄️', '🌬', '💨', '💧', '💦', '☔️', '☂️', '🌊', '🌫'],
+  activities: ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳️', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🛹', '🛼', '🛷', '⛸', '🎿', '⛷', '🏂', '🏋️', '🤺', '🤼', '🤸', '⛹️', '🤺', '🏇', '🧘', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎸', '🎻', '🎲', '🧩', '🎳', '🎮', '🎰', '🎯'],
+  places: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🚏', '🛣', '🛤', '⛽️', '🚨', '🚥', '🚦', '🛑', '🚧', '⚓️', '⛵️', '🛶', '🚤', '🛳', '⛴', '🚢', '✈️', '🛩', '🛫', '🛬', '🚀', '🛸', '🛰', '🚠', '🚟', '🚁', '🏟', '🏗', '🏘', '🏚', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏬', '🏭', '🏰', '🏯', '💒', '🗼', '🗽', '⛪️', '🕌', '🕍', '⛩', '🕋', '⛲️', '⛺️', '🌁', '🌃', '🏙', '🌄', '🌅', '🌆', '🌇', '🌉', '♨️', '🎠', '🎡', '🎢', '💈', '🎪'],
+  objects: ['⌚️', '📱', '📲', '💻', '⌨️', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '🎚', '🎛', '🧭', '⏱', '⏲', '⏰', '🕰', '⌛️', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯', '🪔', '🧯', '🛢', '💸', '💵', '💴', '💶', '💷', '💰', '💳', '💎', '⚖️', '🧰', '🔧', '🔨', '⚒', '🛠', '⛏', '🔩', '⚙️', '🧱', '⛓', '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡', '⚔️', '🛡', '🚬', '⚰️', '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🔬', '🕳', '🩹', '🩺', '💊', '💉', '🩸', '🧬', '🦠', '🧫', '🧪', '🌡', '🧹', '🧺', '🧻', '🧼', '🧽', '🧴', '🛎', '🔑', '🗝', '🚪', '🪑', '🛋', '🛏', '🛌', '🧸', '🖼', '🛍', '🛒', '🎁', '🎈', '🎏', '🎀', '🎊', '🎉', '🎎', '🏮', '🎐', '🧧', '✉️', '📩', '📨', '📧', '💌', '📥', '📤', '📦', '🏷', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🩹', '🩺', '🚪', '🛏', '🛋', '🪑', '🚽', '🚿', '🛀', '🛁', '🪒', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🛒', '🚬', '⚰️', '⚱️', '🗿'],
+  symbols: ['💘', '💝', '💖', '💗', '💓', '💞', '💕', '💟', '❣️', '💔', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💯', '💢', '💥', '💫', '💦', '💨', '🕳', '💣', '💬', '👁‍🗨', '🗨', '🗯', '💭', '💤', '♨️', '💈', '🛑', '🕛', '🕧', '🕐', '🕜', '🕑', '🕝', '🕒', '🕞', '🕓', '🕟', '🕔', '🕠', '🕕', '🕡', '🕖', '🕢', '🕗', '🕣', '🕘', '🕤', '🕙', '🕥', '🕚', '🕦', '🌀', '♠️', '♥️', '♦️', '♣️', '🃏', '🀄️', '🎴', '🎭', '🖼', '🎨', '🧵', '🧶', '🎼', '🎵', '🎶', '🎙', '🎚', '🎛', '🎤', '🎧', '📻', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '📱', '📲', '☎️', '📞', '📟', '📠', '🔋', '🔌', '💻', '🖥', '🖨', '⌨️', '🖱', '🖲', '💽', '💾', '💿', '📀', '🧮', '🎥', '🎞', '📽', '🎬', '📺', '📷', '📸', '📹', '📼', '🔍', '🔎', '🕯', '💡', '🔦', '🏮', '🪔', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞', '📑', '🔖', '🏷', '💰', '💴', '💵', '💶', '💷', '💸', '💳', '💹', '💱', '💲', '✉️', '📧', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📮', '🗳', '✏️', '✒️', '🖋', '🖊', '🖌', '🖍', '📝', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🩹', '🩺', '🚪', '🛏', '🛋', '🪑', '🚽', '🚿', '🛀', '🛁', '🪒', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🛒', '🚬', '⚰️', '⚱️', '🗿'],
+  flags: ['🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏳️‍⚧️', '🏴‍☠️', '🇦🇫', '🇦🇽', '🇦🇱', '🇩🇿', '🇦🇸', '🇦🇩', '🇦🇴', '🇦🇮', '🇦🇶', '🇦🇬', '🇦🇷', '🇦🇲', '🇦🇼', '🇦🇺', '🇦🇹', '🇦🇿', '🇧🇸', '🇧🇭', '🇧🇩', '🇧🇧', '🇧🇾', '🇧🇪', '🇧🇿', '🇧🇯', '🇧🇲', '🇧🇹', '🇧🇴', '🇧🇦', '🇧🇼', '🇧🇷', '🇮🇴', '🇻🇬', '🇧🇳', '🇧🇬', '🇧🇫', '🇧🇮', '🇰🇭', '🇨🇲', '🇨🇦', '🇮🇨', '🇨🇻', '🇧🇶', '🇰🇾', '🇨🇫', '🇹🇩', '🇨🇱', '🇨🇳', '🇨🇽', '🇨🇨', '🇨🇴', '🇰🇲', '🇨🇬', '🇨🇩', '🇨🇰', '🇨🇷', '🇨🇮', '🇭🇷', '🇨🇺', '🇨🇼', '🇨🇾', '🇨🇿', '🇩🇰', '🇩🇯', '🇩🇲', '🇩🇴', '🇪🇨', '🇪🇬', '🇸🇻', '🇬🇶', '🇪🇷', '🇪🇪', '🇸🇿', '🇪🇹', '🇪🇺', '🇫🇰', '🇫🇴', '🇫🇯', '🇫🇮', '🇫🇷', '🇬🇫', '🇵🇫', '🇹🇫', '🇬🇦', '🇬🇲', '🇬🇪', '🇩🇪', '🇬🇭', '🇬🇮', '🇬🇷', '🇬🇱', '🇬🇩', '🇬🇵', '🇬🇺', '🇬🇹', '🇬🇬', '🇬🇳', '🇬🇼', '🇬🇾', '🇭🇹', '🇭🇳', '🇭🇰', '🇭🇺', '🇮🇸', '🇮🇳', '🇮🇩', '🇮🇷', '🇮🇶', '🇮🇪', '🇮🇲', '🇮🇱', '🇮🇹', '🇯🇲', '🇯🇵', '🇯🇪', '🇯🇴', '🇰🇿', '🇰🇪', '🇰🇮', '🇽🇰', '🇰🇼', '🇰🇬', '🇱🇦', '🇱🇻', '🇱🇧', '🇱🇸', '🇱🇷', '🇱🇾', '🇱🇮', '🇱🇹', '🇱🇺', '🇲🇴', '🇲🇬', '🇲🇼', '🇲🇾', '🇲🇻', '🇲🇱', '🇲🇹', '🇲🇭', '🇲🇶', '🇲🇷', '🇲🇺', '🇾🇹', '🇲🇽', '🇫🇲', '🇲🇩', '🇲🇨', '🇲🇳', '🇲🇪', '🇲🇸', '🇲🇦', '🇲🇿', '🇲🇲', '🇳🇦', '🇳🇷', '🇳🇵', '🇳🇱', '🇳🇨', '🇳🇿', '🇳🇮', '🇳🇪', '🇳🇬', '🇳🇺', '🇳🇫', '🇰🇵', '🇲🇰', '🇲🇵', '🇳🇴', '🇴🇲', '🇵🇰', '🇵🇼', '🇵🇸', '🇵🇦', '🇵🇬', '🇵🇾', '🇵🇪', '🇵🇭', '🇵🇳', '🇵🇱', '🇵🇹', '🇵🇷', '🇶🇦', '🇷🇪', '🇷🇴', '🇷🇺', '🇷🇼', '🇼🇸', '🇸🇲', '🇸🇹', '🇸🇦', '🇸🇳', '🇷🇸', '🇸🇨', '🇸🇱', '🇸🇬', '🇸🇽', '🇸🇰', '🇸🇮', '🇬🇸', '🇸🇧', '🇸🇴', '🇿🇦', '🇰🇷', '🇸🇸', '🇪🇸', '🇱🇰', '🇧🇱', '🇸🇭', '🇰🇳', '🇱🇨', '🇲🇫', '🇵🇲', '🇻🇨', '🇸🇩', '🇸🇷', '🇸🇪', '🇨🇭', '🇸🇾', '🇹🇼', '🇹🇯', '🇹🇿', '🇹🇭', '🇹🇱', '🇹🇬', '🇹🇰', '🇹🇴', '🇹🇹', '🇹🇳', '🇹🇷', '🇹🇲', '🇹🇨', '🇹🇻', '🇻🇮', '🇺🇬', '🇺🇦', '🇦🇪', '🇬🇧', '🏴󠁧󠁢󠁥󠁮󠁧󠁿', '🏴󠁧󠁢󠁳󠁣󠁴󠁿', '🏴󠁧󠁢󠁷󠁬󠁳󠁿', '🇺🇸', '🇺🇾', '🇺🇿', '🇻🇺', '🇻🇦', '🇻🇪', '🇻🇳', '🇼🇫', '🇪🇭', '🇾🇪', '🇿🇲', '🇿🇼']
+};
+
+const TabItem = ({ active, onClick, icon: Icon, label }: any) => (
+  <button 
+    type="button"
+    onClick={onClick}
+    className={clsx(
+      "flex flex-col items-center gap-1 py-3 px-4 transition-all relative",
+      active ? "text-[#ff1493]" : "text-white/40 hover:text-white/60"
+    )}
+  >
+    <Icon size={20} strokeWidth={active ? 3 : 2} />
+    <span className="text-[10px] font-bold uppercase tracking-tight">{label}</span>
+    {active && (
+      <motion.div layoutId="pickerTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#ff1493] rounded-full" />
+    )}
+  </button>
+);
 
 const ChatInput = memo(({ 
   initialMessage, 
@@ -219,9 +276,59 @@ const ChatInput = memo(({
   sending,
   getQuickReaction,
   setShowAttachmentMenu,
-  showAttachmentMenu
+  showAttachmentMenu,
+  theme
 }: any) => {
   const [localMessage, setLocalMessage] = useState(initialMessage || '');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [pickerTab, setPickerTab] = useState<'emojis' | 'stickers' | 'gifs' | 'avatars'>('emojis');
+  const [giphySearch, setGiphySearch] = useState('');
+  const [giphyResults, setGiphyResults] = useState<any[]>([]);
+  const [loadingGiphy, setLoadingGiphy] = useState(false);
+
+  const GIPHY_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
+
+  const themePrimary = theme?.colors?.primary || '#ff1493';
+  const themeBg = theme?.colors?.backgroundDark || '#000000';
+
+  const fetchGiphy = async (type: 'gifs' | 'stickers', query?: string) => {
+    setLoadingGiphy(true);
+    try {
+      const endpoint = query ? 'search' : 'trending';
+      const url = `https://api.giphy.com/v1/${type}/${endpoint}?api_key=${GIPHY_KEY}&q=${query || ''}&limit=20&rating=g`;
+      const res = await fetch(url);
+      const json = await res.json();
+      setGiphyResults(json.data || []);
+    } catch (err) {
+      console.error('Giphy error', err);
+    } finally {
+      setLoadingGiphy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showEmojiPicker && (pickerTab === 'gifs' || pickerTab === 'stickers')) {
+      fetchGiphy(pickerTab === 'gifs' ? 'gifs' : 'stickers', giphySearch);
+    }
+  }, [showEmojiPicker, pickerTab, giphySearch]);
+
+  const STICKERS = [
+    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941344_1280.png',
+    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941346_1280.png',
+    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941347_1280.png',
+    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941348_1280.png',
+    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941349_1280.png',
+    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941350_1280.png'
+  ];
+
+  const AVATARS = [
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Sasha',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=George',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Lilly',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver'
+  ];
   
   useEffect(() => {
     setLocalMessage(initialMessage);
@@ -241,18 +348,24 @@ const ChatInput = memo(({
   };
 
   return (
-    <footer className="bg-[#000000] border-t border-white/5 z-30 pb-safe shrink-0">
-      <div className="w-full px-1 py-2">
-        <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto">
+    <footer 
+      className="z-30 pb-safe shrink-0 border-t border-white/5 transition-all duration-300"
+      style={{ 
+        backgroundColor: themeBg,
+        borderTopColor: 'rgba(255,255,255,0.05)'
+      }}
+    >
+      <div className="w-full">
+        <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2">
           {!isMenuCollapsed ? (
             <div className="flex items-center shrink-0">
-              <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="text-[#ff1493] hover:opacity-80 p-2 ml-0">
+              <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="hover:opacity-80 p-2 ml-0" style={{ color: themePrimary }}>
                 <Plus size={22} strokeWidth={2.5} />
               </button>
-              <button type="button" onClick={onCameraOpen} className="text-[#ff1493] hover:opacity-80 p-2">
+              <button type="button" onClick={onCameraOpen} className="hover:opacity-80 p-2" style={{ color: themePrimary }}>
                 <Camera size={22} strokeWidth={2.5} />
               </button>
-              <label className="text-[#ff1493] hover:opacity-80 cursor-pointer p-2">
+              <label className="hover:opacity-80 cursor-pointer p-2" style={{ color: themePrimary }}>
                 <ImageIcon size={22} strokeWidth={2.5} />
                 <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -266,7 +379,7 @@ const ChatInput = memo(({
                   }
                 }} />
               </label>
-              <button type="button" onClick={() => alert('Voice recording started...')} className="text-[#ff1493] hover:opacity-80 p-2">
+              <button type="button" onClick={() => alert('Voice recording started...')} className="hover:opacity-80 p-2" style={{ color: themePrimary }}>
                 <Mic size={22} strokeWidth={2.5} />
               </button>
             </div>
@@ -274,24 +387,32 @@ const ChatInput = memo(({
             <button 
               type="button" 
               onClick={() => setIsMenuCollapsed(false)} 
-              className="text-[#ff1493] hover:opacity-80 p-2 animate-scale-in shrink-0 ml-1"
+              className="hover:opacity-80 p-2 animate-scale-in shrink-0 ml-1"
+              style={{ color: themePrimary }}
             >
               <ChevronRight size={24} strokeWidth={3} />
             </button>
           )}
           
-          <div className="flex-1 relative bg-[#262626] rounded-lg flex items-center h-[38px] px-3 mx-1 overflow-hidden">
+          <div className="flex-1 relative rounded-full flex items-center h-[42px] px-5 mx-2 overflow-hidden border border-white/5 transition-all focus-within:border-white/15" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
             <input 
               type="text"
               value={localMessage}
               onChange={handleChange}
+              onFocus={() => setShowEmojiPicker(false)}
               placeholder="Type a message..."
-              className="flex-1 bg-transparent !bg-transparent text-[14px] font-medium text-[#f5f5f5] placeholder:text-white/30 outline-none border-none !border-none focus:ring-0 focus:!ring-0 p-0 m-0 shadow-none !shadow-none caret-white"
+              className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
               autoComplete="off"
-              style={{ background: 'transparent', border: 'none', outline: 'none', color: '#f5f5f5', caretColor: 'white' }}
             />
-            <button type="button" className="text-white/30 hover:text-white transition-colors ml-2 shrink-0">
-              <Smile size={18} strokeWidth={2.5} />
+            <button 
+              type="button" 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={clsx(
+                "transition-all ml-2 shrink-0",
+                showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
+              )}
+            >
+              <Smile size={20} strokeWidth={2.2} />
             </button>
           </div>
 
@@ -300,24 +421,154 @@ const ChatInput = memo(({
               <button 
                 type="submit"
                 disabled={sending}
-                className="ml-1 bg-[#ff1493] text-white p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg"
+                className="ml-1 p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
+                style={{ backgroundColor: themePrimary, color: '#ffffff' }}
               >
-                <Send size={16} strokeWidth={3} />
+                <Send size={18} strokeWidth={2.5} />
               </button>
             ) : (
               <button 
-                type="button"
+                type="button" 
                 onClick={() => {
                   const reaction = getQuickReaction(selectedChat.chat_id);
                   onSend(undefined, reaction);
                 }}
-                className="ml-1 text-xl hover:scale-110 active:scale-90 transition-all p-1"
+                className="ml-1 text-2xl hover:scale-110 active:scale-90 transition-all p-1"
               >
                 {getQuickReaction(selectedChat.chat_id)}
               </button>
             )}
           </div>
         </form>
+
+        <AnimatePresence>
+          {showEmojiPicker && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 360, opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="w-full overflow-hidden flex flex-col rounded-none"
+              style={{ backgroundColor: themeBg }}
+            >
+              {/* Reference Header */}
+              <div className="flex items-center px-4 py-2 gap-3 shrink-0 border-b border-white/5">
+                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-white/60 hover:text-white p-1"><ArrowLeft size={20} /></button>
+                <div className="flex-1 h-9 bg-white/10 rounded-full flex items-center px-4 border border-white/5 focus-within:border-white/20 transition-all">
+                  <Search size={14} className="text-white/40 mr-2" />
+                  <input 
+                    placeholder="Search" 
+                    value={giphySearch}
+                    onChange={e => setGiphySearch(e.target.value)}
+                    className="bg-transparent border-none outline-none text-sm w-full text-white/90 placeholder:text-white/20" 
+                  />
+                </div>
+                <div className="flex items-center gap-4 text-white/40 ml-1">
+                   <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("hover:text-white transition-colors", pickerTab === 'emojis' ? 'text-white' : '')}><Clock size={20} /></button>
+                   <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("hover:text-white transition-colors", pickerTab === 'emojis' ? 'text-white' : '')}><Smile size={20} /></button>
+                   <button type="button" onClick={() => setPickerTab('gifs')} className={clsx("hover:text-white transition-colors", pickerTab === 'gifs' ? 'text-white' : '')}><Zap size={20} /></button>
+                   <button type="button" onClick={() => setPickerTab('stickers')} className={clsx("hover:text-white transition-colors", pickerTab === 'stickers' ? 'text-white' : '')}><Sparkles size={20} /></button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-hidden relative">
+                {pickerTab === 'emojis' ? (
+                  <div className="h-full overflow-y-auto no-scrollbar px-3 py-4 space-y-6">
+                    {Object.entries(EMOJIS).map(([category, list]) => (
+                      <div key={category} className="space-y-3">
+                        <h5 className="text-[11px] min-h-[30px] flex items-center font-black text-white/30 uppercase tracking-[2px] px-1">{category}</h5>
+                        <div className="grid grid-cols-8 sm:grid-cols-9 gap-y-4">
+                          {Array.from(new Set(list)).map((emoji, idx) => (
+                            <button 
+                              key={`${category}-${emoji}-${idx}`} 
+                              type="button"
+                              onClick={() => setLocalMessage(prev => prev + emoji)}
+                              className="text-[26px] flex items-center justify-center hover:scale-120 active:scale-90 transition-all"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : pickerTab === 'gifs' ? (
+                  <div className="h-full overflow-y-auto no-scrollbar grid grid-cols-2 gap-x-3 gap-y-4 p-3 content-start">
+                    {loadingGiphy ? (
+                      <div className="col-span-2 h-full flex flex-col items-center justify-center py-20 gap-3">
+                        <div className="w-8 h-8 border-3 border-[#ff1493] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Loading GIFs...</span>
+                      </div>
+                    ) : giphyResults.map((item: any) => (
+                      <motion.div 
+                        key={item.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="relative h-[110px] bg-white/5 border border-white/5 overflow-hidden cursor-pointer shadow-md"
+                        onClick={() => {
+                          onSend(null, JSON.stringify({ type: 'gif', url: item.images.fixed_height.url }));
+                          setShowEmojiPicker(false);
+                        }}
+                      >
+                        <img src={item.images.fixed_height.url} className="w-full h-full object-cover" alt="" />
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : pickerTab === 'stickers' ? (
+                  <div className="h-full overflow-y-auto no-scrollbar grid grid-cols-3 gap-x-3 gap-y-4 p-3 content-start">
+                    {loadingGiphy ? (
+                      <div className="col-span-3 h-full flex flex-col items-center justify-center py-20 gap-3">
+                        <div className="w-8 h-8 border-3 border-[#ff1493] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Loading Stickers...</span>
+                      </div>
+                    ) : giphyResults.map((item: any) => (
+                      <motion.div 
+                        key={item.id}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="relative h-[100px] flex items-center justify-center bg-white/5 border border-white/5 overflow-hidden cursor-pointer p-1"
+                        onClick={() => {
+                          onSend(null, JSON.stringify({ type: 'sticker', url: item.images.fixed_height.url }));
+                          setShowEmojiPicker(false);
+                        }}
+                      >
+                        <img src={item.images.fixed_height.url} className="w-full h-full object-contain" alt="" />
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="h-full overflow-y-auto no-scrollbar grid grid-cols-3 gap-4 p-4">
+                    {AVATARS.map((src, i) => (
+                      <motion.div 
+                        key={i}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="relative aspect-square bg-white/5 p-2 border border-white/10 cursor-pointer overflow-hidden"
+                        onClick={() => {
+                          onSend(null, JSON.stringify({ type: 'avatar', url: src }));
+                          setShowEmojiPicker(false);
+                        }}
+                      >
+                        <img src={src} className="w-full h-full object-contain" alt="" />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Reference Bottom Bar */}
+              <div className="h-14 border-t border-white/5 flex items-center justify-between px-6 shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-xs font-black text-white/40 hover:text-white transition-colors">ABC</button>
+                <div className="flex items-center gap-8">
+                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("p-2 rounded-xl transition-all", pickerTab === 'emojis' ? "bg-white/20 text-white scale-110 shadow-lg" : "text-white/40 hover:text-white")}><Smile size={20} /></button>
+                  <button type="button" onClick={() => setPickerTab('gifs')} className={clsx("text-[11px] font-black px-2.5 py-1 border-2 rounded-lg transition-all", pickerTab === 'gifs' ? "border-white text-white scale-110 shadow-lg" : "border-white/20 text-white/20 hover:border-white/40 hover:text-white/40")}>GIF</button>
+                  <button type="button" onClick={() => setPickerTab('stickers')} className={clsx("p-2 rounded-xl transition-all", pickerTab === 'stickers' ? "bg-white/20 text-white scale-110 shadow-lg" : "text-white/40 hover:text-white")}><Sparkles size={20} /></button>
+                  <button type="button" onClick={() => setLocalMessage(prev => prev + ':-)')} className="text-xs font-black text-white/40 hover:text-white transition-colors">:-)</button>
+                </div>
+                <button type="button" onClick={() => setLocalMessage(prev => prev.slice(0, -1))} className="text-white/30 hover:text-white transition-colors p-3 active:scale-90"><X size={20} /></button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </footer>
   );
@@ -344,7 +595,7 @@ export default function Messages() {
   const [showChatSettings, setShowChatSettings] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [suggestedContacts, setSuggestedContacts] = useState<any[]>([]);
-  const [isMenuCollapsed, setIsMenuCollapsed] = useState(true);
+  const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteView, setNoteView] = useState('main');
@@ -443,7 +694,13 @@ export default function Messages() {
       if (msg.sender_id === selectedChat.partner_id || msg.receiver_id === selectedChat.partner_id) {
         setMessages(prev => [...prev, msg]);
         triggerWordEffect(msg.content);
-        scrollToBottom('smooth');
+        
+        // If scrolled up, increment unread count in view
+        if (showScrollToBottom) {
+          setUnreadCountInChat(prev => prev + 1);
+        } else {
+          scrollToBottom('smooth');
+        }
       }
       // Refresh inbox to update last message preview
       fetchInbox();
@@ -516,7 +773,11 @@ export default function Messages() {
   };
 
   const handleSendMessageWrapper = (e: any, content: string) => handleSendMessage(e, content);
-  const handleTyping = (val: string) => setNewMessage(val);
+  const handleTyping = (val: string) => {
+    setNewMessage(val);
+    if (val.length > 0 && !isMenuCollapsed) setIsMenuCollapsed(true);
+    if (val.length === 0 && isMenuCollapsed) setIsMenuCollapsed(false);
+  };
   const handleScroll = (e: any) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     setShowScrollToBottom(scrollHeight - scrollTop - clientHeight > 300);
@@ -579,16 +840,17 @@ export default function Messages() {
 
   // --- Render ---
   return (
-    <div className={clsx("flex flex-col h-screen bg-[#000000] text-white overflow-hidden safe-bottom", selectedChat && "hidden-mobile-nav")}>
+    <div className={clsx("flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom", selectedChat && "hidden-mobile-nav")}>
       <Navbar />
+      <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
       
       <div className="flex flex-1 overflow-hidden relative">
         {/* SIDEBAR */}
         <aside className={clsx(
-          "w-full lg:w-[420px] bg-[#000000] border-r border-white/5 flex flex-col transition-all duration-300 min-h-0",
+          "w-full lg:w-[420px] bg-[#121212] border-r border-white/5 flex flex-col transition-all duration-300 min-h-0",
           selectedChat ? 'hidden lg:flex' : 'flex'
         )}>
-          <header className="px-5 pt-4 pb-2 overflow-visible bg-[#000000]">
+          <header className="px-5 pt-4 pb-2 overflow-visible bg-[#121212]">
              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                    <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username}`)}>
@@ -609,12 +871,12 @@ export default function Messages() {
                 </div>
              </div>
 
-             <div className="relative mb-3 group">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" size={14} />
+             <div className="relative mb-4 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={16} />
                 <input 
                   type="text" 
                   placeholder="Search messages..." 
-                  className="w-full h-8 bg-white/5 border border-white/5 rounded-full pl-9 pr-3 text-[12px] font-medium text-[#f5f5f5] placeholder:text-white/25 transition-all outline-none focus:border-[#ff1493]/30"
+                  className="w-full h-10 bg-[#222222] border border-white/10 rounded-full pl-11 pr-4 text-[14px] font-medium text-[#f5f5f5] placeholder:text-white/40 transition-all outline-none focus:border-[#ff1493]/50 focus:bg-[#2a2a2a]"
                 />
              </div>
 
@@ -693,7 +955,7 @@ export default function Messages() {
              </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-3 no-scrollbar scroll-smooth bg-[#000000]">
+          <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-3 no-scrollbar scroll-smooth bg-[#121212]">
             {Array.isArray(conversations) && conversations.length === 0 && !loading ? (
               <div className="py-12 px-4">
                  <ModernOfflineState 
@@ -760,30 +1022,36 @@ export default function Messages() {
           
           {selectedChat ? (
             <>
-              <header className="h-[60px] bg-[#000000]/80 backdrop-blur-xl border-b border-white/5 px-4 flex items-center justify-between z-40 relative shadow-lg">
+              <header 
+                className="h-[65px] z-40 relative px-4 flex items-center justify-between border-b border-white/5 shadow-xl"
+                style={{ 
+                  backgroundColor: currentChatTheme?.colors?.backgroundDark || '#000000',
+                  backdropFilter: 'blur(25px)',
+                }}
+              >
                 <div className="flex items-center gap-2 relative z-10">
                   <button onClick={() => setSelectedChat(null)} className="text-white hover:opacity-70 transition-opacity p-2">
-                    <ArrowLeft size={28} strokeWidth={2.5} />
+                    <ArrowLeft size={24} strokeWidth={2.5} />
                   </button>
                   <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>
-                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[38px] h-[38px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
+                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[40px] h-[40px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
                   </div>
-                  <div className="ml-1 overflow-hidden h-[30px] flex flex-col justify-center">
-                    <h3 className="text-[15px] font-bold tracking-tight leading-none text-white font-sans">{selectedChat.partner_name}</h3>
-                    <div className="h-[14px] relative mt-1">
+                  <div className="ml-2 flex flex-col justify-center">
+                    <h3 className="text-[16px] font-bold tracking-tight leading-tight text-white">{selectedChat.partner_name}</h3>
+                    <div className="h-[14px] mt-0.5">
                       {selectedChat.partner_online ? (
-                        <p className="text-[11px] font-bold tracking-wide lowercase text-emerald-500 whitespace-nowrap">online</p>
+                        <p className="text-[11px] font-bold lowercase text-emerald-500">online</p>
                       ) : (
-                        <p className="text-[11px] font-bold tracking-wide lowercase text-white/40 whitespace-nowrap">last seen {formatLastSeen(selectedChat.last_message_time || selectedChat.last_message_at || '')}</p>
+                        <p className="text-[11px] font-bold lowercase text-white/40">last seen {formatLastSeen(selectedChat.last_message_time || selectedChat.last_message_at || '')}</p>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 relative z-10 pr-1">
-                  <button className="text-white/90 hover:text-white p-2 transition-all active:scale-95"><Phone size={18} strokeWidth={2.5} /></button>
-                  <button className="text-white/90 hover:text-white p-2 transition-all active:scale-95"><Video size={18} strokeWidth={2.5} /></button>
-                  <button onClick={() => setShowChatSettings(true)} className="text-white/90 hover:text-white p-2 transition-all active:scale-95">
-                    <Info size={20} strokeWidth={2.5} />
+                <div className="flex items-center gap-1 relative z-10">
+                  <button className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}><Phone size={19} strokeWidth={2.2} /></button>
+                  <button className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}><Video size={20} strokeWidth={2.2} /></button>
+                  <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
+                    <Info size={21} strokeWidth={2.2} />
                   </button>
                 </div>
               </header>
@@ -798,15 +1066,21 @@ export default function Messages() {
                           <div 
                             className={clsx(
                               "px-4 py-2.5 text-[15px] leading-relaxed shadow-sm transition-all duration-300 relative z-10 rounded-[14px]",
-                              isMe ? 'bg-[#ff1493] text-white' : 'bg-[#2C2C2E] text-white'
+                              isMe ? 'text-white' : 'text-white'
                             )}
-                            style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}
+                            style={{ 
+                              boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                              backgroundColor: isMe ? (currentChatTheme?.colors?.chatBubbleSent || '#ff1493') : (currentChatTheme?.colors?.chatBubbleReceived || '#2C2C2E'),
+                              color: isMe ? (currentChatTheme?.colors?.chatBubbleSentText || '#ffffff') : (currentChatTheme?.colors?.chatBubbleReceivedText || '#ffffff'),
+                              backdropFilter: currentChatTheme ? 'blur(10px)' : 'none',
+                              border: currentChatTheme ? '1px solid rgba(255,255,255,0.05)' : 'none'
+                            }}
                           >
                             <p className="whitespace-pre-wrap">{msg.content}</p>
                           </div>
                           <div className={clsx("flex items-center gap-1.5 mt-1 px-1 opacity-40 text-[10px] font-medium", isMe ? 'flex-row-reverse' : 'flex-row')}>
                             <span>{safeTime(msg.sent_at || msg.created_at || '')}</span>
-                            {isMe && <span className={msg.is_read ? 'text-[#ff1493]' : ''}>{msg.is_read ? '✓✓' : '✓'}</span>}
+                            {isMe && <span style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>{msg.is_read ? '✓✓' : '✓'}</span>}
                           </div>
                         </div>
                       </div>
@@ -814,6 +1088,27 @@ export default function Messages() {
                   })}
                   <div ref={messagesEndRef} />
                 </div>
+
+                {/* Scroll to Bottom Button */}
+                <AnimatePresence>
+                  {showScrollToBottom && (
+                    <motion.button 
+                      initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
+                      onClick={() => {
+                        scrollToBottom('smooth');
+                        setUnreadCountInChat(0);
+                      }}
+                      className="absolute bottom-24 right-6 w-11 h-11 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white shadow-2xl z-50 hover:bg-white/20 transition-all active:scale-95"
+                    >
+                      <ArrowDown size={20} strokeWidth={3} />
+                      {unreadCountInChat > 0 && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#ff1493] rounded-full flex items-center justify-center text-[10px] font-black border-2 border-black">
+                          {unreadCountInChat}
+                        </div>
+                      )}
+                    </motion.button>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Floating Word Effects Layer */}
@@ -859,6 +1154,7 @@ export default function Messages() {
                 getQuickReaction={getQuickReaction}
                 setShowAttachmentMenu={setShowAttachmentMenu}
                 showAttachmentMenu={showAttachmentMenu}
+                theme={currentChatTheme}
               />
             </>
           ) : (

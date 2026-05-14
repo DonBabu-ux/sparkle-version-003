@@ -16,19 +16,22 @@ interface ChatSettingsModalProps {
   onNavigateProfile?: () => void;
 }
 
-const EMOJIS = ['👍','😀','😃','😄','😁','😆','😅','😂','🤣','🥲','☺️','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🫣','🤭','🫢','🫡','🤫','🫠','🤥','😶','🫥','😐','🫤','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😮‍💨','😵','😵‍💫','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
-
+// Removed static EMOJIS and MEMOJIS as we'll use emoji-mart and more realistic avatars
 const MEMOJIS = [
-  'https://i.pravatar.cc/100?img=1',
-  'https://i.pravatar.cc/100?img=2',
-  'https://i.pravatar.cc/100?img=3',
-  'https://i.pravatar.cc/100?img=4',
-  'https://i.pravatar.cc/100?img=5',
-  'https://i.pravatar.cc/100?img=6',
-  'https://i.pravatar.cc/100?img=7',
-  'https://i.pravatar.cc/100?img=8',
-  'https://i.pravatar.cc/100?img=9',
+  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=100&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=100&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop',
 ];
+
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
+import api from '../../api/api';
 
 const PREVIEW_MESSAGES = [
   { text: "Hey! Did you see the new themes?", isMe: false },
@@ -38,12 +41,24 @@ const PREVIEW_MESSAGES = [
 ];
 
 export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: ChatSettingsModalProps) {
-  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo'>('main');
+  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker'>('main');
   const [customizeTab, setCustomizeTab] = useState<'themes' | 'reaction' | 'words'>('themes');
   const [wordInput, setWordInput] = useState('');
   const [wordEmoji, setWordEmoji] = useState('✨');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
+  
+  const [nicknameInput, setNicknameInput] = useState(chat.partner_name);
+  const [myNicknameInput, setMyNicknameInput] = useState('You');
+  
+  // Settings state
+  const [isMuted, setIsMuted] = useState(false);
+  const [autoSave, setAutoSave] = useState(true);
+  const [disappearingMsgs, setDisappearingMsgs] = useState('Off');
+  const [readReceipts, setReadReceipts] = useState(true);
+  const [typingIndicator, setTypingIndicator] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [emojiSearch, setEmojiSearch] = useState('');
   
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
   const [blurValue, setBlurValue] = useState(20);
@@ -116,11 +131,11 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     <div className="w-12 h-12 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center transition-colors"><User size={20} className="text-white" /></div>
                     <span className="text-xs font-medium text-white/70 group-hover:text-white">Profile</span>
                   </div>
-                  <div className="flex flex-col items-center gap-2 cursor-pointer group">
+                  <div className="flex flex-col items-center gap-2 cursor-pointer group" onClick={() => setView('nicknames')}>
                     <div className="w-12 h-12 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center transition-colors"><Edit3 size={20} className="text-white" /></div>
                     <span className="text-xs font-medium text-white/70 group-hover:text-white">Nicknames</span>
                   </div>
-                  <div className="flex flex-col items-center gap-2 cursor-pointer group">
+                  <div className="flex flex-col items-center gap-2 cursor-pointer group" onClick={() => setView('search_chat')}>
                     <div className="w-12 h-12 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center transition-colors"><Search size={20} className="text-white" /></div>
                     <span className="text-xs font-medium text-white/70 group-hover:text-white">Search</span>
                   </div>
@@ -133,28 +148,79 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
               <div className="px-4">
                 <Section title="Chat info">
-                  <ActionItem icon={ImageIcon} label="View media, files & links" />
-                  <ActionItem icon={Pin} label="Pinned messages" />
+                  <ActionItem icon={ImageIcon} label="View media, files & links" onClick={() => setView('media')} />
+                  <ActionItem icon={Pin} label="Pinned messages" onClick={() => setView('pinned')} />
                 </Section>
 
                 <Section title="Actions">
-                  <ActionItem icon={Bell} label={`Mute ${chat.partner_name.split(' ')[0]}`} />
-                  <ActionItem icon={Volume2} label="Notifications & sounds" subtext="On" />
-                  <ActionItem icon={Users} label={`Create group chat with ${chat.partner_name.split(' ')[0]}`} />
-                  <ActionItem icon={Download} label="Auto-save photos" />
-                  <ActionItem icon={Share2} label="Share contact" />
+                  <ActionItem 
+                    icon={Bell} 
+                    label={isMuted ? 'Unmute' : `Mute ${chat.partner_name.split(' ')[0]}`} 
+                    onClick={() => setIsMuted(!isMuted)} 
+                    subtext={isMuted ? 'Muted' : 'Notifications on'}
+                    toggle={isMuted}
+                  />
+                  <ActionItem icon={Volume2} label="Notifications & sounds" subtext="Standard" onClick={() => alert('Sound settings...')} />
+                  <ActionItem icon={Users} label={`Create group chat with ${chat.partner_name.split(' ')[0]}`} onClick={() => setView('create_group')} />
+                  <ActionItem icon={Download} label="Auto-save photos" onClick={() => setAutoSave(!autoSave)} toggle={autoSave} />
+                  <ActionItem icon={Share2} label="Share contact" onClick={() => setView('share_contact')} />
                 </Section>
 
                 <Section title="Privacy & support">
-                  <ActionItem icon={Clock} label="Disappearing messages" subtext="Off" />
-                  <ActionItem icon={Eye} label="Read receipts" subtext="On" />
-                  <ActionItem icon={MoreHorizontal} label="Typing indicator" subtext="On" />
-                  <ActionItem icon={Shield} label="Message permissions" />
-                  <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted" />
-                  <ActionItem icon={MinusCircle} label="Block" />
-                  <ActionItem icon={ShieldAlert} label="Restrict" />
-                  <ActionItem icon={AlertTriangle} label="Report" subtext="Give feedback and report conversation" />
-                  <ActionItem icon={Trash2} label="Delete chat" danger />
+                  <ActionItem icon={Clock} label="Disappearing messages" subtext={disappearingMsgs} onClick={() => setDisappearingMsgs(disappearingMsgs === 'Off' ? '24 Hours' : 'Off')} />
+                  <ActionItem icon={Eye} label="Read receipts" subtext={readReceipts ? 'On' : 'Off'} onClick={() => setReadReceipts(!readReceipts)} toggle={readReceipts} />
+                  <ActionItem icon={MoreHorizontal} label="Typing indicator" subtext={typingIndicator ? 'On' : 'Off'} onClick={() => setTypingIndicator(!typingIndicator)} toggle={typingIndicator} />
+                  <ActionItem icon={Shield} label="Message permissions" onClick={() => alert('Managing message permissions...')} />
+                  <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted" onClick={() => alert('Encryption details...')} />
+                  <ActionItem 
+                    icon={MinusCircle} 
+                    label="Block" 
+                    onClick={async () => {
+                      if (window.confirm(`Are you sure you want to block ${chat.partner_name}?`)) {
+                        try {
+                          await api.post(`/users/block/${chat.partner_id}`);
+                          alert('User blocked');
+                        } catch (err) {
+                          console.error('Failed to block', err);
+                          alert('Failed to block user');
+                        }
+                      }
+                    }} 
+                  />
+                  <ActionItem icon={ShieldAlert} label="Restrict" onClick={() => alert('User restricted')} />
+                  <ActionItem 
+                    icon={AlertTriangle} 
+                    label="Report" 
+                    subtext="Give feedback and report conversation" 
+                    onClick={async () => {
+                      const reason = window.prompt('Please provide a reason for reporting:');
+                      if (reason) {
+                        try {
+                          await api.post(`/users/${chat.partner_id}/report`, { reason });
+                          alert('Report submitted');
+                        } catch (err) {
+                          console.error('Failed to report', err);
+                          alert('Failed to submit report');
+                        }
+                      }
+                    }} 
+                  />
+                  <ActionItem 
+                    icon={Trash2} 
+                    label="Delete chat" 
+                    danger 
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to delete this chat? This cannot be undone.')) {
+                        try {
+                          await api.delete(`/messages/chat/${chat.chat_id || chat.id}`);
+                          onClose();
+                        } catch (err) {
+                          console.error('Failed to delete', err);
+                          alert('Failed to delete chat');
+                        }
+                      }
+                    }} 
+                  />
                 </Section>
               </div>
             </motion.div>
@@ -174,19 +240,19 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
               <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
                 {customizeTab === 'themes' && (
                   <div className="p-4">
-                    <div className="flex gap-3 mb-6">
-                      <button onClick={() => setView('ai_generator')} className="flex-1 bg-white/10 hover:bg-white/20 rounded-lg py-3 px-2 flex flex-col items-center justify-center gap-1.5 text-white/90 text-[13px] font-bold transition-all border border-purple-500/30 active:scale-95">
-                        <Wand2 size={18} className="text-purple-400" /> AI Themes
+                    <div className="flex gap-2 mb-6">
+                      <button onClick={() => setView('ai_generator')} className="flex-1 bg-white/5 hover:bg-white/10 rounded-lg py-2 px-1 flex flex-col items-center justify-center gap-1 text-white/90 text-[11px] font-bold transition-all border border-purple-500/20 active:scale-95">
+                        <Wand2 size={16} className="text-purple-400" /> AI Themes
                       </button>
-                      <button onClick={() => setView('custom_photo')} className="flex-1 bg-white/10 hover:bg-white/20 rounded-lg py-3 px-2 flex flex-col items-center justify-center gap-1.5 text-white/90 text-[13px] font-bold transition-all border border-blue-500/30 active:scale-95">
-                        <ImagePlus size={18} className="text-blue-400" /> Upload Image
+                      <button onClick={() => setView('custom_photo')} className="flex-1 bg-white/5 hover:bg-white/10 rounded-lg py-2 px-1 flex flex-col items-center justify-center gap-1 text-white/90 text-[11px] font-bold transition-all border border-blue-500/20 active:scale-95">
+                        <ImagePlus size={16} className="text-blue-400" /> Upload Image
                       </button>
                     </div>
                     
                     {categories.map((cat) => (
                       <div key={cat.name} className="mb-8">
                         <h3 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-4 px-1">{cat.name}</h3>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                           {cat.themes.map((theme) => (
                             <div 
                               key={theme.id} 
@@ -196,9 +262,9 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                                 setView('preview_theme');
                               }}
                             >
-                              <div className={clsx(
-                                "relative aspect-[2/3] rounded-2xl overflow-hidden transition-all group-hover:scale-105 group-active:scale-95 border-2",
-                                currentTheme?.id === theme.id ? "border-[#ff1493] shadow-[0_0_15px_rgba(255,20,147,0.3)]" : "border-white/10 group-hover:border-white/30"
+                            <div className={clsx(
+                                "relative aspect-[2/3] rounded-[4px] overflow-hidden transition-all group-hover:scale-105 group-active:scale-95 border",
+                                currentTheme?.id === theme.id ? "border-[#ff1493] shadow-[0_0_10px_rgba(255,20,147,0.2)]" : "border-white/5 group-hover:border-white/20"
                               )}>
                                 {theme.wallpaperUrl ? (
                                   <img src={theme.wallpaperUrl} className="w-full h-full object-cover" />
@@ -228,54 +294,51 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                 {customizeTab === 'reaction' && (
                   <div className="flex flex-col h-full bg-[#000000]">
                     {/* Top Half: Preview Area */}
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-b from-white/5 to-transparent border-b border-white/5 relative overflow-hidden">
-                      <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+                    <div className="flex-[0.8] flex flex-col items-center justify-center pt-24 p-6 bg-[#000000] border-b border-white/5 relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_70%)]" />
                       
                       <div className="relative z-10 flex flex-col items-center">
-                        <div className="text-7xl mb-8 animate-bounce drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                        <motion.div 
+                          animate={{ y: [0, -25, 0] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                          className="text-8xl mb-8 mt-12 drop-shadow-[0_0_35px_rgba(255,255,255,0.4)]"
+                        >
                           {quickReaction}
-                        </div>
-                        
-                        <div className="flex -space-x-4 mb-4">
-                          {MEMOJIS.slice(0, 6).map((img, i) => (
-                            <motion.div 
-                              key={i}
-                              initial={{ y: 20, opacity: 0 }}
-                              animate={{ y: 0, opacity: 1 }}
-                              transition={{ delay: i * 0.1 }}
-                              className="relative"
-                            >
-                              <img src={img} className="w-14 h-14 rounded-full border-4 border-[#000000] object-cover" alt="" />
-                              <div className="absolute -bottom-1 -right-1 text-lg bg-[#121212] rounded-full p-0.5 shadow-lg border border-white/10">
-                                {quickReaction}
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                        <p className="text-sm font-bold text-white/50">Friends will react with {quickReaction}</p>
+                        </motion.div>
+                        <p className="text-sm font-black text-white/40 tracking-widest uppercase mb-10">Quick Reaction</p>
                       </div>
                     </div>
 
-                    {/* Bottom Half: Emoji Grid */}
-                    <div className="flex-[1.5] p-4 overflow-y-auto no-scrollbar bg-[#0a0a0a]">
-                      <div className="bg-white/10 rounded-2xl flex items-center px-4 h-12 mb-6 border border-white/5 focus-within:bg-white/15 focus-within:border-white/30 transition-all">
-                        <Search size={20} className="text-white/40" />
-                        <input type="text" placeholder="Search emojis" className="bg-transparent w-full ml-3 text-white placeholder:text-white/40 outline-none text-sm font-medium" />
+                    {/* Bottom Half: Emoji Grid with Sleek Search */}
+                    <div className="flex-[1.2] flex flex-col w-full bg-[#000000] border-t border-white/5">
+                      <div className="p-5 pt-8">
+                        <div className="bg-white/10 rounded-full flex items-center px-5 h-11 border border-white/10 focus-within:border-[#ff1493]/50 focus-within:bg-white/[0.15] transition-all">
+                          <Search size={18} className="text-white/40" />
+                          <input 
+                            type="text" 
+                            placeholder="Search emojis..." 
+                            value={emojiSearch}
+                            onChange={e => setEmojiSearch(e.target.value)}
+                            className="bg-transparent w-full ml-3 text-white placeholder:text-white/30 outline-none text-[14px] font-medium" 
+                          />
+                        </div>
                       </div>
-
-                      <div className="grid grid-cols-6 sm:grid-cols-9 gap-4 px-2">
-                        {EMOJIS.map((emoji, i) => (
-                          <button 
-                            key={i} 
-                            onClick={() => handleApplyReaction(emoji)} 
-                            className={clsx(
-                              "text-3xl hover:scale-125 transition-all flex items-center justify-center h-14 rounded-2xl",
-                              quickReaction === emoji ? "bg-white/20 scale-110 shadow-[0_0_15px_rgba(255,255,255,0.1)] border border-white/20" : "hover:bg-white/5"
-                            )}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
+                      
+                      <div className="flex-1 w-full overflow-hidden flex justify-center">
+                          <Picker 
+                            data="https://cdn.jsdelivr.net/npm/@emoji-mart/data"
+                            onEmojiSelect={(emoji: any) => handleApplyReaction(emoji.native)}
+                            theme="dark"
+                            set="apple"
+                            native={true}
+                            previewPosition="none"
+                            skinTonePosition="none"
+                            navPosition="none"
+                            searchPosition="none"
+                            perLine={8}
+                            width="100%"
+                            onEmojiSearch={emojiSearch}
+                          />
                       </div>
                     </div>
                   </div>
@@ -285,7 +348,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   <div className="flex flex-col h-full relative">
                     <div className="p-8 flex-1 flex flex-col items-center">
                       <div className="w-16 h-16 bg-[#ff1493]/20 text-[#ff1493] rounded-full flex items-center justify-center mb-6 border border-[#ff1493]/30">
-                        <Sparkles size={28} />
+                        <Smile size={28} />
                       </div>
                       <h3 className="text-2xl font-black text-white mb-4 tracking-tight">Add effects to your chat</h3>
                       <p className="text-sm text-white/60 mb-8 leading-relaxed text-center max-w-sm">
@@ -317,11 +380,11 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
               </div>
 
               {customizeTab === 'words' && (
-                <div className="p-4 bg-[#000000] border-t border-white/5 relative z-20">
-                  <div className="bg-white/10 rounded-3xl flex items-center px-2 py-2 border border-white/5 focus-within:bg-white/15 focus-within:border-white/30 transition-all">
+                <div className="p-3 bg-[#000000] border-t border-white/5 relative z-20 pb-safe">
+                  <div className="bg-white/5 rounded-full flex items-center px-3 py-1.5 border border-white/5 focus-within:bg-white/10 focus-within:border-[#ff1493]/30 transition-all">
                     <button 
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
-                      className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-2xl hover:bg-white/20 transition-colors shrink-0"
+                      onClick={() => setView('word_emoji_picker')} 
+                      className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-xl hover:bg-white/10 transition-colors shrink-0"
                     >
                       {wordEmoji}
                     </button>
@@ -330,39 +393,19 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       value={wordInput}
                       onChange={e => setWordInput(e.target.value)}
                       placeholder="Add a word or phrase" 
-                      className="bg-transparent w-full ml-3 text-white placeholder:text-white/40 outline-none text-base font-medium" 
+                      className="bg-transparent w-full ml-3 text-white placeholder:text-white/30 outline-none text-[15px] font-medium" 
                       maxLength={30}
                     />
                     <button 
                       onClick={handleSaveWordEffect}
                       disabled={!wordInput.trim()}
-                      className="w-12 h-12 bg-[#ff1493] text-white rounded-2xl flex items-center justify-center disabled:opacity-50 disabled:bg-white/10 disabled:text-white/30 transition-all shrink-0 hover:scale-105 active:scale-95"
+                      className="w-10 h-10 bg-[#ff1493] text-white rounded-lg flex items-center justify-center disabled:opacity-30 transition-all shrink-0 hover:scale-105 active:scale-95"
                     >
-                      <Check size={20} strokeWidth={3} />
+                      <Check size={18} strokeWidth={3} />
                     </button>
                   </div>
 
-                  {/* Inline Emoji Picker for Word Effects */}
-                  <AnimatePresence>
-                    {showEmojiPicker && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                        className="absolute bottom-full left-4 right-4 mb-2 bg-[#1c1c1e] border border-white/10 rounded-3xl p-4 shadow-2xl z-30 h-64 overflow-y-auto no-scrollbar"
-                      >
-                        <div className="grid grid-cols-6 gap-2">
-                          {EMOJIS.map((emoji) => (
-                            <button 
-                              key={emoji} 
-                              onClick={() => { setWordEmoji(emoji); setShowEmojiPicker(false); }}
-                              className="text-2xl p-2 hover:bg-white/10 rounded-xl transition-colors"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {/* Moved Picker to a dedicated view for Word Effects */}
                 </div>
               )}
             </motion.div>
@@ -576,6 +619,151 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                 )}
               </div>
             </motion.div>
+          ) : view === 'nicknames' ? (
+            <motion.div key="nicknames" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">Nicknames</h2>
+              </div>
+              <div className="p-4 space-y-6">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
+                  <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-12 h-12 rounded-full" alt="" />
+                  <div className="flex-1">
+                    <p className="text-xs text-white/40 mb-1">Set nickname for {chat.partner_name}</p>
+                    <input 
+                      type="text" 
+                      value={nicknameInput} 
+                      onChange={e => setNicknameInput(e.target.value)}
+                      className="bg-transparent w-full text-white font-bold outline-none border-b border-white/10 focus:border-[#ff1493] transition-colors"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
+                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">You</div>
+                  <div className="flex-1">
+                    <p className="text-xs text-white/40 mb-1">Set your nickname</p>
+                    <input 
+                      type="text" 
+                      value={myNicknameInput} 
+                      onChange={e => setMyNicknameInput(e.target.value)}
+                      className="bg-transparent w-full text-white font-bold outline-none border-b border-white/10 focus:border-[#ff1493] transition-colors"
+                    />
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    alert(`Nicknames saved: ${nicknameInput} & ${myNicknameInput}`);
+                    setView('main');
+                  }}
+                  className="w-full py-4 bg-[#ff1493] text-white font-bold rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  Save Nicknames
+                </button>
+              </div>
+            </motion.div>
+          ) : view === 'media' ? (
+            <motion.div key="media" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">Media, Files & Links</h2>
+              </div>
+              <div className="p-4 grid grid-cols-3 gap-2 overflow-y-auto">
+                {[...Array(12)].map((_, i) => (
+                  <div key={i} className="aspect-square bg-white/10 rounded-lg overflow-hidden relative group cursor-pointer">
+                    <img src={`https://picsum.photos/seed/${chat.id + i}/300/300`} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="" />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ) : view === 'pinned' ? (
+            <motion.div key="pinned" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">Pinned Messages</h2>
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
+                  <Pin size={32} className="text-white/40" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">No pinned messages</h3>
+                <p className="text-sm text-white/50">Long press any message and select "Pin" to save it here for easy access.</p>
+              </div>
+            </motion.div>
+          ) : view === 'search_chat' ? (
+            <motion.div key="search_chat" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                  <div className="flex-1 bg-white/5 rounded-full flex items-center px-4 h-10 border border-white/5 transition-all focus-within:bg-white/10">
+                    <Search size={16} className="text-white/20" />
+                    <input 
+                      type="text" 
+                      placeholder="Search in conversation" 
+                      autoFocus
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="bg-transparent w-full ml-3 text-white placeholder:text-white/20 outline-none text-sm" 
+                    />
+                  </div>
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-white/40">
+                <Search size={48} className="mb-4 opacity-20" />
+                <p className="text-sm font-medium">{searchQuery ? `No results for "${searchQuery}"` : 'Search for messages, media, or links'}</p>
+              </div>
+            </motion.div>
+          ) : view === 'share_contact' || view === 'create_group' ? (
+            <motion.div key="contacts" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">{view === 'share_contact' ? 'Share Contact' : 'New Group'}</h2>
+              </div>
+              <div className="p-4">
+                <div className="bg-white/5 rounded-xl flex items-center px-4 h-11 mb-6 border border-white/10">
+                  <Search size={18} className="text-white/30" />
+                  <input type="text" placeholder="Search contacts..." className="bg-transparent w-full ml-3 text-white placeholder:text-white/30 outline-none text-[15px]" />
+                </div>
+                <div className="space-y-4">
+                  <p className="text-xs font-bold text-white/30 uppercase tracking-widest px-2">Recent</p>
+                  {MEMOJIS.slice(0, 5).map((img, i) => (
+                    <div key={i} className="flex items-center gap-4 p-2 hover:bg-white/5 rounded-xl cursor-pointer group transition-all">
+                      <img src={img} className="w-11 h-11 rounded-full object-cover border border-white/10" alt="" />
+                      <div className="flex-1 border-b border-white/5 pb-2 group-last:border-none">
+                        <p className="text-[15px] font-bold text-white">Contact {i + 1}</p>
+                        <p className="text-[11px] text-white/40">Active now</p>
+                      </div>
+                      <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-auto p-4 border-t border-white/5">
+                <button className="w-full py-4 bg-[#ff1493] text-white font-bold rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all">
+                  {view === 'share_contact' ? 'Share' : 'Create Group'}
+                </button>
+              </div>
+            </motion.div>
+          ) : view === 'word_emoji_picker' ? (
+            <motion.div key="word_emoji_picker" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+                <button onClick={() => setView('customize')} className="p-2 text-white"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">Select Emoji</h2>
+              </div>
+              <div className="flex-1 w-full overflow-hidden flex justify-center">
+                <Picker 
+                  data="https://cdn.jsdelivr.net/npm/@emoji-mart/data"
+                  onEmojiSelect={(emoji: any) => { setWordEmoji(emoji.native); setView('customize'); }}
+                  theme="dark"
+                  set="apple"
+                  native={true}
+                  previewPosition="none"
+                  skinTonePosition="none"
+                  navPosition="none"
+                  searchPosition="none"
+                  perLine={8}
+                  width="100%"
+                />
+              </div>
+            </motion.div>
           ) : null}
         </AnimatePresence>
       </div>
@@ -599,14 +787,33 @@ function Section({ title, children }: { title: string, children: React.ReactNode
   );
 }
 
-function ActionItem({ icon: Icon, label, subtext, danger }: { icon: any, label: string, subtext?: string, danger?: boolean }) {
+function ActionItem({ icon: Icon, label, subtext, danger, onClick, toggle }: { icon: any, label: string, subtext?: string, danger?: boolean, onClick?: () => void, toggle?: boolean }) {
   return (
-    <button className={`w-full flex items-center gap-4 px-4 py-3 hover:bg-white/5 transition-colors group ${danger ? 'text-red-500' : 'text-white'}`}>
-      <Icon size={24} className={danger ? 'text-red-500' : 'text-white/80 group-hover:text-white'} />
-      <div className="flex flex-col items-start flex-1 text-left">
-        <span className="text-base font-medium leading-tight">{label}</span>
-        {subtext && <span className={`text-[11px] mt-0.5 ${danger ? 'text-red-500/70' : 'text-white/50'}`}>{subtext}</span>}
+    <button 
+      onClick={onClick}
+      className={`w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/5 active:bg-white/10 transition-colors group ${danger ? 'text-red-500' : 'text-white'}`}
+    >
+      <div className={clsx(
+        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+        danger ? "bg-red-500/10 text-red-500" : "bg-white/5 text-white/70 group-hover:text-white group-hover:bg-white/10"
+      )}>
+        <Icon size={20} />
       </div>
+      <div className="flex flex-col items-start flex-1 text-left min-w-0">
+        <span className="text-[15px] font-semibold leading-tight truncate w-full">{label}</span>
+        {subtext && <span className={`text-[11px] mt-0.5 font-medium ${danger ? 'text-red-500/70' : 'text-white/40'}`}>{subtext}</span>}
+      </div>
+      {toggle !== undefined ? (
+        <div className={clsx(
+          "w-10 h-5 rounded-full relative transition-colors duration-300",
+          toggle ? "bg-[#ff1493]" : "bg-white/10"
+        )}>
+          <div className={clsx(
+            "absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300",
+            toggle ? "left-6" : "left-1"
+          )} />
+        </div>
+      ) : !danger && <ChevronLeft size={16} className="text-white/20 rotate-180" />}
     </button>
   );
 }

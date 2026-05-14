@@ -1,4 +1,4 @@
-package com.sparkle.app;
+package com.sparkleapp;
 
 import com.getcapacitor.BridgeActivity;
 

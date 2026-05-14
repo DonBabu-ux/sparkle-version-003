@@ -28,6 +28,21 @@ if (connection) {
                     'INSERT INTO notifications (notification_id, user_id, type, title, content, action_url) VALUES (?, ?, ?, ?, ?, ?)',
                     [require('crypto').randomUUID(), userId, type, data.title, data.content, data.url || null]
                 );
+
+                // --- Mobile Push (FCM) ---
+                try {
+                    const [tokens] = await pool.query('SELECT token FROM fcm_tokens WHERE user_id = ?', [userId]);
+                    if (tokens.length > 0) {
+                        const { sendFcmNotification } = require('../utils/fcm');
+                        const tokenList = tokens.map(t => t.token);
+                        await sendFcmNotification(tokenList, data.title, data.content, { 
+                            type, 
+                            url: data.url || '/' 
+                        });
+                    }
+                } catch (fcmError) {
+                    logger.error(`FCM: Delivery failed for user ${userId}:`, fcmError.message);
+                }
             } catch (error) {
                 logger.error(`Failed to deliver notification to ${userId}:`, error);
             }

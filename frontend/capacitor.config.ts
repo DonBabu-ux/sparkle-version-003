@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.sparkle.app',
+  appId: 'com.sparkleapp',
   appName: 'Sparkle',
   webDir: 'dist',
   server: {

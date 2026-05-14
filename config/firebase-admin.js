@@ -9,9 +9,25 @@ let admin = null;
 try {
     const firebaseAdmin = require('firebase-admin');
 
-    // Use service account JSON if provided, else fall back to app config
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    const fs = require('fs');
+    const path = require('path');
+    let serviceAccount = null;
+
+    // 1. Try to load from serviceAccountKey.json
+    const localKeyPath = path.join(__dirname, '..', 'serviceAccountKey.json');
+    if (fs.existsSync(localKeyPath)) {
+        serviceAccount = require(localKeyPath);
+    } 
+    // 2. Fallback to .env stringified JSON (if properly formatted)
+    else if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+        try {
+            serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+        } catch (e) {
+            console.warn('⚠️  Could not parse FIREBASE_SERVICE_ACCOUNT_JSON from .env. Ensure it is valid JSON and not just "{...}".');
+        }
+    }
+
+    if (serviceAccount) {
         if (!firebaseAdmin.apps.length) {
             firebaseAdmin.initializeApp({
                 credential: firebaseAdmin.credential.cert(serviceAccount),

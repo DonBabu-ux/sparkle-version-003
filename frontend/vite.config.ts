@@ -101,6 +101,11 @@ export default defineConfig({
       '/socket.io': {
         target: 'ws://127.0.0.1:3000',
         ws: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.warn('[Vite Proxy] WebSocket error:', err.message);
+          });
+        },
       },
       '/uploads': {
         target: 'http://127.0.0.1:3000',

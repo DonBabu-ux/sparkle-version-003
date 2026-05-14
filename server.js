@@ -51,7 +51,7 @@ app.use(cors({
             'http://localhost',
             'https://localhost',
             'capacitor://localhost',
-            'https://sparkle-version-003-1-f4v3.onrender.com'
+            'https://sparkle-version-003-1-f4v3.onrender.com' 
         ];
         
         // Allow requests with no origin (like mobile apps or curl requests)

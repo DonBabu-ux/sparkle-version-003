@@ -1,5 +1,10 @@
 const { Redis } = require('@upstash/redis');
 const logger = require('../utils/logger');
+const dns = require('dns');
+
+// Force IPv4 resolution to fix Node 18+ "fetch failed" issues with Upstash
+dns.setDefaultResultOrder('ipv4first');
+
 
 /**
  * Production-ready Redis Service using Upstash REST Client.
@@ -80,7 +85,8 @@ class RedisService {
 
             return await this.client.set(key, value, options);
         } catch (error) {
-            logger.error(`Redis Set Error [${key}]:`, error.message);
+            const msg = error.message || (typeof error === 'string' ? error : JSON.stringify(error));
+            logger.error(`Redis Set Error [${key}]: ${msg}`);
             return null;
         }
     }
@@ -171,6 +177,19 @@ class RedisService {
             return 0;
         }
     }
+
+    async hset(key, field, value) {
+        if (!this.isEnabled) return null;
+        try {
+            // Upstash hset takes an object or multiple field/value arguments.
+            // Using object format: { [field]: value }
+            return await this.client.hset(key, { [field]: value });
+        } catch (error) {
+            logger.error(`Redis HSet Error [${key}][${field}]:`, error.message);
+            return null;
+        }
+    }
+
 
     /**
      * List Operations

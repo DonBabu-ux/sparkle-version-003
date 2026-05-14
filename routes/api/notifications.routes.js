@@ -18,6 +18,9 @@ router.get('/vapid-public-key', (req, res) => res.json({ key: process.env.VAPID_
 // Subscribe to push notifications
 router.post('/subscribe', notificationController.subscribePush);
 
+// Register FCM token for mobile push
+router.post('/register-fcm-token', notificationController.registerFcmToken);
+
 // Mark all as read
 router.put('/read-all', notificationController.markAllAsRead);
 

@@ -43,6 +43,27 @@ const notificationController = {
             res.status(500).json({ error: 'Failed' });
         }
     },
+
+    registerFcmToken: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const { token, deviceType } = req.body;
+
+            if (!token) {
+                return res.status(400).json({ error: 'Token is required' });
+            }
+
+            await pool.query(
+                'INSERT INTO fcm_tokens (token_id, user_id, token, device_type) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE last_used_at = CURRENT_TIMESTAMP',
+                [uuidv4(), userId, token, deviceType || 'android']
+            );
+
+            res.status(200).json({ success: true, message: 'FCM token registered' });
+        } catch (error) {
+            console.error('FCM token registration error:', error);
+            res.status(500).json({ error: 'Failed to register FCM token' });
+        }
+    },
     
     // Get user's notifications
     getNotifications: async (req, res) => {

@@ -104,27 +104,106 @@ interface ChatMessage {
 
 // --- Components ---
 
+const LiveAnimations = ({ type }: { type: AnimationType | undefined }) => {
+  if (!type || type === 'none') return null;
+  
+  if (type === 'snow') {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-60">
+        {[...Array(30)].map((_, i) => (
+          <div key={i} className="absolute bg-white rounded-full opacity-80 animate-snow" style={{
+            left: `${Math.random() * 100}%`,
+            width: `${Math.random() * 4 + 2}px`,
+            height: `${Math.random() * 4 + 2}px`,
+            animationDuration: `${Math.random() * 3 + 2}s`,
+            animationDelay: `${Math.random() * 2}s`
+          }} />
+        ))}
+        <style>{`@keyframes snow { 0% { transform: translateY(-10px); } 100% { transform: translateY(100vh); } } .animate-snow { animation: snow linear infinite; }`}</style>
+      </div>
+    );
+  }
+
+  if (type === 'rain') {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-40">
+        {[...Array(40)].map((_, i) => (
+          <div key={i} className="absolute bg-blue-200 opacity-60 animate-rain" style={{
+            left: `${Math.random() * 100}%`,
+            width: '1.5px',
+            height: `${Math.random() * 15 + 10}px`,
+            animationDuration: `${Math.random() * 0.5 + 0.3}s`,
+            animationDelay: `${Math.random() * 1}s`
+          }} />
+        ))}
+        <style>{`@keyframes rain { 0% { transform: translateY(-20px) rotate(15deg); } 100% { transform: translateY(100vh) rotate(15deg); } } .animate-rain { animation: rain linear infinite; }`}</style>
+      </div>
+    );
+  }
+
+  if (type === 'particles' || type === 'stars' || type === 'fireflies') {
+    const color = type === 'fireflies' ? 'bg-yellow-300' : 'bg-white';
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {[...Array(25)].map((_, i) => (
+          <div key={i} className={`absolute ${color} rounded-full opacity-50 animate-float`} style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            width: `${Math.random() * 3 + 1}px`,
+            height: `${Math.random() * 3 + 1}px`,
+            animationDuration: `${Math.random() * 4 + 3}s`,
+            animationDelay: `${Math.random() * 2}s`,
+            boxShadow: `0 0 ${Math.random() * 4 + 2}px ${type === 'fireflies' ? '#FDE047' : '#FFFFFF'}`
+          }} />
+        ))}
+        <style>{`@keyframes float { 0%, 100% { transform: translate(0, 0); opacity: 0.2; } 50% { transform: translate(${Math.random() * 20 - 10}px, ${Math.random() * -20 - 10}px); opacity: 0.8; } } .animate-float { animation: float ease-in-out infinite; }`}</style>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const ChatBackground = ({ theme }: { theme: SparkleTheme | null }) => {
+  if (!theme) return <div className="absolute inset-0 z-0 bg-[#000000]" />;
+
+  const hasImage = !!theme.wallpaperUrl;
+  
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-all duration-1000 bg-[#000000]">
-      <div 
-        className="absolute inset-0 transition-all duration-1000 opacity-60" 
-        style={{ 
-          background: `radial-gradient(circle at top right, #6366F125, transparent), radial-gradient(circle at bottom left, #ff149315, transparent)` 
-        }} 
-      />
-      {theme?.wallpaperUrl && (
+    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-all duration-700 bg-[#000000]">
+      {!hasImage && (
         <div 
-          className="absolute inset-0 z-0 transition-opacity duration-1000 opacity-[0.25]" 
+          className="absolute inset-0 transition-all duration-700 opacity-100" 
+          style={{ 
+            background: `linear-gradient(135deg, ${theme.colors.backgroundDark} 0%, ${theme.colors.backgroundLight} 100%)` 
+          }} 
+        />
+      )}
+      
+      {hasImage && (
+        <div 
+          className="absolute inset-0 z-0 transition-opacity duration-700" 
           style={{ 
             backgroundImage: `url(${theme.wallpaperUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            mixBlendMode: 'screen'
+            filter: `blur(${theme.blurIntensity || 2}px)`,
+            transform: 'scale(1.05)' // prevents blur from leaking edges
           }} 
         />
       )}
+
+      {/* Darkness Overlay for readability */}
+      {hasImage && (
+        <div 
+          className="absolute inset-0 z-0 transition-opacity duration-700" 
+          style={{ backgroundColor: `rgba(0,0,0,${(theme.darknessOverlay ?? 40) / 100})` }}
+        />
+      )}
+
+      {/* Live Animations Layer */}
+      <LiveAnimations type={theme.animationType} />
     </div>
   );
 };
@@ -201,7 +280,7 @@ const ChatInput = memo(({
             </button>
           )}
           
-          <div className="flex-1 relative bg-[#262626] rounded-[20px] flex items-center h-[38px] px-3 mx-1 overflow-hidden">
+          <div className="flex-1 relative bg-[#262626] rounded-lg flex items-center h-[38px] px-3 mx-1 overflow-hidden">
             <input 
               type="text"
               value={localMessage}
@@ -356,14 +435,54 @@ export default function Messages() {
     }
   };
 
+  useEffect(() => {
+    if (!socket || !selectedChat) return;
+
+    const handleNewMessage = (msg: any) => {
+      // Check if message belongs to current open chat
+      if (msg.sender_id === selectedChat.partner_id || msg.receiver_id === selectedChat.partner_id) {
+        setMessages(prev => [...prev, msg]);
+        triggerWordEffect(msg.content);
+        scrollToBottom('smooth');
+      }
+      // Refresh inbox to update last message preview
+      fetchInbox();
+    };
+
+    socket.on('receive_message', handleNewMessage);
+    socket.on('new_message', handleNewMessage);
+
+    return () => {
+      socket.off('receive_message', handleNewMessage);
+      socket.off('new_message', handleNewMessage);
+    };
+  }, [socket, selectedChat]);
+
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  const triggerWordEffect = (content: string) => {
+    if (!selectedChat) return;
+    const effects = getWordEffects(selectedChat.chat_id);
+    if (!effects || effects.length === 0) return;
+    
+    const lowerContent = content.toLowerCase();
+    for (const effect of effects) {
+      if (lowerContent.includes(effect.word)) {
+        setPlayingEffectEmoji(effect.emoji);
+        setTimeout(() => setPlayingEffectEmoji(null), 3000);
+        return;
+      }
+    }
   };
 
   const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string) => {
     if (e) e.preventDefault();
     const content = contentOverride || newMessage;
     if (!content.trim() || !selectedChat) return;
+
+    triggerWordEffect(content);
 
     setSending(true);
     // Optimistic update — build a local message object immediately
@@ -696,6 +815,37 @@ export default function Messages() {
                   <div ref={messagesEndRef} />
                 </div>
               </div>
+
+              {/* Floating Word Effects Layer */}
+              <AnimatePresence>
+                {playingEffectEmoji && (
+                  <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 pointer-events-none z-50 overflow-hidden"
+                  >
+                    {[...Array(20)].map((_, i) => (
+                      <motion.div 
+                        key={i} 
+                        initial={{ y: '110vh', x: `${Math.random() * 100}vw`, opacity: 0, scale: 0.5 }}
+                        animate={{ 
+                          y: '-20vh', 
+                          opacity: [0, 1, 1, 0],
+                          scale: [0.5, 1.2, 1.2, 1.5],
+                          rotate: Math.random() * 360
+                        }}
+                        transition={{ 
+                          duration: 3, 
+                          delay: Math.random() * 1.5,
+                          ease: "easeOut"
+                        }}
+                        className="absolute text-6xl drop-shadow-2xl"
+                      >
+                        {playingEffectEmoji}
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <ChatInput 
                 initialMessage={newMessage}

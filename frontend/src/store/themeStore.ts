@@ -96,6 +96,30 @@ export const PRESET_THEMES: SparkleTheme[] = [
   createTheme('monsoon', 'Monsoon', 'Live', '#2F4F4F', '#1C2E2E', '#4A7C7C', '#0C1313', '#E0ECEC', true, '#2F4F4F', '#192828', '#ffffff', '#80A8A8', 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=800&auto=format&fit=crop', 'rain'),
   createTheme('starlight', 'Starlight', 'Live', '#FFF8DC', '#FFE4B5', '#FFDAB9', '#1A1811', '#FFFAF0', true, '#FFD700', '#332D15', '#000000', '#FFE082', 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?q=80&w=800&auto=format&fit=crop', 'stars'),
   createTheme('meteor_shower', 'Meteor Shower', 'Live', '#FF6347', '#DC143C', '#FF4500', '#1A0604', '#FBE9E7', true, '#FF6347', '#33110A', '#ffffff', '#FFAB91', 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop', 'particles'),
+
+  // 10 Anime & Minimal Themes
+  createTheme('naruto_clouds', 'Akatsuki Red', 'Anime', '#FF0000', '#CC0000', '#FF3333', '#000000', '#111111', true, '#FF0000', '#222222', '#ffffff', '#FF0000', 'https://wallpaperaccess.com/full/1125215.jpg'),
+  createTheme('one_piece', 'Grand Line', 'Anime', '#FFD700', '#FFA500', '#FF4500', '#004488', '#88CCFF', false, '#004488', '#E0F2F1', '#ffffff', '#004488', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop'),
+  createTheme('dragon_ball', 'Z-Fighters', 'Anime', '#FF8C00', '#FF4500', '#FFA500', '#1A1A2E', '#F0F0F0', true, '#FF8C00', '#2E2E4E', '#ffffff', '#FF8C00', 'https://images.unsplash.com/photo-1578632738981-4320f6618d3e?q=80&w=800&auto=format&fit=crop'),
+  createTheme('minimal_zen', 'Zen White', 'Minimal', '#808080', '#606060', '#A0A0A0', '#FFFFFF', '#FFFFFF', false, '#E0E0E0', '#F5F5F5', '#000000', '#000000'),
+  createTheme('minimal_ink', 'Ink Black', 'Minimal', '#000000', '#202020', '#404040', '#000000', '#000000', true, '#202020', '#111111', '#FFFFFF', '#FFFFFF'),
+  createTheme('aesthetic_beige', 'Warm Aesthetic', 'Minimal', '#D2B48C', '#BC8F8F', '#DEB887', '#F5F5DC', '#FDF5E6', false, '#D2B48C', '#EEDC82', '#4E342E', '#4E342E'),
+  createTheme('pastel_dream', 'Pastel Pink', 'Minimal', '#FFB6C1', '#FF69B4', '#FFC0CB', '#FFF0F5', '#FFF0F5', false, '#FFB6C1', '#FFE4E1', '#880E4F', '#880E4F'),
+  createTheme('glass_deep', 'Glass Deep Blue', 'Glassmorphism', '#1E88E5', '#1565C0', '#42A5F5', '#0D47A1', '#0D47A1', true, 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)', '#FFFFFF', '#FFFFFF'),
+  createTheme('glass_emerald', 'Glass Emerald', 'Glassmorphism', '#00C853', '#009624', '#69F0AE', '#004D40', '#004D40', true, 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)', '#FFFFFF', '#FFFFFF'),
+  createTheme('glass_ruby', 'Glass Ruby', 'Glassmorphism', '#D81B60', '#AD1457', '#F06292', '#880E4F', '#880E4F', true, 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)', '#FFFFFF', '#FFFFFF'),
+
+  // 10 AI & Solid Themes
+  createTheme('ai_cyber', 'AI Cyber-Future', 'AI Generated', '#00FFFF', '#00B8CC', '#33EAFF', '#090A0F', '#090A0F', true, '#00FFFF', '#1A1B26', '#000000', '#00FFFF'),
+  createTheme('ai_organic', 'AI Organic Flow', 'AI Generated', '#8BC34A', '#689F38', '#AED581', '#1B2E1C', '#E8F5E9', true, '#8BC34A', '#2D4C2F', '#FFFFFF', '#8BC34A'),
+  createTheme('ai_ethereal', 'AI Ethereal Mist', 'AI Generated', '#E1BEE7', '#BA68C8', '#F3E5F5', '#2A1A2D', '#F3E5F5', true, '#E1BEE7', '#3D2A41', '#FFFFFF', '#E1BEE7'),
+  createTheme('solid_red', 'Classic Crimson', 'Solid', '#B71C1C', '#D32F2F', '#E57373', '#000000', '#FFFFFF', true, '#B71C1C', '#212121', '#FFFFFF', '#FFFFFF'),
+  createTheme('solid_blue', 'Royal Blue', 'Solid', '#0D47A1', '#1976D2', '#64B5F6', '#000000', '#FFFFFF', true, '#0D47A1', '#212121', '#FFFFFF', '#FFFFFF'),
+  createTheme('solid_green', 'Forest Green', 'Solid', '#1B5E20', '#388E3C', '#81C784', '#000000', '#FFFFFF', true, '#1B5E20', '#212121', '#FFFFFF', '#FFFFFF'),
+  createTheme('solid_purple', 'Deep Purple', 'Solid', '#4A148C', '#7B1FA2', '#BA68C8', '#000000', '#FFFFFF', true, '#4A148C', '#212121', '#FFFFFF', '#FFFFFF'),
+  createTheme('solid_teal', 'Dark Teal', 'Solid', '#004D40', '#00796B', '#4DB6AC', '#000000', '#FFFFFF', true, '#004D40', '#212121', '#FFFFFF', '#FFFFFF'),
+  createTheme('solid_orange', 'Vivid Orange', 'Solid', '#E65100', '#F57C00', '#FFB74D', '#000000', '#FFFFFF', true, '#E65100', '#212121', '#FFFFFF', '#FFFFFF'),
+  createTheme('solid_pink', 'Hot Pink', 'Solid', '#880E4F', '#C2185B', '#F06292', '#000000', '#FFFFFF', true, '#880E4F', '#212121', '#FFFFFF', '#FFFFFF'),
 ];
 
 interface ThemeState {

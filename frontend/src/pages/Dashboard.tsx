@@ -124,7 +124,7 @@ export default function Dashboard() {
       const [dashRes, storiesRes, suggestionsRes] = await Promise.all([
         api.get(`/posts/feed?offset=${currentOffset}&limit=10&seed=${deviceSeed}&device_id=${deviceId}${force ? '&force=true' : ''}`),
         isInitial ? api.get('/stories/active').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
-        isInitial ? api.get('/users/suggestions').catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
+        isInitial ? api.get(`/users/suggestions?seed=${deviceSeed}${force ? '&force=true' : ''}`).catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
       ]);
       
       const newPosts = Array.isArray(dashRes.data) ? dashRes.data : (dashRes.data.feed || dashRes.data.posts || []);

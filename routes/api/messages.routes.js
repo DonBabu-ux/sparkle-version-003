@@ -32,9 +32,4 @@ router.post('/:messageId/react', messageController.reactToMessage);
 router.get('/chat/:chatId', messageController.getConversationMessages);
 router.get('/:chatId', messageController.getConversationMessages);
 
-// Backward Compatibility Aliases
-router.get('/chat/:partnerId', messageController.getConversationMessages);
-router.post('/read/:partnerId', messageController.markRead);
-router.post('/mute/:partnerId', messageController.muteConversation);
-
 module.exports = router;

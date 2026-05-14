@@ -6,9 +6,9 @@ import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 
 const TABS = [
-  { label: 'For You',   icon: Compass },
-  { label: 'Suggested', icon: Zap },
-  { label: 'Following', icon: UserCheck },
+  { label: 'Discovery', icon: Compass },
+  { label: 'Suggested', icon: Sparkles },
+  { label: 'Network', icon: Users },
 ] as const;
 
 interface DiscoverUser {
@@ -105,50 +105,51 @@ export default function Connect() {
   const SKELETON_COUNT = 6;
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
+    <div className="flex bg-[#000000] min-h-screen text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
       <Navbar />
 
-      {/* Background orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
-
-      <main className="flex-1 lg:ml-72 p-4 md:p-6 relative z-10 max-w-[1200px] mx-auto w-full pt-20">
+      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-12">
         
         {/* ── Header ── */}
-        <header className="mb-6 animate-fade-in">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Connect</h1>
-            <p className="text-[15px] font-medium text-gray-500">
-              Discover people you may know and follow their journey.
+        <header className="mb-10 animate-fade-in flex items-end justify-between">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#ff1493] rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(255,20,147,0.4)]">
+                <Orbit className="text-white" size={22} />
+              </div>
+              <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">Discovery Hub</h1>
+            </div>
+            <p className="text-[13px] font-bold text-white/40 uppercase tracking-[0.2em] ml-13">
+              Expanding your sparkle matrix
             </p>
           </div>
         </header>
 
         {/* ── Search + Tabs Bar ── */}
-        <div className="sticky top-16 z-50 mb-8 animate-fade-in">
-          <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+        <div className="sticky top-6 z-50 mb-12 animate-fade-in">
+          <div className="bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-[2rem] p-2 flex flex-col md:flex-row gap-2 items-center shadow-2xl">
             <div className="relative flex-1 w-full group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors z-10" size={18} />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-[#ff1493] transition-all duration-500 z-10" size={20} />
               <input
                 type="text"
-                placeholder="Search by name or major..."
+                placeholder="Search by name, major, or campus..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-11 bg-gray-100 focus:bg-white border border-transparent focus:border-blue-500 rounded-lg px-12 text-[15px] font-medium text-gray-900 transition-all outline-none text-center"
+                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-white placeholder:text-white/10 transition-all outline-none"
               />
             </div>
             
-            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar px-1">
+            <div className="flex items-center gap-2 p-1.5 bg-black/40 rounded-[1.5rem] border border-white/5">
               {TABS.map(({ label, icon: Icon }) => (
                 <button
                   key={label}
                   onClick={() => setActiveTab(label)}
-                  className={`flex items-center gap-2 h-10 px-4 rounded-full font-bold text-[13px] transition-all duration-300 whitespace-nowrap
+                  className={`flex items-center gap-2.5 h-11 px-6 rounded-2xl font-black text-[12px] uppercase tracking-wider transition-all duration-500 whitespace-nowrap
                     ${activeTab === label 
-                      ? 'bg-blue-50 text-blue-600' 
-                      : 'text-gray-500 hover:bg-gray-100'}`}
+                      ? 'bg-[#ff1493] text-white shadow-[0_0_25px_rgba(255,20,147,0.3)] scale-105' 
+                      : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
                 >
-                  <Icon size={16} />
+                  <Icon size={16} strokeWidth={2.5} />
                   {label}
                 </button>
               ))}
@@ -159,31 +160,33 @@ export default function Connect() {
         {/* ── Content Grid ── */}
         <div className="relative z-10 pb-20">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-white border border-gray-200 rounded-xl p-6 aspect-square animate-pulse flex flex-col items-center justify-center">
-                   <div className="w-16 h-16 bg-gray-100 rounded-full mb-4" />
-                   <div className="w-2/3 h-4 bg-gray-100 rounded-full mb-2" />
-                   <div className="w-1/2 h-3 bg-gray-100 rounded-full" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {Array.from({ length: 15 }).map((_, i) => (
+                <div key={i} className="bg-white/5 border border-white/5 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
+                   <div className="w-20 h-20 bg-white/10 rounded-full mb-6" />
+                   <div className="w-2/3 h-5 bg-white/10 rounded-full mb-3" />
+                   <div className="w-1/2 h-4 bg-white/10 rounded-full" />
                 </div>
               ))}
             </div>
           ) : users.length === 0 ? (
-            <div className="py-32 flex flex-col items-center gap-6 text-center bg-white border border-gray-200 rounded-2xl shadow-sm animate-fade-in">
-              <Spinner size="large" color="text-gray-200" />
-              <div className="space-y-2 px-4">
-                <h3 className="text-xl font-bold text-gray-900">No results found</h3>
-                <p className="text-[14px] text-gray-500 max-w-xs mx-auto">Try searching for something else or explore different tabs.</p>
+            <div className="py-32 flex flex-col items-center gap-8 text-center bg-white/[0.02] border border-white/10 rounded-[3rem] backdrop-blur-xl animate-fade-in">
+              <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center">
+                <Search size={40} className="text-white/10" />
+              </div>
+              <div className="space-y-3 px-4">
+                <h3 className="text-2xl font-black text-white italic italic">NO RESULTS FOUND</h3>
+                <p className="text-[13px] font-bold text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other sectors.</p>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {users.map((u, idx) => (
                 <div 
                   key={(u.user_id || u.id) as string} 
                   ref={idx === users.length - 1 ? lastUserRef : null}
                   className="animate-scale-in" 
-                  style={{ animationDelay: `${(idx % 20) * 50}ms` }}
+                  style={{ animationDelay: `${(idx % 20) * 30}ms` }}
                 >
                   <UserCard
                     u={u}

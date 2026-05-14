@@ -272,7 +272,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
           <div className="flex items-center gap-1 flex-wrap leading-tight">
             <Link 
               to={`/profile/${post.username}`} 
-              className="font-black text-[13px] text-black dark:text-white hover:underline uppercase tracking-tighter italic"
+              className="font-bold text-[13px] text-black dark:text-white hover:underline tracking-tighter"
             >
               {post.name || post.username}
             </Link>

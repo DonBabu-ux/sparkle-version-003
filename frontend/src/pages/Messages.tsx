@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useModalStore } from '../store/modalStore';
+import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
+import type { SparkleTheme } from '../store/themeStore';
 import debounce from 'lodash.debounce';
 import { 
   Search, 
@@ -15,6 +18,7 @@ import {
   Paperclip, 
   Smile, 
   ArrowLeft,
+  ArrowDown,
   Archive,
   ImageIcon,
   FileText,
@@ -25,11 +29,55 @@ import {
   Info,
   Orbit,
   X,
-  ShoppingBag
+  ShoppingBag,
+  User,
+  Type,
+  Palette,
+  Pin,
+  BellOff,
+  Volume2,
+  Users,
+  Download,
+  Share2,
+  Clock,
+  Eye,
+  MoreHorizontal,
+  Shield,
+  Lock,
+  MinusCircle,
+  ShieldAlert,
+  AlertTriangle,
+  Image, 
+  Sparkles,
+  Cloud,
+  SquarePen,
+  Gift,
+  Flame,
+  Heart,
+  Zap,
+  Star,
+  Coffee,
+  Ghost,
+  Sun,
+  Moon,
+  Music,
+  Gamepad2,
+  Wand2,
+  PlusCircle,
+  Camera,
+  Mic,
+  ChevronRight
 } from 'lucide-react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
+import CameraModal from '../components/chat/CameraModal';
+import ChatSettingsModal from '../components/chat/ChatSettingsModal';
+import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
 
+// --- Types ---
 interface ChatConversation {
   chat_id: string;
   partner_id: string;
@@ -38,10 +86,10 @@ interface ChatConversation {
   partner_online?: boolean;
   is_archived?: boolean;
   is_group?: boolean;
-  is_admin?: boolean;
   unread_count: number;
   last_message?: string;
-  last_message_time: string;
+  last_message_time?: string;   // from personal_chats table column
+  last_message_at?: string;     // aliased in getUserConversations query
 }
 
 interface ChatMessage {
@@ -49,65 +97,310 @@ interface ChatMessage {
   sender_id: string;
   content: string;
   status: string;
-  created_at: string;
-  media_url?: string;
-  media_type?: string;
+  sent_at?: string;       // DB field name
+  created_at?: string;    // fallback / optimistic field
+  is_read?: boolean;
 }
+
+// --- Components ---
+
+const ChatBackground = ({ theme }: { theme: SparkleTheme | null }) => {
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-all duration-1000 bg-[#000000]">
+      <div 
+        className="absolute inset-0 transition-all duration-1000 opacity-60" 
+        style={{ 
+          background: `radial-gradient(circle at top right, #6366F125, transparent), radial-gradient(circle at bottom left, #ff149315, transparent)` 
+        }} 
+      />
+      {theme?.wallpaperUrl && (
+        <div 
+          className="absolute inset-0 z-0 transition-opacity duration-1000 opacity-[0.25]" 
+          style={{ 
+            backgroundImage: `url(${theme.wallpaperUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            mixBlendMode: 'screen'
+          }} 
+        />
+      )}
+    </div>
+  );
+};
+
+const ChatInput = memo(({ 
+  initialMessage, 
+  onTyping, 
+  onSend, 
+  onCameraOpen, 
+  isMenuCollapsed, 
+  setIsMenuCollapsed, 
+  selectedChat, 
+  sending,
+  getQuickReaction,
+  setShowAttachmentMenu,
+  showAttachmentMenu
+}: any) => {
+  const [localMessage, setLocalMessage] = useState(initialMessage || '');
+  
+  useEffect(() => {
+    setLocalMessage(initialMessage);
+  }, [initialMessage]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalMessage(val);
+    onTyping(val);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!localMessage.trim() && !sending) return;
+    onSend(e, localMessage);
+    setLocalMessage('');
+  };
+
+  return (
+    <footer className="bg-[#000000] border-t border-white/5 z-30 pb-safe shrink-0">
+      <div className="w-full px-1 py-2">
+        <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto">
+          {!isMenuCollapsed ? (
+            <div className="flex items-center shrink-0">
+              <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="text-[#ff1493] hover:opacity-80 p-2 ml-0">
+                <Plus size={22} strokeWidth={2.5} />
+              </button>
+              <button type="button" onClick={onCameraOpen} className="text-[#ff1493] hover:opacity-80 p-2">
+                <Camera size={22} strokeWidth={2.5} />
+              </button>
+              <label className="text-[#ff1493] hover:opacity-80 cursor-pointer p-2">
+                <ImageIcon size={22} strokeWidth={2.5} />
+                <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const content = JSON.stringify({ type: 'camera_capture', payload: { image: ev.target?.result as string, viewMode: 'off' } });
+                      onSend(undefined, content);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }} />
+              </label>
+              <button type="button" onClick={() => alert('Voice recording started...')} className="text-[#ff1493] hover:opacity-80 p-2">
+                <Mic size={22} strokeWidth={2.5} />
+              </button>
+            </div>
+          ) : (
+            <button 
+              type="button" 
+              onClick={() => setIsMenuCollapsed(false)} 
+              className="text-[#ff1493] hover:opacity-80 p-2 animate-scale-in shrink-0 ml-1"
+            >
+              <ChevronRight size={24} strokeWidth={3} />
+            </button>
+          )}
+          
+          <div className="flex-1 relative bg-[#262626] rounded-[20px] flex items-center h-[38px] px-3 mx-1 overflow-hidden">
+            <input 
+              type="text"
+              value={localMessage}
+              onChange={handleChange}
+              placeholder="Type a message..."
+              className="flex-1 bg-transparent !bg-transparent text-[14px] font-medium text-[#f5f5f5] placeholder:text-white/30 outline-none border-none !border-none focus:ring-0 focus:!ring-0 p-0 m-0 shadow-none !shadow-none caret-white"
+              autoComplete="off"
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: '#f5f5f5', caretColor: 'white' }}
+            />
+            <button type="button" className="text-white/30 hover:text-white transition-colors ml-2 shrink-0">
+              <Smile size={18} strokeWidth={2.5} />
+            </button>
+          </div>
+
+          <div className="flex items-center shrink-0 mr-1">
+            {localMessage.trim() ? (
+              <button 
+                type="submit"
+                disabled={sending}
+                className="ml-1 bg-[#ff1493] text-white p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg"
+              >
+                <Send size={16} strokeWidth={3} />
+              </button>
+            ) : (
+              <button 
+                type="button"
+                onClick={() => {
+                  const reaction = getQuickReaction(selectedChat.chat_id);
+                  onSend(undefined, reaction);
+                }}
+                className="ml-1 text-xl hover:scale-110 active:scale-90 transition-all p-1"
+              >
+                {getQuickReaction(selectedChat.chat_id)}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </footer>
+  );
+});
+
+ChatInput.displayName = 'ChatInput';
 
 export default function Messages() {
   const { user } = useUserStore();
+  const { setActiveModal } = useModalStore();
   const socket = useSocket();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetChatId = searchParams.get('chat');
 
+  // --- State ---
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatConversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
-  const [partnerTyping, setPartnerTyping] = useState(false);
-  const [inboxTab, setInboxTab] = useState('all');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showChatSettings, setShowChatSettings] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [suggestedContacts, setSuggestedContacts] = useState<any[]>([]);
-  
+  const [isMenuCollapsed, setIsMenuCollapsed] = useState(true);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteView, setNoteView] = useState('main');
+  const [noteText, setNoteText] = useState('');
+  const [showViewNoteModal, setShowViewNoteModal] = useState(false);
+  const [viewingNote, setViewingNote] = useState<any>(null);
+  const [noteReactionEmoji, setNoteReactionEmoji] = useState<string | null>(null);
+  const [showNoteOptions, setShowNoteOptions] = useState(false);
+  const [unreadCountInChat, setUnreadCountInChat] = useState(0);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [activeSettingView, setActiveSettingView] = useState('main');
+  const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
+  const [customPhotoPreview, setCustomPhotoPreview] = useState<string | null>(null);
+  const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
+  const [showWordEmojiPicker, setShowWordEmojiPicker] = useState(false);
+  const [newWordEffect, setNewWordEffect] = useState({ word: '', emoji: '😀' });
+
+  const { getThemeForChat, setThemeForChat, getQuickReaction, setQuickReaction, getWordEffects, addWordEffect, removeWordEffect } = useThemeStore();
+  const currentChatTheme = selectedChat ? getThemeForChat(selectedChat.chat_id) : null;
+  const activeThemeId = currentChatTheme?.id;
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const emitTyping = useMemo(
-    () => debounce((chatId: string, isTyping: boolean) => {
-        if (socket) {
-            socket.emit('typing', { chatId, isTyping });
-        }
-    }, 500),
-    [socket]
-  );
+  // --- Mock Data ---
+  const mockNotes = [
+    "Exploring the village ✨",
+    "Feeling the sparkle vibe!",
+    "New moments coming soon...",
+    "Listening to Afrobeat 🎵",
+    "Sparkle is the future 🚀"
+  ];
+  const notePlaceholder = "Feeling sparkle ✨";
 
-  const formatMessageText = (content?: string) => {
-    if (!content) return '';
+  // --- Effects ---
+  useEffect(() => {
+    fetchInbox();
+    fetchSuggested();
+  }, []);
+
+  useEffect(() => {
+    if (targetChatId && conversations.length > 0) {
+      const chat = conversations.find(c => c.chat_id === targetChatId || c.partner_id === targetChatId);
+      if (chat) setSelectedChat(chat);
+    }
+  }, [targetChatId, conversations]);
+
+  useEffect(() => {
+    if (selectedChat) {
+      fetchMessages(selectedChat.chat_id);
+    }
+  }, [selectedChat]);
+
+  // --- Handlers ---
+  const fetchInbox = async () => {
+    setLoading(true);
     try {
-      const parsed = JSON.parse(content);
-      if (parsed.type === 'marketplace_inquiry') {
-        return `🛒 Inquiry: ${parsed.payload?.title || 'Item'}`;
-      }
-    } catch(e) { /* not json */ }
-    return content;
+      const res = await api.get('/messages/inbox');
+      // Backend wraps response: { status, data: [...] }
+      const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+      setConversations(list);
+    } catch (err) {
+      console.error('Failed to fetch inbox', err);
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const openNewChat = async () => {
-    setShowNewChatModal(true);
+  const fetchSuggested = async () => {
     try {
-      const res = await api.get('/users/suggestions');
-      const data = res?.data?.suggestions || res?.data?.users || res?.data || [];
-      if (Array.isArray(data)) {
-        setSuggestedContacts(data);
-      }
+      const res = await api.get('/users/followers');
+      setSuggestedContacts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error('Failed to load contacts', err);
+      console.error('Failed to fetch suggested', err);
+      setSuggestedContacts([]);
     }
+  };
+
+  const fetchMessages = async (chatId: string) => {
+    try {
+      const res = await api.get(`/messages/chat/${chatId}`);
+      // Backend returns: { status, data: [...messages], chatId }
+      const msgs = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+      setMessages(msgs);
+      scrollToBottom();
+    } catch (err) {
+      console.error('Failed to fetch messages', err);
+    }
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string) => {
+    if (e) e.preventDefault();
+    const content = contentOverride || newMessage;
+    if (!content.trim() || !selectedChat) return;
+
+    setSending(true);
+    // Optimistic update — build a local message object immediately
+    const optimisticMsg: ChatMessage = {
+      message_id: `temp_${Date.now()}`,
+      sender_id: user?.id || user?.user_id || '',
+      content,
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      is_read: false,
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    if (!contentOverride) setNewMessage('');
+    scrollToBottom('smooth');
+
+    try {
+      await api.post('/messages/send', {
+        partnerId: selectedChat.partner_id,  // backend expects 'partnerId'
+        content
+      });
+      // Refresh the full chat so the real message_id replaces the temp one
+      fetchMessages(selectedChat.chat_id);
+    } catch (err) {
+      console.error('Failed to send message', err);
+      // Roll back optimistic message on failure
+      setMessages(prev => prev.filter(m => m.message_id !== optimisticMsg.message_id));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendMessageWrapper = (e: any, content: string) => handleSendMessage(e, content);
+  const handleTyping = (val: string) => setNewMessage(val);
+  const handleScroll = (e: any) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    setShowScrollToBottom(scrollHeight - scrollTop - clientHeight > 300);
   };
 
   const startNewChat = (contact: any) => {
@@ -116,320 +409,285 @@ export default function Messages() {
       setSelectedChat(existing);
     } else {
       setSelectedChat({
-        chat_id: 'new_' + contact.user_id,
+        chat_id: 'temp_' + Date.now(),
         partner_id: contact.user_id,
         partner_name: contact.name || contact.username,
         partner_avatar: contact.avatar_url,
         unread_count: 0,
-        last_message_time: new Date().toISOString(),
-        last_message: ''
+        last_message_time: new Date().toISOString()
       });
     }
     setShowNewChatModal(false);
   };
 
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+  const handleAction = (label: string) => {
+    if (label === 'Customize themes') setActiveSettingView('customize');
+    else alert(`Action: ${label}`);
   };
 
-  const fetchInbox = useCallback(async () => {
+  const handleApplyTheme = () => {
+    if (previewThemeId && selectedChat) {
+      const theme = PRESET_THEMES.find(t => t.id === previewThemeId);
+      if (theme) setThemeForChat(selectedChat.chat_id, theme);
+      setPreviewThemeId(null);
+      setActiveSettingView('main');
+    }
+  };
+
+  const safeTime = (time: string) => {
+    if (!time) return '';
+    const date = new Date(time);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatLastSeen = (time: string) => {
+    if (!time) return 'long ago';
+    const diff = Date.now() - new Date(time).getTime();
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    return safeTime(time);
+  };
+
+  const formatMessageText = (content?: string) => {
+    if (!content) return '';
     try {
-      const inboxRes = await api.get('/messages/inbox');
-      if (inboxRes?.data?.status === 'success') {
-        setConversations(inboxRes.data.data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch inbox:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchInbox();
-  }, [fetchInbox]);
-
-  useEffect(() => {
-    if (targetChatId && conversations.length > 0) {
-      const chat = conversations.find(c => c.chat_id === targetChatId || c.partner_id === targetChatId);
-      if (chat && chat.chat_id !== selectedChat?.chat_id) {
-         setSelectedChat(chat);
-      }
-    }
-  }, [targetChatId, conversations, selectedChat?.chat_id]);
-
-  useEffect(() => {
-    if (!selectedChat?.chat_id) return;
-    
-    const fetchMessages = async () => {
-      try {
-        const response = await api.get(`/messages/chat/${selectedChat.chat_id}`);
-        if (response?.data?.status === 'success') {
-          setMessages(response.data.data || []);
-        }
-      } catch (err) {
-        console.error('Failed to fetch messages:', err);
-      }
-    };
-    fetchMessages();
-
-    if (selectedChat.unread_count > 0) {
-        setConversations(prev => prev.map(c => 
-          c.chat_id === selectedChat.chat_id ? { ...c, unread_count: 0 } : c
-        ));
-    }
-  }, [selectedChat?.chat_id, selectedChat?.unread_count]);
-
-  useEffect(() => {
-    if (messages.length > 0) {
-        scrollToBottom('smooth');
-    }
-  }, [messages.length]);
-
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on('new-message', (data: ChatMessage & { conversation_id?: string, chat_id?: string }) => {
-      const chatId = data.conversation_id || data.chat_id;
-      if (selectedChat?.chat_id === chatId) {
-        setMessages(prev => [...prev, data]);
-        socket.emit('mark-read', chatId);
-      }
-      
-      setConversations(prev => {
-        const index = prev.findIndex(c => c.chat_id === chatId);
-        if (index === -1) {
-          fetchInbox();
-          return prev;
-        }
-        const updated = [...prev];
-        updated[index] = {
-          ...updated[index],
-          last_message: data.content,
-          last_message_time: data.created_at,
-          unread_count: selectedChat?.chat_id === chatId ? 0 : (updated[index].unread_count || 0) + 1
-        };
-        const chat = updated.splice(index, 1)[0];
-        return [chat, ...updated];
-      });
-    });
-
-    socket.on('user-typing', (data: { chatId: string, isTyping: boolean }) => {
-      if (selectedChat?.chat_id === data.chatId && data.isTyping) {
-        setPartnerTyping(true);
-        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = setTimeout(() => setPartnerTyping(false), 3000);
-      } else if (selectedChat?.chat_id === data.chatId && !data.isTyping) {
-        setPartnerTyping(false);
-      }
-    });
-
-    return () => {
-      socket.off('new-message');
-      socket.off('user-typing');
-    };
-  }, [socket, selectedChat, fetchInbox]);
-
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!newMessage.trim() || !selectedChat || sending) return;
-
-    const content = newMessage.trim();
-    setNewMessage('');
-    setSending(true);
-
-    const messageData = {
-      chatId: selectedChat.chat_id,
-      partnerId: selectedChat.partner_id,
-      content: content,
-      type: 'text'
-    };
-
-    if (socket && socket.connected) {
-      socket.emit('send-message', messageData, () => {
-        setSending(false);
-      });
-    } else {
-      try {
-        await api.post('/messages/send', messageData);
-      } catch (err) {
-        console.error('Failed to send:', err);
-      } finally {
-        setSending(false);
-      }
-    }
+      const parsed = JSON.parse(content);
+      if (parsed.type === 'camera_capture') return '📷 Photo';
+      if (parsed.type === 'marketplace_inquiry') return '🛒 Marketplace inquiry';
+    } catch (e) {}
+    return content;
   };
 
-  const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewMessage(e.target.value);
-    if (selectedChat) {
-      emitTyping(selectedChat.chat_id, e.target.value.length > 0);
-    }
-  };
-
-  const safeTime = (dateStr: string) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
+  // --- Render ---
   return (
-    <div className="flex bg-white dark:bg-black h-screen overflow-hidden text-black dark:text-white font-sans transition-colors duration-300">
+    <div className={clsx("flex flex-col h-screen bg-[#000000] text-white overflow-hidden safe-bottom", selectedChat && "hidden-mobile-nav")}>
       <Navbar />
       
-      <div className="flex-1 flex lg:ml-72 relative h-full overflow-hidden pt-18 lg:pt-0">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* SIDEBAR */}
-        <aside className={`w-full lg:w-[420px] bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-r border-white dark:border-white/10 flex flex-col transition-all duration-700 min-h-0 ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
-          <header className="p-8 pb-6">
-             <div className="flex items-center justify-between mb-10">
-               <div>
-                  <h1 className="text-4xl font-black text-black dark:text-white tracking-tight italic">Messages</h1>
-                  <p className="text-[11px] font-bold text-black/20 dark:text-white/20 uppercase tracking-[0.2em] mt-2">Direct Messages</p>
-               </div>
-               <button 
-                onClick={openNewChat}
-                className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-               >
-                 <Plus size={20} strokeWidth={3} />
-               </button>
+        <aside className={clsx(
+          "w-full lg:w-[420px] bg-[#000000] border-r border-white/5 flex flex-col transition-all duration-300 min-h-0",
+          selectedChat ? 'hidden lg:flex' : 'flex'
+        )}>
+          <header className="px-5 pt-4 pb-2 overflow-visible bg-[#000000]">
+             <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                   <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username}`)}>
+                     <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10" alt="" />
+                   </div>
+                   <h1 className="text-[26px] font-bold text-[#f5f5f5] tracking-tight">Chats</h1>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setShowCameraModal(true)} className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all">
+                    <Camera size={22} strokeWidth={2.2} />
+                  </button>
+                  <button 
+                   onClick={() => setShowNewChatModal(true)}
+                   className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
+                  >
+                    <SquarePen size={22} strokeWidth={2.2} />
+                  </button>
+                </div>
              </div>
 
-             <div className="relative mb-8 group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-black/20 group-focus-within:text-primary transition-colors" size={18} />
+             <div className="relative mb-3 group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" size={14} />
                 <input 
                   type="text" 
                   placeholder="Search messages..." 
-                  className="w-full h-14 bg-white/60 border border-white rounded-[20px] pl-16 pr-6 text-sm font-bold text-black placeholder:text-black/10 focus:bg-white focus:border-primary transition-all outline-none shadow-sm"
+                  className="w-full h-8 bg-white/5 border border-white/5 rounded-full pl-9 pr-3 text-[12px] font-medium text-[#f5f5f5] placeholder:text-white/25 transition-all outline-none focus:border-[#ff1493]/30"
                 />
              </div>
 
-             <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                {['all', 'direct', 'clubs', 'archived'].map(tab => (
-                  <button 
-                    key={tab}
-                    onClick={() => setInboxTab(tab)}
-                    className={`px-6 py-2 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all whitespace-nowrap italic ${inboxTab === tab ? 'bg-primary text-white shadow-lg' : 'bg-white/40 dark:bg-white/5 text-black/30 dark:text-white/30 hover:bg-white/60 dark:hover:bg-white/10'}`}
+             {/* Notes Row — pt-14 gives room for the absolute -top-11 speech bubbles */}
+             <div className="flex gap-1 overflow-x-auto no-scrollbar overflow-visible pt-14 pb-2">
+                <div className="relative w-[74px] flex flex-col items-center gap-2 shrink-0">
+                  <div className="relative w-full">
+                    <div 
+                      className="absolute -top-[44px] left-0 right-0 h-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center px-1 text-[9px] text-white/90 font-medium text-center leading-tight shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all z-10"
+                      onClick={() => setActiveModal('note_editor')}
+                    >
+                      <span className="truncate block w-full">{notePlaceholder}</span>
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white/5 border-b border-r border-white/10 rounded-full"></div>
+                    </div>
+                    <div className="cursor-pointer flex justify-center" onClick={() => navigate(`/profile/${user?.username}`)}>
+                      <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/5" alt="" />
+                    </div>
+                    <div 
+                      className="absolute bottom-0 right-3 w-5 h-5 bg-[#ff1493] rounded-full flex items-center justify-center border-[3px] border-black text-white cursor-pointer hover:scale-110 active:scale-90 transition-all"
+                      onClick={() => setShowCameraModal(true)}
+                    >
+                      <Plus size={12} strokeWidth={4} />
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-medium text-white/30 text-center truncate w-full">Your story</span>
+                </div>
+
+                {/* Static mock user notes — always visible */}
+                {[
+                  { name: 'Amara', initials: 'AM', note: 'Feeling sparkle ✨', color: '#7c3aed' },
+                  { name: 'Kofi', initials: 'KO', note: 'Village vibes 🌍', color: '#0ea5e9' },
+                  { name: 'Zara', initials: 'ZR', note: 'New music drop 🎵', color: '#ff1493' },
+                ].map((mock) => (
+                  <div key={mock.name} className="relative w-[74px] flex flex-col items-center gap-2 shrink-0 cursor-pointer"
+                    onClick={() => {
+                      setViewingNote({...mock});
+                      setShowViewNoteModal(true);
+                    }}
                   >
-                    {tab}
-                  </button>
+                    <div className="relative w-full">
+                      <div className="absolute -top-[44px] left-0 right-0 h-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center px-1 text-[9px] text-white/90 font-medium text-center leading-tight shadow-xl z-10">
+                        <span className="truncate block w-full">{mock.note}</span>
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white/5 border-b border-r border-white/10 rounded-full"></div>
+                      </div>
+                      <div className="flex justify-center">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[15px] font-black border-2 border-white/5" style={{ background: mock.color }}>
+                          {mock.initials}
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 right-3 w-3.5 h-3.5 bg-emerald-500 border-[2.5px] border-black rounded-full"></div>
+                    </div>
+                    <span className="text-[10px] font-medium text-[#f5f5f5]/60 text-center truncate w-full">{mock.name}</span>
+                  </div>
+                ))}
+
+                {Array.isArray(suggestedContacts) && suggestedContacts.slice(0, 7).map((contact, idx) => (
+                  <div key={contact.user_id} className="relative w-[74px] flex flex-col items-center gap-2 shrink-0 cursor-pointer group"
+                    onClick={() => {
+                      setViewingNote({...contact, note: mockNotes[idx % mockNotes.length]});
+                      setShowViewNoteModal(true);
+                    }}
+                  >
+                    <div className="relative w-full">
+                      <div className="absolute -top-[44px] left-0 right-0 h-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center px-1 text-[9px] text-white/90 font-medium text-center leading-tight shadow-xl animate-fade-in z-10">
+                        <span className="truncate block w-full">{mockNotes[idx % mockNotes.length]}</span>
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white/5 border-b border-r border-white/10 rounded-full"></div>
+                      </div>
+                      <div className="flex justify-center">
+                        <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/5 shadow-sm" alt="" />
+                      </div>
+                      <div className="absolute bottom-0 right-3 w-3.5 h-3.5 bg-emerald-500 border-[2.5px] border-black rounded-full"></div>
+                    </div>
+                    <span className="text-[10px] font-medium text-[#f5f5f5]/60 text-center truncate w-full">{contact.name?.split(' ')[0] || contact.username}</span>
+                  </div>
                 ))}
              </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-3 no-scrollbar scroll-smooth">
-            {conversations.length === 0 && !loading ? (
+          <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-3 no-scrollbar scroll-smooth bg-[#000000]">
+            {Array.isArray(conversations) && conversations.length === 0 && !loading ? (
               <div className="py-12 px-4">
                  <ModernOfflineState 
                    type="empty"
-                   title="Inbox is Empty"
-                   message="No sparks in your inbox yet. Start a new chat to connect with your village!"
+                   title="No chats yet"
+                   message="When you start a conversation, it'll show up here."
                    onRetry={() => fetchInbox()}
                  />
               </div>
             ) : (
-              conversations.map(chat => (
+              Array.isArray(conversations) && conversations.map((chat, idx) => (
                 <div 
                   key={chat.chat_id}
                   onClick={() => setSelectedChat(chat)}
-                  className={`p-5 rounded-[28px] transition-all duration-500 cursor-pointer group flex items-center gap-5 border ${selectedChat?.chat_id === chat.chat_id ? 'bg-white border-primary shadow-xl scale-[1.02]' : 'bg-white/40 border-white hover:bg-white/60 hover:scale-[1.01]'}`}
+                  className={clsx(
+                    "px-4 py-1.5 rounded-2xl transition-all duration-300 cursor-pointer group flex items-center gap-3",
+                    selectedChat?.chat_id === chat.chat_id ? 'bg-white/10' : 'hover:bg-white/5'
+                  )}
                 >
                   <div className="relative shrink-0">
-                    <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-14 h-14 rounded-[20px] object-cover border border-white shadow-sm" alt="" />
-                    {chat.partner_online && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></div>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                       <h4 className="font-black text-black dark:text-white text-base tracking-tight truncate leading-none italic uppercase group-hover:text-primary transition-colors">{chat.partner_name}</h4>
-                       <span className="text-[9px] font-black text-black/20 dark:text-white/20 uppercase tracking-widest">{safeTime(chat.last_message_time)}</span>
-                    </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className={`text-[12px] font-medium truncate italic ${chat.unread_count > 0 ? 'text-black dark:text-white' : 'text-black/30 dark:text-white/30'}`}>
-                        {chat.last_message ? formatMessageText(chat.last_message) : 'No messages yet...'}
-                      </p>
-                      {chat.unread_count > 0 && (
-                        <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-white text-[9px] font-black shadow-lg">
-                           {chat.unread_count}
+                    <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-11 h-11 rounded-full object-cover border border-white/5 shadow-md" alt="" />
+                    <div className="absolute -bottom-0.5 -right-0.5">
+                      {chat.partner_online ? (
+                        <div className="w-4 h-4 bg-emerald-500 border-[3px] border-black rounded-full"></div>
+                      ) : (
+                        <div className="bg-[#1a1a1a] text-white text-[9px] font-black px-1 py-0.5 rounded-full border-[2px] border-black shadow-lg">
+                          {idx % 3 === 0 ? '9m' : idx % 3 === 1 ? '1h' : '2d'}
                         </div>
                       )}
                     </div>
                   </div>
+                  <div className="flex-1 min-w-0 pr-2">
+                    <div className="flex justify-between items-center mb-0.5">
+                       <h4 className={clsx(
+                         "text-[14px] tracking-tight truncate leading-none",
+                         chat.unread_count > 0 ? 'font-bold text-[#f5f5f5]' : 'font-medium text-[#f5f5f5]/80'
+                       )}>{chat.partner_name}</h4>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <p className={clsx(
+                        "text-[12px] truncate",
+                        chat.unread_count > 0 ? 'font-bold text-[#f5f5f5]' : 'text-[#f5f5f5]/40'
+                      )}>
+                        {chat.last_message ? formatMessageText(chat.last_message) : 'Sent a photo'}
+                      </p>
+                      <span className="text-[12px] text-white/20 shrink-0">· {safeTime(chat.last_message_time || chat.last_message_at || '')}</span>
+                    </div>
+                  </div>
+                  {chat.unread_count > 0 && (
+                    <div className="w-2.5 h-2.5 bg-[#ff1493] rounded-full shrink-0 shadow-lg"></div>
+                  )}
                 </div>
               ))
             )}
           </div>
         </aside>
 
-        {/* CHAT MAIN */}
-        <main className={`flex-1 flex flex-col transition-all duration-700 relative z-10 ${!selectedChat ? 'hidden lg:flex' : 'flex'} bg-white/20`}>
+        {/* MAIN CHAT AREA */}
+        <main className={clsx(
+          "flex-1 flex flex-col transition-all duration-300 relative z-10 bg-transparent overflow-hidden",
+          !selectedChat ? 'hidden lg:flex' : 'flex'
+        )}>
+          {selectedChat && <ChatBackground theme={currentChatTheme} />}
+          
           {selectedChat ? (
             <>
-              <header className="h-[90px] bg-white/60 backdrop-blur-3xl border-b border-white px-8 flex items-center justify-between z-20 shadow-sm relative overflow-hidden">
-                <div className="flex items-center gap-5 relative z-10">
-                  <button onClick={() => setSelectedChat(null)} className="lg:hidden text-black/20 hover:text-black transition-colors p-2">
-                    <ArrowLeft size={20} strokeWidth={3} />
+              <header className="h-[60px] bg-[#000000]/80 backdrop-blur-xl border-b border-white/5 px-4 flex items-center justify-between z-40 relative shadow-lg">
+                <div className="flex items-center gap-2 relative z-10">
+                  <button onClick={() => setSelectedChat(null)} className="text-white hover:opacity-70 transition-opacity p-2">
+                    <ArrowLeft size={28} strokeWidth={2.5} />
                   </button>
                   <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>
-                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-12 h-12 rounded-[18px] object-cover border border-white shadow-sm group-hover:scale-110 transition-transform" alt="" />
+                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[38px] h-[38px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-black text-black dark:text-white tracking-tight italic leading-none group-hover:text-primary transition-colors cursor-pointer uppercase" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>{selectedChat.partner_name}</h3>
-                    <div className="flex items-center gap-2 mt-1.5 px-0.5">
-                        <div className={`w-1.5 h-1.5 rounded-full ${partnerTyping ? 'bg-primary' : (selectedChat.partner_online ? 'bg-emerald-500' : 'bg-black/10 dark:bg-white/10')} animate-pulse`}></div>
-                        <p className="text-[10px] font-bold text-black/20 dark:text-white/20 uppercase tracking-widest leading-none">{partnerTyping ? 'Typing...' : (selectedChat.partner_online ? 'Online' : 'Offline')}</p>
+                  <div className="ml-1 overflow-hidden h-[30px] flex flex-col justify-center">
+                    <h3 className="text-[15px] font-bold tracking-tight leading-none text-white font-sans">{selectedChat.partner_name}</h3>
+                    <div className="h-[14px] relative mt-1">
+                      {selectedChat.partner_online ? (
+                        <p className="text-[11px] font-bold tracking-wide lowercase text-emerald-500 whitespace-nowrap">online</p>
+                      ) : (
+                        <p className="text-[11px] font-bold tracking-wide lowercase text-white/40 whitespace-nowrap">last seen {formatLastSeen(selectedChat.last_message_time || selectedChat.last_message_at || '')}</p>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 relative z-10">
-                  <button className="hidden sm:flex w-11 h-11 rounded-xl bg-white/60 dark:bg-white/5 border border-white dark:border-white/10 items-center justify-center text-black/20 dark:text-white/20 hover:text-primary transition-all active:scale-95 shadow-sm"><Phone size={18} strokeWidth={3} /></button>
-                  <button className="hidden sm:flex w-11 h-11 rounded-xl bg-white/60 dark:bg-white/5 border border-white dark:border-white/10 items-center justify-center text-black/20 dark:text-white/20 hover:text-primary transition-all active:scale-95 shadow-sm"><Video size={18} strokeWidth={3} /></button>
-                  <div className="relative">
-                    <button onClick={() => setShowChatSettings(!showChatSettings)} className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm border ${showChatSettings ? 'bg-primary text-white border-primary shadow-primary/20' : 'bg-white/60 dark:bg-white/5 border-white dark:border-white/10 text-black/20 dark:text-white/20 hover:text-black dark:hover:text-white'}`}><MoreVertical size={18} strokeWidth={3} /></button>
-                    {showChatSettings && (
-                      <div className="absolute right-0 top-full mt-4 w-64 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-3xl border border-white dark:border-white/10 rounded-[32px] shadow-2xl z-50 p-4 animate-scale-in">
-                        <button className="w-full flex items-center gap-4 p-4 hover:bg-primary hover:text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all group italic"><Info size={18} strokeWidth={3} /> Contact Profile</button>
-                        <button className="w-full flex items-center gap-4 p-4 hover:bg-black dark:hover:bg-white/10 hover:text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all group italic"><Archive size={18} strokeWidth={3} /> Archive Chat</button>
-                        <div className="my-2 h-px w-full bg-black/5 dark:bg-white/5 mx-2"></div>
-                        <button className="w-full flex items-center gap-4 p-4 hover:bg-red-500 hover:text-white rounded-2xl text-[10px] font-bold text-red-500 uppercase tracking-widest transition-all group italic"><Trash2 size={18} strokeWidth={3} /> Delete Chat</button>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center gap-3 relative z-10 pr-1">
+                  <button className="text-white/90 hover:text-white p-2 transition-all active:scale-95"><Phone size={18} strokeWidth={2.5} /></button>
+                  <button className="text-white/90 hover:text-white p-2 transition-all active:scale-95"><Video size={18} strokeWidth={2.5} /></button>
+                  <button onClick={() => setShowChatSettings(true)} className="text-white/90 hover:text-white p-2 transition-all active:scale-95">
+                    <Info size={20} strokeWidth={2.5} />
+                  </button>
                 </div>
               </header>
 
-              <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10 no-scrollbar scroll-smooth relative z-10">
-                <div className="flex flex-col gap-6">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10" onScroll={handleScroll}>
+                <div className="flex flex-col">
                   {messages.map((msg, i) => {
                     const isMe = msg.sender_id === (user?.id || user?.user_id);
-
                     return (
-                      <div key={msg.message_id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                        <div className={`max-w-[80%] md:max-w-[70%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          <div className={`px-6 py-4 rounded-[20px] md:rounded-[28px] text-md font-bold leading-relaxed shadow-sm transition-all duration-500 relative overflow-hidden group border ${isMe ? 'bg-primary text-white border-primary rounded-tr-none' : 'bg-white/80 dark:bg-white/5 backdrop-blur-xl text-black dark:text-white border-white dark:border-white/10 rounded-tl-none'}`}>
-                            {(() => {
-                               const content = msg.content;
-                               try {
-                                 const parsed = JSON.parse(content);
-                                 if (parsed.type === 'marketplace_inquiry') {
-                                   return (
-                                     <div className="flex flex-col gap-3 min-w-[200px]">
-                                       <div className="flex items-center gap-2 mb-2 font-black italic text-sm opacity-90">
-                                         <ShoppingBag size={16} strokeWidth={3} />
-                                         <span>Marketplace Inquiry</span>
-                                       </div>
-                                       {parsed.payload?.image && <img src={parsed.payload.image} className="w-full h-32 object-cover rounded-[14px]" />}
-                                       <h4 className="font-black leading-tight uppercase italic">{parsed.payload?.title}</h4>
-                                       <p className="text-sm font-bold opacity-80">{parsed.payload?.price}</p>
-                                       {parsed.payload?.link && <a href={parsed.payload.link} target="_blank" rel="noreferrer" className="mt-2 text-[10px] uppercase tracking-widest font-black underline opacity-70 hover:opacity-100">View Listing</a>}
-                                     </div>
-                                   );
-                                 }
-                               } catch(e) {}
-                               return <p className="whitespace-pre-wrap">{content}</p>;
-                            })()}
-                            <div className={`flex items-center gap-2 mt-3 opacity-60 text-[9px] font-bold uppercase tracking-widest italic ${isMe ? 'justify-end text-white' : 'justify-start text-black/20 dark:text-white/20'}`}>
-                              {safeTime(msg.created_at)}
-                              {isMe && (msg.status === 'read' ? <CheckCircle2 size={10} strokeWidth={4} /> : <Check size={10} strokeWidth={4} />)}
-                            </div>
+                      <div key={msg.message_id || i} className={clsx("flex animate-fade-in mt-4", isMe ? 'justify-end' : 'justify-start')}>
+                        <div className={clsx("max-w-[85%] md:max-w-[70%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
+                          <div 
+                            className={clsx(
+                              "px-4 py-2.5 text-[15px] leading-relaxed shadow-sm transition-all duration-300 relative z-10 rounded-[14px]",
+                              isMe ? 'bg-[#ff1493] text-white' : 'bg-[#2C2C2E] text-white'
+                            )}
+                            style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}
+                          >
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+                          <div className={clsx("flex items-center gap-1.5 mt-1 px-1 opacity-40 text-[10px] font-medium", isMe ? 'flex-row-reverse' : 'flex-row')}>
+                            <span>{safeTime(msg.sent_at || msg.created_at || '')}</span>
+                            {isMe && <span className={msg.is_read ? 'text-[#ff1493]' : ''}>{msg.is_read ? '✓✓' : '✓'}</span>}
                           </div>
                         </div>
                       </div>
@@ -439,72 +697,31 @@ export default function Messages() {
                 </div>
               </div>
 
-              <footer className="p-6 bg-white/60 dark:bg-black/60 backdrop-blur-3xl border-t border-white dark:border-white/10 z-20 shadow-inner">
-                <form onSubmit={handleSendMessage} className="flex items-center gap-4 max-w-[900px] mx-auto relative px-2">
-                  <div className="relative">
-                    <button 
-                      type="button"
-                      onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                      className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-500 shadow-sm border ${showAttachmentMenu ? 'bg-black dark:bg-white text-white dark:text-black rotate-45 border-black dark:border-white shadow-xl' : 'bg-white dark:bg-white/5 border-white dark:border-white/10 text-black/20 dark:text-white/20 hover:text-black dark:hover:text-white hover:border-black/5 dark:hover:border-white/5'}`}
-                    >
-                      <Paperclip size={22} strokeWidth={3} />
-                    </button>
-                    {showAttachmentMenu && (
-                      <div className="absolute bottom-full left-0 mb-6 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-3xl border border-white dark:border-white/10 rounded-[32px] shadow-2xl p-4 flex flex-col gap-2 w-64 animate-scale-in">
-                        {[
-                          { icon: ImageIcon, label: 'Photos', color: 'text-primary' },
-                          { icon: FileText, label: 'Files', color: 'text-black dark:text-white' },
-                          { icon: MapPin, label: 'Location', color: 'text-black/30 dark:text-white/30' },
-                        ].map(item => (
-                          <button key={item.label} className="flex items-center gap-4 p-3.5 hover:bg-primary/5 dark:hover:bg-white/5 rounded-2xl transition-all group italic">
-                            <div className={`w-10 h-10 bg-black/5 dark:bg-white/5 ${item.color} rounded-xl flex items-center justify-center transition-all duration-700`}><item.icon size={18} strokeWidth={3} /></div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-black/50 dark:text-white/50 group-hover:text-black dark:group-hover:text-white">{item.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 relative group bg-white/60 dark:bg-white/5 border border-white dark:border-white/10 rounded-[24px] focus-within:bg-white dark:focus-within:bg-[#121212] focus-within:border-primary transition-all shadow-sm">
-                    <textarea 
-                      value={newMessage}
-                      onChange={handleTyping}
-                      placeholder="Write a message..."
-                      className="w-full bg-transparent py-4 pl-8 pr-16 text-base font-bold text-black dark:text-white placeholder:text-black/10 dark:placeholder:text-white/10 outline-none resize-none h-[56px] no-scrollbar leading-tight italic"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                    />
-                    <button type="button" className="absolute right-6 top-1/2 -translate-y-1/2 text-black/5 dark:text-white/5 hover:text-primary transition-colors">
-                      <Smile size={22} strokeWidth={3} />
-                    </button>
-                  </div>
-
-                  <button 
-                    type="submit"
-                    disabled={!newMessage.trim() || sending}
-                    className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-500 ${newMessage.trim() ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-105 active:scale-95 border border-primary' : 'bg-white dark:bg-white/5 border-white dark:border-white/10 text-black/5 dark:text-white/5'}`}
-                  >
-                    <Send size={22} strokeWidth={3} />
-                  </button>
-                </form>
-              </footer>
+              <ChatInput 
+                initialMessage={newMessage}
+                onTyping={handleTyping}
+                onSend={handleSendMessageWrapper}
+                onCameraOpen={() => setShowCameraModal(true)}
+                isMenuCollapsed={isMenuCollapsed}
+                setIsMenuCollapsed={setIsMenuCollapsed}
+                selectedChat={selectedChat}
+                sending={sending}
+                getQuickReaction={getQuickReaction}
+                setShowAttachmentMenu={setShowAttachmentMenu}
+                showAttachmentMenu={showAttachmentMenu}
+              />
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black/[0.02] dark:text-white/[0.02] pointer-events-none" aria-hidden>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.02] pointer-events-none" aria-hidden>
                 <Orbit size={400} strokeWidth={0.5} className="animate-spin-slow" />
               </div>
-              <Orbit size={120} strokeWidth={1} className="text-black/5 dark:text-white/5 mb-12 relative z-10" />
-              <h2 className="text-5xl font-black text-black dark:text-white mb-4 tracking-tighter italic uppercase underline decoration-primary/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
-              <p className="text-black dark:text-white font-medium opacity-30 dark:opacity-40 max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
-              
+              <Orbit size={120} strokeWidth={1} className="text-white/5 mb-12 relative z-10" />
+              <h2 className="text-5xl font-black text-[#f5f5f5] mb-4 tracking-tighter italic uppercase underline decoration-[#ff1493]/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
+              <p className="text-white font-medium opacity-40 max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
               <button 
-                onClick={openNewChat}
-                className="mt-12 flex items-center gap-3 px-10 py-5 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all italic group"
+                onClick={() => setShowNewChatModal(true)}
+                className="mt-12 flex items-center gap-3 px-10 py-5 bg-[#ff1493] text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-pink-500/20 hover:scale-[1.02] transition-all italic group"
               >
                 <Plus size={20} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> New Message
               </button>
@@ -513,44 +730,123 @@ export default function Messages() {
         </main>
       </div>
 
-      {/* New Chat Modal */}
-      {showNewChatModal && (
-         <div className="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-sm z-[100] flex justify-center pt-20 px-4" onClick={() => setShowNewChatModal(false)}>
-            <div className="bg-white dark:bg-[#121212] rounded-[32px] w-full max-w-md h-[70vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
-               <div className="p-6 border-b border-black/[0.05] dark:border-white/[0.05] flex justify-between items-center bg-[#fdf2f4] dark:bg-black/40">
-                 <h2 className="text-xl font-black text-black dark:text-white uppercase italic tracking-tighter">New Message</h2>
-                 <button onClick={() => setShowNewChatModal(false)} className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-all text-black dark:text-white"><X size={20} strokeWidth={3} /></button>
-               </div>
-               <div className="p-4 border-b border-black/[0.05] dark:border-white/[0.05]">
-                 <div className="relative bg-black/5 dark:bg-white/5 rounded-2xl flex items-center px-4 h-12 focus-within:bg-white dark:focus-within:bg-[#121212] focus-within:border focus-within:border-primary transition-all">
-                   <Search size={18} className="text-black/30 dark:text-white/30" strokeWidth={3} />
-                   <input type="text" placeholder="Search users..." className="bg-transparent w-full h-full outline-none ml-3 font-bold text-sm text-black dark:text-white placeholder:text-black/20 dark:placeholder:text-white/20 italic" />
-                 </div>
-               </div>
-               <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
-                 {suggestedContacts.map(contact => (
-                    <div key={contact.user_id} onClick={() => startNewChat(contact)} className="flex items-center gap-4 p-4 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl cursor-pointer transition-all active:scale-[0.98]">
-                       <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-xl object-cover border border-black/5 dark:border-white/5 shadow-sm" />
-                       <div>
-                         <h4 className="font-black text-black dark:text-white italic uppercase text-sm leading-none">{contact.name || contact.username}</h4>
-                         <p className="text-[10px] text-black/40 dark:text-white/40 font-bold uppercase tracking-widest mt-1">@{contact.username}</p>
-                       </div>
+      {/* MODALS */}
+      <AnimatePresence>
+        {showNewChatModal && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#000000]/80 backdrop-blur-sm z-[100] flex justify-center pt-20 px-4" 
+            onClick={() => setShowNewChatModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#121212] rounded-[32px] w-full max-w-md h-[70vh] flex flex-col shadow-2xl overflow-hidden" 
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#000000]/40">
+                <h2 className="text-xl font-black text-white uppercase italic tracking-tighter">New Message</h2>
+                <button onClick={() => setShowNewChatModal(false)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-white"><X size={20} strokeWidth={3} /></button>
+              </div>
+              <div className="p-4 border-b border-white/5">
+                <div className="relative bg-white/5 rounded-2xl flex items-center px-4 h-12 focus-within:bg-white/10 transition-all">
+                  <Search size={18} className="text-white/30" strokeWidth={3} />
+                  <input type="text" placeholder="Search users..." className="bg-transparent w-full h-full outline-none ml-3 font-bold text-sm text-[#f5f5f5] placeholder:text-white/20 italic" />
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
+                {Array.isArray(suggestedContacts) && suggestedContacts.map(contact => (
+                  <div key={contact.user_id} onClick={() => startNewChat(contact)} className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl cursor-pointer transition-all active:scale-[0.98]">
+                    <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-xl object-cover border border-white/5 shadow-sm" />
+                    <div>
+                      <h4 className="font-bold text-white text-sm leading-none">{contact.name || contact.username}</h4>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">@{contact.username}</p>
                     </div>
-                 ))}
-                 {suggestedContacts.length === 0 && (
-                    <div className="p-10 text-center opacity-40 font-bold uppercase text-[10px] tracking-widest italic animate-pulse">Loading contacts...</div>
-                 )}
-               </div>
-            </div>
-         </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {showCameraModal && (
+        <CameraModal 
+          isOpen={showCameraModal}
+          onClose={() => setShowCameraModal(false)}
+          partnerName={selectedChat?.partner_name || 'My Story'}
+          partnerAvatar={selectedChat?.partner_avatar || user?.avatar_url}
+          onSend={(mediaUrl, viewMode) => {
+            setShowCameraModal(false);
+            if (!mediaUrl) return;
+            if (selectedChat) {
+              const content = JSON.stringify({ type: 'camera_capture', payload: { image: mediaUrl, viewMode } });
+              handleSendMessage(undefined, content);
+            } else {
+              // Mock uploading to story/note
+              setNotePlaceholder('Photo added!');
+            }
+          }}
+        />
+      )}
+
+      {/* VIEW NOTE MODAL */}
+      <AnimatePresence>
+        {showViewNoteModal && viewingNote && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#000000]/80 backdrop-blur-sm z-[100] flex justify-center items-center px-4" 
+            onClick={() => setShowViewNoteModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-[#121212] rounded-[32px] w-full max-w-sm p-6 shadow-2xl overflow-hidden relative border border-white/10" 
+              onClick={e => e.stopPropagation()}
+            >
+              <button onClick={() => setShowViewNoteModal(false)} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-white"><X size={16} strokeWidth={3} /></button>
+              <div className="flex flex-col items-center mb-6">
+                {viewingNote.initials ? (
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-black border-4 border-white/5 shadow-md mb-4" style={{ background: viewingNote.color }}>{viewingNote.initials}</div>
+                ) : (
+                  <img src={getAvatarUrl(viewingNote.avatar_url, viewingNote.username)} className="w-20 h-20 rounded-full object-cover border-4 border-white/5 shadow-md mb-4" />
+                )}
+                <h3 className="text-xl font-black text-white tracking-tighter">{viewingNote.name || viewingNote.username}</h3>
+              </div>
+              <div className="relative mb-8 flex justify-center">
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/10 border-t border-l border-white/20 rotate-45"></div>
+                <div className="bg-white/10 border border-white/20 rounded-2xl px-6 py-4 text-center text-white font-bold shadow-xl max-w-[80%] break-words relative z-10 text-lg">
+                  {viewingNote.note}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center">
+                  <input type="text" placeholder="Reply..." className="bg-transparent w-full text-white font-medium placeholder:text-white/30 outline-none text-sm" />
+                </div>
+                <button className="w-12 flex-shrink-0 bg-[#ff1493] text-white rounded-xl flex items-center justify-center hover:bg-[#ff1493]/80 transition-all"><Send size={18} strokeWidth={3} /></button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {showChatSettings && selectedChat && (
+        <ChatSettingsModal 
+          chat={selectedChat}
+          onClose={() => setShowChatSettings(false)}
+          onNavigateProfile={() => {
+            setShowChatSettings(false);
+            navigate(`/profile/${selectedChat.partner_name}`);
+          }}
+        />
       )}
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        @media (max-width: 1024px) {
+          .hidden-mobile-nav nav { display: none !important; }
+        }
       `}</style>
     </div>
   );

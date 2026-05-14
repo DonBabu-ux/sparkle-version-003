@@ -44,13 +44,13 @@ export default function UserCard({ u }: UserCardProps) {
 
   return (
     <div 
-      className="group relative bg-white rounded-xl p-4 w-full flex flex-col items-center border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden text-center"
+      className="group relative bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-[2rem] p-5 w-full flex flex-col items-center hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden text-center shadow-2xl"
       onClick={() => navigate(`/profile/${u.username}`)}
     >
       {/* Action Menu */}
       <button 
         onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
-        className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-gray-100 text-gray-400 transition-colors z-20"
+        className="absolute top-4 right-4 p-2 rounded-xl hover:bg-white/10 text-white/20 hover:text-white transition-all z-20"
       >
         <MoreHorizontal size={18} />
       </button>
@@ -63,62 +63,66 @@ export default function UserCard({ u }: UserCardProps) {
       )}
 
       {/* Avatar Section */}
-      <div className="relative mb-3 pt-2">
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-          <img 
-            alt={u.username} 
-            className="w-full h-full object-cover rounded-full" 
-            src={u.avatar_url || u.avatar || '/uploads/avatars/default.png'} 
-          />
-          {!!u.is_online && (
-            <span className="absolute bottom-1 right-1 block w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
-          )}
+      <div className="relative mb-5 pt-2">
+        <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-[#ff1493] to-purple-600 shadow-[0_0_20px_rgba(255,20,147,0.2)]">
+          <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden shrink-0 border-2 border-black">
+            <img 
+              alt={u.username} 
+              className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500" 
+              src={u.avatar_url || u.avatar || '/uploads/avatars/default.png'} 
+            />
+          </div>
         </div>
+        {!!u.is_online && (
+          <span className="absolute bottom-1 right-1 block w-4 h-4 bg-emerald-500 border-[3px] border-black rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]"></span>
+        )}
       </div>
 
       {/* User Info */}
-      <div className="flex flex-col items-center w-full mb-4">
-        <div className="flex items-center gap-1 justify-center w-full">
-          <span className="font-bold text-[15px] text-gray-900 truncate max-w-[80%]">
+      <div className="flex flex-col items-center w-full mb-6">
+        <div className="flex items-center gap-1.5 justify-center w-full mb-1">
+          <span className="font-black text-[15px] text-white tracking-tight truncate max-w-[80%] uppercase italic">
             {u.username}
           </span>
           {!!u.is_verified && (
-             <Sparkles size={14} className="text-blue-500 fill-blue-500 shrink-0" />
+             <Sparkles size={14} className="text-[#ff1493] fill-[#ff1493] shrink-0 drop-shadow-[0_0_5px_rgba(255,20,147,0.5)]" />
           )}
         </div>
         
-        <p className="text-[13px] font-medium text-gray-500 truncate w-full">
+        <p className="text-[11px] font-bold text-white/30 truncate w-full uppercase tracking-widest">
           {u.name || u.username}
         </p>
 
-        <div className="mt-2 text-[11px] text-gray-400 font-semibold space-y-0.5">
-           <div className="flex items-center justify-center gap-1">
-              <GraduationCap size={12} /> {u.major || 'Student'}
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+           <div className="flex items-center gap-1 px-2.5 py-1 bg-white/5 rounded-full border border-white/5 text-[9px] text-white/40 font-black uppercase tracking-tighter">
+              <GraduationCap size={10} className="text-[#ff1493]" /> {u.major || 'Explorer'}
            </div>
-           <div className="flex items-center justify-center gap-1">
-              <MapPin size={12} /> {u.campus || 'Main'}
+           <div className="flex items-center gap-1 px-2.5 py-1 bg-white/5 rounded-full border border-white/5 text-[9px] text-white/40 font-black uppercase tracking-tighter">
+              <MapPin size={10} className="text-[#ff1493]" /> {u.campus || 'Sector'}
            </div>
         </div>
       </div>
 
-      {/* Social Proof (Subtle) */}
+      {/* Social Proof */}
       {(u.mutual_followers && u.mutual_followers.length > 0) ? (
-        <div className="flex items-center gap-1.5 mb-4">
+        <div className="flex items-center gap-2 mb-6 bg-white/[0.02] px-3 py-1.5 rounded-2xl border border-white/5">
           <div className="flex -space-x-2">
             {u.mutual_followers.slice(0, 2).map((m: any, i: number) => (
               <img
                 key={i}
                 src={m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.username)}&background=random`}
-                className="w-5 h-5 rounded-full border border-white object-cover shadow-xs"
+                className="w-5 h-5 rounded-full border-2 border-black object-cover shadow-2xl"
                 alt=""
               />
             ))}
           </div>
-          <p className="text-[11px] text-gray-400 font-medium">
-            {u.mutual_followers.length} mutuals
+          <p className="text-[9px] text-white/20 font-black uppercase tracking-widest">
+            {u.mutual_followers.length} Connects
           </p>
         </div>
-      ) : null}
+      ) : (
+        <div className="h-[34px] mb-6"></div> /* Spacer */
+      )}
 
       {/* Follow Button */}
       <div className="w-full mt-auto">
@@ -126,24 +130,24 @@ export default function UserCard({ u }: UserCardProps) {
           <button 
             onClick={toggleFollow}
             disabled={loading}
-            className="w-full py-1.5 rounded-lg font-bold text-[13px] bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-all border border-white/10 flex items-center justify-center gap-2"
           >
-            <Check size={16} /> Following
+            <Check size={14} strokeWidth={3} /> Connected
           </button>
         ) : requestStatus === 'pending' ? (
           <button 
             disabled
-            className="w-full py-1.5 rounded-lg font-bold text-[13px] bg-gray-50 text-gray-400 cursor-default border border-dashed border-gray-200 flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/40 text-white/20 border border-dashed border-white/10 cursor-default flex items-center justify-center gap-2"
           >
-            <Clock size={16} /> Pending
+            <Clock size={14} strokeWidth={3} /> Pending
           </button>
         ) : (
           <button 
             onClick={toggleFollow}
             disabled={loading}
-            className={`w-full py-1.5 rounded-lg font-bold text-[13px] bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
+            className={`w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-[#ff1493] text-white hover:scale-[1.02] active:scale-95 transition-all shadow-[0_5px_20px_rgba(255,20,147,0.3)] flex items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
           >
-            <Plus size={16} /> Follow
+            <Plus size={14} strokeWidth={3} /> Connect
           </button>
         )}
       </div>

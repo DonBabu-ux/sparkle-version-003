@@ -9,7 +9,7 @@ const BASE_URL = API_URL.replace(/\/api\/?$/, '');
  * Prioritizes provided URL, then falls back to a hosted default or local asset.
  * Section 5: Default Avatar Handling (APK Safe)
  */
-export const getAvatarUrl = (url?: string | null): string => {
+export const getAvatarUrl = (url?: string | null, seed?: string | null): string => {
   // 1. Check for valid URL
   if (url && url !== 'null' && url !== 'undefined' && url.trim() !== '') {
     // If it's already a full URL (Cloudinary, etc)
@@ -26,8 +26,10 @@ export const getAvatarUrl = (url?: string | null): string => {
     }
   }
 
-  // 2. Fallback to local asset (or return empty for component to handle)
-  return defaultAvatar;
+  // 2. Fallback to Facebook-style 3D/2D cartoon avatar
+  const avatarSeed = seed ? encodeURIComponent(seed) : Math.random().toString(36).substring(7);
+  // Using micah (3D style) or avataaars (Facebook/Bitmoji style). Let's use 'avataaars' for Facebook-style.
+  return `https://api.dicebear.com/9.x/avataaars/svg?seed=${avatarSeed}&backgroundColor=e8e8e8,ffb6c1,d1d4f9,c0aede,b6e3f4`;
 };
 
 /**

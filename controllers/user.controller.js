@@ -655,18 +655,20 @@ const getSuggestions = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const offset = parseInt(req.query.offset) || 0;
         const currentUserId = req.user.userId || req.user.user_id;
-        const { tab = 'suggested', filter = null, q = null } = req.query;
+        const { tab = 'suggested', filter = null, q = null, force, seed: clientSeed = '' } = req.query;
         
         // --- BATCH 3: Suggestions Caching (10 min TTL) ---
         const redisService = require('../services/redis.service');
-        const cacheKey = `suggestions:${currentUserId}:${tab}:${filter || 'none'}:${q || 'none'}:${offset}:${limit}`;
+        const cacheKey = `suggestions:${currentUserId}:${tab}:${filter || 'none'}:${q || 'none'}:${offset}:${limit}:${clientSeed}`;
         
-        const cached = await redisService.get(cacheKey);
-        if (cached) return res.json(cached);
+        if (force !== 'true') {
+            const cached = await redisService.get(cacheKey);
+            if (cached) return res.json(cached);
+        }
 
         // Device/User specific seed for variety on refresh (Part 1 & 4)
         const hourlySeed = Math.floor(Date.now() / (1000 * 60 * 60));
-        const seed = String(currentUserId).split('-')[0]; // Use first part of ID as deterministic seed
+        const seed = String(currentUserId).split('-')[0] + clientSeed;
 
         const suggestions = await User.getSuggestions(currentUserId, {
             limit,

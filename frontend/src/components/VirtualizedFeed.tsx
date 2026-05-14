@@ -5,7 +5,7 @@ import type { Post } from "../types/post";
 import { useNavigate } from "react-router-dom";
 import { useDeviceSeed } from "../hooks/useDeviceSeed";
 import Spinner from "./ui/Spinner";
-import { Orbit } from "lucide-react";
+import { Orbit, UserPlus, Check } from "lucide-react";
 import ModernOfflineState from "./ui/ModernOfflineState";
 
 const LIMIT = 10;
@@ -60,12 +60,12 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
   return (
     <div className="mb-0 bg-white dark:bg-black rounded-[8px] sm:rounded-[12px] shadow-sm dark:shadow-none p-4 border border-black/5 dark:border-white/5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] font-bold text-gray-500 uppercase tracking-wider">People you might know</h3>
+        <h3 className="text-[14px] font-bold text-gray-500">People you might know</h3>
         <button onClick={() => navigate('/connect')} className="text-[12px] font-bold text-blue-600 hover:underline">See all</button>
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
         {suggestions.slice(0, 5).map((s) => (
-          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2 p-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
             <img 
               src={s.avatar_url || '/uploads/avatars/default.png'} 
               className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm cursor-pointer" 
@@ -79,12 +79,13 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
             <button 
               onClick={() => handleFollow(s.user_id)}
               disabled={following[s.user_id]}
-              className={`w-full py-1.5 rounded-lg text-[12px] font-bold transition-all ${
+              className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[12px] font-bold transition-all backdrop-blur-md border ${
                 following[s.user_id] 
-                ? 'bg-gray-200 text-gray-500' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-black/5 dark:bg-white/5 text-gray-500 border-black/5 dark:border-white/5' 
+                : 'bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20 dark:text-blue-400'
               }`}
             >
+              {following[s.user_id] ? <Check size={14} /> : <UserPlus size={14} />}
               {following[s.user_id] ? 'Following' : 'Follow'}
             </button>
           </div>

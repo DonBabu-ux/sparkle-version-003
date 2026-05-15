@@ -912,11 +912,12 @@ export default function Messages() {
                 <div className="relative w-[74px] flex flex-col items-center gap-2 shrink-0">
                   <div className="relative w-full">
                     <div 
-                      className="absolute -top-[36px] left-0 right-0 h-8 bg-white/10 dark:bg-white/15 border border-white/20 backdrop-blur-2xl rounded-lg flex items-center justify-center px-1 text-[8px] text-white font-bold text-center leading-tight shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all z-10"
+                      className="absolute -top-[38px] left-0 right-0 h-9 bg-white/20 dark:bg-white/25 border border-white/30 backdrop-blur-2xl rounded-xl flex items-center justify-center px-2 text-[10px] text-white font-black text-center leading-tight shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-all z-10"
                       onClick={() => setActiveModal('note_editor')}
+                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
                     >
                       <span className="truncate block w-full">Share a thought...</span>
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white/10 dark:bg-white/15 border-b border-r border-white/20 rounded-full"></div>
+                      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-white/20 dark:bg-white/25 border-b border-r border-white/30 rounded-full"></div>
                     </div>
                     <div className="cursor-pointer flex justify-center" onClick={() => navigate(`/profile/${user?.username}`)}>
                       <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10" alt="" />
@@ -944,11 +945,15 @@ export default function Messages() {
                     >
                       <div className="relative w-full">
                         <div 
-                          className="absolute -top-[36px] left-0 right-0 h-8 border border-white/20 backdrop-blur-2xl rounded-lg flex items-center justify-center px-1 text-[8px] text-white font-bold text-center leading-tight shadow-lg animate-fade-in z-10"
-                          style={{ backgroundColor: `${bubbleBg}cc` }}
+                          className="absolute -top-[38px] left-0 right-0 h-9 border border-white/30 backdrop-blur-2xl rounded-xl flex items-center justify-center px-2 text-[10px] text-white font-black text-center leading-tight shadow-2xl animate-fade-in z-10"
+                          style={{ 
+                            backgroundColor: `${bubbleBg}`, 
+                            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                            boxShadow: `0 4px 15px ${bubbleBg}66`
+                          }}
                         >
                           <span className="truncate block w-full">{contact.note || mockNotes[idx % mockNotes.length]}</span>
-                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 border-b border-r border-white/20 rounded-full" style={{ backgroundColor: `${bubbleBg}cc` }}></div>
+                          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 border-b border-r border-white/30 rounded-full" style={{ backgroundColor: `${bubbleBg}` }}></div>
                         </div>
                         <div className="flex justify-center">
                           <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10 shadow-sm" alt="" />
@@ -1292,8 +1297,8 @@ export default function Messages() {
                 {/* Speech bubble */}
                 <div className="relative mb-3">
                   <div
-                    className="rounded-[20px] px-5 py-3 max-w-[240px] shadow-lg text-center text-[15px] font-semibold"
-                    style={{ backgroundColor: '#e8d44d', color: '#1a1a1a' }}
+                    className="rounded-[24px] px-6 py-4 max-w-[260px] shadow-2xl text-center text-[16px] font-bold text-white"
+                    style={{ backgroundColor: viewingNote.bubbleBg || '#ff1493', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
                   >
                     {viewingNote.note}
                   </div>
@@ -1303,9 +1308,9 @@ export default function Messages() {
                     style={{
                       width: 0,
                       height: 0,
-                      borderLeft: '10px solid transparent',
+                      borderLeft: '12px solid transparent',
                       borderRight: '0px solid transparent',
-                      borderTop: '10px solid #e8d44d',
+                      borderTop: `12px solid ${viewingNote.bubbleBg || '#ff1493'}`,
                     }}
                   />
                 </div>

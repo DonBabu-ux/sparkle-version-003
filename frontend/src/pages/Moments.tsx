@@ -239,7 +239,7 @@ const ReelItem = ({
   // Only load src when this card is active or immediately adjacent (preload 1 ahead)
   const rawSrc = isNearActive ? (moment.video_url || moment.media_url) : undefined;
   const mediaSrc = getMediaUrl(rawSrc);
-  const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!(moment.video_url || moment.media_url)?.match(/\.(mp4|webm|ogg|quicktime|mov)$/i);
+  const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!moment.streaming_url || !!(moment.video_url || moment.media_url || moment.streaming_url)?.match(/\.(mp4|webm|ogg|quicktime|mov|m3u8)$/i);
   // NOTE: TikTok iframes cannot be programmatically paused — we never embed them.
   // Treat TikTok URLs as opaque videos (or show a thumbnail). This prevents
   // multiple iframes playing simultaneously with no way to stop them.

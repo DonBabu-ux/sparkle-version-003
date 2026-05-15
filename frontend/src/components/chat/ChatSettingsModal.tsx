@@ -334,7 +334,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                             skinTonePosition="none"
                             navPosition="none"
                             searchPosition="none"
-                            perLine={8}
+                            perLine={Math.floor(window.innerWidth / 40)}
                             width="100%"
                           />
                       </div>
@@ -759,7 +759,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   skinTonePosition="none"
                   navPosition="none"
                   searchPosition="none"
-                  perLine={8}
+                  perLine={Math.floor(window.innerWidth / 40)}
                   width="100%"
                 />
               </div>

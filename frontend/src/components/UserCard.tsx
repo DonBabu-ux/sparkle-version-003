@@ -44,7 +44,7 @@ export default function UserCard({ u }: UserCardProps) {
 
   return (
     <div 
-      className="group relative bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/10 backdrop-blur-md rounded-[2rem] p-5 w-full flex flex-col items-center hover:bg-black/5 dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden text-center shadow-lg dark:shadow-2xl"
+      className="group relative bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/10 backdrop-blur-md rounded-[1.5rem] p-4 w-full flex flex-col items-center hover:bg-black/5 dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden text-center shadow-lg dark:shadow-2xl"
       onClick={() => navigate(`/profile/${u.username}`)}
     >
       {/* Action Menu */}
@@ -63,8 +63,8 @@ export default function UserCard({ u }: UserCardProps) {
       )}
 
       {/* Avatar Section */}
-      <div className="relative mb-5 pt-2">
-        <div className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-black/5 dark:border-white/10 bg-black/5 dark:bg-black">
+      <div className="relative mb-3">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-black/5 dark:border-white/10 bg-black/5 dark:bg-black">
           <img 
             alt={u.username} 
             className="w-full h-full object-cover transition-all duration-500" 
@@ -77,7 +77,7 @@ export default function UserCard({ u }: UserCardProps) {
       </div>
 
       {/* User Info */}
-      <div className="flex flex-col items-center w-full mb-6">
+      <div className="flex flex-col items-center w-full mb-3">
         <div className="flex items-center gap-1.5 justify-center w-full mb-1">
           <span className="font-black text-[15px] text-black dark:text-white tracking-tight truncate max-w-[80%] uppercase italic">
             {u.username}
@@ -91,7 +91,7 @@ export default function UserCard({ u }: UserCardProps) {
           {u.name || u.username}
         </p>
 
-        <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
            <div className="flex items-center gap-1 px-2.5 py-1 bg-black/5 dark:bg-white/5 rounded-full border border-black/5 dark:border-white/5 text-[9px] text-black/50 dark:text-white/40 font-black uppercase tracking-tighter">
               <GraduationCap size={10} className="text-primary" /> {u.major || 'Explorer'}
            </div>
@@ -103,7 +103,7 @@ export default function UserCard({ u }: UserCardProps) {
 
       {/* Social Proof */}
       {(u.mutual_followers && u.mutual_followers.length > 0) ? (
-        <div className="flex items-center gap-2 mb-6 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-1.5 rounded-2xl border border-black/5 dark:border-white/5">
+        <div className="flex items-center gap-2 mb-4 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-1.5 rounded-xl border border-black/5 dark:border-white/5">
           <div className="flex -space-x-2">
             {u.mutual_followers.slice(0, 2).map((m: any, i: number) => (
               <img
@@ -119,7 +119,7 @@ export default function UserCard({ u }: UserCardProps) {
           </p>
         </div>
       ) : (
-        <div className="h-[34px] mb-6"></div> /* Spacer */
+        <div className="h-[28px] mb-4"></div> /* Spacer */
       )}
 
       {/* Follow Button */}
@@ -128,14 +128,14 @@ export default function UserCard({ u }: UserCardProps) {
           <button 
             onClick={toggleFollow}
             disabled={loading}
-            className="w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all border border-black/10 dark:border-white/10 flex items-center justify-center gap-2"
+            className="w-full py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all border border-black/10 dark:border-white/10 flex items-center justify-center gap-2"
           >
             <Check size={14} strokeWidth={3} /> Connected
           </button>
         ) : requestStatus === 'pending' ? (
           <button 
             disabled
-            className="w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-black/40 text-black/30 dark:text-white/20 border border-dashed border-black/10 dark:border-white/10 cursor-default flex items-center justify-center gap-2"
+            className="w-full py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-black/40 text-black/30 dark:text-white/20 border border-dashed border-black/10 dark:border-white/10 cursor-default flex items-center justify-center gap-2"
           >
             <Clock size={14} strokeWidth={3} /> Pending
           </button>
@@ -143,7 +143,7 @@ export default function UserCard({ u }: UserCardProps) {
           <button 
             onClick={toggleFollow}
             disabled={loading}
-            className={`w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-primary text-white hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
+            className={`w-full py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] bg-primary text-white hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
           >
             <Plus size={14} strokeWidth={3} /> Connect
           </button>

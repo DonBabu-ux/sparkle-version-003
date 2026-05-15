@@ -272,7 +272,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
           <div className="flex items-center gap-1 flex-wrap leading-tight">
             <Link 
               to={`/profile/${post.username}`} 
-              className="font-bold text-[13px] text-black dark:text-white hover:underline tracking-tighter"
+              className="font-bold text-[15px] text-black dark:text-white hover:underline tracking-tighter"
             >
               {post.name || post.username}
             </Link>
@@ -311,7 +311,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
                     setIsFollowed(false);
                   }
                 }}
-                className="ml-0.5 text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                className="ml-0.5 text-[13px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
               >
                 · Follow
               </button>

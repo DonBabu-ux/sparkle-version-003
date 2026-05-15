@@ -287,13 +287,13 @@ const ReelItem = ({
               muted={muted}
               playsInline
               onTimeUpdate={onVideoTimeUpdate}
-              className="w-full h-full object-contain pointer-events-none"
+              className="w-full h-full object-cover pointer-events-none"
             />
           ) : (
             <img 
               src={mediaSrc || moment.thumbnail_url || undefined} 
               alt="Moment" 
-              className="w-full h-full object-contain pointer-events-none"
+              className="w-full h-full object-cover pointer-events-none"
             />
           )}
         </div>

@@ -712,6 +712,31 @@ const updateNote = async (req, res) => {
         }
 
         await User.update(userId, { note: note || null });
+
+        // Broadcast note update via socket
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            if (io) {
+                const pool = require('../config/database');
+                const [followers] = await pool.query(
+                    'SELECT follower_id FROM follows WHERE following_id = ?',
+                    [userId]
+                );
+                const rooms = followers.map(f => `user:${f.follower_id}`);
+                rooms.push(`user:${userId}`); // Emit to self for multi-device sync
+                
+                if (rooms.length > 0) {
+                    io.to(rooms).emit('user-note-update', {
+                        userId,
+                        note: note || null
+                    });
+                }
+            }
+        } catch (socketErr) {
+            logger.error('Failed to broadcast note update:', socketErr);
+        }
+
         res.json({ success: true, message: 'Note updated', note: note || null });
     } catch (error) {
         logger.error('Update note error:', error);

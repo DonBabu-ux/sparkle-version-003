@@ -845,12 +845,22 @@ export default function Messages() {
       }
     };
 
+    const handleUserNoteUpdate = (data: { userId: string, note: string | null }) => {
+      setSuggestedContacts((prev: any[]) => prev.map(contact => {
+        if (contact.user_id === data.userId || contact.id === data.userId) {
+          return { ...contact, note: data.note };
+        }
+        return contact;
+      }));
+    };
+
     socket.on('new-message', handleNewMessage);
     socket.on('receive_message', handleNewMessage);
     socket.on('messages-delivered', handleMessagesDelivered);
     socket.on('messages-read', handleMessagesRead);
     socket.on('user-status', handleUserStatus);
     socket.on('user-typing', handleUserTyping);
+    socket.on('user-note-update', handleUserNoteUpdate);
 
     // Initial check when opening a chat to mark read
     if (selectedChat && document.hasFocus()) {
@@ -864,6 +874,7 @@ export default function Messages() {
       socket.off('messages-read', handleMessagesRead);
       socket.off('user-status', handleUserStatus);
       socket.off('user-typing', handleUserTyping);
+      socket.off('user-note-update', handleUserNoteUpdate);
     };
   }, [socket, selectedChat, showScrollToBottom, user?.id, user?.user_id]);
 

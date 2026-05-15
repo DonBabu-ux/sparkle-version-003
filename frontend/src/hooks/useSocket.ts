@@ -14,12 +14,22 @@ export const useSocket = () => {
             query: { userId: user.id || user.user_id },
             auth: { token },
             withCredentials: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000,
+            transports: ['websocket', 'polling']
         });
 
         s.on('connect', () => {
-            console.log('📡 Connected to Sparkle Matrix');
+            console.log('📡 Connected to Sparkle Matrix (Persistent)');
+            // Re-join active chat rooms or sync presence on reconnect
+            s.emit('sparkle-ping'); 
+        });
+
+        s.on('sparkle-pong', () => {
+            // Heartbeat received
         });
 
         s.on('connect_error', (err) => {

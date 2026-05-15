@@ -615,6 +615,7 @@ export default function Messages() {
   const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
   const [showWordEmojiPicker, setShowWordEmojiPicker] = useState(false);
   const [newWordEffect, setNewWordEffect] = useState({ word: '', emoji: '😀' });
+  const [partnerIsTyping, setPartnerIsTyping] = useState(false);
   // Note reaction states
   const [noteBubbles, setNoteBubbles] = useState<Array<{id: number; emoji: string; x: number; delay: number}>>([]);
   const [noteReacted, setNoteReacted] = useState<string | null>(null);
@@ -754,24 +755,80 @@ export default function Messages() {
     if (!socket || !selectedChat) return;
 
     const handleNewMessage = (msg: any) => {
-      // Check if message belongs to current open chat
-      if (msg.sender_id === selectedChat.partner_id || msg.receiver_id === selectedChat.partner_id) {
-        setMessages(prev => [...prev, msg]);
+      // 1. If it belongs to current active chat, update message array
+      if (msg.conversation_id === selectedChat.chat_id || msg.chat_id === selectedChat.chat_id || msg.sender_id === selectedChat.partner_id) {
+        setMessages(prev => {
+          if (prev.some(m => m.message_id === msg.message_id)) return prev;
+          return [...prev, msg];
+        });
         triggerWordEffect(msg.content);
         
-        // If scrolled up, increment unread count in view
+        // Let backend know we received it
+        if (document.hasFocus()) {
+           socket.emit('mark-read', msg.conversation_id || msg.chat_id);
+        } else {
+           socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
+        }
+
         if (showScrollToBottom) {
           setUnreadCountInChat(prev => prev + 1);
         } else {
           scrollToBottom('smooth');
         }
+      } else {
+        // We received a message for a different chat, mark it delivered
+        socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
       }
-      // Refresh inbox to update last message preview
-      fetchInbox();
+
+      // 2. Reactively update the conversations list without fetching from server
+      setConversations((prev: any[]) => {
+        const chatIndex = prev.findIndex(c => c.chat_id === msg.conversation_id || c.chat_id === msg.chat_id || c.partner_id === msg.sender_id);
+        if (chatIndex >= 0) {
+          const newConvs = [...prev];
+          const chat = { ...newConvs[chatIndex] };
+          chat.last_message_content = msg.type === 'text' ? msg.content : `Sent a ${msg.type}`;
+          chat.last_message_time = msg.sent_at || msg.created_at || new Date().toISOString();
+          chat.last_message_status = 'sent';
+          if (msg.sender_id !== (user?.id || user?.user_id) && selectedChat?.chat_id !== chat.chat_id) {
+            chat.unread_count = (chat.unread_count || 0) + 1;
+          }
+          newConvs.splice(chatIndex, 1);
+          newConvs.unshift(chat);
+          return newConvs;
+        }
+        return prev;
+      });
+    };
+
+    const handleMessagesDelivered = (data: {chatId: string, messageId?: string, userId: string}) => {
+       setMessages(prev => prev.map(m => {
+          if (m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
+             return { ...m, status: 'delivered' };
+          }
+          return m;
+       }));
+       setConversations((prev: any[]) => prev.map(c => {
+          if (c.chat_id === data.chatId && c.last_message_status !== 'read') {
+             return { ...c, last_message_status: 'delivered' };
+          }
+          return c;
+       }));
+    };
+
+    const handleMessagesRead = (data: {chatId: string, readAt?: string}) => {
+       setMessages(prev => prev.map(m => {
+          return { ...m, status: 'read', read_at: data.readAt || new Date().toISOString() };
+       }));
+       setConversations((prev: any[]) => prev.map(c => {
+          if (c.chat_id === data.chatId) {
+             return { ...c, last_message_status: 'read', unread_count: 0 };
+          }
+          return c;
+       }));
     };
 
     const handleUserStatus = (data: { userId: string; isOnline: boolean; lastSeen: string | null }) => {
-      setConversations(prev => prev.map(chat => {
+      setConversations((prev: any[]) => prev.map(chat => {
         if (chat.partner_id === data.userId) {
           return { ...chat, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline };
         }
@@ -782,16 +839,33 @@ export default function Messages() {
       }
     };
 
+    const handleUserTyping = (data: { chatId: string, userId: string, isTyping: boolean }) => {
+      if (selectedChat?.chat_id === data.chatId && data.userId !== (user?.id || user?.user_id)) {
+        setPartnerIsTyping(data.isTyping);
+      }
+    };
+
+    socket.on('new-message', handleNewMessage);
     socket.on('receive_message', handleNewMessage);
-    socket.on('new_message', handleNewMessage);
+    socket.on('messages-delivered', handleMessagesDelivered);
+    socket.on('messages-read', handleMessagesRead);
     socket.on('user-status', handleUserStatus);
+    socket.on('user-typing', handleUserTyping);
+
+    // Initial check when opening a chat to mark read
+    if (selectedChat && document.hasFocus()) {
+       socket.emit('mark-read', selectedChat.chat_id);
+    }
 
     return () => {
+      socket.off('new-message', handleNewMessage);
       socket.off('receive_message', handleNewMessage);
-      socket.off('new_message', handleNewMessage);
+      socket.off('messages-delivered', handleMessagesDelivered);
+      socket.off('messages-read', handleMessagesRead);
       socket.off('user-status', handleUserStatus);
+      socket.off('user-typing', handleUserTyping);
     };
-  }, [socket, selectedChat]);
+  }, [socket, selectedChat, showScrollToBottom, user?.id, user?.user_id]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -818,36 +892,53 @@ export default function Messages() {
     if (!content.trim() || !selectedChat) return;
 
     triggerWordEffect(content);
-
     setSending(true);
-    // Optimistic update — build a local message object immediately
+
+    const tempId = `temp_${Date.now()}`;
     const optimisticMsg: ChatMessage = {
-      message_id: `temp_${Date.now()}`,
+      message_id: tempId,
       sender_id: user?.id || user?.user_id || '',
       content,
-      status: 'sent',
+      status: 'sending', // Starts in sending state (clock icon)
       sent_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
       is_read: false,
     };
+    
     setMessages(prev => [...prev, optimisticMsg]);
     if (!contentOverride) setNewMessage('');
     scrollToBottom('smooth');
 
-    try {
-      await api.post('/messages/send', {
-        partnerId: selectedChat.partner_id,  // backend expects 'partnerId'
-        content
-      });
-      // Refresh the full chat so the real message_id replaces the temp one
-      fetchMessages(selectedChat.chat_id);
-    } catch (err) {
-      console.error('Failed to send message', err);
-      // Roll back optimistic message on failure
-      setMessages(prev => prev.filter(m => m.message_id !== optimisticMsg.message_id));
-    } finally {
-      setSending(false);
-    }
+    // Transmit exclusively via WebSocket payload
+    socket?.emit('send-message', {
+       chatId: selectedChat.chat_id,
+       partnerId: selectedChat.partner_id,
+       content,
+       type: 'text'
+    }, (response: { success: boolean, messageId?: string, error?: string }) => {
+       setSending(false);
+       if (response.success && response.messageId) {
+          // ACK received! Update to sent and map the DB message_id
+          setMessages(prev => prev.map(m => m.message_id === tempId ? { ...m, message_id: response.messageId!, status: 'sent' } : m));
+          setConversations((prev: any[]) => {
+             const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
+             if (chatIndex >= 0) {
+                const newConvs = [...prev];
+                const chat = { ...newConvs[chatIndex] };
+                chat.last_message_content = content;
+                chat.last_message_status = 'sent';
+                chat.last_message_time = new Date().toISOString();
+                newConvs.splice(chatIndex, 1);
+                newConvs.unshift(chat);
+                return newConvs;
+             }
+             return prev;
+          });
+       } else {
+          console.error('Failed to send via socket', response.error);
+          setMessages(prev => prev.filter(m => m.message_id !== tempId));
+       }
+    });
   };
 
   const handleSendMessageWrapper = (e: any, content: string) => handleSendMessage(e, content);
@@ -855,6 +946,10 @@ export default function Messages() {
     setNewMessage(val);
     if (val.length > 0 && !isMenuCollapsed) setIsMenuCollapsed(true);
     if (val.length === 0 && isMenuCollapsed) setIsMenuCollapsed(false);
+
+    if (selectedChat) {
+      socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: val.length > 0 });
+    }
   };
   const handleScroll = (e: any) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -1090,6 +1185,12 @@ export default function Messages() {
                   onClick={() => {
                     setSelectedChat(chat);
                     navigate(`/messages?chat=${chat.chat_id}`);
+                    // Optimistically clear the unread count in the chat list
+                    if (chat.unread_count > 0) {
+                      setConversations((prev: any[]) => prev.map(c => 
+                        c.chat_id === chat.chat_id ? { ...c, unread_count: 0 } : c
+                      ));
+                    }
                   }}
                   className={clsx(
                     "px-4 py-1.5 rounded-2xl transition-all duration-300 cursor-pointer group flex items-center gap-3",
@@ -1182,7 +1283,9 @@ export default function Messages() {
                     <h3 className="text-[17px] font-bold tracking-tight leading-tight text-white">{selectedChat.partner_name}</h3>
                     <div className="h-[14px] mt-0.5 overflow-hidden">
                       <AnimatePresence mode="wait">
-                        {(selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
+                        {partnerIsTyping ? (
+                          <motion.p key="typing" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-bold lowercase text-[#ff1493]">typing...</motion.p>
+                        ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
                           <motion.p key="online" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-bold lowercase text-emerald-500">online</motion.p>
                         ) : showLastSeen ? (
                           <motion.p key="lastseen" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[11.5px] font-semibold lowercase text-white/50">last seen {formatLastSeen(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}</motion.p>

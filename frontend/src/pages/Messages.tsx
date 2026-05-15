@@ -661,19 +661,21 @@ export default function Messages() {
     }
   }, [selectedChat]);
 
-  // Hide bottom nav when viewing someone's note
+  // Hide bottom nav when viewing someone's note or using camera
   useEffect(() => {
-    if (showViewNoteModal) {
+    if (showViewNoteModal || showCameraModal) {
       document.body.classList.add('note-modal-open');
     } else {
       document.body.classList.remove('note-modal-open');
-      // Reset reaction state on close
-      setNoteBubbles([]);
-      setNoteReacted(null);
-      setNoteReactSent(false);
+      if (!showViewNoteModal) {
+        // Reset reaction state on close
+        setNoteBubbles([]);
+        setNoteReacted(null);
+        setNoteReactSent(false);
+      }
     }
     return () => document.body.classList.remove('note-modal-open');
-  }, [showViewNoteModal]);
+  }, [showViewNoteModal, showCameraModal]);
 
   // --- Handlers ---
   const fetchInbox = async () => {
@@ -1471,26 +1473,46 @@ export default function Messages() {
                     </button>
                   )}
 
-                  {/* Emoji Picker for Notes */}
+                  {/* Mobile-Friendly Emoji Picker Bottom Sheet for Notes */}
                   <AnimatePresence>
                     {showNoteEmojiPicker && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                        className="absolute bottom-full right-0 mb-4 z-[400] shadow-2xl rounded-2xl overflow-hidden"
-                      >
-                        <Picker 
-                          data={data} 
-                          onEmojiSelect={(emoji: any) => {
-                            setNoteReplyText(prev => prev + emoji.native);
-                            setShowNoteEmojiPicker(false);
-                          }}
-                          theme="dark"
-                          previewPosition="none"
-                          skinTonePosition="none"
+                      <div className="fixed inset-0 z-[500] flex items-end justify-center">
+                        <motion.div 
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                          onClick={() => setShowNoteEmojiPicker(false)}
                         />
-                      </motion.div>
+                        <motion.div 
+                          initial={{ y: "100%" }}
+                          animate={{ y: 0 }}
+                          exit={{ y: "100%" }}
+                          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                          className="relative z-10 w-full max-w-[500px] bg-[#1a1a1a] rounded-t-[32px] overflow-hidden shadow-2xl border-t border-white/10 h-[30vh] flex flex-col"
+                        >
+                          <div className="flex justify-center pt-3 pb-1">
+                             <div className="w-12 h-1.5 bg-white/10 rounded-full" />
+                          </div>
+                          <div className="p-4 flex justify-between items-center">
+                            <span className="text-[14px] font-black uppercase tracking-widest text-white/50">Emojis</span>
+                            <button onClick={() => setShowNoteEmojiPicker(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white"><X size={20} /></button>
+                          </div>
+                          <Picker 
+                            data={data} 
+                            onEmojiSelect={(emoji: any) => {
+                              setNoteReplyText(prev => prev + emoji.native);
+                              setShowNoteEmojiPicker(false);
+                            }}
+                            theme="dark"
+                            native={true}
+                            previewPosition="none"
+                            skinTonePosition="none"
+                            navPosition="none"
+                            searchPosition="none"
+                            perLine={9}
+                            width="100%"
+                          />
+                        </motion.div>
+                      </div>
                     )}
                   </AnimatePresence>
                 </div>
@@ -1517,6 +1539,13 @@ export default function Messages() {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
         .note-modal-open nav.lg\\:hidden { display: none !important; }
+        em-emoji-picker { 
+          --padding: 0px !important;
+          --border-radius: 0px !important;
+          width: 100% !important;
+          height: 100% !important;
+          border: none !important;
+        }
       `}</style>
     </div>
   );

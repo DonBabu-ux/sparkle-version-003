@@ -68,7 +68,7 @@ export default function CreateMoment() {
                       <Film size={32} />
                     </div>
                     <p className="cm-upload-title">Tap to upload photo or video</p>
-                    <p className="cm-upload-sub">Supports MP4, JPG, PNG, WEBM up to 100MB</p>
+                    <p className="cm-upload-sub">Supports MP4, MOV, WEBM up to 100MB (HD 1080p)</p>
                     <button type="button" className="cm-upload-btn">
                       <Upload size={16} /> Choose File
                     </button>

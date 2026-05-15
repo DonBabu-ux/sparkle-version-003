@@ -349,6 +349,9 @@ const initMomentsTable = async () => {
                 duration INT DEFAULT 0,
                 views INT DEFAULT 0,
                 shares INT DEFAULT 0,
+                streaming_url VARCHAR(500),
+                resolution VARCHAR(50) DEFAULT '1080p',
+                bitrate INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
                 INDEX idx_created_at (created_at DESC)
@@ -362,7 +365,10 @@ const initMomentsTable = async () => {
             { name: 'caption', type: 'TEXT' },
             { name: 'duration', type: 'INT DEFAULT 0' },
             { name: 'views', type: 'INT DEFAULT 0' },
-            { name: 'shares', type: 'INT DEFAULT 0' }
+            { name: 'shares', type: 'INT DEFAULT 0' },
+            { name: 'streaming_url', type: 'VARCHAR(500)' },
+            { name: 'resolution', type: "VARCHAR(50) DEFAULT '1080p'" },
+            { name: 'bitrate', type: 'INT DEFAULT 0' }
         ];
 
         for (const col of columnsToAdd) {

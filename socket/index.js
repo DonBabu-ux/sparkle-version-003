@@ -101,6 +101,9 @@ const initializeSocket = (server) => {
 
         // Broadcast online status to followers
         broadcastOnlineStatus(socket, true);
+        
+        // Broadcast group presence updates
+        broadcastGroupPresence(io, socket);
 
         // --- CHAT EVENTS ---
 
@@ -115,11 +118,13 @@ const initializeSocket = (server) => {
         // Typing indicator
         socket.on('typing', (data) => {
             const { chatId, isTyping } = data;
+            
+            // Broadcast to everyone else in the chat room
             socket.to(`chat:${chatId}`).emit('user-typing', {
                 chatId,
                 userId: socket.userId,
                 username: socket.user.username,
-                isTyping
+                isTyping: !!isTyping
             });
         });
 
@@ -253,7 +258,9 @@ const initializeSocket = (server) => {
         socket.on('mark-read', async (chatId) => {
             try {
                 await Message.updateStatus(chatId, socket.userId, 'read');
-                socket.to(`chat:${chatId}`).emit('messages-read', {
+                
+                // Broadcast to everyone in the room (including sender on other devices)
+                io.to(`chat:${chatId}`).emit('messages-read', {
                     chatId,
                     userId: socket.userId,
                     readAt: new Date().toISOString()
@@ -278,8 +285,8 @@ const initializeSocket = (server) => {
                     [chatId, chatId, socket.userId]
                 );
 
-                // Notify the sender their message was delivered
-                socket.to(`chat:${chatId}`).emit('messages-delivered', {
+                // Notify everyone in the room
+                io.to(`chat:${chatId}`).emit('messages-delivered', {
                     chatId,
                     messageId,
                     userId: socket.userId,
@@ -397,6 +404,12 @@ const initializeSocket = (server) => {
                 logger.info(`🔌 User disconnected: ${socket.userId}`);
                 await User.setOnlineStatus(socket.userId, false);
                 broadcastOnlineStatus(socket, false);
+                
+                // When disconnecting, remove from rooms and update groups
+                // The socket leaves rooms automatically, but wait a tick for adapter to clear
+                setTimeout(() => {
+                    broadcastGroupPresence(io, socket);
+                }, 100);
             } catch (error) {
                 logger.error('Disconnect error:', error);
             }
@@ -415,6 +428,33 @@ const joinUserChatRooms = async (socket) => {
         });
     } catch (error) {
         logger.error('Join chat rooms error:', error);
+    }
+};
+
+// Helper: Broadcast aggregated group presence
+const broadcastGroupPresence = async (io, socket) => {
+    try {
+        const conversations = await Message.getUserConversations(socket.userId);
+        const groupChats = conversations.filter(c => c.chat_type === 'group');
+        
+        for (const group of groupChats) {
+            const chatId = group.chat_id;
+            const room = io.sockets.adapter.rooms.get(`chat:${chatId}`);
+            let count = 0;
+            if (room) {
+                const userIds = new Set();
+                for (const socketId of room) {
+                    const clientSocket = io.sockets.sockets.get(socketId);
+                    if (clientSocket && clientSocket.userId) {
+                        userIds.add(clientSocket.userId);
+                    }
+                }
+                count = userIds.size;
+            }
+            io.to(`chat:${chatId}`).emit('group:presence:update', { chatId, onlineCount: count });
+        }
+    } catch (e) {
+        logger.error('Broadcast group presence error:', e);
     }
 };
 

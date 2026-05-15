@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
-  Heart, MessageCircle, Share2, BookmarkCheck, 
+  Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, 
   Play, Send, X, Search, History,
   Volume2, VolumeX, Loader2, Sparkles, Eye, Orbit,
   Smile, ArrowUp
@@ -19,6 +19,7 @@ import clsx from 'clsx';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import MentionInput from '../components/MentionInput';
 import MentionText from '../components/MentionText';
+import HlsVideoPlayer from '../components/HlsVideoPlayer';
 
 // Local utility to avoid import issues
 const formatCount = (num: number): string => {
@@ -53,6 +54,8 @@ interface Moment {
   thumbnail_url?: string;
   media_url?: string;
   video_url?: string;
+  streaming_url?: string;
+  resolution?: string;
   view_count?: number;
   like_count?: number;
   comment_count?: number;
@@ -120,15 +123,7 @@ const TikTokLoader = () => (
   </div>
 );
 
-const CommentIcon = ({ size = 20, className = "" }) => (
-  <svg 
-    width={size} height={size} viewBox="0 0 24 24" fill="none" 
-    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M16.1 20A9 9 0 1 1 20 16.1L22 22Z" />
-  </svg>
-);
+// Using imported CommentIcon (aliased MessageCircle) instead of local SVG to maintain Lucide consistency
 
 const ReelItem = ({ 
   moment, 
@@ -140,7 +135,9 @@ const ReelItem = ({
   onFollow,
   active,
   isNearActive,
-  downloadProgress
+  downloadProgress,
+  currentUser,
+  onQualityChange
 }: { 
   moment: Moment; 
   onLike: (id: string) => void; 
@@ -153,6 +150,7 @@ const ReelItem = ({
   isNearActive: boolean;
   downloadProgress?: number | null;
   currentUser?: any;
+  onQualityChange?: (quality: string) => void;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -166,51 +164,21 @@ const ReelItem = ({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPress = useRef(false);
 
-  // Single source of truth: only the active video plays. Everything else is hard-paused.
+  // Playback control is now handled primarily via the 'active' prop in HlsVideoPlayer
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (active && !userPaused) {
-      // Small delay avoids race where browser fires multiple play() on scroll
-      const timer = setTimeout(() => {
-        video.play().then(() => {
-          setPlaying(true);
-          if (currentUser && !viewTracked.current) {
-            api.post(`/moments/${moment.moment_id}/view`).catch(() => {});
-            viewTracked.current = true;
-          }
-        }).catch(() => setPlaying(false));
-      }, 80);
-      return () => clearTimeout(timer);
-    } else {
-      video.pause();
-      // Also reset to start so the next time it becomes active it begins fresh
-      if (!active) {
-        video.currentTime = 0;
-        setProgress(0);
-        viewTracked.current = false;
+    if (active) {
+      setUserPaused(false);
+      if (currentUser && !viewTracked.current) {
+        api.post(`/moments/${moment.moment_id}/view`).catch(() => {});
+        viewTracked.current = true;
       }
-      setPlaying(false);
     }
-  }, [active, userPaused, moment.moment_id]);
-
-  // Reset userPaused when the video becomes active (to allow autoplay for the next video)
-  useEffect(() => {
-    if (active) setUserPaused(false);
-  }, [active]);
+  }, [active, moment.moment_id, currentUser]);
 
   const togglePlay = () => {
-    if (videoRef.current) {
-      if (playing) {
-        videoRef.current.pause();
-        setPlaying(false);
-        setUserPaused(true);
-      } else {
-        videoRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-        setUserPaused(false);
-      }
-    }
+    const nextPaused = !userPaused;
+    setUserPaused(nextPaused);
+    setPlaying(!nextPaused);
   };
 
   const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
@@ -311,15 +279,16 @@ const ReelItem = ({
         {/* Primary Content Layer */}
         <div className="relative w-full h-full flex items-center justify-center z-10">
           {isVideo ? (
-            <video 
+            <HlsVideoPlayer 
               ref={videoRef}
-              src={mediaSrc || undefined} 
+              streamingSrc={moment.streaming_url}
+              src={mediaSrc || undefined}
               poster={moment.thumbnail_url}
-              loop
+              active={active && !userPaused}
               muted={muted}
-              playsInline
               onTimeUpdate={onVideoTimeUpdate}
-              className="w-full h-full object-cover pointer-events-none"
+              onQualityChange={onQualityChange}
+              className="w-full h-full object-cover"
             />
           ) : (
             <img 
@@ -478,6 +447,9 @@ export default function Moments() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [showHDIntro, setShowHDIntro] = useState(false);
+  const [qualityNote, setQualityNote] = useState<string | null>(null);
+  const qualityTimer = useRef<NodeJS.Timeout | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [activeMomentId, setActiveMomentId] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -623,6 +595,25 @@ export default function Moments() {
   }, [id]);
 
   useEffect(() => { fetchMoments(0); }, [id]);
+
+  // Show HD Intro on first load
+  useEffect(() => {
+    if (!loading && moments.length > 0) {
+      const timer = setTimeout(() => {
+        setShowHDIntro(true);
+        setTimeout(() => setShowHDIntro(false), 3500);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, moments.length === 0]);
+
+  const handleQualityChange = useCallback((quality: string) => {
+    if (qualityTimer.current) clearTimeout(qualityTimer.current);
+    setQualityNote(quality);
+    qualityTimer.current = setTimeout(() => {
+      setQualityNote(null);
+    }, 3000);
+  }, []);
 
   /** Pull-to-refresh: bypass 30s cache, reset scroll, get a reshuffled feed */
   const handleRefresh = useCallback(() => {
@@ -1188,6 +1179,41 @@ export default function Moments() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Premium HD Intro Notification */}
+      <AnimatePresence>
+        {showHDIntro && (
+          <motion.div 
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 20, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="fixed top-12 left-1/2 -translate-x-1/2 z-[2000] bg-black/80 backdrop-blur-2xl border border-white/10 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-2xl pointer-events-none md:left-[calc(50%+144px)] min-w-[280px]"
+          >
+            <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+              <Sparkles size={16} className="text-primary animate-pulse" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white text-[11px] font-black uppercase tracking-[0.2em]">HD Streaming Active</span>
+              <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Optimized for premium clarity</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quality Feedback Notification */}
+      <AnimatePresence>
+        {qualityNote && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed top-32 left-1/2 -translate-x-1/2 z-[2000] bg-white/10 backdrop-blur-md border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2 shadow-xl pointer-events-none md:left-[calc(50%+144px)]"
+          >
+            <Orbit size={12} className="text-primary animate-spin-slow" />
+            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest">Playing in {qualityNote}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <div 
         ref={scrollRef}
@@ -1229,6 +1255,7 @@ export default function Moments() {
                    onShare={setMomentToShare}
                    onOpenSearch={() => setIsSearchOpen(true)}
                    onFollow={handleFollow}
+                   onQualityChange={handleQualityChange}
                    downloadProgress={downloadProgress?.id === m.moment_id ? downloadProgress.progress : null}
                    currentUser={user}
                 />

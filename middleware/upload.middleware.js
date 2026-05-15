@@ -128,10 +128,43 @@ const messageUpload = multer({
     }
 });
 
+const momentsStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        const dynamicDrift = await getDrift();
+        const patchedTimestamp = Math.round(Date.now() / 1000) + dynamicDrift;
+        
+        console.log('🎥 MOMENT HD PIPELINE: Starting high-fidelity upload');
+        
+        return {
+            folder: 'sparkle_moments_hd',
+            resource_type: 'video',
+            timestamp: patchedTimestamp,
+            public_id: `moment-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+            allowed_formats: ['mp4', 'mov', 'avi', 'webm', 'mkv'],
+            // HD Transcoding & Adaptive Streaming Strategy
+            streaming_profile: 'full_hd', // Generates HLS bitrates up to 1080p
+            eager: [
+                // 1080p High Quality MP4 (Preserve detail)
+                { width: 1080, height: 1920, crop: 'limit', quality: 'auto:best', format: 'mp4', bit_rate: '6m' },
+                // 720p Balanced MP4
+                { width: 720, height: 1280, crop: 'limit', quality: 'auto:good', format: 'mp4', bit_rate: '3.5m' },
+                // HD Thumbnail/Cover
+                { width: 1080, height: 1920, crop: 'limit', format: 'jpg', quality: 'auto:best' }
+            ],
+            eager_async: true, // Non-blocking upload
+            transformation: [
+                { quality: 'auto:best' }, // Global quality setting
+                { fetch_format: 'auto' }
+            ]
+        };
+    },
+});
+
 const momentsUpload = multer({
-    storage: storage,
+    storage: momentsStorage,
     limits: {
-        fileSize: 20 * 1024 * 1024 // 20MB limit for Moments (videos)
+        fileSize: 100 * 1024 * 1024 // Increased to 100MB for 1080p HD videos
     }
 });
 

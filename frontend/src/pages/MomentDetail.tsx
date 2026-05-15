@@ -5,6 +5,7 @@ import Spinner from '../components/ui/Spinner';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import clsx from 'clsx';
+import HlsVideoPlayer from '../components/HlsVideoPlayer';
 
 interface MomentData {
   moment_id: string;
@@ -19,6 +20,7 @@ interface MomentData {
   comment_count?: number;
   created_at: string;
   is_liked?: boolean;
+  streaming_url?: string;
 }
 
 export default function MomentDetail() {
@@ -108,13 +110,12 @@ export default function MomentDetail() {
                     title="TikTok Video"
                   />
                 ) : moment.is_video ? (
-                  <video 
-                    src={moment.media_url} 
-                    className="w-full h-full object-cover" 
-                    controls 
-                    autoPlay 
-                    loop
-                    poster={moment.thumbnail_url} 
+                  <HlsVideoPlayer 
+                    src={moment.media_url}
+                    streamingSrc={moment.streaming_url}
+                    poster={moment.thumbnail_url}
+                    active={true}
+                    className="w-full h-full"
                   />
                 ) : (
                   <img 

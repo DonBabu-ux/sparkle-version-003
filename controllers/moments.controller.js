@@ -100,7 +100,11 @@ const ensureMomentColumns = async () => {
         { name: 'media_type', def: 'VARCHAR(50) DEFAULT "video"' },
         { name: 'is_live', def: 'TINYINT(1) DEFAULT 0' },
         { name: 'completion_rate', def: 'DECIMAL(5,4) DEFAULT 1.0000' },
-        { name: 'quality_score', def: 'DECIMAL(5,4) DEFAULT 1.0000' }
+        { name: 'quality_score', def: 'DECIMAL(5,4) DEFAULT 1.0000' },
+        { name: 'streaming_url', def: 'VARCHAR(500) DEFAULT NULL' },
+        { name: 'thumbnail_url', def: 'VARCHAR(500) DEFAULT NULL' },
+        { name: 'resolution', def: 'VARCHAR(50) DEFAULT "1080p"' },
+        { name: 'bitrate', def: 'INT DEFAULT 0' }
     ];
     for (const col of momentsCols) {
         try {
@@ -139,6 +143,8 @@ const renderMoments = async (req, res) => {
                 m.user_id,
                 m.caption,
                 m.media_url,
+                m.streaming_url,
+                m.thumbnail_url,
                 m.media_type,
                 IFNULL(m.like_count, 0) as like_count,
                 IFNULL(m.comment_count, 0) as comment_count,
@@ -446,6 +452,17 @@ const createMoment = async (req, res) => {
         const momentId = require('crypto').randomUUID();
         const media_type = detected_mimetype ? detected_mimetype.split('/')[0] : (media_url.includes('video') ? 'video' : 'image');
 
+        // Extract HD/Streaming URLs from Cloudinary metadata
+        let streaming_url = null;
+        let thumbnail_url = null;
+        
+        if (req.file && req.file.mimetype.startsWith('video/')) {
+            // HLS Streaming URL (requires .m3u8 extension)
+            streaming_url = media_url.replace(/\.[^/.]+$/, '.m3u8');
+            // HD Thumbnail (from eager jpg transformation)
+            thumbnail_url = media_url.replace(/\.[^/.]+$/, '.jpg');
+        }
+
         // Extract hashtags (Max 5)
         const tags = caption ? (caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
         const hashtags = [...new Set(tags.map(t => t.toLowerCase()))].slice(0, 5);
@@ -481,9 +498,9 @@ const createMoment = async (req, res) => {
             // Insert moment
             await connection.query(
                 `INSERT INTO moments 
-                (moment_id, user_id, caption, media_url, media_type, category, like_count, comment_count, share_count) 
-                VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0)`,
-                [momentId, userId, caption || '', media_url, media_type, category]
+                (moment_id, user_id, caption, media_url, streaming_url, thumbnail_url, media_type, category, like_count, comment_count, share_count) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)`,
+                [momentId, userId, caption || '', media_url, streaming_url, thumbnail_url, media_type, category]
             );
 
             // Insert hashtags

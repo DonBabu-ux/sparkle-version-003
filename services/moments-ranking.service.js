@@ -74,7 +74,10 @@ class MomentsRankingService {
             const [trendingResult, strangersResult, ...catResults] = await Promise.all([
                 // Trending pool
                 pool.query(`
-                    SELECT m.*, u.username, u.name as user_name, u.avatar_url,
+                    SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
+                           m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                           m.created_at, m.completion_rate, m.quality_score,
+                           u.username, u.name as user_name, u.avatar_url,
                            ((COALESCE(m.like_count, 0) * 5.0 + COALESCE(m.comment_count, 0) * 10.0 + COALESCE(m.share_count, 0) * 15.0 + 1.0)
                            / (COALESCE(m.view_count, 0) + 10.0)) * IFNULL(m.completion_rate, 1.0) * IFNULL(m.quality_score, 1.0) as base_score
                     FROM moments m
@@ -84,7 +87,10 @@ class MomentsRankingService {
                 `),
                 // Strangers pool
                 pool.query(`
-                    SELECT m.*, u.username, u.name as user_name, u.avatar_url,
+                    SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
+                           m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                           m.created_at, m.completion_rate, m.quality_score,
+                           u.username, u.name as user_name, u.avatar_url,
                            ((COALESCE(m.like_count, 0) * 5.0 + COALESCE(m.comment_count, 0) * 10.0 + COALESCE(m.share_count, 0) * 15.0 + 1.0)
                            / (COALESCE(m.view_count, 0) + 10.0)) as base_score
                     FROM moments m
@@ -95,7 +101,10 @@ class MomentsRankingService {
                 // All 17 category pools in parallel
                 ...CATEGORIES.map(cat =>
                     pool.query(`
-                        SELECT m.*, u.username, u.name as user_name, u.avatar_url,
+                        SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
+                               m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                               m.created_at, m.completion_rate, m.quality_score,
+                               u.username, u.name as user_name, u.avatar_url,
                                ((COALESCE(m.like_count, 0) * 5.0 + COALESCE(m.comment_count, 0) * 10.0 + COALESCE(m.share_count, 0) * 15.0 + 1.0)
                                / (COALESCE(m.view_count, 0) + 10.0)) * IFNULL(m.completion_rate, 1.0) * IFNULL(m.quality_score, 1.0) as base_score
                         FROM moments m
@@ -127,7 +136,10 @@ class MomentsRankingService {
 
     async getFollowingPool(userId) {
         const [following] = await pool.query(`
-            SELECT m.*, u.username, u.name as user_name, u.avatar_url,
+            SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
+                   m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                   m.created_at, m.completion_rate, m.quality_score,
+                   u.username, u.name as user_name, u.avatar_url,
                    ((COALESCE(m.like_count, 0) * 5.0 + COALESCE(m.comment_count, 0) * 10.0 + COALESCE(m.share_count, 0) * 15.0 + 1.0)
                    / (COALESCE(m.view_count, 0) + 10.0)) * IFNULL(m.completion_rate, 1.0) * IFNULL(m.quality_score, 1.0) as base_score
             FROM moments m
@@ -200,7 +212,10 @@ class MomentsRankingService {
             console.warn(`⚠️ Moments Ranking Optimization: ${error.message}. Using fast-path fallback.`);
             // FAST PATH: Direct DB fallback if ranking is too slow
             const [fallback] = await pool.query(`
-                SELECT m.*, u.username, u.name as user_name, u.avatar_url
+                SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
+                       m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.created_at, m.completion_rate, m.quality_score,
+                       u.username, u.name as user_name, u.avatar_url
                 FROM moments m JOIN users u ON m.user_id = u.user_id
                 ORDER BY m.created_at DESC LIMIT ? OFFSET ?
             `, [limit, offset]);
@@ -248,7 +263,10 @@ class MomentsRankingService {
         // DB fallback + paging (fast query, no joins on cold start)
         if (candidates.length < 20 || offset > 0) {
             const [dbItems] = await pool.query(`
-                SELECT m.*, u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
+                SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
+                       m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.created_at, m.completion_rate, m.quality_score,
+                       u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
                 FROM moments m
                 JOIN users u ON m.user_id = u.user_id
                 ORDER BY m.created_at DESC

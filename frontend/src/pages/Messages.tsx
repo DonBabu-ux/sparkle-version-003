@@ -86,6 +86,9 @@ interface ChatConversation {
   partner_online?: boolean;
   is_archived?: boolean;
   is_group?: boolean;
+  chat_type?: string;
+  member_count?: number;
+  group_online_count?: number;
   unread_count: number;
   last_message?: string;
   last_message_time?: string;   // from personal_chats table column
@@ -616,6 +619,10 @@ export default function Messages() {
   const [showWordEmojiPicker, setShowWordEmojiPicker] = useState(false);
   const [newWordEffect, setNewWordEffect] = useState({ word: '', emoji: '😀' });
   const [partnerIsTyping, setPartnerIsTyping] = useState(false);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Note reaction states
   const [noteBubbles, setNoteBubbles] = useState<Array<{id: number; emoji: string; x: number; delay: number}>>([]);
   const [noteReacted, setNoteReacted] = useState<string | null>(null);
@@ -755,29 +762,37 @@ export default function Messages() {
     if (!socket || !selectedChat) return;
 
     const handleNewMessage = (msg: any) => {
+      const isCurrentChat = msg.conversation_id === selectedChat.chat_id || msg.chat_id === selectedChat.chat_id || msg.sender_id === selectedChat.partner_id;
+      
       // 1. If it belongs to current active chat, update message array
-      if (msg.conversation_id === selectedChat.chat_id || msg.chat_id === selectedChat.chat_id || msg.sender_id === selectedChat.partner_id) {
+      if (isCurrentChat) {
         setMessages(prev => {
           if (prev.some(m => m.message_id === msg.message_id)) return prev;
           return [...prev, msg];
         });
         triggerWordEffect(msg.content);
         
-        // Let backend know we received it
-        if (document.hasFocus()) {
-           socket.emit('mark-read', msg.conversation_id || msg.chat_id);
-        } else {
-           socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
+        // Let backend know we received it ONLY IF NOT GROUP
+        const isGroup = selectedChat?.is_group || selectedChat?.chat_type === 'group' || msg.chat_type === 'group';
+        if (!isGroup) {
+          if (document.hasFocus()) {
+             socket.emit('mark-read', msg.conversation_id || msg.chat_id);
+          } else {
+             socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
+          }
         }
 
-        if (showScrollToBottom) {
-          setUnreadCountInChat(prev => prev + 1);
+        if (isNearBottom) {
+          setTimeout(() => scrollToBottom('smooth'), 50);
+          setUnreadCountInChat(0);
         } else {
-          scrollToBottom('smooth');
+          setUnreadCountInChat(prev => prev + 1);
         }
       } else {
-        // We received a message for a different chat, mark it delivered
-        socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
+        // We received a message for a different chat, mark it delivered if personal
+        if (msg.chat_type !== 'group') {
+          socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
+        }
       }
 
       // 2. Reactively update the conversations list without fetching from server
@@ -854,6 +869,18 @@ export default function Messages() {
       }));
     };
 
+    const handleGroupPresenceUpdate = (data: { chatId: string, onlineCount: number }) => {
+      setConversations((prev: any[]) => prev.map(chat => {
+        if (chat.chat_id === data.chatId) {
+          return { ...chat, group_online_count: data.onlineCount };
+        }
+        return chat;
+      }));
+      if (selectedChat?.chat_id === data.chatId) {
+        setSelectedChat(prev => prev ? { ...prev, group_online_count: data.onlineCount } : null);
+      }
+    };
+
     socket.on('new-message', handleNewMessage);
     socket.on('receive_message', handleNewMessage);
     socket.on('messages-delivered', handleMessagesDelivered);
@@ -861,10 +888,12 @@ export default function Messages() {
     socket.on('user-status', handleUserStatus);
     socket.on('user-typing', handleUserTyping);
     socket.on('user-note-update', handleUserNoteUpdate);
+    socket.on('group:presence:update', handleGroupPresenceUpdate);
 
     // Initial check when opening a chat to mark read
-    if (selectedChat && document.hasFocus()) {
+    if (selectedChat && document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group')) {
        socket.emit('mark-read', selectedChat.chat_id);
+       setUnreadCountInChat(0);
     }
 
     return () => {
@@ -875,11 +904,13 @@ export default function Messages() {
       socket.off('user-status', handleUserStatus);
       socket.off('user-typing', handleUserTyping);
       socket.off('user-note-update', handleUserNoteUpdate);
+      socket.off('group:presence:update', handleGroupPresenceUpdate);
     };
-  }, [socket, selectedChat, showScrollToBottom, user?.id, user?.user_id]);
+  }, [socket, selectedChat, isNearBottom, user?.id, user?.user_id]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
+    setUnreadCountInChat(0);
   };
 
   const triggerWordEffect = (content: string) => {
@@ -918,7 +949,18 @@ export default function Messages() {
     
     setMessages(prev => [...prev, optimisticMsg]);
     if (!contentOverride) setNewMessage('');
-    scrollToBottom('smooth');
+    
+    // Auto scroll if was at bottom
+    if (isNearBottom) {
+      setTimeout(() => scrollToBottom('smooth'), 50);
+    }
+
+    // Stop typing immediately on send
+    if (isTypingRef.current) {
+      socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
+      isTypingRef.current = false;
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    }
 
     // Transmit exclusively via WebSocket payload
     socket?.emit('send-message', {
@@ -959,12 +1001,31 @@ export default function Messages() {
     if (val.length === 0 && isMenuCollapsed) setIsMenuCollapsed(false);
 
     if (selectedChat) {
-      socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: val.length > 0 });
+      // Logic for typing:start / typing:stop
+      if (!isTypingRef.current && val.length > 0) {
+        isTypingRef.current = true;
+        socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: true });
+      } else if (isTypingRef.current && val.length === 0) {
+        isTypingRef.current = false;
+        socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
+      }
+
+      // Refresh timeout for inactivity
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (val.length > 0) {
+        typingTimeoutRef.current = setTimeout(() => {
+          isTypingRef.current = false;
+          socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
+        }, 2000);
+      }
     }
   };
   const handleScroll = (e: any) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    setShowScrollToBottom(scrollHeight - scrollTop - clientHeight > 300);
+    const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    setIsNearBottom(nearBottom);
+    setShowScrollToBottom(!nearBottom);
+    if (nearBottom) setUnreadCountInChat(0);
   };
 
   const startNewChat = (contact: any) => {
@@ -1179,7 +1240,11 @@ export default function Messages() {
              </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-3 no-scrollbar scroll-smooth bg-[#121212]">
+          <div 
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto px-6 pb-24 space-y-3 no-scrollbar scroll-smooth bg-[#121212]"
+          >
             {Array.isArray(conversations) && conversations.length === 0 && !loading ? (
               <div className="py-12 px-4">
                  <ModernOfflineState 
@@ -1211,7 +1276,7 @@ export default function Messages() {
                   <div className="relative shrink-0">
                     <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-[54px] h-[54px] rounded-full object-cover border border-white/5 shadow-md" alt="" />
                     <div className="absolute -bottom-0.5 -right-0.5">
-                      {(chat.partner_online || chat.is_online === 1 || chat.is_online === true) ? (
+                      {!(chat.is_group || chat.chat_type === 'group') && (chat.partner_online || chat.is_online === 1 || chat.is_online === true) ? (
                         <div className="w-4 h-4 bg-emerald-500 border-[3px] border-[#121212] rounded-full"></div>
                       ) : null}
                     </div>
@@ -1294,8 +1359,10 @@ export default function Messages() {
                     <h3 className="text-[17px] font-bold tracking-tight leading-tight text-white">{selectedChat.partner_name}</h3>
                     <div className="h-[14px] mt-0.5 overflow-hidden">
                       <AnimatePresence mode="wait">
-                        {partnerIsTyping ? (
-                          <motion.p key="typing" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-bold lowercase text-[#ff1493]">typing...</motion.p>
+                        {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
+                          <motion.p key="group-online" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-semibold lowercase text-emerald-500">
+                            {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count || 1} online
+                          </motion.p>
                         ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
                           <motion.p key="online" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-bold lowercase text-emerald-500">online</motion.p>
                         ) : showLastSeen ? (
@@ -1372,25 +1439,29 @@ export default function Messages() {
                               <div className="relative text-[14.5px]">
                                 <span className="whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff !important' }}>{msg.content}</span>
                                 {/* Spacer to prevent timestamp overlap */}
-                                <span className="inline-block w-[60px] h-[1px]"></span>
+                                <span className="inline-block w-[75px] h-[1px]"></span>
                               </div>
                             </div>
                             
                             {/* Timestamp & Ticks absolute inside bubble bottom-right */}
-                            <div className="absolute bottom-[4px] right-[6px] flex items-center gap-1 opacity-90 text-[10.5px] font-medium tracking-tight h-[15px]">
+                            <div className="absolute bottom-[2px] right-[4px] flex items-center gap-0.5 opacity-90 text-[10.5px] font-medium tracking-tight h-[15px]">
                               <span style={{ color: 'rgba(255,255,255,0.85)' }}>{safeTime(msg.sent_at || msg.created_at || '')}</span>
                               {isMe && (
                                 <div className="flex items-center -ml-0.5">
-                                  {msg.is_read || msg.status === 'seen' ? (
+                                  {(selectedChat?.is_group || selectedChat?.chat_type === 'group') ? (
+                                    <Check size={15} className="text-[#cbd5e1] drop-shadow-md" strokeWidth={3} />
+                                  ) : msg.is_read || msg.status === 'read' || msg.status === 'seen' ? (
                                     <div className="flex -space-x-[7px] drop-shadow-md">
                                       <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
                                       <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
                                     </div>
-                                  ) : selectedChat?.partner_online ? (
+                                  ) : msg.status === 'delivered' ? (
                                     <div className="flex -space-x-[7px] drop-shadow-md">
                                       <Check size={15} className="text-[#cbd5e1]" strokeWidth={3} />
                                       <Check size={15} className="text-[#cbd5e1]" strokeWidth={3} />
                                     </div>
+                                  ) : msg.status === 'sending' ? (
+                                    <Clock size={12} className="text-[#cbd5e1] ml-1 drop-shadow-md" strokeWidth={2} />
                                   ) : (
                                     <Check size={15} className="text-[#cbd5e1] drop-shadow-md" strokeWidth={3} />
                                   )}
@@ -1407,6 +1478,22 @@ export default function Messages() {
 
                 {/* Scroll to Bottom Button */}
                 <AnimatePresence>
+                  {partnerIsTyping && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                      className="absolute bottom-[85px] left-6 z-40 flex items-center gap-2 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 shadow-2xl"
+                    >
+                      <div className="flex gap-1">
+                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/90">{selectedChat.partner_name} is typing</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
                   {showScrollToBottom && (
                     <motion.button 
                       initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
@@ -1414,12 +1501,12 @@ export default function Messages() {
                         scrollToBottom('smooth');
                         setUnreadCountInChat(0);
                       }}
-                      className="absolute bottom-24 right-6 w-11 h-11 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white shadow-2xl z-50 hover:bg-white/20 transition-all active:scale-95"
+                      className="absolute bottom-24 right-6 w-12 h-12 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(255,20,147,0.4)] z-50 hover:scale-110 transition-transform active:scale-95"
                     >
-                      <ArrowDown size={20} strokeWidth={3} />
+                      <ArrowDown size={22} strokeWidth={3} />
                       {unreadCountInChat > 0 && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#ff1493] rounded-full flex items-center justify-center text-[10px] font-black border-2 border-black">
-                          {unreadCountInChat}
+                        <div className="absolute -top-1.5 -right-1.5 bg-[#ff1493] text-white text-[10px] font-black px-2 py-1 rounded-full border-2 border-[#121212] shadow-lg animate-bounce">
+                          {unreadCountInChat} NEW
                         </div>
                       )}
                     </motion.button>

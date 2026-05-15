@@ -21,13 +21,17 @@ class MediaService {
         isReusable = false,
         referencedByFeatures = [],
         fileSizeBytes = 0,
-        hashChecksum = null
+        hashChecksum = null,
+        resolution = null
     }) {
         const mediaId = crypto.randomUUID();
         
-        // Generate a local template for heavy feed rendering
+        // Use provided thumbnail_url or generate one
+        let finalThumbnailUrl = thumbnailUrl;
+        
+        // Generate a local template for heavy feed rendering if no thumbnail provided
         let localTemplatePath = null;
-        if (secureUrl && cloudinaryPublicId && !cloudinaryPublicId.startsWith('url_import_') && category !== 'message') {
+        if (secureUrl && !finalThumbnailUrl && cloudinaryPublicId && !cloudinaryPublicId.startsWith('url_import_') && category !== 'message') {
             try {
                 // Determine resource type based on URL extension
                 const isVideo = secureUrl.match(/\.(mp4|webm|mov|avi)$/i);
@@ -77,7 +81,7 @@ class MediaService {
                 file_size_bytes, hash_checksum, local_template_path, last_accessed_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
             [
-                mediaId, ownerId, category, cloudinaryPublicId, secureUrl, thumbnailUrl,
+                mediaId, ownerId, category, cloudinaryPublicId, secureUrl, finalThumbnailUrl,
                 lifecycleState, expiresAt, isReusable, JSON.stringify(referencedByFeatures),
                 fileSizeBytes, hashChecksum, localTemplatePath
             ]

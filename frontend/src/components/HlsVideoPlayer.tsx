@@ -110,6 +110,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
     if (!video) return;
 
     if (active) {
+      video.load(); // Force reset/load on active
       video.play().catch(() => {});
     } else {
       video.pause();
@@ -124,6 +125,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
         muted={muted}
         loop={loop}
         playsInline
+        autoPlay={active}
         crossOrigin="anonymous"
         preload="auto"
         onTimeUpdate={onTimeUpdate}

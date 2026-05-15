@@ -181,26 +181,38 @@ const MarketplaceChat = () => {
     if (!user || !token || !conversationId) return;
 
     const newSocket = io(`${SOCKET_URL}/marketplace`, {
-      auth: { token, userId: user.user_id }
+      auth: { token, userId: user.user_id || user.id },
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000
     });
 
     newSocket.on('connect', () => {
+      console.log('🛒 Marketplace socket connected');
       newSocket.emit('join_conversation', conversationId);
     });
 
+    newSocket.on('connect_error', (err) => {
+      console.warn('🛒 Marketplace socket connection error:', err.message);
+    });
+
     newSocket.on('receive_message', (msg: Message) => {
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => {
+        // Prevent duplicate messages if socket emits multiple times
+        if (prev.find(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
       newSocket.emit('mark_read', { messageId: msg.id, conversationId });
     });
 
     newSocket.on('user_status_change', ({ userId, status }) => {
-      if (conversation && (userId === conversation.seller_id || userId === conversation.buyer_id) && userId !== user.user_id) {
+      if (conversation && (userId === conversation.seller_id || userId === conversation.buyer_id) && userId !== (user.user_id || user.id)) {
         setIsOpponentOnline(status === 'online');
       }
     });
 
     newSocket.on('user_typing', ({ userId, isTyping }) => {
-      if (userId !== user.user_id) {
+      if (userId !== (user.user_id || user.id)) {
         setOpponentTyping(isTyping);
       }
     });
@@ -234,7 +246,7 @@ const MarketplaceChat = () => {
       newSocket.emit('leave_conversation', conversationId);
       newSocket.disconnect();
     };
-  }, [user, token, conversationId, conversation]);
+  }, [user?.user_id, user?.id, token, conversationId]); // Removed 'conversation' to prevent reconnections on status changes
 
   const handleDelete = async (messageId: string) => {
     if (!socket) return;

@@ -59,7 +59,7 @@ export default function Profile() {
     setLoading(true);
     setActiveTab('posts'); 
     try {
-      const endpoint = username === 'me' ? '/users/me' : `/users/${username}`;
+      const endpoint = username === 'me' ? '/users/me' : `/users/${encodeURIComponent(username || '')}`;
       const profileRes = await api.get(endpoint);
       if (profileRes.data) {
         const profileData = profileRes.data;
@@ -252,9 +252,9 @@ export default function Profile() {
                   <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
                     {/* Assuming 'accounts' and 'switchAccount' are defined/provided in context or state */}
                     {/* @ts-ignore */}
-                    {accounts.map((acc) => (
+                    {accounts.map((acc, idx) => (
                       <button 
-                        key={acc.user.user_id}
+                        key={acc.user.user_id || `acc-${idx}`}
                         onClick={() => {
                           if (acc.user.user_id !== currentUser?.user_id) {
                             // @ts-ignore

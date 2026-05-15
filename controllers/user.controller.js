@@ -725,12 +725,14 @@ const getActiveFriends = async (req, res) => {
         const friends = await User.getActiveFriends(currentUserId, 20);
         res.json(friends.map(u => ({
             id: u.user_id,
+            user_id: u.user_id, // for compatibility
             username: u.username,
             name: u.name,
             avatar_url: u.avatar_url || '/uploads/avatars/default.png',
             campus: u.campus,
             affiliation: u.affiliation || u.campus,
-            is_online: u.is_online
+            is_online: u.is_online,
+            note: u.note
         })));
     } catch (error) {
         logger.error('Get active friends error:', error);

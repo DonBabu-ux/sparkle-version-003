@@ -629,14 +629,6 @@ export default function Messages() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // --- Mock Data ---
-  const mockNotes = [
-    "Exploring the village ✨",
-    "Feeling the sparkle vibe!",
-    "New moments coming soon...",
-    "Listening to Afrobeat 🎵",
-    "Sparkle is the future 🚀"
-  ];
   const notePlaceholder = "Feeling sparkle ✨";
 
   // --- Effects ---
@@ -694,11 +686,34 @@ export default function Messages() {
 
   const fetchSuggested = async () => {
     try {
-      const res = await api.get('/users/followers');
+      const res = await api.get('/users/active-friends');
       setSuggestedContacts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch suggested', err);
       setSuggestedContacts([]);
+    }
+  };
+
+  const handleOpenDirectChat = (contact: any) => {
+    const partnerId = contact.user_id || contact.id;
+    const existing = conversations.find(c => c.partner_id === partnerId);
+    
+    if (existing) {
+      setSelectedChat(existing);
+      navigate(`/messages?chat=${existing.chat_id}`);
+    } else {
+      // Create a temporary chat object for the UI
+      setSelectedChat({
+        chat_id: 'temp_' + Date.now(),
+        partner_id: partnerId,
+        partner_name: contact.name || contact.username,
+        partner_avatar: contact.avatar_url,
+        unread_count: 0,
+        last_message_time: new Date().toISOString(),
+        partner_online: contact.is_online
+      });
+      // Clear the chat param since we are in a temp chat
+      navigate('/messages', { replace: true });
     }
   };
 
@@ -961,41 +976,52 @@ export default function Messages() {
                 </div>
 
                 {/* Real users with notes with distinct colors */}
-                {Array.isArray(suggestedContacts) && suggestedContacts.slice(0, 8).map((contact, idx) => {
-                  const chat = Array.isArray(conversations) ? conversations.find(c => c.partner_id === contact.user_id) : null;
-                  const chatTheme = chat ? getThemeForChat(chat.chat_id) : null;
-                  const colors = ['#7c3aed', '#0ea5e9', '#ff1493', '#f59e0b', '#10b981', '#ef4444', '#6366f1', '#ec4899'];
-                  const bubbleBg = chatTheme?.colors?.primary || colors[idx % colors.length];
-                  const noteContent = contact.note || mockNotes[idx % mockNotes.length];
+                {/* Real users with notes with distinct colors */}
+                {Array.isArray(suggestedContacts) && suggestedContacts
+                  .filter(contact => contact.is_online)
+                  .slice(0, 12)
+                  .map((contact, idx) => {
+                    const contactId = contact.user_id || contact.id || `contact-${idx}`;
+                    const chat = Array.isArray(conversations) ? conversations.find(c => c.partner_id === contact.user_id) : null;
+                    const chatTheme = chat ? getThemeForChat(chat.chat_id) : null;
+                    const colors = ['#7c3aed', '#0ea5e9', '#ff1493', '#f59e0b', '#10b981', '#ef4444', '#6366f1', '#ec4899'];
+                    const bubbleBg = chatTheme?.colors?.primary || colors[idx % colors.length];
+                    const noteContent = contact.note;
 
-                  return (
-                    <div key={contact.user_id} className="relative w-[64px] flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
-                      onClick={() => {
-                        setViewingNote({...contact, note: noteContent, bubbleBg});
-                        setShowViewNoteModal(true);
-                      }}
-                    >
-                      <div className="relative w-full">
-                        <div 
-                          className="absolute -top-[34px] left-0 right-0 h-8 border border-white/30 backdrop-blur-3xl rounded-lg flex items-center justify-center px-1.5 text-[9px] text-white font-black text-center leading-tight shadow-xl animate-fade-in z-10"
-                          style={{ 
-                            backgroundColor: `${bubbleBg}`, 
-                            textShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                            boxShadow: `0 4px 15px ${bubbleBg}44`
-                          }}
-                        >
-                          <span className="truncate block w-full">{noteContent}</span>
-                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 border-b border-r border-white/30 rounded-full" style={{ backgroundColor: `${bubbleBg}` }}></div>
+                    return (
+                      <div key={`palette-${contactId}`} className="relative w-[64px] flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
+                        onClick={() => handleOpenDirectChat(contact)}
+                      >
+                        <div className="relative w-full">
+                          {noteContent && (
+                            <div 
+                              className="absolute -top-[34px] left-0 right-0 h-8 border border-white/30 backdrop-blur-3xl rounded-lg flex items-center justify-center px-1.5 text-[9px] text-white font-black text-center leading-tight shadow-xl animate-fade-in z-10"
+                              style={{ 
+                                backgroundColor: `${bubbleBg}`, 
+                                textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                                boxShadow: `0 4px 15px ${bubbleBg}44`
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Don't trigger chat shortcut if clicking the bubble specifically
+                                setViewingNote({...contact, note: noteContent, bubbleBg});
+                                setShowViewNoteModal(true);
+                              }}
+                            >
+                              <span className="truncate block w-full">{noteContent}</span>
+                              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 border-b border-r border-white/30 rounded-full" style={{ backgroundColor: `${bubbleBg}` }}></div>
+                            </div>
+                          )}
+                          <div className="flex justify-center">
+                            <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10 shadow-sm" alt="" />
+                          </div>
+                          {contact.is_online && (
+                            <div className="absolute bottom-0 right-2 w-3 h-3 bg-emerald-500 border-[2px] border-black rounded-full"></div>
+                          )}
                         </div>
-                        <div className="flex justify-center">
-                          <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10 shadow-sm" alt="" />
-                        </div>
-                        <div className="absolute bottom-0 right-2 w-3 h-3 bg-emerald-500 border-[2px] border-black rounded-full"></div>
+                        <span className="text-[9px] font-bold text-white/50 text-center truncate w-full group-hover:text-white transition-colors">{contact.name?.split(' ')[0] || contact.username}</span>
                       </div>
-                      <span className="text-[9px] font-bold text-white/50 text-center truncate w-full group-hover:text-white transition-colors">{contact.name?.split(' ')[0] || contact.username}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
              </div>
           </header>
 
@@ -1288,15 +1314,18 @@ export default function Messages() {
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
-                {Array.isArray(suggestedContacts) && suggestedContacts.map(contact => (
-                  <div key={contact.user_id} onClick={() => startNewChat(contact)} className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl cursor-pointer transition-all active:scale-[0.98]">
-                    <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-xl object-cover border border-white/5 shadow-sm" />
-                    <div>
-                      <h4 className="font-bold text-white text-sm leading-none">{contact.name || contact.username}</h4>
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">@{contact.username}</p>
+                {Array.isArray(suggestedContacts) && suggestedContacts.map((contact, idx) => {
+                  const contactId = contact.user_id || contact.id || idx;
+                  return (
+                    <div key={`modal-${contactId}`} onClick={() => startNewChat(contact)} className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl cursor-pointer transition-all active:scale-[0.98]">
+                      <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-xl object-cover border border-white/5 shadow-sm" />
+                      <div>
+                        <h4 className="font-bold text-white text-sm leading-none">{contact.name || contact.username}</h4>
+                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">@{contact.username}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           </motion.div>

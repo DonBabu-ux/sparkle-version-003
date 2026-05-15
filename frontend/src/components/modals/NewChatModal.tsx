@@ -59,8 +59,9 @@ export default function NewChatModal({ isOpen, onClose, defaultTab = 'new' }: Ne
     } else {
       // Create or go to direct chat
       try {
-        const res = await api.post('/messages/chat', { partnerId: u.id || u.user_id });
-        onChatSelected(res.data.chatId || res.data.chat_id);
+        const res = await api.post('/messages/start', { partnerId: u.id || u.user_id });
+        const chatId = res.data.data?.conversationId || res.data.chatId || res.data.chat_id;
+        onChatSelected(chatId);
         onClose();
       } catch (err) {
         console.error('Failed to create chat', err);

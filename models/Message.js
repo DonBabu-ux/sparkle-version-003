@@ -75,10 +75,25 @@ class Message {
         try {
             await db.query(`
                 INSERT INTO messages (
-                    message_id, chat_id, conversation_id, sender_id, content, 
-                    type, media_url, reply_to_message_id, status, sent_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sent', ?)
-            `, [messageId, groupChatId, personalChatId, senderId, content, type, mediaUrl, replyToId, sentAt]);
+                    message_id, chat_id, conversation_id, personal_chat_id, 
+                    sender_id, recipient_id, content, type, media_url, 
+                    story_id, reply_to_message_id, status, is_read, sent_at, context
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, ?)
+            `, [
+                messageId, 
+                groupChatId, 
+                personalChatId, 
+                personalChatId, 
+                senderId, 
+                recipientId || null, 
+                content, 
+                type, 
+                mediaUrl, 
+                storyId,
+                replyToId, 
+                sentAt, 
+                context
+            ]);
 
             // Update last_message_time and clear archives/deletions
             if (personalChatId) {
@@ -219,8 +234,8 @@ class Message {
                     m.sender_id as last_message_sender_id,
                     m.status as last_message_status,
                     (SELECT COUNT(*) FROM messages m2 
-                     WHERE m2.conversation_id = pc.chat_id 
-                     AND m2.sender_id != ? AND m2.status != 'read') as unread_count,
+                     WHERE (m2.conversation_id = pc.chat_id OR m2.personal_chat_id = pc.chat_id)
+                     AND m2.sender_id != ? AND (m2.status != 'read' AND m2.is_read = 0)) as unread_count,
                     IF(pc.participant1_id = ?, pc.is_pinned_p1, pc.is_pinned_p2) as is_pinned,
                     IF(pc.participant1_id = ?, pc.is_muted_p1, pc.is_muted_p2) as is_muted,
                     IF(pc.participant1_id = ?, pc.is_archived_p1, pc.is_archived_p2) as is_archived,
@@ -293,15 +308,34 @@ class Message {
      * Mark messages as delivered/read
      */
     static async updateStatus(chatId, userId, status) {
-        // userId is the one who IS NOT the sender
-        await db.query(`
-            UPDATE messages 
-            SET status = ?, read_at = IF(? = 'read', NOW(), read_at)
-            WHERE (conversation_id = ? OR chat_id = ?) 
-              AND sender_id != ? 
-              AND status != 'read'
-        `, [status, status, chatId, chatId, userId]);
-        return true;
+        try {
+            if (status === 'read') {
+                await db.query(`
+                    UPDATE messages 
+                    SET status = 'read', 
+                        is_read = 1,
+                        read_at = IF(read_at IS NULL, NOW(), read_at),
+                        delivered = 1,
+                        delivered_at = IF(delivered_at IS NULL, NOW(), delivered_at)
+                    WHERE (conversation_id = ? OR personal_chat_id = ? OR chat_id = ?) 
+                      AND sender_id != ? 
+                      AND status != 'read'
+                `, [chatId, chatId, chatId, userId]);
+            } else if (status === 'delivered') {
+                await db.query(`
+                    UPDATE messages 
+                    SET status = 'delivered',
+                        delivered = 1,
+                        delivered_at = IF(delivered_at IS NULL, NOW(), delivered_at)
+                    WHERE (conversation_id = ? OR personal_chat_id = ? OR chat_id = ?) 
+                      AND sender_id != ? 
+                      AND status = 'sent'
+                `, [chatId, chatId, chatId, userId]);
+            }
+        } catch (error) {
+            console.error('[ERROR] Message.updateStatus DB Error:', error);
+            throw error;
+        }
     }
 
     /**
@@ -371,6 +405,24 @@ class Message {
             [newContent, messageId, userId]
         );
         return result.affectedRows > 0;
+    }
+
+    /**
+     * Search messages within a conversation
+     */
+    static async getChatMessages(chatId) {
+        const [rows] = await db.query(`
+            SELECT m.*, 
+                   u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar,
+                   rm.content as reply_content, rm.type as reply_type
+            FROM messages m
+            JOIN users u ON m.sender_id = u.user_id
+            LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+            WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+            AND m.is_deleted_for_everyone = 0
+            ORDER BY m.sent_at ASC
+        `, [chatId, chatId, chatId]);
+        return rows;
     }
 
     /**

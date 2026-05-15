@@ -290,7 +290,7 @@ class User {
      */
     static async getActiveFriends(currentUserId, limit = 20) {
         const [users] = await pool.query(
-            `SELECT DISTINCT u.user_id, u.username, u.name, u.avatar_url, u.campus, u.is_online, u.last_seen_at
+            `SELECT DISTINCT u.user_id, u.username, u.name, u.avatar_url, u.campus, u.is_online, u.last_seen_at, u.note
              FROM users u
              WHERE u.user_id != ? 
              AND (u.is_online = 1 OR TIMESTAMPDIFF(MINUTE, u.last_seen_at, NOW()) < 2)
@@ -547,26 +547,26 @@ class User {
 
         // Check if the target user is private
         const [targetUser] = await pool.query(
-            'SELECT is_private, profile_visibility FROM users WHERE user_id = ?',
+            'SELECT profile_visibility FROM users WHERE user_id = ?',
             [followingId]
         );
 
         if (!targetUser[0]) throw new Error('User not found');
 
-        // Priority to is_private as per prompt Step 4
-        const isPrivate = targetUser[0].is_private || targetUser[0].profile_visibility === 'private';
+        const isPrivate = targetUser[0].profile_visibility === 'private';
 
         if (isPrivate) {
             // Send follow request
             try {
                 const requestId = crypto.randomUUID();
                 await pool.query(
-                    'INSERT INTO follow_requests (request_id, requester_id, target_user_id, status) VALUES (?, ?, ?, "pending")',
+                    'INSERT INTO follow_requests (id, requester_id, target_user_id, status) VALUES (?, ?, ?, "pending")',
                     [requestId, followerId, followingId]
                 );
 
                 // Create notification for follow request (Step 7)
-                await require('../controllers/notification.controller').createNotification({
+                const notificationController = require('../controllers/notification.controller');
+                await notificationController.createNotification({
                     user_id: followingId,
                     type: 'follow_request',
                     title: 'Follow Request',
@@ -589,15 +589,24 @@ class User {
             );
 
             // Create notification for follow
-            const [[user]] = await pool.query('SELECT username FROM users WHERE user_id = ?', [followerId]);
-            await require('../controllers/notification.controller').createNotification({
-                user_id: followingId,
-                type: 'follow',
-                title: 'New Follower',
-                content: 'started following you.',
-                actor_id: followerId,
-                action_url: '/profile/' + user.username
-            }, pool);
+            try {
+                const [rows] = await pool.query('SELECT username FROM users WHERE user_id = ?', [followerId]);
+                const followerUsername = rows.length > 0 ? rows[0].username : 'someone';
+                
+                const notificationController = require('../controllers/notification.controller');
+                if (notificationController && notificationController.createNotification) {
+                    await notificationController.createNotification({
+                        user_id: followingId,
+                        type: 'follow',
+                        title: 'New Follower',
+                        content: 'started following you.',
+                        actor_id: followerId,
+                        action_url: `/profile/${followerUsername}`
+                    }, pool);
+                }
+            } catch (notifyErr) {
+                console.error('Non-blocking error creating follow notification:', notifyErr);
+            }
 
             return { status: 'following' };
         } catch (error) {
@@ -623,7 +632,7 @@ class User {
     static async getFollowersDetailed(userId, currentUserId) {
         const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
         const [followers] = await pool.query(
-            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio, u.note, u.is_online,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
                     ${mutualQuery} as mutual_connections
              FROM follows f
@@ -735,14 +744,14 @@ class User {
      */
     static async acceptFollowRequest(requestId, userId) {
         const [request] = await pool.query(
-            'SELECT * FROM follow_requests WHERE request_id = ? AND target_user_id = ?',
+            'SELECT * FROM follow_requests WHERE id = ? AND target_user_id = ?',
             [requestId, userId]
         );
 
         if (!request[0]) throw new Error('Request not found or unauthorized');
 
         // Update request status to accepted
-        await pool.query('UPDATE follow_requests SET status = "accepted" WHERE request_id = ?', [requestId]);
+        await pool.query('UPDATE follow_requests SET status = "accepted" WHERE id = ?', [requestId]);
 
         try {
             // Create follower relationship
@@ -769,7 +778,7 @@ class User {
      */
     static async rejectFollowRequest(requestId, userId) {
         await pool.query(
-            'UPDATE follow_requests SET status = "declined" WHERE request_id = ? AND target_user_id = ?',
+            'UPDATE follow_requests SET status = "rejected" WHERE id = ? AND target_user_id = ?',
             [requestId, userId]
         );
         return true;

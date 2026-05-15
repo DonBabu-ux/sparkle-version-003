@@ -115,7 +115,7 @@ export default function UserCard({ u }: UserCardProps) {
             ))}
           </div>
           <p className="text-[9px] text-black/40 dark:text-white/20 font-black uppercase tracking-widest">
-            {u.mutual_followers.length} Connects
+            {u.mutual_followers.length} Mutual followers
           </p>
         </div>
       ) : (

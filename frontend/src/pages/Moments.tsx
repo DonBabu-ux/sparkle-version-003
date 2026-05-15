@@ -249,7 +249,7 @@ const ReelItem = ({
 
   return (
     <div 
-      className="relative w-full h-full max-w-[480px] mx-auto bg-black rounded-none md:rounded-[48px] overflow-hidden shadow-2xl transition-all duration-700 active:scale-[0.98] group select-none" 
+      className="relative w-full h-full bg-black rounded-none md:rounded-[48px] overflow-hidden shadow-2xl transition-all duration-700 group select-none" 
       onClick={handleInteraction}
     >
       

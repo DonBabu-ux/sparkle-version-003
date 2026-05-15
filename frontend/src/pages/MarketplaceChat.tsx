@@ -739,6 +739,8 @@ const MarketplaceChat = () => {
                 theme="light"
                 previewPosition="none"
                 skinTonePosition="none"
+                perLine={Math.floor(window.innerWidth / 40)}
+                width="100%"
               />
             </div>
           </motion.div>
@@ -867,13 +869,15 @@ const MarketplaceChat = () => {
                 
                 <div className="flex-1 overflow-y-auto p-4 no-scrollbar bg-gray-50/30">
                   {pickerTab === 'emoji' && (
-                    <div className="flex justify-center -mx-4 -my-4">
+                    <div className="flex justify-center w-full">
                       <Picker 
                         data={data} 
                         onEmojiSelect={(emoji: any) => { setInputText(prev => prev + emoji.native); setShowPicker(false); }} 
                         theme="light"
                         previewPosition="none"
                         skinTonePosition="none"
+                        perLine={Math.floor(window.innerWidth / 40)}
+                        width="100%"
                       />
                     </div>
                   )}

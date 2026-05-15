@@ -495,7 +495,7 @@ export default function Confessions() {
                                   </div>
                                 </>
                               ) : (
-                                <div className="h-[320px] w-[300px] -m-4 overflow-hidden rounded-[24px] flex justify-center">
+                                <div className="h-[320px] w-full -m-4 overflow-hidden rounded-[24px] flex justify-center">
                                   <Picker 
                                     data={data} 
                                     onEmojiSelect={(emoji: any) => {
@@ -509,7 +509,8 @@ export default function Confessions() {
                                     skinTonePosition="none"
                                     searchPosition="none"
                                     navPosition="none"
-                                    perLine={8}
+                                    perLine={Math.floor(window.innerWidth / 40)}
+                                    width="100%"
                                   />
                                 </div>
                               )}

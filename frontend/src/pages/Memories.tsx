@@ -28,10 +28,10 @@ export default function Memories() {
   }, []);
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans transition-colors duration-300 overflow-x-hidden">
-      <Navbar />
+    <div className="bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans transition-colors duration-300 overflow-x-hidden pt-safe">
+      {/* Removed Sidebar for Full Page Experience */}
       
-      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pt-20 lg:pt-0">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full pt-10 lg:pt-12">
         <div className="max-w-[700px] mx-auto pb-24">
           <header className="flex gap-5 mb-10 items-start">
             <button 

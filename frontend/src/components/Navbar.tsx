@@ -308,11 +308,11 @@ export default function Navbar() {
         );
       })()}
 
-      {/* Grid Mega Menu */}
+      {/* Grid Mega Menu — Now a Full Page Hub */}
       {gridMenuOpen && (
-        <div className="fixed inset-0 z-[2000] bg-black/10 backdrop-blur-sm animate-fade-in" onClick={() => setGridMenuOpen(false)}>
+        <div className="fixed inset-0 z-[2000] bg-white/95 dark:bg-black/95 backdrop-blur-3xl animate-fade-in flex flex-col overflow-y-auto no-scrollbar" onClick={() => setGridMenuOpen(false)}>
           <div 
-            className="absolute top-20 right-5 w-[calc(100%-40px)] max-w-[460px] bg-white/95 dark:bg-black/95 backdrop-blur-3xl border border-white dark:border-white/10 rounded-[32px] shadow-2xl p-6 flex flex-col animate-scale-in z-[2001] max-h-[85vh] overflow-hidden"
+            className="w-full max-w-5xl mx-auto p-6 md:p-12 flex flex-col" 
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-8 px-4">

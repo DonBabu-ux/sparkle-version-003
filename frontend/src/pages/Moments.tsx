@@ -153,8 +153,7 @@ const ReelItem = ({
   onQualityChange?: (quality: string) => void;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [playing, setPlaying] = useState(active);
   const [userPaused, setUserPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const lastTap = useRef<number>(0);
@@ -168,6 +167,7 @@ const ReelItem = ({
   useEffect(() => {
     if (active) {
       setUserPaused(false);
+      setPlaying(true);
       if (currentUser && !viewTracked.current) {
         api.post(`/moments/${moment.moment_id}/view`).catch(() => {});
         viewTracked.current = true;
@@ -387,7 +387,7 @@ const ReelItem = ({
           <Share2 size={22} strokeWidth={2.5} />
         </button>
  
-        <button className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white transition-all mt-2" onClick={(e) => { e.stopPropagation(); setMuted(!muted); }}>
+        <button className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white transition-all mt-2 pointer-events-auto" onClick={(e) => { e.stopPropagation(); onToggleMute(); }}>
           {muted ? <VolumeX size={16} strokeWidth={2.5} /> : <Volume2 size={16} strokeWidth={2.5} />}
         </button>
       </div>
@@ -608,11 +608,8 @@ export default function Moments() {
   }, [loading, moments.length === 0]);
 
   const handleQualityChange = useCallback((quality: string) => {
-    if (qualityTimer.current) clearTimeout(qualityTimer.current);
-    setQualityNote(quality);
-    qualityTimer.current = setTimeout(() => {
-      setQualityNote(null);
-    }, 3000);
+    // Quality tracking without UI notification
+    console.log(`Stream quality: ${quality}`);
   }, []);
 
   /** Pull-to-refresh: bypass 30s cache, reset scroll, get a reshuffled feed */
@@ -1180,40 +1177,7 @@ export default function Moments() {
         )}
       </AnimatePresence>
 
-      {/* Premium HD Intro Notification */}
-      <AnimatePresence>
-        {showHDIntro && (
-          <motion.div 
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 20, opacity: 1 }}
-            exit={{ y: -100, opacity: 0 }}
-            className="fixed top-12 left-1/2 -translate-x-1/2 z-[2000] bg-black/80 backdrop-blur-2xl border border-white/10 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-2xl pointer-events-none md:left-[calc(50%+144px)] min-w-[280px]"
-          >
-            <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-              <Sparkles size={16} className="text-primary animate-pulse" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white text-[11px] font-black uppercase tracking-[0.2em]">HD Streaming Active</span>
-              <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Optimized for premium clarity</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Quality Feedback Notification */}
-      <AnimatePresence>
-        {qualityNote && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed top-32 left-1/2 -translate-x-1/2 z-[2000] bg-white/10 backdrop-blur-md border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2 shadow-xl pointer-events-none md:left-[calc(50%+144px)]"
-          >
-            <Orbit size={12} className="text-primary animate-spin-slow" />
-            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest">Playing in {qualityNote}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Notifications removed for distraction-free viewing */}
       
       <div 
         ref={scrollRef}

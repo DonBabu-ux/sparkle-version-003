@@ -29,8 +29,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
 }, ref) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const [isBuffering, setIsBuffering] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  // Buffering state removed for seamless experience
 
   // Expose the video element to parent components via ref
   useImperativeHandle(ref, () => localVideoRef.current!);
@@ -43,19 +42,19 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90,
-        abrEwmaDefaultEstimate: 5000000, // 5Mbps initial estimate for HD
-        testBandwidth: false,
-        autoStartLoad: true,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        capLevelToPlayerSize: false
+        // Start at the highest quality level
+        startLevel: -1, 
+        // We'll manually set it to highest once parsed
       });
       hlsRef.current = hls;
       hls.loadSource(streamingSrc);
       hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Force and LOCK the highest quality level (Fixed HD)
+        hls.currentLevel = hls.levels.length - 1;
+        hls.loadLevel = hls.levels.length - 1;
+        hls.autoLevelEnabled = false; // Disable switching
         if (active) video.play().catch(() => {});
       });
 
@@ -71,7 +70,14 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
+              // If manifest fails to load (400, 404), fall back to MP4
+              if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
+                console.warn("HLS Manifest failed, falling back to MP4:", streamingSrc);
+                hls.destroy();
+                if (src) video.src = src;
+              } else {
+                hls.startLoad();
+              }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls.recoverMediaError();
@@ -115,26 +121,18 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
     <div className={`relative w-full h-full ${className}`}>
       <video
         ref={localVideoRef}
-        poster={poster}
         muted={muted}
         loop={loop}
         playsInline
         crossOrigin="anonymous"
         preload="auto"
         onTimeUpdate={onTimeUpdate}
-        onWaiting={() => setIsBuffering(true)}
-        onPlaying={() => setIsBuffering(false)}
-        onLoadedData={() => {
-          setIsReady(true);
-          if (onLoadedData) onLoadedData();
-        }}
-        className={`w-full h-full object-cover transition-opacity duration-500 ${isReady ? 'opacity-100' : 'opacity-0'}`}
+        onWaiting={() => {}}
+        onPlaying={() => {}}
+        onLoadedData={onLoadedData}
+        className={`w-full h-full object-cover`}
       />
-      {isBuffering && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-          <Loader2 className="w-10 h-10 text-white/50 animate-spin" />
-        </div>
-      )}
+      {/* Buffering overlay removed */}
     </div>
   );
 });

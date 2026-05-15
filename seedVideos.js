@@ -47,7 +47,7 @@ async function fetchVideos() {
               type: 'fetch',
               resource_type: 'video',
               format: 'm3u8',
-              streaming_profile: 'full_hd',
+              streaming_profile: 'auto',
               sign_url: true
             });
 

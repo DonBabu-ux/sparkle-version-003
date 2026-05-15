@@ -609,6 +609,7 @@ export default function Messages() {
   const [unreadCountInChat, setUnreadCountInChat] = useState(0);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [activeSettingView, setActiveSettingView] = useState('main');
+  const [showLastSeen, setShowLastSeen] = useState(true);
   const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
   const [customPhotoPreview, setCustomPhotoPreview] = useState<string | null>(null);
   const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
@@ -645,6 +646,17 @@ export default function Messages() {
     fetchInbox();
     fetchSuggested();
   }, []);
+
+  useEffect(() => {
+    if (selectedChat?.partner_online) {
+      setShowLastSeen(true);
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      setShowLastSeen(prev => !prev);
+    }, showLastSeen ? 4000 : 2000);
+    return () => clearTimeout(timeoutId);
+  }, [selectedChat?.partner_online, showLastSeen]);
 
   useEffect(() => {
     if (targetChatId && conversations.length > 0) {
@@ -887,11 +899,24 @@ export default function Messages() {
   };
 
   const formatLastSeen = (time: string) => {
-    if (!time) return 'long ago';
-    const diff = Date.now() - new Date(time).getTime();
-    if (diff < 60000) return 'just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    return safeTime(time);
+    if (!time) return 'a while ago';
+    const date = new Date(time);
+    if (isNaN(date.getTime())) return 'a while ago';
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round((today.getTime() - targetDate.getTime()) / 86400000);
+    
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    if (diffDays === 0) return `today at ${timeStr}`;
+    if (diffDays === 1) return `yesterday at ${timeStr}`;
+    if (diffDays < 7) {
+      return `${date.toLocaleDateString([], { weekday: 'long' })} at ${timeStr}`;
+    }
+    
+    return `${date.toLocaleDateString()} at ${timeStr}`;
   };
 
   const formatMessageText = (content?: string) => {
@@ -945,10 +970,10 @@ export default function Messages() {
           selectedChat ? 'hidden lg:flex' : 'flex'
         )}>
           <header className="px-5 pt-4 pb-2 overflow-visible bg-[#121212]">
-             <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                    <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username}`)}>
-                     <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10" alt="" />
+                     <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/10" alt="" />
                    </div>
                    <h1 className="text-[26px] font-bold text-[#f5f5f5] tracking-tight">Chats</h1>
                 </div>
@@ -986,7 +1011,7 @@ export default function Messages() {
                       <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white border-b border-r border-white/20 rounded-full"></div>
                     </div>
                     <div className="cursor-pointer flex justify-center" onClick={() => navigate(`/profile/${user?.username}`)}>
-                      <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10" alt="" />
+                      <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/10" alt="" />
                     </div>
                     <div 
                       className="absolute bottom-0 right-3 w-5 h-5 bg-[#ff1493] rounded-full flex items-center justify-center border-[3px] border-black text-white cursor-pointer hover:scale-110 active:scale-90 transition-all"
@@ -1035,10 +1060,10 @@ export default function Messages() {
                             </div>
                           )}
                           <div className="flex justify-center">
-                            <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10 shadow-sm" alt="" />
+                            <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-14 h-14 rounded-full object-cover border-2 border-white/10 shadow-sm" alt="" />
                           </div>
                           {contact.is_online && (
-                            <div className="absolute bottom-0 right-2 w-3 h-3 bg-emerald-500 border-[2px] border-black rounded-full"></div>
+                            <div className="absolute bottom-0 right-1 w-4 h-4 bg-emerald-500 border-[3px] border-[#121212] rounded-full"></div>
                           )}
                         </div>
                         <span className="text-[9px] font-bold text-white/50 text-center truncate w-full group-hover:text-white transition-colors">{contact.name?.split(' ')[0] || contact.username}</span>
@@ -1072,15 +1097,11 @@ export default function Messages() {
                   )}
                 >
                   <div className="relative shrink-0">
-                    <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-11 h-11 rounded-full object-cover border border-white/5 shadow-md" alt="" />
+                    <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-[54px] h-[54px] rounded-full object-cover border border-white/5 shadow-md" alt="" />
                     <div className="absolute -bottom-0.5 -right-0.5">
-                      {chat.partner_online || chat.is_online ? (
-                        <div className="w-4 h-4 bg-emerald-500 border-[3px] border-black rounded-full"></div>
-                      ) : (
-                        <div className="bg-[#1a1a1a] text-white text-[9px] font-black px-1 py-0.5 rounded-full border-[2px] border-black shadow-lg">
-                          {getShortLastSeen(chat.last_seen_at)}
-                        </div>
-                      )}
+                      {(chat.partner_online || chat.is_online === 1 || chat.is_online === true) ? (
+                        <div className="w-4 h-4 bg-emerald-500 border-[3px] border-[#121212] rounded-full"></div>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0 pr-2">
@@ -1155,16 +1176,18 @@ export default function Messages() {
                     <ArrowLeft size={24} strokeWidth={2.5} />
                   </button>
                   <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>
-                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[40px] h-[40px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
+                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[48px] h-[48px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
                   </div>
-                  <div className="ml-2 flex flex-col justify-center">
-                    <h3 className="text-[16px] font-bold tracking-tight leading-tight text-white">{selectedChat.partner_name}</h3>
-                    <div className="h-[14px] mt-0.5">
-                      {selectedChat.partner_online ? (
-                        <p className="text-[11px] font-bold lowercase text-emerald-500">online</p>
-                      ) : (
-                        <p className="text-[11px] font-bold lowercase text-white/40">last seen {formatLastSeen(selectedChat.last_message_time || selectedChat.last_message_at || '')}</p>
-                      )}
+                  <div className="ml-3 flex flex-col justify-center">
+                    <h3 className="text-[17px] font-bold tracking-tight leading-tight text-white">{selectedChat.partner_name}</h3>
+                    <div className="h-[14px] mt-0.5 overflow-hidden">
+                      <AnimatePresence mode="wait">
+                        {(selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
+                          <motion.p key="online" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-bold lowercase text-emerald-500">online</motion.p>
+                        ) : showLastSeen ? (
+                          <motion.p key="lastseen" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[11.5px] font-semibold lowercase text-white/50">last seen {formatLastSeen(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}</motion.p>
+                        ) : null}
+                      </AnimatePresence>
                     </div>
                   </div>
                 </div>

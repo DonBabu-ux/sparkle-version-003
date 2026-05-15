@@ -108,15 +108,16 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   return (
     <div className="fixed inset-0 bg-[#000000] z-[200] flex justify-center animate-fade-in">
       <div 
-        className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#000000] relative" 
+        className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#0a0a0a] relative" 
         onClick={e => e.stopPropagation()}
       >
         <AnimatePresence mode="wait">
           {view === 'main' ? (
             <motion.div key="main" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full overflow-y-auto no-scrollbar pb-10">
-              <div className="p-4 flex items-center justify-between sticky top-0 bg-[#000000] z-10 border-b border-white/5">
-                <button onClick={onClose} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
-                <button className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><MoreHorizontal size={24} /></button>
+              <div className="p-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
+                <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <span className="text-white font-bold text-lg">Settings</span>
+                <button className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><MoreHorizontal size={24} /></button>
               </div>
 
               <div className="flex flex-col items-center mt-2 px-6">
@@ -146,12 +147,12 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                 </div>
               </div>
 
-              <div className="px-4">
+              <div className="px-2 space-y-2">
                 <Section title="Chat info">
-                  <ActionItem icon={ImageIcon} label="View media, files & links" onClick={() => setView('media')} />
-                  <ActionItem icon={Pin} label="Pinned messages" onClick={() => setView('pinned')} />
+                  <ActionItem icon={ImageIcon} label="View media, files & links" onClick={() => setView('media')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Pin} label="Pinned messages" onClick={() => setView('pinned')} primaryColor={currentTheme?.colors.primary} />
                 </Section>
-
+  
                 <Section title="Actions">
                   <ActionItem 
                     icon={Bell} 
@@ -159,22 +160,24 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     onClick={() => setIsMuted(!isMuted)} 
                     subtext={isMuted ? 'Muted' : 'Notifications on'}
                     toggle={isMuted}
+                    primaryColor={currentTheme?.colors.primary}
                   />
-                  <ActionItem icon={Volume2} label="Notifications & sounds" subtext="Standard" onClick={() => alert('Sound settings...')} />
-                  <ActionItem icon={Users} label={`Create group chat with ${chat.partner_name.split(' ')[0]}`} onClick={() => setView('create_group')} />
-                  <ActionItem icon={Download} label="Auto-save photos" onClick={() => setAutoSave(!autoSave)} toggle={autoSave} />
-                  <ActionItem icon={Share2} label="Share contact" onClick={() => setView('share_contact')} />
+                  <ActionItem icon={Volume2} label="Notifications & sounds" subtext="Standard" onClick={() => alert('Sound settings...')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Users} label={`Create group chat with ${chat.partner_name.split(' ')[0]}`} onClick={() => setView('create_group')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Download} label="Auto-save photos" onClick={() => setAutoSave(!autoSave)} toggle={autoSave} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Share2} label="Share contact" onClick={() => setView('share_contact')} primaryColor={currentTheme?.colors.primary} />
                 </Section>
-
+  
                 <Section title="Privacy & support">
-                  <ActionItem icon={Clock} label="Disappearing messages" subtext={disappearingMsgs} onClick={() => setDisappearingMsgs(disappearingMsgs === 'Off' ? '24 Hours' : 'Off')} />
-                  <ActionItem icon={Eye} label="Read receipts" subtext={readReceipts ? 'On' : 'Off'} onClick={() => setReadReceipts(!readReceipts)} toggle={readReceipts} />
-                  <ActionItem icon={MoreHorizontal} label="Typing indicator" subtext={typingIndicator ? 'On' : 'Off'} onClick={() => setTypingIndicator(!typingIndicator)} toggle={typingIndicator} />
-                  <ActionItem icon={Shield} label="Message permissions" onClick={() => alert('Managing message permissions...')} />
-                  <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted" onClick={() => alert('Encryption details...')} />
+                  <ActionItem icon={Clock} label="Disappearing messages" subtext={disappearingMsgs} onClick={() => setDisappearingMsgs(disappearingMsgs === 'Off' ? '24 Hours' : 'Off')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Eye} label="Read receipts" subtext={readReceipts ? 'On' : 'Off'} onClick={() => setReadReceipts(!readReceipts)} toggle={readReceipts} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={MoreHorizontal} label="Typing indicator" subtext={typingIndicator ? 'On' : 'Off'} onClick={() => setTypingIndicator(!typingIndicator)} toggle={typingIndicator} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Shield} label="Message permissions" onClick={() => alert('Managing message permissions...')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted" onClick={() => alert('Encryption details...')} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem 
                     icon={MinusCircle} 
                     label="Block" 
+                    primaryColor={currentTheme?.colors.primary}
                     onClick={async () => {
                       if (window.confirm(`Are you sure you want to block ${chat.partner_name}?`)) {
                         try {
@@ -187,11 +190,12 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       }
                     }} 
                   />
-                  <ActionItem icon={ShieldAlert} label="Restrict" onClick={() => alert('User restricted')} />
+                  <ActionItem icon={ShieldAlert} label="Restrict" onClick={() => alert('User restricted')} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem 
                     icon={AlertTriangle} 
                     label="Report" 
                     subtext="Give feedback and report conversation" 
+                    primaryColor={currentTheme?.colors.primary}
                     onClick={async () => {
                       const reason = window.prompt('Please provide a reason for reporting:');
                       if (reason) {
@@ -209,6 +213,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     icon={Trash2} 
                     label="Delete chat" 
                     danger 
+                    primaryColor={currentTheme?.colors.primary}
                     onClick={async () => {
                       if (window.confirm('Are you sure you want to delete this chat? This cannot be undone.')) {
                         try {
@@ -226,18 +231,18 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
             </motion.div>
           ) : view === 'customize' ? (
             <motion.div key="customize" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
-                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Customize</h2>
               </div>
 
-              <div className="flex justify-center gap-2 p-4 border-b border-white/5">
+              <div className="flex justify-center gap-2 p-4 border-b border-white/10 bg-[#0a0a0a]">
                 <TabButton active={customizeTab === 'themes'} onClick={() => setCustomizeTab('themes')}>Themes</TabButton>
                 <TabButton active={customizeTab === 'reaction'} onClick={() => setCustomizeTab('reaction')}>Quick reaction</TabButton>
                 <TabButton active={customizeTab === 'words'} onClick={() => setCustomizeTab('words')}>Word effects</TabButton>
               </div>
 
-              <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
+              <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
                 {customizeTab === 'themes' && (
                   <div className="p-4">
                     <div className="flex gap-2 mb-6">
@@ -310,16 +315,16 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     </div>
 
                     {/* Bottom Half: Emoji Grid with Sleek Search */}
-                    <div className="flex-[1.2] flex flex-col w-full bg-[#000000] border-t border-white/5">
+                    <div className="flex-[1.2] flex flex-col w-full bg-[#000000] border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
                       <div className="p-5 pt-8">
-                        <div className="bg-white/10 rounded-full flex items-center px-5 h-11 border border-white/10 focus-within:border-[#ff1493]/50 focus-within:bg-white/[0.15] transition-all">
+                        <div className="bg-white/10 rounded-full flex items-center px-5 h-11 border border-white/20 focus-within:border-[#ff1493]/50 focus-within:bg-white/[0.15] transition-all">
                           <Search size={18} className="text-white/40" />
                           <input 
                             type="text" 
                             placeholder="Search emojis..." 
                             value={emojiSearch}
                             onChange={e => setEmojiSearch(e.target.value)}
-                            className="bg-transparent w-full ml-3 text-white placeholder:text-white/30 outline-none text-[14px] font-medium" 
+                            className="bg-transparent w-full ml-3 text-white placeholder:text-white/40 outline-none text-[14px] font-bold" 
                           />
                         </div>
                       </div>
@@ -378,7 +383,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
               </div>
 
               {customizeTab === 'words' && (
-                <div className="p-3 bg-[#000000] border-t border-white/5 relative z-20 pb-safe">
+                <div className="p-4 bg-[#000000] border-t border-white/10 relative z-30 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                   <div className="bg-white/5 rounded-full flex items-center px-3 py-1.5 border border-white/5 focus-within:bg-white/10 focus-within:border-[#ff1493]/30 transition-all">
                     <button 
                       onClick={() => setView('word_emoji_picker')} 
@@ -787,21 +792,21 @@ function Section({ title, children }: { title: string, children: React.ReactNode
   );
 }
 
-function ActionItem({ icon: Icon, label, subtext, danger, onClick, toggle }: { icon: any, label: string, subtext?: string, danger?: boolean, onClick?: () => void, toggle?: boolean }) {
+function ActionItem({ icon: Icon, label, subtext, danger, onClick, toggle, primaryColor }: { icon: any, label: string, subtext?: string, danger?: boolean, onClick?: () => void, toggle?: boolean, primaryColor?: string }) {
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/5 active:bg-white/10 transition-colors group ${danger ? 'text-red-500' : 'text-white'}`}
+      className={`w-full flex items-center gap-5 px-4 py-4 hover:bg-white/5 active:bg-white/10 transition-all group ${danger ? 'text-red-500' : 'text-white/90 hover:text-white'}`}
     >
       <div className={clsx(
-        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-        danger ? "bg-red-500/10 text-red-500" : "bg-white/5 text-white/70 group-hover:text-white group-hover:bg-white/10"
-      )}>
-        <Icon size={20} />
+        "w-6 h-6 flex items-center justify-center shrink-0 transition-all group-hover:scale-110",
+        danger ? "text-red-500" : ""
+      )} style={{ color: !danger && primaryColor ? primaryColor : undefined }}>
+        <Icon size={22} strokeWidth={2.5} />
       </div>
-      <div className="flex flex-col items-start flex-1 text-left min-w-0">
-        <span className="text-[15px] font-semibold leading-tight truncate w-full">{label}</span>
-        {subtext && <span className={`text-[11px] mt-0.5 font-medium ${danger ? 'text-red-500/70' : 'text-white/40'}`}>{subtext}</span>}
+      <div className="flex-1 text-left min-w-0">
+        <div className="text-[16px] font-semibold leading-tight truncate">{label}</div>
+        {subtext && <div className={`text-[12px] mt-0.5 font-medium ${danger ? 'text-red-500/70' : 'text-white/40'}`}>{subtext}</div>}
       </div>
       {toggle !== undefined ? (
         <div className={clsx(

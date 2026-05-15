@@ -113,8 +113,8 @@ export default function Navbar() {
       )}
 
 
-      {/* Mobile Bottom Navigation */}
-      {!(location.pathname.startsWith('/messages') && new URLSearchParams(location.search).has('chat')) && (
+      {/* Mobile Bottom Navigation - Only show on main chat list, hide on chats/settings/other subpages */}
+      {!(location.pathname.startsWith('/messages') && location.pathname !== '/messages' || (location.pathname === '/messages' && new URLSearchParams(location.search).has('chat'))) && (
       <nav
         className={clsx(
           "lg:hidden fixed bottom-0 left-0 right-0 w-full z-[1000] transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",

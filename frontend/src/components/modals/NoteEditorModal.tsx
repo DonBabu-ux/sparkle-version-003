@@ -19,27 +19,6 @@ const EMOJIS = ['😀','😂','🥰','😍','😒','😭','😩','😔','😘','
 
 const GIPHY_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
 
-// Mock contacts for "Choose people"
-const MOCK_CONTACTS = [
-  { id: '1', name: 'Aas Liyah', username: 'aas.liyah.2025' },
-  { id: '2', name: 'Abbie Kiama', username: '' },
-  { id: '3', name: 'Abby Ke', username: '' },
-  { id: '4', name: 'Abby Maina', username: 'abby.maina.525664' },
-  { id: '5', name: 'Abi Wamahiu', username: 'abi.wamahiu' },
-  { id: '6', name: 'Abieh Niamh', username: '' },
-  { id: '7', name: 'Abigael Cheronoh', username: '' },
-  { id: '8', name: 'Abigael Mwangi', username: 'abigael.mwangi.671494' },
-  { id: '9', name: 'Abigael Njeri', username: 'abigael.njeri.2025' },
-  { id: '10', name: 'Abigail Akinsanya', username: 'abigail.akinsanya.2025' },
-  { id: '11', name: 'Abigail Joshua', username: '' },
-  { id: '12', name: 'Abigail Rodenyi', username: 'abigail.rodenyi' },
-  { id: '13', name: 'Abigail Wanjau', username: 'abigailwanjau' },
-  { id: '14', name: 'Abii Kamal', username: '' },
-  { id: '15', name: 'Abiolah Omanwa', username: '' },
-  { id: '16', name: 'Abou Rongne', username: '' },
-  { id: '17', name: 'Abrham Zerihun', username: 'abrham.zerihun.2025' },
-  { id: '18', name: 'Abujalalgaza Mjahideen', username: '' },
-];
 
 type Panel = 'none' | 'emoji' | 'gif' | 'music_error';
 type Screen = 'editor' | 'settings' | 'choose_people';
@@ -48,6 +27,7 @@ type Duration = '24' | '12' | '6' | '3';
 
 export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }: NoteEditorModalProps) {
   const { user } = useUserStore();
+  const [contacts, setContacts] = useState<any[]>([]);
   const [note, setNote] = useState(initialNote);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [panel, setPanel] = useState<Panel>('none');
@@ -66,6 +46,19 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
     document.body.classList.add('note-modal-open');
     return () => { document.body.classList.remove('note-modal-open'); };
   }, []);
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const fetchContacts = async () => {
+    try {
+      const res = await api.get('/users/followers');
+      setContacts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Failed to fetch contacts:', err);
+    }
+  };
 
   useEffect(() => {
     if (panel === 'gif') fetchGifs();
@@ -94,8 +87,13 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const res = await api.patch('/users/profile/note', { note: note.trim() || null });
-      if (res.data.success) onSuccess(note.trim() || null);
+      const res = await api.patch('/users/profile/note', { 
+        note: note.trim() || null,
+        audience,
+        duration,
+        hidden_from: Array.from(hiddenFrom)
+      });
+      if (res.data.success || res.status === 200) onSuccess(note.trim() || null);
     } catch (err) { console.error('Failed to share note:', err); }
     finally { setIsSubmitting(false); }
   };
@@ -103,13 +101,14 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
   const canShare = note.trim().length > 0 && note !== initialNote;
   const togglePanel = (p: Panel) => setPanel(prev => prev === p ? 'none' : p);
 
-  const filteredContacts = MOCK_CONTACTS.filter(c =>
-    c.name.toLowerCase().includes(contactSearch.toLowerCase())
+  const filteredContacts = contacts.filter(c =>
+    (c.name || c.username || '').toLowerCase().includes(contactSearch.toLowerCase())
   );
 
   // Group contacts alphabetically
-  const grouped = filteredContacts.reduce((acc: Record<string, typeof MOCK_CONTACTS>, c) => {
-    const letter = c.name[0].toUpperCase();
+  const grouped = filteredContacts.reduce((acc: Record<string, any[]>, c) => {
+    const name = c.name || c.username || '?';
+    const letter = name[0].toUpperCase();
     if (!acc[letter]) acc[letter] = [];
     acc[letter].push(c);
     return acc;
@@ -170,15 +169,15 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
                   })}
                   className="w-full flex items-center px-4 py-3 hover:bg-white/5 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-[15px] mr-3 shrink-0">
-                    {contact.name[0]}
+                  <div className="w-10 h-10 rounded-full overflow-hidden mr-3 shrink-0">
+                    <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-full h-full object-cover" alt="" />
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-white text-[15px] font-medium leading-tight">{contact.name}</div>
+                    <div className="text-white text-[15px] font-medium leading-tight">{contact.name || contact.username}</div>
                     {contact.username && <div className="text-white/40 text-[12px]">@{contact.username}</div>}
                   </div>
                   <div className={`w-5 h-5 border-2 rounded-sm flex items-center justify-center shrink-0 transition-colors ${
-                    hiddenFrom.has(contact.id) ? 'bg-[#4a9eff] border-[#4a9eff]' : 'border-white/30'
+                    hiddenFrom.has(contact.user_id || contact.id) ? 'bg-[#4a9eff] border-[#4a9eff]' : 'border-white/30'
                   }`}>
                     {hiddenFrom.has(contact.id) && (
                       <svg width="12" height="9" viewBox="0 0 12 9" fill="none">

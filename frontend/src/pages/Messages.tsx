@@ -617,6 +617,9 @@ export default function Messages() {
   const [noteReacted, setNoteReacted] = useState<string | null>(null);
   const [noteNotification, setNoteNotification] = useState<{emoji: string; name: string; note: string} | null>(null);
   const [noteReactSent, setNoteReactSent] = useState(false);
+  const [isNoteReacting, setIsNoteReacting] = useState(false);
+  const [noteReplyText, setNoteReplyText] = useState('');
+  const [showNoteEmojiPicker, setShowNoteEmojiPicker] = useState(false);
 
   const { getThemeForChat, setThemeForChat, getQuickReaction, setQuickReaction, getWordEffects, addWordEffect, removeWordEffect } = useThemeStore();
   const currentChatTheme = selectedChat ? getThemeForChat(selectedChat.chat_id) : null;
@@ -644,6 +647,9 @@ export default function Messages() {
     if (targetChatId && conversations.length > 0) {
       const chat = conversations.find(c => c.chat_id === targetChatId || c.partner_id === targetChatId);
       if (chat) setSelectedChat(chat);
+      else setSelectedChat(null);
+    } else if (!targetChatId) {
+      setSelectedChat(null);
     }
   }, [targetChatId, conversations]);
 
@@ -899,19 +905,19 @@ export default function Messages() {
                 />
              </div>
 
-             {/* Notes Row — pt-14 gives room for the absolute -top-11 speech bubbles */}
-             <div className="flex gap-1 overflow-x-auto no-scrollbar overflow-visible pt-14 pb-2">
+             {/* Notes Row — reduced size and pushed up */}
+             <div className="flex gap-2 overflow-x-auto no-scrollbar overflow-visible pt-10 pb-1">
                 <div className="relative w-[74px] flex flex-col items-center gap-2 shrink-0">
                   <div className="relative w-full">
                     <div 
-                      className="absolute -top-[44px] left-0 right-0 h-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center px-1 text-[9px] text-white/90 font-medium text-center leading-tight shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all z-10"
+                      className="absolute -top-[36px] left-0 right-0 h-8 bg-white/10 dark:bg-white/15 border border-white/20 backdrop-blur-2xl rounded-lg flex items-center justify-center px-1 text-[8px] text-white font-bold text-center leading-tight shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all z-10"
                       onClick={() => setActiveModal('note_editor')}
                     >
-                      <span className="truncate block w-full">{notePlaceholder}</span>
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white/5 border-b border-r border-white/10 rounded-full"></div>
+                      <span className="truncate block w-full">Share a thought...</span>
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white/10 dark:bg-white/15 border-b border-r border-white/20 rounded-full"></div>
                     </div>
                     <div className="cursor-pointer flex justify-center" onClick={() => navigate(`/profile/${user?.username}`)}>
-                      <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/5" alt="" />
+                      <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10" alt="" />
                     </div>
                     <div 
                       className="absolute bottom-0 right-3 w-5 h-5 bg-[#ff1493] rounded-full flex items-center justify-center border-[3px] border-black text-white cursor-pointer hover:scale-110 active:scale-90 transition-all"
@@ -923,54 +929,34 @@ export default function Messages() {
                   <span className="text-[10px] font-medium text-white/30 text-center truncate w-full">Your story</span>
                 </div>
 
-                {/* Static mock user notes — always visible */}
-                {[
-                  { name: 'Amara', initials: 'AM', note: 'Feeling sparkle ✨', color: '#7c3aed' },
-                  { name: 'Kofi', initials: 'KO', note: 'Village vibes 🌍', color: '#0ea5e9' },
-                  { name: 'Zara', initials: 'ZR', note: 'New music drop 🎵', color: '#ff1493' },
-                ].map((mock) => (
-                  <div key={mock.name} className="relative w-[74px] flex flex-col items-center gap-2 shrink-0 cursor-pointer"
-                    onClick={() => {
-                      setViewingNote({...mock});
-                      setShowViewNoteModal(true);
-                    }}
-                  >
-                    <div className="relative w-full">
-                      <div className="absolute -top-[44px] left-0 right-0 h-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center px-1 text-[9px] text-white/90 font-medium text-center leading-tight shadow-xl z-10">
-                        <span className="truncate block w-full">{mock.note}</span>
-                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white/5 border-b border-r border-white/10 rounded-full"></div>
-                      </div>
-                      <div className="flex justify-center">
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[15px] font-black border-2 border-white/5" style={{ background: mock.color }}>
-                          {mock.initials}
+                {/* Real users with notes with distinct colors */}
+                {Array.isArray(suggestedContacts) && suggestedContacts.slice(0, 8).map((contact, idx) => {
+                  const colors = ['#7c3aed', '#0ea5e9', '#ff1493', '#f59e0b', '#10b981', '#ef4444', '#6366f1', '#ec4899'];
+                  const bubbleBg = colors[idx % colors.length];
+                  return (
+                    <div key={contact.user_id} className="relative w-[64px] flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
+                      onClick={() => {
+                        setViewingNote({...contact, note: contact.note || mockNotes[idx % mockNotes.length], bubbleBg});
+                        setShowViewNoteModal(true);
+                      }}
+                    >
+                      <div className="relative w-full">
+                        <div 
+                          className="absolute -top-[36px] left-0 right-0 h-8 border border-white/20 backdrop-blur-2xl rounded-lg flex items-center justify-center px-1 text-[8px] text-white font-bold text-center leading-tight shadow-lg animate-fade-in z-10"
+                          style={{ backgroundColor: `${bubbleBg}cc` }}
+                        >
+                          <span className="truncate block w-full">{contact.note || mockNotes[idx % mockNotes.length]}</span>
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 border-b border-r border-white/20 rounded-full" style={{ backgroundColor: `${bubbleBg}cc` }}></div>
                         </div>
+                        <div className="flex justify-center">
+                          <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10 shadow-sm" alt="" />
+                        </div>
+                        <div className="absolute bottom-0 right-2 w-3 h-3 bg-emerald-500 border-[2px] border-black rounded-full"></div>
                       </div>
-                      <div className="absolute bottom-0 right-3 w-3.5 h-3.5 bg-emerald-500 border-[2.5px] border-black rounded-full"></div>
+                      <span className="text-[9px] font-bold text-white/50 text-center truncate w-full group-hover:text-white transition-colors">{contact.name?.split(' ')[0] || contact.username}</span>
                     </div>
-                    <span className="text-[10px] font-medium text-[#f5f5f5]/60 text-center truncate w-full">{mock.name}</span>
-                  </div>
-                ))}
-
-                {Array.isArray(suggestedContacts) && suggestedContacts.slice(0, 7).map((contact, idx) => (
-                  <div key={contact.user_id} className="relative w-[74px] flex flex-col items-center gap-2 shrink-0 cursor-pointer group"
-                    onClick={() => {
-                      setViewingNote({...contact, note: mockNotes[idx % mockNotes.length]});
-                      setShowViewNoteModal(true);
-                    }}
-                  >
-                    <div className="relative w-full">
-                      <div className="absolute -top-[44px] left-0 right-0 h-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center px-1 text-[9px] text-white/90 font-medium text-center leading-tight shadow-xl animate-fade-in z-10">
-                        <span className="truncate block w-full">{mockNotes[idx % mockNotes.length]}</span>
-                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white/5 border-b border-r border-white/10 rounded-full"></div>
-                      </div>
-                      <div className="flex justify-center">
-                        <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/5 shadow-sm" alt="" />
-                      </div>
-                      <div className="absolute bottom-0 right-3 w-3.5 h-3.5 bg-emerald-500 border-[2.5px] border-black rounded-full"></div>
-                    </div>
-                    <span className="text-[10px] font-medium text-[#f5f5f5]/60 text-center truncate w-full">{contact.name?.split(' ')[0] || contact.username}</span>
-                  </div>
-                ))}
+                  );
+                })}
              </div>
           </header>
 
@@ -988,7 +974,10 @@ export default function Messages() {
               Array.isArray(conversations) && conversations.map((chat, idx) => (
                 <div 
                   key={chat.chat_id}
-                  onClick={() => setSelectedChat(chat)}
+                  onClick={() => {
+                    setSelectedChat(chat);
+                    navigate(`/messages?chat=${chat.chat_id}`);
+                  }}
                   className={clsx(
                     "px-4 py-1.5 rounded-2xl transition-all duration-300 cursor-pointer group flex items-center gap-3",
                     selectedChat?.chat_id === chat.chat_id ? 'bg-white/10' : 'hover:bg-white/5'
@@ -1327,27 +1316,167 @@ export default function Messages() {
             {/* Bottom — Send message + quick reactions */}
             <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-3">
               {/* Quick reactions */}
-              <div className="flex items-center justify-start gap-3 px-1">
+              <div className="flex items-center justify-center gap-6 px-1 relative">
                 {['❤️', '😆', '😮', '😨', '😢'].map(emoji => (
                   <button
                     key={emoji}
-                    className="w-11 h-11 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-xl hover:bg-white/20 active:scale-90 transition-all"
+                    disabled={isNoteReacting}
+                    onClick={() => {
+                      setIsNoteReacting(true);
+                      setNoteReacted(emoji);
+                      
+                      // Create bubbles
+                      const newBubbles = Array.from({length: 15}).map((_, i) => ({
+                        id: Date.now() + i,
+                        emoji,
+                        x: (Math.random() - 0.5) * 100,
+                        delay: Math.random() * 0.3
+                      }));
+                      setNoteBubbles(newBubbles);
+
+                      // Send reaction after animation
+                      setTimeout(async () => {
+                        try {
+                          const reactionMsg = `Reacted to your note "${viewingNote.note}": ${emoji}`;
+                          await api.post('/messages/send', {
+                            partnerId: viewingNote.user_id || viewingNote.id,
+                            content: reactionMsg
+                          });
+                          
+                          setNoteNotification({
+                            emoji,
+                            name: viewingNote.name || viewingNote.username,
+                            note: viewingNote.note
+                          });
+                          
+                          setNoteReactSent(true);
+                          setTimeout(() => {
+                             setShowViewNoteModal(false);
+                             setNoteNotification(null);
+                          }, 2500);
+                        } catch (err) {
+                          console.error('Failed to send reaction', err);
+                        } finally {
+                          setIsNoteReacting(false);
+                        }
+                      }, 2500);
+                    }}
+                    className={clsx(
+                      "w-12 h-12 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-2xl hover:bg-white/20 active:scale-90 transition-all",
+                      noteReacted === emoji ? "ring-2 ring-[#ff1493] bg-white/20 scale-110" : ""
+                    )}
                   >
                     {emoji}
                   </button>
                 ))}
+
+                {/* Bubbles Container */}
+                <div className="absolute inset-x-0 bottom-full h-[60vh] pointer-events-none overflow-visible">
+                  <AnimatePresence>
+                    {noteBubbles.map(b => (
+                      <motion.div
+                        key={b.id}
+                        initial={{ y: 0, x: 0, opacity: 0, scale: 0.5 }}
+                        animate={{ 
+                          y: -400 - Math.random() * 200, 
+                          x: b.x * 2, 
+                          opacity: [0, 1, 1, 0],
+                          scale: [0.5, 1.5, 1],
+                          rotate: Math.random() * 360
+                        }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 2, delay: b.delay, ease: "easeOut" }}
+                        className="absolute left-1/2 -translate-x-1/2 text-4xl"
+                      >
+                        {b.emoji}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
               </div>
+
+              {/* Notification Overlay */}
+              <AnimatePresence>
+                {noteNotification && (
+                  <motion.div
+                    initial={{ y: -100, opacity: 0 }}
+                    animate={{ y: 20, opacity: 1 }}
+                    exit={{ y: -100, opacity: 0 }}
+                    className="fixed top-0 left-4 right-4 z-[300] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl p-4 flex items-center gap-4 shadow-2xl"
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2 border-[#ff1493]">
+                       <img src={getAvatarUrl(viewingNote.avatar_url, viewingNote.username)} className="w-full h-full object-cover" alt="" />
+                    </div>
+                    <div className="flex-1">
+                       <p className="text-white text-[13px] font-bold">{viewingNote.name || viewingNote.username} <span className="font-normal opacity-60">reacted to your note:</span></p>
+                       <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-3xl animate-spark-pop">{noteNotification.emoji}</span>
+                          <p className="text-white font-bold text-[16px] italic truncate">"{noteNotification.note}"</p>
+                       </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               {/* Send message bar */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-white/8 border border-white/15 rounded-full px-5 h-12 flex items-center gap-3">
+                <div className="flex-1 bg-white/10 border border-white/20 rounded-full px-5 h-12 flex items-center gap-3 focus-within:border-[#ff1493]/30 transition-all relative">
                   <input
                     type="text"
                     placeholder="Send message"
+                    value={noteReplyText}
+                    onChange={(e) => setNoteReplyText(e.target.value)}
                     className="flex-1 bg-transparent text-white placeholder:text-white/35 text-[15px] font-medium outline-none"
                   />
-                  <button className="text-white/50 hover:text-white transition-colors">
-                    <Smile size={22} strokeWidth={2} />
-                  </button>
+                  
+                  {noteReplyText.trim() ? (
+                    <button 
+                      onClick={async () => {
+                        try {
+                          await api.post('/messages/send', {
+                            partnerId: viewingNote.user_id || viewingNote.id,
+                            content: noteReplyText
+                          });
+                          setNoteReplyText('');
+                          setShowViewNoteModal(false);
+                        } catch (err) {
+                          console.error('Failed to send reply', err);
+                        }
+                      }}
+                      className="text-[#ff1493] hover:scale-110 active:scale-90 transition-all font-bold text-sm"
+                    >
+                      Send
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => setShowNoteEmojiPicker(!showNoteEmojiPicker)}
+                      className={clsx("transition-colors", showNoteEmojiPicker ? "text-[#ff1493]" : "text-white/50 hover:text-white")}
+                    >
+                      <Smile size={22} strokeWidth={2} />
+                    </button>
+                  )}
+
+                  {/* Emoji Picker for Notes */}
+                  <AnimatePresence>
+                    {showNoteEmojiPicker && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                        className="absolute bottom-full right-0 mb-4 z-[400] shadow-2xl rounded-2xl overflow-hidden"
+                      >
+                        <Picker 
+                          data={data} 
+                          onEmojiSelect={(emoji: any) => {
+                            setNoteReplyText(prev => prev + emoji.native);
+                            setShowNoteEmojiPicker(false);
+                          }}
+                          theme="dark"
+                          previewPosition="none"
+                          skinTonePosition="none"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </div>

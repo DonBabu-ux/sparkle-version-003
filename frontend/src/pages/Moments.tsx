@@ -137,7 +137,9 @@ const ReelItem = ({
   isNearActive,
   downloadProgress,
   currentUser,
-  onQualityChange
+  onQualityChange,
+  muted,
+  onToggleMute
 }: { 
   moment: Moment; 
   onLike: (id: string) => void; 
@@ -151,6 +153,8 @@ const ReelItem = ({
   downloadProgress?: number | null;
   currentUser?: any;
   onQualityChange?: (quality: string) => void;
+  muted: boolean;
+  onToggleMute: () => void;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(active);
@@ -447,7 +451,7 @@ export default function Moments() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [showHDIntro, setShowHDIntro] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Default to muted for reliable autoplay
   const [qualityNote, setQualityNote] = useState<string | null>(null);
   const qualityTimer = useRef<NodeJS.Timeout | null>(null);
   const [showComments, setShowComments] = useState(false);
@@ -1220,6 +1224,8 @@ export default function Moments() {
                    onOpenSearch={() => setIsSearchOpen(true)}
                    onFollow={handleFollow}
                    onQualityChange={handleQualityChange}
+                   muted={isMuted}
+                   onToggleMute={() => setIsMuted(!isMuted)}
                    downloadProgress={downloadProgress?.id === m.moment_id ? downloadProgress.progress : null}
                    currentUser={user}
                 />

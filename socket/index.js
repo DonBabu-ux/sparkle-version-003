@@ -20,6 +20,7 @@ const initializeSocket = (server) => {
                 'https://localhost',
                 'capacitor://localhost',
                 'https://sparkleappweb.vercel.app',
+                'https://sparkleappweb1.vercel.app',
                 'https://sparkleapp.vercel.app'
             ],
             credentials: true

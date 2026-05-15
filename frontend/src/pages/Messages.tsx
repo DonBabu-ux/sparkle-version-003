@@ -601,7 +601,7 @@ export default function Messages() {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteView, setNoteView] = useState('main');
-  const [noteText, setNoteText] = useState('');
+  const [noteText, setNoteText] = useState(user?.note || '');
   const [showViewNoteModal, setShowViewNoteModal] = useState(false);
   const [viewingNote, setViewingNote] = useState<any>(null);
   const [noteReactionEmoji, setNoteReactionEmoji] = useState<string | null>(null);
@@ -912,12 +912,11 @@ export default function Messages() {
                 <div className="relative w-[74px] flex flex-col items-center gap-2 shrink-0">
                   <div className="relative w-full">
                     <div 
-                      className="absolute -top-[38px] left-0 right-0 h-9 bg-white/20 dark:bg-white/25 border border-white/30 backdrop-blur-2xl rounded-xl flex items-center justify-center px-2 text-[10px] text-white font-black text-center leading-tight shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-all z-10"
-                      onClick={() => setActiveModal('note_editor')}
-                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+                      className="absolute -top-[34px] left-0 right-0 h-8 bg-white border border-white/20 backdrop-blur-2xl rounded-lg flex items-center justify-center px-1.5 text-[9px] text-black font-black text-center leading-tight shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all z-10"
+                      onClick={() => setActiveModal('note_editor', (newNote: any) => setNoteText(newNote || ''))}
                     >
-                      <span className="truncate block w-full">Share a thought...</span>
-                      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-white/20 dark:bg-white/25 border-b border-r border-white/30 rounded-full"></div>
+                      <span className="truncate block w-full">{noteText || "Share a thought..."}</span>
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white border-b border-r border-white/20 rounded-full"></div>
                     </div>
                     <div className="cursor-pointer flex justify-center" onClick={() => navigate(`/profile/${user?.username}`)}>
                       <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10" alt="" />
@@ -934,26 +933,30 @@ export default function Messages() {
 
                 {/* Real users with notes with distinct colors */}
                 {Array.isArray(suggestedContacts) && suggestedContacts.slice(0, 8).map((contact, idx) => {
+                  const chat = Array.isArray(conversations) ? conversations.find(c => c.partner_id === contact.user_id) : null;
+                  const chatTheme = chat ? getThemeForChat(chat.chat_id) : null;
                   const colors = ['#7c3aed', '#0ea5e9', '#ff1493', '#f59e0b', '#10b981', '#ef4444', '#6366f1', '#ec4899'];
-                  const bubbleBg = colors[idx % colors.length];
+                  const bubbleBg = chatTheme?.colors?.primary || colors[idx % colors.length];
+                  const noteContent = contact.note || mockNotes[idx % mockNotes.length];
+
                   return (
                     <div key={contact.user_id} className="relative w-[64px] flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
                       onClick={() => {
-                        setViewingNote({...contact, note: contact.note || mockNotes[idx % mockNotes.length], bubbleBg});
+                        setViewingNote({...contact, note: noteContent, bubbleBg});
                         setShowViewNoteModal(true);
                       }}
                     >
                       <div className="relative w-full">
                         <div 
-                          className="absolute -top-[38px] left-0 right-0 h-9 border border-white/30 backdrop-blur-2xl rounded-xl flex items-center justify-center px-2 text-[10px] text-white font-black text-center leading-tight shadow-2xl animate-fade-in z-10"
+                          className="absolute -top-[34px] left-0 right-0 h-8 border border-white/30 backdrop-blur-3xl rounded-lg flex items-center justify-center px-1.5 text-[9px] text-white font-black text-center leading-tight shadow-xl animate-fade-in z-10"
                           style={{ 
                             backgroundColor: `${bubbleBg}`, 
-                            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                            boxShadow: `0 4px 15px ${bubbleBg}66`
+                            textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                            boxShadow: `0 4px 15px ${bubbleBg}44`
                           }}
                         >
-                          <span className="truncate block w-full">{contact.note || mockNotes[idx % mockNotes.length]}</span>
-                          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 border-b border-r border-white/30 rounded-full" style={{ backgroundColor: `${bubbleBg}` }}></div>
+                          <span className="truncate block w-full">{noteContent}</span>
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 border-b border-r border-white/30 rounded-full" style={{ backgroundColor: `${bubbleBg}` }}></div>
                         </div>
                         <div className="flex justify-center">
                           <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 rounded-full object-cover border-2 border-white/10 shadow-sm" alt="" />

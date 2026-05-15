@@ -10,11 +10,7 @@ import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') 
-    : (window.location.protocol === 'capacitor:' 
-        ? 'https://sparkle-version-003-1-f4v3.onrender.com' 
-        : window.location.origin);
+const SOCKET_URL = 'https://sparkle-version-003-1-f4v3.onrender.com';
 
 const EMOJI_LIST = ['😊', '😂', '🥰', '😍', '😒', '😭', '😩', '😔', '😘', '☺️', '😁', '🥳', '😎', '😡', '🤔', '👍', '❤️', '🔥', '✨', '🙌', '💯', '🙏', '🤝', '💰', '🏠', '🚗', '📦', '🎁', '🛒'];
 

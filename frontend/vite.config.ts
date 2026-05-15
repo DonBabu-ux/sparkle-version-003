@@ -82,7 +82,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:3000',
+        target: 'https://sparkle-version-003-1-f4v3.onrender.com',
         changeOrigin: true,
         secure: false,
         proxyTimeout: 10000,
@@ -99,7 +99,7 @@ export default defineConfig({
         },
       },
       '/socket.io': {
-        target: 'ws://127.0.0.1:3000',
+        target: 'https://sparkle-version-003-1-f4v3.onrender.com',
         ws: true,
         configure: (proxy) => {
           proxy.on('error', (err) => {
@@ -108,11 +108,11 @@ export default defineConfig({
         },
       },
       '/uploads': {
-        target: 'http://127.0.0.1:3000',
+        target: 'https://sparkle-version-003-1-f4v3.onrender.com',
         changeOrigin: true,
       },
       '/images': {
-        target: 'http://127.0.0.1:3000',
+        target: 'https://sparkle-version-003-1-f4v3.onrender.com',
         changeOrigin: true,
       },
     },

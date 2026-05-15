@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node --watch server.js",
     "dev": "node --watch server.js",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev --prefix frontend\"",
     "build:css": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css",
     "build:css:watch": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css --watch",
     "lint": "npm run lint --prefix frontend",
@@ -65,6 +66,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.27",
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.14",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1"

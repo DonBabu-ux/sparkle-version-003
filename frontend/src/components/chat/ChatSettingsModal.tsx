@@ -326,7 +326,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       
                       <div className="flex-1 w-full overflow-hidden flex justify-center">
                           <Picker 
-                            data="https://cdn.jsdelivr.net/npm/@emoji-mart/data"
+                            data={data}
                             onEmojiSelect={(emoji: any) => handleApplyReaction(emoji.native)}
                             theme="dark"
                             set="apple"
@@ -750,7 +750,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
               </div>
               <div className="flex-1 w-full overflow-hidden flex justify-center">
                 <Picker 
-                  data="https://cdn.jsdelivr.net/npm/@emoji-mart/data"
+                  data={data}
                   onEmojiSelect={(emoji: any) => { setWordEmoji(emoji.native); setView('customize'); }}
                   theme="dark"
                   set="apple"

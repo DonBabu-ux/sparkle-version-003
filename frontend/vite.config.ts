@@ -63,12 +63,12 @@ export default defineConfig({
             type: 'image/x-icon'
           },
           {
-            src: '/icon-192.png',
+            src: '/logo.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: '/icon-512.png',
+            src: '/logo.png',
             sizes: '512x512',
             type: 'image/png'
           }

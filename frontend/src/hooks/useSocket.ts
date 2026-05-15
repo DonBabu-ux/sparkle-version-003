@@ -15,7 +15,6 @@ export const useSocket = () => {
             query: { userId: user.id || user.user_id },
             auth: { token },
             withCredentials: true,
-            transports: ['websocket'],
             reconnectionAttempts: 5,
             reconnectionDelay: 1000
         });

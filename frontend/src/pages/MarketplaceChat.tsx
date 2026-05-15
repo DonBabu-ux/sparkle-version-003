@@ -181,8 +181,7 @@ const MarketplaceChat = () => {
     if (!user || !token || !conversationId) return;
 
     const newSocket = io(`${SOCKET_URL}/marketplace`, {
-      auth: { token, userId: user.user_id },
-      transports: ['websocket']
+      auth: { token, userId: user.user_id }
     });
 
     newSocket.on('connect', () => {

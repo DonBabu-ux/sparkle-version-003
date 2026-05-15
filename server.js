@@ -51,6 +51,8 @@ app.use(cors({
             'http://localhost',
             'https://localhost',
             'capacitor://localhost',
+            'https://sparkleappweb.vercel.app',
+            'https://sparkleapp.vercel.app',
             'https://sparkle-version-003-1-f4v3.onrender.com' 
         ];
         

@@ -612,6 +612,11 @@ export default function Messages() {
   const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
   const [showWordEmojiPicker, setShowWordEmojiPicker] = useState(false);
   const [newWordEffect, setNewWordEffect] = useState({ word: '', emoji: '😀' });
+  // Note reaction states
+  const [noteBubbles, setNoteBubbles] = useState<Array<{id: number; emoji: string; x: number; delay: number}>>([]);
+  const [noteReacted, setNoteReacted] = useState<string | null>(null);
+  const [noteNotification, setNoteNotification] = useState<{emoji: string; name: string; note: string} | null>(null);
+  const [noteReactSent, setNoteReactSent] = useState(false);
 
   const { getThemeForChat, setThemeForChat, getQuickReaction, setQuickReaction, getWordEffects, addWordEffect, removeWordEffect } = useThemeStore();
   const currentChatTheme = selectedChat ? getThemeForChat(selectedChat.chat_id) : null;
@@ -647,6 +652,20 @@ export default function Messages() {
       fetchMessages(selectedChat.chat_id);
     }
   }, [selectedChat]);
+
+  // Hide bottom nav when viewing someone's note
+  useEffect(() => {
+    if (showViewNoteModal) {
+      document.body.classList.add('note-modal-open');
+    } else {
+      document.body.classList.remove('note-modal-open');
+      // Reset reaction state on close
+      setNoteBubbles([]);
+      setNoteReacted(null);
+      setNoteReactSent(false);
+    }
+    return () => document.body.classList.remove('note-modal-open');
+  }, [showViewNoteModal]);
 
   // --- Handlers ---
   const fetchInbox = async () => {

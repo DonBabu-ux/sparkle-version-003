@@ -631,6 +631,15 @@ export default function Messages() {
 
   const notePlaceholder = "Feeling sparkle ✨";
 
+  const getShortLastSeen = (time: string | null | undefined) => {
+    if (!time) return '...';
+    const diff = Date.now() - new Date(time).getTime();
+    if (diff < 60000) return 'now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+    return `${Math.floor(diff / 86400000)}d`;
+  };
+
   // --- Effects ---
   useEffect(() => {
     fetchInbox();
@@ -749,12 +758,26 @@ export default function Messages() {
       fetchInbox();
     };
 
+    const handleUserStatus = (data: { userId: string; isOnline: boolean; lastSeen: string | null }) => {
+      setConversations(prev => prev.map(chat => {
+        if (chat.partner_id === data.userId) {
+          return { ...chat, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline };
+        }
+        return chat;
+      }));
+      if (selectedChat?.partner_id === data.userId) {
+        setSelectedChat(prev => prev ? { ...prev, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline } : null);
+      }
+    };
+
     socket.on('receive_message', handleNewMessage);
     socket.on('new_message', handleNewMessage);
+    socket.on('user-status', handleUserStatus);
 
     return () => {
       socket.off('receive_message', handleNewMessage);
       socket.off('new_message', handleNewMessage);
+      socket.off('user-status', handleUserStatus);
     };
   }, [socket, selectedChat]);
 
@@ -1051,11 +1074,11 @@ export default function Messages() {
                   <div className="relative shrink-0">
                     <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-11 h-11 rounded-full object-cover border border-white/5 shadow-md" alt="" />
                     <div className="absolute -bottom-0.5 -right-0.5">
-                      {chat.partner_online ? (
+                      {chat.partner_online || chat.is_online ? (
                         <div className="w-4 h-4 bg-emerald-500 border-[3px] border-black rounded-full"></div>
                       ) : (
                         <div className="bg-[#1a1a1a] text-white text-[9px] font-black px-1 py-0.5 rounded-full border-[2px] border-black shadow-lg">
-                          {idx % 3 === 0 ? '9m' : idx % 3 === 1 ? '1h' : '2d'}
+                          {getShortLastSeen(chat.last_seen_at)}
                         </div>
                       )}
                     </div>
@@ -1158,43 +1181,85 @@ export default function Messages() {
                 <div className="flex flex-col">
                   {messages.map((msg, i) => {
                     const isMe = msg.sender_id === (user?.id || user?.user_id);
+                    const prevMsg = i > 0 ? messages[i-1] : null;
+                    const nextMsg = i < messages.length - 1 ? messages[i+1] : null;
+                    const isFirst = !prevMsg || prevMsg.sender_id !== msg.sender_id;
+                    const isLast = !nextMsg || nextMsg.sender_id !== msg.sender_id;
+                    
+                    const hasTail = !msg.reply_content;
+                    
+                    // Add margin between different sender groups
+                    const marginTopClass = isFirst ? "mt-4" : "mt-1";
+
                     return (
-                      <div key={msg.message_id || i} className={clsx("flex animate-fade-in mt-4", isMe ? 'justify-end' : 'justify-start')}>
-                        <div className={clsx("max-w-[85%] md:max-w-[70%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
+                      <div key={msg.message_id || i} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
+                        <div className={clsx("max-w-[85%] md:max-w-[75%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <div 
                             className={clsx(
-                              "px-4 py-2.5 text-[15px] leading-relaxed shadow-sm transition-all duration-300 relative z-10 rounded-[14px]",
-                              isMe ? 'text-white' : 'text-white'
+                              "px-2.5 py-1.5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[80px]",
+                              isMe ? 'rounded-[14px]' : 'rounded-[14px]',
+                              isMe && hasTail ? 'rounded-tr-none' : isMe ? 'rounded-tr-[14px]' : '',
+                              isMe && isLast ? 'rounded-br-[14px]' : isMe ? 'rounded-br-md' : '',
+                              !isMe && hasTail ? 'rounded-tl-none' : !isMe ? 'rounded-tl-[14px]' : '',
+                              !isMe && isLast ? 'rounded-bl-[14px]' : !isMe ? 'rounded-bl-md' : ''
                             )}
                             style={{ 
-                              boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-                              backgroundColor: isMe ? (currentChatTheme?.colors?.chatBubbleSent || '#ff1493') : (currentChatTheme?.colors?.chatBubbleReceived || '#2C2C2E'),
-                              color: isMe ? (currentChatTheme?.colors?.chatBubbleSentText || '#ffffff') : (currentChatTheme?.colors?.chatBubbleReceivedText || '#ffffff'),
-                              backdropFilter: currentChatTheme ? 'blur(10px)' : 'none',
-                              border: currentChatTheme ? '1px solid rgba(255,255,255,0.05)' : 'none'
+                              backgroundColor: isMe ? (currentChatTheme?.colors?.chatBubbleSent || '#5030A5') : (currentChatTheme?.colors?.chatBubbleReceived || '#2C2C2E'),
+                              color: '#ffffff',
+                              backdropFilter: currentChatTheme ? 'blur(10px)' : 'none'
                             }}
                           >
-                            <p className="whitespace-pre-wrap">{msg.content}</p>
-                          </div>
-                          <div className={clsx("flex items-center gap-1.5 mt-1 px-1 opacity-60 text-[10px] font-bold", isMe ? 'flex-row-reverse' : 'flex-row')}>
-                            <span>{safeTime(msg.sent_at || msg.created_at || '')}</span>
-                            {isMe && (
-                              <div className="flex items-center">
-                                {msg.is_read || msg.status === 'seen' ? (
-                                  <div className="flex -space-x-1.5">
-                                    <CheckCircle2 size={13} className="text-[#0ea5e9]" strokeWidth={3} />
-                                    <CheckCircle2 size={13} className="text-[#0ea5e9]" strokeWidth={3} />
-                                  </div>
-                                ) : selectedChat.partner_online ? (
-                                  <div className="flex -space-x-1.5 opacity-50">
-                                    <Check size={14} className="text-white" strokeWidth={4} />
-                                    <Check size={14} className="text-white" strokeWidth={4} />
-                                  </div>
-                                ) : (
-                                  <Check size={14} className="text-white opacity-40" strokeWidth={4} />
-                                )}
+                            {isMe && hasTail ? (
+                              <svg className="absolute top-0 -right-[8px] w-[8px] h-[12px]" viewBox="0 0 8 12" style={{ fill: currentChatTheme?.colors?.chatBubbleSent || '#5030A5' }}>
+                                <path d="M 0 0 L 8 0 L 0 12 Z" />
+                              </svg>
+                            ) : !isMe && hasTail ? (
+                              <svg className="absolute top-0 -left-[8px] w-[8px] h-[12px]" viewBox="0 0 8 12" style={{ fill: currentChatTheme?.colors?.chatBubbleReceived || '#2C2C2E' }}>
+                                <path d="M 8 0 L 0 0 L 8 12 Z" />
+                              </svg>
+                            ) : null}
+                            
+                            <div className="relative flex flex-col">
+                              {/* Reply Block */}
+                              {msg.reply_content && (
+                                <div className="bg-black/20 rounded-[6px] p-2 mb-1 border-l-[3.5px] border-white/90 flex flex-col">
+                                  <span className="font-bold text-[13px] text-white/90 leading-tight">
+                                    {msg.reply_sender_name || 'User'}
+                                  </span>
+                                  <span className="text-[12px] text-white/70 line-clamp-2 leading-snug mt-0.5">
+                                    {msg.reply_content}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              <div className="relative text-[14.5px]">
+                                <span className="whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff !important' }}>{msg.content}</span>
+                                {/* Spacer to prevent timestamp overlap */}
+                                <span className="inline-block w-[60px] h-[1px]"></span>
                               </div>
-                            )}
+                            </div>
+                            
+                            {/* Timestamp & Ticks absolute inside bubble bottom-right */}
+                            <div className="absolute bottom-[4px] right-[6px] flex items-center gap-1 opacity-90 text-[10.5px] font-medium tracking-tight h-[15px]">
+                              <span style={{ color: 'rgba(255,255,255,0.85)' }}>{safeTime(msg.sent_at || msg.created_at || '')}</span>
+                              {isMe && (
+                                <div className="flex items-center -ml-0.5">
+                                  {msg.is_read || msg.status === 'seen' ? (
+                                    <div className="flex -space-x-[7px] drop-shadow-md">
+                                      <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
+                                      <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
+                                    </div>
+                                  ) : selectedChat?.partner_online ? (
+                                    <div className="flex -space-x-[7px] drop-shadow-md">
+                                      <Check size={15} className="text-[#cbd5e1]" strokeWidth={3} />
+                                      <Check size={15} className="text-[#cbd5e1]" strokeWidth={3} />
+                                    </div>
+                                  ) : (
+                                    <Check size={15} className="text-[#cbd5e1] drop-shadow-md" strokeWidth={3} />
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

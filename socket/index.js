@@ -12,9 +12,16 @@ let io;
 const initializeSocket = (server) => {
     io = socketIO(server, {
         cors: {
-            origin: process.env.NODE_ENV === 'production'
-                ? process.env.API_URL
-                : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'],
+            origin: [
+                'http://localhost:5173',
+                'http://localhost:3000',
+                'http://localhost:5174',
+                'http://localhost',
+                'https://localhost',
+                'capacitor://localhost',
+                'https://sparkleappweb.vercel.app',
+                'https://sparkleapp.vercel.app'
+            ],
             credentials: true
         },
         transports: ['websocket', 'polling'], // Explicitly allow both, but client will prefer websocket now

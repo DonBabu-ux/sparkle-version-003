@@ -327,9 +327,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       <div className="flex-1 w-full overflow-hidden flex justify-center">
                           <Picker 
                             data={data}
-                            onEmojiSelect={(emoji: any) => handleApplyReaction(emoji.native)}
+                            onEmojiSelect={(emoji: any) => handleApplyReaction(emoji?.native || emoji?.id || '👍')}
                             theme="dark"
-                            set="apple"
                             native={true}
                             previewPosition="none"
                             skinTonePosition="none"
@@ -337,7 +336,6 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                             searchPosition="none"
                             perLine={8}
                             width="100%"
-                            onEmojiSearch={emojiSearch}
                           />
                       </div>
                     </div>
@@ -751,9 +749,11 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
               <div className="flex-1 w-full overflow-hidden flex justify-center">
                 <Picker 
                   data={data}
-                  onEmojiSelect={(emoji: any) => { setWordEmoji(emoji.native); setView('customize'); }}
+                  onEmojiSelect={(emoji: any) => { 
+                    setWordEmoji(emoji?.native || emoji?.id || '✨'); 
+                    setView('customize'); 
+                  }}
                   theme="dark"
-                  set="apple"
                   native={true}
                   previewPosition="none"
                   skinTonePosition="none"

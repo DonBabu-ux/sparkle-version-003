@@ -163,6 +163,8 @@ const ReelItem = ({
   const navigate = useNavigate();
   const heartIdCounter = useRef(0);
   const viewTracked = useRef(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isLongPress = useRef(false);
 
   // Single source of truth: only the active video plays. Everything else is hard-paused.
   useEffect(() => {
@@ -212,6 +214,11 @@ const ReelItem = ({
   };
 
   const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isLongPress.current) {
+      isLongPress.current = false;
+      return;
+    }
+
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     
@@ -229,6 +236,28 @@ const ReelItem = ({
       // Single Tap
       lastTap.current = now;
       togglePlay();
+    }
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      onShare(moment);
+    }, 600);
+  };
+
+  const handlePointerUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handlePointerLeave = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   };
 
@@ -251,6 +280,9 @@ const ReelItem = ({
     <div 
       className="relative w-full h-full bg-black rounded-none md:rounded-[48px] overflow-hidden shadow-2xl transition-all duration-700 group select-none" 
       onClick={handleInteraction}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
     >
       
       {/* Download Progress Overlay */}
@@ -302,11 +334,21 @@ const ReelItem = ({
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
 
-        {!playing && isVideo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] pointer-events-none">
-            <Play size={64} fill="white" className="opacity-60 drop-shadow-2xl" />
-          </div>
-        )}
+        {/* Enhanced Pause/Play Indicator */}
+        <AnimatePresence>
+          {!playing && isVideo && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 1.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
+            >
+              <div className="w-20 h-20 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center">
+                <Play size={48} fill="white" className="text-white drop-shadow-2xl translate-x-1" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Side Actions (Rationalized for mobile) */}

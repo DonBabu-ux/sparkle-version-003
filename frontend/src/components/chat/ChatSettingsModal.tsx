@@ -218,7 +218,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       if (window.confirm('Are you sure you want to delete this chat? This cannot be undone.')) {
                         try {
                           await api.delete(`/messages/chat/${chat.chat_id || chat.id}`);
-                          onClose();
+                          window.location.href = '/messages';
                         } catch (err) {
                           console.error('Failed to delete', err);
                           alert('Failed to delete chat');

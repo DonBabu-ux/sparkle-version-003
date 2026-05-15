@@ -8,6 +8,8 @@ import { useModalStore } from '../store/modalStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
 import type { SparkleTheme } from '../store/themeStore';
 import debounce from 'lodash.debounce';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import { 
   Search, 
   Plus, 
@@ -1038,7 +1040,13 @@ export default function Messages() {
                 }}
               >
                 <div className="flex items-center gap-2 relative z-10">
-                  <button onClick={() => setSelectedChat(null)} className="text-white hover:opacity-70 transition-opacity p-2">
+                  <button 
+                    onClick={() => {
+                      setSelectedChat(null);
+                      navigate('/messages');
+                    }} 
+                    className="text-white hover:opacity-70 transition-opacity p-2"
+                  >
                     <ArrowLeft size={24} strokeWidth={2.5} />
                   </button>
                   <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>
@@ -1500,7 +1508,7 @@ export default function Messages() {
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        .note-modal-open nav.lg\:hidden { display: none !important; }
+        .note-modal-open nav.lg\\:hidden { display: none !important; }
       `}</style>
     </div>
   );

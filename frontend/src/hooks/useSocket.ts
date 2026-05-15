@@ -3,7 +3,6 @@ import { io, Socket } from 'socket.io-client';
 import { useUserStore } from '../store/userStore';
 
 const SOCKET_URL = 'https://sparkle-version-003-1-f4v3.onrender.com';
-
 export const useSocket = () => {
     const [socket, setSocket] = useState<Socket | null>(null);
     const { user, token } = useUserStore();

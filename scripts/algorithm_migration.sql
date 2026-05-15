@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `listing_reports` (
   FOREIGN KEY (`resolved_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `confession_reports` (
+CREATE TABLE IF NOT EXISTS `confession_reports` (   
   `report_id` CHAR(36) NOT NULL,
   `confession_id` CHAR(36) NOT NULL,
   `reporter_id` CHAR(36) NOT NULL,
@@ -124,3 +124,15 @@ CREATE TABLE IF NOT EXISTS `admin_logs` (
   PRIMARY KEY (`log_id`),
   FOREIGN KEY (`admin_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 7. Add missing fields for messaging stability (Algorithm 14)
+ALTER TABLE `personal_chats`
+ADD COLUMN IF NOT EXISTS `is_deleted_p1` TINYINT(1) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS `is_deleted_p2` TINYINT(1) DEFAULT 0;
+
+ALTER TABLE `group_chats`
+ADD COLUMN IF NOT EXISTS `only_admins_send` TINYINT(1) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS `only_admins_edit` TINYINT(1) DEFAULT 0;
+
+ALTER TABLE `messages`
+ADD COLUMN IF NOT EXISTS `is_read` TINYINT(1) DEFAULT 0;

@@ -676,8 +676,8 @@ export default function Messages() {
       const res = await api.get('/messages/inbox');
       const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
       setConversations(list);
-    } catch (err) {
-      console.error('Failed to fetch inbox', err);
+    } catch (err: any) {
+      console.error('Failed to fetch inbox', err.response?.data || err);
       setConversations([]);
     } finally {
       setLoading(false);

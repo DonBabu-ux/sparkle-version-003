@@ -13,9 +13,7 @@ const isNative = window.location.protocol === 'capacitor:';
 // URLs
 const LIVE_URL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
 // Logic: Strictly live for production shipping
-let defaultBaseURL = LIVE_URL;
-
-
+let defaultBaseURL = LIVE_URL; 
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || defaultBaseURL,

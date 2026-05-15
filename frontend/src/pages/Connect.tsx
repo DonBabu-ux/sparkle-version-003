@@ -105,7 +105,7 @@ export default function Connect() {
   const SKELETON_COUNT = 6;
 
   return (
-    <div className="flex bg-[#000000] min-h-screen text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
+    <div className="flex bg-app min-h-screen text-black dark:bg-[#000000] dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
       <Navbar />
 
       <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-12">
@@ -114,12 +114,12 @@ export default function Connect() {
         <header className="mb-10 animate-fade-in flex items-end justify-between">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#ff1493] rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(255,20,147,0.4)]">
+              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
                 <Orbit className="text-white" size={22} />
               </div>
-              <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">Discovery Hub</h1>
+              <h1 className="text-3xl font-black text-black dark:text-white tracking-tighter uppercase italic">Discovery Hub</h1>
             </div>
-            <p className="text-[13px] font-bold text-white/40 uppercase tracking-[0.2em] ml-13">
+            <p className="text-[13px] font-bold text-black/40 dark:text-white/40 uppercase tracking-[0.2em] ml-13">
               Expanding your sparkle matrix
             </p>
           </div>
@@ -127,27 +127,27 @@ export default function Connect() {
 
         {/* ── Search + Tabs Bar ── */}
         <div className="sticky top-6 z-50 mb-12 animate-fade-in">
-          <div className="bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-[2rem] p-2 flex flex-col md:flex-row gap-2 items-center shadow-2xl">
+          <div className="bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/10 backdrop-blur-3xl rounded-[2rem] p-2 flex flex-col md:flex-row gap-2 items-center shadow-lg dark:shadow-2xl">
             <div className="relative flex-1 w-full group">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-[#ff1493] transition-all duration-500 z-10" size={20} />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-black/30 dark:text-white/30 group-focus-within:text-primary transition-all duration-500 z-10" size={20} />
               <input
                 type="text"
                 placeholder="Search by name, major, or campus..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-white placeholder:text-white/10 transition-all outline-none"
+                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-black dark:text-white placeholder:text-black/20 dark:placeholder:text-white/10 transition-all outline-none"
               />
             </div>
             
-            <div className="flex items-center gap-2 p-1.5 bg-black/40 rounded-[1.5rem] border border-white/5">
+            <div className="flex items-center gap-2 p-1.5 bg-black/5 dark:bg-black/40 rounded-[1.5rem] border border-transparent dark:border-white/5">
               {TABS.map(({ label, icon: Icon }) => (
                 <button
                   key={label}
                   onClick={() => setActiveTab(label)}
                   className={`flex items-center gap-2.5 h-11 px-6 rounded-2xl font-black text-[12px] uppercase tracking-wider transition-all duration-500 whitespace-nowrap
                     ${activeTab === label 
-                      ? 'bg-[#ff1493] text-white shadow-[0_0_25px_rgba(255,20,147,0.3)] scale-105' 
-                      : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+                      ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' 
+                      : 'text-black/40 hover:text-black/60 dark:text-white/30 dark:hover:text-white/60 hover:bg-black/5 dark:hover:bg-white/5'}`}
                 >
                   <Icon size={16} strokeWidth={2.5} />
                   {label}
@@ -171,12 +171,12 @@ export default function Connect() {
             </div>
           ) : users.length === 0 ? (
             <div className="py-32 flex flex-col items-center gap-8 text-center bg-white/[0.02] border border-white/10 rounded-[3rem] backdrop-blur-xl animate-fade-in">
-              <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center">
-                <Search size={40} className="text-white/10" />
+              <div className="w-24 h-24 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center">
+                <Search size={40} className="text-black/20 dark:text-white/10" />
               </div>
               <div className="space-y-3 px-4">
-                <h3 className="text-2xl font-black text-white italic italic">NO RESULTS FOUND</h3>
-                <p className="text-[13px] font-bold text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other sectors.</p>
+                <h3 className="text-2xl font-black text-black dark:text-white italic italic">NO RESULTS FOUND</h3>
+                <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other sectors.</p>
               </div>
             </div>
           ) : (

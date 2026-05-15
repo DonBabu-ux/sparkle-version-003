@@ -125,7 +125,17 @@ export default function Navbar() {
         style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center' }}
       >
         {/* Col 1 — Home */}
-        <Link to="/dashboard" className="relative flex items-center justify-center h-full">
+        <Link 
+          to="/dashboard" 
+          className="relative flex items-center justify-center h-full"
+          onClick={(e) => {
+            if (isActive('/dashboard')) {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              window.dispatchEvent(new CustomEvent('refreshFeed'));
+            }
+          }}
+        >
           {isActive('/dashboard') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Home size={22} strokeWidth={isDarkBase ? 3 : (isActive('/dashboard') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/dashboard') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>

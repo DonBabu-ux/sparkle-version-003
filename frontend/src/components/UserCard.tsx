@@ -44,13 +44,13 @@ export default function UserCard({ u }: UserCardProps) {
 
   return (
     <div 
-      className="group relative bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-[2rem] p-5 w-full flex flex-col items-center hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden text-center shadow-2xl"
+      className="group relative bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/10 backdrop-blur-md rounded-[2rem] p-5 w-full flex flex-col items-center hover:bg-black/5 dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden text-center shadow-lg dark:shadow-2xl"
       onClick={() => navigate(`/profile/${u.username}`)}
     >
       {/* Action Menu */}
       <button 
         onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
-        className="absolute top-4 right-4 p-2 rounded-xl hover:bg-white/10 text-white/20 hover:text-white transition-all z-20"
+        className="absolute top-4 right-4 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-black/20 dark:text-white/20 hover:text-black dark:hover:text-white transition-all z-20"
       >
         <MoreHorizontal size={18} />
       </button>
@@ -64,59 +64,57 @@ export default function UserCard({ u }: UserCardProps) {
 
       {/* Avatar Section */}
       <div className="relative mb-5 pt-2">
-        <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-[#ff1493] to-purple-600 shadow-[0_0_20px_rgba(255,20,147,0.2)]">
-          <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden shrink-0 border-2 border-black">
-            <img 
-              alt={u.username} 
-              className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500" 
-              src={u.avatar_url || u.avatar || '/uploads/avatars/default.png'} 
-            />
-          </div>
+        <div className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-black/5 dark:border-white/10 bg-black/5 dark:bg-black">
+          <img 
+            alt={u.username} 
+            className="w-full h-full object-cover transition-all duration-500" 
+            src={u.avatar_url || u.avatar || '/avatar.png'} 
+          />
         </div>
         {!!u.is_online && (
-          <span className="absolute bottom-1 right-1 block w-4 h-4 bg-emerald-500 border-[3px] border-black rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]"></span>
+          <span className="absolute bottom-1 right-1 block w-4 h-4 bg-emerald-500 border-[3px] border-white dark:border-black rounded-full shadow-sm"></span>
         )}
       </div>
 
       {/* User Info */}
       <div className="flex flex-col items-center w-full mb-6">
         <div className="flex items-center gap-1.5 justify-center w-full mb-1">
-          <span className="font-black text-[15px] text-white tracking-tight truncate max-w-[80%] uppercase italic">
+          <span className="font-black text-[15px] text-black dark:text-white tracking-tight truncate max-w-[80%] uppercase italic">
             {u.username}
           </span>
           {!!u.is_verified && (
-             <Sparkles size={14} className="text-[#ff1493] fill-[#ff1493] shrink-0 drop-shadow-[0_0_5px_rgba(255,20,147,0.5)]" />
+             <Sparkles size={14} className="text-primary fill-primary shrink-0 drop-shadow-sm" />
           )}
         </div>
         
-        <p className="text-[11px] font-bold text-white/30 truncate w-full uppercase tracking-widest">
+        <p className="text-[11px] font-bold text-black/40 dark:text-white/30 truncate w-full uppercase tracking-widest">
           {u.name || u.username}
         </p>
 
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-           <div className="flex items-center gap-1 px-2.5 py-1 bg-white/5 rounded-full border border-white/5 text-[9px] text-white/40 font-black uppercase tracking-tighter">
-              <GraduationCap size={10} className="text-[#ff1493]" /> {u.major || 'Explorer'}
+           <div className="flex items-center gap-1 px-2.5 py-1 bg-black/5 dark:bg-white/5 rounded-full border border-black/5 dark:border-white/5 text-[9px] text-black/50 dark:text-white/40 font-black uppercase tracking-tighter">
+              <GraduationCap size={10} className="text-primary" /> {u.major || 'Explorer'}
            </div>
-           <div className="flex items-center gap-1 px-2.5 py-1 bg-white/5 rounded-full border border-white/5 text-[9px] text-white/40 font-black uppercase tracking-tighter">
-              <MapPin size={10} className="text-[#ff1493]" /> {u.campus || 'Sector'}
+           <div className="flex items-center gap-1 px-2.5 py-1 bg-black/5 dark:bg-white/5 rounded-full border border-black/5 dark:border-white/5 text-[9px] text-black/50 dark:text-white/40 font-black uppercase tracking-tighter">
+              <MapPin size={10} className="text-primary" /> {u.campus || 'Sector'}
            </div>
         </div>
       </div>
 
       {/* Social Proof */}
       {(u.mutual_followers && u.mutual_followers.length > 0) ? (
-        <div className="flex items-center gap-2 mb-6 bg-white/[0.02] px-3 py-1.5 rounded-2xl border border-white/5">
+        <div className="flex items-center gap-2 mb-6 bg-black/[0.02] dark:bg-white/[0.02] px-3 py-1.5 rounded-2xl border border-black/5 dark:border-white/5">
           <div className="flex -space-x-2">
             {u.mutual_followers.slice(0, 2).map((m: any, i: number) => (
               <img
                 key={i}
                 src={m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.username)}&background=random`}
-                className="w-5 h-5 rounded-full border-2 border-black object-cover shadow-2xl"
+                className="w-5 h-5 rounded-full border-2 border-white dark:border-black object-cover shadow-sm"
                 alt=""
               />
             ))}
           </div>
-          <p className="text-[9px] text-white/20 font-black uppercase tracking-widest">
+          <p className="text-[9px] text-black/40 dark:text-white/20 font-black uppercase tracking-widest">
             {u.mutual_followers.length} Connects
           </p>
         </div>
@@ -130,14 +128,14 @@ export default function UserCard({ u }: UserCardProps) {
           <button 
             onClick={toggleFollow}
             disabled={loading}
-            className="w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-all border border-white/10 flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all border border-black/10 dark:border-white/10 flex items-center justify-center gap-2"
           >
             <Check size={14} strokeWidth={3} /> Connected
           </button>
         ) : requestStatus === 'pending' ? (
           <button 
             disabled
-            className="w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/40 text-white/20 border border-dashed border-white/10 cursor-default flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-black/40 text-black/30 dark:text-white/20 border border-dashed border-black/10 dark:border-white/10 cursor-default flex items-center justify-center gap-2"
           >
             <Clock size={14} strokeWidth={3} /> Pending
           </button>
@@ -145,7 +143,7 @@ export default function UserCard({ u }: UserCardProps) {
           <button 
             onClick={toggleFollow}
             disabled={loading}
-            className={`w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-[#ff1493] text-white hover:scale-[1.02] active:scale-95 transition-all shadow-[0_5px_20px_rgba(255,20,147,0.3)] flex items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
+            className={`w-full py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.15em] bg-primary text-white hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
           >
             <Plus size={14} strokeWidth={3} /> Connect
           </button>

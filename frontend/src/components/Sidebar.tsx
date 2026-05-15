@@ -129,10 +129,20 @@ export default function Sidebar() {
           { name: 'Profile', icon: null, path: `/profile/${user?.username}`, isProfile: true },
         ].map((item) => (
           <div key={item.name} className="flex flex-col">
-            <Link to={item.path} className={cn(
-              "flex items-center gap-5 p-4.5 rounded-[24px] transition-all duration-500 whitespace-nowrap overflow-hidden group/item relative",
-              isActive(item.path) ? "bg-white dark:bg-white/5 shadow-2xl shadow-primary/15 text-primary border border-primary/10" : "text-black/40 dark:text-white/40 hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white hover:shadow-xl"
-            )}>
+            <Link 
+              to={item.path} 
+              className={cn(
+                "flex items-center gap-5 p-4.5 rounded-[24px] transition-all duration-500 whitespace-nowrap overflow-hidden group/item relative",
+                isActive(item.path) ? "bg-white dark:bg-white/5 shadow-2xl shadow-primary/15 text-primary border border-primary/10" : "text-black/40 dark:text-white/40 hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white hover:shadow-xl"
+              )}
+              onClick={(e) => {
+                if (item.path === '/dashboard' && isActive('/dashboard')) {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  window.dispatchEvent(new CustomEvent('refreshFeed'));
+                }
+              }}
+            >
               {isActive(item.path) && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full shadow-2xl shadow-primary"></div>
               )}

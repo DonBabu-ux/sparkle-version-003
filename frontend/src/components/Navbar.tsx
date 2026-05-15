@@ -239,17 +239,30 @@ export default function Navbar() {
           'post', 'poll', 'event', 'listing', 'confession', 'settings', 
           'share', 'reshare', 'post_comments', 'creation_hub', 
           'skill_offer', 'skill_detail',
-          'highlight', 'highlight_player', 'archive'
+          'highlight', 'highlight_player', 'archive', 'note_editor'
         ];
 
         if (!handledModals.includes(activeModal)) return null;
 
-        // Skill modals manage their own overlay — render them outside the wrapper
+        // Modals that manage their own full-screen overlay — render them outside the wrapper
         if (activeModal === 'skill_offer') {
           return <SkillOfferModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />;
         }
         if (activeModal === 'skill_detail') {
           return <SkillDetailModal offerId={(modalData as any)?.offerId} onClose={() => setActiveModal(null)} />;
+        }
+        if (activeModal === 'note_editor') {
+          return (
+            <NoteEditorModal 
+              initialNote={(modalData as any)?.initialNote}
+              onClose={() => setActiveModal(null)}
+              onSuccess={(note) => {
+                setActiveModal(null);
+                triggerSuccess();
+                window.dispatchEvent(new CustomEvent('noteUpdated', { detail: note }));
+              }}
+            />
+          );
         }
 
         return (
@@ -291,18 +304,7 @@ export default function Navbar() {
                   onClose={() => setActiveModal(null)} 
                 />
               )}
-              {activeModal === 'note_editor' && (
-                <NoteEditorModal 
-                  initialNote={(modalData as any)?.initialNote}
-                  onClose={() => setActiveModal(null)}
-                  onSuccess={(note) => {
-                    setActiveModal(null);
-                    triggerSuccess();
-                    // Custom event to update profile UI immediately
-                    window.dispatchEvent(new CustomEvent('noteUpdated', { detail: note }));
-                  }}
-                />
-              )}
+
             </div>
           </div>
         );

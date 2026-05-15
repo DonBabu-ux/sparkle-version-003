@@ -840,7 +840,7 @@ export default function Messages() {
 
   // --- Render ---
   return (
-    <div className={clsx("flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom", selectedChat && "hidden-mobile-nav")}>
+    <div className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom">
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
       
@@ -1235,41 +1235,103 @@ export default function Messages() {
         />
       )}
 
-      {/* VIEW NOTE MODAL */}
+      {/* VIEW NOTE MODAL — Full Screen */}
       <AnimatePresence>
         {showViewNoteModal && viewingNote && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#000000]/80 backdrop-blur-sm z-[100] flex justify-center items-center px-4" 
-            onClick={() => setShowViewNoteModal(false)}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black z-[200] flex flex-col"
           >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-[#121212] rounded-[32px] w-full max-w-sm p-6 shadow-2xl overflow-hidden relative border border-white/10" 
-              onClick={e => e.stopPropagation()}
-            >
-              <button onClick={() => setShowViewNoteModal(false)} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-white"><X size={16} strokeWidth={3} /></button>
-              <div className="flex flex-col items-center mb-6">
+            {/* Top Bar */}
+            <div className="flex items-center justify-between px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4">
+              <div className="flex items-center gap-3">
                 {viewingNote.initials ? (
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-black border-4 border-white/5 shadow-md mb-4" style={{ background: viewingNote.color }}>{viewingNote.initials}</div>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black" style={{ background: viewingNote.color }}>{viewingNote.initials}</div>
                 ) : (
-                  <img src={getAvatarUrl(viewingNote.avatar_url, viewingNote.username)} className="w-20 h-20 rounded-full object-cover border-4 border-white/5 shadow-md mb-4" />
+                  <img src={getAvatarUrl(viewingNote.avatar_url, viewingNote.username)} className="w-9 h-9 rounded-full object-cover" alt="" />
                 )}
-                <h3 className="text-xl font-black text-white tracking-tighter">{viewingNote.name || viewingNote.username}</h3>
-              </div>
-              <div className="relative mb-8 flex justify-center">
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/10 border-t border-l border-white/20 rotate-45"></div>
-                <div className="bg-white/10 border border-white/20 rounded-2xl px-6 py-4 text-center text-white font-bold shadow-xl max-w-[80%] break-words relative z-10 text-lg">
-                  {viewingNote.note}
+                <div>
+                  <span className="text-white font-semibold text-[15px] block leading-tight">{viewingNote.name || viewingNote.username}</span>
+                  <span className="text-white/40 text-[11px]">10h</span>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center">
-                  <input type="text" placeholder="Reply..." className="bg-transparent w-full text-white font-medium placeholder:text-white/30 outline-none text-sm" />
-                </div>
-                <button className="w-12 flex-shrink-0 bg-[#ff1493] text-white rounded-xl flex items-center justify-center hover:bg-[#ff1493]/80 transition-all"><Send size={18} strokeWidth={3} /></button>
+              <div className="flex items-center gap-3">
+                <button className="text-white/60 hover:text-white transition-colors p-1">
+                  <MoreHorizontal size={22} />
+                </button>
+                <button
+                  onClick={() => setShowViewNoteModal(false)}
+                  className="text-white/60 hover:text-white transition-colors p-1"
+                >
+                  <X size={22} strokeWidth={2.5} />
+                </button>
               </div>
-            </motion.div>
+            </div>
+
+            {/* Center — Avatar + Bubble */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="flex flex-col items-center">
+                {/* Speech bubble */}
+                <div className="relative mb-3">
+                  <div
+                    className="rounded-[20px] px-5 py-3 max-w-[240px] shadow-lg text-center text-[15px] font-semibold"
+                    style={{ backgroundColor: '#e8d44d', color: '#1a1a1a' }}
+                  >
+                    {viewingNote.note}
+                  </div>
+                  {/* Tail pointing down-left */}
+                  <div
+                    className="absolute -bottom-[10px] left-[28px]"
+                    style={{
+                      width: 0,
+                      height: 0,
+                      borderLeft: '10px solid transparent',
+                      borderRight: '0px solid transparent',
+                      borderTop: '10px solid #e8d44d',
+                    }}
+                  />
+                </div>
+
+                {/* Avatar */}
+                <div className="mt-1 w-[88px] h-[88px] rounded-full overflow-hidden border-2 border-white/10 shadow-2xl">
+                  {viewingNote.initials ? (
+                    <div className="w-full h-full flex items-center justify-center text-white text-3xl font-black" style={{ background: viewingNote.color }}>{viewingNote.initials}</div>
+                  ) : (
+                    <img src={getAvatarUrl(viewingNote.avatar_url, viewingNote.username)} className="w-full h-full object-cover" alt="" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom — Send message + quick reactions */}
+            <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-3">
+              {/* Quick reactions */}
+              <div className="flex items-center justify-start gap-3 px-1">
+                {['❤️', '😆', '😮', '😨', '😢'].map(emoji => (
+                  <button
+                    key={emoji}
+                    className="w-11 h-11 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-xl hover:bg-white/20 active:scale-90 transition-all"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              {/* Send message bar */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-white/8 border border-white/15 rounded-full px-5 h-12 flex items-center gap-3">
+                  <input
+                    type="text"
+                    placeholder="Send message"
+                    className="flex-1 bg-transparent text-white placeholder:text-white/35 text-[15px] font-medium outline-none"
+                  />
+                  <button className="text-white/50 hover:text-white transition-colors">
+                    <Smile size={22} strokeWidth={2} />
+                  </button>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1290,9 +1352,7 @@ export default function Messages() {
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        @media (max-width: 1024px) {
-          .hidden-mobile-nav nav { display: none !important; }
-        }
+        .note-modal-open nav.lg\:hidden { display: none !important; }
       `}</style>
     </div>
   );

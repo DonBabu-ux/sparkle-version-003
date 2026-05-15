@@ -334,9 +334,9 @@ const ReelItem = ({
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
 
-        {/* Enhanced Pause/Play Indicator */}
+        {/* Enhanced Pause/Play Indicator — Only show if active and manually paused */}
         <AnimatePresence>
-          {!playing && isVideo && (
+          {active && !playing && userPaused && isVideo && (
             <motion.div 
               initial={{ opacity: 0, scale: 1.5 }}
               animate={{ opacity: 1, scale: 1 }}

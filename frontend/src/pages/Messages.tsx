@@ -682,61 +682,11 @@ export default function Messages() {
     setLoading(true);
     try {
       const res = await api.get('/messages/inbox');
-      const apiList = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-      
-      // Always include high-fidelity mocks for demonstration
-      const mocks = [
-        {
-          chat_id: 'mock_1',
-          partner_id: 'p1',
-          partner_name: 'Sarah Sparkle',
-          partner_avatar: null,
-          partner_online: true,
-          unread_count: 5,
-          last_message: 'Did you see the new update? It looks amazing! ✨',
-          last_message_time: new Date(Date.now() - 1000 * 60 * 2).toISOString()
-        },
-        {
-          chat_id: 'mock_2',
-          partner_id: 'p2',
-          partner_name: 'Alex Rivera',
-          partner_avatar: null,
-          partner_online: true,
-          unread_count: 0,
-          last_message: 'See you at the coffee shop then! ☕️',
-          last_message_time: new Date(Date.now() - 1000 * 30).toISOString()
-        },
-        {
-          chat_id: 'mock_3',
-          partner_id: 'p3',
-          partner_name: 'Jordan Lee',
-          partner_avatar: null,
-          partner_online: false,
-          unread_count: 0,
-          last_message: 'Can you send me that presentation file?',
-          last_message_time: new Date(Date.now() - 1000 * 60 * 15).toISOString()
-        },
-        {
-          chat_id: 'mock_4',
-          partner_id: 'p4',
-          partner_name: 'Jamie Chen',
-          partner_avatar: null,
-          partner_online: true,
-          unread_count: 0,
-          last_message: 'I\'ll be there in 5 mins! Just parking.',
-          last_message_time: new Date(Date.now() - 1000 * 60 * 10).toISOString()
-        }
-      ];
-
-      // Merge mocks with real API data, avoiding duplicates
-      const filteredApiList = apiList.filter((c: any) => !mocks.find(m => m.chat_id === c.chat_id));
-      setConversations([...mocks, ...filteredApiList]);
+      const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+      setConversations(list);
     } catch (err) {
       console.error('Failed to fetch inbox', err);
-      // Fallback mocks
-      setConversations([
-        { chat_id: 'mock_1', partner_id: 'p1', partner_name: 'Sarah Sparkle', unread_count: 3, last_message: 'Hello!', last_message_time: new Date().toISOString() }
-      ]);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -917,16 +867,20 @@ export default function Messages() {
   };
 
   const getStatusLabel = (chat: ChatConversation) => {
+    // If there are unread messages, we don't show the outgoing status
     if (chat.unread_count > 0) return '';
     
-    const time = chat.last_message_time || chat.last_message_at;
-    const diff = time ? Date.now() - new Date(time).getTime() : 0;
-    const mins = Math.floor(diff / 60000);
-
-    if (chat.partner_online && mins < 1) return 'Delivered';
-    if (!chat.partner_online) return 'Sent';
+    // In production, we'd check if the last message was sent by 'me'
+    // For this UI, we assume the status refers to the last dispatched message
     
-    return 'Seen';
+    // Priority 1: Seen (if backend provides seen_at or explicit status)
+    if (chat.last_message_status === 'seen' || chat.seen_at) return 'seen';
+    
+    // Priority 2: Delivered (if partner is online or explicit status)
+    if (chat.last_message_status === 'delivered' || chat.partner_online) return 'delivered';
+    
+    // Priority 3: Sent (default)
+    return 'sent';
   };
 
   const getTimeAgo = (time?: string) => {
@@ -978,7 +932,7 @@ export default function Messages() {
                 <input 
                   type="text" 
                   placeholder="Search messages..." 
-                  className="w-full h-10 bg-[#222222] border border-white/10 rounded-full pl-11 pr-4 text-[14px] font-medium text-[#f5f5f5] placeholder:text-white/40 transition-all outline-none focus:border-[#ff1493]/50 focus:bg-[#2a2a2a]"
+                  className="w-full h-12 bg-[#333333] border-2 border-[#666666] rounded-2xl pl-11 pr-4 text-[15px] font-semibold text-white placeholder:text-white/50 transition-all outline-none focus:border-[#ff1493] focus:bg-[#3a3a3a] shadow-xl"
                 />
              </div>
 

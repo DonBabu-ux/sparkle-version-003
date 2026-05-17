@@ -725,14 +725,14 @@ export default function Messages() {
       setSelectedChat(existing);
       navigate(`/messages?chat=${existing.chat_id}`);
     } else {
-      // Create a temporary chat object for the UI
+      // Create a temporary chat object for the UI — no client-generated timestamps
       setSelectedChat({
         chat_id: 'temp_' + Date.now(),
         partner_id: partnerId,
         partner_name: contact.name || contact.username,
         partner_avatar: contact.avatar_url,
         unread_count: 0,
-        last_message_time: new Date().toISOString(),
+        last_message_time: null,
         partner_online: contact.is_online
       });
       // Clear the chat param since we are in a temp chat
@@ -1502,27 +1502,34 @@ export default function Messages() {
                   })}
                   <div ref={messagesEndRef} />
                 </div>
-
-                <AnimatePresence>
-                  {showScrollToBottom && (
-                    <motion.button 
-                      initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
-                      onClick={() => {
-                        scrollToBottom('smooth');
-                        setUnreadCountInChat(0);
-                      }}
-                      className="absolute bottom-6 right-6 w-12 h-12 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(255,20,147,0.4)] z-50 hover:scale-110 transition-transform active:scale-95"
-                    >
-                      <ArrowDown size={22} strokeWidth={3} />
-                      {unreadCountInChat > 0 && (
-                        <div className="absolute -top-1.5 -right-1.5 bg-[#ff1493] text-white text-[10px] font-black px-2 py-1 rounded-full border-2 border-[#121212] shadow-lg animate-bounce">
-                          {unreadCountInChat} NEW
-                        </div>
-                      )}
-                    </motion.button>
-                  )}
-                </AnimatePresence>
               </div>
+
+              {/* ── Scroll-to-bottom floating button ──
+                  Positioned as absolute relative to <main> (which has position:relative)
+                  so it floats at a fixed visual position above the input bar,
+                  NOT anchored to the bottom of the scroll content. */}
+              <AnimatePresence>
+                {showScrollToBottom && (
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0, y: 10 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0, opacity: 0, y: 10 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                    onClick={() => {
+                      scrollToBottom('smooth');
+                      setUnreadCountInChat(0);
+                    }}
+                    className="absolute bottom-[90px] right-5 w-11 h-11 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_28px_rgba(255,20,147,0.45)] z-50 hover:scale-110 transition-transform active:scale-95"
+                  >
+                    <ArrowDown size={20} strokeWidth={3} />
+                    {unreadCountInChat > 0 && (
+                      <div className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] bg-white text-[#ff1493] text-[9px] font-black px-1.5 rounded-full border-2 border-[#ff1493] shadow-lg flex items-center justify-center">
+                        {unreadCountInChat > 9 ? '9+' : unreadCountInChat}
+                      </div>
+                    )}
+                  </motion.button>
+                )}
+              </AnimatePresence>
 
               {/* Floating Word Effects Layer */}
               <AnimatePresence>

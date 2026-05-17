@@ -25,12 +25,12 @@ import HlsVideoPlayer from '../components/HlsVideoPlayer';
 const formatCount = (num: number): string => {
   if (!num || isNaN(num)) return '0';
   if (num >= 1000000) {
-    const formatted = (num / 1000000).toFixed(1);
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'M' : formatted + 'M';
+    const v = num / 1000000;
+    return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'm';
   }
   if (num >= 1000) {
-    const formatted = (num / 1000).toFixed(1);
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'k' : formatted + 'k';
+    const v = num / 1000;
+    return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'k';
   }
   return num.toString();
 };
@@ -166,6 +166,11 @@ const ReelItem = ({
   const viewTracked = useRef(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPress = useRef(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [seekFlash, setSeekFlash] = useState<'left' | 'right' | null>(null);
+  const [speedFlash, setSpeedFlash] = useState(false);
+  const scrubberRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
 
   // Playback control is now handled primarily via the 'active' prop in HlsVideoPlayer
   useEffect(() => {
@@ -193,17 +198,32 @@ const ReelItem = ({
 
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
-    
+    const clientX = 'touches' in e ? e.changedTouches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.changedTouches[0].clientY : e.clientY;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const relX = clientX - rect.left;
+    const W = rect.width;
+    const isLeftZone = relX < W * 0.3;
+    const isRightZone = relX > W * 0.7;
+
     if (now - lastTap.current < DOUBLE_TAP_DELAY) {
       // Double Tap detected
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-      
-      emitHeart(clientX, clientY);
-      if (!moment.is_liked) {
-        onLike(moment.moment_id);
+      if (isLeftZone && videoRef.current) {
+        // Seek back 10s
+        videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+        setSeekFlash('left');
+        setTimeout(() => setSeekFlash(null), 600);
+      } else if (isRightZone && videoRef.current) {
+        // Seek forward 10s
+        videoRef.current.currentTime = Math.min(videoRef.current.duration, videoRef.current.currentTime + 10);
+        setSeekFlash('right');
+        setTimeout(() => setSeekFlash(null), 600);
+      } else {
+        // Center double tap = like
+        emitHeart(clientX, clientY);
+        if (!moment.is_liked) onLike(moment.moment_id);
       }
-      lastTap.current = 0; // Reset
+      lastTap.current = 0;
     } else {
       // Single Tap
       lastTap.current = now;
@@ -213,9 +233,23 @@ const ReelItem = ({
 
   const handlePointerDown = (e: React.PointerEvent) => {
     isLongPress.current = false;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const relY = e.clientY - rect.top;
+    const isTopZone = relY < rect.height * 0.25;
+
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
-      onShare(moment);
+      if (isTopZone) {
+        // Cycle speed: 1 → 1.5 → 2 → 1
+        setPlaybackRate(prev => {
+          const next = prev >= 2 ? 1 : prev === 1 ? 1.5 : 2;
+          setSpeedFlash(true);
+          setTimeout(() => setSpeedFlash(false), 800);
+          return next;
+        });
+      } else {
+        onShare(moment);
+      }
     }, 600);
   };
 
@@ -234,10 +268,53 @@ const ReelItem = ({
   };
 
   const onVideoTimeUpdate = () => {
-    if (videoRef.current) {
+    if (videoRef.current && !isDragging.current) {
       const p = (videoRef.current.currentTime / videoRef.current.duration) * 100;
-      setProgress(p);
+      setProgress(isNaN(p) ? 0 : p);
     }
+  };
+
+  // Sync playback rate to video element
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
+
+  // Seek by tapping scrubber bar
+  const handleScrubberClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const bar = scrubberRef.current;
+    const video = videoRef.current;
+    if (!bar || !video || !video.duration) return;
+    const rect = bar.getBoundingClientRect();
+    const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    video.currentTime = ratio * video.duration;
+    setProgress(ratio * 100);
+  };
+
+  // Drag scrubber
+  const handleScrubberPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    isDragging.current = true;
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleScrubberPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current) return;
+    e.stopPropagation();
+    const bar = scrubberRef.current;
+    const video = videoRef.current;
+    if (!bar || !video || !video.duration) return;
+    const rect = bar.getBoundingClientRect();
+    const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    video.currentTime = ratio * video.duration;
+    setProgress(ratio * 100);
+  };
+
+  const handleScrubberPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    isDragging.current = false;
   };
 
   // Only load src when this card is active or immediately adjacent (preload 1 ahead)
@@ -431,14 +508,51 @@ const ReelItem = ({
         </div>
       </div>
 
-      {/* Cinematic Progress Bar (TikTok style) */}
-      <div className="absolute bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 h-1 bg-white/10 z-[30] pointer-events-none">
-        <motion.div 
-          className="h-full bg-white/60 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.1, ease: "linear" }}
-        />
+      {/* Seek Flash Overlays */}
+      {seekFlash === 'left' && (
+        <div className="absolute left-0 top-0 bottom-0 w-[35%] flex items-center justify-center bg-white/10 z-[25] pointer-events-none animate-fade-out">
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-white text-3xl font-black">«</span>
+            <span className="text-white text-xs font-bold">10s</span>
+          </div>
+        </div>
+      )}
+      {seekFlash === 'right' && (
+        <div className="absolute right-0 top-0 bottom-0 w-[35%] flex items-center justify-center bg-white/10 z-[25] pointer-events-none animate-fade-out">
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-white text-3xl font-black">»</span>
+            <span className="text-white text-xs font-bold">10s</span>
+          </div>
+        </div>
+      )}
+      {speedFlash && (
+        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[25] pointer-events-none bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-full">
+          <span className="text-white text-sm font-black tracking-widest">{playbackRate}×</span>
+        </div>
+      )}
+
+      {/* Draggable Progress / Scrubber Bar */}
+      <div
+        ref={scrubberRef}
+        className="absolute bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 h-4 z-[30] flex items-end cursor-pointer group/scrub"
+        onClick={handleScrubberClick}
+        onPointerDown={handleScrubberPointerDown}
+        onPointerMove={handleScrubberPointerMove}
+        onPointerUp={handleScrubberPointerUp}
+      >
+        {/* Track */}
+        <div className="w-full h-1 bg-white/20 group-hover/scrub:h-2 transition-all duration-150 relative">
+          {/* Fill */}
+          <div
+            className="absolute left-0 top-0 h-full bg-white/80 shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-none"
+            style={{ width: `${progress}%` }}
+          />
+          {/* Thumb */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-lg opacity-0 group-hover/scrub:opacity-100 transition-opacity"
+            style={{ left: `calc(${progress}% - 6px)` }}
+          />
+        </div>
       </div>
     </div>
   );

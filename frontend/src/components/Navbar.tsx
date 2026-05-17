@@ -37,6 +37,7 @@ import ArchiveModal from './modals/ArchiveModal';
 import PostOptionsModal from './modals/PostOptionsModal';
 import NoteEditorModal from './modals/NoteEditorModal';
 import FloatingAction from './FloatingAction';
+import FeelingActivitySelector from './modals/FeelingActivitySelector';
 
 import Sidebar from './Sidebar';
 
@@ -236,15 +237,28 @@ export default function Navbar() {
         if (activeModal === 'post_options') return <PostOptionsModal post={(modalData as any)?.post} onClose={() => setActiveModal(null)} />;
 
         const handledModals = [
-          'post', 'poll', 'event', 'listing', 'confession', 'settings', 
+          'feeling', 'poll', 'event', 'listing', 'confession', 'settings', 
           'share', 'reshare', 'post_comments', 'creation_hub', 
           'skill_offer', 'skill_detail',
           'highlight', 'highlight_player', 'archive', 'note_editor'
         ];
 
-        if (!handledModals.includes(activeModal)) return null;
+        if (!handledModals.includes(activeModal) && activeModal !== 'post') return null;
 
         // Modals that manage their own full-screen overlay — render them outside the wrapper
+        if (activeModal === 'post') {
+          return <PostModal editPost={(modalData as any)?.editPost} onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />;
+        }
+        if (activeModal === 'feeling') {
+          return (
+            <FeelingActivitySelector
+              onClose={() => setActiveModal(null)}
+              onSelect={(selections) => {
+                setActiveModal('post', null, { initialSelections: selections });
+              }}
+            />
+          );
+        }
         if (activeModal === 'skill_offer') {
           return <SkillOfferModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />;
         }
@@ -268,7 +282,6 @@ export default function Navbar() {
         return (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 dark:bg-black/60 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
             <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
-              {activeModal === 'post' && <PostModal editPost={(modalData as any)?.editPost} onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'listing' && <ListingModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}

@@ -1,20 +1,20 @@
 /**
- * Formats large numbers with K (thousands) and M (millions) suffixes.
- * Example: 1500 -> 1.5k, 1200000 -> 1.2M
+ * Formats large numbers with k (thousands) and m (millions) suffixes.
+ * Example: 1500 -> 1.5k, 2000000 -> 2m, 1200000 -> 1.2m
  */
 export const formatCount = (num: number): string => {
   if (!num || isNaN(num)) return '0';
-  
+
   if (num >= 1000000) {
-    const formatted = (num / 1000000).toFixed(1);
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'M' : formatted + 'M';
+    const v = num / 1000000;
+    return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'm';
   }
-  
+
   if (num >= 1000) {
-    const formatted = (num / 1000).toFixed(1);
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'k' : formatted + 'k';
+    const v = num / 1000;
+    return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'k';
   }
-  
+
   return num.toString();
 };
 

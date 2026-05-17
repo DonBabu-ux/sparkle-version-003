@@ -64,6 +64,9 @@ const MOCK_PROMPTS = [
 
 const MODES: Mode[] = ['post', 'story', 'reel', 'live'];
 
+// Cache loaded device media across active sessions so it shows automatically next time
+let sessionDeviceMediaCache: { file?: File, url: string, isVideo: boolean }[] = [];
+
 export default function CreateStory() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,6 +84,8 @@ export default function CreateStory() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deviceMedia, setDeviceMedia] = useState<{file?: File, url: string, isVideo: boolean}[]>(sessionDeviceMediaCache);
+  const deviceFilesInputRef = useRef<HTMLInputElement>(null);
   
   // Editor States
   const [showStickerPicker, setShowStickerPicker] = useState(false);
@@ -118,6 +123,16 @@ export default function CreateStory() {
     }
   }, [parentId]);
 
+  useEffect(() => {
+    // Automatically open y phone's native files manager/Files Go app to load media from y device!
+    if (deviceMedia.length === 0) {
+      const timer = setTimeout(() => {
+        deviceFilesInputRef.current?.click();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // --- HANDLERS ---
   const handleCapture = async () => {
       if (cameraTimer > 0) {
@@ -143,6 +158,48 @@ export default function CreateStory() {
   };
 
   const handleGalleryClick = () => fileInputRef.current?.click();
+
+  const handleSelectDeviceMedia = async (item: { file?: File, url: string, isVideo: boolean }) => {
+    if (item.file) {
+      setFile(item.file);
+      setPreviewUrl(item.url);
+      setPhase('editor');
+    } else {
+      setUploading(true);
+      try {
+        const response = await fetch(item.url);
+        const blob = await response.blob();
+        const mimeType = blob.type || 'image/jpeg';
+        const extension = mimeType.split('/')[1] || 'jpg';
+        const fileObj = new File([blob], `device-${Date.now()}.${extension}`, { type: mimeType });
+        setFile(fileObj);
+        setPreviewUrl(item.url);
+        setPhase('editor');
+      } catch (err) {
+        console.error('Failed to load remote media:', err);
+        setPreviewUrl(item.url);
+        setPhase('editor');
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
+
+  const handleDeviceFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length > 0) {
+      const mediaList = selectedFiles.map(fileObj => ({
+        file: fileObj,
+        url: URL.createObjectURL(fileObj),
+        isVideo: fileObj.type.startsWith('video/')
+      }));
+      setDeviceMedia(prev => {
+        const updated = [...mediaList, ...prev];
+        sessionDeviceMediaCache = updated;
+        return updated;
+      });
+    }
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -282,6 +339,7 @@ export default function CreateStory() {
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden select-none safe-area-top safe-area-bottom">
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileSelect} />
+      <input type="file" ref={deviceFilesInputRef} className="hidden" multiple accept="image/*,video/*" onChange={handleDeviceFilesChange} />
       
       {/* Universal Music Pill */}
       {selectedMusic && phase !== 'music_picker' && phase !== 'entry' && phase !== 'template_picker' && <MusicIndicator />}
@@ -293,7 +351,7 @@ export default function CreateStory() {
                   <div className="p-6 flex items-center justify-between border-b border-black/5 dark:border-white/5">
                       <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-black/30 dark:text-white/30"><X size={28} strokeWidth={3} /></button>
                       <h2 className="text-[14px] font-black italic uppercase tracking-[0.2em] flex-1 text-center text-black dark:text-white">New Story</h2>
-                      <button className="text-[12px] font-black italic uppercase text-primary px-4 py-2 bg-primary/5 rounded-full flex items-center gap-2">Recents <ChevronDown size={14} /></button>
+                      <button onClick={() => deviceFilesInputRef.current?.click()} className="text-[12px] font-black italic uppercase text-black dark:text-white px-4 py-2 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-full flex items-center gap-1.5 hover:bg-black/10 dark:hover:bg-white/10 transition-all">Recent <ChevronDown size={14} className="opacity-60" /></button>
                   </div>
                   <div className="p-6 flex gap-4 overflow-x-auto no-scrollbar border-b border-black/5 dark:border-white/5">
                       <button onClick={() => setPhase('template_picker')} className="entry-action-card bg-amber-500/10 text-amber-600"><div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-lg"><TrendingUp size={24} /></div><span>Templates</span></button>
@@ -306,10 +364,48 @@ export default function CreateStory() {
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
                       <div className="grid grid-cols-3 gap-3">
-                          <button onClick={() => { setPhase('camera'); setMode('post'); }} className="row-span-2 col-span-1 rounded-[24px] bg-gray-100 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200"><div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-lg"><Camera size={32} className="text-black" /></div><span className="text-[10px] font-black uppercase italic tracking-widest text-black/40">Camera</span></button>
-                          {[...Array(15)].map((_, i) => (
-                              <div key={i} className={`rounded-[24px] bg-gray-50 relative overflow-hidden active:scale-95 transition-transform ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'}`} />
-                          ))}
+                          <button onClick={() => { setPhase('camera'); setMode('post'); }} className="row-span-2 col-span-1 rounded-[24px] bg-gray-100 dark:bg-zinc-900 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 transition-colors">
+                              <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center shadow-lg">
+                                  <Camera size={32} className="text-black dark:text-white" />
+                              </div>
+                              <span className="text-[10px] font-black uppercase italic tracking-widest text-black/40 dark:text-white/40">Camera</span>
+                          </button>
+                          {deviceMedia.length > 0 ? (
+                              deviceMedia.map((item, i) => (
+                                  <button 
+                                      key={i} 
+                                      onClick={() => handleSelectDeviceMedia(item)}
+                                      className={`rounded-[24px] bg-gray-50 dark:bg-zinc-900 relative overflow-hidden active:scale-95 transition-transform border border-black/5 dark:border-white/5 group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
+                                  >
+                                      {item.isVideo || (item.file && item.file.type.startsWith('video/')) ? (
+                                          <video 
+                                              src={item.url} 
+                                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                              muted
+                                              playsInline
+                                          />
+                                      ) : (
+                                          <img 
+                                              src={item.url} 
+                                              alt="" 
+                                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                          />
+                                      )}
+                                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                                  </button>
+                              ))
+                          ) : (
+                              [...Array(14)].map((_, i) => (
+                                  <button 
+                                      key={i} 
+                                      onClick={() => deviceFilesInputRef.current?.click()}
+                                      className={`rounded-[24px] bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center gap-2 border border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 active:scale-95 transition-all group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
+                                  >
+                                      <Plus size={24} className="text-gray-300 dark:text-zinc-600 group-hover:text-primary transition-colors" />
+                                      <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 group-hover:text-primary transition-colors">Load Media</span>
+                                  </button>
+                              ))
+                          )}
                       </div>
                   </div>
               </motion.div>

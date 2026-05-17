@@ -40,6 +40,7 @@ interface FeelingActivitySelectorProps {
     subOption: string | null,
     taggedUsers: TaggedUser[] 
   };
+  initialTab?: 'feeling' | 'activity' | 'tag';
 }
 
 const FEELINGS: SelectionItem[] = [
@@ -82,8 +83,8 @@ const ACTIVITIES: SelectionItem[] = [
   { name: 'working out', icon: Dumbbell, color: 'text-slate-700', options: ['At the Gym', 'Home Workout', 'Yoga', 'Cardio', 'Custom...'] },
 ];
 
-export default function FeelingActivitySelector({ onSelect, onClose, initialSelection }: FeelingActivitySelectorProps) {
-  const [activeTab, setActiveTab] = useState<'feeling' | 'activity' | 'tag'>('feeling');
+export default function FeelingActivitySelector({ onSelect, onClose, initialSelection, initialTab }: FeelingActivitySelectorProps) {
+  const [activeTab, setActiveTab] = useState<'feeling' | 'activity' | 'tag'>(initialTab || 'feeling');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [selections, setSelections] = useState({
@@ -171,24 +172,24 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
 
   if (view === 'suboptions') {
     return (
-      <div className="absolute inset-0 z-[110] bg-white flex flex-col animate-in slide-in-from-right duration-300">
-        <div className="flex items-center px-4 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <button onClick={() => setView('main')} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
-            <ArrowLeft size={22} className="text-gray-900" strokeWidth={2.5} />
+      <div className="fixed inset-0 z-[99999] bg-white dark:bg-zinc-950 rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100vh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        <div className="flex items-center px-4 py-4 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white dark:bg-zinc-950 z-10">
+          <button onClick={() => setView('main')} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+            <ArrowLeft size={22} className="text-gray-900 dark:text-white" strokeWidth={2.5} />
           </button>
-          <h2 className="flex-1 text-center text-lg font-black text-gray-900 uppercase italic tracking-tight pr-10">
+          <h2 className="flex-1 text-center text-lg font-black text-gray-900 dark:text-white uppercase italic tracking-tight pr-10">
             {selections.activity?.name}
           </h2>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
           {currentOptions.map(opt => (
             <button
               key={opt}
               onClick={() => handleSubOptionClick(opt)}
-              className="w-full flex items-center justify-between p-4 bg-white border border-gray-100 rounded-lg hover:border-primary/40 hover:bg-primary/5 transition-all text-left group"
+              className="w-full flex items-center justify-between p-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-white/5 rounded-lg hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10 transition-all text-left group"
             >
-              <span className="text-[15px] font-black italic text-gray-700">{opt}</span>
-              <ChevronRight size={18} className="text-gray-300 group-hover:text-primary transition-colors" />
+              <span className="text-[15px] font-black italic text-gray-700 dark:text-white/80">{opt}</span>
+              <ChevronRight size={18} className="text-gray-300 dark:text-white/30 group-hover:text-primary transition-colors" />
             </button>
           ))}
         </div>
@@ -198,12 +199,12 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
 
   if (view === 'custom') {
     return (
-      <div className="absolute inset-0 z-[120] bg-white flex flex-col animate-in slide-in-from-right duration-300">
-        <div className="flex items-center px-4 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <button onClick={() => setView('suboptions')} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
-            <ArrowLeft size={22} className="text-gray-900" strokeWidth={2.5} />
+      <div className="fixed inset-0 z-[99999] bg-white dark:bg-zinc-950 rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100vh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        <div className="flex items-center px-4 py-4 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white dark:bg-zinc-950 z-10">
+          <button onClick={() => setView('suboptions')} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+            <ArrowLeft size={22} className="text-gray-900 dark:text-white" strokeWidth={2.5} />
           </button>
-          <h2 className="flex-1 text-center text-lg font-black text-gray-900 uppercase italic tracking-tight pr-10">
+          <h2 className="flex-1 text-center text-lg font-black text-gray-900 dark:text-white uppercase italic tracking-tight pr-10">
             What are you {selections.activity?.name}?
           </h2>
         </div>
@@ -215,12 +216,12 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
             value={customInput}
             onChange={e => setCustomInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
-            className="w-full text-center text-2xl font-black italic border-none focus:ring-0 placeholder:text-gray-200"
+            className="w-full text-center text-2xl font-black italic border-none focus:ring-0 placeholder:text-gray-200 dark:placeholder:text-white/20 bg-transparent text-black dark:text-white"
           />
           <button 
             onClick={handleCustomSubmit}
             disabled={!customInput.trim()}
-            className="w-full py-4 bg-primary text-white rounded-lg font-black text-lg tracking-widest shadow-xl shadow-primary/30 disabled:bg-gray-100 disabled:shadow-none transition-all"
+            className="w-full py-4 bg-primary text-white rounded-lg font-black text-lg tracking-widest shadow-xl shadow-primary/30 disabled:bg-gray-100 dark:disabled:bg-zinc-800 disabled:text-gray-400 dark:disabled:text-white/20 disabled:shadow-none transition-all"
           >
             CONFIRM
           </button>
@@ -230,16 +231,16 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
   }
 
   return (
-    <div className="absolute inset-0 z-[100] bg-white flex flex-col animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-0 z-[99999] bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100vh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl animate-in slide-in-from-right duration-300">
       {/* Header */}
-      <div className="flex items-center px-4 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+      <div className="flex items-center px-4 py-4 border-b border-gray-100 dark:border-white/10 bg-white dark:bg-zinc-950 sticky top-0 z-10">
         <button 
           onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
         >
-          <ArrowLeft size={22} className="text-gray-900" strokeWidth={2.5} />
+          <ArrowLeft size={22} className="text-gray-900 dark:text-white" strokeWidth={2.5} />
         </button>
-        <h2 className="flex-1 text-center text-lg font-black text-gray-900 uppercase italic tracking-tight">
+        <h2 className="flex-1 text-center text-lg font-black text-gray-900 dark:text-white uppercase italic tracking-tight">
           Feeling & Activity
         </h2>
         <button 
@@ -254,21 +255,21 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
       {(selections.feeling || selections.activity || selections.taggedUsers.length > 0) && (
         <div className="px-4 pt-4 flex flex-wrap gap-2">
           {selections.feeling && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-full border border-yellow-100 text-[12px] font-black uppercase tracking-tighter">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-500 rounded-full border border-yellow-100 dark:border-yellow-900/30 text-[12px] font-black uppercase tracking-tighter">
               <selections.feeling.icon size={14} />
               <span>{selections.feeling.name}</span>
               <button onClick={() => setSelections(prev => ({ ...prev, feeling: null }))} className="ml-0.5"><X size={12} /></button>
             </div>
           )}
           {selections.activity && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full border border-blue-100 text-[12px] font-black uppercase tracking-tighter">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-500 rounded-full border border-blue-100 dark:border-blue-900/30 text-[12px] font-black uppercase tracking-tighter">
               <selections.activity.icon size={14} />
               <span>{selections.activity.name}{selections.subOption ? `: ${selections.subOption}` : ''}</span>
               <button onClick={() => setSelections(prev => ({ ...prev, activity: null, subOption: null }))} className="ml-0.5"><X size={12} /></button>
             </div>
           )}
           {selections.taggedUsers.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 text-pink-700 rounded-full border border-pink-100 text-[12px] font-black uppercase tracking-tighter">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-500 rounded-full border border-pink-100 dark:border-pink-900/30 text-[12px] font-black uppercase tracking-tighter">
               <Users size={14} />
               <span>{selections.taggedUsers.length} tagged</span>
               <button onClick={() => setSelections(prev => ({ ...prev, taggedUsers: [] }))} className="ml-0.5"><X size={12} /></button>
@@ -278,7 +279,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
       )}
 
       {/* Tabs */}
-      <div className="flex px-4 pt-4 gap-2">
+      <div className="flex px-4 pt-4 gap-2 overflow-x-auto no-scrollbar">
         {[
           { id: 'feeling', label: 'Feeling', icon: Smile },
           { id: 'activity', label: 'Activity', icon: Sparkles },
@@ -287,13 +288,13 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
           <button 
             key={tab.id}
             onClick={() => { setActiveTab(tab.id as any); setSearchQuery(''); }}
-            className={`flex-1 py-3 rounded-lg font-black text-[11px] uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 px-4 rounded-full font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 border ${
               activeTab === tab.id 
-                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                ? 'bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-500/20 scale-[1.02]' 
+                : 'bg-pink-500/10 dark:bg-pink-500/20 backdrop-blur-md text-pink-600 dark:text-pink-300 border-pink-500/20 dark:border-pink-500/10 hover:bg-pink-500/20 dark:hover:bg-pink-500/30'
             }`}
           >
-            <tab.icon size={18} />
+            <tab.icon size={14} />
             {tab.label}
           </button>
         ))}
@@ -307,18 +308,18 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
             placeholder={activeTab === 'tag' ? "Search friends..." : `Search for a ${activeTab}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 border-none rounded-lg py-3 px-6 text-[14px] font-bold text-center focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full bg-gray-50 dark:bg-zinc-900 border-none rounded-lg py-3 px-6 text-[14px] font-bold text-center focus:ring-2 focus:ring-primary/20 text-black dark:text-white transition-all placeholder:text-gray-400 dark:placeholder:text-white/20"
           />
         </div>
       </div>
 
       {/* List Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-12 pt-1">
+      <div className="flex-1 overflow-y-auto px-4 pb-12 pt-1 no-scrollbar">
         {activeTab === 'tag' ? (
           loadingFriends ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Spinner size="medium" color="text-primary" />
-              <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Loading followers...</p>
+              <p className="text-gray-400 dark:text-white/40 font-bold uppercase text-[10px] tracking-widest">Loading followers...</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
@@ -328,14 +329,14 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
                   <button
                     key={user.user_id}
                     onClick={() => toggleUserTag(user)}
-                    className={`flex flex-col items-center p-4 bg-white border rounded-lg transition-all relative group ${
-                      isTagged ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-gray-100 hover:border-primary/40'
+                    className={`flex flex-col items-center p-4 bg-white dark:bg-zinc-900 border rounded-lg transition-all relative group ${
+                      isTagged ? 'border-primary ring-1 ring-primary bg-primary/5 dark:bg-primary/10' : 'border-gray-100 dark:border-white/5 hover:border-primary/40'
                     }`}
                   >
                     <div className="relative">
                       <img 
                         src={getAvatarUrl(user.avatar_url, user.username)} 
-                        className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md" 
+                        className="w-14 h-14 rounded-full object-cover border-2 border-white dark:border-zinc-800 shadow-md" 
                         alt="" 
                       />
                       {isTagged && (
@@ -344,10 +345,10 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
                         </div>
                       )}
                     </div>
-                    <p className={`mt-3 text-[13px] font-black italic truncate w-full text-center ${isTagged ? 'text-primary' : 'text-gray-900'}`}>
+                    <p className={`mt-3 text-[13px] font-black italic truncate w-full text-center ${isTagged ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>
                       {user.name || user.username}
                     </p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">@{user.username}</p>
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-tighter">@{user.username}</p>
                   </button>
                 );
               })}
@@ -361,14 +362,14 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
                 <button
                   key={item.name}
                   onClick={() => activeTab === 'activity' ? handleActivityClick(item) : setSelections(prev => ({ ...prev, feeling: active ? null : item }))}
-                  className={`flex flex-col items-center justify-center p-4 aspect-square bg-white border rounded-lg transition-all group relative ${
-                    active ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-gray-100 hover:border-primary/40'
+                  className={`flex flex-col items-center justify-center p-4 aspect-square bg-white dark:bg-zinc-900 border rounded-lg transition-all group relative ${
+                    active ? 'border-primary ring-1 ring-primary bg-primary/5 dark:bg-primary/10' : 'border-gray-100 dark:border-white/5 hover:border-primary/40'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center transition-transform group-hover:scale-110 mb-2 ${item.color}`}>
+                  <div className={`w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-800 flex items-center justify-center transition-transform group-hover:scale-110 mb-2 ${item.color}`}>
                     <item.icon size={22} strokeWidth={2.5} />
                   </div>
-                  <span className={`text-[11px] font-black italic capitalize text-center leading-tight ${active ? 'text-primary' : 'text-gray-600'}`}>
+                  <span className={`text-[11px] font-black italic capitalize text-center leading-tight ${active ? 'text-primary' : 'text-gray-600 dark:text-white/80'}`}>
                     {item.name}
                   </span>
                   
@@ -386,7 +387,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
                   
                   {item.options && (
                     <div className="absolute top-2 right-2">
-                      <ChevronRight size={14} className="text-gray-300" />
+                      <ChevronRight size={14} className="text-gray-300 dark:text-white/30" />
                     </div>
                   )}
                 </button>
@@ -396,7 +397,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
         )}
         {((activeTab === 'tag' && filteredFriends.length === 0) || (activeTab !== 'tag' && filteredList.length === 0)) && (
           <div className="py-20 text-center">
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">No results found</p>
+            <p className="text-gray-400 dark:text-white/30 font-bold uppercase tracking-widest text-[10px]">No results found</p>
           </div>
         )}
       </div>

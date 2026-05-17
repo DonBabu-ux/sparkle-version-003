@@ -1,13 +1,16 @@
 import { useState, useRef } from 'react';
 import {
   X, Image as ImageIcon, MapPin, Globe, Ghost, Lock,
-  Loader2, Smile, Tag, ChevronDown, Check
+  Loader2, Smile, Tag, ChevronDown, Check, Users, Sparkles
 } from 'lucide-react';
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
 import { useUserStore } from '../../store/userStore';
 import { useModalStore } from '../../store/modalStore';
 import Spinner from '../ui/Spinner';
+import FeelingActivitySelector from './FeelingActivitySelector';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 interface PostModalProps {
   onClose: () => void;
@@ -41,6 +44,8 @@ const POST_TYPES = [
   { value: 'friends', label: 'Incognito', icon: SpyIcon, color: 'text-purple-500' },
 ];
 
+
+
 export default function PostModal({ onClose, onSuccess, editPost }: PostModalProps) {
   const { user } = useUserStore();
   const { modalData } = useModalStore();
@@ -52,6 +57,21 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
   const [location, setLocation] = useState(editPost?.location || '');
   const [showLocationInput, setShowLocationInput] = useState(!!editPost?.location);
   const [showEmojiHint, setShowEmojiHint] = useState(false);
+  
+  const [showSelector, setShowSelector] = useState(false);
+  const initialSelections = (modalData as any)?.initialSelections;
+  const [selections, setSelections] = useState<{ 
+    feeling: any | null, 
+    activity: any | null,
+    subOption: string | null,
+    taggedUsers: any[] 
+  }>({ 
+    feeling: initialSelections?.feeling || (editPost?.feeling ? { name: editPost.feeling } : null), 
+    activity: initialSelections?.activity || (editPost?.activity ? { name: editPost.activity } : null), 
+    subOption: initialSelections?.subOption || null, 
+    taggedUsers: initialSelections?.taggedUsers || [] 
+  });
+  const [selectorTab, setSelectorTab] = useState<'feeling' | 'activity' | 'tag'>('feeling');
   const [files, setFiles] = useState<File[]>(initialFiles);
   const [previews, setPreviews] = useState<string[]>(
     editPost?.media_url ? editPost.media_url.split(',') : initialFiles.map((f: File) => URL.createObjectURL(f))
@@ -82,6 +102,15 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
       fd.append('content', content);
       fd.append('post_type', postType);
       if (location) fd.append('location', location);
+      if (selections.feeling) {
+        fd.append('feeling', selections.feeling.name);
+      }
+      if (selections.activity) {
+        const activityValue = selections.subOption 
+          ? `${selections.activity.name} ${selections.subOption}` 
+          : selections.activity.name;
+        fd.append('activity', activityValue);
+      }
       files.forEach(f => fd.append('media', f));
       
       if (editPost) {
@@ -103,16 +132,20 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
   const canPost = (content.trim().length > 0 || files.length > 0) && !uploading;
 
   return (
-    /* Backdrop */
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
+      className="fixed inset-0 z-[99999] bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col overflow-hidden safe-area-top safe-area-bottom animate-in slide-in-from-bottom duration-300"
     >
-      {/* Modal Card */}
-      <div
-        className="bg-white dark:bg-black w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-black/5 dark:border-white/10"
-        onClick={e => e.stopPropagation()}
-      >
+        {showSelector && (
+          <FeelingActivitySelector 
+            initialSelection={selections}
+            initialTab={selectorTab}
+            onSelect={(newSelections) => {
+              setSelections(newSelections);
+              setShowSelector(false);
+            }}
+            onClose={() => setShowSelector(false)}
+          />
+        )}
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
@@ -140,9 +173,57 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
               alt=""
             />
             <div>
-              <p className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight">
-                {user?.name || user?.username}
-              </p>
+              <div className="flex items-center flex-wrap gap-x-1 gap-y-0.5">
+                <p className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight">
+                  {user?.name || user?.username}
+                </p>
+                
+                {(selections.feeling || selections.activity || selections.taggedUsers.length > 0) && (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {selections.feeling && (
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full font-black text-[11px] uppercase tracking-wider bg-pink-500/10 dark:bg-pink-500/20 backdrop-blur-md text-pink-600 dark:text-pink-300 border border-pink-500/20 dark:border-pink-500/10 shadow-sm animate-fade-in shrink-0">
+                        {selections.feeling.icon && <selections.feeling.icon size={12} className="text-pink-500" />}
+                        <span>feeling {selections.feeling.name}</span>
+                        <button 
+                          onClick={() => setSelections(prev => ({ ...prev, feeling: null }))}
+                          className="ml-1.5 w-3.5 h-3.5 rounded-full bg-pink-500/20 dark:bg-pink-500/30 flex items-center justify-center hover:bg-pink-500/30 dark:hover:bg-pink-500/40 transition-colors shrink-0"
+                          title="Remove feeling"
+                        >
+                          <X size={9} className="text-pink-600 dark:text-pink-300" />
+                        </button>
+                      </span>
+                    )}
+                    
+                    {selections.activity && (
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full font-black text-[11px] uppercase tracking-wider bg-pink-500/10 dark:bg-pink-500/20 backdrop-blur-md text-pink-600 dark:text-pink-300 border border-pink-500/20 dark:border-pink-500/10 shadow-sm animate-fade-in shrink-0">
+                        {selections.activity.icon && <selections.activity.icon size={12} className="text-pink-500" />}
+                        <span>{selections.activity.name}{selections.subOption ? `: ${selections.subOption}` : ''}</span>
+                        <button 
+                          onClick={() => setSelections(prev => ({ ...prev, activity: null, subOption: null }))}
+                          className="ml-1.5 w-3.5 h-3.5 rounded-full bg-pink-500/20 dark:bg-pink-500/30 flex items-center justify-center hover:bg-pink-500/30 dark:hover:bg-pink-500/40 transition-colors shrink-0"
+                          title="Remove activity"
+                        >
+                          <X size={9} className="text-pink-600 dark:text-pink-300" />
+                        </button>
+                      </span>
+                    )}
+
+                    {selections.taggedUsers.length > 0 && (
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full font-black text-[11px] uppercase tracking-wider bg-pink-500/10 dark:bg-pink-500/20 backdrop-blur-md text-pink-600 dark:text-pink-300 border border-pink-500/20 dark:border-pink-500/10 shadow-sm animate-fade-in shrink-0">
+                        <Users size={12} className="text-pink-500" />
+                        <span>with {selections.taggedUsers[0].name || selections.taggedUsers[0].username}{selections.taggedUsers.length > 1 ? ` +${selections.taggedUsers.length - 1}` : ''}</span>
+                        <button 
+                          onClick={() => setSelections(prev => ({ ...prev, taggedUsers: [] }))}
+                          className="ml-1.5 w-3.5 h-3.5 rounded-full bg-pink-500/20 dark:bg-pink-500/30 flex items-center justify-center hover:bg-pink-500/30 dark:hover:bg-pink-500/40 transition-colors shrink-0"
+                          title="Remove tagged friends"
+                        >
+                          <X size={9} className="text-pink-600 dark:text-pink-300" />
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Post type selector */}
               <div className="relative mt-1">
@@ -190,11 +271,29 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
             />
           </div>
 
-          {/* Emoji hint */}
+          {/* Emoji Picker */}
           {showEmojiHint && (
-            <div className="mx-5 mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/30 rounded-xl text-[13px] text-yellow-700 dark:text-yellow-500 font-semibold flex items-center justify-between">
-              😊 Emoji picker coming soon — type emojis directly in your post!
-              <button onClick={() => setShowEmojiHint(false)}><X size={14} /></button>
+            <div className="mx-5 mb-4 border border-black/5 dark:border-white/10 rounded-[8px] overflow-hidden shadow-xl flex flex-col relative z-20">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-zinc-900 border-b border-black/5 dark:border-white/10">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Select Emoji</span>
+                <button onClick={() => setShowEmojiHint(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
+                  <X size={14} strokeWidth={2.5} />
+                </button>
+              </div>
+              <div className="w-full overflow-hidden bg-white dark:bg-zinc-950">
+                <Picker 
+                  data={data} 
+                  onEmojiSelect={(emoji: any) => {
+                    setContent(prev => prev + emoji.native);
+                  }} 
+                  theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
+                  previewPosition="none"
+                  skinTonePosition="none"
+                  perLine={9}
+                  width="100%"
+                  dynamicWidth={true}
+                />
+              </div>
             </div>
           )}
 
@@ -265,17 +364,26 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
 
               {/* Tag */}
               <button
-                onClick={() => alert('Tag people — coming soon!')}
+                onClick={() => { setSelectorTab('tag'); setShowSelector(true); }}
                 title="Tag people"
                 className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-colors group"
               >
                 <Tag size={22} className="text-[#1877F2] group-hover:scale-110 transition-transform" />
               </button>
 
-              {/* Feeling / Emoji */}
+              {/* Feeling / Activity */}
               <button
-                onClick={() => setShowEmojiHint(true)}
-                title="Feeling / Emoji"
+                onClick={() => { setSelectorTab('feeling'); setShowSelector(true); }}
+                title="Feeling / Activity"
+                className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-colors group"
+              >
+                <Sparkles size={22} className="text-[#a855f7] group-hover:scale-110 transition-transform" />
+              </button>
+
+              {/* Emoji Picker */}
+              <button
+                onClick={() => setShowEmojiHint(p => !p)}
+                title="Insert Emojis"
                 className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-colors group"
               >
                 <Smile size={22} className="text-[#f7b928] group-hover:scale-110 transition-transform" />
@@ -314,8 +422,6 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
               : (editPost ? 'Save Changes' : 'Post')}
           </button>
         </div>
-
       </div>
-    </div>
   );
 }

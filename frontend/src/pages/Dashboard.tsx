@@ -213,7 +213,7 @@ export default function Dashboard() {
             <div className="bg-white dark:bg-[#000000] rounded-lg shadow-sm p-4 animate-fade-in border border-black/5 dark:border-white/5">
               <div className="flex gap-4 items-center mb-5">
                 <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
-                <button onClick={() => setActiveModal('creationHub')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black/40 dark:text-white/40 rounded-lg px-5 text-left transition-colors font-medium text-sm">
+                <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">
                   What's on your mind, {user?.name || user?.username}?
                 </button>
               </div>
@@ -228,7 +228,7 @@ export default function Dashboard() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Photo</span>
                   <input type="file" multiple className="hidden" accept="image/*,video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
                 </label>
-                <button onClick={() => setActiveModal('poll')} className="flex items-center gap-2.5 px-4 py-2 hover:bg-amber-500/5 rounded-xl transition-all group text-amber-500/60 dark:text-amber-400">
+                <button onClick={() => setActiveModal('post')} className="flex items-center gap-2.5 px-4 py-2 hover:bg-amber-500/5 rounded-xl transition-all group text-amber-500/60 dark:text-amber-400">
                   <Smile size={20} className="text-amber-500 group-hover:scale-110 transition-transform" />
                   <span className="text-[10px] font-black uppercase tracking-widest">Feeling</span>
                 </button>

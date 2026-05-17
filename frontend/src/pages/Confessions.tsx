@@ -428,10 +428,7 @@ export default function Confessions() {
                   )}
 
                   {/* Actions & Comments Section */}
-                  <div 
-                    className="p-4 pt-3 relative cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors"
-                    onClick={(e) => handleReact(conf.confession_id, 'heart', e, true)}
-                  >
+                  <div className="p-4 pt-3 relative border-t border-black/[0.03] dark:border-white/[0.03]">
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-3">
                         {/* Reaction Button & Popover */}

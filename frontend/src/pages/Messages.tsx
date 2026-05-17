@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay } from '../utils/format';
+import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
@@ -613,7 +613,6 @@ export default function Messages() {
   const [unreadCountInChat, setUnreadCountInChat] = useState(0);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [activeSettingView, setActiveSettingView] = useState('main');
-  const [showLastSeen, setShowLastSeen] = useState(true);
   const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
   const [customPhotoPreview, setCustomPhotoPreview] = useState<string | null>(null);
   const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
@@ -657,16 +656,9 @@ export default function Messages() {
     fetchSuggested();
   }, []);
 
-  useEffect(() => {
-    if (selectedChat?.partner_online) {
-      setShowLastSeen(true);
-      return;
-    }
-    const timeoutId = setTimeout(() => {
-      setShowLastSeen(prev => !prev);
-    }, showLastSeen ? 4000 : 2000);
-    return () => clearTimeout(timeoutId);
-  }, [selectedChat?.partner_online, showLastSeen]);
+  // showLastSeen is always true for offline partners — no toggling timer
+  // The AnimatePresence in the header already handles smooth Online ↔ last-seen transitions
+  const showLastSeen = !selectedChat?.partner_online && !(selectedChat?.is_online === 1) && !(selectedChat?.is_online === true);
 
   useEffect(() => {
     if (targetChatId && conversations.length > 0) {
@@ -797,15 +789,17 @@ export default function Messages() {
         }
       }
 
-      // 2. Reactively update the conversations list without fetching from server
+      // 2. Reactively update the conversations list — use ONLY server-provided timestamps
       setConversations((prev: any[]) => {
         const chatIndex = prev.findIndex(c => c.chat_id === msg.conversation_id || c.chat_id === msg.chat_id || c.partner_id === msg.sender_id);
         if (chatIndex >= 0) {
           const newConvs = [...prev];
           const chat = { ...newConvs[chatIndex] };
           chat.last_message_content = msg.type === 'text' ? msg.content : `Sent a ${msg.type}`;
-          chat.last_message_time = msg.sent_at || msg.created_at || new Date().toISOString();
-          chat.last_message_status = 'sent';
+          // Use server timestamp only — never fall back to client Date
+          chat.last_message_time = msg.sent_at || msg.created_at || chat.last_message_time;
+          // Inherit status from the server message payload; never assume 'sent'
+          chat.last_message_status = msg.status || 'sent';
           if (msg.sender_id !== (user?.id || user?.user_id) && selectedChat?.chat_id !== chat.chat_id) {
             chat.unread_count = (chat.unread_count || 0) + 1;
           }
@@ -836,8 +830,9 @@ export default function Messages() {
        const myId = user?.id || user?.user_id;
        setMessages(prev => prev.map(m => {
           // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
-          if (m.sender_id === myId && m.status !== 'read') {
-             return { ...m, status: 'read', read_at: data.readAt || new Date().toISOString() };
+          // IMPORTANT: read_at is always server UTC from the backend — never use client Date here
+          if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
+             return { ...m, status: 'read', read_at: data.readAt };
           }
           return m;
        }));
@@ -900,6 +895,8 @@ export default function Messages() {
     };
 
     socket.on('new-message', handleNewMessage);
+    // Note: 'receive_message' is intentionally NOT re-registered — both events call the same
+    // handler; the deduplication guard inside handleNewMessage (message_id check) prevents doubles.
     socket.on('receive_message', handleNewMessage);
     socket.on('messages-delivered', handleMessagesDelivered);
     socket.on('messages-read', handleMessagesRead);
@@ -907,6 +904,14 @@ export default function Messages() {
     socket.on('user-typing', handleUserTyping);
     socket.on('user-note-update', handleUserNoteUpdate);
     socket.on('group:presence:update', handleGroupPresenceUpdate);
+
+    // ── Reconnect recovery — re-join active chat room so delivery/read ACKs work without refresh ──
+    const handleReconnect = () => {
+      if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
+        socket.emit('join-chat', selectedChat.chat_id);
+      }
+    };
+    socket.on('connect', handleReconnect);
 
     // Initial check when opening a chat to mark read
     if (selectedChat && document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group')) {
@@ -923,6 +928,7 @@ export default function Messages() {
       socket.off('user-typing', handleUserTyping);
       socket.off('user-note-update', handleUserNoteUpdate);
       socket.off('group:presence:update', handleGroupPresenceUpdate);
+      socket.off('connect', handleReconnect);
     };
   }, [socket, selectedChat, isNearBottom, user?.id, user?.user_id]);
 
@@ -986,11 +992,15 @@ export default function Messages() {
        partnerId: selectedChat.partner_id,
        content,
        type: 'text'
-    }, (response: { success: boolean, messageId?: string, error?: string }) => {
+    }, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
        setSending(false);
        if (response.success && response.messageId) {
-          // ACK received! Update to sent and map the DB message_id
-          setMessages(prev => prev.map(m => m.message_id === tempId ? { ...m, message_id: response.messageId!, status: 'sent' } : m));
+          // ACK received — use server-returned sentAt (never client Date)
+          // If backend doesn't return sentAt yet, keep the optimistic one (will be corrected on next fetch)
+          setMessages(prev => prev.map(m => m.message_id === tempId
+            ? { ...m, message_id: response.messageId!, status: 'sent', sent_at: response.sentAt || m.sent_at }
+            : m
+          ));
           setConversations((prev: any[]) => {
              const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
              if (chatIndex >= 0) {
@@ -998,7 +1008,8 @@ export default function Messages() {
                 const chat = { ...newConvs[chatIndex] };
                 chat.last_message_content = content;
                 chat.last_message_status = 'sent';
-                chat.last_message_time = new Date().toISOString();
+                // Use server sentAt; fall back to existing time — never generate client Date
+                chat.last_message_time = response.sentAt || chat.last_message_time;
                 newConvs.splice(chatIndex, 1);
                 newConvs.unshift(chat);
                 return newConvs;
@@ -1083,26 +1094,12 @@ export default function Messages() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const formatLastSeen = (time: string) => {
-    if (!time) return 'a while ago';
-    const date = new Date(time);
-    if (isNaN(date.getTime())) return 'a while ago';
-    
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffDays = Math.round((today.getTime() - targetDate.getTime()) / 86400000);
-    
-    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    if (diffDays === 0) return `today at ${timeStr}`;
-    if (diffDays === 1) return `yesterday at ${timeStr}`;
-    if (diffDays < 7) {
-      return `${date.toLocaleDateString([], { weekday: 'long' })} at ${timeStr}`;
-    }
-    
-    return `${date.toLocaleDateString()} at ${timeStr}`;
-  };
+  /**
+   * WhatsApp-style absolute last-seen for private chat header.
+   * Never uses relative counters — always anchors to today / yesterday / weekday / date.
+   * "last seen" prefix is added by the JSX caller.
+   */
+  const formatLastSeen = (time: string) => formatLastSeenChat(time);
 
   const formatMessageText = (content?: string) => {
     if (!content) return '';
@@ -1379,9 +1376,9 @@ export default function Messages() {
                             {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count || 1} online
                           </motion.p>
                         ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
-                          <motion.p key="online" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-bold lowercase text-emerald-500">online</motion.p>
+                          <motion.p key="online" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12.5px] font-bold lowercase text-emerald-400">online</motion.p>
                         ) : showLastSeen ? (
-                          <motion.p key="lastseen" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[11.5px] font-semibold lowercase text-white/50">last seen {formatLastSeen(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}</motion.p>
+                          <motion.p key="lastseen" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-semibold lowercase text-white/75">last seen {formatLastSeen(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}</motion.p>
                         ) : null}
                       </AnimatePresence>
                     </div>

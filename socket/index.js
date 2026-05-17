@@ -9,6 +9,25 @@ const GroupMember = require('../models/GroupMember');
 
 let io;
 
+/**
+ * Grace period (ms) before a disconnected user is marked offline.
+ * This prevents false offline transitions during brief network fluctuations.
+ */
+const OFFLINE_GRACE_MS = 30_000;
+
+/**
+ * Tracks pending offline timers keyed by userId.
+ * If the same user reconnects within OFFLINE_GRACE_MS, the timer is cancelled
+ * and they remain online with no status change.
+ */
+const pendingOfflineTimers = new Map();
+
+/**
+ * Tracks active typing sessions per socket: Map<socketId, Set<chatId>>
+ * Used to auto-expire typing indicators when a socket disconnects mid-type.
+ */
+const activeTypingSessions = new Map();
+
 const initializeSocket = (server) => {
     io = socketIO(server, {
         cors: {
@@ -71,6 +90,13 @@ const initializeSocket = (server) => {
     io.on('connection', async (socket) => {
         logger.info(`🔌 User connected: ${socket.userId} (${socket.user.username})`);
 
+        // ── Cancel any pending offline timer for this user (reconnect within grace window) ──
+        if (pendingOfflineTimers.has(socket.userId)) {
+            clearTimeout(pendingOfflineTimers.get(socket.userId));
+            pendingOfflineTimers.delete(socket.userId);
+            logger.info(`📡 Reconnect within grace window for ${socket.userId} — staying ONLINE`);
+        }
+
         // Update user online status
         await User.setOnlineStatus(socket.userId, true);
 
@@ -115,10 +141,21 @@ const initializeSocket = (server) => {
             socket.to(`chat:${chatId}`).emit('messages-delivered', { chatId, userId: socket.userId });
         });
 
-        // Typing indicator
+        // Typing indicator — server-coordinated with auto-expiry
         socket.on('typing', (data) => {
             const { chatId, isTyping } = data;
-            
+
+            // Track which chats this socket is actively typing in
+            if (isTyping) {
+                if (!activeTypingSessions.has(socket.id)) {
+                    activeTypingSessions.set(socket.id, new Set());
+                }
+                activeTypingSessions.get(socket.id).add(chatId);
+            } else {
+                const sessions = activeTypingSessions.get(socket.id);
+                if (sessions) sessions.delete(chatId);
+            }
+
             // Broadcast to everyone else in the chat room
             socket.to(`chat:${chatId}`).emit('user-typing', {
                 chatId,
@@ -164,9 +201,10 @@ const initializeSocket = (server) => {
                     context
                 });
 
-                // Acknowledge receipt to the sender immediately (Point 1)
+                // Acknowledge receipt to the sender with server-authoritative sentAt
+                // IMPORTANT: sentAt comes from the DB record, not from the client clock
                 if (typeof callback === 'function') {
-                    callback({ success: true, messageId });
+                    callback({ success: true, messageId, sentAt: message?.sent_at || null });
                 }
 
                 // Get the saved message with sender info and reply info
@@ -290,6 +328,24 @@ const initializeSocket = (server) => {
             }
         });
 
+        // Graceful background signal — keep online but note backgrounded
+        socket.on('presence:background', () => {
+            logger.info(`📱 User backgrounded: ${socket.userId}`);
+            // Do nothing immediately; the socket is still connected
+            // The OFFLINE_GRACE_MS disconnect timeout will handle actual offline
+        });
+
+        // Explicit offline signal (tab close / beforeunload)
+        socket.on('presence:offline', async () => {
+            try {
+                logger.info(`📴 Explicit offline signal from ${socket.userId}`);
+                await User.setOnlineStatus(socket.userId, false);
+                broadcastOnlineStatus(socket, false);
+            } catch (e) {
+                logger.error('presence:offline error:', e);
+            }
+        });
+
         // Custom heartbeat ping-pong (supplements socket.io's built-in ping)
         socket.on('sparkle-ping', () => {
             socket.emit('sparkle-pong', { ts: Date.now() });
@@ -391,22 +447,60 @@ const initializeSocket = (server) => {
             }
         });
 
-        // Handle disconnection
-        socket.on('disconnect', async () => {
+        // Handle disconnection — with graceful offline timeout
+        socket.on('disconnect', async (reason) => {
             try {
-                logger.info(`🔌 User disconnected: ${socket.userId}`);
-                await User.setOnlineStatus(socket.userId, false);
-                broadcastOnlineStatus(socket, false);
-                
-                // When disconnecting, remove from rooms and update groups
-                // The socket leaves rooms automatically, but wait a tick for adapter to clear
+                logger.info(`🔌 User disconnected: ${socket.userId} (${reason})`);
+
+                // ── Auto-expire any stale typing sessions for this socket ──
+                const typingChats = activeTypingSessions.get(socket.id);
+                if (typingChats && typingChats.size > 0) {
+                    for (const chatId of typingChats) {
+                        socket.to(`chat:${chatId}`).emit('user-typing', {
+                            chatId,
+                            userId: socket.userId,
+                            username: socket.user.username,
+                            isTyping: false
+                        });
+                    }
+                    logger.info(`⌨️  Cleared ${typingChats.size} stale typing session(s) for ${socket.userId}`);
+                }
+                activeTypingSessions.delete(socket.id);
+
+                // Schedule offline transition after grace period
+                // This allows brief network blips / transport upgrades to
+                // reconnect without the user appearing offline.
+                const timer = setTimeout(async () => {
+                    try {
+                        // Verify the user has no other active socket sessions
+                        const userRoom = io.sockets.adapter.rooms.get(`user:${socket.userId}`);
+                        const stillOnline = userRoom && userRoom.size > 0;
+
+                        if (!stillOnline) {
+                            await User.setOnlineStatus(socket.userId, false);
+                            broadcastOnlineStatus(socket, false);
+                            logger.info(`📴 User offline after grace period: ${socket.userId}`);
+                        } else {
+                            logger.info(`📡 User still has active sessions, staying ONLINE: ${socket.userId}`);
+                        }
+                    } catch (e) {
+                        logger.error('Grace offline error:', e);
+                    } finally {
+                        pendingOfflineTimers.delete(socket.userId);
+                    }
+                }, OFFLINE_GRACE_MS);
+
+                pendingOfflineTimers.set(socket.userId, timer);
+
+                // Update groups immediately (group presence count changes)
                 setTimeout(() => {
                     broadcastGroupPresence(io, socket);
-                }, 100);
+                }, 500);
             } catch (error) {
                 logger.error('Disconnect error:', error);
             }
         });
+
     });
 
     return io;

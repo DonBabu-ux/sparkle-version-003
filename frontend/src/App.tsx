@@ -63,6 +63,7 @@ import ProfessionalDashboard from './pages/ProfessionalDashboard';
 import GlobalEffects from './components/GlobalEffects';
 import LoadingBar from './components/LoadingBar';
 import { TikTokHearts } from './components/TikTokHearts';
+import PresenceManager from './components/PresenceManager';
 
 // Phase 4 — Utility
 import LostFound from './pages/LostFound';
@@ -140,6 +141,9 @@ function App() {
         <GlobalEffects />
         <MarketplaceModals />
         <TikTokHearts />
+        {/* PresenceManager — mounted once globally. Keeps the socket alive and
+            updates online/offline state regardless of which page is active. */}
+        <PresenceManager />
         <Routes>
           {/* ── Phase 1: Auth & Core ── */}
           <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />

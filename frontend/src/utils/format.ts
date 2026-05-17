@@ -107,3 +107,32 @@ export const isSameCalendarDay = (a?: string | Date, b?: string | Date): boolean
     da.getDate()     === db.getDate()
   );
 };
+
+/**
+ * WhatsApp-style last-seen label for private chat headers.
+ * Always produces a stable absolute timestamp — never uses relative counters
+ * like "2 mins ago" that flicker or cause timezone confusion.
+ *
+ * Returns the part after "last seen ", e.g.:
+ *   "today at 12:45 AM"
+ *   "yesterday at 10:50 PM"
+ *   "Thu at 12:00 AM"
+ *   "May 10 at 9:42 PM"
+ */
+export const formatLastSeenChat = (dateInput?: string | Date): string => {
+  if (!dateInput) return 'a while ago';
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return 'a while ago';
+
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const now      = new Date();
+  const today    = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDay   = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
+
+  if (diffDays === 0) return `today at ${timeStr}`;
+  if (diffDays === 1) return `yesterday at ${timeStr}`;
+  if (diffDays  < 7)  return `${date.toLocaleDateString([], { weekday: 'short' })} at ${timeStr}`;
+  return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${timeStr}`;
+};

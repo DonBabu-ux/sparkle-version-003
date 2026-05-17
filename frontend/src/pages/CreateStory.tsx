@@ -20,6 +20,8 @@ import StickerPicker from '../components/stories/StickerPicker';
 import StickerRenderer from '../components/stories/StickerRenderer';
 import { CameraService } from '../services/CameraService';
 import Spinner from '../components/ui/Spinner';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 
 type Phase = 'entry' | 'camera' | 'editor' | 'music_picker' | 'template_picker' | 'text_story';
 type Mode = 'post' | 'story' | 'reel' | 'live';
@@ -124,13 +126,140 @@ export default function CreateStory() {
   }, [parentId]);
 
   useEffect(() => {
-    // Automatically open y phone's native files manager/Files Go app to load media from y device!
-    if (deviceMedia.length === 0) {
-      const timer = setTimeout(() => {
-        deviceFilesInputRef.current?.click();
-      }, 600);
-      return () => clearTimeout(timer);
-    }
+    const loadDevicePhotos = async () => {
+      // 1. Try native mobile platform folder reading first if we are inside a mobile Capacitor shell
+      if (Capacitor.isNativePlatform()) {
+        try {
+          if (Filesystem.requestPermissions) {
+            await Filesystem.requestPermissions();
+          }
+
+          const directoriesToTry = [
+            { path: 'DCIM/Camera', dir: Directory.ExternalStorage },
+            { path: 'DCIM', dir: Directory.ExternalStorage },
+            { path: 'Pictures', dir: Directory.ExternalStorage },
+            { path: 'DCIM/Camera', dir: Directory.External },
+            { path: 'DCIM', dir: Directory.External },
+            { path: 'Pictures', dir: Directory.External }
+          ];
+
+          let foundFiles: any[] = [];
+
+          for (const target of directoriesToTry) {
+            try {
+              const result = await Filesystem.readdir({
+                path: target.path,
+                directory: target.dir
+              });
+
+              if (result.files && result.files.length > 0) {
+                const validFiles = result.files.filter(f => {
+                  const name = f.name.toLowerCase();
+                  return name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.webm');
+                });
+
+                if (validFiles.length > 0) {
+                  const mapped = validFiles.map(f => {
+                    const secureUrl = Capacitor.convertFileSrc(f.uri || f.path);
+                    const isVideo = f.name.toLowerCase().endsWith('.mp4') || f.name.toLowerCase().endsWith('.mov') || f.name.toLowerCase().endsWith('.webm');
+                    return {
+                      url: secureUrl,
+                      path: f.path || f.uri,
+                      isVideo,
+                      name: f.name
+                    };
+                  });
+                  foundFiles = [...foundFiles, ...mapped];
+                }
+              }
+            } catch (e) {
+              // Directory read error (e.g. permission or not found), try next directory
+            }
+          }
+
+          if (foundFiles.length > 0) {
+            // Sort by name so it shows recent photos first
+            foundFiles.sort((a, b) => b.name.localeCompare(a.name));
+            const sliced = foundFiles.slice(0, 15);
+            
+            const list = await Promise.all(sliced.map(async item => {
+              try {
+                const fileData = await Filesystem.readFile({
+                  path: item.path
+                });
+                
+                const byteString = atob(fileData.data);
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) {
+                  ia[i] = byteString.charCodeAt(i);
+                }
+                const blob = new Blob([ab], { type: item.isVideo ? 'video/mp4' : 'image/jpeg' });
+                const fileObj = new File([blob], item.name, { type: item.isVideo ? 'video/mp4' : 'image/jpeg' });
+                
+                return {
+                  file: fileObj,
+                  url: item.url,
+                  isVideo: item.isVideo
+                };
+              } catch (err) {
+                return {
+                  url: item.url,
+                  isVideo: item.isVideo
+                };
+              }
+            }));
+            
+            setDeviceMedia(list);
+            sessionDeviceMediaCache = list;
+            return;
+          }
+        } catch (err) {
+          console.error('Failed to load native phone gallery files:', err);
+        }
+      }
+
+      // 2. Load persisted local storage cache if available
+      try {
+        const stored = localStorage.getItem('sparkle_device_media_cache');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const mapped = list.map((item: any) => {
+            const byteString = atob(item.base64.split(',')[1]);
+            const mimeString = item.base64.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+              ia[i] = byteString.charCodeAt(i);
+            }
+            const blob = new Blob([ab], { type: mimeString });
+            const fileObj = new File([blob], item.name, { type: mimeString });
+            return {
+              file: fileObj,
+              url: item.base64,
+              isVideo: item.isVideo
+            };
+          });
+          if (mapped.length > 0) {
+            setDeviceMedia(mapped);
+            sessionDeviceMediaCache = mapped;
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load local media cache:', e);
+      }
+
+      // 3. Fallback on browser: Automatically click hidden file input to let the user select their photos gallery folder/files
+      if (deviceMedia.length === 0) {
+        const timer = setTimeout(() => {
+          deviceFilesInputRef.current?.click();
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+    };
+
+    loadDevicePhotos();
   }, []);
 
   // --- HANDLERS ---
@@ -370,42 +499,40 @@ export default function CreateStory() {
                               </div>
                               <span className="text-[10px] font-black uppercase italic tracking-widest text-black/40 dark:text-white/40">Camera</span>
                           </button>
-                          {deviceMedia.length > 0 ? (
-                              deviceMedia.map((item, i) => (
-                                  <button 
-                                      key={i} 
-                                      onClick={() => handleSelectDeviceMedia(item)}
-                                      className={`rounded-[24px] bg-gray-50 dark:bg-zinc-900 relative overflow-hidden active:scale-95 transition-transform border border-black/5 dark:border-white/5 group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
-                                  >
-                                      {item.isVideo || (item.file && item.file.type.startsWith('video/')) ? (
-                                          <video 
-                                              src={item.url} 
-                                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                                              muted
-                                              playsInline
-                                          />
-                                      ) : (
-                                          <img 
-                                              src={item.url} 
-                                              alt="" 
-                                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                                          />
-                                      )}
-                                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
-                                  </button>
-                              ))
-                          ) : (
-                              [...Array(14)].map((_, i) => (
-                                  <button 
-                                      key={i} 
-                                      onClick={() => deviceFilesInputRef.current?.click()}
-                                      className={`rounded-[24px] bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center gap-2 border border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 active:scale-95 transition-all group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
-                                  >
-                                      <Plus size={24} className="text-gray-300 dark:text-zinc-600 group-hover:text-primary transition-colors" />
-                                      <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 group-hover:text-primary transition-colors">Load Media</span>
-                                  </button>
-                              ))
-                          )}
+                          {deviceMedia.map((item, i) => (
+                              <button 
+                                  key={`media-${i}`} 
+                                  onClick={() => handleSelectDeviceMedia(item)}
+                                  className={`rounded-[24px] bg-gray-55 dark:bg-zinc-900 relative overflow-hidden active:scale-95 transition-transform border border-black/5 dark:border-white/5 group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
+                              >
+                                  {item.isVideo || (item.file && item.file.type.startsWith('video/')) ? (
+                                      <video 
+                                          src={item.url} 
+                                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                          muted
+                                          playsInline
+                                      />
+                                  ) : (
+                                      <img 
+                                          src={item.url} 
+                                          alt="" 
+                                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                      />
+                                  )}
+                                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                              </button>
+                          ))}
+                          {/* Trailing dashed slots to let users easily load their real local device pictures */}
+                          {[...Array(Math.max(4, 15 - deviceMedia.length))].map((_, i) => (
+                              <button 
+                                  key={`empty-${i}`} 
+                                  onClick={() => deviceFilesInputRef.current?.click()}
+                                  className="rounded-[24px] bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center gap-2 border border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 active:scale-95 transition-all group aspect-square"
+                              >
+                                  <Plus size={24} className="text-gray-300 dark:text-zinc-600 group-hover:text-primary transition-colors" />
+                                  <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 group-hover:text-primary transition-colors">Load Media</span>
+                              </button>
+                          ))}
                       </div>
                   </div>
               </motion.div>

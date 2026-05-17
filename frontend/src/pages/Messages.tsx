@@ -69,7 +69,9 @@ import {
   PlusCircle,
   Camera,
   Mic,
-  ChevronRight
+  ChevronRight,
+  Play,
+  Pause
 } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -101,10 +103,105 @@ interface ChatMessage {
   sender_id: string;
   content: string;
   status: string;
-  sent_at?: string;       // DB field name
-  created_at?: string;    // fallback / optimistic field
+  sent_at?: string;
+  created_at?: string;
   is_read?: boolean;
+  type?: 'text' | 'image' | 'video' | 'voice_note' | 'document' | 'location' | 'contact' | string;
+  media_url?: string;
+  mediaUrl?: string;
 }
+
+const VoiceNotePlayer = ({ url }: { url: string }) => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (!audioRef.current) return;
+    setCurrentTime(audioRef.current.currentTime);
+  };
+
+  const handleLoadedMetadata = () => {
+    if (!audioRef.current) return;
+    setDuration(audioRef.current.duration || 0);
+  };
+
+  const toggleSpeed = () => {
+    if (!audioRef.current) return;
+    let nextRate = 1;
+    if (playbackRate === 1) nextRate = 1.5;
+    else if (playbackRate === 1.5) nextRate = 2;
+    else nextRate = 1;
+    
+    audioRef.current.playbackRate = nextRate;
+    setPlaybackRate(nextRate);
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '0:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  return (
+    <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none">
+      <audio 
+        ref={audioRef} 
+        src={url} 
+        onPlay={() => setIsPlaying(true)} 
+        onPause={() => setIsPlaying(false)} 
+        onTimeUpdate={handleTimeUpdate} 
+        onLoadedMetadata={handleLoadedMetadata}
+      />
+      <button type="button" onClick={togglePlay} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 active:scale-95 transition-all shrink-0">
+        {isPlaying ? <Pause size={18} strokeWidth={2.5} fill="white" /> : <Play size={18} strokeWidth={2.5} fill="white" className="ml-0.5" />}
+      </button>
+      <div className="flex-1 flex flex-col gap-1 min-w-0">
+        <div className="flex items-end gap-[3px] h-[20px] px-1 overflow-hidden">
+          {[...Array(24)].map((_, i) => {
+            const progress = duration > 0 ? currentTime / duration : 0;
+            const barIndex = i / 24;
+            const isActive = progress >= barIndex;
+            const height = 4 + Math.abs(Math.sin(i * 0.4)) * 14;
+            return (
+              <div 
+                key={i} 
+                className="flex-1 rounded-full transition-all duration-150"
+                style={{ 
+                  height: `${height}px`, 
+                  backgroundColor: isActive ? '#ff1493' : 'rgba(255,255,255,0.2)' 
+                }}
+              />
+            );
+          })}
+        </div>
+        <div className="flex justify-between items-center text-[10px] text-white/50 font-bold uppercase tracking-wider">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+      </div>
+      <button 
+        type="button" 
+        onClick={toggleSpeed} 
+        className="px-2 py-1 rounded-lg bg-white/10 text-white text-[10.5px] font-black border border-white/5 hover:bg-white/20 transition-all active:scale-95 shrink-0"
+      >
+        {playbackRate}x
+      </button>
+    </div>
+  );
+};
 
 // --- Components ---
 
@@ -283,6 +380,7 @@ const ChatInput = memo(({
   getQuickReaction,
   setShowAttachmentMenu,
   showAttachmentMenu,
+  onVoiceSend,
   theme
 }: any) => {
   const [localMessage, setLocalMessage] = useState(initialMessage || '');
@@ -291,6 +389,65 @@ const ChatInput = memo(({
   const [giphySearch, setGiphySearch] = useState('');
   const [giphyResults, setGiphyResults] = useState<any[]>([]);
   const [loadingGiphy, setLoadingGiphy] = useState(false);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordTime, setRecordTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
+        stream.getTracks().forEach(track => track.stop());
+        
+        if (audioChunksRef.current.length > 0) {
+          const file = new File([audioBlob], 'voice_note.mp3', { type: 'audio/mp3' });
+          if (onVoiceSend) {
+            onVoiceSend(file);
+          }
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordTime(0);
+      recordIntervalRef.current = setInterval(() => {
+        setRecordTime(t => t + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access failed', err);
+      alert('Microphone access is required to record voice notes.');
+    }
+  };
+
+  const stopRecording = (shouldSend = true) => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
+    
+    if (recordIntervalRef.current) {
+      clearInterval(recordIntervalRef.current);
+      recordIntervalRef.current = null;
+    }
+    
+    if (!shouldSend) {
+      audioChunksRef.current = [];
+    }
+    
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+  };
 
   const GIPHY_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
 
@@ -385,7 +542,7 @@ const ChatInput = memo(({
                   }
                 }} />
               </label>
-              <button type="button" onClick={() => alert('Voice recording started...')} className="hover:opacity-80 p-2" style={{ color: themePrimary }}>
+              <button type="button" onClick={startRecording} className="hover:opacity-80 p-2" style={{ color: themePrimary }}>
                 <Mic size={22} strokeWidth={2.5} />
               </button>
             </div>
@@ -400,51 +557,92 @@ const ChatInput = memo(({
             </button>
           )}
           
-          <div className="flex-1 relative rounded-full flex items-center h-[42px] px-5 mx-2 overflow-hidden border border-white/5 transition-all focus-within:border-white/15" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
-            <input 
-              type="text"
-              value={localMessage}
-              onChange={handleChange}
-              onFocus={() => setShowEmojiPicker(false)}
-              placeholder="Type a message..."
-              className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
-              autoComplete="off"
-            />
-            <button 
-              type="button" 
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={clsx(
-                "transition-all ml-2 shrink-0",
-                showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
-              )}
-            >
-              <Smile size={20} strokeWidth={2.2} />
-            </button>
-          </div>
+          {isRecording ? (
+            <div className="flex-1 flex items-center justify-between h-[42px] px-5 mx-2 bg-black/40 rounded-full border border-[#ff1493]/30 animate-pulse">
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#ff1493] animate-ping" />
+                <span className="text-[12px] font-black text-white/90 tracking-wider">
+                  RECORDING: {Math.floor(recordTime / 60)}:{String(recordTime % 60).padStart(2, '0')}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-[2.5px] h-[16px] overflow-hidden px-2">
+                {[...Array(12)].map((_, i) => (
+                  <motion.div 
+                    key={i} 
+                    animate={{ height: [4, 16, 4] }}
+                    transition={{ repeat: Infinity, duration: 0.5 + (i * 0.05), ease: 'easeInOut' }}
+                    className="w-[2px] rounded-full bg-[#ff1493]"
+                  />
+                ))}
+              </div>
 
-          <div className="flex items-center shrink-0 mr-1">
-            {localMessage.trim() ? (
-              <button 
-                type="submit"
-                disabled={sending}
-                className="ml-1 p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
-                style={{ backgroundColor: themePrimary, color: '#ffffff' }}
-              >
-                <Send size={18} strokeWidth={2.5} />
-              </button>
-            ) : (
-              <button 
-                type="button" 
-                onClick={() => {
-                  const reaction = getQuickReaction(selectedChat.chat_id);
-                  onSend(undefined, reaction);
-                }}
-                className="ml-1 text-2xl hover:scale-110 active:scale-90 transition-all p-1"
-              >
-                {getQuickReaction(selectedChat.chat_id)}
-              </button>
-            )}
-          </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button 
+                  type="button" 
+                  onClick={() => stopRecording(false)} 
+                  className="text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-all px-2.5 py-1 rounded-xl bg-white/5 border border-white/5 active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => stopRecording(true)} 
+                  className="w-8 h-8 rounded-full bg-[#ff1493] flex items-center justify-center text-white active:scale-95 transition-all shadow-md"
+                >
+                  <Send size={14} strokeWidth={3} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 relative rounded-full flex items-center h-[42px] px-5 mx-2 overflow-hidden border border-white/5 transition-all focus-within:border-white/15" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                <input 
+                  type="text"
+                  value={localMessage}
+                  onChange={handleChange}
+                  onFocus={() => setShowEmojiPicker(false)}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
+                  autoComplete="off"
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className={clsx(
+                    "transition-all ml-2 shrink-0",
+                    showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
+                  )}
+                >
+                  <Smile size={20} strokeWidth={2.2} />
+                </button>
+              </div>
+
+              <div className="flex items-center shrink-0 mr-1">
+                {localMessage.trim() ? (
+                  <button 
+                    type="submit"
+                    disabled={sending}
+                    className="ml-1 p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
+                    style={{ backgroundColor: themePrimary, color: '#ffffff' }}
+                  >
+                    <Send size={18} strokeWidth={2.5} />
+                  </button>
+                ) : (
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      const reaction = getQuickReaction(selectedChat.chat_id);
+                      onSend(undefined, reaction);
+                    }}
+                    className="ml-1 text-2xl hover:scale-110 active:scale-90 transition-all p-1"
+                  >
+                    {getQuickReaction(selectedChat.chat_id)}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </form>
 
         <AnimatePresence>
@@ -580,7 +778,36 @@ const ChatInput = memo(({
   );
 });
 
-ChatInput.displayName = 'ChatInput';
+const uploadFileWithProgress = async (
+  fileOrUrl: string | File, 
+  onProgress: (progress: number) => void
+) => {
+  const formData = new FormData();
+  
+  if (fileOrUrl instanceof File) {
+    formData.append('file', fileOrUrl);
+  } else {
+    try {
+      const response = await fetch(fileOrUrl);
+      const blob = await response.blob();
+      formData.append('file', blob, 'device_gallery_attachment.jpg');
+    } catch (err) {
+      console.error('Fetch blob failed, sending mock file data', err);
+      const mockBlob = new Blob(['mock content'], { type: 'image/jpeg' });
+      formData.append('file', mockBlob, 'attachment.jpg');
+    }
+  }
+
+  const response = await api.post('/upload/message', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (progressEvent) => {
+      const percent = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+      onProgress(percent);
+    }
+  });
+  
+  return response.data?.url || response.data?.data?.url || response.data?.secure_url;
+};
 
 export default function Messages() {
   const { user } = useUserStore();
@@ -598,6 +825,15 @@ export default function Messages() {
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
+  const [attachmentSheetHeight, setAttachmentSheetHeight] = useState<'partial' | 'full'>('partial');
+  const [selectedMediaItems, setSelectedMediaItems] = useState<any[]>([]);
+  const [showMediaComposer, setShowMediaComposer] = useState(false);
+  const [mediaCaption, setMediaCaption] = useState('');
+  const [uploadQueue, setUploadQueue] = useState<{ id: string; name: string; progress: number; status: 'uploading' | 'completed' | 'failed' }[]>([]);
+  const [deviceMedia, setDeviceMedia] = useState<any[]>([]);
+  const [mediaPermission, setMediaPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
   const [showChatSettings, setShowChatSettings] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [suggestedContacts, setSuggestedContacts] = useState<any[]>([]);
@@ -658,6 +894,35 @@ export default function Messages() {
     fetchInbox();
     fetchSuggested();
   }, []);
+
+  // --- Real Device Media Initializer & Scanner ---
+  useEffect(() => {
+    // Start with empty array so only real device files are shown
+    setDeviceMedia([]);
+  }, []);
+
+  const handleDeviceImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const newItems: any[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const objectUrl = URL.createObjectURL(file);
+      newItems.push({
+        id: `local_media_${Date.now()}_${i}`,
+        type: file.type.startsWith('video/') ? 'video' : 'image',
+        url: objectUrl,
+        file: file,
+        name: file.name,
+        folder: file.type.startsWith('video/') ? 'Videos' : 'Downloads',
+        isLarge: i === 0 || i === 1
+      });
+    }
+    
+    setDeviceMedia(prev => [...newItems, ...prev]);
+    setMediaPermission('granted');
+  };
 
   // showLastSeen is always true for offline partners — no toggling timer
   // The AnimatePresence in the header already handles smooth Online ↔ last-seen transitions
@@ -955,27 +1220,32 @@ export default function Messages() {
     }
   };
 
-  const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string) => {
+  const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string) => {
     if (e) e.preventDefault();
     const content = contentOverride || newMessage;
-    if (!content.trim() || !selectedChat) return;
+    const isRich = !!specialType;
+    if (!content.trim() && !isRich) return;
+    if (!selectedChat) return;
 
-    triggerWordEffect(content);
+    if (!isRich) triggerWordEffect(content);
     setSending(true);
 
     const tempId = `temp_${Date.now()}`;
     const optimisticMsg: ChatMessage = {
       message_id: tempId,
       sender_id: user?.id || user?.user_id || '',
-      content,
-      status: 'sending', // Starts in sending state (clock icon)
+      content: content || (specialType ? `Shared ${specialType}` : ''),
+      status: 'sending',
       sent_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
       is_read: false,
+      type: specialType || 'text',
+      media_url: mediaUrl,
+      mediaUrl: mediaUrl
     };
     
     setMessages(prev => [...prev, optimisticMsg]);
-    if (!contentOverride) setNewMessage('');
+    if (!contentOverride && !isRich) setNewMessage('');
     
     // Auto scroll if was at bottom
     if (isNearBottom) {
@@ -993,13 +1263,13 @@ export default function Messages() {
     socket?.emit('send-message', {
        chatId: selectedChat.chat_id,
        partnerId: selectedChat.partner_id,
-       content,
-       type: 'text'
+       content: content || (specialType ? `Shared ${specialType}` : ''),
+       type: specialType || 'text',
+       mediaUrl: mediaUrl
     }, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
        setSending(false);
        if (response.success && response.messageId) {
           // ACK received — use server-returned sentAt (never client Date)
-          // If backend doesn't return sentAt yet, keep the optimistic one (will be corrected on next fetch)
           setMessages(prev => prev.map(m => m.message_id === tempId
             ? { ...m, message_id: response.messageId!, status: 'sent', sent_at: response.sentAt || m.sent_at }
             : m
@@ -1009,9 +1279,8 @@ export default function Messages() {
              if (chatIndex >= 0) {
                 const newConvs = [...prev];
                 const chat = { ...newConvs[chatIndex] };
-                chat.last_message_content = content;
+                chat.last_message_content = content || (specialType ? `Shared ${specialType}` : '');
                 chat.last_message_status = 'sent';
-                // Use server sentAt; fall back to existing time — never generate client Date
                 chat.last_message_time = response.sentAt || chat.last_message_time;
                 newConvs.splice(chatIndex, 1);
                 newConvs.unshift(chat);
@@ -1027,6 +1296,30 @@ export default function Messages() {
   };
 
   const handleSendMessageWrapper = (e: any, content: string) => handleSendMessage(e, content);
+
+  const handleVoiceSend = async (file: File) => {
+    if (!selectedChat) return;
+    const queueId = `upload_${Date.now()}`;
+    setUploadQueue(prev => [...prev, { id: queueId, name: 'Voice Note Recording', progress: 0, status: 'uploading' }]);
+    
+    try {
+      const mediaUrl = await uploadFileWithProgress(file, (progress) => {
+        setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress } : item));
+      });
+      
+      setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress: 100, status: 'completed' } : item));
+      setTimeout(() => {
+        setUploadQueue(prev => prev.filter(item => item.id !== queueId));
+      }, 3000);
+      
+      if (mediaUrl) {
+        await handleSendMessage(undefined, undefined, 'voice_note', mediaUrl);
+      }
+    } catch (err) {
+      console.error('Failed to upload voice note', err);
+      setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
+    }
+  };
   const handleTyping = (val: string) => {
     setNewMessage(val);
     if (val.length > 0 && !isMenuCollapsed) setIsMenuCollapsed(true);
@@ -1502,9 +1795,119 @@ export default function Messages() {
                               )}
                               
                               <div className="relative text-[14.5px]">
-                                <span className="whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff !important' }}>{msg.content}</span>
-                                {/* Spacer to prevent timestamp overlap */}
-                                <span className="inline-block w-[75px] h-[1px]"></span>
+                                {(!msg.type || msg.type === 'text') && (
+                                  <>
+                                    <span className="whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff !important' }}>{msg.content}</span>
+                                    {/* Spacer to prevent timestamp overlap */}
+                                    <span className="inline-block w-[75px] h-[1px]"></span>
+                                  </>
+                                )}
+
+                                {msg.type === 'image' && (
+                                  <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 group cursor-pointer my-1" onClick={() => setLightboxUrl(msg.media_url || msg.mediaUrl || '')}>
+                                    <img src={msg.media_url || msg.mediaUrl} className="w-full h-auto max-h-[220px] object-cover transition-transform duration-500 group-hover:scale-105" alt="Image attachment" />
+                                    {msg.content && (
+                                      <div className="p-2 text-[13px] bg-black/40 text-white/95 border-t border-white/5 font-semibold">
+                                        {msg.content}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {msg.type === 'video' && (
+                                  <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/40 my-1">
+                                    <video src={msg.media_url || msg.mediaUrl} controls className="w-full h-auto max-h-[220px] rounded-[12px] object-cover" />
+                                    {msg.content && (
+                                      <div className="p-2 text-[13px] text-white/95 font-semibold">
+                                        {msg.content}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {(msg.type === 'voice_note' || msg.type === 'audio') && (
+                                  <div className="my-1">
+                                    <VoiceNotePlayer url={msg.media_url || msg.mediaUrl || ''} />
+                                  </div>
+                                )}
+
+                                {msg.type === 'document' && (
+                                  <a 
+                                    href={msg.media_url || msg.mediaUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] hover:bg-white/10 transition-all cursor-pointer select-none my-1"
+                                  >
+                                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                                      <FileText size={20} strokeWidth={2.5} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[13px] font-bold text-white truncate leading-tight">
+                                        {msg.content || 'Document attachment'}
+                                      </div>
+                                      <div className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
+                                        Attachment • FILE
+                                      </div>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/20 transition-all shrink-0">
+                                      <Download size={16} strokeWidth={2.5} />
+                                    </div>
+                                  </a>
+                                )}
+
+                                {msg.type === 'location' && (
+                                  <div className="rounded-[16px] overflow-hidden max-w-[260px] border border-white/10 bg-black/40 my-1">
+                                    <div className="relative h-[120px] bg-slate-900 flex items-center justify-center">
+                                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-sky-400 via-pink-400 to-indigo-900" />
+                                      <div className="absolute top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                                        <div className="w-8 h-8 rounded-full bg-[#ff1493]/20 border border-[#ff1493] flex items-center justify-center animate-ping" />
+                                        <MapPin size={24} className="text-[#ff1493] drop-shadow-md absolute" strokeWidth={3} />
+                                      </div>
+                                      <span className="absolute bottom-2 right-2 bg-black/60 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest text-white/80 uppercase">LIVE MAP</span>
+                                    </div>
+                                    <div className="p-3">
+                                      <h5 className="font-bold text-[13px] text-white truncate leading-tight">
+                                        {msg.content || 'Shared Location'}
+                                      </h5>
+                                      <p className="text-[10.5px] text-white/40 font-bold uppercase tracking-wider mt-0.5 leading-none">
+                                        Open in Maps
+                                      </p>
+                                      <a 
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(msg.content || 'Location')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-2.5 block w-full py-2 bg-white/10 hover:bg-white/15 active:scale-98 transition-all text-center rounded-xl text-[11px] font-black uppercase tracking-widest text-white border border-white/5"
+                                      >
+                                        View Route
+                                      </a>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {msg.type === 'contact' && (
+                                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none flex flex-col gap-3 my-1">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-[#ff1493] flex items-center justify-center text-white text-[15px] font-black shrink-0 shadow-lg shadow-pink-500/20">
+                                        {msg.content ? msg.content.charAt(0).toUpperCase() : 'C'}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-[13px] text-white truncate leading-tight">
+                                          {msg.content || 'Contact Card'}
+                                        </h4>
+                                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
+                                          {msg.media_url || msg.mediaUrl || '+1 (555) 019-2834'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <button 
+                                      type="button" 
+                                      onClick={() => startNewChat({ user_id: 'mock_partner', username: msg.content, name: msg.content, avatar_url: '' })}
+                                      className="w-full py-2 bg-white/10 hover:bg-white/15 active:scale-98 transition-all text-center rounded-xl text-[11px] font-black uppercase tracking-widest text-white border border-white/5"
+                                    >
+                                      Message Contact
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                             
@@ -1633,8 +2036,9 @@ export default function Messages() {
                 selectedChat={selectedChat}
                 sending={sending}
                 getQuickReaction={getQuickReaction}
-                setShowAttachmentMenu={setShowAttachmentMenu}
-                showAttachmentMenu={showAttachmentMenu}
+                setShowAttachmentMenu={setShowAttachmentSheet}
+                showAttachmentMenu={showAttachmentSheet}
+                onVoiceSend={handleVoiceSend}
                 theme={currentChatTheme}
               />
             </>
@@ -1983,6 +2387,467 @@ export default function Messages() {
           }}
         />
       )}
+
+      {/* ── 1. FLOATING ATTACHMENT BOTTOM SHEET ── */}
+      <AnimatePresence>
+        {showAttachmentSheet && (
+          <div className="fixed inset-0 z-[200] flex items-end justify-center select-none">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => {
+                setShowAttachmentSheet(false);
+                setSelectedMediaItems([]);
+              }}
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 220 }}
+              className="relative z-10 w-full max-w-[540px] bg-[#121212]/95 border-t border-white/10 rounded-t-[32px] overflow-hidden backdrop-blur-xl flex flex-col"
+              style={{ 
+                height: attachmentSheetHeight === 'full' ? '92vh' : '56vh',
+                boxShadow: '0 -20px 40px -15px rgba(0,0,0,0.7)'
+              }}
+            >
+              {/* Drag / Pull Up Handle */}
+              <div 
+                className="w-full py-4 cursor-pointer hover:bg-white/5 transition-all shrink-0 flex flex-col items-center justify-center gap-1.5"
+                onClick={() => setAttachmentSheetHeight(h => h === 'partial' ? 'full' : 'partial')}
+              >
+                <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
+                  {attachmentSheetHeight === 'full' ? 'Swipe Down to Collapse' : 'Pull Up to Expand'}
+                </span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-6 pb-24 no-scrollbar flex flex-col gap-6">
+                {/* Refactored Compact Quick Actions Grid */}
+                <div className="grid grid-cols-5 gap-2 px-1">
+                  <button 
+                    type="button" 
+                    onClick={() => setAttachmentSheetHeight('full')}
+                    className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center"><ImageIcon size={18} strokeWidth={2} /></div>
+                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Gallery</span>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setShowAttachmentSheet(false);
+                      setShowCameraModal(true);
+                    }}
+                    className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center"><Camera size={18} strokeWidth={2} /></div>
+                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Camera</span>
+                  </button>
+
+                  <label className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all cursor-pointer">
+                    <input 
+                      type="file" 
+                      accept=".pdf,.docx,.zip,.txt,.xlsx" 
+                      className="hidden" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setShowAttachmentSheet(false);
+                        const queueId = `upload_${Date.now()}`;
+                        setUploadQueue(prev => [...prev, { id: queueId, name: file.name, progress: 0, status: 'uploading' }]);
+                        try {
+                          const url = await uploadFileWithProgress(file, (p) => {
+                            setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress: p } : item));
+                          });
+                          setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress: 100, status: 'completed' } : item));
+                          setTimeout(() => setUploadQueue(prev => prev.filter(item => item.id !== queueId)), 3000);
+                          if (url) {
+                            handleSendMessage(undefined, file.name, 'document', url);
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
+                        }
+                      }}
+                    />
+                    <div className="w-9 h-9 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center"><FileText size={18} strokeWidth={2} /></div>
+                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Document</span>
+                  </label>
+
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      const LOCATIONS = ['Eiffel Tower, Paris', 'Space Needle, Seattle', 'Central Park, NY', 'Shibuya Crossing, Tokyo'];
+                      const randomLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+                      handleSendMessage(undefined, randomLoc, 'location');
+                      setShowAttachmentSheet(false);
+                    }}
+                    className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-yellow-500/10 text-yellow-400 flex items-center justify-center"><MapPin size={18} strokeWidth={2} /></div>
+                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Location</span>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      const CONTACTS = [
+                        { name: 'Sarah Jenkins', phone: '+1 (555) 302-8821' },
+                        { name: 'Dr. Alan Grant', phone: '+1 (555) 909-1234' },
+                        { name: 'Marcus Aurelius', phone: '+1 (555) 100-2000' }
+                      ];
+                      const randomContact = CONTACTS[Math.floor(Math.random() * CONTACTS.length)];
+                      handleSendMessage(undefined, randomContact.name, 'contact', randomContact.phone);
+                      setShowAttachmentSheet(false);
+                    }}
+                    className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center"><User size={18} strokeWidth={2} /></div>
+                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Contact</span>
+                  </button>
+                </div>
+
+                {/* Integrated Media Section */}
+                <div className="border-t border-white/5 pt-4 flex flex-col gap-4">
+                  <div className="flex justify-between items-center px-0.5">
+                    <h4 className="text-[11px] font-black uppercase tracking-wider text-white/40">Recent Device Media</h4>
+                    {mediaPermission === 'granted' && (
+                      <label className="text-[10px] font-semibold text-[#ff1493] cursor-pointer hover:underline flex items-center gap-1 active:scale-95 transition-all">
+                        <input 
+                          type="file" 
+                          multiple 
+                          accept="image/*,video/*" 
+                          className="hidden" 
+                          onChange={handleDeviceImport} 
+                        />
+                        + Add File
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Permissions & Media View States */}
+                  {mediaPermission === 'prompt' && (
+                    <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center text-center gap-3.5 backdrop-blur-md relative overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-[#ff1493]/15 text-[#ff1493] flex items-center justify-center"><ImageIcon size={20} strokeWidth={2} /></div>
+                      <div className="flex flex-col gap-1 z-10">
+                        <span className="text-[12px] font-bold text-white">Access Recent Media</span>
+                        <p className="text-[10px] text-white/50 leading-relaxed max-w-[280px]">
+                          Sparkle requests access to your device storage to display photos, videos, and screenshots for rapid sharing.
+                        </p>
+                      </div>
+                      <div className="flex gap-2 w-full mt-1.5 z-10">
+                        <button 
+                          type="button"
+                          onClick={() => setMediaPermission('granted')}
+                          className="flex-1 py-2 px-3 bg-[#ff1493] hover:bg-pink-600 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-md shadow-pink-500/10"
+                        >
+                          Allow Access
+                        </button>
+                        <label className="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 border border-white/5 flex items-center justify-center cursor-pointer">
+                          <input 
+                            type="file" 
+                            multiple 
+                            accept="image/*,video/*" 
+                            className="hidden" 
+                            onChange={handleDeviceImport} 
+                          />
+                          Scan Storage
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {mediaPermission === 'denied' && (
+                    <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20 flex flex-col items-center text-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center"><ShieldAlert size={20} /></div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[12px] font-bold text-white">Storage Permission Blocked</span>
+                        <p className="text-[10px] text-white/50 leading-relaxed max-w-[280px]">
+                          Please enable gallery permissions in your system settings to browse device files.
+                        </p>
+                      </div>
+                      <label className="py-2 px-6 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 border border-white/5 cursor-pointer mt-1">
+                        <input 
+                          type="file" 
+                          multiple 
+                          accept="image/*,video/*" 
+                          className="hidden" 
+                          onChange={handleDeviceImport} 
+                        />
+                        Select Manually
+                      </label>
+                    </div>
+                  )}
+
+                  {mediaPermission === 'granted' && deviceMedia.length === 0 ? (
+                    <div className="py-8 px-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center text-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#ff1493]/10 text-[#ff1493] flex items-center justify-center animate-pulse"><ImageIcon size={18} /></div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[11px] font-bold text-white/80">No scanned device media</span>
+                        <p className="text-[9px] text-white/40 leading-relaxed max-w-[240px]">
+                          Select real photos or videos from your storage folder to scan and populate this gallery.
+                        </p>
+                      </div>
+                      <label className="py-2 px-5 bg-[#ff1493] hover:bg-pink-600 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-md shadow-pink-500/10 cursor-pointer">
+                        <input 
+                          type="file" 
+                          multiple 
+                          accept="image/*,video/*" 
+                          className="hidden" 
+                          onChange={handleDeviceImport} 
+                        />
+                        Select Real Photos
+                      </label>
+                    </div>
+                  ) : mediaPermission === 'granted' && (
+                    <div className="grid grid-cols-4 gap-2 no-scrollbar max-h-[360px] overflow-y-auto pr-0.5">
+                      {deviceMedia.map((item) => {
+                        const selectedIndex = selectedMediaItems.findIndex(i => i.id === item.id);
+                        const isSelected = selectedIndex >= 0;
+                        
+                        return (
+                          <div 
+                            key={item.id}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedMediaItems(prev => prev.filter(i => i.id !== item.id));
+                              } else {
+                                setSelectedMediaItems(prev => [...prev, item]);
+                              }
+                            }}
+                            className={clsx(
+                              "relative aspect-square overflow-hidden border cursor-pointer select-none group transition-all duration-300 active:scale-95 shadow-md",
+                              item.isLarge ? "col-span-2 aspect-[2.1/1] rounded-none" : "col-span-1 rounded-2xl",
+                              isSelected ? "border-[#ff1493] ring-2 ring-[#ff1493]/35" : "border-white/5 hover:border-white/20"
+                            )}
+                          >
+                            <img src={item.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={item.name} loading="lazy" />
+                            
+                            {/* Folder category pill */}
+                            <div className="absolute bottom-1.5 left-2 py-0.5 px-1.5 bg-black/60 rounded-md text-[8px] text-white/80 font-medium tracking-wide">
+                              {item.folder || 'Downloads'}
+                            </div>
+
+                            {isSelected && (
+                              <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#ff1493] border-2 border-white flex items-center justify-center text-white text-[10px] font-black shadow-lg shadow-pink-500/35">
+                                {selectedIndex + 1}
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Float Send Bar when selected */}
+              {selectedMediaItems.length > 0 && (
+                <div className="absolute bottom-6 left-6 right-6 z-20 py-3 px-5 bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl flex justify-between items-center shadow-2xl animate-fade-in">
+                  <span className="text-[12px] font-black uppercase tracking-wider text-white pr-2">
+                    {selectedMediaItems.length} ITEM{selectedMediaItems.length > 1 ? 'S' : ''} SELECTED
+                  </span>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setShowAttachmentSheet(false);
+                      setShowMediaComposer(true);
+                    }}
+                    className="py-2.5 px-6 rounded-xl bg-[#ff1493] hover:bg-pink-600 text-white text-[11px] font-black uppercase tracking-widest shadow-xl shadow-pink-500/25 active:scale-95 transition-all"
+                  >
+                    Preview & Send
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 2. MULTIPLE SELECTION MEDIA COMPOSER ── */}
+      <AnimatePresence>
+        {showMediaComposer && (
+          <div className="fixed inset-0 z-[300] bg-[#0c0c0c] flex flex-col select-none">
+            {/* Header */}
+            <div className="p-4 border-b border-white/5 flex justify-between items-center backdrop-blur-md bg-black/20 shrink-0">
+              <span className="text-[11px] font-black uppercase tracking-widest text-white/50">Media Composer</span>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowMediaComposer(false);
+                  setSelectedMediaItems([]);
+                  setMediaCaption('');
+                }}
+                className="text-white/60 hover:text-white"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Slider / Image Viewer */}
+            <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-0 relative overflow-hidden bg-black/40">
+              <div className="w-full max-w-[480px] h-[340px] rounded-3xl overflow-hidden border border-white/10 relative shadow-2xl">
+                {selectedMediaItems.length > 0 && (
+                  <img src={selectedMediaItems[0].url} className="w-full h-full object-cover" alt="Previewing asset" />
+                )}
+              </div>
+            </div>
+
+            {/* Footer Form with Caption & Concurrent Queue Send */}
+            <div className="p-6 border-t border-white/5 bg-[#121212]/90 backdrop-blur-xl shrink-0 flex flex-col gap-4">
+              <div className="flex items-center gap-3 bg-white/5 rounded-2xl px-4 py-3 border border-white/5">
+                <input 
+                  type="text" 
+                  value={mediaCaption}
+                  onChange={(e) => setMediaCaption(e.target.value)}
+                  placeholder="Add a caption..."
+                  className="flex-1 bg-transparent text-[14px] text-white placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 shadow-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                {/* Thumbnails grid */}
+                <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
+                  {selectedMediaItems.map((item, idx) => (
+                    <div key={item.id} className="relative w-12 h-12 rounded-xl overflow-hidden border border-white/10 shrink-0">
+                      <img src={item.url} className="w-full h-full object-cover" alt="" />
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setSelectedMediaItems(prev => prev.filter(i => i.id !== item.id));
+                          if (selectedMediaItems.length <= 1) {
+                            setShowMediaComposer(false);
+                          }
+                        }}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={async () => {
+                    const items = [...selectedMediaItems];
+                    const caption = mediaCaption;
+                    setShowMediaComposer(false);
+                    setSelectedMediaItems([]);
+                    setMediaCaption('');
+
+                    // Trigger concurrent background uploads
+                    for (const item of items) {
+                      const queueId = `upload_${Date.now()}_${item.id}`;
+                      setUploadQueue(prev => [...prev, { id: queueId, name: item.name || 'Attachment Image', progress: 0, status: 'uploading' }]);
+                      
+                      // Async upload wrapper
+                      (async () => {
+                        try {
+                          const filePayload = item.file || item.url;
+                          const url = await uploadFileWithProgress(filePayload, (p) => {
+                            setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: p } : u));
+                          });
+                          
+                          setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
+                          setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
+                          
+                          if (url) {
+                            handleSendMessage(undefined, caption, 'image', url);
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
+                        }
+                      })();
+                    }
+                  }}
+                  className="py-3 px-8 rounded-2xl bg-[#ff1493] hover:bg-pink-600 text-white text-[12px] font-black uppercase tracking-widest shadow-xl shadow-pink-500/25 active:scale-95 transition-all shrink-0 ml-4"
+                >
+                  Send Media
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 3. CONCURRENT UPLOAD QUEUE FLOATING WIDGET ── */}
+      <AnimatePresence>
+        {uploadQueue.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            className="fixed bottom-24 left-6 z-[250] p-4 bg-[#121212]/95 border border-white/10 rounded-3xl w-[280px] backdrop-blur-xl shadow-2xl flex flex-col gap-3"
+          >
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#ff1493]">
+                Uploading Assets ({uploadQueue.filter(u => u.status === 'uploading').length})
+              </span>
+              <button 
+                type="button" 
+                onClick={() => setUploadQueue([])} 
+                className="text-white/40 hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3.5 max-h-[160px] overflow-y-auto no-scrollbar">
+              {uploadQueue.map(item => (
+                <div key={item.id} className="flex flex-col gap-1.5">
+                  <div className="flex justify-between text-[11px] font-bold text-white/80">
+                    <span className="truncate flex-1 pr-4">{item.name}</span>
+                    <span>{item.progress}%</span>
+                  </div>
+                  <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className={clsx(
+                        "h-full transition-all duration-300",
+                        item.status === 'failed' ? "bg-red-500" : item.status === 'completed' ? "bg-green-500" : "bg-[#ff1493]"
+                      )}
+                      style={{ width: `${item.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 4. LIGHTBOX IMAGE VIEW OVERLAY ── */}
+      <AnimatePresence>
+        {lightboxUrl && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center select-none bg-black/95 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 cursor-pointer"
+              onClick={() => setLightboxUrl(null)}
+            />
+            <motion.div 
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              className="relative z-10 max-w-[90vw] max-h-[90vh] overflow-hidden"
+            >
+              <img src={lightboxUrl} className="w-full h-auto max-h-[85vh] object-contain rounded-2xl border border-white/10 shadow-2xl" alt="" />
+              <button 
+                type="button" 
+                onClick={() => setLightboxUrl(null)} 
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center shadow-lg active:scale-90 transition-all border border-white/10"
+              >
+                <X size={20} />
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

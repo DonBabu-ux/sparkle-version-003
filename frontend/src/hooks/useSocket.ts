@@ -40,8 +40,35 @@ const getOrCreateSocket = (userId: string, token: string): Socket => {
     s.emit('sparkle-ping');
   });
 
-  s.on('connect_error', (err) => {
+  s.on('connect_error', async (err) => {
     console.warn('📡 Sparkle Matrix connection error:', err.message);
+    if (err.message === 'Token expired') {
+      console.log('📡 Socket token expired, attempting to refresh...');
+      try {
+        const { refreshToken, setToken, logout } = useUserStore.getState();
+        if (!refreshToken) {
+          logout();
+          return;
+        }
+        const res = await fetch('https://sparkle-version-003-1-f4v3.onrender.com/api/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken })
+        });
+        if (res.status === 200 || res.status === 201) {
+          const data = await res.json();
+          console.log('📡 Socket token refreshed successfully!');
+          setToken(data.token, data.refreshToken);
+          s.auth = { token: data.token };
+          s.connect();
+        } else if (res.status === 401 || res.status === 403) {
+          console.error('📡 Refresh token rejected, logging out.');
+          logout();
+        }
+      } catch (refreshErr) {
+        console.error('📡 Socket token refresh failed:', refreshErr);
+      }
+    }
   });
 
   _socket = s;

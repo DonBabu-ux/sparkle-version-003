@@ -998,7 +998,7 @@ export default function Moments() {
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchInput)}
                   placeholder="Search moments..."
-                  className="w-full bg-white/10 border-none rounded-full py-2.5 px-10 text-sm font-medium focus:ring-1 focus:ring-primary/50 outline-none transition-all"
+                  className="w-full bg-white/10 border-none rounded-full py-2.5 px-10 text-sm font-medium text-white placeholder-white/50 caret-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all"
                 />
                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
                 {searchInput && (

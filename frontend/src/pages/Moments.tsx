@@ -348,8 +348,8 @@ const ReelItem = ({
           emitHeart(e.clientX, e.clientY, 'v');
           onLike(moment.moment_id); 
         }}>
-          <div className={clsx("w-12 h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_liked ? "bg-primary border-primary text-white" : "bg-black/20 border-white/20 text-white")}>
-            <Heart size={24} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={2.5} />
+          <div className={clsx("w-12 h-12 flex items-center justify-center transition-all group-hover/btn:scale-110", moment.is_liked ? "text-primary" : "text-white")}>
+            <Heart size={26} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
           <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">
             {formatCount(moment.like_count || moment.spark_count || moment.sparks_count || 0)}
@@ -361,8 +361,8 @@ const ReelItem = ({
           emitHeart(e.clientX, e.clientY, 'v');
           onOpenComments(moment.moment_id); 
         }}>
-          <div className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all group-hover/btn:scale-110 shadow-lg">
-            <CommentIcon size={24} />
+          <div className="w-12 h-12 flex items-center justify-center text-white transition-all group-hover/btn:scale-110">
+            <CommentIcon size={26} className="-scale-x-100" />
           </div>
           <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">
             {formatCount(moment.comment_count || moment.comments_count || 0)}
@@ -374,8 +374,8 @@ const ReelItem = ({
           emitHeart(e.clientX, e.clientY, 'v');
           onSave(moment.moment_id); 
         }}>
-          <div className={clsx("w-12 h-12 rounded-full backdrop-blur-xl flex items-center justify-center transition-all group-hover/btn:scale-110 shadow-lg border", moment.is_saved ? "bg-amber-400 border-amber-400 text-white" : "bg-black/20 border-white/20 text-white")}>
-            <BookmarkCheck size={24} fill={moment.is_saved ? "currentColor" : "none"} strokeWidth={2.5} />
+          <div className={clsx("w-12 h-12 flex items-center justify-center transition-all group-hover/btn:scale-110", moment.is_saved ? "text-amber-400" : "text-white")}>
+            <BookmarkCheck size={26} fill={moment.is_saved ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
           <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.is_saved ? 'Saved' : 'Save'}</span>
         </button>
@@ -386,13 +386,13 @@ const ReelItem = ({
             emitHeart(e.clientX, e.clientY, 'v');
             onShare(moment); 
           }}
-          className="w-12 h-12 rounded-full bg-black/20 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white transition-all hover:bg-white/40 shadow-lg"
+          className="w-12 h-12 flex items-center justify-center text-white transition-all hover:scale-110"
         >
-          <Share2 size={22} strokeWidth={2.5} />
+          <Share2 size={26} strokeWidth={2.5} />
         </button>
  
-        <button className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white transition-all mt-2 pointer-events-auto" onClick={(e) => { e.stopPropagation(); onToggleMute(); }}>
-          {muted ? <VolumeX size={16} strokeWidth={2.5} /> : <Volume2 size={16} strokeWidth={2.5} />}
+        <button className="w-9 h-9 flex items-center justify-center text-white transition-all mt-2 pointer-events-auto hover:scale-110" onClick={(e) => { e.stopPropagation(); onToggleMute(); }}>
+          {muted ? <VolumeX size={18} strokeWidth={2.5} /> : <Volume2 size={18} strokeWidth={2.5} />}
         </button>
       </div>
 

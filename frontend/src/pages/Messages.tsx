@@ -621,6 +621,9 @@ export default function Messages() {
   const [partnerIsTyping, setPartnerIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState<{chatId: string, name: string}[]>([]);
   const [isNearBottom, setIsNearBottom] = useState(true);
+  // Tracks whether the user is actively scrolling — used to subtly dim header presence text
+  const [isScrollingMessages, setIsScrollingMessages] = useState(false);
+  const scrollStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1055,6 +1058,13 @@ export default function Messages() {
     setIsNearBottom(nearBottom);
     setShowScrollToBottom(!nearBottom);
     if (nearBottom) setUnreadCountInChat(0);
+
+    // Mark as scrolling — debounce the stop signal 300ms after last scroll event
+    // This dims header presence text ONLY during active scrolling, then restores it.
+    // No looping timers: purely reactive to user input.
+    setIsScrollingMessages(true);
+    if (scrollStopRef.current) clearTimeout(scrollStopRef.current);
+    scrollStopRef.current = setTimeout(() => setIsScrollingMessages(false), 300);
   };
 
   const startNewChat = (contact: any) => {
@@ -1369,16 +1379,46 @@ export default function Messages() {
                   </div>
                   <div className="ml-3 flex flex-col justify-center">
                     <h3 className="text-[17px] font-bold tracking-tight leading-tight text-white">{selectedChat.partner_name}</h3>
-                    <div className="h-[14px] mt-0.5 overflow-hidden">
+                    {/* Presence line: dims slightly during active scrolling, restores on stop.
+                        No looping timers — purely driven by scroll activity and backend events. */}
+                    <div
+                      className="mt-0.5 overflow-hidden transition-opacity duration-300"
+                      style={{ opacity: isScrollingMessages ? 0.45 : 1 }}
+                    >
                       <AnimatePresence mode="wait">
                         {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
-                          <motion.p key="group-online" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-semibold lowercase text-emerald-500">
+                          <motion.p
+                            key="group-online"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.22, ease: 'easeOut' }}
+                            className="text-[12px] font-semibold lowercase text-emerald-500"
+                          >
                             {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count || 1} online
                           </motion.p>
                         ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
-                          <motion.p key="online" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12.5px] font-bold lowercase text-emerald-400">online</motion.p>
+                          <motion.p
+                            key="online"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.22, ease: 'easeOut' }}
+                            className="text-[12.5px] font-bold lowercase text-emerald-400"
+                          >
+                            online
+                          </motion.p>
                         ) : showLastSeen ? (
-                          <motion.p key="lastseen" initial={{y: 10, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-10, opacity:0}} className="text-[12px] font-semibold lowercase text-white/75">last seen {formatLastSeen(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}</motion.p>
+                          <motion.p
+                            key="lastseen"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.22, ease: 'easeOut' }}
+                            className="text-[12px] font-semibold lowercase text-white/75"
+                          >
+                            last seen {formatLastSeen(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}
+                          </motion.p>
                         ) : null}
                       </AnimatePresence>
                     </div>

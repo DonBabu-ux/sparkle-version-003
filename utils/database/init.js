@@ -1308,6 +1308,28 @@ const initModerationTables = async () => {
     }
 };
 
+const initOtaTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS sparkle_ota_versions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                version VARCHAR(20) NOT NULL UNIQUE,
+                min_apk_version VARCHAR(20) NOT NULL,
+                bundle_url VARCHAR(500) NOT NULL,
+                bundle_hash VARCHAR(64) NOT NULL,
+                signature TEXT NOT NULL,
+                is_mandatory TINYINT(1) DEFAULT 0,
+                changelog TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        logger.debug('✅ OTA versions table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init OTA versions table:', err.message);
+        throw err;
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -1355,6 +1377,7 @@ const initDB = async () => {
         try { await initHighlightsTables(); } catch (e) { logger.error('Highlights Tables Init Error:', e.message); }
         try { await initUserActionsTable(); } catch (e) { logger.error('User Actions Init Error:', e.message); }
         try { await initModerationTables(); } catch (e) { logger.error('Moderation Tables Init Error:', e.message); }
+        try { await initOtaTable(); } catch (e) { logger.error('OTA Init Error:', e.message); }
     });
     
     logger.debug('✅ Database initialization process complete');

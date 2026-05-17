@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
+import { OtaService } from './services/OtaService';
 
 // Phase 1 — Core
 import Dashboard from './pages/Dashboard';
@@ -99,6 +100,14 @@ function App() {
       return () => unsub();
     }
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    // Trigger background check for OTA updates once layout rehydrates
+    OtaService.checkAndDownloadUpdate().catch(err => {
+      console.warn('OTA Background trigger warning:', err);
+    });
+  }, [hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;

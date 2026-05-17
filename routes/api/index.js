@@ -76,5 +76,6 @@ router.use('/giphy', require('./giphy.routes'));
 router.use('/audio', require('./audio.routes'));
 router.use('/moderation', require('./moderation.routes'));
 router.use('/admin/media', require('./media-admin.routes'));
+router.use('/ota', require('./ota.routes'));
 
 module.exports = router;

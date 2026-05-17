@@ -1651,64 +1651,63 @@ export default function Messages() {
           {selectedChat ? (
             <>
               <header 
-                className="h-[65px] z-40 relative px-4 flex items-center justify-between border-b border-white/5 shadow-xl"
+                className="h-[56px] z-40 relative px-3.5 flex items-center justify-between border-b border-white/5 shadow-xl shrink-0"
                 style={{ 
                   backgroundColor: currentChatTheme?.colors?.backgroundDark || '#000000',
                   backdropFilter: 'blur(25px)',
                 }}
               >
-                <div className="flex items-center gap-2 relative z-10">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1 relative z-10">
                   <button 
                     onClick={() => {
                       setSelectedChat(null);
                       navigate('/messages');
                     }} 
-                    className="text-white hover:opacity-70 transition-opacity p-2"
+                    className="text-white hover:opacity-70 transition-opacity p-1.5 -ml-1 shrink-0"
                   >
-                    <ArrowLeft size={24} strokeWidth={2.5} />
+                    <ArrowLeft size={20} strokeWidth={2.5} />
                   </button>
-                  <div className="relative group cursor-pointer" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>
-                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[48px] h-[48px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
+                  <div className="relative group cursor-pointer shrink-0" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>
+                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[38px] h-[38px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
                   </div>
-                  <div className="ml-3 flex flex-col justify-center">
-                    <h3 className="text-[17px] font-bold tracking-tight leading-tight text-white">{selectedChat.partner_name}</h3>
-                    {/* Presence line: dims slightly during active scrolling, restores on stop.
-                        No looping timers — purely driven by scroll activity and backend events. */}
+                  <div className="ml-2 flex-1 min-w-0 flex flex-col justify-center">
+                    <h3 className="text-[14.5px] font-semibold tracking-tight leading-none text-white truncate whitespace-nowrap overflow-hidden text-ellipsis">{selectedChat.partner_name}</h3>
+                    {/* Presence line: dims slightly during active scrolling, restores on stop. */}
                     <div
-                      className="mt-0.5 overflow-hidden transition-opacity duration-300"
+                      className="mt-1 overflow-hidden transition-opacity duration-300 min-w-0 w-full whitespace-nowrap truncate"
                       style={{ opacity: isScrollingMessages ? 0.45 : 1 }}
                     >
                       <AnimatePresence mode="wait">
                         {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
                           <motion.p
                             key="group-online"
-                            initial={{ opacity: 0, y: 6 }}
+                            initial={{ opacity: 0, y: 4 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -4 }}
-                            transition={{ duration: 0.22, ease: 'easeOut' }}
-                            className="text-[12px] font-semibold lowercase text-emerald-500"
+                            exit={{ opacity: 0, y: -3 }}
+                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                            className="text-[11px] font-medium lowercase text-emerald-500 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
                           >
                             {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count || 1} online
                           </motion.p>
                         ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
                           <motion.p
                             key="online"
-                            initial={{ opacity: 0, y: 6 }}
+                            initial={{ opacity: 0, y: 4 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -4 }}
-                            transition={{ duration: 0.22, ease: 'easeOut' }}
-                            className="text-[12.5px] font-bold lowercase text-emerald-400"
+                            exit={{ opacity: 0, y: -3 }}
+                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                            className="text-[11px] font-semibold lowercase text-emerald-400 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
                           >
                             online
                           </motion.p>
                         ) : showLastSeen ? (
                           <motion.p
                             key="lastseen"
-                            initial={{ opacity: 0, y: 6 }}
+                            initial={{ opacity: 0, y: 4 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -4 }}
-                            transition={{ duration: 0.22, ease: 'easeOut' }}
-                            className="text-[12px] font-semibold lowercase text-white/75"
+                            exit={{ opacity: 0, y: -3 }}
+                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                            className="text-[11px] font-medium lowercase text-white/50 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
                           >
                             last seen {formatLastSeen(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}
                           </motion.p>
@@ -1717,11 +1716,11 @@ export default function Messages() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 relative z-10">
-                  <button className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}><Phone size={19} strokeWidth={2.2} /></button>
-                  <button className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}><Video size={20} strokeWidth={2.2} /></button>
-                  <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
-                    <Info size={21} strokeWidth={2.2} />
+                <div className="flex items-center gap-0.5 relative z-10 shrink-0">
+                  <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}><Phone size={17} strokeWidth={2.2} /></button>
+                  <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}><Video size={18} strokeWidth={2.2} /></button>
+                  <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
+                    <Info size={19} strokeWidth={2.2} />
                   </button>
                 </div>
               </header>

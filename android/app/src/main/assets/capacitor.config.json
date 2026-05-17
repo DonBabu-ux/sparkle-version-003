@@ -1,5 +1,5 @@
 {
-	"appId": "com.sparkle.app",
+	"appId": "com.sparkleapp",
 	"appName": "Sparkle",
 	"webDir": "frontend/dist",
 	"server": {

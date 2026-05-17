@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
 import { OtaService } from './services/OtaService';
+import { OTAUpdateProvider } from './components/OTAUpdateProvider';
+import { GlobalThemeProvider } from './components/GlobalThemeProvider';
+import { CameraProvider } from './components/camera/CameraProvider';
 
 // Phase 1 — Core
 import Dashboard from './pages/Dashboard';
@@ -144,8 +147,11 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="app">
+    <OTAUpdateProvider>
+      <CameraProvider>
+        <GlobalThemeProvider>
+          <Router>
+            <div className="app">
         <LoadingBar />
         <GlobalEffects />
         <MarketplaceModals />
@@ -237,6 +243,9 @@ function App() {
         </Routes>
       </div>
     </Router>
+        </GlobalThemeProvider>
+      </CameraProvider>
+    </OTAUpdateProvider>
   );
 }
 

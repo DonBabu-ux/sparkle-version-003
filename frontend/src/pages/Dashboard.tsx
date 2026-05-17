@@ -4,6 +4,7 @@ import api from '../api/api';
 import PostCard from '../components/PostCard';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import AppScreen from '../components/AppScreen';
 import { useModalStore } from '../store/modalStore';
 import { useFeedStore } from '../store/feedStore';
 import { 
@@ -203,7 +204,7 @@ export default function Dashboard() {
   // Feed managed by VirtualizedFeed component
   
   return (
-    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans overflow-x-hidden transition-colors duration-300">
+    <AppScreen className="flex min-h-screen font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
 
       <main className="flex-1 lg:ml-72 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
@@ -327,6 +328,6 @@ export default function Dashboard() {
         .animate-spin-slow { animation: spin 15s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
-    </div>
+    </AppScreen>
   );
 }

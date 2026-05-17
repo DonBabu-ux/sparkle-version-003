@@ -22,6 +22,10 @@ import { CameraService } from '../services/CameraService';
 import Spinner from '../components/ui/Spinner';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { useCamera } from '../components/camera/CameraProvider';
+import CameraPreview from '../components/camera/CameraPreview';
+import CameraControls from '../components/camera/CameraControls';
+import CameraPermissionsManager from '../components/camera/CameraPermissionsManager';
 
 type Phase = 'entry' | 'camera' | 'editor' | 'music_picker' | 'template_picker' | 'text_story';
 type Mode = 'post' | 'story' | 'reel' | 'live';
@@ -66,6 +70,14 @@ const MOCK_PROMPTS = [
 
 const MODES: Mode[] = ['post', 'story', 'reel', 'live'];
 
+const FILTERS = [
+  { id: 'normal', name: 'Normal', css: 'none' },
+  { id: 'vintage', name: 'Vintage', css: 'sepia(0.5) contrast(1.2)' },
+  { id: 'bw', name: 'B&W', css: 'grayscale(1)' },
+  { id: 'cyber', name: 'Cyber', css: 'hue-rotate(90deg) saturate(2)' },
+  { id: 'dream', name: 'Dream', css: 'blur(0.5px) brightness(1.1)' },
+];
+
 // Cache loaded device media across active sessions so it shows automatically next time
 let sessionDeviceMediaCache: { file?: File, url: string, isVideo: boolean }[] = [];
 
@@ -74,15 +86,34 @@ export default function CreateStory() {
   const location = useLocation();
   const { user } = useUserStore();
   
+  const {
+    stream,
+    hasPermission,
+    facingMode,
+    flash,
+    zoomLevel,
+    isRecording,
+    recordingSeconds,
+    requestPermission,
+    toggleFacingMode,
+    toggleFlash,
+    setZoomLevel,
+    startCamera,
+    stopCamera,
+    capturePhoto,
+    startVideoRecording,
+    stopVideoRecording
+  } = useCamera();
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [activeFilter, setActiveFilter] = useState(FILTERS[0]);
+  
   const searchParams = new URLSearchParams(location.search);
   const parentId = searchParams.get('parent');
 
   const [phase, setPhase] = useState<Phase>('entry');
   const [returnPhase, setReturnPhase] = useState<Phase>('entry');
   const [mode, setMode] = useState<Mode>('story');
-  const [isRecording, setIsRecording] = useState(false);
-  const [flash, setFlash] = useState(false);
-  const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -262,28 +293,64 @@ export default function CreateStory() {
     loadDevicePhotos();
   }, []);
 
+  // Start/Stop camera stream lifecycle based on phase
+  useEffect(() => {
+    if (phase === 'camera') {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+  }, [phase, startCamera, stopCamera]);
+
+  // Bind active MediaStream to video element ref
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(err => {
+        console.warn('Auto playback failed or interrupted:', err);
+      });
+    }
+  }, [stream, videoRef]);
+
   // --- HANDLERS ---
   const handleCapture = async () => {
-      if (cameraTimer > 0) {
-        await new Promise(resolve => setTimeout(resolve, cameraTimer * 1000));
-      }
-      try {
-          const photo = await CameraService.takePhoto();
-          if (photo?.webPath) {
-              setPreviewUrl(photo.webPath);
-              const blob = await CameraService.convertUriToBlob(photo.webPath);
-              // FORCE STRICT MIME-TYPE DETECTION
-              const mimeType = blob.type || 'image/jpeg';
-              const extension = mimeType.split('/')[1] || 'jpg';
-              const fileObj = new File([blob], `capture-${Date.now()}.${extension}`, { type: mimeType });
-              
-              console.log('📸 Camera captured file:', fileObj.name, '| Mime:', fileObj.type, '| Size:', fileObj.size);
-              setFile(fileObj);
-              setPhase('editor');
+    if (cameraTimer > 0 && !isRecording) {
+      await new Promise(resolve => setTimeout(resolve, cameraTimer * 1000));
+    }
+    
+    try {
+      if (mode === 'reel') {
+        if (isRecording) {
+          const videoFile = await stopVideoRecording();
+          if (videoFile) {
+            const objectUrl = URL.createObjectURL(videoFile);
+            setPreviewUrl(objectUrl);
+            setFile(videoFile);
+            setPhase('editor');
           }
-      } catch (e) {
-          console.error('Capture failed', e);
+        } else {
+          startVideoRecording();
+        }
+        return;
       }
+
+      if (videoRef.current) {
+        const dataUrl = await capturePhoto(videoRef.current, activeFilter.css);
+        if (dataUrl) {
+          setPreviewUrl(dataUrl);
+          const blob = await CameraService.convertUriToBlob(dataUrl);
+          const fileObj = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+          
+          // Image compression integration
+          const compressedFile = await CameraService.compressImage(fileObj);
+          
+          setFile(compressedFile);
+          setPhase('editor');
+        }
+      }
+    } catch (e) {
+      console.error('In-app media capture failed:', e);
+    }
   };
 
   const handleGalleryClick = () => fileInputRef.current?.click();
@@ -335,9 +402,8 @@ export default function CreateStory() {
     if (selectedFile) {
       console.log('📂 File selected:', selectedFile.name, selectedFile.type, selectedFile.size);
       
-      // Clean up old object URL if it exists
       if (previewUrl && previewUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(previewUrl);
+        URL.revokeObjectURL(previewUrl);
       }
 
       setFile(selectedFile);
@@ -383,18 +449,6 @@ export default function CreateStory() {
     }]);
     setEditorText('');
     setActiveTool(null);
-  };
-
-  const handlePress = () => {
-    pressTimer.current = setTimeout(() => setIsRecording(true), 500);
-  };
-
-  const handleRelease = () => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      if (isRecording) setIsRecording(false);
-      else handleCapture();
-    }
   };
 
   const handleSubmit = async () => {
@@ -562,50 +616,59 @@ export default function CreateStory() {
           {/* 3. CAMERA PHASE */}
           {phase === 'camera' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[250] flex flex-col bg-black">
-                  <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-[100] pt-14">
-                      <button onClick={() => setPhase('entry')} className="w-12 h-12 bg-black/20 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white"><X size={24} strokeWidth={3} /></button>
-                      <button onClick={() => setFlash(!flash)} className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${flash ? 'bg-yellow-400 text-black' : 'bg-black/20 text-white'}`}><Zap size={20} fill={flash ? "currentColor" : "none"} strokeWidth={3} /></button>
-                  </div>
+                  {hasPermission === false ? (
+                      <CameraPermissionsManager onRequestPermission={requestPermission} />
+                  ) : (
+                      <>
+                          <CameraPreview 
+                              videoRef={videoRef}
+                              facingMode={facingMode}
+                              activeFilter={activeFilter}
+                              zoomLevel={zoomLevel}
+                              onZoomChange={setZoomLevel}
+                          />
 
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-[100]">
-                    <AnimatePresence mode="wait">
-                      {mode === 'reel' && (
-                        <motion.div key="reel-tools" initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="flex flex-col gap-6">
-                          {!selectedMusic && (
-                            <button onClick={() => openMusicPicker('camera')} className="camera-tool-btn"><Music size={20} /><span>Audio</span></button>
+                          {cameraLayout === 'grid' && (
+                              <div className="absolute inset-0 z-10 pointer-events-none opacity-30">
+                                  <div className="absolute inset-y-0 left-1/3 w-px bg-white/40" />
+                                  <div className="absolute inset-y-0 left-2/3 w-px bg-white/40" />
+                                  <div className="absolute inset-x-0 top-1/3 h-px bg-white/40" />
+                                  <div className="absolute inset-x-0 top-2/3 h-px bg-white/40" />
+                              </div>
                           )}
-                          <button onClick={() => setCameraTimer(t => t === 0 ? 3 : t === 3 ? 10 : 0)} className={`camera-tool-btn ${cameraTimer > 0 ? 'text-yellow-400' : ''}`}><div className="relative"><TimerIcon size={20} />{cameraTimer > 0 && <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[8px] px-1 rounded-full font-black">{cameraTimer}</span>}</div><span>Timer</span></button>
-                          <button onClick={() => setCameraSpeed(s => s === '1x' ? '2x' : s === '2x' ? '0.5x' : '1x')} className={`camera-tool-btn ${cameraSpeed !== '1x' ? 'text-blue-400' : ''}`}><Gauge size={20} /><span>{cameraSpeed}</span></button>
-                          <button onClick={() => setCameraLayout(l => l === 'standard' ? 'grid' : 'standard')} className={`camera-tool-btn ${cameraLayout === 'grid' ? 'text-primary' : ''}`}><LayoutGrid size={20} /><span>Grid</span></button>
-                          <button onClick={() => setIsMagicOn(!isMagicOn)} className={`camera-tool-btn ${isMagicOn ? 'text-purple-400' : ''}`}><Sparkles size={20} fill={isMagicOn ? "currentColor" : "none"} /><span>Magic</span></button>
-                        </motion.div>
-                      )}
-                      {mode === 'post' && (
-                        <motion.div key="post-tools" initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="flex flex-col gap-8">
-                           <button onClick={() => setCameraLayout(l => l === 'grid' ? 'standard' : 'grid')} className={`camera-tool-btn ${cameraLayout === 'grid' ? 'text-blue-400' : ''}`}><Grid3X3 size={20} /><span>Grid</span></button>
-                           <button onClick={() => setIsWideAspect(!isWideAspect)} className={`camera-tool-btn ${isWideAspect ? 'text-amber-400' : ''}`}>{isWideAspect ? <RectangleHorizontal size={20} /> : <Square size={20} />}<span>Ratio</span></button>
-                           <button className="camera-tool-btn"><PlusCircle size={20} /><span>Multi</span></button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
 
-                  <div className="flex-1 relative flex flex-col items-center justify-center">
-                      {cameraLayout === 'grid' && (<div className="absolute inset-0 z-10 pointer-events-none opacity-40"><div className="absolute inset-y-0 left-1/3 w-px bg-white" /><div className="absolute inset-y-0 left-2/3 w-px bg-white" /><div className="absolute inset-x-0 top-1/3 h-px bg-white" /><div className="absolute inset-x-0 top-2/3 h-px bg-white" /></div>)}
-                      <div className="absolute top-32 px-4 py-1.5 bg-white/10 backdrop-blur-3xl border border-white/10 rounded-full z-50"><span className="text-[9px] font-black uppercase italic tracking-[0.3em] text-white/60">{mode} Mode</span></div>
-                      <div className="absolute inset-0 flex items-center justify-center">{isMagicOn && <motion.div animate={{ opacity: [0.1, 0.3, 0.1] }} transition={{ repeat: Infinity, duration: 2 }} className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 to-blue-500/20 mix-blend-overlay" />}<Camera size={64} className={`text-white/5 animate-pulse ${isMagicOn ? 'text-purple-400/20' : ''}`} /></div>
-                      <div className="absolute bottom-0 left-0 right-0 p-10 pb-20 flex flex-col items-center gap-10 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-                          <div className="flex items-center gap-14 z-50">
-                            <button onClick={handleGalleryClick} className="w-12 h-12 rounded-xl bg-white/10 border-2 border-white/20 flex items-center justify-center active:scale-90 transition-all"><ImageIcon size={20} className="text-white/40" /></button>
-                             <button onMouseDown={handlePress} onMouseUp={handleRelease} className="relative w-24 h-24 flex items-center justify-center group">
-                                <div className={`absolute inset-0 rounded-full border-[6px] transition-all ${isRecording ? 'scale-125 border-rose-500' : mode === 'post' ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : mode === 'reel' ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'border-white'}`} />
-                                <div className={`w-18 h-18 rounded-full transition-all ${isRecording ? 'scale-50 rounded-2xl bg-rose-500' : mode === 'post' ? 'bg-blue-500' : mode === 'reel' ? 'bg-rose-500' : 'bg-white'}`} />
-                             </button>
-                            <button onClick={() => setCameraType(cameraType === 'back' ? 'front' : 'back')} className="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white"><RotateCw size={22} /></button>
-                          </div>
-                          <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-2 px-24 mask-fade-edges relative">{MODES.map(m => (<button key={m} onClick={() => setMode(m)} className={`text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${mode === m ? 'text-white scale-125' : 'text-white/30'}`}>{m}</button>))}</div>
-                      </div>
-                  </div>
+                          {flash && (
+                              <div className="absolute inset-0 bg-white/10 pointer-events-none z-30 mix-blend-screen animate-pulse" />
+                          )}
+
+                          <CameraControls 
+                              mode={mode}
+                              onModeChange={setMode}
+                              flash={flash}
+                              onFlashToggle={toggleFlash}
+                              cameraType={facingMode}
+                              onCameraTypeToggle={toggleFacingMode}
+                              onGalleryClick={handleGalleryClick}
+                              onCapture={handleCapture}
+                              isRecording={isRecording}
+                              recordingSeconds={recordingSeconds}
+                              cameraTimer={cameraTimer}
+                              onTimerToggle={() => setCameraTimer(t => t === 0 ? 3 : t === 3 ? 10 : 0)}
+                              cameraSpeed={cameraSpeed}
+                              onSpeedToggle={() => setCameraSpeed(s => s === '1x' ? '2x' : s === '2x' ? '0.5x' : '1x')}
+                              cameraLayout={cameraLayout === 'grid' ? 'grid' : 'standard'}
+                              onLayoutToggle={() => setCameraLayout(l => l === 'standard' ? 'grid' : 'standard')}
+                              isMagicOn={isMagicOn}
+                              onMagicToggle={() => setIsMagicOn(!isMagicOn)}
+                              isWideAspect={isWideAspect}
+                              onRatioToggle={() => setIsWideAspect(!isWideAspect)}
+                              filters={FILTERS}
+                              activeFilter={activeFilter}
+                              onFilterChange={setActiveFilter}
+                              onClose={() => setPhase('entry')}
+                          />
+                      </>
+                  )}
               </motion.div>
           )}
 

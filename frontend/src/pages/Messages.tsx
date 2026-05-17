@@ -79,6 +79,7 @@ import CameraModal from '../components/chat/CameraModal';
 import ChatSettingsModal from '../components/chat/ChatSettingsModal';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import AppScreen from '../components/AppScreen';
 
 // --- Types ---
 interface ChatConversation {
@@ -1432,7 +1433,7 @@ export default function Messages() {
 
   // --- Render ---
   return (
-    <div className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom">
+    <AppScreen immersive={true} statusBarStyle="transparent-dark" className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom">
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
       
@@ -2862,6 +2863,6 @@ export default function Messages() {
           border: none !important;
         }
       `}</style>
-    </div>
+    </AppScreen>
   );
 }

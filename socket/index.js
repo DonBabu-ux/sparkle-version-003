@@ -194,14 +194,7 @@ const initializeSocket = (server) => {
                 // 3. Emit to all in the chat room
                 socket.to(`chat:${finalChatId}`).emit('new-message', message);
 
-                // 4. Mark as delivered if recipients are online
-                const roomMembers = io.sockets.adapter.rooms.get(`chat:${finalChatId}`);
-                if (roomMembers && roomMembers.size > 1) {
-                    await pool.query("UPDATE messages SET status = 'delivered', delivered_at = NOW() WHERE message_id = ?", [messageId]);
-                    io.to(`chat:${finalChatId}`).emit('messages-delivered', { chatId: finalChatId, messageId, status: 'delivered' });
-                }
-
-                // 4. Handle notifications if it's a personal chat and recipient is offline
+                // 4. Handle push notifications if it's a personal chat and recipient is offline
                 if (recipientId) {
                      const presence = await User.getUserPresence(recipientId);
                      if (presence && !presence.is_online) {

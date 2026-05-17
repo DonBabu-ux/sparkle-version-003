@@ -42,3 +42,68 @@ export const timeAgo = (dateInput?: string | Date): string => {
   const years = Math.floor(days / 365);
   return `about ${years} year${years !== 1 ? 's' : ''} ago`;
 };
+
+/**
+ * Compact, human-readable timestamp for chat list previews.
+ * Under 1 min → "Just now" | mins → "2 mins" | hrs → "2 hrs"
+ * Yesterday → "Yesterday" | this week → weekday | older → date
+ */
+export const formatChatTimestamp = (dateInput?: string | Date): string => {
+  if (!dateInput) return '';
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return '';
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr  = Math.floor(diffMin / 60);
+
+  if (diffSec < 60)  return 'Just now';
+  if (diffMin === 1) return '1 min';
+  if (diffMin < 60)  return `${diffMin} mins`;
+  if (diffHr  === 1) return '1 hr';
+  if (diffHr  < 24)  return `${diffHr} hrs`;
+
+  const today   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDay  = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
+
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7)   return date.toLocaleDateString([], { weekday: 'short' });
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
+
+/**
+ * Full date label for in-chat date separators.
+ * Today | Yesterday | weekday | Month DD, YYYY
+ */
+export const formatMessageGroupDate = (dateInput?: string | Date): string => {
+  if (!dateInput) return '';
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return '';
+
+  const now     = new Date();
+  const today   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDay  = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7)   return date.toLocaleDateString([], { weekday: 'long' });
+  const opts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric' };
+  if (diffDays > 365) opts.year = 'numeric';
+  return date.toLocaleDateString([], opts);
+};
+
+/** Returns true when two date inputs fall on the same calendar day. */
+export const isSameCalendarDay = (a?: string | Date, b?: string | Date): boolean => {
+  if (!a || !b) return false;
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    da.getFullYear() === db.getFullYear() &&
+    da.getMonth()    === db.getMonth()    &&
+    da.getDate()     === db.getDate()
+  );
+};

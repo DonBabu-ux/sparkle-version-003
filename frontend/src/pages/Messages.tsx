@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
@@ -619,6 +620,7 @@ export default function Messages() {
   const [showWordEmojiPicker, setShowWordEmojiPicker] = useState(false);
   const [newWordEffect, setNewWordEffect] = useState({ word: '', emoji: '😀' });
   const [partnerIsTyping, setPartnerIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<{chatId: string, name: string}[]>([]);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
@@ -830,9 +832,14 @@ export default function Messages() {
        }));
     };
 
-    const handleMessagesRead = (data: {chatId: string, readAt?: string}) => {
+    const handleMessagesRead = (data: {chatId: string, readAt?: string, userId?: string}) => {
+       const myId = user?.id || user?.user_id;
        setMessages(prev => prev.map(m => {
-          return { ...m, status: 'read', read_at: data.readAt || new Date().toISOString() };
+          // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
+          if (m.sender_id === myId && m.status !== 'read') {
+             return { ...m, status: 'read', read_at: data.readAt || new Date().toISOString() };
+          }
+          return m;
        }));
        setConversations((prev: any[]) => prev.map(c => {
           if (c.chat_id === data.chatId) {
@@ -854,10 +861,21 @@ export default function Messages() {
       }
     };
 
-    const handleUserTyping = (data: { chatId: string, userId: string, isTyping: boolean }) => {
-      if (selectedChat?.chat_id === data.chatId && data.userId !== (user?.id || user?.user_id)) {
+    const handleUserTyping = (data: { chatId: string, userId: string, isTyping: boolean, username?: string }) => {
+      const myId = user?.id || user?.user_id;
+      if (data.userId === myId) return;
+      // Update in-chat typing indicator
+      if (selectedChat?.chat_id === data.chatId) {
         setPartnerIsTyping(data.isTyping);
       }
+      // Update sidebar chat-list typing badge
+      setTypingUsers(prev => {
+        if (data.isTyping) {
+          if (prev.some(t => t.chatId === data.chatId)) return prev;
+          return [...prev, { chatId: data.chatId, name: data.username || 'Someone' }];
+        }
+        return prev.filter(t => t.chatId !== data.chatId);
+      });
     };
 
     const handleUserNoteUpdate = (data: { userId: string, note: string | null }) => {
@@ -1097,32 +1115,20 @@ export default function Messages() {
   };
 
   const getStatusLabel = (chat: ChatConversation) => {
-    // If there are unread messages, we don't show the outgoing status
-    if (chat.unread_count > 0) return '';
-    
-    // In production, we'd check if the last message was sent by 'me'
-    // For this UI, we assume the status refers to the last dispatched message
-    
-    // Priority 1: Seen (if backend provides seen_at or explicit status)
-    if (chat.last_message_status === 'seen' || chat.seen_at) return 'seen';
-    
-    // Priority 2: Delivered (if partner is online or explicit status)
-    if (chat.last_message_status === 'delivered' || chat.partner_online) return 'delivered';
-    
-    // Priority 3: Sent (default)
-    return 'sent';
+    // Only show outgoing receipt status when there are no unread incoming messages
+    if ((chat.unread_count ?? 0) > 0) return '';
+    // Map backend 'read' → display 'Seen', 'delivered' → 'Delivered', else 'Sent'
+    // IMPORTANT: Never derive 'Delivered' from partner_online — that causes false positives.
+    // Status must only advance via explicit socket ACK (mark-delivered / join-chat).
+    const s = chat.last_message_status;
+    if (s === 'read' || s === 'seen')  return 'Seen';
+    if (s === 'delivered')             return 'Delivered';
+    if (s === 'sent')                  return 'Sent';
+    return '';
   };
 
-  const getTimeAgo = (time?: string) => {
-    if (!time) return '';
-    const diff = Date.now() - new Date(time).getTime();
-    if (diff < 60000) return 'just now';
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins} min ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return new Date(time).toLocaleDateString();
-  };
+  /** Compact, human-readable timestamp — delegates to shared utility so format is consistent everywhere */
+  const getTimeAgo = (time?: string) => formatChatTimestamp(time);
 
   // --- Render ---
   return (
@@ -1304,13 +1310,22 @@ export default function Messages() {
                             </p>
                             <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {getTimeAgo(chat.last_message_time || chat.last_message_at)}</span>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 truncate">
-                            <p className="text-[12px] font-medium text-[#f5f5f5]/40 truncate lowercase">
-                              {getStatusLabel(chat)} {getTimeAgo(chat.last_message_time || chat.last_message_at)}
-                            </p>
-                          </div>
-                        )}
+                        ) : (() => {
+                          const isTypingHere = typingUsers.some(t => t.chatId === chat.chat_id);
+                          const statusLabel = getStatusLabel(chat);
+                          const tsLabel = getTimeAgo(chat.last_message_time || chat.last_message_at);
+                          return (
+                            <div className="flex items-center gap-1.5 truncate">
+                              {isTypingHere ? (
+                                <p className="text-[12px] font-bold text-[#ff1493] italic animate-pulse">Typing…</p>
+                              ) : (
+                                <p className="text-[12px] font-medium text-[#f5f5f5]/40 truncate lowercase">
+                                  {statusLabel}{statusLabel && tsLabel ? ' · ' : ''}{tsLabel}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {chat.unread_count > 0 && (
@@ -1383,19 +1398,32 @@ export default function Messages() {
 
               <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10" onScroll={handleScroll}>
                 <div className="flex flex-col">
-                  {messages.map((msg, i) => {
+                  {messages.flatMap((msg, i) => {
                     const isMe = msg.sender_id === (user?.id || user?.user_id);
                     const prevMsg = i > 0 ? messages[i-1] : null;
                     const nextMsg = i < messages.length - 1 ? messages[i+1] : null;
                     const isFirst = !prevMsg || prevMsg.sender_id !== msg.sender_id;
                     const isLast = !nextMsg || nextMsg.sender_id !== msg.sender_id;
-                    
                     const hasTail = !msg.reply_content;
-                    
-                    // Add margin between different sender groups
                     const marginTopClass = isFirst ? "mt-4" : "mt-1";
 
-                    return (
+                    // Show a date separator whenever the calendar day changes
+                    const showDateSep = !isSameCalendarDay(
+                      msg.sent_at || msg.created_at,
+                      prevMsg?.sent_at || prevMsg?.created_at
+                    );
+
+                    const dateSep = showDateSep ? (
+                      <div key={`date-${i}`} className="flex items-center gap-3 my-4 px-2">
+                        <div className="flex-1 h-px bg-white/[0.07]" />
+                        <span className="text-[10px] font-bold text-white/25 uppercase tracking-widest px-2 shrink-0 select-none">
+                          {formatMessageGroupDate(msg.sent_at || msg.created_at)}
+                        </span>
+                        <div className="flex-1 h-px bg-white/[0.07]" />
+                      </div>
+                    ) : null;
+
+                    const bubble = (
                       <div key={msg.message_id || i} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
                         <div className={clsx("max-w-[85%] md:max-w-[75%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <div 
@@ -1472,26 +1500,11 @@ export default function Messages() {
                         </div>
                       </div>
                     );
+
+                    return dateSep ? [dateSep, bubble] : [bubble];
                   })}
                   <div ref={messagesEndRef} />
                 </div>
-
-                {/* Scroll to Bottom Button */}
-                <AnimatePresence>
-                  {partnerIsTyping && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                      className="absolute bottom-[85px] left-6 z-40 flex items-center gap-2 bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 shadow-2xl"
-                    >
-                      <div className="flex gap-1">
-                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
-                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
-                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white/90">{selectedChat.partner_name} is typing</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 <AnimatePresence>
                   {showScrollToBottom && (
@@ -1501,7 +1514,7 @@ export default function Messages() {
                         scrollToBottom('smooth');
                         setUnreadCountInChat(0);
                       }}
-                      className="absolute bottom-24 right-6 w-12 h-12 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(255,20,147,0.4)] z-50 hover:scale-110 transition-transform active:scale-95"
+                      className="absolute bottom-6 right-6 w-12 h-12 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(255,20,147,0.4)] z-50 hover:scale-110 transition-transform active:scale-95"
                     >
                       <ArrowDown size={22} strokeWidth={3} />
                       {unreadCountInChat > 0 && (
@@ -1541,6 +1554,27 @@ export default function Messages() {
                         {playingEffectEmoji}
                       </motion.div>
                     ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Typing indicator — sits directly above the input bar */}
+              <AnimatePresence>
+                {partnerIsTyping && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 36, opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2 px-5 overflow-hidden border-t border-white/5 shrink-0"
+                    style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#000000' }}
+                  >
+                    <div className="flex gap-1">
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                    </div>
+                    <span className="text-[11px] font-semibold text-white/50">{selectedChat.partner_name} is typing…</span>
                   </motion.div>
                 )}
               </AnimatePresence>

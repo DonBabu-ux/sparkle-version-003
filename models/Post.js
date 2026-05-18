@@ -511,7 +511,9 @@ class Post {
 
         // --- ALGORITHM 7.7 (STABLE OFFSET-BASED ENGINE) ---
         try {
-            const cacheKey = `feed_cache_raw:${currentUserId}:${affiliation}:${mode}:${seed}:${offset}:${limit}`;
+            const offsetNum = Number(offset) || 0;
+            const limitNum = Number(limit) || 10;
+            const cacheKey = `feed_cache_raw:${currentUserId}:${affiliation}:${mode}:${seed}:${offsetNum}:${limitNum}`;
             
             // Try to serve from raw cache first
             const cached = await redisService.get(cacheKey);
@@ -699,8 +701,6 @@ class Post {
             // Re-sort after saturation penalty
             scoredPosts.sort((a, b) => b.final_score - a.final_score);
             
-            const limitNum = Number(limit) || 10;
-            const offsetNum = Number(offset) || 0;
             const finalBatch = scoredPosts.slice(offsetNum, offsetNum + limitNum);
             
             // 3. Hydrate final batch (Fetch media only for what we actually show)

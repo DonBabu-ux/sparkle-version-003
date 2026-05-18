@@ -392,13 +392,14 @@ const ChatInput = memo(({
   const [giphyResults, setGiphyResults] = useState<any[]>([]);
   const [loadingGiphy, setLoadingGiphy] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const initialHeightRef = useRef(window.innerHeight);
 
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
     const handleResize = () => {
-      setIsKeyboardOpen(window.innerHeight - vv.height > 120);
+      setIsKeyboardOpen(initialHeightRef.current - vv.height > 120);
     };
 
     vv.addEventListener('resize', handleResize);
@@ -1227,6 +1228,24 @@ export default function Messages() {
     setUnreadCountInChat(0);
   };
 
+  // Scroll to bottom when visual viewport height changes (e.g. keyboard opens/closes)
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      if (selectedChat) {
+        // Wait slightly for layout to settle before scrolling
+        setTimeout(() => {
+          scrollToBottom('auto');
+        }, 80);
+      }
+    };
+
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, [selectedChat]);
+
   const triggerWordEffect = (content: string) => {
     if (!selectedChat) return;
     const effects = getWordEffects(selectedChat.chat_id);
@@ -1454,7 +1473,7 @@ export default function Messages() {
 
   // --- Render ---
   return (
-    <AppScreen immersive={true} statusBarStyle="transparent-dark" className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom">
+    <AppScreen immersive={true} scrollable={false} statusBarStyle="transparent-dark" className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom">
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
       

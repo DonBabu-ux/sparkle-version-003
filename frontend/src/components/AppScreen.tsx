@@ -14,6 +14,11 @@ interface AppScreenProps {
      * extend to the absolute top edge of the physical screen display!
      */
     immersive?: boolean;
+    /**
+     * If false, overflow-y is set to hidden on the wrapper to prevent native viewport panning
+     * when the virtual keyboard is triggered.
+     */
+    scrollable?: boolean;
 }
 
 export const AppScreen: React.FC<AppScreenProps> = ({
@@ -22,7 +27,8 @@ export const AppScreen: React.FC<AppScreenProps> = ({
     statusBarBg,
     className = '',
     style,
-    immersive = false
+    immersive = false,
+    scrollable = true
 }) => {
     const theme = useUserStore((state) => state.theme);
 
@@ -62,7 +68,7 @@ export const AppScreen: React.FC<AppScreenProps> = ({
                     width: '100%',
                     height: '100%',
                     position: 'relative',
-                    overflowY: 'auto',
+                    overflowY: scrollable ? 'auto' : 'hidden',
                     overflowX: 'hidden',
                     paddingTop: immersive ? 0 : 'var(--safe-area-inset-top, 0px)'
                 }}

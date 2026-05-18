@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
+import { getOptimizedMediaUrl } from '../utils/imageUtils';
 import { Heart, MessageSquare, Send, ArrowLeft, Orbit, ChevronDown, Check, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -145,7 +146,7 @@ export default function PostDetail() {
            {post.media?.length > 0 && (
              <div className="grid grid-cols-1 gap-6 mb-10 rounded-[32px] overflow-hidden">
                {post.media.map((m: { url: string }, i: number) => (
-                 <img key={i} src={m.url} className="w-full object-cover max-h-[800px] rounded-[32px] border border-white shadow-xl shadow-primary/5" alt="" />
+                 <img key={i} src={getOptimizedMediaUrl(m.url, 'hd', 1200)} className="w-full object-cover max-h-[800px] rounded-[32px] border border-white shadow-xl shadow-primary/5" alt="" />
                ))}
              </div>
            )}

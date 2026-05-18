@@ -18,9 +18,9 @@ export const GlobalThemeProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         // 2. Set dynamic CSS variables for safe area insets to prevent double padding gaps!
         if (OtaService.isMobile()) {
-            // Native mobile standard safe status bar padding
-            root.style.setProperty('--safe-area-inset-top', '24px');
-            root.style.setProperty('--safe-area-inset-bottom', '12px');
+            // Native mobile safe status bar padding - evaluate dynamically from browser!
+            root.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top, 24px)');
+            root.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom, 12px)');
         } else {
             // Web / Chrome preview standard boundaries
             root.style.setProperty('--safe-area-inset-top', '0px');

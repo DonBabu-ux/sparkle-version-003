@@ -53,7 +53,7 @@ export const getMediaUrl = (url?: string | null): string => {
  */
 export const getOptimizedMediaUrl = (
   url?: string | null,
-  quality: 'auto' | 'low' | 'thumbnail' = 'auto',
+  quality: 'hd' | 'high' | 'medium' | 'low' | 'thumbnail' = 'medium',
   width?: number
 ): string => {
   const base = getMediaUrl(url);
@@ -70,11 +70,15 @@ export const getOptimizedMediaUrl = (
 
       // Set quality
       if (quality === 'thumbnail') {
-        urlObj.searchParams.set('q', '10');
+        urlObj.searchParams.set('q', '25');
       } else if (quality === 'low') {
         urlObj.searchParams.set('q', '40');
+      } else if (quality === 'medium') {
+        urlObj.searchParams.set('q', '60');
+      } else if (quality === 'high') {
+        urlObj.searchParams.set('q', '75');
       } else {
-        urlObj.searchParams.set('q', '70');
+        urlObj.searchParams.set('q', '90');
       }
 
       // Set width
@@ -98,18 +102,25 @@ export const getOptimizedMediaUrl = (
 
   let transformations = ['f_auto'];
 
-  // Quality logic
+  // Quality mapping for adaptive Cloudinary compression
   if (quality === 'thumbnail') {
-    transformations.push('q_10', 'e_blur:200'); // Instant loading blurred placeholder
+    // Fast, lightweight thumbnail without aggressive blur
+    transformations.push('q_30'); 
   } else if (quality === 'low') {
     transformations.push('q_auto:low'); // 2G/3G optimization
+  } else if (quality === 'medium') {
+    transformations.push('q_auto:good'); // Medium quality - balanced clarity/size (feed default)
+  } else if (quality === 'high') {
+    transformations.push('q_auto:best'); // High-end mobile/Wi-Fi quality
   } else {
-    transformations.push('q_auto');
+    transformations.push('q_auto'); // HD quality
   }
 
   // Width logic
   if (width) {
-    transformations.push(`w_${width}`);
+    // If it's a thumbnail, scale down width to preserve bandwidth
+    const targetWidth = quality === 'thumbnail' ? Math.floor(width / 4) : width;
+    transformations.push(`w_${targetWidth}`);
   }
 
   const transformString = transformations.join(',');

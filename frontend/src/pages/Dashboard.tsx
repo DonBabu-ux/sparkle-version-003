@@ -204,7 +204,7 @@ export default function Dashboard() {
   // Feed managed by VirtualizedFeed component
   
   return (
-    <AppScreen className="flex min-h-screen font-sans overflow-x-hidden transition-colors duration-300">
+    <AppScreen immersive={true} className="flex min-h-screen font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
 
       <main className="flex-1 lg:ml-72 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">

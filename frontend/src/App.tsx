@@ -6,6 +6,8 @@ import { OtaService } from './services/OtaService';
 import { OTAUpdateProvider } from './components/OTAUpdateProvider';
 import { GlobalThemeProvider } from './components/GlobalThemeProvider';
 import { CameraProvider } from './components/camera/CameraProvider';
+import { NetworkStatusProvider } from './components/NetworkStatusProvider';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 // Phase 1 — Core
 import Dashboard from './pages/Dashboard';
@@ -149,9 +151,11 @@ function App() {
   return (
     <OTAUpdateProvider>
       <CameraProvider>
-        <GlobalThemeProvider>
-          <Router>
-            <div className="app">
+        <NetworkStatusProvider>
+          <OfflineIndicator />
+          <GlobalThemeProvider>
+            <Router>
+              <div className="app">
         <LoadingBar />
         <GlobalEffects />
         <MarketplaceModals />
@@ -242,8 +246,9 @@ function App() {
         <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
-    </Router>
-        </GlobalThemeProvider>
+          </Router>
+          </GlobalThemeProvider>
+        </NetworkStatusProvider>
       </CameraProvider>
     </OTAUpdateProvider>
   );

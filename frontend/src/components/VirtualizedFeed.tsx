@@ -110,6 +110,14 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [error429, setError429] = useState(false);
 
+  // Sync state with parent/store updates (e.g. background fetch completion, story posting)
+  useEffect(() => {
+    if (initialPosts && initialPosts.length > 0) {
+      setPosts(initialPosts);
+      seenPosts.current = new Set(initialPosts.map(p => p.post_id));
+    }
+  }, [initialPosts]);
+
   // ── Fetch next page (cursor-based) ─────────────────────────────────────────
   const fetchFeed = useCallback(
     async (isInitial = false) => {

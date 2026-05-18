@@ -11,7 +11,7 @@ interface CameraControlsProps {
   onModeChange: (mode: 'post' | 'story' | 'reel' | 'live') => void;
   flash: boolean;
   onFlashToggle: () => void;
-  cameraType: 'front' | 'back';
+  cameraType: 'user' | 'environment';
   onCameraTypeToggle: () => void;
   onGalleryClick: () => void;
   onCapture: () => void;

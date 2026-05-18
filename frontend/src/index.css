@@ -181,6 +181,37 @@ body.note-modal-open nav {
 
   .h-screen-safe { height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
 
+  /* ── Camera edge-to-edge safe area helpers ── */
+  /* These are the class names referenced in CreateStory.tsx & CameraControls.tsx */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Prevents white flashes during AnimatePresence phase transitions */
+  .no-white-flash {
+    background-color: #000000;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  /* Forces GPU-composited fullscreen black layer for camera screens.
+     Required on Android WebView to avoid status bar gap. */
+  .immersive-camera {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    /* Extend behind the status bar when overlaysWebView=true in capacitor.config */
+    top: 0;
+    padding-top: 0;
+    /* Ensure we're on the GPU compositor */
+    will-change: transform;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
   .bg-app {
     background-color: #fdf2f4 !important;
   }

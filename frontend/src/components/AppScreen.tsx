@@ -45,7 +45,7 @@ export const AppScreen: React.FC<AppScreenProps> = ({
                 overflow: 'hidden',
                 // Avoid visual shifting by setting up edge-to-edge containers
                 boxSizing: 'border-box',
-                paddingTop: immersive ? 0 : 'var(--safe-area-inset-top, 0px)',
+                paddingTop: 0,
                 ...style
             }}
         >
@@ -63,7 +63,8 @@ export const AppScreen: React.FC<AppScreenProps> = ({
                     height: '100%',
                     position: 'relative',
                     overflowY: 'auto',
-                    overflowX: 'hidden'
+                    overflowX: 'hidden',
+                    paddingTop: immersive ? 0 : 'var(--safe-area-inset-top, 0px)'
                 }}
             >
                 {children}

@@ -293,24 +293,29 @@ export default function CreateStory() {
     loadDevicePhotos();
   }, []);
 
-  // Start/Stop camera stream lifecycle based on phase
+  // Start/Stop camera stream lifecycle based on phase.
+  // startCamera and stopCamera are stable (no state in deps) so we only
+  // depend on phase — this prevents spurious double-starts.
   useEffect(() => {
     if (phase === 'camera') {
       startCamera();
     } else {
       stopCamera();
     }
-  }, [phase, startCamera, stopCamera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
-  // Bind active MediaStream to video element ref
+  // Bind active MediaStream to video element ref.
+  // videoRef is a ref (stable identity) — excluded from deps intentionally.
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(err => {
-        console.warn('Auto playback failed or interrupted:', err);
+        console.warn('[CreateStory] Auto-play interrupted:', err);
       });
     }
-  }, [stream, videoRef]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stream]);
 
   // --- HANDLERS ---
   const handleCapture = async () => {

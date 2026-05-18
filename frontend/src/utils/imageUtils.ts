@@ -32,14 +32,12 @@ export const getAvatarUrl = (url?: string | null, seed?: string | null): string 
 
 /**
  * Returns a reliable media URL.
+ * Extends the basic getMediaUrl by applying Cloudinary transformations (f_auto, q_auto, width)
+ * based on network quality (via networkStore).
  */
 export const getMediaUrl = (url?: string | null): string => {
   if (!url || url === 'null' || url === 'undefined' || url.trim() === '') {
     return '';
-  }
-
-  if (url.startsWith('http')) {
-    return url;
   }
 
   if (url.startsWith('/uploads')) {
@@ -47,4 +45,75 @@ export const getMediaUrl = (url?: string | null): string => {
   }
 
   return url;
+};
+
+/**
+ * PRODUCTION CLOUDINARY + PEXELS OPTIMIZATION (Phase 2)
+ * Injects smart transformations into Cloudinary and Pexels URLs to save bandwidth and load instantly.
+ */
+export const getOptimizedMediaUrl = (
+  url?: string | null,
+  quality: 'auto' | 'low' | 'thumbnail' = 'auto',
+  width?: number
+): string => {
+  const base = getMediaUrl(url);
+  if (!base) return '';
+
+  // 1. Pexels Optimization
+  if (base.includes('pexels.com')) {
+    try {
+      const urlObj = new URL(base);
+      
+      // Set compression
+      urlObj.searchParams.set('auto', 'compress');
+      urlObj.searchParams.set('cs', 'tinysrgb');
+
+      // Set quality
+      if (quality === 'thumbnail') {
+        urlObj.searchParams.set('q', '10');
+      } else if (quality === 'low') {
+        urlObj.searchParams.set('q', '40');
+      } else {
+        urlObj.searchParams.set('q', '70');
+      }
+
+      // Set width
+      if (width) {
+        urlObj.searchParams.set('w', String(width));
+        // Remove height to let aspect ratio be preserved
+        urlObj.searchParams.delete('h');
+      }
+
+      return urlObj.toString();
+    } catch (e) {
+      return base;
+    }
+  }
+
+  // 2. Cloudinary Optimization
+  if (!base.includes('res.cloudinary.com')) return base;
+
+  // Prevent double-transforming if parameters already exist
+  if (base.includes('/upload/f_') || base.includes('/upload/q_')) return base;
+
+  let transformations = ['f_auto'];
+
+  // Quality logic
+  if (quality === 'thumbnail') {
+    transformations.push('q_10', 'e_blur:200'); // Instant loading blurred placeholder
+  } else if (quality === 'low') {
+    transformations.push('q_auto:low'); // 2G/3G optimization
+  } else {
+    transformations.push('q_auto');
+  }
+
+  // Width logic
+  if (width) {
+    transformations.push(`w_${width}`);
+  }
+
+  const transformString = transformations.join(',');
+
+  // Inject transformations after /upload/
+  return base.replace('/upload/', `/upload/${transformString}/`);
 };

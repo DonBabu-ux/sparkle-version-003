@@ -80,6 +80,7 @@ import ChatSettingsModal from '../components/chat/ChatSettingsModal';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
+import { StatusBarBackground, KeyboardAwareChatLayout } from '../components/SafeLayout';
 
 // --- Types ---
 interface ChatConversation {
@@ -390,6 +391,25 @@ const ChatInput = memo(({
   const [giphySearch, setGiphySearch] = useState('');
   const [giphyResults, setGiphyResults] = useState<any[]>([]);
   const [loadingGiphy, setLoadingGiphy] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      setIsKeyboardOpen(window.innerHeight - vv.height > 120);
+    };
+
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    handleResize();
+
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, []);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
@@ -513,10 +533,11 @@ const ChatInput = memo(({
 
   return (
     <footer 
-      className="z-30 pb-safe shrink-0 border-t border-white/5 transition-all duration-300"
+      className="z-30 shrink-0 border-t border-white/5 transition-all duration-300"
       style={{ 
         backgroundColor: themeBg,
-        borderTopColor: 'rgba(255,255,255,0.05)'
+        borderTopColor: 'rgba(255,255,255,0.05)',
+        paddingBottom: isKeyboardOpen ? '8px' : 'calc(var(--safe-area-inset-bottom, 0px) + 8px)'
       }}
     >
       <div className="w-full">
@@ -1437,12 +1458,13 @@ export default function Messages() {
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
       
-      <div className="flex flex-1 overflow-hidden relative">
+      <KeyboardAwareChatLayout className="flex flex-1 overflow-hidden relative">
         {/* SIDEBAR */}
         <aside className={clsx(
           "w-full lg:w-[420px] bg-[#121212] border-r border-white/5 flex flex-col transition-all duration-300 min-h-0",
           selectedChat ? 'hidden lg:flex' : 'flex'
         )}>
+          <StatusBarBackground backgroundColor="#121212" />
           <header className="px-5 pt-4 pb-2 overflow-visible bg-[#121212]">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -1651,6 +1673,7 @@ export default function Messages() {
           
           {selectedChat ? (
             <>
+              <StatusBarBackground backgroundColor={currentChatTheme?.colors?.backgroundDark || '#000000'} />
               <header 
                 className="h-[56px] z-40 relative px-3.5 flex items-center justify-between border-b border-white/5 shadow-xl shrink-0"
                 style={{ 
@@ -2059,7 +2082,7 @@ export default function Messages() {
             </div>
           )}
         </main>
-      </div>
+      </KeyboardAwareChatLayout>
 
       {/* MODALS */}
       <AnimatePresence>

@@ -12,9 +12,12 @@ import { createPortal } from 'react-dom';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
+import { useNetworkStore } from '../store/networkStore';
+import { useOfflineQueueStore } from '../store/offlineQueueStore';
 import { formatCount } from '../utils/format';
 import MentionText from './MentionText';
 import Avatar from './Avatar';
+import { ProgressiveImage } from './ProgressiveImage';
 import { emitHeart as spawnTikTokHeart } from './TikTokHearts';
 import clsx from 'clsx';
 
@@ -108,6 +111,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
   const navigate = useNavigate();
   const { user: currentUser } = useUserStore();
   const { setActiveModal, triggerRefresh } = useModalStore();
+  const { isOffline } = useNetworkStore();
+  const { enqueueAction } = useOfflineQueueStore();
+
   const [isSparked, setIsSparked] = useState(post.is_sparked);
   const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
   const [isSaved, setIsSaved] = useState(post.is_saved);
@@ -136,6 +142,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
     const newSparked = fromDoubleTap ? true : !isSparked;
     setIsSparked(newSparked);
     setSparkCount(prev => Math.max(0, prev + (newSparked ? 1 : -1)));
+
+    if (isOffline) {
+      // Optimistic offline update
+      enqueueAction({
+        type: 'LIKE_POST',
+        endpoint: `/posts/${post.post_id}/like`,
+        method: 'POST',
+        payload: {}
+      });
+      return;
+    }
 
     try {
       await api.post(`/posts/${post.post_id}/like`);
@@ -541,11 +558,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
                     post.media_files!.length === 3 && idx === 0 ? "row-span-2" : "aspect-square"
                   )}
                 >
-                  <img
-                    src={getMediaUrl(file.url)}
-                    loading="lazy"
+                  <ProgressiveImage
+                    src={file.url}
                     alt=""
-                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                    imageClassName="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                    width={800}
                   />
                   {idx === 3 && post.media_files!.length > 4 && (
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center">
@@ -560,11 +577,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
               {isVideo ? (
                 <video src={getMediaUrl(post.media_url)} className="w-full h-auto block max-h-[85vh] sm:max-h-[700px] object-contain" />
               ) : (
-                <img
-                  src={getMediaUrl(post.media_url)}
-                  loading="lazy"
+                <ProgressiveImage
+                  src={post.media_url}
                   alt=""
-                  className="w-full h-auto block max-h-[85vh] sm:max-h-[700px] object-contain transition-transform duration-700 hover:scale-105"
+                  imageClassName="w-full h-auto block max-h-[85vh] sm:max-h-[700px] object-contain transition-transform duration-700 hover:scale-105"
+                  width={1080}
                 />
               )}
             </div>

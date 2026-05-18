@@ -77,7 +77,7 @@ export default function CameraPermissionsManager({ onRequestPermission }: Camera
 
         <div className="flex items-center gap-2 justify-center text-[10px] font-bold text-white/30 uppercase tracking-widest mt-6">
           <ShieldAlert size={12} />
-          <span>Encrypted Sandbox Sandbox Sandbox Permissions</span>
+          <span>Encrypted Sandbox Permissions</span>
         </div>
       </motion.div>
     </div>

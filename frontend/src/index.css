@@ -555,3 +555,4 @@ em-emoji-picker {
 .dark em-emoji-picker {
   background: transparent !important;
 }
+html, body { overscroll-behavior-y: none; }

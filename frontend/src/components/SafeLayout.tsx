@@ -121,6 +121,8 @@ export const KeyboardSafeContainer: React.FC<{
     const handleResize = () => {
       // Set height of container strictly to the visual viewport height
       setViewportHeight(`${vv.height}px`);
+      // Prevent Android Chrome from natively scrolling the page and leaving a gap
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     };
 
     vv.addEventListener('resize', handleResize);

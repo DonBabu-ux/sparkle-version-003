@@ -538,7 +538,7 @@ const ChatInput = memo(({
       style={{ 
         backgroundColor: themeBg,
         borderTopColor: 'rgba(255,255,255,0.05)',
-        paddingBottom: isKeyboardOpen ? '8px' : 'calc(var(--safe-area-inset-bottom, 0px) + 8px)'
+        paddingBottom: isKeyboardOpen ? '8px' : 'calc(env(safe-area-inset-bottom) + 8px)'
       }}
     >
       <div className="w-full">
@@ -1506,7 +1506,7 @@ export default function Messages() {
 
   // --- Render ---
   return (
-    <AppScreen immersive={true} scrollable={false} statusBarStyle="transparent-dark" className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom md:pl-[72px]">
+    <AppScreen immersive={true} scrollable={false} statusBarStyle="transparent-dark" className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden md:pl-[72px]">
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
       

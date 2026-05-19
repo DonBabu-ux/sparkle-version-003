@@ -44,7 +44,7 @@ export default function UserCard({ u }: UserCardProps) {
 
   return (
     <div 
-      className="group relative bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/10 backdrop-blur-md rounded-[1.5rem] p-4 w-full flex flex-col items-center hover:bg-black/5 dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden text-center shadow-lg dark:shadow-2xl"
+      className="group relative bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/10 backdrop-blur-md rounded-xl p-4 w-full flex flex-col items-center hover:bg-black/5 dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden text-center shadow-lg dark:shadow-2xl"
       onClick={() => navigate(`/profile/${u.username}`)}
     >
       {/* Action Menu */}
@@ -98,7 +98,7 @@ export default function UserCard({ u }: UserCardProps) {
            <div className="flex items-center gap-1 px-2.5 py-1 bg-black/5 dark:bg-white/5 rounded-full border border-black/5 dark:border-white/5 text-[9px] text-black/50 dark:text-white/40 font-black uppercase tracking-tighter">
               <MapPin size={10} className="text-primary" /> {u.campus || 'Sector'}
            </div>
-        </div>
+         </div>
       </div>
 
       {/* Social Proof */}
@@ -130,7 +130,7 @@ export default function UserCard({ u }: UserCardProps) {
             disabled={loading}
             className="w-full py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all border border-black/10 dark:border-white/10 flex items-center justify-center gap-2"
           >
-            <Check size={14} strokeWidth={3} /> Connected
+            <Check size={14} strokeWidth={3} /> Following
           </button>
         ) : requestStatus === 'pending' ? (
           <button 
@@ -145,7 +145,7 @@ export default function UserCard({ u }: UserCardProps) {
             disabled={loading}
             className={`w-full py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] bg-primary text-white hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
           >
-            <Plus size={14} strokeWidth={3} /> Connect
+            <Plus size={14} strokeWidth={3} /> Follow
           </button>
         )}
       </div>

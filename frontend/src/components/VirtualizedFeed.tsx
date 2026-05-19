@@ -153,7 +153,7 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
         {suggestions.slice(0, 6).map((s) => (
-          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2.5 p-3 rounded-xl bg-black/[0.02] dark:bg-white/5 border border-black/5 dark:border-white/5 transition-transform hover:scale-[1.02]">
+          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2.5 p-3 rounded-lg bg-black/[0.02] dark:bg-white/5 border border-black/5 dark:border-white/5 transition-transform hover:scale-[1.02]">
             <img 
               src={s.avatar_url || '/uploads/avatars/default.png'} 
               className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-black shadow-md cursor-pointer" 

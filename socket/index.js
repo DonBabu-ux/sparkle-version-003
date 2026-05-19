@@ -201,12 +201,6 @@ const initializeSocket = (server) => {
                     context
                 });
 
-                // Acknowledge receipt to the sender with server-authoritative sentAt
-                // IMPORTANT: sentAt comes from the DB record, not from the client clock
-                if (typeof callback === 'function') {
-                    callback({ success: true, messageId, sentAt: message?.sent_at || null });
-                }
-
                 // Get the saved message with sender info and reply info
                 const [fullMessage] = await pool.query(`
                     SELECT m.*, 
@@ -224,6 +218,12 @@ const initializeSocket = (server) => {
                     read_at: fullMessage[0].read_at ? new Date(fullMessage[0].read_at).toISOString() : null
                 };
                 const finalChatId = message.conversation_id || message.chat_id;
+
+                // Acknowledge receipt to the sender with server-authoritative sentAt
+                // IMPORTANT: sentAt comes from the DB record, not from the client clock
+                if (typeof callback === 'function') {
+                    callback({ success: true, messageId, sentAt: message.sent_at });
+                }
 
                 // 2. Emit to sender for confirmation
                 socket.emit('new-message', message);

@@ -153,7 +153,7 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
         {suggestions.slice(0, 6).map((s) => (
-          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2.5 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/5 border border-black/5 dark:border-white/5 transition-transform hover:scale-[1.02]">
+          <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2.5 p-3 rounded-xl bg-black/[0.02] dark:bg-white/5 border border-black/5 dark:border-white/5 transition-transform hover:scale-[1.02]">
             <img 
               src={s.avatar_url || '/uploads/avatars/default.png'} 
               className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-black shadow-md cursor-pointer" 
@@ -167,14 +167,14 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
             <button 
               onClick={() => handleFollow(s.user_id)}
               disabled={following[s.user_id]}
-              className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border ${
+              className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all border ${
                 following[s.user_id] 
                 ? 'bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/30 border-black/5 dark:border-white/5' 
                 : 'bg-primary text-white border-primary shadow-sm hover:scale-[1.03] active:scale-95'
               }`}
             >
               {following[s.user_id] ? <Check size={12} strokeWidth={3} /> : <UserPlus size={12} strokeWidth={3} />}
-              {following[s.user_id] ? 'Joined' : 'Join'}
+              {following[s.user_id] ? 'Following' : 'Follow'}
             </button>
           </div>
         ))}

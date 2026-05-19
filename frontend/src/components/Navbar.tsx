@@ -77,13 +77,13 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop Sidebar Shell */}
-      <div className="hidden lg:block">
+      <div className="hidden md:block">
         <Sidebar />
       </div>
 
       {/* Mobile Top Navigation Bar — Glass Header */}
       {!['/search', '/moments', '/marketplace', '/groups', '/settings', '/profile', '/messages'].some(path => location.pathname.startsWith(path)) && (
-        <header className="lg:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-[1100] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
+        <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-[1100] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-[#fb7185] rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
               <Sparkles size={20} strokeWidth={2.5} />
@@ -118,12 +118,11 @@ export default function Navbar() {
       {!(location.pathname.startsWith('/messages') && location.pathname !== '/messages' || (location.pathname === '/messages' && new URLSearchParams(location.search).has('chat'))) && (
       <nav
         className={clsx(
-          "lg:hidden fixed bottom-0 left-0 right-0 w-full z-[1000] transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",
+          "md:hidden grid grid-cols-7 items-center fixed bottom-0 left-0 right-0 w-full z-[1000] transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",
           isDarkBase 
             ? "bg-black border-t border-white/10" 
             : "bg-white/50 dark:bg-black/80 backdrop-blur-3xl border-t border-black/5 dark:border-white/5"
         )}
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center' }}
       >
         {/* Col 1 — Home */}
         <Link 

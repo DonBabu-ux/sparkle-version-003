@@ -89,7 +89,7 @@ export const getOptimizedMediaUrl = (
       }
 
       return urlObj.toString();
-    } catch (e) {
+    } catch {
       return base;
     }
   }
@@ -100,7 +100,7 @@ export const getOptimizedMediaUrl = (
   // Prevent double-transforming if parameters already exist
   if (base.includes('/upload/f_') || base.includes('/upload/q_')) return base;
 
-  let transformations = ['f_auto'];
+  const transformations = ['f_auto'];
 
   // Quality mapping for adaptive Cloudinary compression
   if (quality === 'thumbnail') {

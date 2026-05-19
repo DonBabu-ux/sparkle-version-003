@@ -291,7 +291,7 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <aside className="hidden xl:flex flex-col gap-4 sticky top-24 h-fit animate-fade-in">
-            <div className="bg-white dark:bg-[#121212] rounded-3xl border border-black/5 dark:border-white/10 p-6 shadow-sm">
+            <div className="bg-white dark:bg-[#121212] rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Connect</h3>
                 <Link to="/connect" className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">View All</Link>
@@ -299,7 +299,7 @@ export default function Dashboard() {
               <div className="space-y-4">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4 opacity-30"><Spinner size="medium" color="text-black/30 dark:text-white/30" /><p className="text-[12px] font-semibold text-black/30 dark:text-white/30 uppercase tracking-widest text-center">No Suggestions</p></div>}</div>
             </div>
             {/* Trending */}
-            <div className="bg-white dark:bg-[#121212] rounded-3xl border border-black/5 dark:border-white/10 p-6 shadow-sm overflow-hidden group">
+            <div className="bg-white dark:bg-[#121212] rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm overflow-hidden group">
                <div className="flex flex-col gap-6">
                   <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Hot Right Now</h3>
                   <div className="space-y-3">{trendingTags.map(tag => (

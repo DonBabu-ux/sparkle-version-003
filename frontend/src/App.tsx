@@ -82,6 +82,7 @@ import Verified from './pages/Verified';
 import Invite from './pages/Invite';
 import Help from './pages/Help';
 import Onboarding from './pages/Onboarding';
+import Ecosystem from './pages/Ecosystem';
 
 import BlockedUsers from './pages/BlockedUsers';
 
@@ -230,6 +231,7 @@ function App() {
         <Route path="/professional-dashboard" element={isAuthenticated ? <ProfessionalDashboard /> : <Navigate to="/login" />} />
 
         {/* ── Phase 4: Utility & Features ── */}
+        <Route path="/ecosystem" element={isAuthenticated ? <Ecosystem /> : <Navigate to="/login" />} />
         <Route path="/lost-found" element={isAuthenticated ? <LostFound /> : <Navigate to="/login" />} />
         <Route path="/support" element={isAuthenticated ? <Support /> : <Navigate to="/login" />} />
         <Route path="/support/ticket/:ticketId" element={isAuthenticated ? <TicketDetail /> : <Navigate to="/login" />} />

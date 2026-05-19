@@ -161,13 +161,32 @@ export const ChatInputDock: React.FC<{
 }> = ({ children, backgroundColor, className = '', style }) => {
   const theme = useUserStore((state) => state.theme);
   const defaultBg = theme === 'dark' ? '#000000' : '#ffffff';
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      // If the visual viewport height is significantly less than window.innerHeight, the keyboard is open.
+      const open = window.innerHeight - vv.height > 80;
+      setIsKeyboardOpen(open);
+    };
+
+    vv.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   return (
     <div
-      className={`w-full shrink-0 border-t border-white/5 z-30 transition-all duration-300 ${className}`}
+      className={`w-full shrink-0 border-t border-white/5 z-30 transition-all duration-150 ${className}`}
       style={{
         backgroundColor: backgroundColor || defaultBg,
-        paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)',
+        paddingBottom: isKeyboardOpen ? '6px' : 'calc(env(safe-area-inset-bottom) + 8px)',
         boxSizing: 'border-box',
         ...style
       }}

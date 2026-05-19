@@ -880,6 +880,7 @@ export default function Messages() {
   const [partnerIsTyping, setPartnerIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState<{chatId: string, name: string}[]>([]);
   const [isNearBottom, setIsNearBottom] = useState(true);
+  const isNearBottomRef = useRef(true);
   // Tracks whether the user is actively scrolling — used to subtly dim header presence text
   const [isScrollingMessages, setIsScrollingMessages] = useState(false);
   const scrollStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -965,7 +966,7 @@ export default function Messages() {
     if (selectedChat) {
       fetchMessages(selectedChat.chat_id);
     }
-  }, [selectedChat]);
+  }, [selectedChat?.chat_id]);
 
   // Hide bottom nav when viewing someone's note or using camera
   useEffect(() => {
@@ -1043,11 +1044,35 @@ export default function Messages() {
     }
   };
 
+  const selectedChatRef = useRef<any>(null);
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
+  // Dedicated effect to handle initial read receipts when a new conversation is explicitly opened/tapped
   useEffect(() => {
     if (!socket || !selectedChat) return;
 
+    if (document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group') && !selectedChat.chat_id.startsWith('temp_')) {
+       socket.emit('mark-read', selectedChat.chat_id);
+       setUnreadCountInChat(0);
+       
+       // Cleanly clear local unread count badge in sidebar list
+       setConversations((prev: any[]) => prev.map(c => {
+          if (c.chat_id === selectedChat.chat_id) {
+             return { ...c, unread_count: 0 };
+          }
+          return c;
+       }));
+    }
+  }, [socket, selectedChat?.chat_id]);
+
+  useEffect(() => {
+    if (!socket) return;
+
     const handleNewMessage = (msg: any) => {
-      const isCurrentChat = msg.conversation_id === selectedChat.chat_id || msg.chat_id === selectedChat.chat_id || msg.sender_id === selectedChat.partner_id;
+      const activeChat = selectedChatRef.current;
+      const isCurrentChat = activeChat && (msg.conversation_id === activeChat.chat_id || msg.chat_id === activeChat.chat_id || msg.sender_id === activeChat.partner_id);
       
       // 1. If it belongs to current active chat, update message array
       if (isCurrentChat) {
@@ -1058,7 +1083,7 @@ export default function Messages() {
         triggerWordEffect(msg.content);
         
         // Let backend know we received it ONLY IF NOT GROUP
-        const isGroup = selectedChat?.is_group || selectedChat?.chat_type === 'group' || msg.chat_type === 'group';
+        const isGroup = activeChat?.is_group || activeChat?.chat_type === 'group' || msg.chat_type === 'group';
         if (!isGroup) {
           if (document.hasFocus()) {
              socket.emit('mark-read', msg.conversation_id || msg.chat_id);
@@ -1067,7 +1092,7 @@ export default function Messages() {
           }
         }
 
-        if (isNearBottom) {
+        if (isNearBottomRef.current) {
           setTimeout(() => scrollToBottom('smooth'), 50);
           setUnreadCountInChat(0);
         } else {
@@ -1082,7 +1107,8 @@ export default function Messages() {
 
       // 2. Reactively update the conversations list — use ONLY server-provided timestamps
       setConversations((prev: any[]) => {
-        const chatIndex = prev.findIndex(c => c.chat_id === msg.conversation_id || c.chat_id === msg.chat_id || c.partner_id === msg.sender_id);
+        const chatId = msg.conversation_id || msg.chat_id;
+        const chatIndex = prev.findIndex(c => c.chat_id === chatId || c.partner_id === msg.sender_id);
         if (chatIndex >= 0) {
           const newConvs = [...prev];
           const chat = { ...newConvs[chatIndex] };
@@ -1091,14 +1117,27 @@ export default function Messages() {
           chat.last_message_time = msg.sent_at || msg.created_at || chat.last_message_time;
           // Inherit status from the server message payload; never assume 'sent'
           chat.last_message_status = msg.status || 'sent';
-          if (msg.sender_id !== (user?.id || user?.user_id) && selectedChat?.chat_id !== chat.chat_id) {
+          if (msg.sender_id !== (user?.id || user?.user_id) && (!activeChat || activeChat.chat_id !== chat.chat_id)) {
             chat.unread_count = (chat.unread_count || 0) + 1;
           }
           newConvs.splice(chatIndex, 1);
           newConvs.unshift(chat);
           return newConvs;
+        } else {
+          // New conversation!
+          const newChat: any = {
+            chat_id: chatId,
+            partner_id: msg.sender_id,
+            partner_name: msg.sender_name || msg.sender_username || 'New Contact',
+            partner_avatar: msg.sender_avatar,
+            unread_count: (activeChat && activeChat.chat_id === chatId) ? 0 : 1,
+            last_message_content: msg.type === 'text' ? msg.content : `Sent a ${msg.type}`,
+            last_message_time: msg.sent_at || msg.created_at,
+            last_message_status: msg.status || 'sent',
+            partner_online: true
+          };
+          return [newChat, ...prev];
         }
-        return prev;
       });
     };
 
@@ -1121,7 +1160,6 @@ export default function Messages() {
        const myId = user?.id || user?.user_id;
        setMessages(prev => prev.map(m => {
           // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
-          // IMPORTANT: read_at is always server UTC from the backend — never use client Date here
           if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
              return { ...m, status: 'read', read_at: data.readAt };
           }
@@ -1142,7 +1180,8 @@ export default function Messages() {
         }
         return chat;
       }));
-      if (selectedChat?.partner_id === data.userId) {
+      const activeChat = selectedChatRef.current;
+      if (activeChat && activeChat.partner_id === data.userId) {
         setSelectedChat(prev => prev ? { ...prev, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline } : null);
       }
     };
@@ -1150,11 +1189,11 @@ export default function Messages() {
     const handleUserTyping = (data: { chatId: string, userId: string, isTyping: boolean, username?: string }) => {
       const myId = user?.id || user?.user_id;
       if (data.userId === myId) return;
-      // Update in-chat typing indicator
-      if (selectedChat?.chat_id === data.chatId) {
+      
+      const activeChat = selectedChatRef.current;
+      if (activeChat && activeChat.chat_id === data.chatId) {
         setPartnerIsTyping(data.isTyping);
       }
-      // Update sidebar chat-list typing badge
       setTypingUsers(prev => {
         if (data.isTyping) {
           if (prev.some(t => t.chatId === data.chatId)) return prev;
@@ -1180,14 +1219,13 @@ export default function Messages() {
         }
         return chat;
       }));
-      if (selectedChat?.chat_id === data.chatId) {
+      const activeChat = selectedChatRef.current;
+      if (activeChat && activeChat.chat_id === data.chatId) {
         setSelectedChat(prev => prev ? { ...prev, group_online_count: data.onlineCount } : null);
       }
     };
 
     socket.on('new-message', handleNewMessage);
-    // Note: 'receive_message' is intentionally NOT re-registered — both events call the same
-    // handler; the deduplication guard inside handleNewMessage (message_id check) prevents doubles.
     socket.on('receive_message', handleNewMessage);
     socket.on('messages-delivered', handleMessagesDelivered);
     socket.on('messages-read', handleMessagesRead);
@@ -1196,19 +1234,13 @@ export default function Messages() {
     socket.on('user-note-update', handleUserNoteUpdate);
     socket.on('group:presence:update', handleGroupPresenceUpdate);
 
-    // ── Reconnect recovery — re-join active chat room so delivery/read ACKs work without refresh ──
     const handleReconnect = () => {
-      if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
-        socket.emit('join-chat', selectedChat.chat_id);
+      const activeChat = selectedChatRef.current;
+      if (activeChat?.chat_id && !activeChat.chat_id.startsWith('temp_')) {
+        socket.emit('join-chat', activeChat.chat_id);
       }
     };
     socket.on('connect', handleReconnect);
-
-    // Initial check when opening a chat to mark read
-    if (selectedChat && document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group')) {
-       socket.emit('mark-read', selectedChat.chat_id);
-       setUnreadCountInChat(0);
-    }
 
     return () => {
       socket.off('new-message', handleNewMessage);
@@ -1221,7 +1253,7 @@ export default function Messages() {
       socket.off('group:presence:update', handleGroupPresenceUpdate);
       socket.off('connect', handleReconnect);
     };
-  }, [socket, selectedChat, isNearBottom, user?.id, user?.user_id]);
+  }, [socket, user?.id, user?.user_id]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -1234,7 +1266,7 @@ export default function Messages() {
     if (!vv) return;
 
     const handleResize = () => {
-      if (selectedChat) {
+      if (selectedChat && isNearBottomRef.current) {
         // Wait slightly for layout to settle before scrolling
         setTimeout(() => {
           scrollToBottom('auto');
@@ -1244,7 +1276,7 @@ export default function Messages() {
 
     vv.addEventListener('resize', handleResize);
     return () => vv.removeEventListener('resize', handleResize);
-  }, [selectedChat]);
+  }, [selectedChat?.chat_id]);
 
   const triggerWordEffect = (content: string) => {
     if (!selectedChat) return;
@@ -1390,6 +1422,7 @@ export default function Messages() {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
     setIsNearBottom(nearBottom);
+    isNearBottomRef.current = nearBottom;
     setShowScrollToBottom(!nearBottom);
     if (nearBottom) setUnreadCountInChat(0);
 
@@ -1473,7 +1506,7 @@ export default function Messages() {
 
   // --- Render ---
   return (
-    <AppScreen immersive={true} scrollable={false} statusBarStyle="transparent-dark" className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom">
+    <AppScreen immersive={true} scrollable={false} statusBarStyle="transparent-dark" className="flex flex-col h-screen bg-[#121212] text-white overflow-hidden safe-bottom md:pl-[72px]">
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
       
@@ -2004,7 +2037,7 @@ export default function Messages() {
                       scrollToBottom('smooth');
                       setUnreadCountInChat(0);
                     }}
-                    className="absolute bottom-[90px] right-5 w-11 h-11 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_28px_rgba(255,20,147,0.45)] z-50 hover:scale-110 transition-transform active:scale-95"
+                    className="absolute bottom-[90px] left-1/2 -translate-x-1/2 w-11 h-11 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_28px_rgba(255,20,147,0.45)] z-50 hover:scale-110 transition-transform active:scale-95"
                   >
                     <ArrowDown size={20} strokeWidth={3} />
                     {unreadCountInChat > 0 && (

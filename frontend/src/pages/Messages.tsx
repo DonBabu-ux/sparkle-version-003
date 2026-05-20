@@ -70,6 +70,7 @@ import {
   Camera,
   Mic,
   ChevronRight,
+  ChevronLeft,
   Play,
   Pause
 } from 'lucide-react';
@@ -81,6 +82,7 @@ import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
 import { StatusBarBackground, KeyboardAwareChatLayout } from '../components/SafeLayout';
+import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
 
 // --- Types ---
 interface ChatConversation {
@@ -417,6 +419,36 @@ const ChatInput = memo(({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [slideOffset, setSlideOffset] = useState(0);
+  const initialXRef = useRef(0);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.target.setPointerCapture(e.pointerId);
+    startRecording();
+    initialXRef.current = e.clientX;
+    setSlideOffset(0);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (isRecording) {
+      const deltaX = e.clientX - initialXRef.current;
+      if (deltaX < 0) {
+        setSlideOffset(deltaX);
+        if (deltaX < -120) {
+          stopRecording(false);
+          setSlideOffset(0);
+        }
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isRecording) {
+      e.target.releasePointerCapture(e.pointerId);
+      setSlideOffset(0);
+      stopRecording(true);
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -542,7 +574,7 @@ const ChatInput = memo(({
       }}
     >
       <div className="w-full">
-        <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2">
+        <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative">
           {!isMenuCollapsed ? (
             <div className="flex items-center shrink-0">
               <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="hover:opacity-80 p-2 ml-0" style={{ color: themePrimary }}>
@@ -565,9 +597,6 @@ const ChatInput = memo(({
                   }
                 }} />
               </label>
-              <button type="button" onClick={startRecording} className="hover:opacity-80 p-2" style={{ color: themePrimary }}>
-                <Mic size={22} strokeWidth={2.5} />
-              </button>
             </div>
           ) : (
             <button 
@@ -579,93 +608,103 @@ const ChatInput = memo(({
               <ChevronRight size={24} strokeWidth={3} />
             </button>
           )}
-          
-          {isRecording ? (
-            <div className="flex-1 flex items-center justify-between h-[42px] px-5 mx-2 bg-black/40 rounded-full border border-[#ff1493]/30 animate-pulse">
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#ff1493] animate-ping" />
-                <span className="text-[12px] font-black text-white/90 tracking-wider">
-                  RECORDING: {Math.floor(recordTime / 60)}:{String(recordTime % 60).padStart(2, '0')}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-[2.5px] h-[16px] overflow-hidden px-2">
-                {[...Array(12)].map((_, i) => (
-                  <motion.div 
-                    key={i} 
-                    animate={{ height: [4, 16, 4] }}
-                    transition={{ repeat: Infinity, duration: 0.5 + (i * 0.05), ease: 'easeInOut' }}
-                    className="w-[2px] rounded-full bg-[#ff1493]"
-                  />
-                ))}
-              </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button 
-                  type="button" 
-                  onClick={() => stopRecording(false)} 
-                  className="text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-all px-2.5 py-1 rounded-xl bg-white/5 border border-white/5 active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => stopRecording(true)} 
-                  className="w-8 h-8 rounded-full bg-[#ff1493] flex items-center justify-center text-white active:scale-95 transition-all shadow-md"
-                >
-                  <Send size={14} strokeWidth={3} />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 relative rounded-full flex items-center h-[42px] px-5 mx-2 overflow-hidden border border-white/5 transition-all focus-within:border-white/15" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
-                <input 
-                  type="text"
-                  value={localMessage}
-                  onChange={handleChange}
-                  onFocus={() => setShowEmojiPicker(false)}
-                  placeholder="Type a message..."
-                  className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
-                  autoComplete="off"
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className={clsx(
-                    "transition-all ml-2 shrink-0",
-                    showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
-                  )}
-                >
-                  <Smile size={20} strokeWidth={2.2} />
-                </button>
-              </div>
+          <div className="flex-1 relative rounded-full flex items-center h-[42px] px-5 mx-2 overflow-hidden border border-white/5 transition-all focus-within:border-white/15" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+            <input 
+              type="text"
+              value={localMessage}
+              onChange={handleChange}
+              onFocus={() => setShowEmojiPicker(false)}
+              placeholder="Type a message..."
+              className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
+              autoComplete="off"
+            />
+            <button 
+              type="button" 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={clsx(
+                "transition-all ml-2 shrink-0",
+                showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
+              )}
+            >
+              <Smile size={20} strokeWidth={2.2} />
+            </button>
+          </div>
 
-              <div className="flex items-center shrink-0 mr-1">
-                {localMessage.trim() ? (
-                  <button 
-                    type="submit"
-                    disabled={sending}
-                    className="ml-1 p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
-                    style={{ backgroundColor: themePrimary, color: '#ffffff' }}
-                  >
-                    <Send size={18} strokeWidth={2.5} />
-                  </button>
-                ) : (
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      const reaction = getQuickReaction(selectedChat.chat_id);
-                      onSend(undefined, reaction);
-                    }}
-                    className="ml-1 text-2xl hover:scale-110 active:scale-90 transition-all p-1"
-                  >
-                    {getQuickReaction(selectedChat.chat_id)}
-                  </button>
-                )}
-              </div>
-            </>
-          )}
+          <div className="flex items-center shrink-0 mr-1 gap-1">
+            {!localMessage.trim() && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  const reaction = getQuickReaction(selectedChat.chat_id);
+                  onSend(undefined, reaction);
+                }}
+                className="text-2xl hover:scale-110 active:scale-90 transition-all p-1"
+              >
+                {getQuickReaction(selectedChat.chat_id)}
+              </button>
+            )}
+
+            {localMessage.trim() ? (
+              <button 
+                type="submit"
+                disabled={sending}
+                className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
+                style={{ backgroundColor: themePrimary, color: '#ffffff' }}
+              >
+                <Send size={18} strokeWidth={2.5} />
+              </button>
+            ) : (
+              <button 
+                type="button"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                style={{ transform: `translateX(${slideOffset}px)`, backgroundColor: themePrimary }}
+                className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center text-white touch-none"
+              >
+                <Mic size={18} strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+
+          <AnimatePresence>
+            {isRecording && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-y-2 left-2 right-16 flex items-center justify-between px-5 bg-[#121212]/95 backdrop-blur-xl rounded-full border border-white/20 pointer-events-none"
+              >
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#ff1493] animate-ping" />
+                  <span className="text-[12px] font-black text-[#ff1493] tracking-wider">
+                    {Math.floor(recordTime / 60)}:{String(recordTime % 60).padStart(2, '0')}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-[3px] flex-1 justify-center px-4 overflow-hidden">
+                  <div className="flex items-center gap-[3px] animate-pulse">
+                     {[...Array(15)].map((_, i) => (
+                      <motion.div 
+                        key={i} 
+                        animate={{ height: [4, 16, 4] }}
+                        transition={{ repeat: Infinity, duration: 0.5 + (i * 0.05), ease: 'easeInOut' }}
+                        className="w-[2px] rounded-full bg-[#ff1493]"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center shrink-0">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/50 animate-pulse flex items-center gap-2">
+                    <ChevronLeft size={14} strokeWidth={3} /> Slide to cancel
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </form>
 
         <AnimatePresence>
@@ -848,6 +887,8 @@ export default function Messages() {
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'longPress' | 'click' } | null>(null);
+  const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
   const [attachmentSheetHeight, setAttachmentSheetHeight] = useState<'partial' | 'full'>('partial');
@@ -1142,8 +1183,11 @@ export default function Messages() {
     };
 
     const handleMessagesDelivered = (data: {chatId: string, messageId?: string, userId: string}) => {
+       const myId = user?.id || user?.user_id;
+       if (data.userId === myId) return; // Prevent falsely upgrading own messages when self receives
+
        setMessages(prev => prev.map(m => {
-          if (m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
+          if (m.sender_id === myId && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
              return { ...m, status: 'delivered' };
           }
           return m;
@@ -1158,6 +1202,8 @@ export default function Messages() {
 
     const handleMessagesRead = (data: {chatId: string, readAt?: string, userId?: string}) => {
        const myId = user?.id || user?.user_id;
+       if (data.userId === myId) return; // Prevent falsely upgrading own messages when self reads
+
        setMessages(prev => prev.map(m => {
           // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
           if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
@@ -1391,6 +1437,34 @@ export default function Messages() {
     } catch (err) {
       console.error('Failed to upload voice note', err);
       setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
+    }
+  };
+
+  const handleDeleteMessage = async (msgId: string) => {
+    setMessages(prev => prev.filter(m => m.message_id !== msgId));
+    if (socket && selectedChat) {
+      socket.emit('delete-for-everyone', {
+        messageId: msgId,
+        chatId: selectedChat.chat_id,
+        isGroup: selectedChat.type === 'group'
+      });
+    }
+  };
+
+  const handleReactToMessage = async (msgId: string, emoji: string) => {
+    setMessages(prev => prev.map(m => {
+      if (m.message_id === msgId) {
+        return { ...m, reactions: [...(m.reactions || []), { emoji, user_id: user?.id || user?.user_id }] };
+      }
+      return m;
+    }));
+    
+    if (socket && selectedChat) {
+      socket.emit('add-reaction', {
+        messageId: msgId,
+        emoji: emoji,
+        chatId: selectedChat.chat_id
+      });
     }
   };
   const handleTyping = (val: string) => {
@@ -1830,10 +1904,19 @@ export default function Messages() {
 
                     const bubble = (
                       <div key={msg.message_id || i} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
-                        <div className={clsx("max-w-[85%] md:max-w-[75%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
+                        <div className={clsx("max-w-[75%] md:max-w-[60%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <div 
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              setActiveMessageMenu({ msg, type: 'longPress' });
+                            }}
+                            onClick={() => {
+                              if (isMe) {
+                                setActiveMessageMenu({ msg, type: 'click' });
+                              }
+                            }}
                             className={clsx(
-                              "px-2.5 py-1.5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[80px]",
+                              "px-2.5 py-1.5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[80px] break-words whitespace-pre-wrap",
                               isMe ? 'rounded-[14px]' : 'rounded-[14px]',
                               isMe && hasTail ? 'rounded-tr-none' : isMe ? 'rounded-tr-[14px]' : '',
                               isMe && isLast ? 'rounded-br-[14px]' : isMe ? 'rounded-br-md' : '',
@@ -2117,6 +2200,10 @@ export default function Messages() {
                 theme={currentChatTheme}
               />
             </>
+          ) : loading ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
+               <div className="w-8 h-8 border-4 border-[#ff1493] border-t-transparent rounded-full animate-spin"></div>
+            </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.02] pointer-events-none" aria-hidden>
@@ -2137,6 +2224,79 @@ export default function Messages() {
       </KeyboardAwareChatLayout>
 
       {/* MODALS */}
+      <MessageActionSheet
+        isOpen={activeMessageMenu?.type === 'longPress'}
+        isMe={activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id)}
+        themeColor={currentChatTheme?.colors?.primary || '#ff1493'}
+        onClose={() => setActiveMessageMenu(null)}
+        onReply={() => {
+          if (activeMessageMenu?.msg?.content) {
+            handleTyping(`> ${activeMessageMenu.msg.content.substring(0, 50)}...\n\n`);
+          }
+          setActiveMessageMenu(null);
+        }}
+        onCopy={() => {
+          if (activeMessageMenu?.msg?.content) navigator.clipboard.writeText(activeMessageMenu.msg.content);
+          setActiveMessageMenu(null);
+        }}
+        onDelete={() => {
+          if (activeMessageMenu?.msg?.message_id) {
+            handleDeleteMessage(activeMessageMenu.msg.message_id);
+          }
+          setActiveMessageMenu(null);
+        }}
+        onMore={() => setActiveMessageMenu({ msg: activeMessageMenu?.msg, type: 'click' })}
+        onReact={(emoji) => {
+          if (activeMessageMenu?.msg?.message_id) {
+            handleReactToMessage(activeMessageMenu.msg.message_id, emoji);
+          }
+          setActiveMessageMenu(null);
+        }}
+        onOpenEmojiPicker={() => {
+          setShowFullEmojiPicker(true);
+        }}
+      />
+
+      <MessageMoreModal
+        isOpen={activeMessageMenu?.type === 'click'}
+        onClose={() => setActiveMessageMenu(null)}
+        onPin={() => {
+          // Future pin logic
+          setActiveMessageMenu(null);
+        }}
+        onEdit={() => {
+          if (activeMessageMenu?.msg?.content) {
+            handleTyping(activeMessageMenu.msg.content);
+          }
+          setActiveMessageMenu(null);
+        }}
+        onForward={() => {
+          // Future forward logic
+          setActiveMessageMenu(null);
+        }}
+        onDetails={() => {
+          if (activeMessageMenu?.msg) {
+            alert(`Sent at: ${new Date(activeMessageMenu.msg.sent_at).toLocaleString()}`);
+          }
+          setActiveMessageMenu(null);
+        }}
+      />
+
+      <FullEmojiPickerModal
+        isOpen={showFullEmojiPicker}
+        onClose={() => {
+          setShowFullEmojiPicker(false);
+          setActiveMessageMenu(null);
+        }}
+        onSelect={(emoji) => {
+          if (activeMessageMenu?.msg?.message_id) {
+            handleReactToMessage(activeMessageMenu.msg.message_id, emoji);
+          }
+          setShowFullEmojiPicker(false);
+          setActiveMessageMenu(null);
+        }}
+      />
+
       <AnimatePresence>
         {showNewChatModal && (
           <motion.div 

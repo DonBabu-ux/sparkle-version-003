@@ -1,6 +1,6 @@
-// config/database.js - PRODUCTION VERSION
 const mysql = require('mysql2/promise');
 
+// High-Concurrency Database Pool
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -8,45 +8,32 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
 
-    // Optimized for shared hosting resilience
+    // Aggressively optimized for massive concurrency & shared hosting
     waitForConnections: true,
-    connectionLimit: 10, // Lowered for shared hosting
+    connectionLimit: 40, 
+    maxIdle: 20, 
+    idleTimeout: 30000, 
     queueLimit: 0,
-    connectTimeout: 30000,
+    connectTimeout: 20000,
 
-    // SSL for remote DBs
     ssl: process.env.DB_SSL === 'true' ? {
         rejectUnauthorized: false
     } : undefined,
 
-    // Performance & Resilience
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
-    idleTimeout: 30000, 
-
-    // Timezone
-    timezone: 'Z' 
+    timezone: 'Z',
+    
+    // Performance tuning
+    namedPlaceholders: true,
+    multipleStatements: true // Required for transaction batching
 });
 
 pool.on('error', (err) => {
-    console.error('Unexpected error on idle database connection', err);
-});
-
-// Connection validation
-pool.on('connection', (connection) => {
-    // logger.debug('✅ New database connection established');
-});
-
-pool.on('acquire', (connection) => {
-    // logger.debug('🔗 Connection acquired');
-});
-
-pool.on('release', (connection) => {
-    // logger.debug('🔄 Connection released');
-});
-
-pool.on('enqueue', () => {
-    // logger.debug('⏳ Waiting for available connection...');
+    console.error('CRITICAL: Unexpected error on idle database connection', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('Database connection lost. Reconnecting...');
+    }
 });
 
 // Graceful shutdown
@@ -60,5 +47,25 @@ process.on('SIGINT', async () => {
         process.exit(1);
     }
 });
+
+// Transaction helper for safer abstraction
+pool.executeTransaction = async (queries) => {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    try {
+        const results = [];
+        for (const query of queries) {
+            const [rows] = await connection.query(query.sql, query.values);
+            results.push(rows);
+        }
+        await connection.commit();
+        return results;
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+};
 
 module.exports = pool;

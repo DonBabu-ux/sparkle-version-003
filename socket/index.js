@@ -1,4 +1,5 @@
 const socketIO = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
@@ -6,6 +7,7 @@ const logger = require('../utils/logger');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const GroupMember = require('../models/GroupMember');
+const redisClient = require('../config/redis');
 
 let io;
 
@@ -47,7 +49,8 @@ const initializeSocket = (server) => {
         },
         transports: ['websocket', 'polling'], // Explicitly allow both, but client will prefer websocket now
         pingTimeout: 60000,
-        pingInterval: 25000
+        pingInterval: 25000,
+        adapter: createAdapter(redisClient, redisClient.duplicate())
     });
 
     // Initialize marketplace messaging namespace

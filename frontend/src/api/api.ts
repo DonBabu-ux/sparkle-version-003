@@ -47,7 +47,11 @@ console.log('🚀 Sparkle API initialized at:', api.defaults.baseURL);
 // Interceptor to add auth token, CSRF token, and device info
 api.interceptors.request.use(
   async (config) => {
-    const token = useUserStore.getState().token;
+    // Prefer token from user store; fallback to localStorage if not present
+    let token = useUserStore.getState().token;
+    if (!token) {
+      token = localStorage.getItem('accessToken') || null;
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

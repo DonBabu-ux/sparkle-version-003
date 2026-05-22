@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import SwipeableMessage from '../components/chat/SwipeableMessage';
+
 import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
@@ -686,7 +686,7 @@ const ChatInput = memo(({
                     {Math.floor(recordTime / 60)}:{String(recordTime % 60).padStart(2, '0')}
                   </span>
                 </div>
-                </SwipeableMessage>
+                
                 
                 <div className="flex items-center gap-[3px] flex-1 justify-center px-4 overflow-hidden">
                   <div className="flex items-center gap-[3px] animate-pulse">
@@ -2136,7 +2136,7 @@ export default function Messages() {
                       </div>
                     ) : null;
 
-                    const bubble = ( <SwipeableMessage msg={msg} isMe={isMe} onSwipeReply={(swipedMsg) => { const prefix = `↳ ${swipedMsg.sender_name || swipedMsg.senderId || 'User'}: ${swipedMsg.content?.slice(0,200)}`; setNoteReplyText(prefix); }}>
+                    const bubble = (
                       <div key={msg.message_id || i} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
                         <div className={clsx("max-w-[75%] md:max-w-[60%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <div 
@@ -2331,7 +2331,6 @@ export default function Messages() {
                           </div>
                         </div>
                       </div>
-                                         </SwipeableMessage>
                      );
 
                     return dateSep ? [dateSep, bubble] : [bubble];

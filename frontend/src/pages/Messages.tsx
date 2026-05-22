@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import SwipeableMessage from '../components/chat/SwipeableMessage';
 import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
@@ -685,6 +686,7 @@ const ChatInput = memo(({
                     {Math.floor(recordTime / 60)}:{String(recordTime % 60).padStart(2, '0')}
                   </span>
                 </div>
+                </SwipeableMessage>
                 
                 <div className="flex items-center gap-[3px] flex-1 justify-center px-4 overflow-hidden">
                   <div className="flex items-center gap-[3px] animate-pulse">
@@ -902,6 +904,7 @@ export default function Messages() {
   };
   const [selectedChat, setSelectedChat] = useState<ChatConversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messageSearch, setMessageSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
@@ -1609,6 +1612,12 @@ export default function Messages() {
     if (scrollStopRef.current) clearTimeout(scrollStopRef.current);
     scrollStopRef.current = setTimeout(() => setIsScrollingMessages(false), 300);
   };
+  // Memoized filtered messages based on search term
+  const filteredMessages = useMemo(() => {
+    if (!messageSearch.trim()) return messages;
+    const term = messageSearch.trim().toLowerCase();
+    return messages.filter(m => (m.content ?? '').toLowerCase().includes(term));
+  }, [messages, messageSearch]);
 
   const startNewChat = (contact: any) => {
     const existing = conversations.find(c => c.partner_id === contact.user_id);
@@ -1854,6 +1863,8 @@ export default function Messages() {
                 <input 
                   type="text" 
                   placeholder="Search messages..." 
+                  value={messageSearch}
+                  onChange={e => setMessageSearch(e.target.value)}
                   className="w-full h-[46px] rounded-2xl pl-11 pr-4 text-[14.5px] font-medium text-white/90 placeholder:text-white/40 transition-all outline-none focus:shadow-[0_0_0_2px_rgba(255,20,147,0.18)]"
                   style={{
                     background: 'rgba(255,255,255,0.07)',
@@ -2100,7 +2111,7 @@ export default function Messages() {
 
               <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10" onScroll={handleScroll}>
                 <div className="flex flex-col">
-                  {messages.flatMap((msg, i) => {
+                  {filteredMessages.flatMap((msg, i) => {
                     const isMe = msg.sender_id === (user?.id || user?.user_id);
                     const prevMsg = i > 0 ? messages[i-1] : null;
                     const nextMsg = i < messages.length - 1 ? messages[i+1] : null;
@@ -2125,7 +2136,7 @@ export default function Messages() {
                       </div>
                     ) : null;
 
-                    const bubble = (
+                    const bubble = ( <SwipeableMessage msg={msg} isMe={isMe} onSwipeReply={(swipedMsg) => { const prefix = `↳ ${swipedMsg.sender_name || swipedMsg.senderId || 'User'}: ${swipedMsg.content?.slice(0,200)}`; setNoteReplyText(prefix); }}>
                       <div key={msg.message_id || i} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
                         <div className={clsx("max-w-[75%] md:max-w-[60%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <div 
@@ -2320,7 +2331,8 @@ export default function Messages() {
                           </div>
                         </div>
                       </div>
-                    );
+                                         </SwipeableMessage>
+                     );
 
                     return dateSep ? [dateSep, bubble] : [bubble];
                   })}

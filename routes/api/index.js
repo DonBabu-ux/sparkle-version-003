@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const authRoutes = require('./auth.routes');
+const userTabsRoutes = require('./userTabs.routes');
 
 const userRoutes = require('./user.routes');
 const messagesRoutes = require('./messages.routes');
@@ -42,6 +43,7 @@ router.get('/health', async (req, res) => {
     }
 });
 router.use('/users', userRoutes);
+router.use('/users', userTabsRoutes);
 router.use('/messages', messagesRoutes);
 router.use('/groupChat', groupChatRoutes);
 router.use('/posts', postsRoutes);

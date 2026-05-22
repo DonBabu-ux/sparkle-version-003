@@ -3694,6 +3694,8 @@ export default function Messages() {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
         .note-modal-open nav.lg\\:hidden { display: none !important; }
+        body.list-modal-open nav { display: none !important; }
+
         em-emoji-picker { 
           --padding: 0px !important;
           --border-radius: 0px !important;

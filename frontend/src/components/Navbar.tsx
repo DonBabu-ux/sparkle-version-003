@@ -115,7 +115,7 @@ export default function Navbar() {
 
 
       {/* Mobile Bottom Navigation - Only show on main chat list, hide on chats/settings/other subpages */}
-      {!(location.pathname.startsWith('/messages') && location.pathname !== '/messages' || (location.pathname === '/messages' && new URLSearchParams(location.search).has('chat'))) && (
+      {!showMobileCreate && !(location.pathname.startsWith('/messages') && location.pathname !== '/messages') && !(location.pathname === '/messages' && new URLSearchParams(location.search).has('chat')) && !location.pathname.includes('/create') && (
       <nav
         className={clsx(
           "md:hidden grid grid-cols-7 items-center fixed bottom-0 left-0 right-0 w-full z-[1000] transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",

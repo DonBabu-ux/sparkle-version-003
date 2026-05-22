@@ -206,7 +206,7 @@ export default function Confessions() {
   };
 
   return (
-    <div className="flex bg-[#FBFBFD] dark:bg-black min-h-screen text-[#1D1D1F] dark:text-white font-sans selection:bg-primary/10">
+    <div className="flex bg-[#FBFBFD] dark:bg-[#101217] min-h-screen text-[#1D1D1F] dark:text-white font-sans selection:bg-primary/10">
       {/* Background blobs */}
       <div className="fixed top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
@@ -214,13 +214,13 @@ export default function Confessions() {
       <main className="flex-1 relative z-10 w-full max-w-[680px] mx-auto min-h-screen flex flex-col pb-28">
 
         {/* ── Sticky Header ── */}
-        <div className="sticky top-0 z-50 bg-[#FBFBFD]/40 dark:bg-black/80 backdrop-blur-3xl transition-all border-b border-black/5 dark:border-white/10">
+        <div className="sticky top-0 z-50 bg-[#FBFBFD]/40 dark:bg-[#101217]/80 backdrop-blur-3xl transition-all border-b border-black/5 dark:border-white/10">
           {/* Top row */}
           <div className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pb-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="w-10 h-10 rounded-2xl bg-white dark:bg-black shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center text-black/40 dark:text-white hover:text-primary transition-all active:scale-95"
+                className="w-10 h-10 rounded-2xl bg-white dark:bg-[#101217] shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center text-black/40 dark:text-white hover:text-primary transition-all active:scale-95"
               >
                 <ArrowLeft size={19} strokeWidth={2.5} />
               </button>
@@ -242,7 +242,7 @@ export default function Confessions() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="w-10 h-10 rounded-2xl bg-white dark:bg-black border border-black/5 dark:border-white/10 flex items-center justify-center text-black/40 dark:text-white hover:text-primary transition-all shadow-sm active:scale-95">
+              <button className="w-10 h-10 rounded-2xl bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 flex items-center justify-center text-black/40 dark:text-white hover:text-primary transition-all shadow-sm active:scale-95">
                 <TrendingUp size={17} />
               </button>
               {/* Plus button opens the local ConfessionModal */}
@@ -264,7 +264,7 @@ export default function Confessions() {
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0 ${
                   activeCategory === cat.id
                     ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105'
-                    : 'bg-white dark:bg-black text-black/40 dark:text-white/60 border-black/5 dark:border-white/10 hover:text-primary hover:border-primary/20'
+                    : 'bg-white dark:bg-[#101217] text-black/40 dark:text-white/60 border-black/5 dark:border-white/10 hover:text-primary hover:border-primary/20'
                 }`}
               >
                 {cat.icon}
@@ -331,7 +331,7 @@ export default function Confessions() {
                 { label: 'Anonymity',    value: '100% SECURE', icon: <ShieldCheck size={16} /> },
               ].map((stat, i) => (
                 <div key={i} className="flex items-center gap-3 group/stat">
-                  <div className="w-10 h-10 rounded-2xl bg-white dark:bg-black shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center text-primary group-hover/stat:bg-primary group-hover/stat:text-white transition-all duration-300">
+                  <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#101217] shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center text-primary group-hover/stat:bg-primary group-hover/stat:text-white transition-all duration-300">
                     {stat.icon}
                   </div>
                   <div>
@@ -356,7 +356,7 @@ export default function Confessions() {
               confessions.map((conf, idx) => (
                 <div
                   key={conf.confession_id || idx}
-                  className="bg-white dark:bg-black rounded-none sm:rounded-[28px] overflow-hidden shadow-none sm:shadow-[0_8px_32px_rgba(0,0,0,0.04)] border-b sm:border border-black/5 dark:border-white/10 transition-all duration-500 animate-fade-in hover:shadow-[0_12px_40px_rgba(0,0,0,0.07)] group flex flex-col relative"
+                  className="bg-white dark:bg-[#101217] rounded-none sm:rounded-[28px] overflow-hidden shadow-none sm:shadow-[0_8px_32px_rgba(0,0,0,0.04)] border-b sm:border border-black/5 dark:border-white/10 transition-all duration-500 animate-fade-in hover:shadow-[0_12px_40px_rgba(0,0,0,0.07)] group flex flex-col relative"
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
                   <div className="absolute -right-5 -bottom-5 text-black/[0.03] dark:text-white/[0.03] -rotate-12 z-0 pointer-events-none" aria-hidden>
@@ -658,7 +658,7 @@ export default function Confessions() {
       {/* ── Confession Comments Modal ── */}
       {activeCommentsModal && (
         <div className="fixed inset-0 z-[9999] flex justify-center items-end sm:items-center bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white dark:bg-black sm:rounded-[32px] rounded-t-[32px] h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl animate-slide-up sm:animate-scale-in border-t sm:border border-black/5 dark:border-white/10">
+          <div className="w-full max-w-lg bg-white dark:bg-[#101217] sm:rounded-[32px] rounded-t-[32px] h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl animate-slide-up sm:animate-scale-in border-t sm:border border-black/5 dark:border-white/10">
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10">
               <div className="flex items-center gap-2">
@@ -679,7 +679,7 @@ export default function Confessions() {
             </div>
 
             {/* Comments List */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-white dark:bg-black">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-white dark:bg-[#101217]">
               {commentsData[activeCommentsModal]?.length === 0 ? (
                 <div className="py-20 flex flex-col items-center gap-3 text-center">
                   <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center">
@@ -778,7 +778,7 @@ export default function Confessions() {
         </div>
 
         {/* Input Area */}
-            <div className="p-4 border-t border-black/5 dark:border-white/10 bg-white dark:bg-black sm:rounded-b-[32px] mb-safe">
+            <div className="p-4 border-t border-black/5 dark:border-white/10 bg-white dark:bg-[#101217] sm:rounded-b-[32px] mb-safe">
               {replyTo && (
                 <div className="flex items-center justify-between mb-2 px-2">
                   <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">

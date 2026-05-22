@@ -48,7 +48,7 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 lowercase">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-3xl animate-fade-in" 
+        className="absolute inset-0 bg-black/20 dark:bg-[#101217]/60 backdrop-blur-3xl animate-fade-in" 
         onClick={onClose} 
       />
       

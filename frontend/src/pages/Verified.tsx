@@ -56,13 +56,13 @@ export default function Verified() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+    <div className="min-h-screen bg-white dark:bg-[#101217] flex items-center justify-center">
       <Spinner size="large" color="text-primary" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden pt-12 md:pt-20 relative transition-colors duration-300">
+    <div className="min-h-screen bg-white dark:bg-[#101217] text-black dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden pt-12 md:pt-20 relative transition-colors duration-300">
       <Navbar />
 
       {/* Background orbs */}
@@ -74,7 +74,7 @@ export default function Verified() {
         <header className="flex items-center gap-5 md:gap-8 mb-10 md:mb-12 animate-fade-in">
           <button 
             onClick={() => navigate(-1)} 
-            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white dark:bg-black/50 backdrop-blur-3xl flex items-center justify-center text-black dark:text-white shadow-lg border border-white dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
+            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white dark:bg-[#101217]/50 backdrop-blur-3xl flex items-center justify-center text-black dark:text-white shadow-lg border border-white dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
           >
             <ArrowLeft size={22} md:size={26} strokeWidth={3} />
           </button>
@@ -99,7 +99,7 @@ export default function Verified() {
                     alt="" 
                     className="w-full h-full rounded-full object-cover border-4 border-white dark:border-black shadow-2xl"
                   />
-                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-black rounded-full p-1.5 shadow-lg">
+                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-[#101217] rounded-full p-1.5 shadow-lg">
                     {stats.trustLevel >= 3 ? (
                       <BadgeCheck size={32} fill="#ff1f6d" color="white" strokeWidth={1} />
                     ) : (
@@ -262,7 +262,7 @@ export default function Verified() {
                       htmlFor="id-upload" 
                       className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[32px] bg-white/40 dark:bg-white/5 group-hover:bg-white/60 dark:group-hover:bg-white/10 group-hover:border-[#FF1F6D]/30 transition-all cursor-pointer"
                     >
-                      <div className="w-14 h-14 rounded-full bg-white dark:bg-black shadow-md flex items-center justify-center text-black/20 dark:text-white/20 group-hover:text-[#FF1F6D] transition-colors mb-3">
+                      <div className="w-14 h-14 rounded-full bg-white dark:bg-[#101217] shadow-md flex items-center justify-center text-black/20 dark:text-white/20 group-hover:text-[#FF1F6D] transition-colors mb-3">
                         <Upload size={24} strokeWidth={2.5} />
                       </div>
                       <span className="text-[10px] font-black text-black/60 dark:text-white/60 uppercase italic tracking-widest">Transmit File Signal</span>

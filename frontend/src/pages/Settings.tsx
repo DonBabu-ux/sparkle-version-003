@@ -197,7 +197,7 @@ export default function Settings() {
   const showError = (msg: string) => { setError(msg); setSuccess(null); };
 
   return (
-    <div className="block lg:flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans overflow-x-hidden transition-colors duration-300">
+    <div className="block lg:flex bg-white dark:bg-[#101217] min-h-screen text-black dark:text-white font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
 
       {/* Background orbs */}
@@ -319,7 +319,7 @@ export default function Settings() {
                  <div className="grid gap-4">
                   <div className="p-6 bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl flex items-center justify-between group/item hover:bg-black/5 dark:hover:bg-white/10 hover:border-primary/20 transition-all duration-300">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white dark:bg-black rounded-xl flex items-center justify-center text-primary shadow-sm border border-black/5 dark:border-white/5">
+                      <div className="w-12 h-12 bg-white dark:bg-[#101217] rounded-xl flex items-center justify-center text-primary shadow-sm border border-black/5 dark:border-white/5">
                         <Smartphone size={24} />
                       </div>
                        <div>
@@ -339,7 +339,7 @@ export default function Settings() {
 
                    <div className="p-6 bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl flex items-center justify-between group/item hover:bg-black/5 dark:hover:bg-white/10 hover:border-red-100 transition-all duration-300">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white dark:bg-black rounded-xl flex items-center justify-center text-red-500 shadow-sm border border-black/5 dark:border-white/5">
+                      <div className="w-12 h-12 bg-white dark:bg-[#101217] rounded-xl flex items-center justify-center text-red-500 shadow-sm border border-black/5 dark:border-white/5">
                         <Lock size={24} />
                       </div>
                        <div>
@@ -423,7 +423,7 @@ export default function Settings() {
                    ].map(item => (
                     <div key={item.k} className="p-6 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl flex items-center justify-between group/item hover:bg-white dark:hover:bg-white/10 hover:border-gray-200 transition-all duration-300">
                       <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 bg-white dark:bg-black rounded-xl flex items-center justify-center ${item.color} shadow-sm border border-gray-100 dark:border-white/5`}>
+                        <div className={`w-12 h-12 bg-white dark:bg-[#101217] rounded-xl flex items-center justify-center ${item.color} shadow-sm border border-gray-100 dark:border-white/5`}>
                           <item.i size={24} />
                         </div>
                          <div>
@@ -477,7 +477,7 @@ export default function Settings() {
                   {['Likes & Shares', 'Followers', 'Mentions', 'Nearby', 'System Updates', 'Trending'].map((item) => (
                     <div key={item} className="p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white dark:hover:bg-white/10 hover:border-primary/10 transition-all duration-300">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white dark:bg-black rounded-xl flex items-center justify-center text-gray-400 dark:text-white/20 group-hover:text-primary transition-all shadow-sm border border-gray-100 dark:border-white/5">
+                        <div className="w-10 h-10 bg-white dark:bg-[#101217] rounded-xl flex items-center justify-center text-gray-400 dark:text-white/20 group-hover:text-primary transition-all shadow-sm border border-gray-100 dark:border-white/5">
                           <Bell size={18} />
                         </div>
                         <h4 className="text-sm font-bold text-gray-900 dark:text-white">{item}</h4>
@@ -517,7 +517,7 @@ export default function Settings() {
                           handleUpdateSetting('dm_permission', opt);
                         }}
                       />
-                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 ${formData.dm_permission === opt ? 'bg-primary text-white shadow-lg' : 'bg-white dark:bg-black border border-gray-100 dark:border-white/5 text-gray-300 dark:text-white/10'}`}>
+                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 ${formData.dm_permission === opt ? 'bg-primary text-white shadow-lg' : 'bg-white dark:bg-[#101217] border border-gray-100 dark:border-white/5 text-gray-300 dark:text-white/10'}`}>
                         {opt === 'everyone' ? <Users size={28} /> : opt === 'followers' ? <Heart size={28} /> : <EyeOff size={28} />}
                       </div>
                        <div className="space-y-1">
@@ -580,7 +580,7 @@ export default function Settings() {
                     <p className="text-xs font-bold text-gray-400 dark:text-white/40 uppercase tracking-[0.15em] leading-relaxed max-w-sm mb-6">Adjust the visual density of the Sparkle interface to suit your display and preference.</p>
                     <div className="flex gap-2">
                        {['Compact', 'Default', 'Large'].map(scale => (
-                         <button key={scale} className={`px-5 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest border transition-all ${scale === 'Default' ? 'bg-white dark:bg-black border-primary text-primary shadow-sm' : 'bg-white dark:bg-[#121212] border-gray-200 dark:border-white/5 text-gray-400 dark:text-white/40 hover:border-gray-300'}`}>
+                         <button key={scale} className={`px-5 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest border transition-all ${scale === 'Default' ? 'bg-white dark:bg-[#101217] border-primary text-primary shadow-sm' : 'bg-white dark:bg-[#121212] border-gray-200 dark:border-white/5 text-gray-400 dark:text-white/40 hover:border-gray-300'}`}>
                             {scale}
                          </button>
                        ))}

@@ -100,15 +100,15 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   );
 
   return (
-    <div className="bg-white dark:bg-black rounded-xl w-full max-w-[450px] overflow-hidden shadow-2xl animate-scale-in border border-black/5 dark:border-white/10">
-      <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between relative bg-white dark:bg-black">
+    <div className="bg-white dark:bg-[#101217] rounded-xl w-full max-w-[450px] overflow-hidden shadow-2xl animate-scale-in border border-black/5 dark:border-white/10">
+      <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between relative bg-white dark:bg-[#101217]">
         <h3 className="text-[17px] font-bold text-black dark:text-white mx-auto">Share</h3>
         <button onClick={onClose} className="absolute right-4 p-2 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-full transition-colors text-black/40 dark:text-white/40">
           <X size={20} />
         </button>
       </div>
 
-      <div className="p-4 bg-white dark:bg-black">
+      <div className="p-4 bg-white dark:bg-[#101217]">
         {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-black/20 dark:text-white/20" size={16} />

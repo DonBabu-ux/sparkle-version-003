@@ -11,7 +11,6 @@ const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
-const compression = require('compression');
 require('dotenv').config();
 
 const { PORT } = require('./config/constants');
@@ -20,9 +19,7 @@ const momentsController = require('./controllers/moments.controller');
 const apiRoutes = require('./routes/api');
 const webRoutes = require('./routes/web');
 
-const { securityHeaders, apiRateLimiter, authRateLimiter, sanitizeInput, imageLimiter } = require('./middleware/security.middleware');
-const { dedupRequest } = require('./middleware/dedup.middleware');
-const { requestTimeout } = require('./middleware/timeout.middleware');
+const { securityHeaders, apiRateLimiter, sanitizeInput, imageLimiter } = require('./middleware/security.middleware');
 const logger = require('./utils/logger');
 const { startKeepAlive } = require('./utils/keep-alive');
 const firebaseConfig = require('./config/firebase.config');
@@ -43,9 +40,6 @@ app.set('trust proxy', 1); // Trust first proxy (Vite locally, Render in prod)
 
 // Security & Performance Middleware
 app.use(securityHeaders);
-
-// Gzip/Brotli compression for all responses
-app.use(compression({ level: 6, threshold: 1024 }));
 
 // CORS configuration to allow credentials and specific origins
 app.use(cors({
@@ -228,17 +222,6 @@ app.get('/api/ping', (req, res) => res.json({ status: 'API IS ALIVE', time: new 
 app.use('/api', (req, res, next) => {
     next();
 });
-
-// Auth routes: strict rate limit + duplicate request prevention
-app.use('/api/auth', authRateLimiter, dedupRequest(8000));
-
-// Uploads: longer timeout to handle large files
-app.use('/api/upload', requestTimeout(90000));
-app.use('/api/moments', requestTimeout(90000));
-app.use('/api/stories', requestTimeout(60000));
-
-// All other API routes: 15s hard timeout
-app.use('/api', requestTimeout(15000));
 
 // Routes (Rate Limiter ENABLED for performance)
 app.use('/api', apiRateLimiter, apiRoutes);

@@ -28,7 +28,7 @@ export default function Memories() {
   }, []);
 
   return (
-    <div className="bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans transition-colors duration-300 overflow-x-hidden pt-safe">
+    <div className="bg-white dark:bg-[#101217] min-h-screen text-black dark:text-white font-sans transition-colors duration-300 overflow-x-hidden pt-safe">
       {/* Removed Sidebar for Full Page Experience */}
       
       <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full pt-10 lg:pt-12">

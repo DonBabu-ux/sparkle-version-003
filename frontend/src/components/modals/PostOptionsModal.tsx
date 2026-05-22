@@ -69,10 +69,10 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
-        className="bg-white dark:bg-black w-full sm:max-w-xs rounded-t-[28px] sm:rounded-[28px] shadow-2xl flex flex-col overflow-hidden relative z-10 border-t border-black/5 dark:border-white/10"
+        className="bg-white dark:bg-[#101217] w-full sm:max-w-xs rounded-t-[28px] sm:rounded-[28px] shadow-2xl flex flex-col overflow-hidden relative z-10 border-t border-black/5 dark:border-white/10"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-center p-3 border-b border-black/5 dark:border-white/10 relative bg-white dark:bg-black">
+        <div className="flex justify-center p-3 border-b border-black/5 dark:border-white/10 relative bg-white dark:bg-[#101217]">
           <div className="w-10 h-1 bg-black/10 dark:bg-white/10 rounded-full sm:hidden" />
           <button 
             onClick={onClose}
@@ -82,7 +82,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
           </button>
         </div>
 
-        <div className="p-1.5 overflow-y-auto bg-white dark:bg-black pb-safe">
+        <div className="p-1.5 overflow-y-auto bg-white dark:bg-[#101217] pb-safe">
           <button
             onClick={async () => { 
               try {

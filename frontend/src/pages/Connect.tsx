@@ -139,7 +139,7 @@ export default function Connect() {
               />
             </div>
             
-            <div className="flex items-center gap-2 p-1.5 bg-black/5 dark:bg-black/40 rounded-[1.5rem] border border-transparent dark:border-white/5">
+            <div className="flex items-center gap-2 p-1.5 bg-black/5 dark:bg-[#101217]/40 rounded-[1.5rem] border border-transparent dark:border-white/5">
               {TABS.map(({ label, icon: Icon }) => (
                 <button
                   key={label}

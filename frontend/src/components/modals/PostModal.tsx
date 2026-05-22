@@ -239,7 +239,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
                 </button>
 
                 {showTypeDropdown && (
-                  <div className="absolute top-8 left-0 w-44 bg-white dark:bg-black rounded-xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden animate-scale-in">
+                  <div className="absolute top-8 left-0 w-44 bg-white dark:bg-[#101217] rounded-xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden animate-scale-in">
                     {POST_TYPES.map(t => {
                       const Icon = t.icon;
                       return (

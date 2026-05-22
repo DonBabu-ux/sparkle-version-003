@@ -163,7 +163,7 @@ export default function Search() {
   ];
 
   return (
-    <div className="block lg:flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
+    <div className="block lg:flex bg-white dark:bg-[#101217] min-h-screen text-black dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
       <Navbar />
       
       {/* Cinematic Background Elements */}
@@ -175,7 +175,7 @@ export default function Search() {
       <main className="flex-1 lg:ml-72 flex flex-col relative z-10">
         
         {/* Sleek Search Header */}
-        <header className="sticky top-0 z-[100] bg-white/95 dark:bg-black/95 backdrop-blur-3xl border-b border-black/5 dark:border-white/10 px-4 py-4 md:py-6">
+        <header className="sticky top-0 z-[100] bg-white/95 dark:bg-[#101217]/95 backdrop-blur-3xl border-b border-black/5 dark:border-white/10 px-4 py-4 md:py-6">
           <div className="max-w-3xl mx-auto flex items-center gap-4">
                 <button 
                   onClick={() => navigate(-1)} 
@@ -300,7 +300,7 @@ export default function Search() {
                 </div>
             ) : (
                 <div className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 sticky top-[81px] md:top-[105px] z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl py-4 -mx-4 px-4 border-b border-black/[0.03] dark:border-white/[0.03]">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 sticky top-[81px] md:top-[105px] z-50 bg-white/80 dark:bg-[#101217]/80 backdrop-blur-xl py-4 -mx-4 px-4 border-b border-black/[0.03] dark:border-white/[0.03]">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
@@ -344,7 +344,7 @@ export default function Search() {
                                         <div 
                                           key={`res-g-${g.id || j}`} 
                                           onClick={() => navigate(type === 'hashtags' ? `/hashtag/${g.title?.replace('#', '')}` : `/${type}/${g.id}`)} 
-                                          className="flex items-center gap-4 p-5 bg-white dark:bg-black border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
+                                          className="flex items-center gap-4 p-5 bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
                                         >
                                             {type === 'hashtags' ? (
                                                 <div className="w-14 h-14 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 shrink-0 transition-all">
@@ -366,7 +366,7 @@ export default function Search() {
                                         <div 
                                           key={`res-m-${item.id || j}`} 
                                           onClick={() => navigate(`/marketplace/listings/${item.id}`)} 
-                                          className="flex items-center gap-4 p-5 bg-white dark:bg-black border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
+                                          className="flex items-center gap-4 p-5 bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
                                         >
                                             <img src={item.image || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
                                             <div className="flex-1 min-w-0">

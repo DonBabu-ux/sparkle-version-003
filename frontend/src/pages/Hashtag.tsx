@@ -39,7 +39,7 @@ export default function Hashtag() {
   }, [tag, fetchPosts]);
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
+    <div className="flex bg-white dark:bg-[#101217] min-h-screen text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
       <Navbar />
 
       {/* Background orbs */}

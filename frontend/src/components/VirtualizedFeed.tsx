@@ -27,7 +27,7 @@ const SkeletonCard = () => {
   const shimmerClass = "animate-shimmer bg-black/5 dark:bg-white/5";
 
   return (
-    <div className="w-full bg-white dark:bg-black rounded-none sm:rounded-[12px] border-b sm:border border-black/5 dark:border-white/10 p-5 flex flex-col gap-4">
+    <div className="w-full bg-white dark:bg-[#101217] rounded-none sm:rounded-[12px] border-b sm:border border-black/5 dark:border-white/10 p-5 flex flex-col gap-4">
       {/* User Header */}
       <div className="flex items-center gap-3">
         <div className={`w-10 h-10 rounded-full shrink-0 ${shimmerClass}`} />
@@ -146,7 +146,7 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className="mb-3 bg-white dark:bg-black rounded-none sm:rounded-[12px] shadow-sm dark:shadow-none p-5 border-b sm:border border-black/5 dark:border-white/10">
+    <div className="mb-3 bg-white dark:bg-[#101217] rounded-none sm:rounded-[12px] shadow-sm dark:shadow-none p-5 border-b sm:border border-black/5 dark:border-white/10">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[12px] font-black text-black/35 dark:text-white/30 uppercase tracking-widest">Suggested accounts</h3>
         <button onClick={() => navigate('/connect')} className="text-[11px] font-black text-primary hover:underline uppercase tracking-widest">See all</button>

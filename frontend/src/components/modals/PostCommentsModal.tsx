@@ -205,7 +205,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   }, [showStickers, giphySearch]);
 
   return (
-    <div className="flex flex-col h-[85vh] md:h-[600px] w-full max-w-full bg-white dark:bg-black overflow-hidden relative border-x border-t border-black/5 dark:border-white/10 rounded-t-[12px] shadow-2xl mx-auto">
+    <div className="flex flex-col h-[85vh] md:h-[600px] w-full max-w-full bg-white dark:bg-[#101217] overflow-hidden relative border-x border-t border-black/5 dark:border-white/10 rounded-t-[12px] shadow-2xl mx-auto">
       {/* Sticker Picker Overlay */}
       <AnimatePresence>
         {showStickers && (
@@ -263,7 +263,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/10 bg-white dark:bg-black">
+      <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/10 bg-white dark:bg-[#101217]">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-[17px] text-black dark:text-white">Comments</h3>
@@ -296,7 +296,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-white dark:bg-black custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-white dark:bg-[#101217] custom-scrollbar">
         {/* Original Post Context */}
         <div className="flex gap-3 pb-4 border-b border-black/5 dark:border-white/10">
           <img src={post.avatar_url || '/uploads/avatars/default.png'} className="w-9 h-9 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0" alt="" />
@@ -438,7 +438,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
-              className="fixed bottom-0 left-0 right-0 bg-white dark:bg-black rounded-t-[32px] z-[2001] shadow-2xl p-6 pb-12 border-t border-black/5 dark:border-white/10"
+              className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#101217] rounded-t-[32px] z-[2001] shadow-2xl p-6 pb-12 border-t border-black/5 dark:border-white/10"
             >
               <div className="w-12 h-1 bg-black/10 dark:bg-white/10 rounded-full mx-auto mb-6" />
               
@@ -579,7 +579,7 @@ function CommentItem({
                 <textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-lg p-2 text-[14px] outline-none focus:border-primary"
+                  className="w-full bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 rounded-lg p-2 text-[14px] outline-none focus:border-primary"
                   rows={2}
                   autoFocus
                 />
@@ -619,7 +619,7 @@ function CommentItem({
           <div className="relative">
             <button onClick={() => setShowMenu(!showMenu)} className="hover:text-black dark:hover:text-white font-bold tracking-widest px-1">•••</button>
             {showMenu && (
-              <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-black rounded-lg shadow-xl border border-black/5 dark:border-white/10 py-1 z-50 animate-scale-in">
+              <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-[#101217] rounded-lg shadow-xl border border-black/5 dark:border-white/10 py-1 z-50 animate-scale-in">
                 {!isAuthor && (
                   <button onClick={() => { setShowMenu(false); alert('Comment reported.'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Report</button>
                 )}

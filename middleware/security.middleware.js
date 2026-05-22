@@ -1,21 +1,16 @@
 const rateLimit = require('express-rate-limit');
-const RedisStore = require('rate-limit-redis').default || require('rate-limit-redis');
 const helmet = require('helmet');
 const csrf = require('csurf');
 const { body, validationResult } = require('express-validator');
-const redisClient = require('../config/redis');
 
 /**
- * Rate limiting configuration using Redis
+ * Rate limiting configuration
  */
 const createRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
     return rateLimit({
-        store: new RedisStore({
-            sendCommand: (...args) => redisClient.call(...args),
-        }),
         windowMs,
         max,
-        message: 'Too many requests from this Accounts, please try again later.',
+        message: 'Too many requests from this IP, please try again later.',
         standardHeaders: true,
         legacyHeaders: false,
     });
@@ -124,4 +119,4 @@ module.exports = {
     csrfProtection,
     sanitizeInput,
     securityHeaders
-};
+};

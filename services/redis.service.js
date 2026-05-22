@@ -1,99 +1,229 @@
-// services/redis.service.js
-// Single Redis client abstraction with graceful fallback
-const redisClient = require('../config/redis');
+const { Redis } = require('@upstash/redis');
 const logger = require('../utils/logger');
+const dns = require('dns');
 
+// Force IPv4 resolution to fix Node 18+ "fetch failed" issues with Upstash
+dns.setDefaultResultOrder('ipv4first');
+
+
+/**
+ * Production-ready Redis Service using Upstash REST Client.
+ * Handles caching, OTP storage, and session persistence with graceful fallbacks.
+ */
 class RedisService {
+    constructor() {
+        this.client = null;
+        this.isEnabled = false;
+        this.initialize();
+    }
+
+    initialize() {
+        try {
+            const url = process.env.UPSTASH_REDIS_REST_URL;
+            const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+            if (!url || !token) {
+                logger.warn('Redis Service: UPSTASH_REDIS_REST_URL or TOKEN missing. Redis is DISABLED.');
+                return;
+            }
+
+            this.client = new Redis({
+                url: url,
+                token: token,
+            });
+
+            this.isEnabled = true;
+            logger.info('Redis Service: Initialized successfully (REST API)');
+        } catch (error) {
+            logger.error('Redis Service: Initialization failed:', error);
+            this.isEnabled = false;
+        }
+    }
+
     /**
-     * Get a cached value. Returns null on Redis failure (non-blocking).
+     * Get a value from Redis
      */
     async get(key) {
+        if (!this.isEnabled) return null;
         try {
-            const val = await redisClient.get(key);
-            return val ? JSON.parse(val) : null;
-        } catch (err) {
-            logger.warn(`[Redis] GET failed for key "${key}":`, err.message);
+            return await this.client.get(key);
+        } catch (error) {
+            logger.error(`Redis Get Error [${key}]:`, error.message);
             return null;
         }
     }
 
     /**
-     * Set a value with optional TTL (seconds). Fails silently.
+     * Get multiple values from Redis (Optimized Batching)
      */
-    async set(key, value, ttlSeconds = 3600) {
+    async mget(...keys) {
+        if (!this.isEnabled) return keys.map(() => null);
         try {
-            await redisClient.set(key, JSON.stringify(value), 'EX', ttlSeconds);
-        } catch (err) {
-            logger.warn(`[Redis] SET failed for key "${key}":`, err.message);
+            return await this.client.mget(...keys);
+        } catch (error) {
+            logger.error(`Redis MGet Error [${keys.length} keys]:`, error.message);
+            return keys.map(() => null);
         }
     }
 
     /**
-     * Delete a key. Fails silently.
+     * Set a value in Redis with optional TTL (seconds) and options (like NX)
+     */
+    async set(key, value, ttlOrOptions = null, maybeNx = null) {
+        if (!this.isEnabled) return "DISABLED"; // Return truthy so locks don't fail when disabled
+        try {
+            let options = {};
+            if (typeof ttlOrOptions === 'number') {
+                options.ex = ttlOrOptions;
+            } else if (ttlOrOptions && typeof ttlOrOptions === 'object') {
+                options = ttlOrOptions;
+            }
+
+            if (maybeNx === 'NX' || (ttlOrOptions === 'NX')) {
+                options.nx = true;
+            }
+
+            return await this.client.set(key, value, options);
+        } catch (error) {
+            const msg = error.message || (typeof error === 'string' ? error : JSON.stringify(error));
+            logger.error(`Redis Set Error [${key}]: ${msg}`);
+            return null;
+        }
+    }
+
+    /**
+     * Delete a key
      */
     async del(key) {
+        if (!this.isEnabled) return null;
         try {
-            await redisClient.del(key);
-        } catch (err) {
-            logger.warn(`[Redis] DEL failed for key "${key}":`, err.message);
-        }
-    }
-
-    /**
-     * Delete all keys matching a pattern (e.g. "user:123:*").
-     */
-    async delPattern(pattern) {
-        try {
-            const keys = await redisClient.keys(pattern);
-            if (keys.length > 0) {
-                await redisClient.del(...keys);
-            }
-        } catch (err) {
-            logger.warn(`[Redis] DEL pattern failed for "${pattern}":`, err.message);
-        }
-    }
-
-    /**
-     * Atomic increment with optional TTL on first set.
-     */
-    async incr(key, ttlSeconds) {
-        try {
-            const count = await redisClient.incr(key);
-            if (count === 1 && ttlSeconds) {
-                await redisClient.expire(key, ttlSeconds);
-            }
-            return count;
-        } catch (err) {
-            logger.warn(`[Redis] INCR failed for key "${key}":`, err.message);
+            return await this.client.del(key);
+        } catch (error) {
+            logger.error(`Redis Del Error [${key}]:`, error.message);
             return null;
         }
     }
 
     /**
-     * Check if key exists.
+     * Increment a value (useful for rate limiting)
      */
-    async exists(key) {
+    async incr(key) {
+        if (!this.isEnabled) return 0;
         try {
-            return (await redisClient.exists(key)) === 1;
-        } catch (err) {
-            logger.warn(`[Redis] EXISTS failed for key "${key}":`, err.message);
-            return false;
+            return await this.client.incr(key);
+        } catch (error) {
+            logger.error(`Redis Incr Error [${key}]:`, error.message);
+            return 0;
         }
     }
 
     /**
-     * Cache-aside helper: returns cached result or executes fetchFn and caches it.
+     * Set expiration on a key
      */
-    async cacheAside(key, fetchFn, ttlSeconds = 300) {
-        const cached = await this.get(key);
-        if (cached !== null) return cached;
-
-        const fresh = await fetchFn();
-        if (fresh !== null && fresh !== undefined) {
-            await this.set(key, fresh, ttlSeconds);
+    async expire(key, seconds) {
+        if (!this.isEnabled) return null;
+        try {
+            return await this.client.expire(key, seconds);
+        } catch (error) {
+            logger.error(`Redis Expire Error [${key}]:`, error.message);
+            return null;
         }
-        return fresh;
+    }
+    /**
+     * Add to a Set (for seen videos)
+     */
+    async sadd(key, ...members) {
+        if (!this.isEnabled) return 0;
+        try {
+            return await this.client.sadd(key, ...members);
+        } catch (error) {
+            logger.error(`Redis SAdd Error [${key}]:`, error.message);
+            return 0;
+        }
+    }
+
+    /**
+     * Get all members of a Set
+     */
+    async smembers(key) {
+        if (!this.isEnabled) return [];
+        try {
+            return await this.client.smembers(key);
+        } catch (error) {
+            logger.error(`Redis SMembers Error [${key}]:`, error.message);
+            return [];
+        }
+    }
+
+    /**
+     * Hash Operations
+     */
+    async hgetall(key) {
+        if (!this.isEnabled) return null;
+        try {
+            return await this.client.hgetall(key);
+        } catch (error) {
+            logger.error(`Redis HGetAll Error [${key}]:`, error.message);
+            return null;
+        }
+    }
+
+    async hincrbyfloat(key, field, value) {
+        if (!this.isEnabled) return 0;
+        try {
+            return await this.client.hincrbyfloat(key, field, value);
+        } catch (error) {
+            logger.error(`Redis HIncrByFloat Error [${key}][${field}]:`, error.message);
+            return 0;
+        }
+    }
+
+    async hset(key, field, value) {
+        if (!this.isEnabled) return null;
+        try {
+            // Upstash hset takes an object or multiple field/value arguments.
+            // Using object format: { [field]: value }
+            return await this.client.hset(key, { [field]: value });
+        } catch (error) {
+            logger.error(`Redis HSet Error [${key}][${field}]:`, error.message);
+            return null;
+        }
+    }
+
+
+    /**
+     * List Operations
+     */
+    async lpush(key, ...members) {
+        if (!this.isEnabled) return 0;
+        try {
+            return await this.client.lpush(key, ...members);
+        } catch (error) {
+            logger.error(`Redis LPush Error [${key}]:`, error.message);
+            return 0;
+        }
+    }
+
+    async lrange(key, start, stop) {
+        if (!this.isEnabled) return [];
+        try {
+            return await this.client.lrange(key, start, stop);
+        } catch (error) {
+            logger.error(`Redis LRange Error [${key}]:`, error.message);
+            return [];
+        }
+    }
+
+    async ltrim(key, start, stop) {
+        if (!this.isEnabled) return null;
+        try {
+            return await this.client.ltrim(key, start, stop);
+        } catch (error) {
+            logger.error(`Redis LTrim Error [${key}]:`, error.message);
+            return null;
+        }
     }
 }
 
+// Export a singleton instance
 module.exports = new RedisService();

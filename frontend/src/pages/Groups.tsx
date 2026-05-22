@@ -35,7 +35,7 @@ export default function Groups() {
   ) ?? [];
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-black min-h-screen text-[#1a1a2e] dark:text-white font-sans">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#101217] min-h-screen text-[#1a1a2e] dark:text-white font-sans">
       <Navbar />
 
       {/* Decorative blobs */}
@@ -97,7 +97,7 @@ export default function Groups() {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search by name or interest..."
-                className="w-full h-[52px] bg-white dark:bg-black border border-primary/15 dark:border-white/10 rounded-2xl pl-12 pr-4 text-sm text-gray-900 dark:text-white outline-none shadow-sm focus:border-primary/50 dark:focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
+                className="w-full h-[52px] bg-white dark:bg-[#101217] border border-primary/15 dark:border-white/10 rounded-2xl pl-12 pr-4 text-sm text-gray-900 dark:text-white outline-none shadow-sm focus:border-primary/50 dark:focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
               />
             </div>
 
@@ -155,7 +155,7 @@ export default function Groups() {
               <div
                 key={group.group_id}
                 onClick={() => navigate(`/groups/${group.group_id}`)}
-                className="cursor-pointer flex flex-col relative overflow-hidden bg-white dark:bg-black border border-primary/10 dark:border-white/10 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-300"
+                className="cursor-pointer flex flex-col relative overflow-hidden bg-white dark:bg-[#101217] border border-primary/10 dark:border-white/10 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-300"
                 style={{
                   animation: `slideUp 0.5s ${idx * 0.05}s ease both`,
                 }}

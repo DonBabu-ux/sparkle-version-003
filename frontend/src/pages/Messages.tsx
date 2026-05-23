@@ -2792,112 +2792,190 @@ export default function Messages() {
       {/* ── FORWARD MODAL ── */}
       <AnimatePresence>
         {showForwardModal && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-[130] backdrop-blur-sm" 
-              onClick={() => setShowForwardModal(false)} 
-            />
-            <motion.div 
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 h-[85vh] bg-[#121212] rounded-t-[32px] z-[131] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-white/10 overflow-hidden"
-            >
-              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-4 shrink-0" />
-              <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 shrink-0">
-                <h2 className="text-[18px] font-black text-white italic tracking-tight uppercase">Forward To</h2>
-                <button 
-                  onClick={() => setShowForwardModal(false)} 
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-white/50 hover:text-white"
-                >
-                  <X size={18} strokeWidth={2.5} />
+          <motion.div
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ type: 'tween', duration: 0.25 }}
+            className="fixed inset-0 bg-[#0b141a] text-white z-[200] flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center px-4 h-16 bg-[#0b141a] border-b border-gray-800 shrink-0 gap-3">
+              <button onClick={() => setShowForwardModal(false)} className="p-2 -ml-2 rounded-full hover:bg-white/10 active:bg-white/20">
+                <ArrowLeft size={24} className="text-white" />
+              </button>
+              <input 
+                type="text" 
+                placeholder="Forward to..." 
+                value={forwardSearchQuery}
+                onChange={e => setForwardSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent border-none outline-none text-white text-[17px] font-medium placeholder:text-white/40 focus:ring-0 px-1"
+              />
+              <div className="flex items-center gap-1">
+                <button onClick={() => { setShowForwardModal(false); setShowNewChatModal(true); }} className="p-2 rounded-full hover:bg-white/10 active:bg-white/20">
+                  <Users size={22} className="text-white" />
                 </button>
               </div>
-              
-              <div className="p-4 shrink-0">
-                <div className="bg-white/5 rounded-2xl flex items-center px-4 h-[44px] focus-within:bg-white/10 transition-colors border border-white/5">
-                  <Search size={18} className="text-white/40 mr-2" strokeWidth={2.5} />
-                  <input 
-                    type="text" 
-                    placeholder="Search chats..."
-                    value={forwardSearchQuery}
-                    onChange={(e) => setForwardSearchQuery(e.target.value)}
-                    className="flex-1 bg-transparent text-[15px] font-medium text-white placeholder:text-white/30 outline-none border-none focus:ring-0 w-full"
-                  />
+            </div>
+
+            {/* List Area */}
+            <div className="flex-1 overflow-y-auto pb-24">
+              {/* My Status */}
+              <div 
+                className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
+                onClick={async () => {
+                  if (activeMessageMenu?.msg) {
+                    try {
+                      const { content, mediaUrl, media_url, type } = activeMessageMenu.msg;
+                      const media = mediaUrl || media_url;
+                      await api.post('/stories', {
+                        media_type: type === 'image' || type === 'video' ? type : 'text',
+                        caption: content,
+                        media_url: media || undefined
+                      });
+                      setShowForwardModal(false);
+                      setActiveMessageMenu(null);
+                      alert('Added to Sparkle Story!');
+                    } catch (e) {
+                      console.error(e);
+                      alert('Failed to add to story');
+                    }
+                  }
+                }}
+              >
+                <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center relative shrink-0">
+                  <div className="w-5 h-5 bg-[#0b141a] rounded-full absolute bottom-0 right-0 flex items-center justify-center">
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-[#0b141a] text-xs font-bold">+</div>
+                  </div>
+                </div>
+                <div className="ml-4 flex-1">
+                  <h3 className="text-[16px] font-medium text-[#e9edef]">My status</h3>
+                  <p className="text-[14px] text-[#8696a0]">My contacts +</p>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
-                {conversations
-                  .filter(c => c.partner_name?.toLowerCase().includes(forwardSearchQuery.toLowerCase()))
-                  .map(chat => {
-                    const isSelected = selectedForwardChatIds.includes(chat.chat_id);
-                    return (
-                      <button 
-                        key={chat.chat_id}
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedForwardChatIds(prev => prev.filter(id => id !== chat.chat_id));
-                          } else {
-                            setSelectedForwardChatIds(prev => [...prev, chat.chat_id]);
-                          }
-                          if (navigator.vibrate) navigator.vibrate(30);
-                        }}
-                        className="w-full flex items-center gap-4 px-6 py-3.5 hover:bg-white/[0.04] transition-all"
-                      >
-                        <div className="relative shrink-0">
-                          <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-12 h-12 rounded-full object-cover border border-white/10 shadow-sm" alt="" />
-                          {(chat.partner_online || chat.group_online_count) && (
-                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#121212]" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0 text-left flex flex-col justify-center">
-                          <span className="text-[15px] font-semibold text-white/90 truncate block">{chat.partner_name}</span>
-                          <span className="text-[12px] text-white/40 truncate block">{chat.is_group || chat.chat_type === 'group' ? 'Group' : 'User'}</span>
-                        </div>
-                        <div className={clsx("w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all", isSelected ? 'bg-[#ff1493] border-[#ff1493]' : 'border-white/20')}>
-                          {isSelected && <Check size={14} strokeWidth={3} className="text-white" />}
-                        </div>
-                      </button>
-                    );
-                })}
-              </div>
+              {/* Recent Chats Header */}
+              {conversations.length > 0 && (
+                <div className="px-4 py-2 mt-2">
+                  <span className="text-[14px] text-[#8696a0] font-medium">Recent chats</span>
+                </div>
+              )}
               
-              <AnimatePresence>
-                {selectedForwardChatIds.length > 0 && (
-                  <motion.div 
-                    initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
-                    className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#121212] via-[#121212] to-transparent pointer-events-none"
+              {conversations.slice(0, 4).map(chat => (
+                <div
+                  key={`recent-${chat.chat_id}`}
+                  onClick={() => {
+                    if (socket && activeMessageMenu?.msg) {
+                      socket.emit('send-message', {
+                        chatId: chat.chat_id,
+                        content: activeMessageMenu.msg.content,
+                        type: activeMessageMenu.msg.type || 'text',
+                        mediaUrl: activeMessageMenu.msg.mediaUrl || activeMessageMenu.msg.media_url,
+                        forwarded: true,
+                        isGroup: chat.is_group || chat.chat_type === 'group'
+                      });
+                      if (navigator.vibrate) navigator.vibrate([50]);
+                      setShowForwardModal(false);
+                      setActiveMessageMenu(null);
+                    }
+                  }}
+                  className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-full shrink-0 overflow-hidden bg-gray-800 relative">
+                    <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-full h-full object-cover" alt="" />
+                    {(chat.partner_online || chat.group_online_count) && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#121212]" />
+                    )}
+                  </div>
+                  <div className="ml-4 flex-1 overflow-hidden flex flex-col justify-center">
+                    <h3 className="text-[16px] text-[#e9edef] truncate">{chat.partner_name}</h3>
+                    <p className="text-[14px] text-[#8696a0] truncate">{chat.is_group || chat.chat_type === 'group' ? 'Group' : 'User'}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* All Followers */}
+              {Array.isArray(suggestedContacts) && suggestedContacts.length > 0 && (
+                <div className="px-4 py-2 mt-4">
+                  <span className="text-[14px] text-[#8696a0] font-medium">All followers</span>
+                </div>
+              )}
+
+              {Array.isArray(suggestedContacts) && suggestedContacts
+                .filter(contact => forwardSearchQuery ? (contact.name || contact.username).toLowerCase().includes(forwardSearchQuery.toLowerCase()) : true)
+                .map(contact => (
+                <div
+                  key={`follower-${contact.user_id || contact.id}`}
+                  onClick={async () => {
+                    // Create chat first if needed, then forward
+                    if (activeMessageMenu?.msg) {
+                      try {
+                        const res = await api.post('/messages/chat', { partnerId: contact.user_id || contact.id });
+                        if (res.data?.chat_id && socket) {
+                          socket.emit('send-message', {
+                            chatId: res.data.chat_id,
+                            content: activeMessageMenu.msg.content,
+                            type: activeMessageMenu.msg.type || 'text',
+                            mediaUrl: activeMessageMenu.msg.mediaUrl || activeMessageMenu.msg.media_url,
+                            forwarded: true,
+                            isGroup: false
+                          });
+                          if (navigator.vibrate) navigator.vibrate([50]);
+                          setShowForwardModal(false);
+                          setActiveMessageMenu(null);
+                        }
+                      } catch (err) {
+                        console.error('Failed to forward to follower', err);
+                      }
+                    }
+                  }}
+                  className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-full shrink-0 overflow-hidden bg-gray-800 relative">
+                    <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-full h-full object-cover" alt="" />
+                  </div>
+                  <div className="ml-4 flex-1 overflow-hidden flex flex-col justify-center">
+                    <h3 className="text-[16px] text-[#e9edef] truncate">{contact.name || contact.username}</h3>
+                    <p className="text-[14px] text-[#8696a0] truncate">@{contact.username}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <AnimatePresence>
+              {selectedForwardChatIds.length > 0 && (
+                <motion.div 
+                  initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
+                  className="absolute bottom-0 left-0 right-0 p-4 bg-[#0b141a] flex justify-end"
+                >
+                  <button
+                    onClick={() => {
+                      selectedForwardChatIds.forEach(chatId => {
+                        const targetChat = conversations.find(c => c.chat_id === chatId);
+                        if (socket && targetChat && activeMessageMenu?.msg) {
+                          socket.emit('send-message', {
+                            chatId: targetChat.chat_id,
+                            content: activeMessageMenu.msg.content,
+                            type: activeMessageMenu.msg.type || 'text',
+                            mediaUrl: activeMessageMenu.msg.mediaUrl || activeMessageMenu.msg.media_url,
+                            forwarded: true,
+                            isGroup: targetChat.is_group || targetChat.chat_type === 'group'
+                          });
+                        }
+                      });
+                      if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                      setShowForwardModal(false);
+                      setSelectedForwardChatIds([]);
+                      setActiveMessageMenu(null);
+                    }}
+                    className="w-14 h-14 rounded-full bg-[#00a884] text-white shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
                   >
-                    <button
-                      onClick={() => {
-                        selectedForwardChatIds.forEach(chatId => {
-                          const targetChat = conversations.find(c => c.chat_id === chatId);
-                          if (socket && targetChat && activeMessageMenu?.msg) {
-                            socket.emit('send-message', {
-                              chatId: targetChat.chat_id,
-                              content: activeMessageMenu.msg.content,
-                              type: activeMessageMenu.msg.type || 'text',
-                              mediaUrl: activeMessageMenu.msg.mediaUrl || activeMessageMenu.msg.media_url,
-                              forwarded: true,
-                              isGroup: targetChat.is_group || targetChat.chat_type === 'group'
-                            });
-                          }
-                        });
-                        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-                        setShowForwardModal(false);
-                        setSelectedForwardChatIds([]);
-                        setActiveMessageMenu(null);
-                      }}
-                      className="w-full h-[52px] rounded-2xl bg-[#ff1493] text-white font-black text-[15px] uppercase tracking-widest shadow-[0_8px_24px_rgba(255,20,147,0.4)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 pointer-events-auto"
-                    >
-                      <Forward size={20} strokeWidth={2.5} /> Send ({selectedForwardChatIds.length})
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          </>
+                    <Forward size={24} strokeWidth={2.5} className="text-white -ml-1" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         )}
       </AnimatePresence>
 

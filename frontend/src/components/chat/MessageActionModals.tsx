@@ -103,17 +103,14 @@ export const MessageMoreModal: React.FC<MoreModalProps> = ({
           />
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] bg-[#2b2b2b] rounded-[28px] z-[111] overflow-hidden shadow-2xl"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] bg-[#1e1e1e] rounded-lg shadow-2xl z-[111] overflow-hidden border border-white/10"
           >
-            <div className="px-6 py-5">
-              <h3 className="text-white font-bold text-[16px] tracking-tight">More</h3>
-            </div>
-            <div className="mx-6 h-px bg-white/5" />
-            <div className="flex flex-col py-3">
-              <MoreOption icon={<Pin size={18} strokeWidth={2} />} label="Pin" onClick={onPin} />
-              <MoreOption icon={<Edit3 size={18} strokeWidth={2} />} label="Edit" onClick={onEdit} />
-              <MoreOption icon={<Forward size={18} strokeWidth={2} />} label="Forward" onClick={onForward} />
-              <MoreOption icon={<Info size={18} strokeWidth={2} />} label="Details" onClick={onDetails} />
+            <div className="flex flex-col">
+              <MoreOption icon={<Pin size={20} />} label="Pin Message" onClick={onPin} />
+              <MoreOption icon={<Edit3 size={20} />} label="Edit Message" onClick={onEdit} />
+              <MoreOption icon={<Forward size={20} />} label="Forward" onClick={onForward} />
+              <div className="h-px bg-white/10 mx-6" />
+              <MoreOption icon={<Info size={20} />} label="Message Details" onClick={onDetails} />
             </div>
           </motion.div>
         </>
